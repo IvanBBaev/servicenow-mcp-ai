@@ -3,6 +3,13 @@
 > Хронологичен дневник на всичко свършено по проекта. Най-новото е най-отгоре.
 > Правило: след всяка задача се обновяват този файл + всички засегнати MD документи (IMPLEMENTATION-PLAN.md, TODO.md, DONE.md, README.md).
 
+## 2026-06-12 (нощ) — ребрандиране: sincronia-mpc → servicenow-mcp (commit `b88e503`)
+
+- **Обхват:** package name + bin (`bin/servicenow-mcp.cjs`, git mv) + Node guard съобщението; MCP server name `servicenow-mcp`; XDG конфиг пътят `~/.config/servicenow-mcp/.env`; `.vscode/mcp.json`; CI launcher пътят; copilot-instructions; всичките 8 MD документа; package-lock name полетата. Остатъчни "sincronia" в кодовата база: 0.
+- **Миграционна бележка:** съществуващ `~/.config/sincronia-mcp/.env` няма да бъде намерен под новото име (project-root .env-ът, който Иван ползва, не е засегнат). Локалната папка остава `sincronia-mpc` — преименуването на работната директория на жива сесия е рисково; при clone от новото репо името идва само.
+- **Верификация:** build/lint/format/137 теста зелени; launcher-ът под истински Node 12 печата новото име.
+- **Следва:** Иван дава repo URL → git remote + push (затваря R-2) + repository/bugs/homepage в package.json.
+
 ## 2026-06-12 (нощ) — Фаза 7 започната: мулти-инстанс ядрото (137 теста)
 
 ### Контекст
