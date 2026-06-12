@@ -251,6 +251,41 @@ test("servicenow_aggregate without any aggregation fails fast, offline", async (
   });
 });
 
+test("resources follow the package policy (К-7)", async () => {
+  const resourceNames = async (client) => {
+    const direct = (await client.listResources()).resources.map((r) => r.name);
+    const templated = (await client.listResourceTemplates()).resourceTemplates.map(
+      (r) => r.name,
+    );
+    return [...direct, ...templated].sort();
+  };
+
+  // table package only: no schema, no docs → only the status resource.
+  await withEnv({ SN_TOOL_PACKAGES: "table" }, async () => {
+    const { client, close } = await startServer();
+    try {
+      assert.deepEqual(await resourceNames(client), ["status"]);
+    } finally {
+      await close();
+    }
+  });
+
+  // all packages: status + tables + schema + docs.
+  await withEnv({ SN_TOOL_PACKAGES: "all" }, async () => {
+    const { client, close } = await startServer();
+    try {
+      assert.deepEqual(await resourceNames(client), [
+        "docs",
+        "schema",
+        "status",
+        "tables",
+      ]);
+    } finally {
+      await close();
+    }
+  });
+});
+
 test("set_credentials rejects an invalid/blocked host without persisting (К-6)", async () => {
   await withEnv(
     { SN_TOOL_PACKAGES: undefined, SN_ENV_FILE: "/nonexistent/never-written.env" },

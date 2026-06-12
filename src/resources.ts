@@ -3,6 +3,7 @@ import {
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { buildStatusPayload } from "./status.js";
+import { effectivePackages } from "./registry.js";
 import { listTables, describeTable } from "./api/meta.js";
 import { docsRead } from "./api/docs.js";
 import { logger } from "./logging.js";
@@ -28,6 +29,11 @@ function jsonContents(uri: URL, data: unknown) {
  * connection does not break resource listing.
  */
 export function registerResources(server: McpServer): void {
+  // Resources follow the same package policy as the tools they mirror:
+  // tables/schema belong to the schema package, docs to the docs package.
+  // The status resource is the management surface and is always on.
+  const enabled = new Set(effectivePackages().enabled);
+
   server.registerResource(
     "status",
     "servicenow://status",
@@ -39,6 +45,11 @@ export function registerResources(server: McpServer): void {
     },
     (uri) => jsonContents(uri, buildStatusPayload()),
   );
+
+  if (!enabled.has("schema")) {
+    registerDocsResource(server, enabled);
+    return;
+  }
 
   server.registerResource(
     "tables",
@@ -92,6 +103,11 @@ export function registerResources(server: McpServer): void {
     },
   );
 
+  registerDocsResource(server, enabled);
+}
+
+function registerDocsResource(server: McpServer, enabled: Set<string>): void {
+  if (!enabled.has("docs")) return;
   server.registerResource(
     "docs",
     new ResourceTemplate("servicenow://docs/{path}", { list: undefined }),
