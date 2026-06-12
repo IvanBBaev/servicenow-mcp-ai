@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           set +e
-          out=$(node bin/sincronia-mcp.cjs 2>&1)
+          out=$(node bin/servicenow-mcp.cjs 2>&1)
           code=$?
           echo "$out"
           test $code -ne 0 || exit 1

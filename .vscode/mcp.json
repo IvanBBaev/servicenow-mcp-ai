@@ -1,6 +1,6 @@
 {
   "servers": {
-    "sincronia-servicenow": {
+    "servicenow-mcp": {
       "type": "stdio",
       "command": "node",
       "args": ["${workspaceFolder}/build/index.js"]

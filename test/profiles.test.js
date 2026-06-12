@@ -48,7 +48,7 @@ test("prefixed env keys define named profiles, default listed first", async () =
 });
 
 test("saveCredentials on a named profile writes prefixed keys only", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "sincronia-prof-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "servicenow-mcp-prof-"));
   const envFile = path.join(dir, ".env");
   try {
     await withEnv({ SN_ENV_FILE: envFile, ...DEV }, async () => {
@@ -170,7 +170,7 @@ test("the automatic instance argument routes a single call (MI-3)", async () => 
 });
 
 test("useProfile switches and persists; unknown/invalid names throw", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "sincronia-prof-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "servicenow-mcp-prof-"));
   const envFile = path.join(dir, ".env");
   try {
     await withEnv({ SN_ENV_FILE: envFile, ...DEV }, async () => {

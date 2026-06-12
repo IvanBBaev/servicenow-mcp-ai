@@ -22,7 +22,10 @@ baselineEnv();
  * unit tests touch.
  */
 async function startServer() {
-  const server = new McpServer({ name: "sincronia-test", version: "0.0.0" });
+  const server = new McpServer({
+    name: "servicenow-mcp-test",
+    version: "0.0.0",
+  });
   registerAllTools(server);
   registerResources(server);
   const client = new Client({ name: "test-client", version: "0.0.0" });
@@ -368,7 +371,7 @@ test("set_credentials asks for confirmation via elicitation; decline saves nothi
     },
     async () => {
       const server = new McpServer({
-        name: "sincronia-test",
+        name: "servicenow-mcp-test",
         version: "0.0.0",
       });
       registerAllTools(server);
@@ -399,7 +402,7 @@ test("set_credentials asks for confirmation via elicitation; decline saves nothi
         // Accept path (Q2-5): confirm=true lets the change through, persisted
         // to a temp env file.
         const dir = await fs.mkdtemp(
-          path.join(os.tmpdir(), "sincronia-elicit-"),
+          path.join(os.tmpdir(), "servicenow-mcp-elicit-"),
         );
         try {
           await withEnv({ SN_ENV_FILE: path.join(dir, ".env") }, async () => {

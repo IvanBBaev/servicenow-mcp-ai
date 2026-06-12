@@ -7,7 +7,7 @@
 var major = parseInt(process.versions.node.split(".")[0], 10);
 if (major < 20) {
   console.error(
-    "sincronia-mcp requires Node.js >= 20, but this is " +
+    "servicenow-mcp requires Node.js >= 20, but this is " +
       process.versions.node +
       ".\nUse a newer runtime, e.g.: nvm install 22 && nvm use 22",
   );

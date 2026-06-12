@@ -13,7 +13,7 @@ import {
 import { ServiceNowError } from "../build/core/errors.js";
 
 // Each test file runs in its own process, so a per-file temp docs dir is safe.
-const DOCS_DIR = path.join(os.tmpdir(), `sincronia-docs-${process.pid}`);
+const DOCS_DIR = path.join(os.tmpdir(), `servicenow-mcp-docs-${process.pid}`);
 process.env.SN_DOCS_DIR = DOCS_DIR;
 
 test.before(async () => {

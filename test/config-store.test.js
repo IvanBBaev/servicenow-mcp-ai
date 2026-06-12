@@ -38,7 +38,7 @@ test("the snapshot is a copy — mutating it cannot poison the store", () => {
 });
 
 test("saveCredentials persists, updates env and swaps the snapshot at once", async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "sincronia-env-"));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "servicenow-mcp-env-"));
   const envFile = path.join(dir, ".env");
   try {
     await withEnv({ SN_ENV_FILE: envFile }, async () => {

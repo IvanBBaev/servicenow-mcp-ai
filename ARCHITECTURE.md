@@ -1,9 +1,9 @@
-# Sincronia — Архитектурна документация
+# servicenow-mcp — Архитектурна документация
 
 Дата: 2026-06-12 (вечер) · Отразява кода след Фаза 6 + бек лога от тройния анализ (131/131 теста).
 Свързани документи: [PRODUCT-STATE.md](PRODUCT-STATE.md) (състояние), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (бъдеще), [DONE.md](DONE.md) (история), [WORKLOG.md](WORKLOG.md) (хронология).
 
-## 1. Какво е Sincronia
+## 1. Какво е servicenow-mcp
 
 TypeScript **stdio MCP сървър** за ServiceNow: LLM клиент (Claude, VS Code Chat, Inspector…) получава 49 инструмента в 14 пакета върху ServiceNow REST повърхността — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, CMDB/IRE, script intelligence, Mermaid генератори и локална само-документация. Един процес, нула външни runtime зависимости освен `@modelcontextprotocol/sdk`, `zod` и `dotenv`; целият вход/изход е JSON по stdio (логовете са само на stderr).
 
@@ -157,7 +157,7 @@ flowchart LR
 
 ## 6. Конфигурация
 
-- **Env-first:** стойности, подадени от MCP клиента, винаги печелят (`dotenv` с `override:false`); `.env` се търси в ред `SN_ENV_FILE` → XDG (`~/.config/sincronia-mcp/.env`) → project root.
+- **Env-first:** стойности, подадени от MCP клиента, винаги печелят (`dotenv` с `override:false`); `.env` се търси в ред `SN_ENV_FILE` → XDG (`~/.config/servicenow-mcp/.env`) → project root.
 - **ConfigStore (креденшъли):** env-ът е само _начален_ източник — първото четене прави immutable snapshot; `saveCredentials` записва файла атомарно (temp + rename), обновява `process.env` (за child процеси) и сменя snapshot-а с едно присвояване. Недовършено четене „нов user + стара парола“ е структурно невъзможно. Това е опорната точка за мулти-инстанс профилите (Фаза 7 MI-1).
 - **Всички настройки** (timeout, retries, лимити, пакети, лог ниво) се четат през `settings.ts` с валидиращи парсери и документирани default-и (README env таблица + `.env.example`).
 

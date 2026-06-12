@@ -1,4 +1,4 @@
-# Sincronia — ServiceNow MCP Server
+# servicenow-mcp — ServiceNow MCP Server
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that lets an
 MCP client (VS Code, Claude Desktop, etc.) run commands against a **ServiceNow**
@@ -67,7 +67,7 @@ You can also set or change them at runtime by calling the
 `servicenow_set_credentials` tool — the new values are written straight back to the env file.
 
 The env file is resolved in this order: `SN_ENV_FILE`, then
-`~/.config/sincronia-mcp/.env` (XDG) if present, then the project-root `.env`.
+`~/.config/servicenow-mcp/.env` (XDG) if present, then the project-root `.env`.
 A global/`npx` install therefore writes to your user config rather than into
 `node_modules`. Real environment variables always take precedence over the file.
 
@@ -279,7 +279,7 @@ insist on reading real values from the instance:
 
 ```
 .
-├── .env                   # credentials (git-ignored; or ~/.config/sincronia-mcp/.env)
+├── .env                   # credentials (git-ignored; or ~/.config/servicenow-mcp/.env)
 ├── .env.example           # template
 ├── .github/workflows/     # CI: build + lint + test
 ├── .vscode/mcp.json       # VS Code MCP server registration
@@ -305,8 +305,8 @@ insist on reading real values from the instance:
 └── build/                 # compiled output (after npm run build)
 ```
 
-> **Note:** the package is named `sincronia-mcp`, but the repository folder is
-> `sincronia-mpc` (an `mpc`/`mcp` typo). This is cosmetic and does not affect the
+> **Note:** the package is named `servicenow-mcp`, but the repository folder is
+> `servicenow-mcp` (an `mpc`/`mcp` typo). This is cosmetic and does not affect the
 > build; rename the folder manually if you want them to match.
 
 ## Security notes

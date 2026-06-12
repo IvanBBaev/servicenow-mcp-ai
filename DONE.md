@@ -1,4 +1,4 @@
-# Sincronia — Готово (DONE)
+# servicenow-mcp — Готово (DONE)
 
 Завършена и верифицирана работа, изнесена от ревютата и плана. Активните, още неизпълнени задачи са в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) и [TODO.md](TODO.md); хронологията на работата — в [WORKLOG.md](WORKLOG.md).
 
@@ -23,7 +23,7 @@
 - [x] `X-Total-Count` → `total` в query резултата (`{ count, total, records }`).
 - [x] Unit тестове (`node:test`): `formatEnvValue` round-trip, `_buildBaseUrl` SSRF/allow-list — `npm test`.
 - [x] ESLint (flat config + typescript-eslint) + Prettier — `npm run lint` / `npm run format`.
-- [x] Несъответствие папка/пакет (`sincronia-mpc` vs `sincronia-mcp`) — документирано в README.
+- [x] Несъответствие папка/пакет (`servicenow-mcp` vs `servicenow-mcp`) — документирано в README.
 
 ## Архитектурно ревю (TODO-architecture-review.md)
 
@@ -36,7 +36,7 @@
 - [x] **MCP resources**: `servicenow://status`, `servicenow://tables`, `servicenow://schema/{table}`.
 - [x] **Structured logging на stderr** с `SN_LOG_LEVEL` (`logging.ts`); без тайни и без raw заявки в логовете.
 - [x] **Рефактор на `index.ts`**: тънък bootstrap + `registry.ts` + `tools/<група>.ts`; общ HTTP клиент `http.ts`, разделени `host.ts` / `settings.ts` / `errors.ts` / `result.ts`.
-- [x] **Местоположение на env файла**: env-first (`override:false`) + XDG (`~/.config/sincronia-mcp/.env`) + `SN_ENV_FILE`; атомарен запис с създаване на директорията.
+- [x] **Местоположение на env файла**: env-first (`override:false`) + XDG (`~/.config/servicenow-mcp/.env`) + `SN_ENV_FILE`; атомарен запис с създаване на директорията.
 - [x] **Тестова пирамида**: unit + mock-fetch тестове (`http.test.js`, `auth.test.js`: error mapping, retry на 429, Basic/Bearer хедъри, policy, структуриран `fail`) + GitHub Actions CI (build + lint + test).
 
 ## Разширен API обхват
@@ -111,7 +111,7 @@
 ### Предпоставки и одит
 
 - [x] **П-1 · git init** + baseline; история commit-по-задача. _(2424fcf)_
-- [x] **П-2 · Node 20+ защита на три нива**: CJS launcher (`bin/sincronia-mcp.cjs`) с guard преди парсването на ESM графа, втори guard в index.ts, `engines >=20` + `.npmrc engine-strict`. Проверено под истински Node 12. _(2a84eb3)_
+- [x] **П-2 · Node 20+ защита на три нива**: CJS launcher (`bin/servicenow-mcp.cjs`) с guard преди парсването на ESM графа, втори guard в index.ts, `engines >=20` + `.npmrc engine-strict`. Проверено под истински Node 12. _(2a84eb3)_
 - [x] **Х-1 · SDK ъпгрейд 1.12 → 1.29** — констатиран готов при одита на 2026-06-12; InMemoryTransport вече се ползва от smoke тестовете.
 - [x] **Х-3 · Prompts модул** — `src/prompts.ts` с трите шаблона (triage / change impact / document table), реализиран с Фаза 4/5.
 

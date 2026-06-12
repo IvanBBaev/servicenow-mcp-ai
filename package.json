@@ -1,12 +1,12 @@
 {
-  "name": "sincronia-mcp",
+  "name": "servicenow-mcp",
   "version": "1.0.0",
   "description": "ServiceNow MCP server: 49 tools over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, Mermaid generators and a two-axis policy model.",
   "license": "MIT",
   "author": "Ivan Baev <ivanbbaev@gmail.com>",
   "type": "module",
   "bin": {
-    "sincronia-mcp": "./bin/sincronia-mcp.cjs"
+    "servicenow-mcp": "./bin/servicenow-mcp.cjs"
   },
   "main": "./build/index.js",
   "files": [
