@@ -1,11 +1,12 @@
 # Sincronia — Състояние на продукта
 
-Дата: 2026-06-12 · build чист · ESLint чист (type-checked) · **107/107 теста** · CI зелено · git: 23 commit-а, по един на задача.
+Дата: 2026-06-12 (следобед) · build чист · ESLint чист (type-checked) · **122/122 теста** · CI: Node 20/22/24 матрица + coverage · git: 38 commit-а, по един на задача.
+Фаза 6 е до голяма степен изпълнена: П+К+О сериите и М-5/М-6/Х-1/Х-3/Х-6 са готови; остават М-1…М-4 (директории + декларативен манифест) и Х-2/Х-4/Х-5/Х-7/Х-8.
 Свързани документи: [ARCHITECTURE.md](ARCHITECTURE.md) (как е устроено), [DONE.md](DONE.md) (пълен списък свършено), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (какво предстои), [WORKLOG.md](WORKLOG.md) (хронология), [CHANGELOG.md](CHANGELOG.md).
 
 ## 1. TL;DR — какво работи днес
 
-Пълноценен ServiceNow MCP сървър: **46 инструмента в 13 пакета**, 5 MCP resources, 3 prompts. Покрива всички основни ServiceNow REST API-та (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE) и plugin API-тата (Catalog, Change, Knowledge) с capability detection. Чете и анализира скриптовата автоматика на инстанцията (business rules, script includes, client scripts…), генерира Mermaid диаграми и поддържа локална Markdown само-документация. Двуосов policy модел (таблици + пакети), OAuth/Basic, retry/backoff, SSRF guard, structured errors.
+Пълноценен ServiceNow MCP сървър: **47 инструмента в 13 пакета**, 5 MCP resources (пакетно гейтнати), 3 prompts. Покрива всички основни ServiceNow REST API-та (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE) и plugin API-тата (Catalog, Change, Knowledge) с capability detection. Чете и анализира скриптовата автоматика на инстанцията (business rules, script includes, client scripts…), генерира Mermaid диаграми и поддържа локална Markdown само-документация. Двуосов policy модел (таблици + пакети), OAuth/Basic, retry/backoff, SSRF guard, structured errors.
 
 ```mermaid
 pie title 46 tools по пакети

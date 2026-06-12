@@ -108,7 +108,36 @@
 
 ## Фаза 6 (Харнес 2.0) — завършени задачи
 
+### Предпоставки и одит
+
 - [x] **П-1 · git init** + baseline; история commit-по-задача. _(2424fcf)_
+- [x] **П-2 · Node 20+ защита на три нива**: CJS launcher (`bin/sincronia-mcp.cjs`) с guard преди парсването на ESM графа, втори guard в index.ts, `engines >=20` + `.npmrc engine-strict`. Проверено под истински Node 12. _(2a84eb3)_
 - [x] **Х-1 · SDK ъпгрейд 1.12 → 1.29** — констатиран готов при одита на 2026-06-12; InMemoryTransport вече се ползва от smoke тестовете.
 - [x] **Х-3 · Prompts модул** — `src/prompts.ts` с трите шаблона (triage / change impact / document table), реализиран с Фаза 4/5.
+
+### Коректност (К-серията, изцяло)
+
+- [x] **К-1 · OAuth 401 → инвалидация + еднократен retry** с нов токен; второ 401 е истинска грешка. _(b48a4f1)_
+- [x] **К-2 · Authorization per attempt** — токен не изтича между backoff опитите. _(b48a4f1)_
+- [x] **К-3 · Стабилна fetchAll пагинация** — автоматичен `ORDERBYsys_id` при заявка без подредба. _(61cbd26)_
+- [x] **К-4 · Batch само `/api/` пътища** — `/oauth_token.do`, `/login.do` и пр. недостъпни. _(b10a50c)_
+- [x] **К-5 · `^` във филтрите на search/list се отхвърля** (encoded-query разделител без escape). _(ff3e826)_
+- [x] **К-6 · `set_credentials` валидира хоста (resolveHost) преди запис** — нищо не се персистира при невалиден. _(d0e2822)_
+- [x] **К-7 · Resources следват пакетната политика** (schema/docs пакети; status винаги). _(07006b5)_
+- [x] **К-8 · CI Node матрица 20/22/24 + c8 coverage**; `npm test` без дублиран build (`test:full` за локално). _(5002c2d)_
+
+### Модулизация и нови възможности
+
 - [x] **М-5 · Генерирана README tools таблица** — `describeAllTools()` + `scripts/readme-tools.mjs` + sync тест (виж A-8 по-горе); остатък: env таблицата.
+- [x] **М-6 · Snapshot на манифеста** — `{name, package, title, annotations}` за всички tools срещу чекирана фикстура (`npm run gen:manifest`). _(ae7d123)_
+- [x] **Х-6 · `servicenow_test_connection`** — чете 1 запис от sys_user, връща `{ok, status, latencyMs, user}`; 401/403/timeout структурирано, не като exception. _(373688b)_
+
+### Оптимизации (О-серията, изцяло)
+
+- [x] **О-1 · `sysparm_exclude_reference_link=true` по подразбиране** (opt-out `SN_INCLUDE_REF_LINKS`) — −20–40% токени при reference-тежки отговори. _(05b0341)_
+- [x] **О-2 · Компактен JSON изход** (opt-in `SN_RESULT_PRETTY`) — pretty ~удвояваше токените. _(05b0341)_
+- [x] **О-3 · Схема-кеш с TTL** (`SN_SCHEMA_CACHE_TTL_SEC`, default 300 s; ключ с instance) за list_tables/describe_table/get_cmdb_meta. _(103ab7f)_
+- [x] **О-4 · Семафор `SN_MAX_CONCURRENT`** (default 4) около fetch. _(84ccbb5)_
+- [x] **О-5 · Телеметрия** `{requests, retries, errors, totalMs}` в get_status и servicenow://status. _(84ccbb5)_
+
+**Оставащо от Фаза 6:** М-1/М-2 (директории core/api/mcp + ESLint граници), М-3/М-4 (декларативният tool манифест), Х-2 (elicitation), Х-4 (MCP logging capability), Х-5 (outputSchema), Х-7 (email пакет), Х-8 (HTTP транспорт, опц.).
