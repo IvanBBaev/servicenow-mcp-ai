@@ -4,9 +4,11 @@ import assert from "node:assert/strict";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { registerAllTools } from "../build/mcp/registry.js";
 import { registerResources } from "../build/mcp/resources.js";
+import { setServer } from "../build/mcp/context.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();
@@ -326,6 +328,44 @@ test("resources follow the package policy (К-7)", async () => {
       await close();
     }
   });
+});
+
+test("set_credentials asks for confirmation via elicitation; decline saves nothing (Х-2)", async () => {
+  await withEnv(
+    { SN_TOOL_PACKAGES: undefined, SN_ENV_FILE: "/nonexistent/never-written.env" },
+    async () => {
+      const server = new McpServer({ name: "sincronia-test", version: "0.0.0" });
+      registerAllTools(server);
+      setServer(server);
+      const client = new Client(
+        { name: "test-client", version: "0.0.0" },
+        { capabilities: { elicitation: {} } },
+      );
+      const answer = { action: "decline" };
+      client.setRequestHandler(ElicitRequestSchema, async () => answer);
+      const [ct, st] = InMemoryTransport.createLinkedPair();
+      await Promise.all([server.connect(st), client.connect(ct)]);
+      try {
+        // Decline → refusal, nothing saved.
+        const declined = await client.callTool({
+          name: "servicenow_set_credentials",
+          arguments: { user: "mallory" },
+        });
+        assert.ok(declined.isError);
+        assert.match(declined.content[0].text, /not confirmed/);
+
+        const status = await client.callTool({
+          name: "servicenow_get_status",
+          arguments: {},
+        });
+        assert.equal(JSON.parse(status.content[0].text).user, "alice");
+      } finally {
+        setServer(null);
+        await client.close();
+        await server.close();
+      }
+    },
+  );
 });
 
 test("set_credentials rejects an invalid/blocked host without persisting (К-6)", async () => {

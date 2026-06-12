@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { logger } from "../build/core/logging.js";
+import { logger, setLogSink } from "../build/core/logging.js";
 import { withEnv } from "./helpers.js";
 
 /** Capture stderr JSON lines emitted through console.error. */
@@ -49,6 +49,23 @@ test("SN_LOG_LEVEL=debug lets every level through", async () => {
     withEnv({ SN_LOG_LEVEL: "debug" }, emitAll),
   );
   assert.equal(entries.length, 4);
+});
+
+test("a sink sees filtered entries; a throwing sink is swallowed (Х-4)", async () => {
+  const seen = [];
+  setLogSink((level, message) => seen.push(`${level}:${message}`));
+  try {
+    await captureLogs(() => withEnv({ SN_LOG_LEVEL: "warn" }, emitAll));
+    assert.deepEqual(seen, ["error:e", "warn:w"], "sink respects the filter");
+
+    setLogSink(() => {
+      throw new Error("boom");
+    });
+    const entries = await captureLogs(() => logger.error("still works"));
+    assert.equal(entries.length, 1, "a failing sink must not break logging");
+  } finally {
+    setLogSink(null);
+  }
 });
 
 test("an unknown level falls back to info; entries are structured JSON", async () => {

@@ -155,6 +155,7 @@ export function registerAllTools(server: McpServer): void {
         description: spec.description,
         annotations: spec.annotations,
         inputSchema: spec.input,
+        ...(spec.output ? { outputSchema: spec.output } : {}),
       },
       (args) => runSpec(spec, args),
     );

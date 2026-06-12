@@ -25,6 +25,20 @@ function configuredLevel(): LogLevel {
   return raw in LEVELS ? (raw as LogLevel) : "info";
 }
 
+/** Optional secondary sink (e.g. the MCP logging capability). */
+export type LogSink = (
+  level: LogLevel,
+  message: string,
+  fields?: Record<string, unknown>,
+) => void;
+
+let sink: LogSink | null = null;
+
+/** Attach/detach a secondary sink; it must never throw into the logger. */
+export function setLogSink(next: LogSink | null): void {
+  sink = next;
+}
+
 function emit(
   level: LogLevel,
   message: string,
@@ -39,6 +53,11 @@ function emit(
   };
   // stderr only — stdout is reserved for the MCP protocol.
   console.error(JSON.stringify(entry));
+  try {
+    sink?.(level, message, fields);
+  } catch {
+    // A failing sink must never break (or recurse into) logging.
+  }
 }
 
 export const logger = {

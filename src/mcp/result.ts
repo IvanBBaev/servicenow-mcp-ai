@@ -5,6 +5,7 @@ import type { SnRecord } from "../api/table.js";
 /** The shape every tool handler returns to the MCP client. */
 export type ToolResult = {
   content: { type: "text"; text: string }[];
+  structuredContent?: Record<string, unknown>;
   isError?: boolean;
 };
 
@@ -24,6 +25,14 @@ function asText(data: unknown): ToolResult {
 /** Success result carrying a JSON payload. */
 export function ok(data: unknown): ToolResult {
   return asText(data);
+}
+
+/**
+ * Success result that also carries structuredContent — only for tools that
+ * declare an outputSchema (the duplication costs tokens, so it is opt-in).
+ */
+export function okStructured(data: Record<string, unknown>): ToolResult {
+  return { ...asText(data), structuredContent: data };
 }
 
 /** Pull the useful part out of a ServiceNow error body, if present. */

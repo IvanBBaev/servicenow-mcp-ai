@@ -17,25 +17,47 @@ import { loadEnv, hasCredentials } from "./core/config.js";
 import { registerAllTools } from "./mcp/registry.js";
 import { registerResources } from "./mcp/resources.js";
 import { registerPrompts } from "./mcp/prompts.js";
-import { logger } from "./core/logging.js";
+import { setServer } from "./mcp/context.js";
+import { logger, setLogSink, type LogLevel } from "./core/logging.js";
 
 loadEnv();
 
 const requireJson = createRequire(import.meta.url);
 const pkg = requireJson("../package.json") as { version: string };
 
-const server = new McpServer({
-  name: "sincronia-servicenow",
-  version: pkg.version,
-});
+const server = new McpServer(
+  {
+    name: "sincronia-servicenow",
+    version: pkg.version,
+  },
+  { capabilities: { logging: {} } },
+);
 
 registerAllTools(server);
 registerResources(server);
 registerPrompts(server);
+setServer(server);
+
+/** Map our levels onto the MCP logging levels (warn → warning). */
+const MCP_LEVEL: Record<LogLevel, "debug" | "info" | "warning" | "error"> = {
+  debug: "debug",
+  info: "info",
+  warn: "warning",
+  error: "error",
+};
 
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  // Mirror stderr logs to the client over the MCP logging capability (Х-4).
+  setLogSink((level, message, fields) => {
+    void server.server
+      .sendLoggingMessage({
+        level: MCP_LEVEL[level],
+        data: { message, ...(fields ?? {}) },
+      })
+      .catch(() => undefined);
+  });
   // STDIO servers must never write to stdout; logging goes to stderr.
   logger.info("Sincronia ServiceNow MCP server running on stdio", {
     version: pkg.version,

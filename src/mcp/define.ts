@@ -26,6 +26,11 @@ export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
   annotations: ToolAnnotationSet;
   /** zod input shape; every field carries a .describe(). */
   input: S;
+  /**
+   * Optional zod output shape (MCP outputSchema). Handlers of such tools must
+   * return structuredContent matching it — use okStructured().
+   */
+  output?: z.ZodRawShape;
   /** Fields for the log line; never secrets or raw encoded queries. */
   logFields?: (
     args: z.objectOutputType<S, z.ZodTypeAny>,
