@@ -1,8 +1,8 @@
 # Sincronia — Готово (DONE)
 
-Завършена и верифицирана работа, изнесена от ревютата и плана. Активните, още неизпълнени задачи са в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md), [TODO-code-review.md](TODO-code-review.md) и [TODO-architecture-review.md](TODO-architecture-review.md).
+Завършена и верифицирана работа, изнесена от ревютата и плана. Активните, още неизпълнени задачи са в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) и [TODO.md](TODO.md); хронологията на работата — в [WORKLOG.md](WORKLOG.md).
 
-Състояние: build чист · ESLint чист · 59/59 `node:test` (вкл. mock-fetch, OAuth, packages, batch, plugin API-та, scripts, docs, diagrams) · GitHub Actions CI.
+Състояние: build чист · ESLint чист (type-checked) · 102/102 `node:test` (вкл. mock-fetch, OAuth, packages, batch, plugin API-та, scripts, docs, diagrams, MCP smoke) · GitHub Actions CI · git хранилище с commit-по-задача история.
 
 ## Базова функционалност
 
@@ -65,3 +65,38 @@
 - [x] SSRF guard: `resolveHost` блокира internal/loopback хостове + `SN_ALLOWED_HOSTS` allow-list.
 - [x] Пагинация `fetchAll` + лимит `SN_MAX_RECORDS`.
 - [x] Result size guard `SN_MAX_RESULT_CHARS` (отрязва прекалено голям резултат).
+
+## Дълбоко ревю 2026-06-12 — имплементирани находки (по един commit на задача)
+
+Пълните описания на находките са в WORKLOG.md (подробно) и в git историята; тук е резюмето.
+
+### Синиър дев (S)
+
+- [x] **S-1 (критично) + S-2** · `describe_table` обхожда веригата на наследяване (`sys_db_object.super_class`, dot-walk, цикъл-guard) — за `incident` се виждат и полетата от `task`; дете-override печели; нова колона `sourceTable`; `listTables` връща истинско име на родителя. _(commit 9d8da51)_
+- [x] **S-3** · стриктна base64 валидация при upload — `Buffer.from` никога не хвърля, невалидният вход вече е грешка без HTTP заявка. _(385fd57)_
+- [x] **S-4** · download проверява `size_bytes` от метаданните преди да тегли байтовете (без 1 GB в паметта „за проба“). _(385fd57)_
+- [x] **S-5** · `servicenow_aggregate` изисква поне една агрегация — fail-fast офлайн. _(5c31ec7)_
+- [x] **S-6** · batch table policy покрива и `/stats`, `/import`, `/cmdb/instance` под-заявки. _(6ad6821)_
+- [x] **S-7** · `invalidateTokens()` — OAuth кешът се чисти при смяна на креденшъли (ключът не съдържа паролата). _(946ea2d)_
+- [x] **S-8** · `search_code` логва дължина на текста, не самия текст. _(70a961d)_
+
+### Архитект (A)
+
+- [x] **A-1** · per-package policy: `SN_PACKAGES_DENY` (маха цял пакет, вкл. plugin API-та, които table policy не вижда) + `SN_PACKAGES_READONLY` (регистрира само read tools през Proxy фасада по `readOnlyHint`); `effectivePackages()` — общ източник за registry и status; README предупреждава, че table deny ≠ plugin deny. _(90668d3)_
+- [x] **A-3** · capability кеш в `pluginCall`: namespace 404 („does not represent any resource“) се кешира 5 мин с мигновен отказ; record 404 не се кешира; наличността е в `pluginApis` на status-а. _(3cd86cb)_
+- [x] **A-4** · `api/shared.ts: expectResult/expectResultArray` — 7-те копия на result-проверката станаха едно. _(da3f056)_
+- [x] **A-5** · един `buildStatusPayload()` (`src/status.ts`) за tool-а и resource-а — разминаването е невъзможно. _(4028969)_
+- [x] **A-6** · `noUncheckedIndexedAccess` в tsconfig; 6 файла поправени с истински guard-ове. _(021cfa4)_
+- [x] **A-7** · type-checked ESLint + `no-floating-promises`; `no-base-to-string` хвана реален капан → нов `snString()` (обект при `display_value=all` вече не става `"[object Object]"`). _(42e1d5f)_
+
+### QA (Q)
+
+- [x] **Q-1 + Q-4** · in-memory MCP smoke тестове: истински SDK `Client`+`McpServer` през `InMemoryTransport` — контрактен snapshot на core профила (15 tools), zod → мапинг → ok()/fail() пликове, package gating, status resource. _(f13f316)_
+- [x] **Q-2** · общ `test/helpers.js` (baselineEnv/withEnv/withFetch/jsonResponse); 6-те стари файла мигрирани, ~150 реда дублиране махнати. _(edcd07b)_
+- [x] **Q-3** · 17 теста за непокритото: fetchAll пагинация + SN_MAX_RECORDS cap, okQueryResult truncation, retry матрицата (GET/POST, Retry-After като дата), pluginCall, settings парсери. _(b6469f1)_
+- [x] **Q-5** · env override тестове (settings) + SN_LOG_LEVEL филтър тестове. _(b6469f1, be291e6)_
+
+### Покрай ревюто
+
+- [x] **П-1** · `git init` + baseline; една задача = един commit (16 commit-а за ревюто). _(2424fcf)_
+- [x] Авто-одобрение на повтарящите се dev команди в `.claude/settings.json` (build/lint/test/commit; без push и широки wildcard-и).

@@ -57,6 +57,21 @@
 - **S-8:** `search_code` логваше търсения текст (потенциално лични данни, в разрез с правилото на logging.ts) — сега `textLength` + `type`.
 - **Тестове:** 93 зелени.
 
+### A-1 · per-package policy (commit `90668d3`)
+
+- **Проблем (ВИСОКО):** policy моделът беше таблично-центричен — `SN_TABLES_DENY=change_request` спира Table API пътя, но Change Management API (`sn_chg_rest`) продължава да чете/пише change-ове. Липсваше втора ос на контрол за plugin API-тата.
+- **Решение:** два нови env-а: `SN_PACKAGES_DENY` (маха цял пакет независимо от `SN_TOOL_PACKAGES`) и `SN_PACKAGES_READONLY` (Proxy фасада в registry.ts регистрира само tools с `readOnlyHint: true` — write инструментите изобщо не съществуват за модела). Нов `effectivePackages()` — единственият източник за enabled/denied/readOnly, ползван от registry и status payload-а. Документация: README env таблицата + изрична бележка „table deny ≠ plugin deny“ в security секцията (минимумът от A-8); `.env.example` допълнен.
+- **Файлове:** `src/settings.ts` (общ `parseNameList` + двата getter-а), `src/registry.ts`, `src/status.ts`, `README.md`, `.env.example`, тестове в `mcp-smoke` (deny маха целия пакет; readonly пази read tools, маха order_catalog_item) и `settings.test.js`. **Тестове:** 102 зелени.
+- **Технически детайл:** `Parameters<McpServer["registerTool"]>` дава `never` (generic overload) — фасадата е типизирана с loose passthrough, без да пипа аргументите.
+
+### Q-5 (остатък) · SN_LOG_LEVEL тестове (commit `be291e6`)
+
+- 4 теста на логинг филтъра: default info (debug отпада), error заглушава, debug пуска всичко, непознато ниво → fallback info; проверка на JSON структурата (ts/level/message/fields). Капва се `console.error` — нула промени по кода.
+
+### Реорганизация: готовото → DONE.md (указание на Иван)
+
+- Всичко имплементирано от ревюто (19/22 находки) е преместено от TODO.md в [DONE.md](DONE.md) като компактно резюме с commit референции; TODO.md остава само с отворените **A-2** (ConfigStore — след М-1/М-2, преди MI-1), **A-8** (генерирано README — след манифеста) и **Q-6** (процедурно). Заглавният статус на DONE.md обновен: 102/102 теста, type-checked ESLint, git история.
+
 ### A-4 + A-5 · дедупликации (commits `da3f056`, `4028969`)
 
 - **A-4:** проверката `if (!data || data.result == null) throw` съществуваше в 7 копия (servicenow.ts ×4, attachment.ts ×3). Нов [api/shared.ts](src/api/shared.ts) с `expectResult`/`expectResultArray` — едно място, едно съобщение; всяко ново API го преизползва.
