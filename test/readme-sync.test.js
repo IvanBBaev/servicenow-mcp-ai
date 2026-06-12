@@ -49,3 +49,19 @@ test("describeAllTools sees every package and the admin group", () => {
     assert.equal(typeof t.readOnly, "boolean");
   }
 });
+
+test("package.json description states the real tool and package counts", () => {
+  const pkg = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  const tools = describeAllTools();
+  const packages = new Set(tools.map((t) => t.package));
+  assert.ok(
+    pkg.description.includes(`${tools.length} tools`),
+    `description must say "${tools.length} tools" (says: ${pkg.description})`,
+  );
+  assert.ok(
+    pkg.description.includes(`${packages.size} packages`),
+    `description must say "${packages.size} packages" (says: ${pkg.description})`,
+  );
+});

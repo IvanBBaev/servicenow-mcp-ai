@@ -1,9 +1,17 @@
 {
   "name": "servicenow-mcp",
   "version": "1.0.0",
-  "description": "ServiceNow MCP server: 49 tools over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, Mermaid generators and a two-axis policy model.",
+  "description": "ServiceNow MCP server: 53 tools in 15 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "license": "MIT",
   "author": "Ivan Baev <ivanbbaev@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LeassTaTT/servicenow-mcp.git"
+  },
+  "homepage": "https://github.com/LeassTaTT/servicenow-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/LeassTaTT/servicenow-mcp/issues"
+  },
   "type": "module",
   "bin": {
     "servicenow-mcp": "./bin/servicenow-mcp.cjs"
@@ -11,6 +19,7 @@
   "main": "./build/index.js",
   "files": [
     "build",
+    "!build/**/*.map",
     "bin"
   ],
   "engines": {
