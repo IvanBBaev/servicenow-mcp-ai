@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "sincronia-servicenow": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/build/index.js"]
+    }
+  }
+}
