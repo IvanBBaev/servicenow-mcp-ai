@@ -19,12 +19,13 @@
     "watch": "tsc --watch",
     "start": "node build/index.js",
     "dev": "node --watch build/index.js",
-    "test": "npm run build && node --test test/*.test.js",
+    "test": "node --test test/*.test.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
-    "docs:readme": "node scripts/readme-tools.mjs"
+    "docs:readme": "node scripts/readme-tools.mjs",
+    "test:full": "npm run build && node --test test/*.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
