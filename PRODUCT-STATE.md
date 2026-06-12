@@ -92,13 +92,13 @@ timeline
 
 ## 7. Документен компас
 
-| Файл                                             | Какво съдържа                                                      |
-| ------------------------------------------------ | ------------------------------------------------------------------ |
-| [README.md](README.md)                           | setup, env референция, генерирана tools таблица, примери, security |
-| [ARCHITECTURE.md](ARCHITECTURE.md)               | слоеве, диаграми, policy/auth/config модели, ADR решения           |
-| [PRODUCT-STATE.md](PRODUCT-STATE.md)             | този файл — какво/докъде/как                                       |
-| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Фази 6–8 спецификации за Opus 4.8 + опционално                     |
-| [DONE.md](DONE.md)                               | пълен списък свършено, с commit референции                         |
-| [TODO.md](TODO.md)                               | само won't-fix решенията (всичко друго е done или планирано)       |
-| [WORKLOG.md](WORKLOG.md)                         | подробна хронология: проблем/решение/алтернативи/верификация       |
-| [CHANGELOG.md](CHANGELOG.md)                     | потребителски преглед на промените (Keep a Changelog)              |
+| Файл                                             | Какво съдържа                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------------- |
+| [README.md](README.md)                           | setup, env референция, генерирана tools таблица, примери, security  |
+| [ARCHITECTURE.md](ARCHITECTURE.md)               | слоеве, диаграми, policy/auth/config модели, ADR решения            |
+| [PRODUCT-STATE.md](PRODUCT-STATE.md)             | този файл — какво/докъде/как                                        |
+| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Фази 6–8 спецификации за Opus 4.8 + опционално                      |
+| [DONE.md](DONE.md)                               | пълен списък свършено, с commit референции                          |
+| [TODO.md](TODO.md)                               | бек лог (троен анализ S2/A2/Q2), release чеклист R-1…R-9, won't-fix |
+| [WORKLOG.md](WORKLOG.md)                         | подробна хронология: проблем/решение/алтернативи/верификация        |
+| [CHANGELOG.md](CHANGELOG.md)                     | потребителски преглед на промените (Keep a Changelog)               |

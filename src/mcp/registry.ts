@@ -1,4 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
 import { runSpec, type AnyToolSpec } from "./define.js";
 import { specs as tableSpecs } from "../tools/table.js";
 import { specs as metaSpecs } from "../tools/meta.js";
@@ -154,7 +155,11 @@ export function registerAllTools(server: McpServer): void {
         title: spec.title,
         description: spec.description,
         annotations: spec.annotations,
-        inputSchema: spec.input,
+        // Strict object: an unknown argument (e.g. a typo like 'tabel') is a
+        // visible validation error instead of being stripped silently.
+        inputSchema: z
+          .object(spec.input)
+          .strict() as unknown as typeof spec.input,
         ...(spec.output ? { outputSchema: spec.output } : {}),
       },
       (args) => runSpec(spec, args),

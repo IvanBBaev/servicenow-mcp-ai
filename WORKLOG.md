@@ -3,6 +3,28 @@
 > Хронологичен дневник на всичко свършено по проекта. Най-новото е най-отгоре.
 > Правило: след всяка задача се обновяват този файл + всички засегнати MD документи (IMPLEMENTATION-PLAN.md, TODO.md, DONE.md, README.md).
 
+## 2026-06-12 — release-readiness анализ (само анализ, кодът не е пипан)
+
+### Задача
+
+Иван поиска оценка колко готов е проектът за релийз по най-добрите стандарти.
+
+### Стъпки
+
+- [x] Реална верификация на Node 22: build чист, ESLint чист, **128/128 теста** (127 + 1 от некомитнатия WIP), coverage 89.4% lines / 78.2% branches / 62.5% functions.
+- [x] `npm run verify` се проваля на Prettier — но само заради **некомитнатия WIP** в `src/mcp/registry.ts` (+ нов тест в `test/mcp-smoke.test.js`); HEAD версията е форматирана коректно.
+- [x] `npm pack --dry-run`: 76 kB / 101 файла, само build+bin+README — нищо излишно не изтича.
+- [x] `npm audit --omit=dev`: 0 уязвимости (3 runtime зависимости).
+- [x] Находките оформени като чеклист **R-1…R-9** в TODO.md (нова секция „Release-readiness 2026-06-12“); дублираният won't-fix header махнат; компас редът за TODO.md в PRODUCT-STATE.md актуализиран.
+
+### Резултат — какво липсва за релийз (нищо не е поправяно)
+
+1. **Блокер: няма LICENSE файл и няма `license` поле в package.json.**
+2. **Блокер: няма git remote** — CI workflow-ът никога не е изпълняван реално.
+3. package.json без `repository`/`author`/`bugs`/`homepage`; няма `prepublishOnly`.
+4. Release процес липсва (известно — S2-4): версия 1.0.0 от началото, CHANGELOG само с [Unreleased], нула тагове.
+5. Дребен doc drift: package.json казва „49 tools“, PRODUCT-STATE pie + CHANGELOG казват 46; TODO.md има дублиран header „Решения (won't-fix)“.
+
 ## 2026-06-12 — имплементация на ревю задачите
 
 > Указание от Иван: worklog-ът да е **подробен** — за всяка задача: проблем, решение, файлове, тестове, commit.

@@ -5,7 +5,8 @@
 > живее в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (Фаза 7 мулти-инстанс, Фаза 8 flow
 > тестове + код анализ, „Опционално“).
 >
-> По-долу: тройният анализ от вечерта (какво ЛИПСВА занапред) + съзнателните won't-fix решения.
+> По-долу: тройният анализ от вечерта (какво ЛИПСВА занапред) + release-readiness чеклистът
+> (R-1…R-9) + съзнателните won't-fix решения.
 
 ## Троен анализ 2026-06-12 (вечер) — какво липсва (бек лог, не е започвано)
 
@@ -36,7 +37,40 @@
 - [ ] **Q2-4 · Перф regression тест за `okQueryResult`** върху 10k записа — halving цикълът прави многократни `JSON.stringify` на големи масиви; да се измери и при нужда да се оптимизира (бинарно търсене по дължина).
 - [ ] **Q2-5 · Elicitation accept пътят няма тест** (само decline) — добави при следващото пипане на admin пакета.
 
-## Решения (won't-fix) — без промяна по кода
+## Release-readiness 2026-06-12 (вечер) — какво липсва за релийз
+
+Контекст: реална верификация на Node 22 — build/lint чисти, 128/128 теста, coverage 89.4% lines /
+78.2% branches, `npm audit --omit=dev` 0 уязвимости, `npm pack` чист (76 kB, само build+bin+README).
+Кодът е release-grade; липсва само опаковка и процес (~½ ден). Подробности в WORKLOG.md.
+
+### Блокери
+
+- [ ] **R-1 · LICENSE.** Няма LICENSE файл, нито `license` поле в package.json — `npm publish`
+      предупреждава, юридически пакетът е неизползваем. Ако не е за навън: поне
+      `"license": "UNLICENSED"` + `"private": true`.
+- [ ] **R-2 · Git remote + първи реален CI run.** Репото е само локално — ci.yml никога не е
+      изпълняван; „CI зелен“ е непроверимо до първия push.
+- [ ] **R-3 · Release процес (= S2-4).** Срязване на `[Unreleased]` в CHANGELOG → `1.0.0` + git
+      таг; при публикуване — release-please или changesets + publish workflow с `--provenance`.
+- [ ] **R-4 · package.json метаданни.** Липсват `repository`, `author`, `bugs`, `homepage` +
+      `"prepublishOnly": "npm run verify"` (последна защита срещу счупен tarball).
+
+### Преди първия push
+
+- [ ] **R-5 · WIP-ът да се форматира и комитне.** `src/mcp/registry.ts` + `test/mcp-smoke.test.js`
+      са некомитнати и Prettier пада върху тях (`npm run verify` червен) — иначе истинският CI
+      светва червено от ден едно.
+- [ ] **R-6 · Doc drift по броя tools.** package.json description казва „49 tools“, PRODUCT-STATE
+      TL;DR казва 49/14 пакета, а pie диаграмата и CHANGELOG казват 46/12 — да се сведе до едно
+      число (в идеалния случай генерирано, както README таблицата).
+
+### Should-have (не блокират; вече в бек лога)
+
+- [ ] **R-7 · Coverage праг в CI (= Q2-1)** — числото вече е известно: `--lines 85` е безопасен старт.
+- [ ] **R-8 · Windows в CI матрицата (= Q2-3)** и launcher тест под Node 12 **(= S2-3)**.
+- [ ] **R-9 · Ако релийзът е публичен:** SECURITY.md + CONTRIBUTING.md; преразглеждане на двете
+      won't-fix решения по-долу — за чужди потребители default-ите трябва да са консервативните
+      (за лична употреба остават ОК).
 
 ## Решения (won't-fix) — без промяна по кода
 

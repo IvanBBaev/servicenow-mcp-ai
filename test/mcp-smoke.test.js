@@ -151,6 +151,29 @@ test("invalid arguments are rejected by the zod schema before any network call",
   });
 });
 
+test("an unknown argument (typo) is a validation error, not silently stripped (S2-1)", async () => {
+  await withEnv({ SN_TOOL_PACKAGES: undefined }, async () => {
+    const { client, close } = await startServer();
+    try {
+      await withFetch(
+        () => {
+          throw new Error("fetch must not be called for an unknown argument");
+        },
+        async (calls) => {
+          const res = await client.callTool({
+            name: "servicenow_query_table",
+            arguments: { tabel: "incident" },
+          });
+          assert.ok(res.isError, "typo'd argument must surface as an error");
+          assert.equal(calls.length, 0);
+        },
+      );
+    } finally {
+      await close();
+    }
+  });
+});
+
 test("a ServiceNow error comes back as a structured fail() payload", async () => {
   await withEnv({ SN_TOOL_PACKAGES: undefined }, async () => {
     const { client, close } = await startServer();
