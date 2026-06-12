@@ -60,6 +60,24 @@ export async function getAttachmentMeta(
   return data.result;
 }
 
+/** Standard base64: 4-char groups, '=' padding only at the end. */
+const BASE64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+
+/**
+ * Decode base64 strictly. `Buffer.from(s, "base64")` never throws — it
+ * silently skips invalid characters — so malformed input must be rejected
+ * explicitly or a corrupted file would be uploaded without any error.
+ */
+function decodeBase64Strict(input: string): Buffer {
+  const compact = input.replace(/\s+/g, "");
+  if (compact.length % 4 !== 0 || !BASE64_RE.test(compact)) {
+    throw new ServiceNowError(
+      "contentBase64 is not valid base64 data (check for stray characters or truncation).",
+    );
+  }
+  return Buffer.from(compact, "base64");
+}
+
 /** Upload a file (given as base64) and attach it to a record. */
 export async function uploadAttachment(args: {
   table: string;
@@ -70,12 +88,7 @@ export async function uploadAttachment(args: {
 }): Promise<AttachmentMeta> {
   assertTableAllowed(args.table);
   assertWriteAllowed("attachment upload");
-  let bytes: Buffer;
-  try {
-    bytes = Buffer.from(args.contentBase64, "base64");
-  } catch {
-    throw new ServiceNowError("contentBase64 is not valid base64 data.");
-  }
+  const bytes = decodeBase64Strict(args.contentBase64);
   const params = new URLSearchParams({
     table_name: args.table,
     table_sys_id: args.sysId,
@@ -106,13 +119,28 @@ export interface AttachmentDownload {
 export async function downloadAttachment(
   attachmentSysId: string,
 ): Promise<AttachmentDownload> {
+  const maxChars = getMaxResultChars();
+
+  // Check the recorded size first, so an oversized file is refused without
+  // ever pulling its bytes into memory.
+  const meta = await getAttachmentMeta(attachmentSysId);
+  const sizeBytes = Number(meta.size_bytes);
+  if (Number.isFinite(sizeBytes) && sizeBytes > 0) {
+    const estBase64Chars = Math.ceil(sizeBytes / 3) * 4;
+    if (estBase64Chars > maxChars) {
+      throw new ServiceNowError(
+        `Attachment ${meta.file_name ?? attachmentSysId} is too large to return inline (~${estBase64Chars} base64 chars > ${maxChars}). Increase SN_MAX_RESULT_CHARS or download it out of band.`,
+      );
+    }
+  }
+
   const { data, contentType } = await snRequest<string>({
     method: "GET",
     path: `/api/now/attachment/${encodeURIComponent(attachmentSysId)}/file`,
     accept: "*/*",
     responseType: "binary",
   });
-  const maxChars = getMaxResultChars();
+  // Belt-and-braces: size_bytes can be missing or stale on the instance.
   if (data.length > maxChars) {
     throw new ServiceNowError(
       `Attachment is too large to return inline (${data.length} base64 chars > ${maxChars}). Increase SN_MAX_RESULT_CHARS or download it out of band.`,
