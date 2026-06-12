@@ -1,5 +1,7 @@
 import { snRequest } from "../http.js";
 import { assertTableAllowed, assertWriteAllowed } from "../policy.js";
+import { getCredentials } from "../config.js";
+import { cached } from "../cache.js";
 
 /**
  * ServiceNow CMDB Instance API (`/api/now/cmdb/instance/{class}`) and CMDB Meta
@@ -86,9 +88,14 @@ export async function updateCmdbInstance(
 
 export async function getCmdbMeta(className: string): Promise<unknown> {
   assertTableAllowed(className);
-  const { data } = await snRequest<{ result: unknown }>({
-    method: "GET",
-    path: `${META}/${encodeURIComponent(className)}`,
-  });
-  return data.result;
+  return cached(
+    `${getCredentials().instance}|cmdbMeta|${className}`,
+    async () => {
+      const { data } = await snRequest<{ result: unknown }>({
+        method: "GET",
+        path: `${META}/${encodeURIComponent(className)}`,
+      });
+      return data.result;
+    },
+  );
 }

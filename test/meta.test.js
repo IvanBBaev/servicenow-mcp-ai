@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { listTables, describeTable, getTableChain } from "../build/api/meta.js";
-import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
+import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();
 
@@ -95,6 +95,27 @@ test("describeTable merges inherited columns and lets the child override", async
     assert.equal(byName.short_description.sourceTable, "incident");
     assert.equal(byName.short_description.mandatory, true);
   });
+});
+
+test("schema reads are cached with TTL; 0 disables (О-3)", async () => {
+  const handler = () =>
+    jsonResponse(200, { result: [{ name: "x", label: "X" }] });
+
+  // Default TTL (300s): the second identical read is served from the cache.
+  await withFetch(handler, async (calls) => {
+    await listTables("cache-probe-on");
+    await listTables("cache-probe-on");
+    assert.equal(calls.length, 1);
+  });
+
+  // TTL 0: caching off, every read hits the instance.
+  await withEnv({ SN_SCHEMA_CACHE_TTL_SEC: "0" }, () =>
+    withFetch(handler, async (calls) => {
+      await listTables("cache-probe-off");
+      await listTables("cache-probe-off");
+      assert.equal(calls.length, 2);
+    }),
+  );
 });
 
 test("listTables resolves superClass via dot-walk to the parent's name", async () => {

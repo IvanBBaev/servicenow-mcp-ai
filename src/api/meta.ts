@@ -1,5 +1,11 @@
 import { queryTable, type SnRecord } from "../servicenow.js";
+import { getCredentials } from "../config.js";
+import { cached } from "../cache.js";
 import { snString } from "./shared.js";
+
+/** Cache key prefix carrying the instance, so profiles never cross-pollute. */
+const cacheKey = (parts: string[]): string =>
+  [getCredentials().instance, ...parts].join("|");
 
 /**
  * Metadata helpers built on top of the Table API: they read ServiceNow's own
@@ -15,6 +21,12 @@ export interface TableInfo {
 
 /** List tables from sys_db_object, optionally filtered by a name/label fragment. */
 export async function listTables(filter?: string): Promise<TableInfo[]> {
+  return cached(cacheKey(["listTables", filter?.trim() ?? ""]), () =>
+    listTablesUncached(filter),
+  );
+}
+
+async function listTablesUncached(filter?: string): Promise<TableInfo[]> {
   const clauses: string[] = [];
   if (filter?.trim()) {
     const f = filter.trim();
@@ -80,6 +92,12 @@ export interface ColumnInfo {
  * task). When a child overrides a parent's dictionary entry, the child wins.
  */
 export async function describeTable(table: string): Promise<ColumnInfo[]> {
+  return cached(cacheKey(["describeTable", table]), () =>
+    describeTableUncached(table),
+  );
+}
+
+async function describeTableUncached(table: string): Promise<ColumnInfo[]> {
   const chain = await getTableChain(table);
   const { records } = await queryTable({
     table: "sys_dictionary",

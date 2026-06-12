@@ -60,6 +60,21 @@ export function resultPretty(): boolean {
   return process.env.SN_RESULT_PRETTY?.trim().toLowerCase() === "true";
 }
 
+export const DEFAULT_SCHEMA_CACHE_TTL_SEC = 300;
+
+/**
+ * TTL for the near-static schema reads cache (SN_SCHEMA_CACHE_TTL_SEC, in
+ * seconds; 0 disables caching). Invalid values fall back to the default.
+ */
+export function getSchemaCacheTtlMs(): number {
+  const raw = Number(process.env.SN_SCHEMA_CACHE_TTL_SEC);
+  const sec =
+    Number.isFinite(raw) && raw >= 0
+      ? Math.floor(raw)
+      : DEFAULT_SCHEMA_CACHE_TTL_SEC;
+  return sec * 1000;
+}
+
 /** Default tool package profile when SN_TOOL_PACKAGES is unset. */
 export const DEFAULT_TOOL_PACKAGES = "core";
 
