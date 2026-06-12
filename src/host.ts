@@ -12,7 +12,7 @@ function isBlockedHost(host: string): boolean {
     return true;
   }
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) {
-    const [a, b] = h.split(".").map(Number);
+    const [a = -1, b = -1] = h.split(".").map(Number);
     if (a === 0 || a === 127 || a === 10) return true;
     if (a === 192 && b === 168) return true;
     if (a === 172 && b >= 16 && b <= 31) return true;

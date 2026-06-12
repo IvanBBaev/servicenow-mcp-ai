@@ -109,9 +109,9 @@ export async function docsSearch(
   for (const file of files) {
     const content = await fs.readFile(resolveDocPath(file), "utf8");
     const lines = content.split("\n");
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].toLowerCase().includes(lower)) {
-        matches.push({ path: file, line: i + 1, snippet: lines[i].trim().slice(0, 200) });
+    for (const [i, line] of lines.entries()) {
+      if (line.toLowerCase().includes(lower)) {
+        matches.push({ path: file, line: i + 1, snippet: line.trim().slice(0, 200) });
       }
     }
   }

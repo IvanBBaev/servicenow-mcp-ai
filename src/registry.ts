@@ -46,12 +46,15 @@ export const ALL_PACKAGES: string[] = [
   ...new Set(TOOL_GROUPS.map((g) => g.package)),
 ];
 
+/** The default package set when SN_TOOL_PACKAGES is unset or unusable. */
+const CORE_PROFILE = ["table", "schema", "aggregate", "attachment"];
+
 /**
  * Named profiles that expand to a set of packages. `core` is the default
  * profile loaded when SN_TOOL_PACKAGES is unset; `all` enables everything.
  */
 const PROFILES: Record<string, string[]> = {
-  core: ["table", "schema", "aggregate", "attachment"],
+  core: CORE_PROFILE,
   all: ALL_PACKAGES,
 };
 
@@ -73,7 +76,7 @@ export function resolveEnabledPackages(requested: string[]): Set<string> {
     }
   }
   if (enabled.size === 0) {
-    for (const p of PROFILES.core) enabled.add(p);
+    for (const p of CORE_PROFILE) enabled.add(p);
   }
   return enabled;
 }

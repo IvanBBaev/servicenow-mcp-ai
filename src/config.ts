@@ -147,17 +147,17 @@ function updateEnvFile(updates: Record<string, string>): void {
   const pending = new Set(Object.keys(updates));
 
   const rewritten = lines.map((line) => {
-    const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/);
-    if (match && pending.has(match[1])) {
-      const key = match[1];
+    const key = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/)?.[1];
+    const value = key !== undefined ? updates[key] : undefined;
+    if (key !== undefined && value !== undefined && pending.has(key)) {
       pending.delete(key);
-      return `${key}=${formatEnvValue(updates[key])}`;
+      return `${key}=${formatEnvValue(value)}`;
     }
     return line;
   });
 
-  for (const key of pending) {
-    rewritten.push(`${key}=${formatEnvValue(updates[key])}`);
+  for (const [key, value] of Object.entries(updates)) {
+    if (pending.has(key)) rewritten.push(`${key}=${formatEnvValue(value)}`);
   }
 
   // Write atomically: a temp file in the same directory plus rename avoids a

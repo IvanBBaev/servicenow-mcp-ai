@@ -236,6 +236,7 @@ export async function searchCode(
   for (const typeName of types) {
     if (matches.length >= limit) break;
     const descriptor = SCRIPT_TYPES[typeName];
+    if (!descriptor) continue;
     const remaining = limit - matches.length;
 
     const codeQuery = descriptor.scriptFields
@@ -294,9 +295,9 @@ function firstMatch(
     const source = record[field];
     if (typeof source !== "string") continue;
     const lines = source.split("\n");
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].toLowerCase().includes(needle)) {
-        const snippet = lines[i].trim().slice(0, 200);
+    for (const [i, line] of lines.entries()) {
+      if (line.toLowerCase().includes(needle)) {
+        const snippet = line.trim().slice(0, 200);
         return {
           type,
           sys_id: String(record.sys_id ?? ""),

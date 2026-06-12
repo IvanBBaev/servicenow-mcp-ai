@@ -72,7 +72,8 @@ function tableFromUrl(url: string): string | undefined {
   const match =
     /\/api\/now\/(?:v\d+\/)?(?:table|stats|import)\/([^/?]+)/i.exec(url) ??
     /\/api\/now\/(?:v\d+\/)?cmdb\/instance\/([^/?]+)/i.exec(url);
-  return match ? decodeURIComponent(match[1]) : undefined;
+  const name = match?.[1];
+  return name ? decodeURIComponent(name) : undefined;
 }
 
 function hasHeader(headers: { name: string }[], name: string): boolean {
