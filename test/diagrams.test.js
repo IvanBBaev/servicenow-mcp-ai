@@ -34,6 +34,11 @@ const jsonResponse = (status, body) =>
 test("generateErDiagram emits an entity and a reference relationship", async () => {
   await withFetch(
     (url) => {
+      // describeTable now resolves the inheritance chain first; an empty
+      // sys_db_object answer means "no parent", so the chain is just incident.
+      if (/\/api\/now\/table\/sys_db_object(\?|$)/.test(url)) {
+        return jsonResponse(200, { result: [] });
+      }
       assert.match(url, /\/api\/now\/table\/sys_dictionary(\?|$)/);
       return jsonResponse(200, {
         result: [
