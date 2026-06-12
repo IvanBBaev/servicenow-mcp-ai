@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { _buildBaseUrl } from "../build/servicenow.js";
+import { _buildBaseUrl } from "../build/api/table.js";
 
 test("appends .service-now.com to a bare instance name", () => {
   assert.equal(

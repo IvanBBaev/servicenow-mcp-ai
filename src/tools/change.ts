@@ -7,7 +7,7 @@ import {
   updateChange,
   changeConflicts,
 } from "../api/change.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 const changeFields = z

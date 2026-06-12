@@ -1,6 +1,6 @@
-import { ServiceNowError } from "./errors.js";
-import { getMaxResultChars, resultPretty } from "./settings.js";
-import type { SnRecord } from "./servicenow.js";
+import { ServiceNowError } from "../core/errors.js";
+import { getMaxResultChars, resultPretty } from "../core/settings.js";
+import type { SnRecord } from "../api/table.js";
 
 /** The shape every tool handler returns to the MCP client. */
 export type ToolResult = {

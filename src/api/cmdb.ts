@@ -1,7 +1,7 @@
-import { snRequest } from "../http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../policy.js";
-import { getCredentials } from "../config.js";
-import { cached } from "../cache.js";
+import { snRequest } from "../core/http.js";
+import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import { getCredentials } from "../core/config.js";
+import { cached } from "../core/cache.js";
 
 /**
  * ServiceNow CMDB Instance API (`/api/now/cmdb/instance/{class}`) and CMDB Meta

@@ -12,7 +12,7 @@ import {
   DEFAULT_MAX_RETRIES,
   DEFAULT_MAX_RECORDS,
   DEFAULT_MAX_RESULT_CHARS,
-} from "../build/settings.js";
+} from "../build/core/settings.js";
 import { withEnv } from "./helpers.js";
 
 test("getTimeoutMs: valid value, fallback on unset/invalid/zero/negative", async () => {

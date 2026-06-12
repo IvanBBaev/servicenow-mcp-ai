@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { logger } from "../build/logging.js";
+import { logger } from "../build/core/logging.js";
 import { withEnv } from "./helpers.js";
 
 /** Capture stderr JSON lines emitted through console.error. */

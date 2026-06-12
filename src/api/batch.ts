@@ -1,6 +1,6 @@
-import { snRequest } from "../http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../policy.js";
-import { ServiceNowError } from "../errors.js";
+import { snRequest } from "../core/http.js";
+import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import { ServiceNowError } from "../core/errors.js";
 
 /**
  * ServiceNow Batch API (`/api/now/v1/batch`): run several REST calls in a

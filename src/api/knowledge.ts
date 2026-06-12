@@ -1,4 +1,4 @@
-import { snRequest } from "../http.js";
+import { snRequest } from "../core/http.js";
 import { pluginCall } from "./plugin.js";
 
 /**

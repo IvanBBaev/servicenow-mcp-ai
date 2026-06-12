@@ -1,5 +1,5 @@
-import { logger } from "../logging.js";
-import { fail, type ToolResult } from "../result.js";
+import { logger } from "../core/logging.js";
+import { fail, type ToolResult } from "../mcp/result.js";
 
 /**
  * Wrap a tool handler with structured logging and uniform error handling.

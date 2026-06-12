@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../errors.js";
+import { ServiceNowError } from "../core/errors.js";
 import { describeTable } from "./meta.js";
 import { listScripts } from "./scripts.js";
 import { snString } from "./shared.js";

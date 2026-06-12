@@ -1,6 +1,6 @@
-import { snRequest } from "../http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../policy.js";
-import type { SnRecord } from "../servicenow.js";
+import { snRequest } from "../core/http.js";
+import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import type { SnRecord } from "./table.js";
 
 /**
  * ServiceNow Import Set API: push a row into a staging table and let the

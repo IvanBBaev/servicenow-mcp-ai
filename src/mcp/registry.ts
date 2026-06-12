@@ -1,23 +1,23 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { registerTableTools } from "./tools/table.js";
-import { registerAdminTools } from "./tools/admin.js";
-import { registerAttachmentTools } from "./tools/attachment.js";
-import { registerAggregateTools } from "./tools/aggregate.js";
-import { registerImportSetTools } from "./tools/importset.js";
-import { registerMetaTools } from "./tools/meta.js";
-import { registerBatchTools } from "./tools/batch.js";
-import { registerCatalogTools } from "./tools/catalog.js";
-import { registerChangeTools } from "./tools/change.js";
-import { registerKnowledgeTools } from "./tools/knowledge.js";
-import { registerCmdbTools } from "./tools/cmdb.js";
-import { registerScriptTools } from "./tools/scripts.js";
-import { registerDocsTools } from "./tools/docs.js";
+import { registerTableTools } from "../tools/table.js";
+import { registerAdminTools } from "../tools/admin.js";
+import { registerAttachmentTools } from "../tools/attachment.js";
+import { registerAggregateTools } from "../tools/aggregate.js";
+import { registerImportSetTools } from "../tools/importset.js";
+import { registerMetaTools } from "../tools/meta.js";
+import { registerBatchTools } from "../tools/batch.js";
+import { registerCatalogTools } from "../tools/catalog.js";
+import { registerChangeTools } from "../tools/change.js";
+import { registerKnowledgeTools } from "../tools/knowledge.js";
+import { registerCmdbTools } from "../tools/cmdb.js";
+import { registerScriptTools } from "../tools/scripts.js";
+import { registerDocsTools } from "../tools/docs.js";
 import {
   getRequestedPackages,
   getDeniedPackages,
   getReadOnlyPackages,
-} from "./settings.js";
-import { logger } from "./logging.js";
+} from "../core/settings.js";
+import { logger } from "../core/logging.js";
 
 /** A registrable group of tools, tagged with the package it belongs to. */
 interface ToolGroup {

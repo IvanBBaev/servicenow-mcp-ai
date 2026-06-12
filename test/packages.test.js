@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import {
   resolveEnabledPackages,
   ALL_PACKAGES,
-} from "../build/registry.js";
-import { getRequestedPackages } from "../build/settings.js";
+} from "../build/mcp/registry.js";
+import { getRequestedPackages } from "../build/core/settings.js";
 
 test("the core profile expands to the default read tools", () => {
   const enabled = resolveEnabledPackages(["core"]);

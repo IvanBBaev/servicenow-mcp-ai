@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { aggregate } from "../api/aggregate.js";
-import { ok, fail } from "../result.js";
+import { ok, fail } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 export function registerAggregateTools(server: McpServer): void {

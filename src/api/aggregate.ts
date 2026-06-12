@@ -1,5 +1,5 @@
-import { snRequest } from "../http.js";
-import { assertTableAllowed } from "../policy.js";
+import { snRequest } from "../core/http.js";
+import { assertTableAllowed } from "../core/policy.js";
 
 /**
  * ServiceNow Aggregate (Stats) API: server-side count/avg/min/max/sum with

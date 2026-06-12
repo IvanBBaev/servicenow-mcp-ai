@@ -3,7 +3,7 @@
 // mocking identical everywhere (and survives a future move to a shared-process
 // runner).
 
-import { reloadCredentialsFromEnv } from "../build/config.js";
+import { reloadCredentialsFromEnv } from "../build/core/config.js";
 
 export const realFetch = globalThis.fetch;
 

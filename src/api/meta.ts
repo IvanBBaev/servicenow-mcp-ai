@@ -1,6 +1,6 @@
-import { queryTable, type SnRecord } from "../servicenow.js";
-import { getCredentials } from "../config.js";
-import { cached } from "../cache.js";
+import { queryTable, type SnRecord } from "./table.js";
+import { getCredentials } from "../core/config.js";
+import { cached } from "../core/cache.js";
 import { snString } from "./shared.js";
 
 /** Cache key prefix carrying the instance, so profiles never cross-pollute. */

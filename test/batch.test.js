@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { runBatch } from "../build/api/batch.js";
-import { ServiceNowError } from "../build/errors.js";
+import { ServiceNowError } from "../build/core/errors.js";
 import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();

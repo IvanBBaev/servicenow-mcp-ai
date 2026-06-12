@@ -7,7 +7,7 @@ import {
   updateCmdbInstance,
   getCmdbMeta,
 } from "../api/cmdb.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 const attributes = z

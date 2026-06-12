@@ -7,7 +7,7 @@ import {
   searchCode,
   tableLogic,
 } from "../build/api/scripts.js";
-import { ServiceNowError } from "../build/errors.js";
+import { ServiceNowError } from "../build/core/errors.js";
 import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();

@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { describeAllTools } from "../build/registry.js";
+import { describeAllTools } from "../build/mcp/registry.js";
 
 export const BEGIN = "<!-- GENERATED:TOOLS:BEGIN (npm run docs:readme) -->";
 export const END = "<!-- GENERATED:TOOLS:END -->";

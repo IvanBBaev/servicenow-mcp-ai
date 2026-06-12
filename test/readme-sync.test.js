@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { BEGIN, END, buildToolsSection } from "../scripts/readme-tools.mjs";
-import { describeAllTools } from "../build/registry.js";
+import { describeAllTools } from "../build/mcp/registry.js";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 

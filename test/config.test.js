@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import dotenv from "dotenv";
 
-import { formatEnvValue } from "../build/config.js";
+import { formatEnvValue } from "../build/core/config.js";
 
 /** Serialise a value, parse it back through dotenv, and return the result. */
 const roundTrip = (value) => dotenv.parse(`KEY=${formatEnvValue(value)}`).KEY;

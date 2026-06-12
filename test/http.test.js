@@ -5,8 +5,8 @@ import {
   queryTable,
   createRecord,
   ServiceNowError,
-} from "../build/servicenow.js";
-import { fail } from "../build/result.js";
+} from "../build/api/table.js";
+import { fail } from "../build/mcp/result.js";
 import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();

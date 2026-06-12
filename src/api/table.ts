@@ -1,15 +1,15 @@
-import { snRequest } from "./http.js";
-import { assertTableAllowed, assertWriteAllowed } from "./policy.js";
+import { snRequest } from "../core/http.js";
+import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import {
   getMaxRecords,
   includeReferenceLinks,
   MAX_PAGE_SIZE,
-} from "./settings.js";
-import { expectResult, expectResultArray } from "./api/shared.js";
+} from "../core/settings.js";
+import { expectResult, expectResultArray } from "./shared.js";
 
 // Re-exported so existing imports and host/SSRF unit tests keep working.
-export { ServiceNowError } from "./errors.js";
-export { _buildBaseUrl } from "./host.js";
+export { ServiceNowError } from "../core/errors.js";
+export { _buildBaseUrl } from "../core/host.js";
 
 export interface QueryOptions {
   table: string;

@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../errors.js";
+import { ServiceNowError } from "../core/errors.js";
 
 /**
  * Unwrap the `result` envelope every ServiceNow REST API uses, with one shared

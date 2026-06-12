@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { docsList, docsRead, docsSearch, docsWrite } from "../api/docs.js";
 import { generateErDiagram, generateTableFlow } from "../api/diagrams.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 /**

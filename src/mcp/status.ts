@@ -1,9 +1,9 @@
-import { getCredentials, hasCredentials } from "./config.js";
-import { getAuthMode } from "./auth.js";
-import { isReadOnly, getAllowedTables, getDeniedTables } from "./policy.js";
+import { getCredentials, hasCredentials } from "../core/config.js";
+import { getAuthMode } from "../core/auth.js";
+import { isReadOnly, getAllowedTables, getDeniedTables } from "../core/policy.js";
 import { effectivePackages } from "./registry.js";
-import { pluginAvailability } from "./api/plugin.js";
-import { getTelemetry } from "./http.js";
+import { pluginAvailability } from "../api/plugin.js";
+import { getTelemetry } from "../core/http.js";
 
 /**
  * The single source of the connection-status payload, shared by the

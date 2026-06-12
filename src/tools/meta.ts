@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { listTables, describeTable } from "../api/meta.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 export function registerMetaTools(server: McpServer): void {

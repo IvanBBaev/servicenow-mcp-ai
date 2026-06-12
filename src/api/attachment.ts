@@ -1,9 +1,9 @@
-import { snRequest } from "../http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../policy.js";
-import { getMaxResultChars } from "../settings.js";
-import { ServiceNowError } from "../errors.js";
+import { snRequest } from "../core/http.js";
+import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import { getMaxResultChars } from "../core/settings.js";
+import { ServiceNowError } from "../core/errors.js";
 import { expectResult, expectResultArray } from "./shared.js";
-import type { SnRecord } from "../servicenow.js";
+import type { SnRecord } from "./table.js";
 
 /**
  * ServiceNow Attachment API. File contents cross the wire as base64 so they

@@ -7,7 +7,7 @@ import {
   downloadAttachment,
   deleteAttachment,
 } from "../api/attachment.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 export function registerAttachmentTools(server: McpServer): void {

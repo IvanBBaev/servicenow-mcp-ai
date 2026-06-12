@@ -6,8 +6,8 @@ import {
   createRecord,
   updateRecord,
   deleteRecord,
-} from "../servicenow.js";
-import { ok, okQueryResult } from "../result.js";
+} from "../api/table.js";
+import { ok, okQueryResult } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 /**

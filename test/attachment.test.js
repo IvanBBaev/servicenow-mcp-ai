@@ -5,7 +5,7 @@ import {
   uploadAttachment,
   downloadAttachment,
 } from "../build/api/attachment.js";
-import { ServiceNowError } from "../build/errors.js";
+import { ServiceNowError } from "../build/core/errors.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();

@@ -1,5 +1,5 @@
-import { ServiceNowError } from "../errors.js";
-import { logger } from "../logging.js";
+import { ServiceNowError } from "../core/errors.js";
+import { logger } from "../core/logging.js";
 
 /**
  * Wrap a call to a plugin-scoped API. ServiceNow returns 404 for the whole

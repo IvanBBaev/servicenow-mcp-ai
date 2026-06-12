@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { saveCredentials, getCredentials, type ServiceNowCredentials } from "../config.js";
-import { invalidateTokens } from "../auth.js";
-import { resolveHost } from "../host.js";
-import { buildStatusPayload } from "../status.js";
-import { snRequest } from "../http.js";
-import { ServiceNowError } from "../errors.js";
-import { ok, fail } from "../result.js";
+import { saveCredentials, getCredentials, type ServiceNowCredentials } from "../core/config.js";
+import { invalidateTokens } from "../core/auth.js";
+import { resolveHost } from "../core/host.js";
+import { buildStatusPayload } from "../mcp/status.js";
+import { snRequest } from "../core/http.js";
+import { ServiceNowError } from "../core/errors.js";
+import { ok, fail } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 export function registerAdminTools(server: McpServer): void {

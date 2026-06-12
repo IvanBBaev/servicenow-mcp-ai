@@ -1,6 +1,6 @@
-import { snRequest } from "../http.js";
-import { assertWriteAllowed } from "../policy.js";
-import { ServiceNowError } from "../errors.js";
+import { snRequest } from "../core/http.js";
+import { assertWriteAllowed } from "../core/policy.js";
+import { ServiceNowError } from "../core/errors.js";
 import { pluginCall } from "./plugin.js";
 
 /**

@@ -4,9 +4,9 @@ import {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { buildStatusPayload } from "./status.js";
 import { effectivePackages } from "./registry.js";
-import { listTables, describeTable } from "./api/meta.js";
-import { docsRead } from "./api/docs.js";
-import { logger } from "./logging.js";
+import { listTables, describeTable } from "../api/meta.js";
+import { docsRead } from "../api/docs.js";
+import { logger } from "../core/logging.js";
 
 const JSON_MIME = "application/json";
 

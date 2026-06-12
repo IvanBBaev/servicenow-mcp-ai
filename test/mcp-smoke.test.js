@@ -5,8 +5,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { registerAllTools } from "../build/registry.js";
-import { registerResources } from "../build/resources.js";
+import { registerAllTools } from "../build/mcp/registry.js";
+import { registerResources } from "../build/mcp/resources.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();

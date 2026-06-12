@@ -7,7 +7,7 @@ import {
   getCatalogItem,
   orderCatalogItem,
 } from "../api/catalog.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 export function registerCatalogTools(server: McpServer): void {

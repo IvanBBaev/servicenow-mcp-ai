@@ -5,7 +5,7 @@ import {
   getKnowledgeArticle,
   knowledgeHighlights,
 } from "../api/knowledge.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 export function registerKnowledgeTools(server: McpServer): void {

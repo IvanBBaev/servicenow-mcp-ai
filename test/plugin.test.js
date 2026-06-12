@@ -6,7 +6,7 @@ import {
   pluginAvailability,
   _resetPluginAvailability,
 } from "../build/api/plugin.js";
-import { ServiceNowError } from "../build/errors.js";
+import { ServiceNowError } from "../build/core/errors.js";
 
 test.beforeEach(() => _resetPluginAvailability());
 

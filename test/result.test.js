@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { okQueryResult } from "../build/result.js";
+import { okQueryResult } from "../build/mcp/result.js";
 import { withEnv } from "./helpers.js";
 
 const parse = (res) => JSON.parse(res.content[0].text);

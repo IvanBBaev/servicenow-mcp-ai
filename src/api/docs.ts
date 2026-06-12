@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { ServiceNowError } from "../errors.js";
-import { getDocsDir } from "../settings.js";
+import { ServiceNowError } from "../core/errors.js";
+import { getDocsDir } from "../core/settings.js";
 
 /**
  * Local self-documentation store. These tools read and write Markdown files in

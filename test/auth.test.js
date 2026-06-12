@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { queryTable } from "../build/servicenow.js";
-import { invalidateTokens } from "../build/auth.js";
+import { queryTable } from "../build/api/table.js";
+import { invalidateTokens } from "../build/core/auth.js";
 import { baselineEnv, realFetch } from "./helpers.js";
 
 // OAuth password-grant configuration on top of the shared baseline. A unique

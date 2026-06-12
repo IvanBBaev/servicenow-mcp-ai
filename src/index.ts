@@ -13,11 +13,11 @@ if (nodeMajor < 20) {
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createRequire } from "node:module";
-import { loadEnv, hasCredentials } from "./config.js";
-import { registerAllTools } from "./registry.js";
-import { registerResources } from "./resources.js";
-import { registerPrompts } from "./prompts.js";
-import { logger } from "./logging.js";
+import { loadEnv, hasCredentials } from "./core/config.js";
+import { registerAllTools } from "./mcp/registry.js";
+import { registerResources } from "./mcp/resources.js";
+import { registerPrompts } from "./mcp/prompts.js";
+import { logger } from "./core/logging.js";
 
 loadEnv();
 

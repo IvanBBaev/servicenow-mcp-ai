@@ -7,7 +7,7 @@ import {
   tableLogic,
   SCRIPT_TYPE_NAMES,
 } from "../api/scripts.js";
-import { ok } from "../result.js";
+import { ok } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
 const scriptType = z.enum(

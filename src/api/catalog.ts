@@ -1,5 +1,5 @@
-import { snRequest } from "../http.js";
-import { assertWriteAllowed } from "../policy.js";
+import { snRequest } from "../core/http.js";
+import { assertWriteAllowed } from "../core/policy.js";
 import { pluginCall } from "./plugin.js";
 
 /**

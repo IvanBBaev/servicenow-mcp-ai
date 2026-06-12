@@ -5,7 +5,7 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { describeAllTools } from "../build/registry.js";
+import { describeAllTools } from "../build/mcp/registry.js";
 
 export const FIXTURE_PATH = fileURLToPath(
   new URL("../test/fixtures/tools-manifest.json", import.meta.url),

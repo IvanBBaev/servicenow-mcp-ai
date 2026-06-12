@@ -9,7 +9,7 @@ import {
   getCredentials,
   saveCredentials,
   reloadCredentialsFromEnv,
-} from "../build/config.js";
+} from "../build/core/config.js";
 import { baselineEnv, withEnv } from "./helpers.js";
 
 baselineEnv();

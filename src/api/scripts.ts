@@ -1,5 +1,5 @@
-import { ServiceNowError } from "../errors.js";
-import { queryTable, getRecord, type SnRecord } from "../servicenow.js";
+import { ServiceNowError } from "../core/errors.js";
+import { queryTable, getRecord, type SnRecord } from "./table.js";
 import { snString } from "./shared.js";
 
 /**
