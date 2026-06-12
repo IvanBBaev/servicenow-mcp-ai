@@ -6,38 +6,9 @@ import { createChange, changeConflicts } from "../build/api/change.js";
 import { searchKnowledge, getKnowledgeArticle } from "../build/api/knowledge.js";
 import { getCmdbInstance, createCmdbInstance } from "../build/api/cmdb.js";
 import { ServiceNowError } from "../build/errors.js";
+import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
 
-// Baseline: valid instance, Basic auth, no retries, no policy restrictions.
-process.env.SN_INSTANCE = "ven03019.service-now.com";
-process.env.SN_USER = "alice";
-process.env.SN_PASSWORD = "s3cret";
-process.env.SN_MAX_RETRIES = "0";
-delete process.env.SN_AUTH;
-delete process.env.SN_OAUTH_CLIENT_ID;
-delete process.env.SN_TABLES_ALLOW;
-delete process.env.SN_TABLES_DENY;
-delete process.env.SN_READONLY;
-
-const realFetch = globalThis.fetch;
-
-async function withFetch(handler, fn) {
-  const calls = [];
-  globalThis.fetch = async (url, init) => {
-    calls.push({ url: String(url), init });
-    return handler(String(url), init, calls.length);
-  };
-  try {
-    return await fn(calls);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-}
-
-const jsonResponse = (status, body) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
+baselineEnv();
 
 // --- Service Catalog ---------------------------------------------------------
 

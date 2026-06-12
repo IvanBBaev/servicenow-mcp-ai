@@ -3,19 +3,15 @@ import assert from "node:assert/strict";
 
 import { queryTable } from "../build/servicenow.js";
 import { invalidateTokens } from "../build/auth.js";
+import { baselineEnv, realFetch } from "./helpers.js";
 
-// OAuth password-grant configuration. A unique client id keeps this file's
-// token cache entry independent of any other test.
-process.env.SN_INSTANCE = "ven03019.service-now.com";
-process.env.SN_USER = "alice";
-process.env.SN_PASSWORD = "s3cret";
-process.env.SN_MAX_RETRIES = "0";
+// OAuth password-grant configuration on top of the shared baseline. A unique
+// client id keeps this file's token cache entry independent of other tests.
+baselineEnv();
 process.env.SN_AUTH = "oauth";
 process.env.SN_OAUTH_CLIENT_ID = "client-abc";
 process.env.SN_OAUTH_CLIENT_SECRET = "shhh";
 process.env.SN_OAUTH_GRANT = "password";
-
-const realFetch = globalThis.fetch;
 
 test("OAuth: fetches a bearer token and caches it across requests", async () => {
   let tokenCalls = 0;

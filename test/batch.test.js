@@ -3,40 +3,11 @@ import assert from "node:assert/strict";
 
 import { runBatch } from "../build/api/batch.js";
 import { ServiceNowError } from "../build/errors.js";
+import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
 
-// Baseline: valid instance, Basic auth, no retries, no policy restrictions.
-process.env.SN_INSTANCE = "ven03019.service-now.com";
-process.env.SN_USER = "alice";
-process.env.SN_PASSWORD = "s3cret";
-process.env.SN_MAX_RETRIES = "0";
-delete process.env.SN_AUTH;
-delete process.env.SN_OAUTH_CLIENT_ID;
-delete process.env.SN_TABLES_ALLOW;
-delete process.env.SN_TABLES_DENY;
-delete process.env.SN_READONLY;
-
-const realFetch = globalThis.fetch;
-
-async function withFetch(handler, fn) {
-  const calls = [];
-  globalThis.fetch = async (url, init) => {
-    calls.push({ url: String(url), init });
-    return handler(String(url), init, calls.length);
-  };
-  try {
-    return await fn(calls);
-  } finally {
-    globalThis.fetch = realFetch;
-  }
-}
+baselineEnv();
 
 const b64 = (obj) => Buffer.from(JSON.stringify(obj), "utf8").toString("base64");
-
-const jsonResponse = (status, body) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
 
 test("encodes sub-request bodies and decodes serviced responses", async () => {
   await withFetch(
