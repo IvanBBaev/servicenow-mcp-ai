@@ -1,84 +1,85 @@
-# TODO — статус към 2026-06-12 (вечер)
+# TODO — status as of 2026-06-12 (evening)
 
-> **Ревюто от сутринта (22/22) и цялата Фаза 6 (без опционалния Х-8) са имплементирани** — резюмета
-> с commit референции в [DONE.md](DONE.md), хронология в [WORKLOG.md](WORKLOG.md). Незапочнатото
-> живее в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (Фаза 7 мулти-инстанс, Фаза 8 flow
-> тестове + код анализ, „Опционално“).
+> **The morning review (22/22) and all of Phase 6 (except the optional Х-8) are implemented** —
+> summaries with commit references live in [DONE.md](DONE.md), the chronology in
+> [WORKLOG.md](WORKLOG.md). Work not yet started lives in
+> [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (Phase 7 multi-instance, Phase 8 flow
+> testing + code analysis, "Optional").
 >
-> По-долу: тройният анализ от вечерта (какво ЛИПСВА занапред) + release-readiness чеклистът
-> (R-1…R-9) + съзнателните won't-fix решения.
+> Below: the evening triple analysis (what is MISSING going forward) + the release-readiness
+> checklist (R-1…R-9) + the deliberate won't-fix decisions.
 
-## Троен анализ 2026-06-12 (вечер) — какво липсва (бек лог, не е започвано)
+## Triple analysis 2026-06-12 (evening) — what is missing (backlog)
 
-Контекст: 127/127 теста, Фаза 6 завършена, best-practices пакетът от вечерта е влязъл
-(Prettier в CI, `npm run verify`, crash handlers, кеш инвалидация при смяна на инстанция).
-Това е бек лог по приоритет — нищо от него не блокира текущата употреба.
+Context: 127/127 tests, Phase 6 complete, the evening best-practices batch landed
+(Prettier in CI, `npm run verify`, crash handlers, cache invalidation on instance change).
+This is a prioritized backlog — nothing here blocks current use.
 
-### Синиър дев (S2)
+### Senior dev (S2)
 
-- [x] **S2-1 · zod схемите не са strict.** _(готово, commit `e879321` — z.object(input).strict(); typo аргумент = валидационна грешка)_ Непознат аргумент в tools/call се игнорира тихо (SDK поведение) — модел, който прати `tabel` вместо `table`, не получава сигнал. _Решение:_ опция в `defineTool` да строи строги схеми (отхвърляне на непознати ключове) — след проверка как SDK 1.29 третира strict shapes.
-- [x] **S2-2 · Семафорът и телеметрията са глобални, не per-host.** _(готово, commit `13a2810` — per-host слотове + perHost разбивка в статуса)_ За една инстанция е коректно; при Фаза 7 профилите лимитът/броячите ще се споделят между инстанции. _Решение:_ ключуване по host в MI-5 (вече отбелязано в плана).
-- [x] **S2-3 · `bin/servicenow-mcp.cjs` няма автоматичен тест** _(готово, commit `ac14952` — CI job launcher-node12 в container node:12-alpine)_ (изисква стар Node в CI). Проверен ръчно под 12.22. _Решение:_ по желание — CI стъпка с container node:12 само за launcher-а.
-- [ ] **S2-4 · Release процес липсва** ⏳ _чака решение за публикуване (= R-3); author + prepublishOnly са добавени_ — версията е 1.0.0 от началото, CHANGELOG е ръчен. _Решение при публикуване:_ changesets или release-please + `npm version` дисциплина.
+- [x] **S2-1 · zod schemas are not strict.** _(done, commit `e879321` — z.object(input).strict(); an argument typo is a validation error)_ An unknown argument in tools/call was silently ignored (SDK behaviour) — a model sending `tabel` instead of `table` got no signal. _Solution:_ build strict schemas in the registry (reject unknown keys) — verified how SDK 1.29 treats strict shapes.
+- [x] **S2-2 · The semaphore and telemetry were global, not per host.** _(done, commit `13a2810` — per-host slots + perHost breakdown in status)_ Correct for one instance; with Phase 7 profiles the limit/counters would be shared across instances. _Solution:_ keyed by host (was pre-noted as MI-5 in the plan).
+- [x] **S2-3 · `bin/servicenow-mcp.cjs` had no automated test** _(done, commit `ac14952` — CI job launcher-node12 in a node:12-alpine container)_ (requires an old Node in CI). Manually verified under 12.22.
+- [ ] **S2-4 · No release process** ⏳ _waiting on the publish decision (= R-3); author + prepublishOnly are in_ — version was 1.0.0 from day one, CHANGELOG is manual. _Solution when publishing:_ changesets or release-please + `npm version` discipline.
 
-### Архитект (A2)
+### Architect (A2)
 
-- [x] **A2-1 · Манифестът покрива само tools.** _(готово, commit `5daad20` — PackageSpec: пакет = {name, tools, resources?}; декларативен gating, инвариант, К-7 if-ът изтрит)_ Resources и prompts още се регистрират императивно (К-7 gating-ът е ръчен if). _Следваща стъпка на модулността:_ `PackageSpec = { name, tools, resources?, prompts? }` — пакет = един обект, gating-ът става изцяло декларативен. Естествено върви с Фаза 7 (MI пакетите ще носят и resources).
-- [ ] **A2-2 · ConfigStore покрива само креденшълите.** ⏳ _тригер: MI-1 (Фаза 7)_ Policy/settings четат env при всяко извикване — съзнателно (виж A-2), но MI-1 ще ги обедини в профилния store; дотогава новите настройки да минават само през `settings.ts`.
-- [ ] **A2-3 · Глобалните singletons ⏳ _тригер: „когато заболи“ — не по-рано_ · (token/schema/plugin кешове, телеметрия) имат `clear*` hooks вместо инжектиране.** Приемливо за един процес; ако някога има много сървъри в процес (тестове го правят!) — състоянието се споделя. _Решение:_ когато заболи — контейнер обект създаван в bootstrap; не по-рано.
-- [ ] **A2-4 · Bootstrap-ът ще се разклони при Х-8** ⏳ _тригер: заявка за Х-8_ (HTTP транспорт): изнеси избора в `mcp/transport.ts`, когато Х-8 се заяви; не предварително.
-- [ ] **A2-5 · Resource грешките са JSON съдържание** ⏳ _тригер: протоколна еволюция на MCP_ (няма isError за resources в протокола) — клиентът не различава грешка от данни. Известно; документирано в ARCHITECTURE; чака протоколна еволюция.
+- [x] **A2-1 · The manifest covered only tools.** _(done, commit `5daad20` — PackageSpec: package = {name, tools, resources?}; declarative gating, invariant, the manual К-7 if deleted)_ Resources and prompts were registered imperatively. _The next step of modularity:_ `PackageSpec = { name, tools, resources?, prompts? }` — a package is one object, gating fully declarative. Pairs naturally with Phase 7.
+- [ ] **A2-2 · ConfigStore covers only credentials.** ⏳ _trigger: MI-1 follow-up (Phase 7)_ Policy/settings read env per call — deliberate (see A-2); the profile store will unify them; until then new settings go through `settings.ts` only.
+- [ ] **A2-3 · Global singletons** ⏳ _trigger: "when it hurts" — not earlier_ — the token/schema/plugin caches and telemetry have `clear*` hooks instead of injection. Fine for one process; if multiple servers ever share a process (tests do!), state is shared. _Solution:_ a container object created at bootstrap — when it hurts, not before.
+- [ ] **A2-4 · Bootstrap will fork at Х-8** ⏳ _trigger: an Х-8 request_ (HTTP transport): extract the choice into `mcp/transport.ts` when Х-8 is requested; not pre-emptively.
+- [ ] **A2-5 · Resource errors are JSON content** ⏳ _trigger: MCP protocol evolution_ (the protocol has no isError for resources) — a client cannot tell an error from data. Known; documented in ARCHITECTURE.
 
 ### QA (Q2)
 
-- [x] **Q2-1 · Coverage е само видимост.** _(готово, commit `b8b9216` — прагове lines 85 / branches 72 от реалния отчет 89.9/78.8)_ След като М-серията улегне: праг в CI (`c8 check-coverage --lines 85`) — числото да се избере от реалния отчет, не наизуст.
-- [x] **Q2-2 · Property-based тестове** _(готово, commit `b8b9216` — fast-check: 500 env round-trips + 200 base64 буфера)_ (fast-check) за двете „ръчни“ кодеци: `formatEnvValue` round-trip и `decodeBase64Strict` — текущите тестове са с подбрани случаи.
-- [x] **Q2-3 · Windows не е в CI матрицата.** _(готово, commit `ac14952` — windows job с continue-on-error до първия зелен run; build script без unix chmod)_ docs path traversal guard-ът ползва `path.resolve` — вероятно коректен и на win32, но непотвърдено. _Решение:_ `os: [ubuntu-latest, windows-latest]` само за test job-а.
-- [x] **Q2-4 · Перф regression тест за `okQueryResult`** _(готово, commit `9ef092b` — 10k записа < 2 s)_ върху 10k записа — halving цикълът прави многократни `JSON.stringify` на големи масиви; да се измери и при нужда да се оптимизира (бинарно търсене по дължина).
-- [x] **Q2-5 · Elicitation accept пътят няма тест** _(готово, commit `9ef092b` — accept→запис в temp env; decline беше покрит)_ (само decline) — добави при следващото пипане на admin пакета.
+- [x] **Q2-1 · Coverage was visibility only.** _(done, commit `b8b9216` — gates lines 85 / branches 72 from the real report 89.9/78.8)_
+- [x] **Q2-2 · Property-based tests** _(done, commit `b8b9216` — fast-check: 500 env round-trips + 200 base64 buffers)_ for the two hand-written codecs: `formatEnvValue` round-trip and `decodeBase64Strict`.
+- [x] **Q2-3 · Windows was not in the CI matrix.** _(done, commit `ac14952` — windows job with continue-on-error until the first green run; build script without unix chmod)_ The docs path traversal guard uses `path.resolve` — likely correct on win32, now verifiable in CI.
+- [x] **Q2-4 · Perf regression test for `okQueryResult`** _(done, commit `9ef092b` — 10k records < 2 s)_ — the halving loop runs repeated `JSON.stringify` over large arrays; measured, with headroom for slow CI runners.
+- [x] **Q2-5 · The elicitation accept path had no test** _(done, commit `9ef092b` — accept→saved to a temp env; decline was already covered)_.
 
-## Release-readiness 2026-06-12 (вечер) — какво липсва за релийз
+## Release-readiness 2026-06-12 (evening) — what is missing for a release
 
-Контекст: реална верификация на Node 22 — build/lint чисти, 131/131 теста, coverage ~89% lines /
-~78% branches, `npm audit --omit=dev` 0 уязвимости, `npm pack` чист (76 kB, само build+bin+README).
-Кодът е release-grade; липсва само опаковка и процес (~½ ден). Подробности в WORKLOG.md.
+Context: real verification on Node 22 — build/lint clean, 131/131 tests at the time, coverage ~89%
+lines / ~78% branches, `npm audit --omit=dev` 0 vulnerabilities, `npm pack` clean (76 kB; only
+build+bin+README). The code is release-grade; only packaging and process were missing (~½ day).
+Details in WORKLOG.md.
 
-### Блокери
+### Blockers
 
-- [x] **R-1 · LICENSE.** ✅ MIT (LICENSE файл + `"license": "MIT"`) — commit `fc1f62c`.
-- [ ] **R-2 · Git remote + първи реален CI run.** Решение 2026-06-12: **засега без remote**
-      (изборът на Иван). Всичко локално е готово за push; при създаване на repo: `git remote add`
-      \+ push + проверка на първия Actions run (вкл. дали Windows job-ът е зелен → махни
-      `continue-on-error`).
-- [x] **R-3 · Release процес (= S2-4).** ✅ CHANGELOG срязан на `[1.0.0] - 2026-06-12` + анотиран
-      таг `v1.0.0`. _Остава при публикуване:_ release-please или changesets + publish workflow с
-      `--provenance`.
-- [x] **R-4 · package.json метаданни.** ✅ `license`/`author`/`prepublishOnly` — commit `fc1f62c`.
-      _Остава при създаване на remote:_ `repository`, `bugs`, `homepage`.
+- [x] **R-1 · LICENSE.** ✅ MIT (LICENSE file + `"license": "MIT"`) — commit `fc1f62c`.
+- [ ] **R-2 · Git remote + the first real CI run.** Update 2026-06-12 (night): Ivan is providing a
+      repo (rebrand to servicenow-mcp done). On URL: `git remote add` + push + check the first
+      Actions run (incl. whether the Windows job is green → drop `continue-on-error`).
+- [x] **R-3 · Release process (= S2-4).** ✅ CHANGELOG cut to `[1.0.0] - 2026-06-12` + annotated
+      tag `v1.0.0`. _Remaining when publishing:_ release-please or changesets + a publish workflow
+      with `--provenance`.
+- [x] **R-4 · package.json metadata.** ✅ `license`/`author`/`prepublishOnly` — commit `fc1f62c`.
+      _Remaining once the remote exists:_ `repository`, `bugs`, `homepage`.
 
-### Преди първия push
+### Before the first push
 
-- [x] **R-5 · WIP-ът форматиран и комитнат** — commit `e879321` (S2-1).
-- [x] **R-6 · Doc drift по броя tools.** ✅ 49 tools / 14 пакета навсякъде (pie + CHANGELOG,
-      от manifest фикстурата); тестовата бройка сверена на 131 — commit `08b71cc` + release cut.
+- [x] **R-5 · WIP formatted and committed** — commit `e879321` (S2-1).
+- [x] **R-6 · Doc drift on the tool count.** ✅ 49 tools / 14 packages everywhere (pie + CHANGELOG,
+      sourced from the manifest fixture); test count reconciled — commit `08b71cc` + release cut.
 
-### Should-have (не блокират; вече в бек лога)
+### Should-have (non-blocking; already in the backlog)
 
-- [x] **R-7 · Coverage праг в CI (= Q2-1)** ✅ — commit `b8b9216` (lines 85 / branches 72).
-- [x] **R-8 · Windows в CI + Node 12 launcher тест (= Q2-3, S2-3)** ✅ — commit `ac14952`;
-      Windows job-ът е `continue-on-error` до първия зелен run (иска remote → виж R-2).
-- [ ] **R-9 · Ако релийзът стане публичен:** SECURITY.md + CONTRIBUTING.md; преразглеждане на
-      двете won't-fix решения по-долу — за чужди потребители default-ите трябва да са
-      консервативните (за лична употреба остават ОК).
+- [x] **R-7 · Coverage gate in CI (= Q2-1)** ✅ — commit `b8b9216` (lines 85 / branches 72).
+- [x] **R-8 · Windows in CI + the Node 12 launcher test (= Q2-3, S2-3)** ✅ — commit `ac14952`;
+      the Windows job stays `continue-on-error` until the first green run (needs the remote → R-2).
+- [ ] **R-9 · If the release goes public:** SECURITY.md + CONTRIBUTING.md; revisit the two
+      won't-fix decisions below — for third-party users the defaults should be the conservative
+      ones (for personal use they remain OK).
 
-## Решения (won't-fix) — без промяна по кода
+## Decisions (won't-fix) — no code change
 
-- [~] **`.env` се записва с права 0644 (четим от всички локални потребители).**
-  Пропуснато — не е проблем (решение на потребителя).
-  `config.ts` — `writeFileSync` ползва default mode. Файлът съдържа парола в plaintext.
-  → Ако някога потрябва: `{ mode: 0o600 }` при запис + `chmodSync` на съществуващ файл.
+- [~] **`.env` is written with mode 0644 (readable by every local user).**
+  Skipped — not a problem (owner's decision).
+  `config.ts` — `writeFileSync` uses the default mode. The file contains a plaintext password.
+  → If ever needed: `{ mode: 0o600 }` on write + `chmodSync` for an existing file.
 
-- [~] **`servicenow_set_credentials` позволява пренасочване на Basic auth към произволен хост.**
-  Пропуснато — не е проблем (решение на потребителя). SSRF guard-ът за вътрешни/loopback хостове
-  и `SN_ALLOWED_HOSTS` остават активни; Х-2 (elicitation) от плана добавя потвърждение от клиента.
-  → Ако някога потрябва: изискване хостът да завършва на `.service-now.com` без изричен opt-in.
+- [~] **`servicenow_set_credentials` allows redirecting Basic auth to an arbitrary host.**
+  Skipped — not a problem (owner's decision). The SSRF guard for internal/loopback hosts and
+  `SN_ALLOWED_HOSTS` stay active; Х-2 (elicitation) adds client-side confirmation.
+  → If ever needed: require the host to end in `.service-now.com` without an explicit opt-in.

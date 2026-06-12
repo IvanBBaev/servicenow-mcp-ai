@@ -1,7 +1,7 @@
 # Changelog
 
-Форматът следва [Keep a Changelog](https://keepachangelog.com/); версиите — [SemVer](https://semver.org/).
-Пълната хронология на разработката е в [WORKLOG.md](WORKLOG.md); git историята е commit-по-задача.
+The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
+The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git history is one commit per task.
 
 ## [Unreleased]
 
@@ -9,32 +9,30 @@
 
 ### Added
 
-- **Мулти-инстанс профили (Фаза 7 ядро):** именувани connection профили в .env (`SN_PROFILE_<NAME>_*`), per-profile policy (prod read-only / dev пълни права), опционален `instance` параметър на всеки tool (AsyncLocalStorage маршрутизация per извикване), `servicenow_list_instances` / `servicenow_use_instance`; статусът показва профилите.
-
-- MIT лиценз; npm метаданни (`license`/`author`) и `prepublishOnly: npm run verify` — публикуване без зелен verify е невъзможно.
-- Property-based тестове (fast-check) за env кодеците; CI: coverage праг (lines 85 / branches 72), Windows job, Node 12 launcher тест.
-- Пълно ServiceNow API покритие отвъд Table API: Aggregate (Stats), Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, CMDB Instance/Meta (IRE) — 49 tool-а в 14 пакета зад `SN_TOOL_PACKAGES` (профили `core`/`all`).
-- Script intelligence (read-only): списък/четене/търсене в скриптове, `servicenow_table_logic`; Mermaid генератори (ER диаграма, table flow); локална само-документация (`docs` пакет) + MCP resources и prompts.
-- Per-package policy: `SN_PACKAGES_DENY` и `SN_PACKAGES_READONLY` — контрол върху plugin API-тата, които table policy не вижда.
-- Capability кеш за plugin API-та: namespace 404 се кешира 5 мин (fail-fast), наличността се вижда в `pluginApis` на статуса.
-- ConfigStore: креденшълите са атомарен in-memory snapshot (env-ът е само начален източник).
-- README tools таблицата се генерира от живите регистрации (`npm run docs:readme`) и се пази синхронна с тест.
-- In-memory MCP smoke тестове (SDK Client + InMemoryTransport) с контрактен snapshot на `core` профила и manifest фикстура; 131 теста общо.
-- `servicenow_test_connection` — диагностика дали конфигурацията реално работи ({ok, status, latencyMs}); провалите са структурирани.
-- OAuth: 401 с кеширан токен се възстановява с еднократна реавтентикация; стабилна fetchAll пагинация (автоматичен ORDERBY); схема-кеш с TTL; семафор за паралелизма; телеметрия в status; Node 20+ защита (launcher + engines).
-- Токен диети по подразбиране: компактен JSON изход и без reference `link` URL-и (opt-in връщане).
+- **Multi-instance profiles (Phase 7 core):** named connection profiles in .env (`SN_PROFILE_<NAME>_*`), per-profile policy (prod read-only / dev full rights), an optional `instance` argument on every tool (AsyncLocalStorage routing per call), `servicenow_list_instances` / `servicenow_use_instance`; the status payload lists the profiles.
+- MIT license; npm metadata (`license`/`author`) and `prepublishOnly: npm run verify` — publishing without a green verify is impossible.
+- Property-based tests (fast-check) for the env codecs; CI: coverage gate (lines 85 / branches 72), a Windows job, a Node 12 launcher test.
+- Full ServiceNow API coverage beyond the Table API: Aggregate (Stats), Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, CMDB Instance/Meta (IRE) — 49 tools in 14 packages behind `SN_TOOL_PACKAGES` (profiles `core`/`all`).
+- Script intelligence (read-only): list/read/search scripts, `servicenow_table_logic`; Mermaid generators (ER diagram, table flow); local self-documentation (`docs` package) + MCP resources and prompts.
+- Per-package policy: `SN_PACKAGES_DENY` and `SN_PACKAGES_READONLY` — control over the plugin APIs that the table policy cannot see.
+- Capability cache for plugin APIs: a namespace 404 is cached for 5 minutes (fail-fast); availability is visible as `pluginApis` in the status payload.
+- ConfigStore: credentials are an atomic in-memory snapshot (the environment is only the initial source).
+- The README tools table is generated from the live registrations (`npm run docs:readme`) and kept in sync by a test.
+- In-memory MCP smoke tests (SDK Client + InMemoryTransport) with a contract snapshot of the `core` profile and a manifest fixture.
+- `servicenow_test_connection` — diagnoses whether the configuration actually works ({ok, status, latencyMs}); failures are structured.
+- OAuth: a 401 with a cached token recovers with a single re-authentication; stable fetchAll pagination (automatic ORDERBY); schema cache with TTL; concurrency semaphore; telemetry in status; Node 20+ guard (launcher + engines).
+- Token diets by default: compact JSON output and no reference `link` URLs (opt-in to include them).
 
 ### Fixed
 
-- `servicenow_describe_table` виждаше само собствените колони на таблицата — сега обхожда веригата на наследяване (за `incident` се връщат и полетата от `task`); `superClass` е истинско име на таблица, не label.
-- Batch policy покрива и `stats`/`import`/`cmdb` под-заявки; невалиден base64 при upload се отказва преди мрежата; download не тегли байтовете преди проверката за размер; OAuth кешът се чисти при смяна на креденшъли.
-- `String()` върху ServiceNow поле при `display_value=all` вече не произвежда `"[object Object]"` (`snString`).
+- `servicenow_describe_table` only saw the table's own columns — it now walks the inheritance chain (for `incident` the fields defined on `task` are returned too); `superClass` is a real table name, not a label.
+- Batch policy also covers `stats`/`import`/`cmdb` sub-requests; invalid base64 on upload is rejected before the network; download no longer pulls the bytes before the size check; the OAuth cache is cleared on credential changes.
+- `String()` over a ServiceNow field at `display_value=all` no longer produces `"[object Object]"` (`snString`).
 
 ### Changed
 
-- Входните zod схеми на инструментите са strict — непознат аргумент в `tools/call` връща валидационна грешка вместо тихо изпускане.
-- Качествен пакет от бек лога: strict входни схеми (typo в аргумент = грешка), per-host семафор и телеметрия, coverage прагове + property-based тестове + перф пазач, Windows и Node-12-launcher CI проби, PackageSpec манифест (пакет = tools + resources в един обект).
-- Слоеста архитектура `core/` → `api/` → `mcp/` → `tools/` с ESLint-наложени граници; инструментите са декларативен манифест (ToolSpec) — пакет се добавя/маха с един ред; email пакет (send/get); elicitation потвърждение за креденшъли; MCP logging capability; outputSchema за диагностичните tools.
-
-- TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked правила + `no-floating-promises`.
-- Грешките са структурирани (`{ status, message, snDetail }`); retry с exponential backoff + `Retry-After`; SSRF guard; result size guard.
+- Tool input zod schemas are strict — an unknown argument in `tools/call` returns a validation error instead of being silently dropped.
+- Quality batch from the backlog: strict input schemas (an argument typo is an error), per-host semaphore and telemetry, coverage gates + property-based tests + a perf guard, Windows and Node-12-launcher CI probes, the PackageSpec manifest (a package = tools + resources in one object).
+- Layered architecture `core/` → `api/` → `mcp/` → `tools/` with ESLint-enforced boundaries; tools are a declarative manifest (ToolSpec) — a package is added/removed with one line; email package (send/get); elicitation confirmation for credentials; MCP logging capability; outputSchema for the diagnostic tools.
+- TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
+- Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.

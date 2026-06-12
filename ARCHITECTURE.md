@@ -1,57 +1,58 @@
-# servicenow-mcp — Архитектурна документация
+# servicenow-mcp — Architecture
 
-Дата: 2026-06-12 (вечер) · Отразява кода след Фаза 6 + бек лога от тройния анализ (131/131 теста).
-Свързани документи: [PRODUCT-STATE.md](PRODUCT-STATE.md) (състояние), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (бъдеще), [DONE.md](DONE.md) (история), [WORKLOG.md](WORKLOG.md) (хронология).
+Date: 2026-06-12 (night) · Reflects the code after Phase 6, the triple-analysis backlog and the Phase 7 core (137/137 tests).
+Related documents: [PRODUCT-STATE.md](PRODUCT-STATE.md) (state), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (future), [DONE.md](DONE.md) (history), [WORKLOG.md](WORKLOG.md) (chronology).
 
-## 1. Какво е servicenow-mcp
+## 1. What servicenow-mcp is
 
-TypeScript **stdio MCP сървър** за ServiceNow: LLM клиент (Claude, VS Code Chat, Inspector…) получава 49 инструмента в 14 пакета върху ServiceNow REST повърхността — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, CMDB/IRE, script intelligence, Mermaid генератори и локална само-документация. Един процес, нула външни runtime зависимости освен `@modelcontextprotocol/sdk`, `zod` и `dotenv`; целият вход/изход е JSON по stdio (логовете са само на stderr).
+A TypeScript **stdio MCP server** for ServiceNow: an LLM client (Claude, VS Code Chat, Inspector…) gets 51 tools in 14 packages over the ServiceNow REST surface — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, Email, CMDB/IRE, script intelligence, Mermaid generators and local self-documentation. One process, no runtime dependencies beyond `@modelcontextprotocol/sdk`, `zod` and `dotenv`; all I/O is JSON over stdio (logs go to stderr only).
 
-Принципи, които държат дизайна:
+The principles that hold the design together:
 
-1. **Един HTTP клиент** — всичко минава през `snRequest()` (auth, SSRF guard, timeout, retry, error mapping се правят веднъж).
-2. **Policy в клиента (defense in depth)** — ограниченията (read-only, таблици, пакети) се налагат _преди_ мрежата, не разчитаме само на ACL-ите на инстанцията.
-3. **Кодът е източникът на истина** — README таблицата на tools се генерира от регистрациите; sync тест пада при изоставане.
-4. **Тестове без мрежа** — целият suite (131, вкл. property-based и перф пазачи) върви върху mock `fetch` + in-memory MCP транспорт.
+1. **One HTTP client** — everything goes through `snRequest()` (auth, SSRF guard, timeout, retry, error mapping happen once).
+2. **Policy in the client (defense in depth)** — restrictions (read-only, tables, packages, per-profile) are enforced _before_ the network; we do not rely on the instance's ACLs alone.
+3. **The code is the source of truth** — the README tools table is generated from the registrations; a sync test fails when it drifts.
+4. **Tests without a network** — the whole suite (137, incl. property-based and perf guards) runs over a mock `fetch` + an in-memory MCP transport.
 
-## 2. Слоеве и модули
+## 2. Layers and modules
 
 ```mermaid
 graph TD
     subgraph Bootstrap
         IDX["index.ts<br/>bootstrap + shutdown"]
     end
-    subgraph MCP["MCP повърхност"]
-        REG["registry.ts<br/>PACKAGES манифест, gating"]
+    subgraph MCP["MCP surface"]
+        REG["registry.ts<br/>PACKAGES manifest, gating"]
         DEF["define.ts<br/>ToolSpec + runSpec"]
-        TOOLS["tools/*.ts<br/>14 манифеста: ToolSpec[] (данни)"]
+        TOOLS["tools/*.ts<br/>14 manifests: ToolSpec[] (data)"]
         RES["resources.ts<br/>status / tables / schema / docs"]
-        PRM["prompts.ts<br/>3 промпта"]
+        PRM["prompts.ts<br/>3 prompts"]
         STAT["status.ts<br/>buildStatusPayload"]
     end
-    subgraph API["API слой (ServiceNow домейн)"]
+    subgraph API["API layer (ServiceNow domain)"]
         SN["api/table.ts<br/>Table API + fetchAll"]
-        APIS["api/*.ts<br/>aggregate attachment batch cmdb<br/>catalog change knowledge importset<br/>meta scripts docs diagrams"]
-        PLG["api/plugin.ts<br/>pluginCall + capability кеш"]
+        APIS["api/*.ts<br/>aggregate attachment batch cmdb<br/>catalog change knowledge importset<br/>email meta scripts docs diagrams"]
+        PLG["api/plugin.ts<br/>pluginCall + capability cache"]
         SHR["api/shared.ts<br/>expectResult / snString"]
     end
-    subgraph CORE["Ядро"]
-        HTTP["http.ts<br/>snRequest: retry, timeout, errors"]
-        AUTH["auth.ts<br/>Basic / OAuth + token кеш"]
-        POL["policy.ts<br/>readonly + tables allow/deny"]
-        CFG["config.ts<br/>ConfigStore + .env запис"]
+    subgraph CORE["Core"]
+        HTTP["http.ts<br/>snRequest: retry, timeout, errors,<br/>per-host semaphore + telemetry"]
+        AUTH["auth.ts<br/>Basic / OAuth + token cache"]
+        POL["policy.ts<br/>readonly + tables allow/deny,<br/>per profile"]
+        CFG["config.ts<br/>profile ConfigStore + .env writes"]
+        CTX["request-context.ts<br/>per-call profile (ALS)"]
         HOST["host.ts<br/>SSRF guard"]
-        SET["settings.ts<br/>env парсери"]
-        LOG["logging.ts<br/>JSON на stderr"]
+        SET["settings.ts<br/>env parsers"]
+        LOG["logging.ts<br/>JSON on stderr + MCP sink"]
         ERR["errors.ts"]
         RESL["result.ts<br/>ok / fail / okQueryResult"]
     end
 
     IDX --> REG
-    IDX --> RES
-    IDX --> PRM
     REG --> DEF
     REG --> TOOLS
+    REG --> RES
+    IDX --> PRM
     TOOLS --> SN
     TOOLS --> APIS
     TOOLS --> RESL
@@ -69,19 +70,20 @@ graph TD
     HTTP --> SET
     HTTP --> LOG
     AUTH --> CFG
+    CFG --> CTX
 ```
 
-Бележки:
+Notes:
 
-- `tools/*` са **данни**: всеки файл изнася `specs: ToolSpec[]` (име/докс/пакет/annotations/strict zod вход/handler); `mcp/define.ts#runSpec` дава uniform логване/грешки. **Пакет = един `PackageSpec` обект** `{name, tools, resources?}` в `PACKAGES` манифеста — вкарва се/изкарва с един ред, ресурсите следват същата политика декларативно, runtime инвариант пази таговете. Домейнната логика живее в `api/*`.
-- Слоевете се налагат машинно (ESLint no-restricted-imports зони, М-2); лек остатъчен цикъл `registry → tools/admin → status → registry` работи в ESM (употреби само на ниво извикване).
-- Целевото преструктуриране (Фаза 6 М-1/М-2): `core/` + `api/` + `mcp/` директории — местене на готови модули, без промяна на зависимостите по-горе.
+- `tools/*` are **data**: each file exports `specs: ToolSpec[]` (name/docs/package/annotations/strict zod input/handler); `mcp/define.ts#runSpec` provides uniform logging/error handling and the per-call profile routing. **A package is one `PackageSpec` object** `{name, tools, resources?}` in the `PACKAGES` manifest — plugged in/out with one line, resources follow the same policy declaratively, a runtime invariant keeps the tags consistent. Domain logic lives in `api/*`.
+- Layers are machine-enforced (ESLint no-restricted-imports zones, М-2); a light residual cycle `registry → tools/admin → status → registry` is fine in ESM (usages are call-time only).
+- Every tool also carries an automatic optional `instance` argument (MI-3): the call runs in that profile's AsyncLocalStorage context, and everything below resolves the profile at call time — no api/ signature threads it.
 
-## 3. Жизнен цикъл на една заявка
+## 3. Lifecycle of a request
 
 ```mermaid
 sequenceDiagram
-    participant C as MCP клиент
+    participant C as MCP client
     participant S as McpServer (SDK)
     participant T as tool handler (tools/*)
     participant P as policy.ts
@@ -90,124 +92,127 @@ sequenceDiagram
     participant SN as ServiceNow
 
     C->>S: tools/call servicenow_query_table {table, query}
-    S->>S: zod валидация (невалидно → error без мрежа)
-    S->>T: handler(args)
-    T->>T: runTool: log start
+    S->>S: strict zod validation (invalid/unknown arg → error, no network)
+    S->>T: runSpec(args) — profile context if instance was given
     T->>P: assertTableAllowed(table)
-    Note over P: SN_TABLES_ALLOW / DENY → 403 преди мрежата
+    Note over P: SN_TABLES_ALLOW / DENY (per profile) → 403 before the network
     T->>H: queryTable → snRequest(GET /api/now/table/…)
-    H->>H: getCredentials() — snapshot от ConfigStore
+    H->>H: getCredentials() — profile snapshot from the ConfigStore
     H->>H: resolveHost() — SSRF guard + SN_ALLOWED_HOSTS
     H->>A: authorize(host)
-    A-->>H: Basic header / Bearer (кеширан OAuth токен)
-    H->>SN: fetch (AbortSignal.timeout)
-    alt 429 / 503 (или 502/504 при GET)
-        SN-->>H: грешка + Retry-After
-        H->>H: backoff (експоненциален, ≤ SN_MAX_RETRIES)
-        H->>SN: повторен опит
+    A-->>H: Basic header / Bearer (cached OAuth token)
+    H->>SN: fetch (AbortSignal.timeout, per-host semaphore)
+    alt 429 / 503 (or 502/504 on GET)
+        SN-->>H: error + Retry-After
+        H->>H: backoff (exponential, ≤ SN_MAX_RETRIES)
+        H->>SN: retry
     end
     SN-->>H: 200 + JSON / X-Total-Count
     H-->>T: {data, total}
     T->>T: expectResultArray → okQueryResult (truncation guard)
-    T-->>S: {content: [JSON текст]}
-    S-->>C: резултат
-    Note over T,C: при изключение → fail(): {error: {message, status, snDetail}}
+    T-->>S: {content: [JSON text]}
+    S-->>C: result
+    Note over T,C: on exception → fail(): {error: {message, status, snDetail}}
 ```
 
-Ключови детайли:
+Key details:
 
-- **Retry матрица:** 429/503 се повтарят за всички методи; 502/504 и transport грешки — само за GET (изходът от write е неизвестен → не дублираме мутации). `Retry-After` се уважава и като секунди, и като HTTP дата.
-- **Труднати резултати:** `okQueryResult` реже записите наполовина итеративно докато се събере в `SN_MAX_RESULT_CHARS`, с обяснителна бележка как да се стесни заявката.
+- **Retry matrix:** 429/503 retry for all methods; 502/504 and transport errors retry only for GET (a write's outcome is unknown → never duplicate mutations). A single 401 with a cached OAuth token forces one re-authentication. `Retry-After` is honoured both as seconds and as an HTTP date.
+- **Truncated results:** `okQueryResult` halves the record set iteratively until it fits `SN_MAX_RESULT_CHARS`, with a note explaining how to narrow the query.
 
-## 4. Модел на сигурност (две оси + мрежови guard-ове)
+## 4. Security model (two axes + network guards)
 
 ```mermaid
 flowchart TD
-    REQ["Заявка от модела"] --> REGQ{"Tool регистриран?"}
-    REGQ -- "пакетът не е в SN_TOOL_PACKAGES<br/>или е в SN_PACKAGES_DENY<br/>или write tool в SN_PACKAGES_READONLY пакет" --> NOTOOL["Инструментът не съществува<br/>за модела (ос 2: пакети)"]
-    REGQ -- да --> WR{"Write операция?"}
-    WR -- "да + SN_READONLY" --> DENY1["403 преди мрежата"]
-    WR -- иначе --> TBL{"Таблична пътека?"}
-    TBL -- "SN_TABLES_ALLOW/DENY<br/>(вкл. batch: table/stats/import/cmdb)" --> DENY2["403 преди мрежата (ос 1: таблици)"]
-    TBL -- позволена --> SSRF{"resolveHost"}
-    SSRF -- "loopback / private IP / .local<br/>или извън SN_ALLOWED_HOSTS" --> DENY3["Отказ (SSRF guard)"]
-    SSRF -- ок --> NET["fetch към инстанцията<br/>(истинският ACL е на сървъра)"]
+    REQ["Request from the model"] --> REGQ{"Tool registered?"}
+    REGQ -- "package not in SN_TOOL_PACKAGES<br/>or in SN_PACKAGES_DENY<br/>or write tool in an SN_PACKAGES_READONLY package" --> NOTOOL["The tool does not exist<br/>for the model (axis 2: packages)"]
+    REGQ -- yes --> WR{"Write operation?"}
+    WR -- "yes + SN_READONLY (per profile)" --> DENY1["403 before the network"]
+    WR -- otherwise --> TBL{"Table-shaped path?"}
+    TBL -- "SN_TABLES_ALLOW/DENY, per profile<br/>(incl. batch: table/stats/import/cmdb)" --> DENY2["403 before the network (axis 1: tables)"]
+    TBL -- allowed --> SSRF{"resolveHost"}
+    SSRF -- "loopback / private IP / .local<br/>or outside SN_ALLOWED_HOSTS" --> DENY3["Refused (SSRF guard)"]
+    SSRF -- ok --> NET["fetch to the instance<br/>(the real ACLs live on the server)"]
 ```
 
-- **Ос 1 — таблици** (`SN_TABLES_ALLOW`/`SN_TABLES_DENY`): пази Table API, CMDB класове, Import Set и batch под-заявките (вкл. `stats`/`import`/`cmdb/instance` URL-и).
-- **Ос 2 — пакети** (`SN_PACKAGES_DENY`/`SN_PACKAGES_READONLY`): единственият начин да се ограничат plugin API-тата (catalog/change/knowledge…), които нямат таблична пътека. Read-only пакет = write инструментите изобщо не се регистрират (Proxy фасада по `readOnlyHint`).
-- **Глобално:** `SN_READONLY` блокира всички мутации; SSRF guard-ът няма opt-out за вътрешни адреси.
-- **Съзнателно извън обхват (won't-fix, решение на собственика):** правата на `.env` файла (0644) и възможността `set_credentials` да сменя хоста (митигирано от SSRF guard + `SN_ALLOWED_HOSTS`; Фаза 6 Х-2 добавя клиентска конфирмация).
+- **Axis 1 — tables** (`SN_TABLES_ALLOW`/`SN_TABLES_DENY`): guards the Table API, CMDB classes, Import Set and batch sub-requests (incl. `stats`/`import`/`cmdb/instance` URLs). Per-profile overrides via `SN_PROFILE_<NAME>_TABLES_*`.
+- **Axis 2 — packages** (`SN_PACKAGES_DENY`/`SN_PACKAGES_READONLY`): the only way to restrict the plugin APIs (catalog/change/knowledge…), which have no table path. A read-only package means its write tools are never registered (manifest filter on `readOnlyHint`).
+- **Global:** `SN_READONLY` blocks all mutations (per-profile override: `SN_PROFILE_<NAME>_READONLY`); the SSRF guard has no opt-out for internal addresses.
+- **Deliberately out of scope (won't-fix, owner's decision):** the `.env` file mode (0644) and `set_credentials` being able to change the host (mitigated by the SSRF guard + `SN_ALLOWED_HOSTS` + Х-2 elicitation confirmation).
 
-## 5. Автентикация
+## 5. Authentication
 
 ```mermaid
 flowchart LR
     REQ["snRequest"] --> MODE{"getAuthMode()"}
-    MODE -- "SN_AUTH=basic<br/>(или няма client id)" --> BASIC["BasicAuthProvider<br/>user:password → Basic header"]
-    MODE -- "SN_AUTH=oauth<br/>(или SN_OAUTH_CLIENT_ID)" --> OAUTH["OAuthProvider"]
-    OAUTH --> CACHE{"токен в кеша?<br/>ключ: host|client|grant|user"}
-    CACHE -- "да, не е изтекъл (−30s skew)" --> BEARER["Bearer header"]
-    CACHE -- не --> TOK["POST /oauth_token.do<br/>password / client_credentials / refresh_token"]
+    MODE -- "SN_AUTH=basic<br/>(or no client id)" --> BASIC["BasicAuthProvider<br/>user:password → Basic header"]
+    MODE -- "SN_AUTH=oauth<br/>(or SN_OAUTH_CLIENT_ID)" --> OAUTH["OAuthProvider"]
+    OAUTH --> CACHE{"token cached?<br/>key: host|client|grant|user"}
+    CACHE -- "yes, not expired (−30s skew)" --> BEARER["Bearer header"]
+    CACHE -- no --> TOK["POST /oauth_token.do<br/>password / client_credentials / refresh_token"]
     TOK --> BEARER
-    SETCRED["set_credentials"] -. "invalidateTokens()" .-> CACHE
+    SETCRED["set_credentials / use_instance"] -. "invalidateTokens()" .-> CACHE
 ```
 
-Паролата не участва в ключа на кеша → смяната на креденшъли изрично чисти кеша (`invalidateTokens()`), за да не надживее токен старите тайни.
+The password is not part of the cache key → credential changes explicitly clear the cache (`invalidateTokens()`), so a token can never outlive the secrets it was minted with. A server-side revocation (401 before TTL) recovers with exactly one forced re-auth.
 
-## 6. Конфигурация
+## 6. Configuration
 
-- **Env-first:** стойности, подадени от MCP клиента, винаги печелят (`dotenv` с `override:false`); `.env` се търси в ред `SN_ENV_FILE` → XDG (`~/.config/servicenow-mcp/.env`) → project root.
-- **ConfigStore (креденшъли):** env-ът е само _начален_ източник — първото четене прави immutable snapshot; `saveCredentials` записва файла атомарно (temp + rename), обновява `process.env` (за child процеси) и сменя snapshot-а с едно присвояване. Недовършено четене „нов user + стара парола“ е структурно невъзможно. Това е опорната точка за мулти-инстанс профилите (Фаза 7 MI-1).
-- **Всички настройки** (timeout, retries, лимити, пакети, лог ниво) се четат през `settings.ts` с валидиращи парсери и документирани default-и (README env таблица + `.env.example`).
+- **Env-first:** values supplied by the MCP client always win (`dotenv` with `override:false`); the `.env` file is resolved as `SN_ENV_FILE` → XDG (`~/.config/servicenow-mcp/.env`) → project root.
+- **Profile ConfigStore (credentials):** the environment is only the _initial_ source — the first read of a profile takes an immutable snapshot; `saveCredentials` writes the file atomically (temp + rename), updates `process.env` (for child processes) and swaps the store in a single assignment. A torn read ("new user + old password") is structurally impossible. Named profiles: `SN_PROFILE_<NAME>_*` keys; the bare keys are the `default` profile; `SN_ACTIVE_PROFILE` (or a per-call `instance` argument) selects one.
+- **All settings** (timeout, retries, limits, packages, log level) are read through `settings.ts` with validating parsers and documented defaults (README env table + `.env.example`).
 
-## 7. Tool пакети и регистрация
+## 7. Tool packages and registration
 
 ```mermaid
 flowchart TD
-    ENV["SN_TOOL_PACKAGES<br/>(default: core)"] --> RESOLVE["resolveEnabledPackages<br/>профили: core, all"]
+    ENV["SN_TOOL_PACKAGES<br/>(default: core)"] --> RESOLVE["resolveEnabledPackages<br/>profiles: core, all"]
     RESOLVE --> MINUS["− SN_PACKAGES_DENY"]
-    MINUS --> LOOP{"за всяка група"}
-    LOOP -- "в SN_PACKAGES_READONLY" --> FACADE["манифестен филтър:<br/>само readOnlyHint спекове"]
-    LOOP -- иначе --> DIRECT["директна регистрация"]
-    ADMIN["admin (set_credentials, get_status)"] -- винаги --> SRV["McpServer"]
+    MINUS --> LOOP{"for each PackageSpec"}
+    LOOP -- "in SN_PACKAGES_READONLY" --> FACADE["manifest filter:<br/>readOnlyHint specs only"]
+    LOOP -- otherwise --> DIRECT["register tools + resources"]
+    ADMIN["admin (credentials, status,<br/>diagnostics, profiles)"] -- always --> SRV["McpServer"]
     FACADE --> SRV
     DIRECT --> SRV
-    SRV -. "describeAllTools() replay" .-> GEN["scripts/readme-tools.mjs<br/>npm run docs:readme"]
-    GEN --> RMD["README Tools таблица<br/>(sync тест я пази)"]
+    SRV -. "describeAllTools() from the manifest" .-> GEN["scripts/readme-tools.mjs<br/>npm run docs:readme"]
+    GEN --> RMD["README tools table<br/>(guarded by a sync test)"]
 ```
 
-`core` профил = table + schema + aggregate + attachment (15 tool-а); `all` = всичките 13 пакета (46). `effectivePackages()` е единственият източник на истина — ползва се от регистрацията, от status payload-а и от генератора.
+The `core` profile = table + schema + aggregate + attachment (+ the always-on admin tools = 18 tools); `all` = all 14 packages (51 tools). `effectivePackages()` is the single source of truth — used by registration, the status payload and the generators.
 
-## 8. Грешки и резултати
+## 8. Errors and results
 
-- Всички tool отговори са JSON текст: `ok(data)` / `okQueryResult(records, total)` (с truncation) / `fail(error)`.
-- `fail` пази структурата на `ServiceNowError`: `{ error: { message, status, snDetail } }` — моделът реагира различно на 401 (креденшъли), 403 (policy/ACL), 429 (rate limit).
-- `pluginCall` превежда най-подвеждащата ServiceNow грешка: 404 за цял namespace (= неактивен plugin) се отличава от 404 за липсващ запис; namespace вариантът се кешира 5 минути (fail-fast без мрежа) и се вижда в `pluginApis` на статуса.
+- Every tool response is JSON text: `ok(data)` / `okStructured(data)` (adds structuredContent for tools with an outputSchema) / `okQueryResult(records, total)` (with truncation) / `fail(error)`.
+- `fail` preserves the `ServiceNowError` structure: `{ error: { message, status, snDetail } }` — the model reacts differently to 401 (credentials), 403 (policy/ACL), 429 (rate limit).
+- `pluginCall` translates ServiceNow's most misleading error: a 404 for a whole namespace (= inactive plugin) is distinguished from a 404 for a missing record; the namespace variant is cached for 5 minutes (fail-fast, no network) and surfaces as `pluginApis` in the status payload.
 
-## 9. Тестова архитектура
+## 9. Test architecture
 
-| Ниво                   | Файлове                                                                                                                                                                                        | Какво пази                                                                               |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Чисти unit             | `config.test`, `settings.test`, `result.test`, `logging.test`, `servicenow.test` (host)                                                                                                        | env парсери, .env round-trip, truncation, SSRF, лог филтър                               |
-| api/ върху mock fetch  | `http.test`, `http-retry.test`, `fetchall.test`, `auth.test`, `batch.test`, `phase3.test`, `scripts.test`, `meta.test`, `attachment.test`, `diagrams.test`, `plugin.test`, `config-store.test` | домейнната логика + retry/policy/кешове, нула мрежа                                      |
-| MCP повърхност         | `mcp-smoke.test` (SDK Client + `InMemoryTransport`)                                                                                                                                            | zod схеми, мапинг на аргументи, пликове, package gating, **контрактен snapshot на core** |
-| Документационни пазачи | `readme-sync.test`, `packages.test`                                                                                                                                                            | README ↔ код синхрон; пакетната резолюция                                                |
+| Level                | Files                                                                                                                                                                                                        | What it protects                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| Pure unit            | `config.test`, `settings.test`, `result.test`, `logging.test`, `servicenow.test` (host), `profiles.test`                                                                                                     | env parsers, .env round-trip, truncation + perf, SSRF, log filter, profiles          |
+| api/ over mock fetch | `http.test`, `http-retry.test`, `fetchall.test`, `auth.test`, `batch.test`, `phase3.test`, `scripts.test`, `meta.test`, `attachment.test`, `diagrams.test`, `plugin.test`, `config-store.test`, `email.test` | domain logic + retry/policy/caches/telemetry, zero network                           |
+| MCP surface          | `mcp-smoke.test` (SDK Client + `InMemoryTransport`)                                                                                                                                                          | zod schemas, argument mapping, envelopes, package gating, **core contract snapshot** |
+| Documentation guards | `readme-sync.test`, `manifest-snapshot.test`, `packages.test`                                                                                                                                                | README ↔ code sync; manifest fixture; package resolution                             |
+| Property-based       | `property.test` (fast-check)                                                                                                                                                                                 | the env and base64 codecs over arbitrary inputs                                      |
 
-Общи helpers (`test/helpers.js`): `baselineEnv` / `withEnv` (snapshot/restore на env + reload на ConfigStore), `withFetch` (подмяна на global fetch със записани извиквания), `jsonResponse`.
+Shared helpers (`test/helpers.js`): `baselineEnv` / `withEnv` (env snapshot/restore + ConfigStore reload), `withFetch` (global fetch swap with recorded calls), `jsonResponse`.
 
-## 10. Ключови дизайн решения (съкратени ADR)
+## 10. Key design decisions (condensed ADRs)
 
-| #   | Решение                                              | Защо                                                                            | Алтернатива (отхвърлена)                              |
-| --- | ---------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| 1   | stdio транспорт, stdout само за протокола            | най-простата интеграция с MCP клиенти                                           | HTTP транспорт — планиран опционално (Х-8)            |
-| 2   | Policy в клиента, преди мрежата                      | defense in depth + ясни грешки без да печем инстанцията                         | да разчитаме само на сървърните ACL-и                 |
-| 3   | Пакетна ос на policy през (не)регистрация на спекове | невидимият инструмент е най-сигурният; нула проверки в handler-ите              | runtime проверка във всеки handler                    |
-| 4   | ConfigStore snapshot само за креденшъли              | атомарност + опора за профили; останалите настройки чакат М-1/М-2               | пълен store за всички SN\_\* сега (двоен рефакторинг) |
-| 5   | Namespace-404 кеш в `pluginCall`                     | същият статус код значи и „няма запис“ — кешира се само доказаната липса на API | кеширане на всеки 404 (би заключило валидни API-та)   |
-| 6   | README таблица генерирана от регистрациите           | кодът е истината; sync тест спира drift                                         | ръчна таблица (изоставаше) / чакане на манифеста М-3  |
-| 7   | `node:test` + mock fetch, без мрежа                  | бързина (под 1 s), детерминизъм, CI без тайни                                   | vitest (планирана опция), e2e срещу PDI (опционално)  |
+| #   | Decision                                                    | Why                                                                             | Alternative (rejected)                                   |
+| --- | ----------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 1   | stdio transport, stdout reserved for the protocol           | the simplest integration with MCP clients                                       | HTTP transport — planned as optional (Х-8)               |
+| 2   | Policy in the client, before the network                    | defense in depth + clear errors without hammering the instance                  | relying on server-side ACLs alone                        |
+| 3   | Package policy axis via (non-)registration of specs         | an invisible tool is the safest tool; zero checks in handlers                   | runtime checks in every handler                          |
+| 4   | ConfigStore snapshot for credentials (now per profile)      | atomicity + the anchor for profiles                                             | a full store for all SN\_\* upfront (double refactoring) |
+| 5   | Namespace-404 cache in `pluginCall`                         | the same status code also means "no record" — only proven API absence is cached | caching every 404 (would lock out valid APIs)            |
+| 6   | README table generated from the registrations               | the code is the truth; a sync test stops drift                                  | a manual table (it kept drifting)                        |
+| 7   | `node:test` + mock fetch, no network                        | speed (~1 s), determinism, CI without secrets                                   | vitest (an option), e2e against a PDI (optional)         |
+| 8   | PackageSpec manifest: package = tools + resources, 1 object | plug-in modularity; gating and docs read one truth                              | imperative register functions (deleted)                  |
+| 9   | Per-host semaphore/telemetry, caches keyed by instance      | Phase 7 profiles arrive without refactoring; one instance cannot starve another | global counters (replaced)                               |
+| 10  | Per-call profile via AsyncLocalStorage                      | no api/ signature threads a profile; everything resolves it at call time        | threading a profile argument through 20+ functions       |
 
-## 11. Какво предстои архитектурно
+## 11. What is next architecturally
 
-Описано подробно в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md): **Фаза 6** — директории `core/`/`api/`/`mcp/`, декларативен tool манифест (М-3: едно място за схема+метаданни+handler, маха и import цикъла), SDK ъпгрейдът вече е факт; **Фаза 7** — мулти-инстанс профили (AsyncLocalStorage контекст върху ConfigStore, per-profile policy, снапшот/сравнение на метаданни); **Фаза 8** — flow intelligence, ATF, локален lint на инстанс кода.
+Described in detail in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md): **Phase 7 remainder** — instance metadata snapshot to the docs store (MI-6), dev↔prod comparison (MI-7), per-profile resources (MI-8); **Phase 8** — flow intelligence, ATF runs, local lint of instance code; **optional** — HTTP transport (Х-8), PDI e2e suite, Export API.

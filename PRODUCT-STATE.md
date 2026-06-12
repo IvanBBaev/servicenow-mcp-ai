@@ -1,24 +1,24 @@
-# servicenow-mcp — Състояние на продукта
+# servicenow-mcp — Product State
 
-Дата: 2026-06-12 (вечер) · build чист · ESLint чист (type-checked + слоеви граници) · **137/137 теста** · CI: Node 20/22/24 матрица + coverage праг · git история commit-по-задача.
-**Фаза 6 е завършена** (без изрично опционалния Х-8 HTTP транспорт): слоести директории core/api/mcp/tools, декларативен tool манифест (пакет = plug-in), elicitation, MCP logging, outputSchema, email пакет.
-Свързани документи: [ARCHITECTURE.md](ARCHITECTURE.md) (как е устроено), [DONE.md](DONE.md) (пълен списък свършено), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (какво предстои), [WORKLOG.md](WORKLOG.md) (хронология), [CHANGELOG.md](CHANGELOG.md).
+Date: 2026-06-12 (night) · clean build · clean ESLint (type-checked + layer boundaries) · **137/137 tests** · CI: Node 20/22/24 matrix + coverage gate · git history one-commit-per-task.
+**Phase 6 is complete** (except the explicitly optional Х-8 HTTP transport): layered core/api/mcp/tools directories, a declarative tool manifest (a package is a plug-in), elicitation, MCP logging, outputSchema, the email package. **Phase 7 (multi-instance) core is done** (MI-1…MI-5).
+Related documents: [ARCHITECTURE.md](ARCHITECTURE.md) (how it is built), [DONE.md](DONE.md) (everything completed), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (what is next), [WORKLOG.md](WORKLOG.md) (chronology), [CHANGELOG.md](CHANGELOG.md).
 
-## 1. TL;DR — какво работи днес
+## 1. TL;DR — what works today
 
-Пълноценен ServiceNow MCP сървър: **49 инструмента в 14 пакета**, 5 MCP resources (пакетно гейтнати), 3 prompts. Покрива всички основни ServiceNow REST API-та (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE) и plugin API-тата (Catalog, Change, Knowledge) с capability detection. Чете и анализира скриптовата автоматика на инстанцията (business rules, script includes, client scripts…), генерира Mermaid диаграми и поддържа локална Markdown само-документация. Двуосов policy модел (таблици + пакети), OAuth/Basic, retry/backoff, SSRF guard, structured errors.
+A full ServiceNow MCP server: **51 tools in 14 packages**, 5 MCP resources (package-gated), 3 prompts. Covers all core ServiceNow REST APIs (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE) and the plugin APIs (Catalog, Change, Knowledge, Email) with capability detection. Reads and analyses the instance's script automation (business rules, script includes, client scripts…), generates Mermaid diagrams and maintains a local Markdown self-documentation store. Two-axis policy model (tables + packages), named connection profiles with per-call routing, OAuth/Basic, retry/backoff, SSRF guard, structured errors.
 
 ```mermaid
-pie title 49 tools по пакети
+pie title 51 tools by package
     "table (CRUD)" : 5
     "attachment" : 5
     "catalog" : 5
     "change" : 5
     "cmdb" : 5
+    "admin" : 5
     "scripts" : 4
     "docs + diagrams" : 6
     "knowledge" : 3
-    "admin" : 3
     "schema" : 2
     "importset" : 2
     "email" : 2
@@ -26,80 +26,80 @@ pie title 49 tools по пакети
     "batch" : 1
 ```
 
-## 2. Покритие на ServiceNow API повърхността
+## 2. ServiceNow API surface coverage
 
-| ServiceNow API                     | Статус | Как                                                                   |
-| ---------------------------------- | :----: | --------------------------------------------------------------------- |
-| Table API (CRUD + заявки)          |   ✅   | `table` пакет; fetchAll пагинация, X-Total-Count, display values      |
-| Aggregate / Stats                  |   ✅   | `servicenow_aggregate`: count/avg/min/max/sum + group_by/having       |
-| Attachment                         |   ✅   | списък/мета/download/upload/delete; base64, size guard преди download |
-| Import Set                         |   ✅   | staging insert + резултат от transform                                |
-| Batch (`/api/now/v1/batch`)        |   ✅   | няколко REST извиквания в една заявка; policy per под-заявка          |
-| CMDB Instance / Meta / IRE         |   ✅   | class-aware CRUD през Identification & Reconciliation                 |
-| Service Catalog (`sn_sc`)          |   ✅   | браузване + variables + **order now**; plugin-aware                   |
-| Change Management (`sn_chg_rest`)  |   ✅   | typed create (normal/standard/emergency), conflicts, update           |
-| Knowledge (`sn_km_api`)            |   ✅   | релевантно търсене, статия, featured/most-viewed                      |
-| Схема (`sys_db_object/dictionary`) |   ✅   | list/describe **с наследяване по super_class веригата**               |
-| Скриптове (през Table API)         |   ✅   | 9 типа артефакти: списък/източник/търсене в кода/`table_logic`        |
-| Диаграми / документация            |   ✅   | Mermaid ER + table flow; локален MD магазин + resources               |
-| Email API                          |   ✅   | `email` пакет: send (pluginCall + write policy) / get                 |
-| CI/CD + ATF                        |   📋   | планирано — Фаза 8 FT-4                                               |
-| Code Search (`sn_codesearch`)      |   📋   | планирано — Фаза 8 FT-7 (fallback-ът през LIKE работи днес)           |
-| Мулти-инстанс работа               |   📋   | планирано — Фаза 7 (профили, снапшот, сравнение)                      |
+| ServiceNow API                      | Status | How                                                                                                                                 |
+| ----------------------------------- | :----: | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Table API (CRUD + queries)          |   ✅   | `table` package; fetchAll pagination, X-Total-Count, display values                                                                 |
+| Aggregate / Stats                   |   ✅   | `servicenow_aggregate`: count/avg/min/max/sum + group_by/having                                                                     |
+| Attachment                          |   ✅   | list/meta/download/upload/delete; base64, size guard before download                                                                |
+| Import Set                          |   ✅   | staging insert + transform outcome                                                                                                  |
+| Batch (`/api/now/v1/batch`)         |   ✅   | several REST calls in one request; policy per sub-request                                                                           |
+| CMDB Instance / Meta / IRE          |   ✅   | class-aware CRUD through Identification & Reconciliation                                                                            |
+| Service Catalog (`sn_sc`)           |   ✅   | browsing + variables + **order now**; plugin-aware                                                                                  |
+| Change Management (`sn_chg_rest`)   |   ✅   | typed create (normal/standard/emergency), conflicts, update                                                                         |
+| Knowledge (`sn_km_api`)             |   ✅   | relevance search, article, featured/most-viewed                                                                                     |
+| Schema (`sys_db_object/dictionary`) |   ✅   | list/describe **with super_class inheritance chain**                                                                                |
+| Scripts (via the Table API)         |   ✅   | 9 artefact types: list/source/code search/`table_logic`                                                                             |
+| Diagrams / documentation            |   ✅   | Mermaid ER + table flow; local MD store + resources                                                                                 |
+| Email API                           |   ✅   | `email` package: send (pluginCall + write policy) / get                                                                             |
+| Multi-instance work                 |   🔶   | profiles, per-profile policy, per-call `instance` routing, list/switch tools done (MI-1…MI-5); snapshot + compare remain (MI-6/7/8) |
+| CI/CD + ATF                         |   📋   | planned — Phase 8 FT-4                                                                                                              |
+| Code Search (`sn_codesearch`)       |   📋   | planned — Phase 8 FT-7 (the LIKE fallback works today)                                                                              |
 
-## 3. Как е направено (качество и инфраструктура)
+## 3. How it is built (quality and infrastructure)
 
-- **Език/runtime:** TypeScript strict + `noUncheckedIndexedAccess`, ESM, Node ≥ 20 (внимание: default shell Node тук е v12 — ползвай nvm 22), MCP SDK 1.29.
-- **Линт:** typescript-eslint type-checked + `no-floating-promises`; Prettier.
-- **Тестове: 131 в 4 нива** (unit → api върху mock fetch → in-memory MCP клиент → документационни пазачи), под 1 секунда, нула мрежа. Контрактен snapshot пази tool списъка на `core`; README sync тест пази документацията.
-- **CI:** GitHub Actions (lint + format + build + test, Node 20/22/24; coverage праг `--lines 85`).
-- **Документация като код:** README Tools таблицата се генерира (`npm run docs:readme`); env референция + `.env.example` поддържани по работно правило; WORKLOG/DONE/TODO дисциплина след всяка задача.
+- **Language/runtime:** TypeScript strict + `noUncheckedIndexedAccess`, ESM, Node ≥ 20 (note: the default shell Node here is v12 — use nvm 22), MCP SDK 1.29.
+- **Lint:** typescript-eslint type-checked + `no-floating-promises` + layer-boundary rules; Prettier (checked in CI).
+- **Tests: 137 on 4 levels** (unit → api over mock fetch → in-memory MCP client → documentation guards, incl. property-based and perf guards), ~1 second, zero network. A contract snapshot protects the `core` tool list; a README sync test protects the docs.
+- **CI:** GitHub Actions (lint + format + build + test on Node 20/22/24; coverage gate `--lines 85 --branches 72`; Windows visibility job; Node 12 launcher probe).
+- **Documentation as code:** the README tools table is generated (`npm run docs:readme`); the env reference + `.env.example` are maintained by working rule; WORKLOG/DONE/TODO discipline after every task.
 
-## 4. История — как стигнахме дотук
+## 4. History — how we got here
 
 ```mermaid
 timeline
-    title servicenow-mcp — основни етапи
+    title servicenow-mcp — major milestones
     section 2026-06-11
-        Начало : 7 tool-а само върху Table API
-        Ревюта : код ревю + архитектурно ревю : решения won't-fix (.env права, instance смяна)
-        Фази 1–5 : харнес (retry, policy, OAuth, packages) : пълно API покритие : script intelligence : docs + diagrams + prompts
-        План : Фаза 6 (харнес 2.0) : Фаза 7 (мулти-инстанс) : Фаза 8 (flow тестове + код анализ)
+        Start : 7 tools over the Table API only
+        Reviews : code review + architecture review : won't-fix decisions (.env mode, instance change)
+        Phases 1-5 : harness (retry, policy, OAuth, packages) : full API coverage : script intelligence : docs + diagrams + prompts
+        Plan : Phase 6 (harness 2.0) : Phase 7 (multi-instance) : Phase 8 (flow testing + code analysis)
     section 2026-06-12
-        Дълбоко ревю : 22 находки (синиър / архитект / QA)
-        Имплементация : 22/22 находки затворени : git init + commit-по-задача дисциплина
-        Качество : 59 → 107 теста : type-checked lint : генерирано README
+        Deep review : 22 findings (senior / architect / QA) : 22 of 22 closed
+        Phase 6 : layered dirs : declarative manifest : elicitation, logging, outputSchema, email
+        Quality : 59 to 137 tests : type-checked lint : generated README : v1.0.0 cut
+        Phase 7 core : named profiles : per-profile policy : per-call instance routing : rebrand to servicenow-mcp
 ```
 
-Най-важните поправки от ревюто (пълен списък в [DONE.md](DONE.md)): `describe_table` вече вижда наследените колони (критично за всяка разширена таблица като `incident`); batch не заобикаля table policy през stats/import/cmdb URL-и; plugin API-тата имат capability кеш; креденшълите са в атомарен ConfigStore; per-package policy ос за plugin API-тата.
+The most important review fixes (full list in [DONE.md](DONE.md)): `describe_table` now sees inherited columns (critical for any extended table such as `incident`); batch can no longer bypass the table policy via stats/import/cmdb URLs; plugin APIs have a capability cache; credentials live in an atomic ConfigStore; a per-package policy axis covers the plugin APIs.
 
-## 5. Какво НЕ е направено (пътна карта)
+## 5. What is NOT done (roadmap)
 
-Подробните спецификации са в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) — писани като handoff за Opus 4.8:
+Detailed specifications live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) — written as a handoff spec:
 
-| Фаза                              | Какво                                                                                                                                                                           | Обем       | Ключови задачи                                        |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------- |
-| **6 · Харнес 2.0**                | декларативен tool манифест, директории core/api/mcp, elicitation за креденшъли, MCP logging capability, outputSchema, email пакет, оптимизации (схема-кеш, семафор, телеметрия) | ~3½–4 дни  | М-1…М-6, Х-2…Х-8, О-1…О-5 (Х-1 SDK ъпгрейдът е готов) |
-| **7 · Мулти-инстанс**             | именувани профили в .env, ALS контекст, per-profile policy, снапшот на метаданни, сравнение dev↔prod                                                                            | ~2 дни     | MI-1…MI-8 (стъпва на манифеста + ConfigStore ✅)      |
-| **8 · Flow тестове + код анализ** | trace на таблични събития, Flow Designer четене, ATF изпълнение, локален lint на инстанс скриптове                                                                              | ~2–3 дни   | FT-1…FT-7                                             |
-| Опционално                        | PDI e2e suite, Export API (CSV/XLSX), HTTP транспорт, vitest миграция                                                                                                           | при заявка | секция „Опционално“ в плана                           |
+| Phase                                | What                                                                                                              | Effort     | Key tasks                             |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------- |
+| **7 · Multi-instance (remainder)**   | metadata snapshot to docs (`snapshot_instance`), dev↔prod comparison (`compare_instances`), per-profile resources | ~1 day     | MI-6, MI-7, MI-8 (MI-1…MI-5 are done) |
+| **8 · Flow testing + code analysis** | table-event tracing, Flow Designer reading, ATF runs, local lint of instance scripts                              | ~2–3 days  | FT-1…FT-7                             |
+| Optional                             | PDI e2e suite, Export API (CSV/XLSX), HTTP transport (Х-8), vitest migration                                      | on request | the "Optional" section in the plan    |
 
-## 6. Известни ограничения и съзнателни решения
+## 6. Known limitations and deliberate decisions
 
-- **Won't-fix (решения на собственика):** `.env` се пише с права 0644; `set_credentials` може да сменя хоста (SSRF guard + `SN_ALLOWED_HOSTS` остават; Х-2 ще добави клиентска конфирмация).
-- **Table policy ≠ plugin policy:** deny на таблица не спира plugin API-тата — затова съществува пакетната ос (`SN_PACKAGES_DENY`/`SN_PACKAGES_READONLY`); документирано в README security секцията.
-- **README env таблицата** е още ръчна (tools таблицата вече не е) — остатъкът от М-5.
-- **Една инстанция наведнъж** до Фаза 7; **никакво изпълнение на код върху инстанцията** (вкл. background scripts) — ATF през официалния CI/CD API е планираният път.
+- **Won't-fix (owner's decisions):** `.env` is written with mode 0644; `set_credentials` can change the host (the SSRF guard + `SN_ALLOWED_HOSTS` stay; Х-2 elicitation adds client confirmation).
+- **Table policy ≠ plugin policy:** denying a table does not stop the plugin APIs — that is what the package axis (`SN_PACKAGES_DENY`/`SN_PACKAGES_READONLY`) is for; documented in the README security section.
+- **The README env table** is still manual (the tools table no longer is) — the remainder of М-5.
+- **No code execution on the instance** (incl. background scripts) — ATF through the official CI/CD API is the planned path (Phase 8).
 
-## 7. Документен компас
+## 7. Document compass
 
-| Файл                                             | Какво съдържа                                                       |
-| ------------------------------------------------ | ------------------------------------------------------------------- |
-| [README.md](README.md)                           | setup, env референция, генерирана tools таблица, примери, security  |
-| [ARCHITECTURE.md](ARCHITECTURE.md)               | слоеве, диаграми, policy/auth/config модели, ADR решения            |
-| [PRODUCT-STATE.md](PRODUCT-STATE.md)             | този файл — какво/докъде/как                                        |
-| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Фази 6–8 спецификации за Opus 4.8 + опционално                      |
-| [DONE.md](DONE.md)                               | пълен списък свършено, с commit референции                          |
-| [TODO.md](TODO.md)                               | бек лог (троен анализ S2/A2/Q2), release чеклист R-1…R-9, won't-fix |
-| [WORKLOG.md](WORKLOG.md)                         | подробна хронология: проблем/решение/алтернативи/верификация        |
-| [CHANGELOG.md](CHANGELOG.md)                     | потребителски преглед на промените (Keep a Changelog)               |
+| File                                             | Contents                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| [README.md](README.md)                           | setup, env reference, generated tools table, examples, security          |
+| [ARCHITECTURE.md](ARCHITECTURE.md)               | layers, diagrams, policy/auth/config models, ADR decisions               |
+| [PRODUCT-STATE.md](PRODUCT-STATE.md)             | this file — what/how far/how                                             |
+| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Phase 6–8 specifications + optional items                                |
+| [DONE.md](DONE.md)                               | everything completed, with commit references                             |
+| [TODO.md](TODO.md)                               | backlog (triple analysis S2/A2/Q2), release checklist R-1…R-9, won't-fix |
+| [WORKLOG.md](WORKLOG.md)                         | detailed chronology: problem/solution/alternatives/verification          |
+| [CHANGELOG.md](CHANGELOG.md)                     | user-facing change overview (Keep a Changelog)                           |
