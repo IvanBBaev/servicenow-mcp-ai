@@ -1,18 +1,18 @@
 # Sincronia — Архитектурна документация
 
-Дата: 2026-06-12 · Отразява кодa след пълната имплементация на ревюто (107/107 теста, commit `7877dff`).
+Дата: 2026-06-12 (вечер) · Отразява кода след Фаза 6 + бек лога от тройния анализ (131/131 теста).
 Свързани документи: [PRODUCT-STATE.md](PRODUCT-STATE.md) (състояние), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (бъдеще), [DONE.md](DONE.md) (история), [WORKLOG.md](WORKLOG.md) (хронология).
 
 ## 1. Какво е Sincronia
 
-TypeScript **stdio MCP сървър** за ServiceNow: LLM клиент (Claude, VS Code Chat, Inspector…) получава 46 инструмента върху ServiceNow REST повърхността — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, CMDB/IRE, script intelligence, Mermaid генератори и локална само-документация. Един процес, нула външни runtime зависимости освен `@modelcontextprotocol/sdk`, `zod` и `dotenv`; целият вход/изход е JSON по stdio (логовете са само на stderr).
+TypeScript **stdio MCP сървър** за ServiceNow: LLM клиент (Claude, VS Code Chat, Inspector…) получава 49 инструмента в 14 пакета върху ServiceNow REST повърхността — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, CMDB/IRE, script intelligence, Mermaid генератори и локална само-документация. Един процес, нула външни runtime зависимости освен `@modelcontextprotocol/sdk`, `zod` и `dotenv`; целият вход/изход е JSON по stdio (логовете са само на stderr).
 
 Принципи, които държат дизайна:
 
 1. **Един HTTP клиент** — всичко минава през `snRequest()` (auth, SSRF guard, timeout, retry, error mapping се правят веднъж).
 2. **Policy в клиента (defense in depth)** — ограниченията (read-only, таблици, пакети) се налагат _преди_ мрежата, не разчитаме само на ACL-ите на инстанцията.
 3. **Кодът е източникът на истина** — README таблицата на tools се генерира от регистрациите; sync тест пада при изоставане.
-4. **Тестове без мрежа** — целият suite (107) върви върху mock `fetch` + in-memory MCP транспорт.
+4. **Тестове без мрежа** — целият suite (131, вкл. property-based и перф пазачи) върви върху mock `fetch` + in-memory MCP транспорт.
 
 ## 2. Слоеве и модули
 
@@ -22,7 +22,7 @@ graph TD
         IDX["index.ts<br/>bootstrap + shutdown"]
     end
     subgraph MCP["MCP повърхност"]
-        REG["registry.ts<br/>ALL_TOOLS манифест, gating"]
+        REG["registry.ts<br/>PACKAGES манифест, gating"]
         DEF["define.ts<br/>ToolSpec + runSpec"]
         TOOLS["tools/*.ts<br/>14 манифеста: ToolSpec[] (данни)"]
         RES["resources.ts<br/>status / tables / schema / docs"]
@@ -30,7 +30,7 @@ graph TD
         STAT["status.ts<br/>buildStatusPayload"]
     end
     subgraph API["API слой (ServiceNow домейн)"]
-        SN["servicenow.ts<br/>Table API + fetchAll"]
+        SN["api/table.ts<br/>Table API + fetchAll"]
         APIS["api/*.ts<br/>aggregate attachment batch cmdb<br/>catalog change knowledge importset<br/>meta scripts docs diagrams"]
         PLG["api/plugin.ts<br/>pluginCall + capability кеш"]
         SHR["api/shared.ts<br/>expectResult / snString"]
@@ -73,7 +73,7 @@ graph TD
 
 Бележки:
 
-- `tools/*` са **данни**: всеки файл изнася `specs: ToolSpec[]` (име/докс/пакет/annotations/zod вход/handler); `mcp/define.ts#runSpec` дава uniform логване/грешки. Пакет се вкарва/изкарва с един spread в `ALL_TOOLS`. Домейнната логика живее в `api/*`.
+- `tools/*` са **данни**: всеки файл изнася `specs: ToolSpec[]` (име/докс/пакет/annotations/strict zod вход/handler); `mcp/define.ts#runSpec` дава uniform логване/грешки. **Пакет = един `PackageSpec` обект** `{name, tools, resources?}` в `PACKAGES` манифеста — вкарва се/изкарва с един ред, ресурсите следват същата политика декларативно, runtime инвариант пази таговете. Домейнната логика живее в `api/*`.
 - Слоевете се налагат машинно (ESLint no-restricted-imports зони, М-2); лек остатъчен цикъл `registry → tools/admin → status → registry` работи в ESM (употреби само на ниво извикване).
 - Целевото преструктуриране (Фаза 6 М-1/М-2): `core/` + `api/` + `mcp/` директории — местене на готови модули, без промяна на зависимостите по-горе.
 
