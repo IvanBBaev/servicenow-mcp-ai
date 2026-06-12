@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { aggregate } from "../api/aggregate.js";
-import { ok } from "../result.js";
+import { ok, fail } from "../result.js";
 import { runTool } from "./util.js";
 
 export function registerAggregateTools(server: McpServer): void {
@@ -50,6 +50,17 @@ export function registerAggregateTools(server: McpServer): void {
     },
     async (args) =>
       runTool("servicenow_aggregate", { table: args.table }, async () => {
+        const hasAggregation =
+          args.count ||
+          args.avg_fields?.length ||
+          args.min_fields?.length ||
+          args.max_fields?.length ||
+          args.sum_fields?.length;
+        if (!hasAggregation) {
+          return fail(
+            "At least one aggregation is required: count, avg_fields, min_fields, max_fields or sum_fields.",
+          );
+        }
         const result = await aggregate({
           table: args.table,
           query: args.query,

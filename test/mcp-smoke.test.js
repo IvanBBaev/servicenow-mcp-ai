@@ -188,6 +188,30 @@ test("gated tools are absent from core and cannot be called", async () => {
   });
 });
 
+test("servicenow_aggregate without any aggregation fails fast, offline", async () => {
+  await withEnv({ SN_TOOL_PACKAGES: undefined }, async () => {
+    const { client, close } = await startServer();
+    try {
+      await withFetch(
+        () => {
+          throw new Error("no network call expected");
+        },
+        async (calls) => {
+          const res = await client.callTool({
+            name: "servicenow_aggregate",
+            arguments: { table: "incident", group_by: ["state"] },
+          });
+          assert.ok(res.isError);
+          assert.match(res.content[0].text, /At least one aggregation/);
+          assert.equal(calls.length, 0);
+        },
+      );
+    } finally {
+      await close();
+    }
+  });
+});
+
 test("the servicenow://status resource reports the connection shape", async () => {
   await withEnv({ SN_TOOL_PACKAGES: undefined }, async () => {
     const { client, close } = await startServer();
