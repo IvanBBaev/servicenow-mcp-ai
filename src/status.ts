@@ -3,6 +3,7 @@ import { getAuthMode } from "./auth.js";
 import { isReadOnly, getAllowedTables, getDeniedTables } from "./policy.js";
 import { getRequestedPackages } from "./settings.js";
 import { resolveEnabledPackages } from "./registry.js";
+import { pluginAvailability } from "./api/plugin.js";
 
 /**
  * The single source of the connection-status payload, shared by the
@@ -21,5 +22,7 @@ export function buildStatusPayload() {
     allowedTables: getAllowedTables(),
     deniedTables: getDeniedTables(),
     enabledPackages: [...resolveEnabledPackages(getRequestedPackages())].sort(),
+    // Plugin APIs observed this session: available / unavailable / unknown.
+    pluginApis: pluginAvailability(),
   };
 }
