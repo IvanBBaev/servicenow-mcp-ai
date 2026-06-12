@@ -2,6 +2,8 @@
   "name": "sincronia-mcp",
   "version": "1.0.0",
   "description": "ServiceNow MCP server: 49 tools over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, Mermaid generators and a two-axis policy model.",
+  "license": "MIT",
+  "author": "Ivan Baev <ivanbbaev@gmail.com>",
   "type": "module",
   "bin": {
     "sincronia-mcp": "./bin/sincronia-mcp.cjs"
@@ -27,7 +29,8 @@
     "docs:readme": "node scripts/readme-tools.mjs",
     "test:full": "npm run build && node --test test/*.test.js",
     "gen:manifest": "node scripts/gen-manifest.mjs",
-    "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js"
+    "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
+    "prepublishOnly": "npm run verify"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
