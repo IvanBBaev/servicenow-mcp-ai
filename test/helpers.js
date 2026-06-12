@@ -22,6 +22,7 @@ export function baselineEnv() {
   delete process.env.SN_TABLES_ALLOW;
   delete process.env.SN_TABLES_DENY;
   delete process.env.SN_READONLY;
+  delete process.env.SN_ACTIVE_PROFILE;
   // Credentials live in the config store; staging env vars alone is not enough.
   reloadCredentialsFromEnv();
 }

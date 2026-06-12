@@ -108,6 +108,8 @@ See [.env.example](.env.example) for a template.
 | `SN_INCLUDE_REF_LINKS`   |    no    | `false`         | Reference fields come back without their `link` URLs by default (token savings). Set `true` to include them.                                                                                                                                                               |
 | `SN_RESULT_PRETTY`       |    no    | `false`         | Tool results are compact JSON by default (pretty-printing ~doubles tokens). Set `true` for indented output.                                                                                                                                                                |
 | `SN_DOCS_DIR`            |    no    | `docs/instance` | Directory the `docs` package reads/writes Markdown in. Relative paths resolve against the working directory.                                                                                                                                                               |
+| `SN_PROFILE_<NAME>_*`    |    no    | —               | Named connection profiles: `SN_PROFILE_DEV_INSTANCE` / `_USER` / `_PASSWORD` define profile `dev`. The bare `SN_INSTANCE`/`SN_USER`/`SN_PASSWORD` keys are the `default` profile.                                                                                          |
+| `SN_ACTIVE_PROFILE`      |    no    | `default`       | Which profile tools use. Switch at runtime with `servicenow_use_instance` (persisted to the env file).                                                                                                                                                                     |
 
 ## Run / debug
 

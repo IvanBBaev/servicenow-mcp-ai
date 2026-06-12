@@ -57,57 +57,126 @@ export function loadEnv(): void {
 }
 
 /**
- * In-memory credential store: the environment is only the *initial* source.
- * The first read snapshots SN_INSTANCE/SN_USER/SN_PASSWORD; afterwards every
- * read returns the same immutable snapshot until saveCredentials (or an
- * explicit reload) swaps it in a single assignment. This makes a torn read
- * (new user + old password) structurally impossible and gives the multi-
- * instance work one place to extend instead of scattered env reads.
+ * Named connection profiles (MI-1). The legacy keys SN_INSTANCE/SN_USER/
+ * SN_PASSWORD are the `default` profile — full backwards compatibility. Any
+ * other profile lives under SN_PROFILE_<NAME>_INSTANCE/_USER/_PASSWORD, and
+ * SN_ACTIVE_PROFILE picks which one tools use when no explicit profile is
+ * given.
  */
-let store: ServiceNowCredentials | null = null;
+const PROFILE_RE = /^[a-z0-9_]+$/;
 
-function snapshotFromEnv(): ServiceNowCredentials {
+/** Throw on a malformed profile name (lowercase letters, digits, underscores). */
+export function assertValidProfileName(profile: string): void {
+  if (!PROFILE_RE.test(profile)) {
+    throw new Error(
+      `Invalid profile name "${profile}" — use lowercase letters, digits and underscores.`,
+    );
+  }
+}
+
+function envKeysFor(profile: string): {
+  instance: string;
+  user: string;
+  password: string;
+} {
+  if (profile === "default") {
+    return {
+      instance: "SN_INSTANCE",
+      user: "SN_USER",
+      password: "SN_PASSWORD",
+    };
+  }
+  const upper = profile.toUpperCase();
   return {
-    instance: process.env.SN_INSTANCE?.trim() ?? "",
-    user: process.env.SN_USER?.trim() ?? "",
-    password: process.env.SN_PASSWORD ?? "",
+    instance: `SN_PROFILE_${upper}_INSTANCE`,
+    user: `SN_PROFILE_${upper}_USER`,
+    password: `SN_PROFILE_${upper}_PASSWORD`,
   };
 }
 
-/** Read the current credentials (atomic snapshot from the store). */
-export function getCredentials(): ServiceNowCredentials {
-  if (!store) store = snapshotFromEnv();
-  return { ...store };
+/** The profile used when a tool call gives no explicit instance. */
+export function activeProfile(): string {
+  const raw = process.env.SN_ACTIVE_PROFILE?.trim().toLowerCase();
+  return raw && PROFILE_RE.test(raw) ? raw : "default";
+}
+
+/** Profiles visible in the environment (default first, then alphabetical). */
+export function listProfiles(): string[] {
+  const names = new Set<string>();
+  if (process.env.SN_INSTANCE?.trim()) names.add("default");
+  for (const key of Object.keys(process.env)) {
+    const match = /^SN_PROFILE_([A-Z0-9_]+)_INSTANCE$/.exec(key);
+    if (match?.[1] && process.env[key]?.trim()) {
+      names.add(match[1].toLowerCase());
+    }
+  }
+  return [...names].sort((a, b) =>
+    a === "default" ? -1 : b === "default" ? 1 : a.localeCompare(b),
+  );
 }
 
 /**
- * Re-snapshot the credentials from process.env — used by loadEnv() at startup
- * and by tests that stage the environment directly.
+ * In-memory credential store: the environment is only the *initial* source.
+ * The first read of a profile snapshots its keys; afterwards every read
+ * returns the same immutable snapshot until saveCredentials/useProfile (or an
+ * explicit reload) swaps the store in a single assignment. A torn read
+ * (new user + old password) is structurally impossible.
  */
-export function reloadCredentialsFromEnv(): ServiceNowCredentials {
-  store = snapshotFromEnv();
-  return { ...store };
+let store = new Map<string, ServiceNowCredentials>();
+
+function snapshotFromEnv(profile: string): ServiceNowCredentials {
+  const keys = envKeysFor(profile);
+  return {
+    instance: process.env[keys.instance]?.trim() ?? "",
+    user: process.env[keys.user]?.trim() ?? "",
+    password: process.env[keys.password] ?? "",
+  };
 }
 
-/** True when instance, user and password are all present. */
-export function hasCredentials(): boolean {
-  const c = getCredentials();
+/** Read a profile's credentials (atomic snapshot; default: the active profile). */
+export function getCredentials(
+  profile: string = activeProfile(),
+): ServiceNowCredentials {
+  let creds = store.get(profile);
+  if (!creds) {
+    creds = snapshotFromEnv(profile);
+    store.set(profile, creds);
+  }
+  return { ...creds };
+}
+
+/**
+ * Drop every profile snapshot and re-read from process.env — used by
+ * loadEnv() at startup and by tests that stage the environment directly.
+ */
+export function reloadCredentialsFromEnv(): ServiceNowCredentials {
+  store = new Map();
+  return getCredentials();
+}
+
+/** True when the profile's instance, user and password are all present. */
+export function hasCredentials(profile: string = activeProfile()): boolean {
+  const c = getCredentials(profile);
   return Boolean(c.instance && c.user && c.password);
 }
 
 /**
  * Persist credentials to the .env file and update process.env so the new
  * values take effect immediately. Only the provided fields are changed;
- * any other keys already in .env are preserved.
+ * any other keys already in .env are preserved. Non-default profiles write
+ * their prefixed keys.
  */
 export function saveCredentials(
   partial: Partial<ServiceNowCredentials>,
+  profile: string = activeProfile(),
 ): ServiceNowCredentials {
+  assertValidProfileName(profile);
+  const keys = envKeysFor(profile);
   const updates: Record<string, string> = {};
   if (partial.instance !== undefined)
-    updates.SN_INSTANCE = partial.instance.trim();
-  if (partial.user !== undefined) updates.SN_USER = partial.user.trim();
-  if (partial.password !== undefined) updates.SN_PASSWORD = partial.password;
+    updates[keys.instance] = partial.instance.trim();
+  if (partial.user !== undefined) updates[keys.user] = partial.user.trim();
+  if (partial.password !== undefined) updates[keys.password] = partial.password;
 
   updateEnvFile(updates);
 
@@ -115,9 +184,30 @@ export function saveCredentials(
     process.env[key] = value;
   }
 
-  // Swap the store snapshot in one assignment — readers never observe a
-  // half-applied credential change.
-  return reloadCredentialsFromEnv();
+  // Swap the store in one assignment — readers never observe a half-applied
+  // credential change.
+  store = new Map();
+  return getCredentials(profile);
+}
+
+/**
+ * Switch the active profile (persisted to the env file). The caller is
+ * responsible for clearing identity-scoped caches (tokens, schema, plugin
+ * availability) — the admin tool does that.
+ */
+export function useProfile(name: string): ServiceNowCredentials {
+  const profile = name.trim().toLowerCase();
+  assertValidProfileName(profile);
+  const known = listProfiles();
+  if (!known.includes(profile)) {
+    throw new Error(
+      `Unknown profile "${profile}". Available: ${known.join(", ") || "(none)"}.`,
+    );
+  }
+  updateEnvFile({ SN_ACTIVE_PROFILE: profile });
+  process.env.SN_ACTIVE_PROFILE = profile;
+  store = new Map();
+  return getCredentials(profile);
 }
 
 /**
