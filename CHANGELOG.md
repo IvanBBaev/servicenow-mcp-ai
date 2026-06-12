@@ -13,7 +13,7 @@
 - Capability кеш за plugin API-та: namespace 404 се кешира 5 мин (fail-fast), наличността се вижда в `pluginApis` на статуса.
 - ConfigStore: креденшълите са атомарен in-memory snapshot (env-ът е само начален източник).
 - README tools таблицата се генерира от живите регистрации (`npm run docs:readme`) и се пази синхронна с тест.
-- In-memory MCP smoke тестове (SDK Client + InMemoryTransport) с контрактен snapshot на `core` профила и manifest фикстура; 122 теста общо.
+- In-memory MCP smoke тестове (SDK Client + InMemoryTransport) с контрактен snapshot на `core` профила и manifest фикстура; 127 теста общо.
 - `servicenow_test_connection` — диагностика дали конфигурацията реално работи ({ok, status, latencyMs}); провалите са структурирани.
 - OAuth: 401 с кеширан токен се възстановява с еднократна реавтентикация; стабилна fetchAll пагинация (автоматичен ORDERBY); схема-кеш с TTL; семафор за паралелизма; телеметрия в status; Node 20+ защита (launcher + engines).
 - Токен диети по подразбиране: компактен JSON изход и без reference `link` URL-и (opt-in връщане).
@@ -25,6 +25,8 @@
 - `String()` върху ServiceNow поле при `display_value=all` вече не произвежда `"[object Object]"` (`snString`).
 
 ### Changed
+
+- Слоеста архитектура `core/` → `api/` → `mcp/` → `tools/` с ESLint-наложени граници; инструментите са декларативен манифест (ToolSpec) — пакет се добавя/маха с един ред; email пакет (send/get); elicitation потвърждение за креденшъли; MCP logging capability; outputSchema за диагностичните tools.
 
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked правила + `no-floating-promises`.
 - Грешките са структурирани (`{ status, message, snDetail }`); retry с exponential backoff + `Retry-After`; SSRF guard; result size guard.

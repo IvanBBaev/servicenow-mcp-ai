@@ -140,4 +140,17 @@
 - [x] **О-4 · Семафор `SN_MAX_CONCURRENT`** (default 4) около fetch. _(84ccbb5)_
 - [x] **О-5 · Телеметрия** `{requests, retries, errors, totalMs}` в get_status и servicenow://status. _(84ccbb5)_
 
-**Оставащо от Фаза 6:** М-1/М-2 (директории core/api/mcp + ESLint граници), М-3/М-4 (декларативният tool манифест), Х-2 (elicitation), Х-4 (MCP logging capability), Х-5 (outputSchema), Х-7 (email пакет), Х-8 (HTTP транспорт, опц.).
+### Модулизация (М-серията, изцяло) — следобедният спринт
+
+- [x] **М-1 · Директории `core/` / `api/` / `mcp/` / `tools/`** — слоеста структура с еднопосочни зависимости; чист git mv + 56 пренаписани import пътя; нула промяна в поведение. _(5e6cd04)_
+- [x] **М-2 · ESLint граници на слоевете** (no-restricted-imports зони: core⇍api/mcp/tools; api⇍mcp/tools; tools⇍core/http) + `api/diagnostics.ts` (test_connection логиката извадена от tools). Нарочен грешен import гърми на lint — проверено. _(ab6c252)_
+- [x] **М-3+М-4 · Декларативен tool манифест** — `mcp/define.ts` (ToolSpec + defineTool + runSpec, погълнал tools/util), 13-те tools файла пренаписани като `specs: AnyToolSpec[]`, `ALL_TOOLS` в registry (пакет = един spread), readonly пакети = филтър по annotations (Proxy фасадата изтрита), describeAllTools чете манифеста директно. Контрактът байт-идентичен (snapshot тестовете минаха без регенерация). _(71b6058)_
+
+### Нови възможности (Х-серията) — следобедният спринт
+
+- [x] **Х-7 · Email пакет** — api/email.ts + tools/email.ts (send/get, pluginCall, write policy); включване = 1 import + 1 spread; 49 tools / 14 пакета. _(5f95db9)_
+- [x] **Х-2 · Elicitation за set_credentials** — клиент с elicitation capability потвърждава промяната (decline → нищо не се записва); без capability → старото поведение. _(f15bb5d)_
+- [x] **Х-4 · MCP logging capability** — `setLogSink` в core/logging + `sendLoggingMessage` огледало след connect; гърмящ sink се гълта. _(f15bb5d)_
+- [x] **Х-5 · outputSchema + structuredContent** — `ToolSpec.output` / `okStructured()`; приложено на get_status и test_connection. Отклонение от плана: query_table/get_record/aggregate нарочно без — дублирането на structuredContent противоречи на О-2. _(f15bb5d)_
+
+**Оставащо от Фаза 6:** само **Х-8** (HTTP транспорт) — изрично опционален („само при нужда от отдалечен достъп“). **Фаза 6 е завършена.**

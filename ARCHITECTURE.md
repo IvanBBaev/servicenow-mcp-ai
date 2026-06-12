@@ -22,8 +22,9 @@ graph TD
         IDX["index.ts<br/>bootstrap + shutdown"]
     end
     subgraph MCP["MCP повърхност"]
-        REG["registry.ts<br/>пакети, gating, describeAllTools"]
-        TOOLS["tools/*.ts<br/>13 групи registerTool"]
+        REG["registry.ts<br/>ALL_TOOLS манифест, gating"]
+        DEF["define.ts<br/>ToolSpec + runSpec"]
+        TOOLS["tools/*.ts<br/>14 манифеста: ToolSpec[] (данни)"]
         RES["resources.ts<br/>status / tables / schema / docs"]
         PRM["prompts.ts<br/>3 промпта"]
         STAT["status.ts<br/>buildStatusPayload"]
@@ -49,6 +50,7 @@ graph TD
     IDX --> REG
     IDX --> RES
     IDX --> PRM
+    REG --> DEF
     REG --> TOOLS
     TOOLS --> SN
     TOOLS --> APIS
@@ -71,8 +73,8 @@ graph TD
 
 Бележки:
 
-- `tools/*` са тънки: zod схема + мапинг на аргументи + `runTool()` (логване/error плик); домейнната логика живее в `api/*` и `servicenow.ts`.
-- Има един съзнателен import цикъл: `registry → tools/admin → status → registry` — разрешим в ESM, защото всички употреби са на ниво извикване (планираният манифест от Фаза 6 М-3 го премахва).
+- `tools/*` са **данни**: всеки файл изнася `specs: ToolSpec[]` (име/докс/пакет/annotations/zod вход/handler); `mcp/define.ts#runSpec` дава uniform логване/грешки. Пакет се вкарва/изкарва с един spread в `ALL_TOOLS`. Домейнната логика живее в `api/*`.
+- Слоевете се налагат машинно (ESLint no-restricted-imports зони, М-2); лек остатъчен цикъл `registry → tools/admin → status → registry` работи в ESM (употреби само на ниво извикване).
 - Целевото преструктуриране (Фаза 6 М-1/М-2): `core/` + `api/` + `mcp/` директории — местене на готови модули, без промяна на зависимостите по-горе.
 
 ## 3. Жизнен цикъл на една заявка
@@ -166,7 +168,7 @@ flowchart TD
     ENV["SN_TOOL_PACKAGES<br/>(default: core)"] --> RESOLVE["resolveEnabledPackages<br/>профили: core, all"]
     RESOLVE --> MINUS["− SN_PACKAGES_DENY"]
     MINUS --> LOOP{"за всяка група"}
-    LOOP -- "в SN_PACKAGES_READONLY" --> FACADE["Proxy фасада:<br/>само readOnlyHint tools"]
+    LOOP -- "в SN_PACKAGES_READONLY" --> FACADE["манифестен филтър:<br/>само readOnlyHint спекове"]
     LOOP -- иначе --> DIRECT["директна регистрация"]
     ADMIN["admin (set_credentials, get_status)"] -- винаги --> SRV["McpServer"]
     FACADE --> SRV
@@ -200,7 +202,7 @@ flowchart TD
 | - | ------- | ---- | ------------------------- |
 | 1 | stdio транспорт, stdout само за протокола | най-простата интеграция с MCP клиенти | HTTP транспорт — планиран опционално (Х-8) |
 | 2 | Policy в клиента, преди мрежата | defense in depth + ясни грешки без да печем инстанцията | да разчитаме само на сървърните ACL-и |
-| 3 | Пакетна ос на policy през (не)регистрация | невидимият инструмент е най-сигурният; нула проверки в handler-ите | runtime проверка във всеки handler |
+| 3 | Пакетна ос на policy през (не)регистрация на спекове | невидимият инструмент е най-сигурният; нула проверки в handler-ите | runtime проверка във всеки handler |
 | 4 | ConfigStore snapshot само за креденшъли | атомарност + опора за профили; останалите настройки чакат М-1/М-2 | пълен store за всички SN_* сега (двоен рефакторинг) |
 | 5 | Namespace-404 кеш в `pluginCall` | същият статус код значи и „няма запис“ — кешира се само доказаната липса на API | кеширане на всеки 404 (би заключило валидни API-та) |
 | 6 | README таблица генерирана от регистрациите | кодът е истината; sync тест спира drift | ръчна таблица (изоставаше) / чакане на манифеста М-3 |
