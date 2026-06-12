@@ -100,9 +100,11 @@ export async function runBatch(
   }
 
   const restRequests: RestRequestPayload[] = requests.map((req, index) => {
-    if (!req.url || !req.url.startsWith("/")) {
+    // Only the REST surface: same-host endpoints like /oauth_token.do or
+    // /login.do are outside the policy model and must not be reachable.
+    if (!req.url || !req.url.startsWith("/api/")) {
       throw new ServiceNowError(
-        `Sub-request ${index + 1} needs an absolute API path starting with "/".`,
+        `Sub-request ${index + 1} must target a REST API path starting with "/api/".`,
       );
     }
     // Enforce policy before sending: writes respect read-only mode and table

@@ -135,3 +135,21 @@ test("an empty batch is rejected", async () => {
     (err) => err instanceof ServiceNowError,
   );
 });
+
+test("sub-requests outside /api/ are rejected before any network call", async () => {
+  await withFetch(
+    () => {
+      throw new Error("fetch must not be called for non-API paths");
+    },
+    async (calls) => {
+      for (const url of ["/oauth_token.do", "/login.do", "/nav_to.do", "api/now/table/incident"]) {
+        await assert.rejects(
+          runBatch([{ method: "GET", url }]),
+          (err) => err instanceof ServiceNowError && /\/api\//.test(err.message),
+          `expected rejection for ${url}`,
+        );
+      }
+      assert.equal(calls.length, 0);
+    },
+  );
+});
