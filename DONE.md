@@ -2,7 +2,7 @@
 
 Завършена и верифицирана работа, изнесена от ревютата и плана. Активните, още неизпълнени задачи са в [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) и [TODO.md](TODO.md); хронологията на работата — в [WORKLOG.md](WORKLOG.md).
 
-Състояние: build чист · ESLint чист (type-checked) · 102/102 `node:test` (вкл. mock-fetch, OAuth, packages, batch, plugin API-та, scripts, docs, diagrams, MCP smoke) · GitHub Actions CI · git хранилище с commit-по-задача история.
+Състояние: build чист · ESLint чист (type-checked) · 107/107 `node:test` (вкл. mock-fetch, OAuth, packages, batch, plugin API-та, scripts, docs, diagrams, MCP smoke, README sync) · GitHub Actions CI · git хранилище с commit-по-задача история · **ревюто от 2026-06-12 е изцяло имплементирано (22/22)**.
 
 ## Базова функционалност
 
@@ -83,6 +83,8 @@
 ### Архитект (A)
 
 - [x] **A-1** · per-package policy: `SN_PACKAGES_DENY` (маха цял пакет, вкл. plugin API-та, които table policy не вижда) + `SN_PACKAGES_READONLY` (регистрира само read tools през Proxy фасада по `readOnlyHint`); `effectivePackages()` — общ източник за registry и status; README предупреждава, че table deny ≠ plugin deny. _(90668d3)_
+- [x] **A-2** · ConfigStore: креденшълите са атомарен in-memory snapshot в `config.ts` — env-ът е само начален източник; `saveCredentials` сменя snapshot-а с едно присвояване (недовършено четене е структурно невъзможно); `reloadCredentialsFromEnv()` за startup/тестове. Опорна точка за MI-1 профилите. _(290a346)_
+- [x] **A-8** · README tools таблицата се генерира: `registry.ts#describeAllTools()` (replay срещу capturing stub) → `scripts/readme-tools.mjs` (`npm run docs:readme`) → секция между GENERATED маркери; `test/readme-sync.test.js` пада при изоставане. Остава ръчна само env таблицата (целта на М-5 е сведена до нея). _(5bd5489)_
 - [x] **A-3** · capability кеш в `pluginCall`: namespace 404 („does not represent any resource“) се кешира 5 мин с мигновен отказ; record 404 не се кешира; наличността е в `pluginApis` на status-а. _(3cd86cb)_
 - [x] **A-4** · `api/shared.ts: expectResult/expectResultArray` — 7-те копия на result-проверката станаха едно. _(da3f056)_
 - [x] **A-5** · един `buildStatusPayload()` (`src/status.ts`) за tool-а и resource-а — разминаването е невъзможно. _(4028969)_
@@ -95,8 +97,11 @@
 - [x] **Q-2** · общ `test/helpers.js` (baselineEnv/withEnv/withFetch/jsonResponse); 6-те стари файла мигрирани, ~150 реда дублиране махнати. _(edcd07b)_
 - [x] **Q-3** · 17 теста за непокритото: fetchAll пагинация + SN_MAX_RECORDS cap, okQueryResult truncation, retry матрицата (GET/POST, Retry-After като дата), pluginCall, settings парсери. _(b6469f1)_
 - [x] **Q-5** · env override тестове (settings) + SN_LOG_LEVEL филтър тестове. _(b6469f1, be291e6)_
+- [x] **Q-6** · тест дисциплината е институционализирана: правило 7 в плана (раздел 6.6) + три автоматични пазача — README sync тестът, контрактният snapshot на core профила и пълният suite. Недисциплинирана промяна чупи поне един от тях.
 
 ### Покрай ревюто
 
 - [x] **П-1** · `git init` + baseline; една задача = един commit (16 commit-а за ревюто). _(2424fcf)_
 - [x] Авто-одобрение на повтарящите се dev команди в `.claude/settings.json` (build/lint/test/commit; без push и широки wildcard-и).
+- [x] **CHANGELOG.md** създаден (Keep a Changelog, `[Unreleased]` обобщава цялото текущо състояние) — затваря стария опционален елемент „Changelog при публикуване“.
+- [x] Старите опционални точки от архитектурното ревю 2026-06-11 са пренесени в плана: trust boundary → Х-2 (elicitation), MCP logging capability → Х-4, PDI integration suite + Export API → секция „Опционално“; roadmap елементът е изчерпан (Batch/Catalog/Knowledge/CMDB/IRE покрити, Email е Х-7).
