@@ -311,3 +311,13 @@ insist on reading real values from the instance:
   still read/write changes. To restrict the plugin-backed surfaces use
   `SN_PACKAGES_DENY` (drop the whole package) or `SN_PACKAGES_READONLY`
   (register only its read tools).
+
+## Project documentation
+
+| Document | Contents (Bulgarian) |
+| -------- | -------------------- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Layered architecture, Mermaid diagrams (modules, request lifecycle, security model, auth, packages), condensed ADRs |
+| [PRODUCT-STATE.md](PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
+| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Detailed specs for the upcoming phases (harness 2.0, multi-instance, flow testing) |
+| [DONE.md](DONE.md) / [TODO.md](TODO.md) | Completed work with commit refs / remaining decisions |
+| [WORKLOG.md](WORKLOG.md) / [CHANGELOG.md](CHANGELOG.md) | Detailed work journal / user-facing changelog |
