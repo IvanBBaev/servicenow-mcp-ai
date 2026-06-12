@@ -3,6 +3,8 @@
 // mocking identical everywhere (and survives a future move to a shared-process
 // runner).
 
+import { reloadCredentialsFromEnv } from "../build/config.js";
+
 export const realFetch = globalThis.fetch;
 
 /**
@@ -20,6 +22,8 @@ export function baselineEnv() {
   delete process.env.SN_TABLES_ALLOW;
   delete process.env.SN_TABLES_DENY;
   delete process.env.SN_READONLY;
+  // Credentials live in the config store; staging env vars alone is not enough.
+  reloadCredentialsFromEnv();
 }
 
 /** Run `fn` with the given env overrides, restoring the previous values after. */
@@ -30,6 +34,7 @@ export async function withEnv(overrides, fn) {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   }
+  reloadCredentialsFromEnv();
   try {
     return await fn();
   } finally {
@@ -37,6 +42,7 @@ export async function withEnv(overrides, fn) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
+    reloadCredentialsFromEnv();
   }
 }
 

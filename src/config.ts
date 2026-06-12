@@ -53,15 +53,40 @@ export function loadEnv(): void {
     // MCP client) take precedence over the file — environment-first config.
     dotenv.config({ path, override: false });
   }
+  reloadCredentialsFromEnv();
 }
 
-/** Read the current credentials from the environment. */
-export function getCredentials(): ServiceNowCredentials {
+/**
+ * In-memory credential store: the environment is only the *initial* source.
+ * The first read snapshots SN_INSTANCE/SN_USER/SN_PASSWORD; afterwards every
+ * read returns the same immutable snapshot until saveCredentials (or an
+ * explicit reload) swaps it in a single assignment. This makes a torn read
+ * (new user + old password) structurally impossible and gives the multi-
+ * instance work one place to extend instead of scattered env reads.
+ */
+let store: ServiceNowCredentials | null = null;
+
+function snapshotFromEnv(): ServiceNowCredentials {
   return {
     instance: process.env.SN_INSTANCE?.trim() ?? "",
     user: process.env.SN_USER?.trim() ?? "",
     password: process.env.SN_PASSWORD ?? "",
   };
+}
+
+/** Read the current credentials (atomic snapshot from the store). */
+export function getCredentials(): ServiceNowCredentials {
+  if (!store) store = snapshotFromEnv();
+  return { ...store };
+}
+
+/**
+ * Re-snapshot the credentials from process.env — used by loadEnv() at startup
+ * and by tests that stage the environment directly.
+ */
+export function reloadCredentialsFromEnv(): ServiceNowCredentials {
+  store = snapshotFromEnv();
+  return { ...store };
 }
 
 /** True when instance, user and password are all present. */
@@ -90,7 +115,9 @@ export function saveCredentials(
     process.env[key] = value;
   }
 
-  return getCredentials();
+  // Swap the store snapshot in one assignment — readers never observe a
+  // half-applied credential change.
+  return reloadCredentialsFromEnv();
 }
 
 /**
