@@ -24,4 +24,4 @@ jobs:
       - run: npm test
       # Coverage visibility only (no threshold yet) — once per matrix is enough.
       - if: matrix.node == 22
-        run: npx c8 --reporter=text node --test test/*.test.js
+        run: npx c8 --check-coverage --lines 85 --branches 72 --reporter=text-summary node --test test/*.test.js
