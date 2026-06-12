@@ -1,7 +1,7 @@
 import { ServiceNowError } from "./errors.js";
 import { getCredentials } from "./config.js";
 import { resolveHost } from "./host.js";
-import { getAuthProvider } from "./auth.js";
+import { getAuthProvider, getAuthMode, invalidateToken } from "./auth.js";
 import { logger } from "./logging.js";
 import { getMaxRetries, getTimeoutMs } from "./settings.js";
 
@@ -113,10 +113,8 @@ export async function snRequest<T>({
   const safeUrl = `${base}${path}`;
   const timeoutMs = getTimeoutMs();
   const maxRetries = getMaxRetries();
-  const authorization = await getAuthProvider().authorize(host);
 
   const headers: Record<string, string> = {
-    Authorization: authorization,
     Accept: accept ?? "application/json",
   };
   let payload: string | Uint8Array | undefined;
@@ -129,7 +127,13 @@ export async function snRequest<T>({
   }
 
   const started = Date.now();
+  // A server-side token revocation surfaces as 401 before the cached token's
+  // TTL runs out; one forced re-auth attempt recovers, a second 401 is real.
+  let retried401 = false;
   for (let attempt = 0; ; attempt++) {
+    // Authorize per attempt: with long backoffs an OAuth token can expire
+    // between tries (Basic is just a cheap base64; OAuth reads its cache).
+    headers.Authorization = await getAuthProvider().authorize(host);
     let res: Response;
     try {
       res = await fetch(url, {
@@ -163,6 +167,17 @@ export async function snRequest<T>({
       throw new ServiceNowError(
         `Could not reach ServiceNow at ${safeUrl}: ${err.message}`,
       );
+    }
+
+    if (res.status === 401 && !retried401 && getAuthMode() === "oauth") {
+      retried401 = true;
+      invalidateToken(host);
+      await res.text().catch(() => undefined); // release the socket
+      logger.debug("401 with cached OAuth token — re-authenticating once", {
+        method,
+        path,
+      });
+      continue;
     }
 
     if (

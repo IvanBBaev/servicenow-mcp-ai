@@ -106,6 +106,16 @@ export function invalidateTokens(): void {
   tokenCache.clear();
 }
 
+/**
+ * Drop the cached tokens for one host — used by the 401 retry in http.ts when
+ * a token is revoked server-side before its TTL runs out.
+ */
+export function invalidateToken(host: string): void {
+  for (const key of tokenCache.keys()) {
+    if (key.startsWith(`${host}|`)) tokenCache.delete(key);
+  }
+}
+
 /** Skew applied before expiry so a token is refreshed slightly early. */
 const TOKEN_SKEW_MS = 30_000;
 const DEFAULT_TOKEN_TTL_SEC = 1800;
