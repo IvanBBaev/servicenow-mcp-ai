@@ -7,10 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest]
         node: [20, 22, 24]
+        include:
+          # One macOS leg (the development platform) on the .nvmrc Node.
+          - os: macos-latest
+            node: 22
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,8 +28,11 @@ jobs:
       - run: npm run build
       - run: npm test
       # Coverage gate (thresholds from the real report, with headroom) — once per matrix.
-      - if: matrix.node == 22
-        run: npx c8 --check-coverage --lines 85 --branches 72 --reporter=text-summary node --test test/*.test.js
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        run: npm run test:coverage
+      # Production-dependency audit: fail on high+ advisories.
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        run: npm audit --omit=dev --audit-level=high
 
   # Q2-3: Windows visibility run. continue-on-error until the first green run
   # confirms the suite is path-safe on win32; then drop the flag.

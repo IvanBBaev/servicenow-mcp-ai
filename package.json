@@ -31,6 +31,7 @@
     "start": "node build/index.js",
     "dev": "node --watch build/index.js",
     "test": "node --test test/*.test.js",
+    "test:coverage": "c8 --check-coverage --lines 85 --branches 72 --reporter=text-summary node --test test/*.test.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -39,7 +40,8 @@
     "test:full": "npm run build && node --test test/*.test.js",
     "gen:manifest": "node scripts/gen-manifest.mjs",
     "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
-    "prepublishOnly": "npm run verify"
+    "check": "npm run build && npm run lint && npm run format:check && npm run test:coverage && npm audit --omit=dev --audit-level=high",
+    "prepublishOnly": "npm run check"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -49,6 +51,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "^22.0.0",
+    "c8": "^11.0.0",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^9.1.2",
     "fast-check": "^4.8.0",
