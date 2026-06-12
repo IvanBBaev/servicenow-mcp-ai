@@ -124,12 +124,28 @@ export interface ScriptSummary {
  * optionally filtered by applied table, name fragment, active flag, or a raw
  * encoded query.
  */
+/**
+ * User-supplied fragments are embedded into encoded queries, where `^` acts
+ * as the condition separator and ServiceNow has no escape for it inside LIKE —
+ * a stray `^` would silently distort the filter, so it is rejected up front.
+ */
+function assertNoCaret(value: string, field: string): void {
+  if (value.includes("^")) {
+    throw new ServiceNowError(
+      `The ${field} filter cannot contain '^' (it is the encoded-query separator and cannot be escaped).`,
+      400,
+    );
+  }
+}
+
 export async function listScripts(
   opts: ListScriptsOptions,
 ): Promise<{ type: string; count: number; scripts: ScriptSummary[] }> {
   const descriptor = resolveType(opts.type);
   const clauses: string[] = [];
 
+  if (opts.table?.trim()) assertNoCaret(opts.table, "table");
+  if (opts.name?.trim()) assertNoCaret(opts.name, "name");
   if (opts.table?.trim()) {
     const t = opts.table.trim();
     if (descriptor.appliesToField) {
@@ -228,6 +244,8 @@ export async function searchCode(
   if (!text) {
     throw new ServiceNowError("searchCode requires a non-empty 'text'.", 400);
   }
+  assertNoCaret(text, "text");
+  if (opts.table?.trim()) assertNoCaret(opts.table, "table");
   const limit = opts.limit ?? 50;
   const types = opts.type ? [opts.type] : SCRIPT_TYPE_NAMES;
   // Validate an explicit type up front (iterating all types skips validation).

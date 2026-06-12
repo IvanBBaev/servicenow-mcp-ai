@@ -12,6 +12,29 @@ import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();
 
+test("a '^' in search/list filters is rejected before any request (К-5)", async () => {
+  await withFetch(
+    () => {
+      throw new Error("fetch must not be called for an invalid filter");
+    },
+    async (calls) => {
+      await assert.rejects(
+        searchCode({ text: "a^ORactive=false" }),
+        (err) => err instanceof ServiceNowError && /'\^'/.test(err.message),
+      );
+      await assert.rejects(
+        listScripts({ type: "business_rule", name: "x^y" }),
+        (err) => err instanceof ServiceNowError && /'\^'/.test(err.message),
+      );
+      await assert.rejects(
+        listScripts({ type: "business_rule", table: "incident^" }),
+        (err) => err instanceof ServiceNowError,
+      );
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
 const queryOf = (url) => new URL(url).searchParams.get("sysparm_query");
 const fieldsOf = (url) =>
   (new URL(url).searchParams.get("sysparm_fields") ?? "").split(",");
