@@ -3,6 +3,19 @@
 > Хронологичен дневник на всичко свършено по проекта. Най-новото е най-отгоре.
 > Правило: след всяка задача се обновяват този файл + всички засегнати MD документи (IMPLEMENTATION-PLAN.md, TODO.md, DONE.md, README.md).
 
+## 2026-06-12 (късно) — бек логът от тройния анализ е имплементиран (131 теста)
+
+### Какво влезе (по един commit на задача; „почвай го“ от Иван)
+
+- **S2-1 · strict zod схеми (`e879321`):** разровено в SDK 1.29 — `normalizeObjectSchema` приема и готови object схеми, не само raw shapes → registry подава `z.object(spec.input).strict()`. Typo аргумент (`tabel`) вече е валидационна грешка, не тиха заявка без филтър. Smoke тест: 0 fetch.
+- **S2-2 · per-host семафор + телеметрия (`13a2810`):** всяка инстанция има собствен лимит на паралелизма и собствени броячи; `getTelemetry()` връща агрегат + `perHost` (в status, output схемата разширена). Готово за Фаза 7.
+- **Q2-4+Q2-5 (`9ef092b`):** перф пазач — 10k записа през halving truncation < 2 s; elicitation **accept** пътят тестван (confirm=true → запис в temp SN_ENV_FILE). Поука: първият commit мина преди пълния suite — фейл от изтекъл env state (saveCredentials мутира SN_USER); поправено с `baselineEnv()` в finally и commit-ът е amend-нат. Дисциплината „пълен suite преди commit“ е още по-задължителна.
+- **Q2-1+Q2-2 (`b8b9216`):** coverage праг в CI от реалния отчет (lines 89.9% → праг 85; branches 78.8% → 72); fast-check property тестове — 500 случайни стринга през formatEnvValue→dotenv round-trip (отказът е валиден изход) + 200 случайни буфера през base64 encode→strict decode→байтово равенство.
+- **S2-3+Q2-3 (`ac14952`):** CI job `launcher-node12` (container node:12-alpine — човешко съобщение + ненулев изход); `windows-latest` job с continue-on-error до първия зелен run; build script-ът вече е кросплатформен (chmod през node fs, не unix команда).
+- **A2-1 · PackageSpec (`5daad20`):** пакет = ЕДИН обект {name, tools, resources?} в PACKAGES манифеста; ALL_TOOLS се извежда; runtime инвариант (tool тагът ≡ манифестния пакет); registerResources е декларативен от манифеста (ръчният К-7 if изтрит); resources.ts стана три самостоятелни регистратора и цикълът resources→registry изчезна.
+- **С тригери (не се правят сега):** S2-4/R-3 release процес (чака решение за публикуване), A2-2 (MI-1), A2-3 („когато заболи“), A2-4 (при Х-8), A2-5 (MCP протокола).
+- **Паралелно (другата сесия):** R-1 MIT лиценз + R-4 npm метаданни (`fc1f62c`), R-6 единна бройка 49/14 (`08b71cc`), CI hygiene за coverage артефактите. R-5/R-7/R-8 се затвориха от моите commits.
+
 ## 2026-06-12 — release-readiness анализ (само анализ, кодът не е пипан)
 
 ### Задача
@@ -16,6 +29,16 @@
 - [x] `npm pack --dry-run`: 76 kB / 101 файла, само build+bin+README — нищо излишно не изтича.
 - [x] `npm audit --omit=dev`: 0 уязвимости (3 runtime зависимости).
 - [x] Находките оформени като чеклист **R-1…R-9** в TODO.md (нова секция „Release-readiness 2026-06-12“); дублираният won't-fix header махнат; компас редът за TODO.md в PRODUCT-STATE.md актуализиран.
+
+### Изпълнение (същата вечер, по „започвай го“)
+
+Решения на Иван: **MIT**, **засега без remote** (подготвено за push), **WORKLOG/.claude остават tracked** (изключение като syncrona). Паралелно течеше втора сесия (S2-1, Q2-1/Q2-2, S2-3/Q2-3 — commits `e879321`, `b8b9216`, `ac14952`), затова: стейджване само на конкретни файлове, никакъв `git add -A`, верификация в отделен worktree от HEAD.
+
+- [x] **Хигиена:** `coverage/` в .gitignore/.prettierignore (`b0fe260`); 24-те комитнати c8 артефакта извадени от историята (`a3a388b`) — били пометени от bulk add в `e879321`.
+- [x] **R-1+R-4:** LICENSE (MIT) + `license`/`author`/`prepublishOnly` в package.json (`fc1f62c`). Остават `repository`/`bugs`/`homepage` при remote.
+- [x] **R-6:** pie 46→49 (+email:2, admin:3), CHANGELOG 46/12→49/14, тестова бройка → 131 (`08b71cc` + release cut).
+- [x] **R-3:** CHANGELOG срязан на `[1.0.0] - 2026-06-12` (+ записи за strict zod, лиценза, property тестовете, CI gate); анотиран таг `v1.0.0`.
+- [x] **Верификация:** worktree от HEAD + `npm ci` + `npm run verify` — build/lint/format чисти, **131/131 теста**. R-7/R-8 се оказаха свършени от паралелната сесия — само отметнати.
 
 ### Резултат — какво липсва за релийз (нищо не е поправяно)
 

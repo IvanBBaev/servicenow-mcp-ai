@@ -16,61 +16,60 @@
 
 ### Синиър дев (S2)
 
-- [ ] **S2-1 · zod схемите не са strict.** Непознат аргумент в tools/call се игнорира тихо (SDK поведение) — модел, който прати `tabel` вместо `table`, не получава сигнал. _Решение:_ опция в `defineTool` да строи строги схеми (отхвърляне на непознати ключове) — след проверка как SDK 1.29 третира strict shapes.
-- [ ] **S2-2 · Семафорът и телеметрията са глобални, не per-host.** За една инстанция е коректно; при Фаза 7 профилите лимитът/броячите ще се споделят между инстанции. _Решение:_ ключуване по host в MI-5 (вече отбелязано в плана).
-- [ ] **S2-3 · `bin/sincronia-mcp.cjs` няма автоматичен тест** (изисква стар Node в CI). Проверен ръчно под 12.22. _Решение:_ по желание — CI стъпка с container node:12 само за launcher-а.
-- [ ] **S2-4 · Release процес липсва** — версията е 1.0.0 от началото, CHANGELOG е ръчен. _Решение при публикуване:_ changesets или release-please + `npm version` дисциплина.
+- [x] **S2-1 · zod схемите не са strict.** _(готово, commit `e879321` — z.object(input).strict(); typo аргумент = валидационна грешка)_ Непознат аргумент в tools/call се игнорира тихо (SDK поведение) — модел, който прати `tabel` вместо `table`, не получава сигнал. _Решение:_ опция в `defineTool` да строи строги схеми (отхвърляне на непознати ключове) — след проверка как SDK 1.29 третира strict shapes.
+- [x] **S2-2 · Семафорът и телеметрията са глобални, не per-host.** _(готово, commit `13a2810` — per-host слотове + perHost разбивка в статуса)_ За една инстанция е коректно; при Фаза 7 профилите лимитът/броячите ще се споделят между инстанции. _Решение:_ ключуване по host в MI-5 (вече отбелязано в плана).
+- [x] **S2-3 · `bin/sincronia-mcp.cjs` няма автоматичен тест** _(готово, commit `ac14952` — CI job launcher-node12 в container node:12-alpine)_ (изисква стар Node в CI). Проверен ръчно под 12.22. _Решение:_ по желание — CI стъпка с container node:12 само за launcher-а.
+- [ ] **S2-4 · Release процес липсва** ⏳ _чака решение за публикуване (= R-3); author + prepublishOnly са добавени_ — версията е 1.0.0 от началото, CHANGELOG е ръчен. _Решение при публикуване:_ changesets или release-please + `npm version` дисциплина.
 
 ### Архитект (A2)
 
-- [ ] **A2-1 · Манифестът покрива само tools.** Resources и prompts още се регистрират императивно (К-7 gating-ът е ръчен if). _Следваща стъпка на модулността:_ `PackageSpec = { name, tools, resources?, prompts? }` — пакет = един обект, gating-ът става изцяло декларативен. Естествено върви с Фаза 7 (MI пакетите ще носят и resources).
-- [ ] **A2-2 · ConfigStore покрива само креденшълите.** Policy/settings четат env при всяко извикване — съзнателно (виж A-2), но MI-1 ще ги обедини в профилния store; дотогава новите настройки да минават само през `settings.ts`.
-- [ ] **A2-3 · Глобалните singletons (token/schema/plugin кешове, телеметрия) имат `clear*` hooks вместо инжектиране.** Приемливо за един процес; ако някога има много сървъри в процес (тестове го правят!) — състоянието се споделя. _Решение:_ когато заболи — контейнер обект създаван в bootstrap; не по-рано.
-- [ ] **A2-4 · Bootstrap-ът ще се разклони при Х-8** (HTTP транспорт): изнеси избора в `mcp/transport.ts`, когато Х-8 се заяви; не предварително.
-- [ ] **A2-5 · Resource грешките са JSON съдържание** (няма isError за resources в протокола) — клиентът не различава грешка от данни. Известно; документирано в ARCHITECTURE; чака протоколна еволюция.
+- [x] **A2-1 · Манифестът покрива само tools.** _(готово, commit `5daad20` — PackageSpec: пакет = {name, tools, resources?}; декларативен gating, инвариант, К-7 if-ът изтрит)_ Resources и prompts още се регистрират императивно (К-7 gating-ът е ръчен if). _Следваща стъпка на модулността:_ `PackageSpec = { name, tools, resources?, prompts? }` — пакет = един обект, gating-ът става изцяло декларативен. Естествено върви с Фаза 7 (MI пакетите ще носят и resources).
+- [ ] **A2-2 · ConfigStore покрива само креденшълите.** ⏳ _тригер: MI-1 (Фаза 7)_ Policy/settings четат env при всяко извикване — съзнателно (виж A-2), но MI-1 ще ги обедини в профилния store; дотогава новите настройки да минават само през `settings.ts`.
+- [ ] **A2-3 · Глобалните singletons ⏳ _тригер: „когато заболи“ — не по-рано_ · (token/schema/plugin кешове, телеметрия) имат `clear*` hooks вместо инжектиране.** Приемливо за един процес; ако някога има много сървъри в процес (тестове го правят!) — състоянието се споделя. _Решение:_ когато заболи — контейнер обект създаван в bootstrap; не по-рано.
+- [ ] **A2-4 · Bootstrap-ът ще се разклони при Х-8** ⏳ _тригер: заявка за Х-8_ (HTTP транспорт): изнеси избора в `mcp/transport.ts`, когато Х-8 се заяви; не предварително.
+- [ ] **A2-5 · Resource грешките са JSON съдържание** ⏳ _тригер: протоколна еволюция на MCP_ (няма isError за resources в протокола) — клиентът не различава грешка от данни. Известно; документирано в ARCHITECTURE; чака протоколна еволюция.
 
 ### QA (Q2)
 
-- [ ] **Q2-1 · Coverage е само видимост.** След като М-серията улегне: праг в CI (`c8 check-coverage --lines 85`) — числото да се избере от реалния отчет, не наизуст.
-- [ ] **Q2-2 · Property-based тестове** (fast-check) за двете „ръчни“ кодеци: `formatEnvValue` round-trip и `decodeBase64Strict` — текущите тестове са с подбрани случаи.
-- [ ] **Q2-3 · Windows не е в CI матрицата.** docs path traversal guard-ът ползва `path.resolve` — вероятно коректен и на win32, но непотвърдено. _Решение:_ `os: [ubuntu-latest, windows-latest]` само за test job-а.
-- [ ] **Q2-4 · Перф regression тест за `okQueryResult`** върху 10k записа — halving цикълът прави многократни `JSON.stringify` на големи масиви; да се измери и при нужда да се оптимизира (бинарно търсене по дължина).
-- [ ] **Q2-5 · Elicitation accept пътят няма тест** (само decline) — добави при следващото пипане на admin пакета.
+- [x] **Q2-1 · Coverage е само видимост.** _(готово, commit `b8b9216` — прагове lines 85 / branches 72 от реалния отчет 89.9/78.8)_ След като М-серията улегне: праг в CI (`c8 check-coverage --lines 85`) — числото да се избере от реалния отчет, не наизуст.
+- [x] **Q2-2 · Property-based тестове** _(готово, commit `b8b9216` — fast-check: 500 env round-trips + 200 base64 буфера)_ (fast-check) за двете „ръчни“ кодеци: `formatEnvValue` round-trip и `decodeBase64Strict` — текущите тестове са с подбрани случаи.
+- [x] **Q2-3 · Windows не е в CI матрицата.** _(готово, commit `ac14952` — windows job с continue-on-error до първия зелен run; build script без unix chmod)_ docs path traversal guard-ът ползва `path.resolve` — вероятно коректен и на win32, но непотвърдено. _Решение:_ `os: [ubuntu-latest, windows-latest]` само за test job-а.
+- [x] **Q2-4 · Перф regression тест за `okQueryResult`** _(готово, commit `9ef092b` — 10k записа < 2 s)_ върху 10k записа — halving цикълът прави многократни `JSON.stringify` на големи масиви; да се измери и при нужда да се оптимизира (бинарно търсене по дължина).
+- [x] **Q2-5 · Elicitation accept пътят няма тест** _(готово, commit `9ef092b` — accept→запис в temp env; decline беше покрит)_ (само decline) — добави при следващото пипане на admin пакета.
 
 ## Release-readiness 2026-06-12 (вечер) — какво липсва за релийз
 
-Контекст: реална верификация на Node 22 — build/lint чисти, 128/128 теста, coverage 89.4% lines /
-78.2% branches, `npm audit --omit=dev` 0 уязвимости, `npm pack` чист (76 kB, само build+bin+README).
+Контекст: реална верификация на Node 22 — build/lint чисти, 131/131 теста, coverage ~89% lines /
+~78% branches, `npm audit --omit=dev` 0 уязвимости, `npm pack` чист (76 kB, само build+bin+README).
 Кодът е release-grade; липсва само опаковка и процес (~½ ден). Подробности в WORKLOG.md.
 
 ### Блокери
 
-- [ ] **R-1 · LICENSE.** Няма LICENSE файл, нито `license` поле в package.json — `npm publish`
-      предупреждава, юридически пакетът е неизползваем. Ако не е за навън: поне
-      `"license": "UNLICENSED"` + `"private": true`.
-- [ ] **R-2 · Git remote + първи реален CI run.** Репото е само локално — ci.yml никога не е
-      изпълняван; „CI зелен“ е непроверимо до първия push.
-- [ ] **R-3 · Release процес (= S2-4).** Срязване на `[Unreleased]` в CHANGELOG → `1.0.0` + git
-      таг; при публикуване — release-please или changesets + publish workflow с `--provenance`.
-- [ ] **R-4 · package.json метаданни.** Липсват `repository`, `author`, `bugs`, `homepage` +
-      `"prepublishOnly": "npm run verify"` (последна защита срещу счупен tarball).
+- [x] **R-1 · LICENSE.** ✅ MIT (LICENSE файл + `"license": "MIT"`) — commit `fc1f62c`.
+- [ ] **R-2 · Git remote + първи реален CI run.** Решение 2026-06-12: **засега без remote**
+      (изборът на Иван). Всичко локално е готово за push; при създаване на repo: `git remote add`
+      \+ push + проверка на първия Actions run (вкл. дали Windows job-ът е зелен → махни
+      `continue-on-error`).
+- [x] **R-3 · Release процес (= S2-4).** ✅ CHANGELOG срязан на `[1.0.0] - 2026-06-12` + анотиран
+      таг `v1.0.0`. _Остава при публикуване:_ release-please или changesets + publish workflow с
+      `--provenance`.
+- [x] **R-4 · package.json метаданни.** ✅ `license`/`author`/`prepublishOnly` — commit `fc1f62c`.
+      _Остава при създаване на remote:_ `repository`, `bugs`, `homepage`.
 
 ### Преди първия push
 
-- [ ] **R-5 · WIP-ът да се форматира и комитне.** `src/mcp/registry.ts` + `test/mcp-smoke.test.js`
-      са некомитнати и Prettier пада върху тях (`npm run verify` червен) — иначе истинският CI
-      светва червено от ден едно.
-- [ ] **R-6 · Doc drift по броя tools.** package.json description казва „49 tools“, PRODUCT-STATE
-      TL;DR казва 49/14 пакета, а pie диаграмата и CHANGELOG казват 46/12 — да се сведе до едно
-      число (в идеалния случай генерирано, както README таблицата).
+- [x] **R-5 · WIP-ът форматиран и комитнат** — commit `e879321` (S2-1).
+- [x] **R-6 · Doc drift по броя tools.** ✅ 49 tools / 14 пакета навсякъде (pie + CHANGELOG,
+      от manifest фикстурата); тестовата бройка сверена на 131 — commit `08b71cc` + release cut.
 
 ### Should-have (не блокират; вече в бек лога)
 
-- [ ] **R-7 · Coverage праг в CI (= Q2-1)** — числото вече е известно: `--lines 85` е безопасен старт.
-- [ ] **R-8 · Windows в CI матрицата (= Q2-3)** и launcher тест под Node 12 **(= S2-3)**.
-- [ ] **R-9 · Ако релийзът е публичен:** SECURITY.md + CONTRIBUTING.md; преразглеждане на двете
-      won't-fix решения по-долу — за чужди потребители default-ите трябва да са консервативните
-      (за лична употреба остават ОК).
+- [x] **R-7 · Coverage праг в CI (= Q2-1)** ✅ — commit `b8b9216` (lines 85 / branches 72).
+- [x] **R-8 · Windows в CI + Node 12 launcher тест (= Q2-3, S2-3)** ✅ — commit `ac14952`;
+      Windows job-ът е `continue-on-error` до първия зелен run (иска remote → виж R-2).
+- [ ] **R-9 · Ако релийзът стане публичен:** SECURITY.md + CONTRIBUTING.md; преразглеждане на
+      двете won't-fix решения по-долу — за чужди потребители default-ите трябва да са
+      консервативните (за лична употреба остават ОК).
 
 ## Решения (won't-fix) — без промяна по кода
 

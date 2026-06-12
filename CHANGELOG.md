@@ -5,15 +5,19 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-12
+
 ### Added
 
+- MIT лиценз; npm метаданни (`license`/`author`) и `prepublishOnly: npm run verify` — публикуване без зелен verify е невъзможно.
+- Property-based тестове (fast-check) за env кодеците; CI: coverage праг (lines 85 / branches 72), Windows job, Node 12 launcher тест.
 - Пълно ServiceNow API покритие отвъд Table API: Aggregate (Stats), Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, CMDB Instance/Meta (IRE) — 49 tool-а в 14 пакета зад `SN_TOOL_PACKAGES` (профили `core`/`all`).
 - Script intelligence (read-only): списък/четене/търсене в скриптове, `servicenow_table_logic`; Mermaid генератори (ER диаграма, table flow); локална само-документация (`docs` пакет) + MCP resources и prompts.
 - Per-package policy: `SN_PACKAGES_DENY` и `SN_PACKAGES_READONLY` — контрол върху plugin API-тата, които table policy не вижда.
 - Capability кеш за plugin API-та: namespace 404 се кешира 5 мин (fail-fast), наличността се вижда в `pluginApis` на статуса.
 - ConfigStore: креденшълите са атомарен in-memory snapshot (env-ът е само начален източник).
 - README tools таблицата се генерира от живите регистрации (`npm run docs:readme`) и се пази синхронна с тест.
-- In-memory MCP smoke тестове (SDK Client + InMemoryTransport) с контрактен snapshot на `core` профила и manifest фикстура; 128 теста общо.
+- In-memory MCP smoke тестове (SDK Client + InMemoryTransport) с контрактен snapshot на `core` профила и manifest фикстура; 131 теста общо.
 - `servicenow_test_connection` — диагностика дали конфигурацията реално работи ({ok, status, latencyMs}); провалите са структурирани.
 - OAuth: 401 с кеширан токен се възстановява с еднократна реавтентикация; стабилна fetchAll пагинация (автоматичен ORDERBY); схема-кеш с TTL; семафор за паралелизма; телеметрия в status; Node 20+ защита (launcher + engines).
 - Токен диети по подразбиране: компактен JSON изход и без reference `link` URL-и (opt-in връщане).
@@ -26,6 +30,8 @@
 
 ### Changed
 
+- Входните zod схеми на инструментите са strict — непознат аргумент в `tools/call` връща валидационна грешка вместо тихо изпускане.
+- Качествен пакет от бек лога: strict входни схеми (typo в аргумент = грешка), per-host семафор и телеметрия, coverage прагове + property-based тестове + перф пазач, Windows и Node-12-launcher CI проби, PackageSpec манифест (пакет = tools + resources в един обект).
 - Слоеста архитектура `core/` → `api/` → `mcp/` → `tools/` с ESLint-наложени граници; инструментите са декларативен манифест (ToolSpec) — пакет се добавя/маха с един ред; email пакет (send/get); elicitation потвърждение за креденшъли; MCP logging capability; outputSchema за диагностичните tools.
 
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked правила + `no-floating-promises`.
