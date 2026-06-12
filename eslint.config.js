@@ -31,6 +31,56 @@ export default tseslint.config(
       ],
     },
   },
+  // Layer boundaries (М-2): core ← api ← mcp ← tools, enforced at lint time.
+  {
+    files: ["src/core/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/api/**", "**/mcp/**", "**/tools/**"],
+              message: "core is layer 0 — it must not import api/, mcp/ or tools/.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/api/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/mcp/**", "**/tools/**"],
+              message: "api is layer 1 — it must not import mcp/ or tools/.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/tools/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/core/http*"],
+              message:
+                "tools go through the api/ layer; do not call core/http directly.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   {
     files: ["**/*.js", "**/*.mjs"],
     extends: [...tseslint.configs.recommended],

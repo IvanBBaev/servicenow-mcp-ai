@@ -1,11 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { saveCredentials, getCredentials, type ServiceNowCredentials } from "../core/config.js";
+import { saveCredentials, type ServiceNowCredentials } from "../core/config.js";
 import { invalidateTokens } from "../core/auth.js";
 import { resolveHost } from "../core/host.js";
 import { buildStatusPayload } from "../mcp/status.js";
-import { snRequest } from "../core/http.js";
-import { ServiceNowError } from "../core/errors.js";
+import { testConnection } from "../api/diagnostics.js";
 import { ok, fail } from "../mcp/result.js";
 import { runTool } from "./util.js";
 
@@ -89,39 +88,8 @@ export function registerAdminTools(server: McpServer): void {
       inputSchema: {},
     },
     () =>
-      runTool("servicenow_test_connection", {}, async () => {
-        const started = Date.now();
-        try {
-          // Direct snRequest on purpose: this is a connectivity diagnostic on
-          // the admin surface — a table allow/deny list must not mask it.
-          const params = new URLSearchParams({
-            sysparm_limit: "1",
-            sysparm_fields: "sys_id",
-          });
-          const { status } = await snRequest<unknown>({
-            method: "GET",
-            path: "/api/now/table/sys_user",
-            params,
-          });
-          return ok({
-            ok: true,
-            status,
-            latencyMs: Date.now() - started,
-            user: getCredentials().user,
-          });
-        } catch (error) {
-          if (error instanceof ServiceNowError) {
-            // Structured, not an exception: the model should read and react
-            // (401 → fix credentials, 403 → roles, timeout → connectivity).
-            return ok({
-              ok: false,
-              status: error.status ?? null,
-              latencyMs: Date.now() - started,
-              message: error.message,
-            });
-          }
-          throw error;
-        }
-      }),
+      runTool("servicenow_test_connection", {}, async () =>
+        ok(await testConnection()),
+      ),
   );
 }
