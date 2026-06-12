@@ -7,7 +7,7 @@
 > testing + code analysis, "Optional").
 >
 > Below: the evening triple analysis (what is MISSING going forward) + the release-readiness
-> checklist (R-1…R-9) + the deliberate won't-fix decisions.
+> checklist (R-1…R-10) + the deliberate won't-fix decisions.
 
 ## Triple analysis 2026-06-12 (evening) — what is missing (backlog)
 
@@ -48,14 +48,19 @@ Details in WORKLOG.md.
 ### Blockers
 
 - [x] **R-1 · LICENSE.** ✅ MIT (LICENSE file + `"license": "MIT"`) — commit `fc1f62c`.
-- [ ] **R-2 · Git remote + the first real CI run.** Update 2026-06-12 (night): Ivan is providing a
-      repo (rebrand to servicenow-mcp done). On URL: `git remote add` + push + check the first
-      Actions run (incl. whether the Windows job is green → drop `continue-on-error`).
+- [ ] **R-2 · Git remote + the first real CI run.** Update 2026-06-12 (night): the remote is
+      connected (`github.com/LeassTaTT/servicenow-mcp`) and main is pushed. _Remaining:_ check
+      the first Actions run — the `gh` CLI is not on this machine, so verify in the browser —
+      and if the Windows job is green, drop its `continue-on-error`.
 - [x] **R-3 · Release process (= S2-4).** ✅ CHANGELOG cut to `[1.0.0] - 2026-06-12` + annotated
       tag `v1.0.0`. _Remaining when publishing:_ release-please or changesets + a publish workflow
       with `--provenance`.
-- [x] **R-4 · package.json metadata.** ✅ `license`/`author`/`prepublishOnly` — commit `fc1f62c`.
-      _Remaining once the remote exists:_ `repository`, `bugs`, `homepage`.
+- [x] **R-4 · package.json metadata.** ✅ `license`/`author`/`prepublishOnly` — commit `fc1f62c`;
+      `repository`/`bugs`/`homepage` — commit `ac11df9` (2026-06-12).
+- [ ] **R-10 · The npm package name is taken.** `servicenow-mcp` already exists on the registry
+      (v1.2.0, unrelated maintainer `timschwarz`) — publishing under the current name is
+      impossible. Decide: scope it (`@<scope>/servicenow-mcp`) or pick a new name; then update
+      `package.json` `name`/`bin`, the README title and the XDG config dir name together.
 
 ### Before the first push
 
@@ -68,9 +73,10 @@ Details in WORKLOG.md.
 - [x] **R-7 · Coverage gate in CI (= Q2-1)** ✅ — commit `b8b9216` (lines 85 / branches 72).
 - [x] **R-8 · Windows in CI + the Node 12 launcher test (= Q2-3, S2-3)** ✅ — commit `ac14952`;
       the Windows job stays `continue-on-error` until the first green run (needs the remote → R-2).
-- [ ] **R-9 · If the release goes public:** SECURITY.md + CONTRIBUTING.md; revisit the two
-      won't-fix decisions below — for third-party users the defaults should be the conservative
-      ones (for personal use they remain OK).
+- [x] **R-9 · SECURITY.md + CONTRIBUTING.md.** ✅ added 2026-06-12 (repo-standard pass).
+      _Remaining if the release goes public:_ revisit the two won't-fix decisions below — for
+      third-party users the defaults should be the conservative ones (for personal use they
+      remain OK).
 
 ## Decisions (won't-fix) — no code change
 

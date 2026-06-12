@@ -1,6 +1,6 @@
 # servicenow-mcp — Product State
 
-Date: 2026-06-12 (night) · clean build · clean ESLint (type-checked + layer boundaries) · **146/146 tests** · CI: Node 20/22/24 matrix + coverage gate · git history one-commit-per-task.
+Date: 2026-06-12 (night) · clean build · clean ESLint (type-checked + layer boundaries) · **147/147 tests** · CI: Node 20/22/24 + macOS matrix, coverage + prod-audit gates · git history one-commit-per-task.
 **Phase 6 is complete** (except the explicitly optional Х-8 HTTP transport): layered core/api/mcp/tools directories, a declarative tool manifest (a package is a plug-in), elicitation, MCP logging, outputSchema, the email package. **Phase 7 (multi-instance) is complete** (MI-1…MI-8: profiles, per-profile policy, per-call routing, snapshot, comparison, per-profile resources).
 Related documents: [ARCHITECTURE.md](ARCHITECTURE.md) (how it is built), [DONE.md](DONE.md) (everything completed), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (what is next), [WORKLOG.md](WORKLOG.md) (chronology), [CHANGELOG.md](CHANGELOG.md).
 
@@ -52,8 +52,8 @@ pie title 53 tools by package
 
 - **Language/runtime:** TypeScript strict + `noUncheckedIndexedAccess`, ESM, Node ≥ 20 (note: the default shell Node here is v12 — use nvm 22), MCP SDK 1.29.
 - **Lint:** typescript-eslint type-checked + `no-floating-promises` + layer-boundary rules; Prettier (checked in CI).
-- **Tests: 146 on 4 levels** (unit → api over mock fetch → in-memory MCP client → documentation guards, incl. property-based and perf guards), ~1 second, zero network. A contract snapshot protects the `core` tool list; a README sync test protects the docs.
-- **CI:** GitHub Actions (lint + format + build + test on Node 20/22/24; coverage gate `--lines 85 --branches 72`; Windows visibility job; Node 12 launcher probe).
+- **Tests: 147 on 4 levels** (unit → api over mock fetch → in-memory MCP client → documentation guards, incl. property-based and perf guards), ~1 second, zero network. A contract snapshot protects the `core` tool list; sync tests protect the README tools table and the package description counts.
+- **CI:** GitHub Actions (lint + format + build + test on Node 20/22/24 Linux + Node 22 macOS; coverage gate `--lines 85 --branches 72`; prod-dependency audit; Windows visibility job; Node 12 launcher probe). Locally the same chain is one command: `npm run check`.
 - **Documentation as code:** the README tools table is generated (`npm run docs:readme`); the env reference + `.env.example` are maintained by working rule; WORKLOG/DONE/TODO discipline after every task.
 
 ## 4. History — how we got here

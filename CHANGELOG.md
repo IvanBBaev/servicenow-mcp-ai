@@ -10,6 +10,15 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 - **Multi-instance profiles (Phase 7 core):** named connection profiles in .env (`SN_PROFILE_<NAME>_*`), per-profile policy (prod read-only / dev full rights), an optional `instance` argument on every tool (AsyncLocalStorage routing per call), `servicenow_list_instances` / `servicenow_use_instance`; the status payload lists the profiles.
 - **Instance snapshot & comparison (new `instance` package):** `servicenow_snapshot_instance` writes the instance's structural picture (tables, schema of selected tables, plugins, apps, script-automation stats) into `SN_DOCS_DIR/<profile>/` as Markdown + JSON; `servicenow_compare_instances` diffs two profiles — tables only in one, column property drift, scripts by SHA-256, plugin/app inventory — into a `_compare/<a>-vs-<b>.md` report with a structured summary. 53 tools in 15 packages.
 - **Per-profile MCP resources:** `servicenow://instances` (profile inventory, no passwords) and `servicenow://{profile}/schema/{table}`; the old URIs stay bound to the active profile.
+- **`npm run check` — a single full gate:** build, lint, format check, coverage-gated tests (lines 85 / branches 72), `npm audit --omit=dev --audit-level=high`; `prepublishOnly` now runs it, so a publish cannot bypass the gates.
+- **CONTRIBUTING.md and SECURITY.md**: dev setup + gates + conventions; the security model, reporting channel and the accepted-risk decisions. README gains a table of contents and links to both.
+- A drift test: the `package.json` description must state the live tool/package counts (same pattern as the README tools-table sync test).
+
+### Changed
+
+- `package.json` metadata: `repository`/`homepage`/`bugs` now point at the GitHub repo; the description says 53 tools in 15 packages (was a stale 49).
+- The published tarball no longer ships `build/**/*.map` — the maps reference the unshipped `../src` and resolved to nothing (110 → 57 files, 92 → 62 kB packed).
+- CI: a macOS leg (Node 22) in the build matrix; the coverage step runs the shared `npm run test:coverage`; a production-dependency audit step; `c8` pinned as a devDependency instead of a floating `npx` fetch.
 
 ## [1.0.0] - 2026-06-12
 

@@ -6,6 +6,13 @@ instance through its REST APIs — Table, Aggregate, Attachment, Import Set, Bat
 and CMDB, plus the Service Catalog, Change Management and Knowledge plugin APIs.
 Credentials are kept in a local env file and can be updated at runtime through a tool.
 
+**Contents:** [Features](#features) · [Requirements](#requirements) ·
+[Setup](#setup) · [Configure credentials](#configure-credentials) ·
+[Run / debug](#run--debug) · [Develop](#develop) · [Tools](#tools) ·
+[Resources](#resources) · [Prompts](#prompts) ·
+[Project structure](#project-structure) · [Security notes](#security-notes) ·
+[Project documentation](#project-documentation)
+
 ## Features
 
 - Full **Table API**: query, read, create, update and delete records on **any**
@@ -121,10 +128,14 @@ See [.env.example](.env.example) for a template.
 ## Develop
 
 ```bash
-npm test          # build, then run unit tests (node:test)
+npm run check     # full gate: build, lint, format check, coverage-gated tests, prod audit
+npm test          # unit tests only (node:test; needs a prior npm run build)
 npm run lint      # ESLint (flat config + typescript-eslint)
 npm run format    # format with Prettier
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the conventions (one commit per
+task, tests ship with the change, generated docs).
 
 ## Tools
 
@@ -328,10 +339,11 @@ insist on reading real values from the instance:
 
 ## Project documentation
 
-| Document | Contents (Bulgarian) |
-| -------- | -------------------- |
+| Document | Contents |
+| -------- | -------- |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layered architecture, Mermaid diagrams (modules, request lifecycle, security model, auth, packages), condensed ADRs |
 | [PRODUCT-STATE.md](PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
 | [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Detailed specs for the upcoming phases (harness 2.0, multi-instance, flow testing) |
 | [DONE.md](DONE.md) / [TODO.md](TODO.md) | Completed work with commit refs / remaining decisions |
 | [WORKLOG.md](WORKLOG.md) / [CHANGELOG.md](CHANGELOG.md) | Detailed work journal / user-facing changelog |
+| [CONTRIBUTING.md](CONTRIBUTING.md) / [SECURITY.md](SECURITY.md) | Dev setup, gates and conventions / security model and reporting |
