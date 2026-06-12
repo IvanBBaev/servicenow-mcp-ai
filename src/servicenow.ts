@@ -66,6 +66,15 @@ export async function queryTable(opts: QueryOptions): Promise<QueryResult> {
     return queryPage(opts, opts.limit ?? 10, opts.offset ?? 0);
   }
 
+  // Offset paging without ORDERBY is unstable: ServiceNow gives no ordering
+  // guarantee, so concurrent writes can skip/duplicate rows across pages.
+  if (!opts.query?.includes("ORDERBY")) {
+    opts = {
+      ...opts,
+      query: opts.query ? `${opts.query}^ORDERBYsys_id` : "ORDERBYsys_id",
+    };
+  }
+
   const pageSize = Math.min(opts.limit ?? MAX_PAGE_SIZE, MAX_PAGE_SIZE);
   const cap = getMaxRecords();
   const records: SnRecord[] = [];

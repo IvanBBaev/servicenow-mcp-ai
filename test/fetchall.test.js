@@ -71,6 +71,45 @@ test("fetchAll honours the SN_MAX_RECORDS cap and shrinks the last page", async 
   );
 });
 
+test("fetchAll adds ORDERBYsys_id when the query has no ordering", async () => {
+  await withFetch(pagedHandler(makeRows(1)), async (calls) => {
+    await queryTable({ table: "incident", fetchAll: true, limit: 2 });
+    assert.equal(
+      new URL(calls[0].url).searchParams.get("sysparm_query"),
+      "ORDERBYsys_id",
+    );
+
+    await queryTable({
+      table: "incident",
+      fetchAll: true,
+      limit: 2,
+      query: "active=true",
+    });
+    assert.equal(
+      new URL(calls[1].url).searchParams.get("sysparm_query"),
+      "active=true^ORDERBYsys_id",
+    );
+  });
+});
+
+test("fetchAll keeps an explicit ORDERBY untouched", async () => {
+  await withFetch(pagedHandler(makeRows(1)), async (calls) => {
+    await queryTable({
+      table: "incident",
+      fetchAll: true,
+      limit: 2,
+      query: "active=true^ORDERBYnumber",
+    });
+    assert.equal(
+      new URL(calls[0].url).searchParams.get("sysparm_query"),
+      "active=true^ORDERBYnumber",
+    );
+    // Single-page (non-fetchAll) reads are also untouched.
+    await queryTable({ table: "incident", limit: 2 });
+    assert.equal(new URL(calls[1].url).searchParams.get("sysparm_query"), null);
+  });
+});
+
 test("fetchAll respects a starting offset", async () => {
   await withFetch(pagedHandler(makeRows(5)), async (calls) => {
     const { records } = await queryTable({
