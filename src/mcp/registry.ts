@@ -1,6 +1,11 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { runSpec, type AnyToolSpec } from "./define.js";
+import { runSpec, type AnyToolSpec, type PackageSpec } from "./define.js";
+import {
+  registerStatusResource,
+  registerSchemaResources,
+  registerDocsResources,
+} from "./resources.js";
 import { specs as tableSpecs } from "../tools/table.js";
 import { specs as metaSpecs } from "../tools/meta.js";
 import { specs as aggregateSpecs } from "../tools/aggregate.js";
@@ -23,27 +28,41 @@ import {
 import { logger } from "../core/logging.js";
 
 /**
- * The tool manifest: every tool of every package, as data. A package is
- * plugged in or out of the server by adding/removing one spread here — the
- * registration, the docs generators and the snapshot tests all read this list.
- * Admin specs stay last so the generated README keeps its ordering.
+ * The package manifest (A2-1): a package is ONE object — its tools plus its
+ * optional MCP resources. Plugging a package in or out touches exactly this
+ * list; registration, gating, docs generators and snapshot tests all read it.
+ * Admin stays last so the generated README keeps its ordering.
  */
-export const ALL_TOOLS: AnyToolSpec[] = [
-  ...tableSpecs,
-  ...metaSpecs,
-  ...aggregateSpecs,
-  ...attachmentSpecs,
-  ...importsetSpecs,
-  ...batchSpecs,
-  ...catalogSpecs,
-  ...changeSpecs,
-  ...knowledgeSpecs,
-  ...cmdbSpecs,
-  ...scriptSpecs,
-  ...docsSpecs,
-  ...emailSpecs,
-  ...adminSpecs,
+export const PACKAGES: PackageSpec[] = [
+  { name: "table", tools: tableSpecs },
+  { name: "schema", tools: metaSpecs, resources: registerSchemaResources },
+  { name: "aggregate", tools: aggregateSpecs },
+  { name: "attachment", tools: attachmentSpecs },
+  { name: "importset", tools: importsetSpecs },
+  { name: "batch", tools: batchSpecs },
+  { name: "catalog", tools: catalogSpecs },
+  { name: "change", tools: changeSpecs },
+  { name: "knowledge", tools: knowledgeSpecs },
+  { name: "cmdb", tools: cmdbSpecs },
+  { name: "scripts", tools: scriptSpecs },
+  { name: "docs", tools: docsSpecs, resources: registerDocsResources },
+  { name: "email", tools: emailSpecs },
+  { name: "admin", tools: adminSpecs, resources: registerStatusResource },
 ];
+
+// Invariant: a tool's own package tag must match the manifest entry it sits in.
+for (const pkg of PACKAGES) {
+  for (const tool of pkg.tools) {
+    if (tool.package !== pkg.name) {
+      throw new Error(
+        `Tool ${tool.name} is tagged '${tool.package}' but listed under package '${pkg.name}'.`,
+      );
+    }
+  }
+}
+
+/** Every tool of every package, flattened from the package manifest. */
+export const ALL_TOOLS: AnyToolSpec[] = PACKAGES.flatMap((p) => p.tools);
 
 /** Canonical package set (admin is the always-on management surface, not a package). */
 export const ALL_PACKAGES: string[] = [
@@ -171,4 +190,18 @@ export function registerAllTools(server: McpServer): void {
     deniedPackages: denied,
     readOnlyPackages: readOnly,
   });
+}
+
+/**
+ * Register package-scoped MCP resources declaratively from the manifest:
+ * the admin (status) resource is always on; the rest follow the same
+ * enabled/denied package policy as the tools.
+ */
+export function registerResources(server: McpServer): void {
+  const enabledSet = new Set(effectivePackages().enabled);
+  for (const pkg of PACKAGES) {
+    if (!pkg.resources) continue;
+    if (pkg.name !== "admin" && !enabledSet.has(pkg.name)) continue;
+    pkg.resources(server);
+  }
 }

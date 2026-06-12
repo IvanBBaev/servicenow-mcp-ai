@@ -9,8 +9,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
-import { registerAllTools } from "../build/mcp/registry.js";
-import { registerResources } from "../build/mcp/resources.js";
+import { registerAllTools, registerResources } from "../build/mcp/registry.js";
 import { setServer } from "../build/mcp/context.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 

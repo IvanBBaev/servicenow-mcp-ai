@@ -3,7 +3,6 @@ import {
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { buildStatusPayload } from "./status.js";
-import { effectivePackages } from "./registry.js";
 import { listTables, describeTable } from "../api/meta.js";
 import { docsRead } from "../api/docs.js";
 import { logger } from "../core/logging.js";
@@ -23,17 +22,14 @@ function jsonContents(uri: URL, data: unknown) {
 }
 
 /**
- * Read-only metadata exposed as MCP resources so clients can attach connection
- * status, the table list and per-table schema declaratively instead of calling
- * a tool. Errors are returned as JSON content rather than thrown, so a missing
+ * Package-scoped resource registrars (A2-1). Gating lives in the registry's
+ * package manifest — these functions only know how to register themselves.
+ * Errors are returned as JSON content rather than thrown, so a missing
  * connection does not break resource listing.
  */
-export function registerResources(server: McpServer): void {
-  // Resources follow the same package policy as the tools they mirror:
-  // tables/schema belong to the schema package, docs to the docs package.
-  // The status resource is the management surface and is always on.
-  const enabled = new Set(effectivePackages().enabled);
 
+/** Always-on management surface (admin package). */
+export function registerStatusResource(server: McpServer): void {
   server.registerResource(
     "status",
     "servicenow://status",
@@ -45,12 +41,10 @@ export function registerResources(server: McpServer): void {
     },
     (uri) => jsonContents(uri, buildStatusPayload()),
   );
+}
 
-  if (!enabled.has("schema")) {
-    registerDocsResource(server, enabled);
-    return;
-  }
-
+/** Tables + per-table schema (schema package). */
+export function registerSchemaResources(server: McpServer): void {
   server.registerResource(
     "tables",
     "servicenow://tables",
@@ -102,12 +96,10 @@ export function registerResources(server: McpServer): void {
       }
     },
   );
-
-  registerDocsResource(server, enabled);
 }
 
-function registerDocsResource(server: McpServer, enabled: Set<string>): void {
-  if (!enabled.has("docs")) return;
+/** Local Markdown documentation (docs package). */
+export function registerDocsResources(server: McpServer): void {
   server.registerResource(
     "docs",
     new ResourceTemplate("servicenow://docs/{path}", { list: undefined }),

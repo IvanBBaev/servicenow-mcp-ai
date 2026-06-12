@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { logger } from "../core/logging.js";
 import { fail, type ToolResult } from "./result.js";
 
@@ -42,6 +43,18 @@ export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
 
 /** Type-erased spec, so manifests of differently-shaped tools can be listed. */
 export type AnyToolSpec = ToolSpec<z.ZodRawShape>;
+
+/**
+ * A package as one object (A2-1): its tools plus optional package-scoped MCP
+ * resources. The registry enables/disables the whole unit declaratively —
+ * plugging a package in or out touches exactly one manifest entry.
+ */
+export interface PackageSpec {
+  name: string;
+  tools: AnyToolSpec[];
+  /** Registered only while the package is enabled (and not denied). */
+  resources?: (server: McpServer) => void;
+}
 
 /** Identity helper that erases the shape generic while type-checking the spec. */
 export function defineTool<S extends z.ZodRawShape>(
