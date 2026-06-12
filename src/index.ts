@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+// Node guard for the case when build/index.js is started directly (the bin
+// launcher already checks before parsing the ESM graph). Runs before the
+// server boots; uses no syntax newer than what Node 14 parses.
+const nodeMajor = Number(process.versions.node.split(".")[0]);
+if (nodeMajor < 20) {
+  console.error(
+    `sincronia-mcp requires Node.js >= 20, but this is ${process.versions.node}. Use e.g. nvm use 22.`,
+  );
+  process.exit(1);
+}
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createRequire } from "node:module";

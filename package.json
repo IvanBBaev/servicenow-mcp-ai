@@ -4,14 +4,15 @@
   "description": "MCP server that executes commands against a ServiceNow instance through the Table API.",
   "type": "module",
   "bin": {
-    "sincronia-mcp": "./build/index.js"
+    "sincronia-mcp": "./bin/sincronia-mcp.cjs"
   },
   "main": "./build/index.js",
   "files": [
-    "build"
+    "build",
+    "bin"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
     "build": "tsc && chmod 755 build/index.js",
