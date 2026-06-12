@@ -179,6 +179,8 @@ test/                     # vitest: unit (mock fetch) + env round-trip
 
 **Проверено на живо:** `npm run build` ✅ · `eslint .` ✅ · 50/50 unit теста ✅ (с Node 22; виж К-8 за Node 12 капана). 40 регистрирани tool-а в 12 пакета.
 
+> **Одит 2026-06-12 (след ревю-имплементацията):** 107/107 теста · 46 tools в 13 пакета · git хранилище с commit-по-задача · SDK **1.29** (Х-1 ✅) · prompts.ts съществува (Х-3 ✅) · README tools таблицата се генерира (М-5 ✅ по същество, виж бележката) · type-checked ESLint · ConfigStore. Слабостите „SDK изостанал“, „не е git хранилище“ и „дублирана истина в README“ от списъка по-долу са вече решени.
+
 **Силни страни (да се запазят при рефакторинг):**
 
 - Един общ `snRequest()` с retry/backoff, Retry-After, timeout, SSRF guard, чисто разделение transport-/API-грешки.
@@ -190,8 +192,7 @@ test/                     # vitest: unit (mock fetch) + env round-trip
 
 ## 6.1 Предпоставки (преди всякакъв рефакторинг)
 
-- [ ] **П-1 · Git init.** Проектът няма version control (`Is a git repository: false`). Преди Харнес 2.0: `git init`, добави `node_modules/`, `build/`, `.env` в `.gitignore` (файлът съществува — провери че покрива и трите), initial commit на текущото зелено състояние. Без това рефакторингът няма безопасна точка за връщане.
-      _Критерий:_ `git log` показва initial commit; `git status` чист; `.env` не е в индекса.
+- [x] **П-1 · Git init.** _(готово 2026-06-12, commit `2424fcf` — baseline + commit-по-задача дисциплина оттогава)_ `.gitignore` покрива `node_modules/`, `build/`, `.env`.
 - [ ] **П-2 · Node 20+ защита.** Реален инцидент: при system Node 12 `npm run build` гърми с неясни грешки, а `node --test` изобщо не тръгва. Действия: (а) `package.json` → `"engines": { "node": ">=20" }`; (б) `.npmrc` с `engine-strict=true`; (в) ранна проверка в `src/index.ts` преди какъвто и да е import-зависим код: ако `process.versions.node` major < 20 → ясно съобщение на stderr + `process.exit(1)`.
       _Критерий:_ под Node 12 `node build/index.js` отпечатва човешко обяснение вместо SyntaxError.
 
@@ -272,14 +273,14 @@ src/
   Регистрацията (в `mcp/registry.ts`) обхожда манифеста и сама увива handler-а в `runTool(name, logFields?.(args) ?? {}, …)` — `tools/util.ts` се поглъща тук. Всеки `tools/*.ts` вече експортира `const specs: AnyToolSpec[]` вместо `registerXxxTools(server)`.
 
 - [ ] **М-4 · Мигрирай 40-те tool-а към ToolSpec** пакет по пакет (table → admin → останалите), след всеки пакет: build+test. `TOOL_GROUPS` в registry.ts се заменя с `ALL_TOOLS: AnyToolSpec[]` (конкатенация на манифестите); `ALL_PACKAGES` се извежда от `new Set(ALL_TOOLS.map(t => t.package))`. Профилите (`core`, `all`) и `resolveEnabledPackages` остават както са. _Критерий:_ `servicenow_get_status` връща същия `enabledPackages`; имената/схемите на tools са байт-идентични (snapshot тест: списък от `{name, package, annotations}` срещу фикстура).
-- [ ] **М-5 · Генерирана README таблица.** Скрипт `scripts/gen-docs.ts` (`npm run gen:docs`): обхожда `ALL_TOOLS`, генерира Markdown таблица (име, package, read-only/destructive, описание) и я инжектира между маркери `<!-- TOOLS:BEGIN -->` / `<!-- TOOLS:END -->` в README.md. CI стъпка проверява, че README е актуален (`gen:docs && git diff --exit-code README.md`). Това убива ръчното „ред в README" правило от Фаза 1.
+- [x] **М-5 · Генерирана README таблица.** _(готово по същество 2026-06-12, commit `5bd5489` — `scripts/readme-tools.mjs` + `npm run docs:readme` върху `describeAllTools()`; пазачът е `test/readme-sync.test.js` вместо CI diff стъпка)_ След М-4 генераторът се опростява да чете `ALL_TOOLS` директно. **Остатък:** env таблицата в README е още ръчна — генерирай и нея, когато настройките получат декларативен регистър.
 - [ ] **М-6 · Snapshot тест на манифеста.** Тест, който материализира `{name, package, title, annotations}` за всички tools и го сравнява с чекирана JSON фикстура — всяка промяна по повърхността става видим diff в ревю.
 
 ## 6.4 Нови възможности на харнеса
 
-- [ ] **Х-1 · SDK ъпгрейд `@modelcontextprotocol/sdk` 1.12 → 1.29 (текуща).** Носи: elicitation, structured tool output (`outputSchema`/`structuredContent`), MCP `logging` capability, протокол 2025-06-18. Стъпки: bump + `npm i`, build, прегледай breaking changes в changelog-а на SDK-то (registerTool API-то е стабилно от 1.12 — очаквай малки типови разлики), тестове. Това е **предпоставка за Х-2, Х-4, Х-5**.
+- [x] **Х-1 · SDK ъпгрейд `@modelcontextprotocol/sdk` 1.12 → 1.29 (текуща).** _(констатирано готово при одита 2026-06-12 — node_modules вече е 1.29.0, InMemoryTransport се ползва от smoke тестовете)_ Носи: elicitation, structured tool output (`outputSchema`/`structuredContent`), MCP `logging` capability, протокол 2025-06-18. Стъпки: bump + `npm i`, build, прегледай breaking changes в changelog-а на SDK-то (registerTool API-то е стабилно от 1.12 — очаквай малки типови разлики), тестове. Това е **предпоставка за Х-2, Х-4, Х-5**.
 - [ ] **Х-2 · Elicitation за `set_credentials`** — затваря отворения trust-boundary елемент от TODO.md. След Х-1: в handler-а извикай `server.server.elicitInput()` с резюме на промяната („смяна на instance: X → Y, user: Z") и записвай само при потвърждение; ако клиентът не поддържа elicitation (capability check) → текущото поведение (запис без потвърждение) остава, за да не се чупи. _Тест:_ mock на elicit отговор decline → нищо не е записано.
-- [ ] **Х-3 · Prompts модул** (`mcp/prompts.ts`) — недовършеният елемент от Фаза 4. Три шаблона: `triage_incident` (args: number/sys_id), `change_impact` (args: change sys_id), `document_table` (args: table; оркестрира schema + table_logic + scripts → MD, връзва се с Фаза 5 docs). Регистрират се с `server.registerPrompt`; текстовете водят модела през наличните tools.
+- [x] **Х-3 · Prompts модул** _(констатирано готово при одита 2026-06-12 — `src/prompts.ts` с трите шаблона е реализиран с Фаза 4/5, виж DONE.md)_
 - [ ] **Х-4 · MCP logging capability** (отворен елемент от TODO.md). След Х-1: при activе client logging capability, `logger` праща и `server.sendLoggingMessage({ level, data })` освен stderr реда. Едно място за промяна: `emit()` в [logging.ts](src/logging.ts) получава опционален sink, който `index.ts` закача след `connect()`.
 - [ ] **Х-5 · `outputSchema` за ключови tools** (след Х-1, опционално разширение на М-3: поле `output?: z.ZodTypeAny` в ToolSpec). Започни само с `query_table`, `get_record`, `aggregate`, `get_status` — там структурата е стабилна и клиентите печелят най-много.
 - [ ] **Х-6 · `servicenow_test_connection`.** `get_status` показва конфигурацията, но не казва дали тя **работи**. Нов admin tool: `GET /api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id` → връща `{ ok, status, latencyMs, user }`; 401/403 се връщат структурирано (не като exception), за да може моделът да реагира. Регистриран винаги (admin група).

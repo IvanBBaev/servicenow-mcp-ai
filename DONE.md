@@ -105,3 +105,10 @@
 - [x] Авто-одобрение на повтарящите се dev команди в `.claude/settings.json` (build/lint/test/commit; без push и широки wildcard-и).
 - [x] **CHANGELOG.md** създаден (Keep a Changelog, `[Unreleased]` обобщава цялото текущо състояние) — затваря стария опционален елемент „Changelog при публикуване“.
 - [x] Старите опционални точки от архитектурното ревю 2026-06-11 са пренесени в плана: trust boundary → Х-2 (elicitation), MCP logging capability → Х-4, PDI integration suite + Export API → секция „Опционално“; roadmap елементът е изчерпан (Batch/Catalog/Knowledge/CMDB/IRE покрити, Email е Х-7).
+
+## Фаза 6 (Харнес 2.0) — завършени задачи
+
+- [x] **П-1 · git init** + baseline; история commit-по-задача. _(2424fcf)_
+- [x] **Х-1 · SDK ъпгрейд 1.12 → 1.29** — констатиран готов при одита на 2026-06-12; InMemoryTransport вече се ползва от smoke тестовете.
+- [x] **Х-3 · Prompts модул** — `src/prompts.ts` с трите шаблона (triage / change impact / document table), реализиран с Фаза 4/5.
+- [x] **М-5 · Генерирана README tools таблица** — `describeAllTools()` + `scripts/readme-tools.mjs` + sync тест (виж A-8 по-горе); остатък: env таблицата.
