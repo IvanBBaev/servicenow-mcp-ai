@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node --test test/*.test.js)"
+      "Bash(node --test test/*.test.js)",
+      "Bash(node --test test/*)",
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/v22.22.2/bin:$PATH\")",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npx tsc --noEmit *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
