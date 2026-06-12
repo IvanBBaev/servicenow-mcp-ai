@@ -2,9 +2,11 @@ import {
   McpServer,
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { buildStatusPayload } from "./status.js";
+import { buildStatusPayload, profilesPayload } from "./status.js";
 import { listTables, describeTable } from "../api/meta.js";
 import { docsRead } from "../api/docs.js";
+import { listProfiles } from "../core/config.js";
+import { runWithProfile } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
 
 const JSON_MIME = "application/json";
@@ -90,6 +92,71 @@ export function registerSchemaResources(server: McpServer): void {
           error: error instanceof Error ? error.message : String(error),
         });
         return jsonContents(uri, {
+          table,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+}
+
+/** Multi-instance surface (instance package, MI-8). */
+export function registerInstanceResources(server: McpServer): void {
+  server.registerResource(
+    "instances",
+    "servicenow://instances",
+    {
+      title: "ServiceNow connection profiles",
+      description:
+        "Configured connection profiles: name, host, user, read-only flag, credential completeness. Passwords are never included.",
+      mimeType: JSON_MIME,
+    },
+    (uri) => jsonContents(uri, profilesPayload()),
+  );
+
+  server.registerResource(
+    "profile-schema",
+    new ResourceTemplate("servicenow://{profile}/schema/{table}", {
+      list: undefined,
+    }),
+    {
+      title: "Table schema on a specific profile",
+      description:
+        "Columns of a table from sys_dictionary, read through the named connection profile. " +
+        "URI: servicenow://<profile>/schema/<table>; servicenow://schema/<table> stays bound to the active profile.",
+      mimeType: JSON_MIME,
+    },
+    async (uri, variables) => {
+      const one = (v: string | string[] | undefined): string | undefined =>
+        Array.isArray(v) ? v[0] : v;
+      const profile = one(variables.profile)?.toLowerCase();
+      const table = one(variables.table);
+      try {
+        if (!profile || !table) {
+          throw new Error("URI must be servicenow://<profile>/schema/<table>.");
+        }
+        if (!listProfiles().includes(profile)) {
+          throw new Error(
+            `Unknown connection profile "${profile}". Available: ${listProfiles().join(", ") || "(none)"}.`,
+          );
+        }
+        const columns = await runWithProfile(profile, () =>
+          describeTable(table),
+        );
+        return jsonContents(uri, {
+          profile,
+          table,
+          count: columns.length,
+          columns,
+        });
+      } catch (error) {
+        logger.warn("profile schema resource failed", {
+          profile,
+          table,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return jsonContents(uri, {
+          profile,
           table,
           error: error instanceof Error ? error.message : String(error),
         });

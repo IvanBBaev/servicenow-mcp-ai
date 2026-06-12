@@ -10,6 +10,7 @@ import {
   registerStatusResource,
   registerSchemaResources,
   registerDocsResources,
+  registerInstanceResources,
 } from "./resources.js";
 import { specs as tableSpecs } from "../tools/table.js";
 import { specs as metaSpecs } from "../tools/meta.js";
@@ -52,7 +53,11 @@ export const PACKAGES: PackageSpec[] = [
   { name: "cmdb", tools: cmdbSpecs },
   { name: "scripts", tools: scriptSpecs },
   { name: "docs", tools: docsSpecs, resources: registerDocsResources },
-  { name: "instance", tools: instanceSpecs },
+  {
+    name: "instance",
+    tools: instanceSpecs,
+    resources: registerInstanceResources,
+  },
   { name: "email", tools: emailSpecs },
   { name: "admin", tools: adminSpecs, resources: registerStatusResource },
 ];

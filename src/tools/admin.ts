@@ -2,10 +2,7 @@ import { z } from "zod";
 import {
   saveCredentials,
   useProfile,
-  listProfiles,
   activeProfile,
-  getCredentials,
-  hasCredentials,
   assertValidProfileName,
   type ServiceNowCredentials,
 } from "../core/config.js";
@@ -14,7 +11,7 @@ import { invalidateTokens } from "../core/auth.js";
 import { clearSchemaCache } from "../core/cache.js";
 import { clearPluginAvailability } from "../api/plugin.js";
 import { resolveHost } from "../core/host.js";
-import { buildStatusPayload } from "../mcp/status.js";
+import { buildStatusPayload, profilesPayload } from "../mcp/status.js";
 import { getServer } from "../mcp/context.js";
 import { testConnection } from "../api/diagnostics.js";
 import { ok, okStructured, fail } from "../mcp/result.js";
@@ -150,21 +147,7 @@ export const specs: AnyToolSpec[] = [
     package: "admin",
     annotations: { readOnlyHint: true, openWorldHint: false },
     input: {},
-    handler: () => {
-      const active = activeProfile();
-      const profiles = listProfiles().map((name) => {
-        const c = getCredentials(name);
-        return {
-          name,
-          active: name === active,
-          instance: c.instance || "(not set)",
-          user: c.user || "(not set)",
-          readOnly: isReadOnly(name),
-          hasCredentials: hasCredentials(name),
-        };
-      });
-      return ok({ count: profiles.length, activeProfile: active, profiles });
-    },
+    handler: () => ok(profilesPayload()),
   }),
 
   defineTool({

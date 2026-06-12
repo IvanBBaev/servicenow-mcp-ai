@@ -347,12 +347,14 @@ test("resources follow the package policy (К-7)", async () => {
     }
   });
 
-  // all packages: status + tables + schema + docs.
+  // all packages: status + tables + schema + docs + the instance pair (MI-8).
   await withEnv({ SN_TOOL_PACKAGES: "all" }, async () => {
     const { client, close } = await startServer();
     try {
       assert.deepEqual(await resourceNames(client), [
         "docs",
+        "instances",
+        "profile-schema",
         "schema",
         "status",
         "tables",

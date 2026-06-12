@@ -42,3 +42,24 @@ export function buildStatusPayload() {
     telemetry: getTelemetry(),
   };
 }
+
+/**
+ * The single source of the profile inventory, shared by the
+ * servicenow_list_instances tool and the servicenow://instances resource
+ * (MI-8). Passwords are never included.
+ */
+export function profilesPayload() {
+  const active = activeProfile();
+  const profiles = listProfiles().map((name) => {
+    const c = getCredentials(name);
+    return {
+      name,
+      active: name === active,
+      instance: c.instance || "(not set)",
+      user: c.user || "(not set)",
+      readOnly: isReadOnly(name),
+      hasCredentials: hasCredentials(name),
+    };
+  });
+  return { count: profiles.length, activeProfile: active, profiles };
+}
