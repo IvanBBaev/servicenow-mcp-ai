@@ -146,3 +146,39 @@ test("a 502 is retried for GET but not for POST", async () => {
     );
   });
 });
+
+test("a 401 under Basic auth surfaces immediately — only OAuth re-auths (QA-3)", async () => {
+  // baselineEnv() is Basic auth; the 401 re-auth path is gated on OAuth mode.
+  await withEnv({ SN_MAX_RETRIES: "2" }, () =>
+    withFetch(
+      () => jsonResponse(401, { error: { message: "unauthorized" } }),
+      async (calls) => {
+        await assert.rejects(
+          queryTable({ table: "incident" }),
+          (err) => err instanceof ServiceNowError && err.status === 401,
+        );
+        assert.equal(calls.length, 1, "Basic 401 must not retry");
+      },
+    ),
+  );
+});
+
+test("an unparseable Retry-After falls back to backoff and still retries (QA-4)", async () => {
+  await withEnv({ SN_MAX_RETRIES: "1" }, () =>
+    withFetch(
+      (_url, _init, callNo) =>
+        callNo === 1
+          ? jsonResponse(503, {}, { "retry-after": "not-a-date" })
+          : jsonResponse(200, { result: [] }),
+      async (calls) => {
+        const { records } = await queryTable({ table: "incident" });
+        assert.deepEqual(records, []);
+        assert.equal(
+          calls.length,
+          2,
+          "the malformed Retry-After must not abort the retry",
+        );
+      },
+    ),
+  );
+});

@@ -128,8 +128,23 @@ export async function docsSearch(
   return { count: matches.length, matches };
 }
 
+/**
+ * index.md regeneration is serialized through this tail promise: concurrent
+ * docsWriteRaw() calls (pipelined requests, or two profiles snapshotting at
+ * once) must not interleave a walk() with another call's write, or the rebuilt
+ * index would drop the entries written in between. The tail keeps the chain
+ * alive across a failed rebuild so a later call is not stuck behind it.
+ */
+let indexTail: Promise<unknown> = Promise.resolve();
+
 /** Rebuild index.md as a table of contents linking every other document. */
-async function regenerateIndex(): Promise<void> {
+function regenerateIndex(): Promise<void> {
+  const run = indexTail.then(rebuildIndex, rebuildIndex);
+  indexTail = run.catch(() => {});
+  return run;
+}
+
+async function rebuildIndex(): Promise<void> {
   const root = getDocsDir();
   const all: string[] = [];
   await walk(root, root, all);

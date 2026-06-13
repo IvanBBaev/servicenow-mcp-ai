@@ -1,11 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { listCatalogs, orderCatalogItem } from "../build/api/catalog.js";
+import {
+  listCatalogs,
+  orderCatalogItem,
+  listCatalogCategories,
+  listCatalogItems,
+  getCatalogItem,
+} from "../build/api/catalog.js";
 import { createChange, changeConflicts } from "../build/api/change.js";
 import {
   searchKnowledge,
   getKnowledgeArticle,
+  knowledgeHighlights,
 } from "../build/api/knowledge.js";
 import { getCmdbInstance, createCmdbInstance } from "../build/api/cmdb.js";
 import { ServiceNowError } from "../build/core/errors.js";
@@ -79,6 +86,55 @@ test("a 404 from a plugin API is annotated as possibly inactive", async () => {
           err.status === 404 &&
           /may not be active/i.test(err.message),
       );
+    },
+  );
+});
+
+test("listCatalogCategories targets the catalog's categories endpoint (QA-16)", async () => {
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/servicecatalog\/catalogs\/cat1\/categories$/);
+      return jsonResponse(200, { result: [{ sys_id: "c1" }] });
+    },
+    async () => {
+      const result = await listCatalogCategories("cat1");
+      assert.deepEqual(result, [{ sys_id: "c1" }]);
+    },
+  );
+});
+
+test("listCatalogItems passes text/category/limit/offset as sysparm params (QA-16)", async () => {
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/servicecatalog\/items\?/);
+      const p = new URL(url).searchParams;
+      assert.equal(p.get("sysparm_text"), "laptop");
+      assert.equal(p.get("sysparm_category"), "hardware");
+      assert.equal(p.get("sysparm_limit"), "5");
+      assert.equal(p.get("sysparm_offset"), "10");
+      return jsonResponse(200, { result: [{ sys_id: "i1" }] });
+    },
+    async () => {
+      const result = await listCatalogItems({
+        text: "laptop",
+        category: "hardware",
+        limit: 5,
+        offset: 10,
+      });
+      assert.deepEqual(result, [{ sys_id: "i1" }]);
+    },
+  );
+});
+
+test("getCatalogItem reads a single item by sys_id (QA-16)", async () => {
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/servicecatalog\/items\/item9$/);
+      return jsonResponse(200, { result: { sys_id: "item9", name: "Laptop" } });
+    },
+    async () => {
+      const result = await getCatalogItem("item9");
+      assert.equal(result.name, "Laptop");
     },
   );
 });
@@ -183,6 +239,22 @@ test("getKnowledgeArticle reads a single article by sys_id", async () => {
       assert.deepEqual(result, { sys_id: "kb123" });
     },
   );
+});
+
+test("knowledgeHighlights hits the featured/most_viewed endpoint with a limit (QA-16)", async () => {
+  for (const mode of ["featured", "most_viewed"]) {
+    await withFetch(
+      (url) => {
+        assert.match(url, new RegExp(`/knowledge/articles/${mode}\\?`));
+        assert.equal(new URL(url).searchParams.get("sysparm_limit"), "3");
+        return jsonResponse(200, { result: [{ sys_id: `${mode}-1` }] });
+      },
+      async () => {
+        const result = await knowledgeHighlights(mode, 3);
+        assert.deepEqual(result, [{ sys_id: `${mode}-1` }]);
+      },
+    );
+  }
 });
 
 // --- CMDB --------------------------------------------------------------------

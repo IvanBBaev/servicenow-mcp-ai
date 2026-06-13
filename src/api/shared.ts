@@ -29,6 +29,21 @@ export function snString(value: unknown): string {
   return "";
 }
 
+/**
+ * User-supplied fragments are embedded into encoded queries, where `^` acts as
+ * the condition separator and ServiceNow has no escape for it inside LIKE — a
+ * stray `^` would silently distort the filter (or inject extra clauses), so it
+ * is rejected up front. Shared so every query builder enforces it identically.
+ */
+export function assertNoCaret(value: string, field: string): void {
+  if (value.includes("^")) {
+    throw new ServiceNowError(
+      `The ${field} filter cannot contain '^' (it is the encoded-query separator and cannot be escaped).`,
+      400,
+    );
+  }
+}
+
 /** Like {@link expectResult}, but requires `result` to be an array. */
 export function expectResultArray<T>(
   data: { result?: T[] } | null | undefined,

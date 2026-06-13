@@ -1,3 +1,4 @@
+import { getCredentials } from "../core/config.js";
 import { ServiceNowError } from "../core/errors.js";
 import { logger } from "../core/logging.js";
 
@@ -30,11 +31,25 @@ type ApiState =
 
 const states = new Map<string, ApiState>();
 
-/** Availability of every plugin API touched so far (for the status payload). */
+/**
+ * Availability is per *instance*: the backing plugin can be active on one
+ * profile's instance and absent on another, so a 404 cached for one must never
+ * fast-fail a concurrent call on a different host. Keys carry the instance the
+ * same way the schema cache does (see api/meta.ts `cacheKey`).
+ */
+const stateKey = (apiLabel: string): string =>
+  `${getCredentials().instance}|${apiLabel}`;
+
+/**
+ * Availability of every plugin API touched on the active instance (for the
+ * status payload, which is itself scoped to the active profile).
+ */
 export function pluginAvailability(): Record<string, string> {
+  const prefix = `${getCredentials().instance}|`;
   const out: Record<string, string> = {};
-  for (const [label, s] of states) {
-    out[label] =
+  for (const [key, s] of states) {
+    if (!key.startsWith(prefix)) continue;
+    out[key.slice(prefix.length)] =
       s.status === "available"
         ? "available"
         : s.until > Date.now()
@@ -53,7 +68,8 @@ export async function pluginCall<T>(
   apiLabel: string,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const state = states.get(apiLabel);
+  const key = stateKey(apiLabel);
+  const state = states.get(key);
   if (state?.status === "unavailable" && state.until > Date.now()) {
     throw new ServiceNowError(
       `${apiLabel} API is not available on this instance (a namespace 404 was cached in the last ${Math.round(UNAVAILABLE_TTL_MS / 60_000)} minutes; the backing plugin is probably inactive).`,
@@ -62,13 +78,13 @@ export async function pluginCall<T>(
   }
   try {
     const result = await fn();
-    states.set(apiLabel, { status: "available" });
+    states.set(key, { status: "available" });
     return result;
   } catch (err) {
     if (err instanceof ServiceNowError && err.status === 404) {
       const haystack = `${err.message} ${JSON.stringify(err.detail ?? "")}`;
       if (NAMESPACE_404.test(haystack)) {
-        states.set(apiLabel, {
+        states.set(key, {
           status: "unavailable",
           until: Date.now() + UNAVAILABLE_TTL_MS,
         });

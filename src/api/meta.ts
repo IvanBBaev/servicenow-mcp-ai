@@ -1,7 +1,7 @@
 import { queryTable, type SnRecord } from "./table.js";
 import { getCredentials } from "../core/config.js";
 import { cached } from "../core/cache.js";
-import { snString } from "./shared.js";
+import { assertNoCaret, snString } from "./shared.js";
 
 /** Cache key prefix carrying the instance, so profiles never cross-pollute. */
 const cacheKey = (parts: string[]): string =>
@@ -30,6 +30,7 @@ async function listTablesUncached(filter?: string): Promise<TableInfo[]> {
   const clauses: string[] = [];
   if (filter?.trim()) {
     const f = filter.trim();
+    assertNoCaret(f, "table name/label");
     clauses.push(`nameLIKE${f}^ORlabelLIKE${f}`);
   }
   clauses.push("ORDERBYname");

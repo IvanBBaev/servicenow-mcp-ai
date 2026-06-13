@@ -7,6 +7,7 @@ import {
   clearPluginAvailability,
 } from "../build/api/plugin.js";
 import { ServiceNowError } from "../build/core/errors.js";
+import { withEnv } from "./helpers.js";
 
 test.beforeEach(() => clearPluginAvailability());
 
@@ -84,4 +85,33 @@ test("a record-level 404 is NOT cached as plugin absence", async () => {
   await assert.rejects(attempt, /may not be active/);
   assert.equal(fnCalls, 2, "record 404s must keep reaching the instance");
   assert.deepEqual(pluginAvailability(), {});
+});
+
+test("availability is cached per instance — a 404 on one host never blocks another (ARCH-1)", async () => {
+  // Instance A: a namespace 404 marks the Email API unavailable there.
+  await withEnv({ SN_INSTANCE: "inst-a.service-now.com" }, async () => {
+    await assert.rejects(
+      pluginCall("Email", async () => {
+        throw namespace404();
+      }),
+      /may not be active/,
+    );
+    assert.deepEqual(pluginAvailability(), { Email: "unavailable" });
+  });
+
+  // Instance B: the SAME API must be probed, not refused from A's cache.
+  await withEnv({ SN_INSTANCE: "inst-b.service-now.com" }, async () => {
+    let ran = false;
+    const out = await pluginCall("Email", async () => {
+      ran = true;
+      return "ok";
+    });
+    assert.equal(
+      ran,
+      true,
+      "instance B must reach fn, not fast-fail on A's cache",
+    );
+    assert.equal(out, "ok");
+    assert.deepEqual(pluginAvailability(), { Email: "available" });
+  });
 });

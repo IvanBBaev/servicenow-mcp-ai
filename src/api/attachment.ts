@@ -2,7 +2,7 @@ import { snRequest } from "../core/http.js";
 import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import { getMaxResultChars } from "../core/settings.js";
 import { ServiceNowError } from "../core/errors.js";
-import { expectResult, expectResultArray } from "./shared.js";
+import { assertNoCaret, expectResult, expectResultArray } from "./shared.js";
 import type { SnRecord } from "./table.js";
 
 /**
@@ -26,6 +26,8 @@ export async function listAttachments(
   sysId?: string,
 ): Promise<AttachmentMeta[]> {
   if (table) assertTableAllowed(table);
+  if (table) assertNoCaret(table, "table");
+  if (sysId) assertNoCaret(sysId, "sysId");
   const params = new URLSearchParams();
   const clauses: string[] = [];
   if (table) clauses.push(`table_name=${table}`);

@@ -228,3 +228,40 @@ test("snapshot falls back to sys_plugins and reports failing sections", async ()
   );
   assert.match(index, /## Warnings/);
 });
+
+test("snapshot skips the plugins section and warns when BOTH sources fail (QA-6)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  // Start clean so the absence assertions are not satisfied by a prior run.
+  await fs.rm(path.join(DOCS_DIR, "default"), { recursive: true, force: true });
+
+  const bothFail = (url) => {
+    const u = new URL(url);
+    if (
+      u.pathname.includes("/table/v_plugin") ||
+      u.pathname.includes("/table/sys_plugins")
+    ) {
+      return jsonResponse(403, { error: { message: "no access" } });
+    }
+    if (u.pathname.includes("/api/now/stats/")) {
+      return jsonResponse(403, { error: { message: "stats denied" } });
+    }
+    return instanceFetch(url);
+  };
+
+  const result = await withFetch(bothFail, () => snapshotInstance());
+
+  assert.ok(
+    result.warnings.some((w) => /^plugins: unavailable/.test(w)),
+    "a plugins-unavailable warning must be recorded",
+  );
+  // Neither the markdown nor the JSON companion is written when both fail.
+  await assert.rejects(
+    fs.access(path.join(DOCS_DIR, "default", "plugins.json")),
+    "plugins.json must not exist when both sources fail",
+  );
+  await assert.rejects(
+    fs.access(path.join(DOCS_DIR, "default", "plugins.md")),
+    "plugins.md must not exist when both sources fail",
+  );
+});

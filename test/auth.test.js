@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { queryTable } from "../build/api/table.js";
-import { invalidateTokens } from "../build/core/auth.js";
-import { baselineEnv, realFetch } from "./helpers.js";
+import { invalidateTokens, invalidateToken } from "../build/core/auth.js";
+import { baselineEnv, withEnv, realFetch } from "./helpers.js";
 
 // OAuth password-grant configuration on top of the shared baseline. A unique
 // client id keeps this file's token cache entry independent of other tests.
@@ -119,5 +119,52 @@ test("OAuth: a second 401 surfaces as an error (no retry loop)", async () => {
     assert.equal(tableCalls, 2, "exactly one forced retry, then the error");
   } finally {
     globalThis.fetch = realFetch;
+  }
+});
+
+test("invalidateToken(host) drops only that host's token, not another's (QA-2)", async () => {
+  invalidateTokens();
+  const hostA = "ven03019.service-now.com";
+  const hostB = "hostb.service-now.com";
+  const tokenHosts = [];
+
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.endsWith("/oauth_token.do")) {
+      tokenHosts.push(new URL(u).host);
+      return new Response(
+        JSON.stringify({ access_token: "tok", expires_in: 3600 }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    }
+    return new Response(JSON.stringify({ result: [] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+
+  try {
+    // Prime a cached token for each host (OAuth env persists via process.env).
+    await queryTable({ table: "incident" });
+    await withEnv({ SN_INSTANCE: hostB }, () =>
+      queryTable({ table: "incident" }),
+    );
+    assert.deepEqual(tokenHosts, [hostA, hostB]);
+    tokenHosts.length = 0;
+
+    invalidateToken(hostA);
+
+    await queryTable({ table: "incident" }); // host A must re-authenticate
+    await withEnv({ SN_INSTANCE: hostB }, () =>
+      queryTable({ table: "incident" }),
+    ); // host B must still be cached
+    assert.deepEqual(
+      tokenHosts,
+      [hostA],
+      "only host A re-authenticates; host B's token survives",
+    );
+  } finally {
+    globalThis.fetch = realFetch;
+    invalidateTokens();
   }
 });

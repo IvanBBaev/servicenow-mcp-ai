@@ -140,6 +140,27 @@ test("unserviced sub-requests are surfaced as errors", async () => {
   );
 });
 
+test("unserviced error falls back to `error` then a default message (QA-5)", async () => {
+  await withFetch(
+    () =>
+      jsonResponse(200, {
+        serviced_requests: [],
+        unserviced_requests: [
+          { id: "1", error: "secondary detail" }, // no error_message → use error
+          { id: "2" }, // neither field → default message
+        ],
+      }),
+    async () => {
+      const results = await runBatch([
+        { method: "GET", url: "/api/now/table/incident" },
+        { method: "GET", url: "/api/now/table/problem" },
+      ]);
+      assert.equal(results[0].error, "secondary detail");
+      assert.equal(results[1].error, "Request was not serviced.");
+    },
+  );
+});
+
 test("an empty batch is rejected", async () => {
   await assert.rejects(runBatch([]), (err) => err instanceof ServiceNowError);
 });

@@ -94,3 +94,30 @@ test("docsRead reports a missing document as 404", async () => {
     },
   );
 });
+
+test("a whitespace-only document path is rejected as a 400 (QA-15)", async () => {
+  for (const bad of ["   ", "\t", ""]) {
+    await assert.rejects(
+      () => docsRead(bad),
+      (err) =>
+        err instanceof ServiceNowError &&
+        err.status === 400 &&
+        /document path is required/.test(err.message),
+    );
+  }
+});
+
+test("concurrent docsWrite calls all land in index.md (DEV-3)", async () => {
+  // Without serialized regeneration, an interleaved walk() drops some of these
+  // entries; serialization guarantees the last rebuild sees every file.
+  const names = Array.from({ length: 12 }, (_, i) => `concurrent/doc-${i}.md`);
+  await Promise.all(names.map((n) => docsWrite(n, `# ${n}\n`)));
+  const index = await fs.readFile(path.join(DOCS_DIR, "index.md"), "utf8");
+  for (const n of names) {
+    assert.match(
+      index,
+      new RegExp(`\\[${n}\\]\\(${n}\\)`),
+      `index must list ${n}`,
+    );
+  }
+});

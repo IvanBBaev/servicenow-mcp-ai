@@ -1,6 +1,6 @@
 import { ServiceNowError } from "../core/errors.js";
 import { queryTable, getRecord, type SnRecord } from "./table.js";
-import { snString } from "./shared.js";
+import { assertNoCaret, snString } from "./shared.js";
 
 /**
  * Script intelligence helpers. ServiceNow keeps all server/client code in
@@ -129,20 +129,6 @@ export interface ScriptSummary {
  * optionally filtered by applied table, name fragment, active flag, or a raw
  * encoded query.
  */
-/**
- * User-supplied fragments are embedded into encoded queries, where `^` acts
- * as the condition separator and ServiceNow has no escape for it inside LIKE —
- * a stray `^` would silently distort the filter, so it is rejected up front.
- */
-function assertNoCaret(value: string, field: string): void {
-  if (value.includes("^")) {
-    throw new ServiceNowError(
-      `The ${field} filter cannot contain '^' (it is the encoded-query separator and cannot be escaped).`,
-      400,
-    );
-  }
-}
-
 export async function listScripts(
   opts: ListScriptsOptions,
 ): Promise<{ type: string; count: number; scripts: ScriptSummary[] }> {

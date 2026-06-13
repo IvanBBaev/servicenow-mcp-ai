@@ -143,3 +143,17 @@ test("listTables resolves superClass via dot-walk to the parent's name", async (
     },
   );
 });
+
+test("listTables rejects a '^' in the filter before any request (DEV-1)", async () => {
+  await withFetch(
+    () => {
+      throw new Error("fetch must not run for a caret filter");
+    },
+    async (calls) => {
+      await assert.rejects(listTables("incident^active=false"), (err) =>
+        /cannot contain '\^'/.test(err.message),
+      );
+      assert.equal(calls.length, 0);
+    },
+  );
+});
