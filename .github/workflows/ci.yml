@@ -27,7 +27,8 @@ jobs:
       - run: npm run format:check
       - run: npm run build
       - run: npm test
-      # Coverage gate (thresholds from the real report, with headroom) — once per matrix.
+      # Coverage gate — lines 85 / branches 72 / functions 60, a ratchet set
+      # below the real report (~92 / ~78 / ~67). Runs once on ubuntu/Node 22.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         run: npm run test:coverage
       # Production-dependency audit: fail on high+ advisories.
@@ -58,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           set +e
-          out=$(node bin/servicenow-mcp.cjs 2>&1)
+          out=$(node bin/servicenow-mcp-ai.cjs 2>&1)
           code=$?
           echo "$out"
           test $code -ne 0 || exit 1

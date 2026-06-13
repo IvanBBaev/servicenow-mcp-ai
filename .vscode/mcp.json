@@ -1,6 +1,6 @@
 {
   "servers": {
-    "servicenow-mcp": {
+    "servicenow-mcp-ai": {
       "type": "stdio",
       "command": "node",
       "args": ["${workspaceFolder}/build/index.js"]

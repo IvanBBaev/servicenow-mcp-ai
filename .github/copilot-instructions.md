@@ -1,4 +1,4 @@
-# Copilot instructions — servicenow-mcp server
+# Copilot instructions — servicenow-mcp-ai server
 
 This is a **Model Context Protocol (MCP) server** written in **TypeScript** that
 executes commands against a **ServiceNow** instance through the **Table API**.

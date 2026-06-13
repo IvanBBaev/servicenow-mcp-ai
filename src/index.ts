@@ -5,7 +5,7 @@
 const nodeMajor = Number(process.versions.node.split(".")[0]);
 if (nodeMajor < 20) {
   console.error(
-    `servicenow-mcp requires Node.js >= 20, but this is ${process.versions.node}. Use e.g. nvm use 22.`,
+    `servicenow-mcp-ai requires Node.js >= 20, but this is ${process.versions.node}. Use e.g. nvm use 22.`,
   );
   process.exit(1);
 }
@@ -26,7 +26,7 @@ const pkg = requireJson("../package.json") as { version: string };
 
 const server = new McpServer(
   {
-    name: "servicenow-mcp",
+    name: "servicenow-mcp-ai",
     version: pkg.version,
   },
   { capabilities: { logging: {} } },
@@ -58,7 +58,7 @@ async function main(): Promise<void> {
       .catch(() => undefined);
   });
   // STDIO servers must never write to stdout; logging goes to stderr.
-  logger.info("servicenow-mcp server running on stdio", {
+  logger.info("servicenow-mcp-ai server running on stdio", {
     version: pkg.version,
   });
   if (!hasCredentials()) {

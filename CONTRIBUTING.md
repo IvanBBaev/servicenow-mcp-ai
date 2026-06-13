@@ -52,3 +52,23 @@ report. Raise them as tests are added; never lower them.
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the layer model
 (`core` → `api` → `mcp` → `tools`), the request lifecycle and the module
 contract for adding a tool or a package.
+
+## Releasing
+
+The npm package is **`servicenow-mcp-ai`** (the unscoped `servicenow-mcp` was
+taken). Publishing happens **from CI on a version tag**, never from a laptop.
+
+1. Land the work; move the [CHANGELOG.md](CHANGELOG.md) `Unreleased` notes under
+   a new `## [x.y.z]` heading.
+2. Dry-run the tarball locally: `npm run release:dry` (runs the full gate, then
+   `npm publish --dry-run` — confirm the file list is `build` + `bin` + README +
+   LICENSE, no `.map`/`src`).
+3. Bump + tag: `npm version <patch|minor|major>` then
+   `git push --follow-tags`.
+4. The [`publish.yml`](.github/workflows/publish.yml) workflow runs on the `v*`
+   tag: it checks the tag matches `package.json`, runs `npm run check`, and
+   publishes with `--provenance`. It needs an `NPM_TOKEN` repository secret
+   (an automation/2FA token).
+
+SemVer: patch = fixes, minor = new tools/back-compatible additions, major =
+a breaking tool/contract change.

@@ -20,13 +20,13 @@ const projectEnvPath = join(moduleDir, "..", ".env");
 function xdgEnvPath(): string {
   const base =
     process.env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
-  return join(base, "servicenow-mcp", ".env");
+  return join(base, "servicenow-mcp-ai", ".env");
 }
 
 /**
  * Resolve which env file to read/write, in order of precedence:
  *   1. SN_ENV_FILE — explicit override.
- *   2. an existing XDG config file (~/.config/servicenow-mcp/.env).
+ *   2. an existing XDG config file (~/.config/servicenow-mcp-ai/.env).
  *   3. an existing project-root .env (local development).
  *   4. otherwise the XDG path, so a global install writes to user space rather
  *      than into a (possibly read-only or transient) node_modules directory.
@@ -285,7 +285,7 @@ function updateEnvFile(updates: Record<string, string>): void {
 
   // Write atomically: a temp file in the same directory plus rename avoids a
   // partially written file if the process is interrupted mid-write. Ensure the
-  // target directory exists first (e.g. ~/.config/servicenow-mcp on first run).
+  // target directory exists first (e.g. ~/.config/servicenow-mcp-ai on first run).
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   const tmpPath = `${path}.${process.pid}.tmp`;

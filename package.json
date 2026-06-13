@@ -1,5 +1,5 @@
 {
-  "name": "servicenow-mcp",
+  "name": "servicenow-mcp-ai",
   "version": "1.0.0",
   "description": "ServiceNow MCP server: 53 tools in 15 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "license": "MIT",
@@ -14,7 +14,7 @@
   },
   "type": "module",
   "bin": {
-    "servicenow-mcp": "./bin/servicenow-mcp.cjs"
+    "servicenow-mcp-ai": "./bin/servicenow-mcp-ai.cjs"
   },
   "main": "./build/index.js",
   "files": [
@@ -31,7 +31,7 @@
     "start": "node build/index.js",
     "dev": "node --watch build/index.js",
     "test": "node --test test/*.test.js",
-    "test:coverage": "c8 --check-coverage --lines 85 --branches 72 --reporter=text-summary node --test test/*.test.js",
+    "test:coverage": "c8 --check-coverage --lines 85 --branches 72 --functions 60 --reporter=text-summary node --test test/*.test.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -41,6 +41,7 @@
     "gen:manifest": "node scripts/gen-manifest.mjs",
     "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
     "check": "npm run build && npm run lint && npm run format:check && npm run test:coverage && npm audit --omit=dev --audit-level=high",
+    "release:dry": "npm run check && npm publish --dry-run",
     "prepublishOnly": "npm run check"
   },
   "dependencies": {
