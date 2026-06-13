@@ -13,12 +13,20 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 - **`npm run check` — a single full gate:** build, lint, format check, coverage-gated tests (lines 85 / branches 72), `npm audit --omit=dev --audit-level=high`; `prepublishOnly` now runs it, so a publish cannot bypass the gates.
 - **CONTRIBUTING.md and SECURITY.md**: dev setup + gates + conventions; the security model, reporting channel and the accepted-risk decisions. README gains a table of contents and links to both.
 - A drift test: the `package.json` description must state the live tool/package counts (same pattern as the README tools-table sync test).
+- **Release process (S2-4):** `.github/workflows/publish.yml` publishes from CI on a `v*` tag with `--provenance`, a tag↔version guard and the full `npm run check` gate; an `npm run release:dry` script and a "Releasing" section in CONTRIBUTING. Needs an `NPM_TOKEN` repo secret.
+
+### Fixed
+
+- **Encoded-query injection in `servicenow_list_tables` and `servicenow_list_attachments`** (full-review DEV-1/DEV-2): the `filter`/`table`/`sysId` arguments were embedded in the encoded query without the `^`-separator guard that K-5 added to the script tools, so a `^` could inject extra clauses. The guard (`assertNoCaret`) is now shared in `api/shared.ts` and applied by every query builder.
+- **Plugin-API availability cache is now keyed per instance** (full-review ARCH-1): a namespace-404 cached for one profile's instance could fast-fail a concurrent call to the same API on a different instance for up to 5 minutes. Keyed like the schema cache; the status payload scopes to the active instance.
+- **`index.md` regeneration is serialized** (full-review DEV-3): concurrent doc writes could interleave a directory walk with another write and drop entries from the rebuilt index.
 
 ### Changed
 
+- **Renamed the npm package `servicenow-mcp` → `servicenow-mcp-ai`** (R-10: the unscoped `servicenow-mcp` is held by an unrelated maintainer). The rename is coherent across `name`/`bin`, the bin launcher, the MCP server handshake name, the XDG config dir (`~/.config/servicenow-mcp-ai`), `.vscode/mcp.json`, CI and the README. The GitHub repository stays `LeassTaTT/servicenow-mcp`.
 - `package.json` metadata: `repository`/`homepage`/`bugs` now point at the GitHub repo; the description says 53 tools in 15 packages (was a stale 49).
 - The published tarball no longer ships `build/**/*.map` — the maps reference the unshipped `../src` and resolved to nothing (110 → 57 files, 92 → 62 kB packed).
-- CI: a macOS leg (Node 22) in the build matrix; the coverage step runs the shared `npm run test:coverage`; a production-dependency audit step; `c8` pinned as a devDependency instead of a floating `npx` fetch.
+- CI: a macOS leg (Node 22) in the build matrix; the coverage step runs the shared `npm run test:coverage`; a production-dependency audit step (`--functions 60` added to the coverage gate); `c8` pinned as a devDependency instead of a floating `npx` fetch.
 
 ## [1.0.0] - 2026-06-12
 

@@ -1,5 +1,98 @@
 # TODO — status as of 2026-06-12 (evening)
 
+## FULL REVIEW 2026-06-13 (architect → dev → qa)
+
+> A single `/full-review` pass. Each persona fanned out finders and adversarially
+> verified every finding before recording it (refuted false positives are not listed).
+
+### ARCHITECT REVIEW — findings `ARCH-<n>`
+
+- [x] **ARCH-1 · Plugin availability cache was not instance-keyed.** _(fixed 2026-06-13 — `src/api/plugin.ts`)_
+      `src/api/plugin.ts:31` keyed the namespace-404 availability cache by API
+      label alone (`"Email"`), unlike every other cache (token by host, schema by
+      instance, telemetry/semaphore by host). **Why it matters:** under concurrent
+      multi-profile use (AsyncLocalStorage routing), a 404 cached for profile A's
+      instance would fast-fail a concurrent call to the same API on profile B's
+      different instance — for up to the 5-min TTL — even though the plugin is
+      active there. The existing `clearPluginAvailability()` on credential/profile
+      change only covered the _sequential_ switch, not the concurrent case.
+      _Fix:_ key the cache by `${getCredentials().instance}|${apiLabel}` (the
+      `api/meta.ts` `cacheKey` pattern); `pluginAvailability()` filters to the
+      active instance, preserving the status-payload contract. Regression test in
+      `test/plugin.test.js` (a 404 on instance A does not block instance B).
+- Refuted by adversarial verification (recorded so they are not re-raised): plugin
+  fallback "drift" between snapshot.ts/compare.ts (intentional — live vs snapshot
+  completeness differ by design); resource-vs-tool error payload shape (the
+  documented A2-5 decision — MCP has no structured error for resources); hardcoded
+  package list in `readme-sync.test.js` (the description-count sync test is the real
+  completeness guard); result truncation "loses total" (false — `total` is spread
+  into the payload, `result.test.js:37` proves it); snapshot warnings "mask"
+  failures (false — the failure path adds the warning).
+
+### DEV REVIEW — findings `DEV-<n>`
+
+- [x] **DEV-1 · Encoded-query injection in `listTables` filter.** _(fixed 2026-06-13 — `src/api/meta.ts`)_
+      `listTablesUncached` embedded the `filter` straight into `nameLIKE${f}^ORlabelLIKE${f}`
+      with no `^` guard, so `filter="incident^active=false"` injected an extra clause.
+      K-5 (`assertNoCaret`, commit `ff3e826`) had fixed exactly this class — but only in
+      `scripts.ts`; `meta.ts` was missed. _Fix:_ apply the guard. Regression test in
+      `test/meta.test.js`.
+- [x] **DEV-2 · Encoded-query injection in `listAttachments`.** _(fixed 2026-06-13 — `src/api/attachment.ts`)_
+      `table`/`sysId` went into `table_name=…^table_sys_id=…` unvalidated; only the optional
+      allow-list partially mitigated it (and not in the default config). _Fix:_ `assertNoCaret`
+      on both args. Regression test in `test/attachment.test.js`.
+- [x] **DEV-1/2 follow-up · de-duplicated the guard.** `assertNoCaret` moved from a private
+      copy in `scripts.ts` to `api/shared.ts` (next to `expectResult`/`snString`) and reused in
+      all three modules, so a future query builder cannot silently skip it — the drift that
+      caused DEV-1/2 in the first place.
+- [x] **DEV-3 · TOCTOU on `index.md` regeneration.** _(fixed 2026-06-13 — `src/api/docs.ts`)_
+      Concurrent `docsWriteRaw()` calls (pipelined requests, or two profiles snapshotting at
+      once) could interleave a `walk()` with another call's write; the last rebuild wins and
+      drops the entries written in between. _Fix:_ serialize `regenerateIndex()` through a tail
+      promise (the chain survives a failed rebuild). Regression test in `test/docs.test.js`
+      (12 concurrent writes all appear in the index). Latent under stdio today; real once the
+      HTTP transport (Х-8) or pipelined clients arrive.
+- Refuted: `listAttachments` "ambiguous when sysId alone" — false (`sys_id` is a globally
+  unique GUID, so a `table_sys_id` filter is unambiguous without `table_name`).
+
+### QA REVIEW — findings `QA-<n>`
+
+All findings are coverage/edge gaps — no correctness bugs (the code is right, the tests just
+did not pin some paths). 17 confirmed, 10 refuted (incl. the suggestion to tighten lines/branches
+— the headroom is intentional and tightening risks cross-Node flakiness). **All 16 actionable
+findings are now fixed** (QA-17 was already covered); coverage rose to 93.1% lines / 80.1%
+branches / 69.0% functions across 172 tests.
+
+Fixed in the review pass:
+
+- [x] **QA-2 · `invalidateToken(host)` per-host isolation untested.** _(test added — `test/auth.test.js`)_
+      The 401 path drops one host's token; nothing proved another host's survived. Test primes
+      two hosts, invalidates one, asserts only that host re-authenticates.
+- [x] **QA-3 · 401 under Basic auth must NOT retry (was untested).** _(test added — `test/http-retry.test.js`)_
+      The re-auth path is gated on OAuth mode; a regression dropping that guard would have made
+      Basic 401s retry. Test asserts a single call.
+- [x] **QA-4 · `retryAfterMs` invalid-date fallback untested.** _(test added — `test/http-retry.test.js`)_
+      An unparseable `Retry-After` must fall back to backoff, not abort the retry.
+- [x] **QA-9 · No `--functions` coverage gate.** _(fixed — `package.json` + `ci.yml`)_
+      Functions coverage (~67%) had no floor; added `--functions 60` (same ratchet philosophy as
+      lines/branches). Lines/branches left as-is per the refuted headroom findings.
+- [x] **QA-10 · `listAttachments` had no happy-path test.** _(test added — `test/attachment.test.js`)_
+- [x] **QA-12 · Import Set API had zero test coverage.** _(test file added — `test/importset.test.js`)_
+      Happy-path insert + read, plus read-only and table-deny rejection.
+
+Cleared from the backlog (2026-06-13, second batch):
+
+- [x] **QA-1** `hasCredentials()` true + each-field-missing + named-profile — `test/config-store.test.js`.
+- [x] **QA-5** Batch unserviced-error fallback chain (`error` arm + default message) — `test/batch.test.js`.
+- [x] **QA-6** Snapshot warns and skips the plugins section when BOTH `v_plugin` and `sys_plugins` fail — `test/snapshot.test.js`.
+- [x] **QA-7 / QA-8** `loadEnv()` reads `SN_ENV_FILE`, stays env-first (`override:false`), tolerates a missing file; `getEnvPath()` explicit branch — `test/config-store.test.js`.
+- [x] **QA-11** `servicenow_aggregate` happy-path (count/avg/min/max/sum/groupBy params + result) + table-deny — new `test/aggregate.test.js`.
+- [x] **QA-13 / QA-14** `getAttachmentMeta` direct happy-path + malformed-response error; `downloadAttachment` post-fetch size guard when `size_bytes` is absent — `test/attachment.test.js`.
+- [x] **QA-15** Whitespace-only / empty document path → 400 — `test/docs.test.js`.
+- [x] **QA-16** Catalog (`listCatalogCategories`/`listCatalogItems`/`getCatalogItem`) + `knowledgeHighlights` isolated tests — `test/phase3.test.js`.
+- [~] **QA-17** changeConflicts read-vs-recalc — already covered (`phase3.test.js`: GET read + read-only block);
+  only the calculate=true success POST stays unpinned (low value). Not actioned.
+
 > **The morning review (22/22) and all of Phase 6 (except the optional Х-8) are implemented** —
 > summaries with commit references live in [DONE.md](DONE.md), the chronology in
 > [WORKLOG.md](WORKLOG.md). Work not yet started lives in
@@ -20,7 +113,7 @@ This is a prioritized backlog — nothing here blocks current use.
 - [x] **S2-1 · zod schemas are not strict.** _(done, commit `e879321` — z.object(input).strict(); an argument typo is a validation error)_ An unknown argument in tools/call was silently ignored (SDK behaviour) — a model sending `tabel` instead of `table` got no signal. _Solution:_ build strict schemas in the registry (reject unknown keys) — verified how SDK 1.29 treats strict shapes.
 - [x] **S2-2 · The semaphore and telemetry were global, not per host.** _(done, commit `13a2810` — per-host slots + perHost breakdown in status)_ Correct for one instance; with Phase 7 profiles the limit/counters would be shared across instances. _Solution:_ keyed by host (was pre-noted as MI-5 in the plan).
 - [x] **S2-3 · `bin/servicenow-mcp.cjs` had no automated test** _(done, commit `ac14952` — CI job launcher-node12 in a node:12-alpine container)_ (requires an old Node in CI). Manually verified under 12.22.
-- [ ] **S2-4 · No release process** ⏳ _waiting on the publish decision (= R-3); author + prepublishOnly are in_ — version was 1.0.0 from day one, CHANGELOG is manual. _Solution when publishing:_ changesets or release-please + `npm version` discipline.
+- [x] **S2-4 · Release process.** _(done 2026-06-13 — `.github/workflows/publish.yml` + `release:dry` + CONTRIBUTING "Releasing")_ Tag-driven publish from CI with `--provenance`, a tag↔version guard and the `npm run check` gate; `npm version` discipline documented. Needs an `NPM_TOKEN` repo secret before the first real publish.
 
 ### Architect (A2)
 
@@ -57,10 +150,12 @@ Details in WORKLOG.md.
       with `--provenance`.
 - [x] **R-4 · package.json metadata.** ✅ `license`/`author`/`prepublishOnly` — commit `fc1f62c`;
       `repository`/`bugs`/`homepage` — commit `ac11df9` (2026-06-12).
-- [ ] **R-10 · The npm package name is taken.** `servicenow-mcp` already exists on the registry
-      (v1.2.0, unrelated maintainer `timschwarz`) — publishing under the current name is
-      impossible. Decide: scope it (`@<scope>/servicenow-mcp`) or pick a new name; then update
-      `package.json` `name`/`bin`, the README title and the XDG config dir name together.
+- [x] **R-10 · The npm package name is taken.** _(resolved 2026-06-13 — renamed to `servicenow-mcp-ai`)_
+      `servicenow-mcp` is held by an unrelated maintainer (v1.2.0). Ivan chose the free unscoped
+      `servicenow-mcp-ai`. Renamed coherently: `package.json` `name`/`bin`, `bin/servicenow-mcp-ai.cjs`,
+      the MCP server handshake name, the XDG config dir (`~/.config/servicenow-mcp-ai`), `.vscode/mcp.json`,
+      the CI launcher path and the README. The GitHub repo URLs stay `LeassTaTT/servicenow-mcp` (the
+      repo name is unchanged). `npm pack` → `servicenow-mcp-ai-1.0.0.tgz`.
 
 ### Before the first push
 

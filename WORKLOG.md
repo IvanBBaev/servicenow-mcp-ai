@@ -3,6 +3,53 @@
 > A chronological journal of everything done on the project. Newest first.
 > Rule: after every task this file + all affected MD documents (IMPLEMENTATION-PLAN.md, TODO.md, DONE.md, README.md) are updated.
 
+## 2026-06-13 — full-review pass: architect → dev → qa (159 tests)
+
+One `/full-review` pass. Each persona ran as a background workflow that fanned out finders by
+dimension and **adversarially verified** every finding (refute-by-default) before it was
+recorded — so the false positives never reached the code. All fixes left **uncommitted** for
+Ivan's review (his workflow). `npm run check` green after each persona.
+
+- **Architect (ARCH-1, fixed):** the plugin-API availability cache (`api/plugin.ts`) was keyed
+  by API label only, unlike every other cache (token/schema/telemetry are host/instance-keyed).
+  Under concurrent multi-profile use a namespace-404 on one instance could fast-fail the same
+  API on another for up to the 5-min TTL. Keyed by `${instance}|${label}`; `pluginAvailability()`
+  filters to the active instance (status-payload contract preserved). +1 regression test.
+  5 finder findings refuted (result-truncation "loses total", resource error payload, snapshot
+  warnings, snapshot/compare "drift", the hardcoded package list — all false or documented).
+- **Dev (DEV-1/2/3, fixed):** two encoded-query `^`-injection holes — `listTables` filter and
+  `listAttachments` table/sysId — that K-5 had fixed only in `scripts.ts`. Centralised
+  `assertNoCaret` into `api/shared.ts` and applied it in all three (kills the drift that caused
+  it). DEV-3: serialized `docs.ts` `regenerateIndex()` through a tail promise so concurrent
+  writes cannot drop index entries. +3 regression tests. 1 finding refuted (sys_id uniqueness).
+- **QA (17 confirmed / 10 refuted):** all coverage/edge gaps, no bugs. Fixed the high-value
+  subset — per-host token invalidation isolation (QA-2), Basic-auth-401-no-retry (QA-3),
+  `retryAfterMs` invalid-date fallback (QA-4), a `--functions 60` gate that did not exist (QA-9),
+  `listAttachments` happy-path (QA-10), and a whole new `importset.test.js` for the
+  previously-untested Import Set API (QA-12). The other 10 (QA-1/5/6/7/8/11/13/14/15/16) are
+  tracked in TODO.md for a future wave — not padded. QA-17 was already covered. The refuted set
+  included the suggestion to tighten lines/branches — left as-is (intentional headroom, cross-Node
+  stability).
+- **Totals:** 147 → **159 tests**, coverage 92.0% lines / 78.5% branches / 67.2% functions, audit 0.
+  Findings documented in TODO.md under "FULL REVIEW 2026-06-13"; CHANGELOG/PRODUCT-STATE synced.
+- **Backlog cleared (same day, second batch):** Ivan said "започвай тоди файла" → implemented the
+  10 tracked QA gaps (QA-1/5/6/7/8/11/13/14/15/16): +13 tests across config-store, batch, snapshot,
+  attachment, docs, phase3 and a new `aggregate.test.js`. **159 → 172 tests**, coverage up to
+  **93.1% lines / 80.1% branches / 69.0% functions**, audit 0. QA-17 confirmed already-covered.
+  All findings in TODO.md now closed except the decision/trigger-gated ones (A2-2…A2-5, R-2, R-10,
+  S2-4). Still uncommitted for review.
+- **R-10 + S2-4 (third batch, "започвай тодо файла" again):** Ivan chose the free unscoped npm name
+  **`servicenow-mcp-ai`** (`servicenow-mcp` is taken; `@ivanbbaev/...`, `sn-mcp-server`,
+  `servicenow-mcp-ts` were the other free options). Coherent rename across `package.json` name/bin,
+  `bin/servicenow-mcp-ai.cjs` (git mv), the MCP server handshake name + log/guard messages, the XDG
+  dir `~/.config/servicenow-mcp-ai`, `.vscode/mcp.json`, the CI launcher path and the README; GitHub
+  repo URLs stay `servicenow-mcp` (repo unchanged). **S2-4 release process** scaffolded:
+  `publish.yml` (tag-driven, `--provenance`, tag↔version guard, runs `npm run check`), an
+  `npm run release:dry`, and a CONTRIBUTING "Releasing" section. `npm run release:dry` green →
+  `servicenow-mcp-ai-1.0.0.tgz` (57 files, no maps). 172 tests still green, audit 0. Remaining open
+  TODO items are all trigger-gated (A2-2…A2-5) or need a browser (R-2, check the first Actions run +
+  set the `NPM_TOKEN` secret before publishing). Still uncommitted.
+
 ## 2026-06-12 (night) — repo-standard pass (147 tests)
 
 - **Audit (Phase 0):** history clean (one author, the personal email, no AI trailers), `.env` never tracked, no junk in `git ls-files`, the gates are real (coverage gate 85/72 vs a measured 91.4/77.9), `npm audit` 0. Weakest category: release readiness — **the npm name `servicenow-mcp` is taken** (v1.2.0, unrelated maintainer `timschwarz`) → new blocker **R-10** in TODO.md. `gh` is not installed on this machine, so the first-Actions-run check (R-2) needs the browser.
