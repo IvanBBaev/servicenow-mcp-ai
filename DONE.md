@@ -2,7 +2,7 @@
 
 Completed and verified work, moved out of the reviews and the plan. Active, not-yet-done tasks live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) and [TODO.md](TODO.md); the work chronology is in [WORKLOG.md](WORKLOG.md).
 
-State: clean build · clean ESLint (type-checked) · `node:test` suite green (mock-fetch, OAuth, packages, batch, plugin APIs, scripts, docs, diagrams, MCP smoke, README sync, profiles) · GitHub Actions CI · git repository with a one-commit-per-task history · **the 2026-06-12 review is fully implemented (22/22)** · **Phase 6 complete** · **Phase 7 core done**.
+State: clean build · clean ESLint (type-checked) · `node:test` suite green — 173 tests, coverage 93.1% lines / 80.1% branches / 69.0% functions · `npm audit --omit=dev` 0 · GitHub Actions CI · git repository with a one-commit-per-task history · **the 2026-06-12 review is fully implemented (22/22)** · **Phase 6 complete** · **Phase 7 core done** · **two full-review passes (2026-06-13) clean** · **release-ready** (pending the owner push + `NPM_TOKEN`, R-2).
 
 ## Base functionality
 
@@ -167,3 +167,47 @@ Full finding descriptions live in WORKLOG.md (detailed) and the git history; thi
 **Phase 7 is complete** (MI-1…MI-8, 2026-06-12).
 
 **Remaining in Phase 6:** only **Х-8** (HTTP transport) — explicitly optional ("only when remote access is needed"). **Phase 6 is complete.**
+
+## Full review & release readiness (2026-06-13)
+
+Two `/full-review` passes (architect → dev → qa), the `servicenow-mcp-ai` rename and the release process. Each persona fanned out finders and adversarially verified every finding before recording it (refuted false positives kept out). End state: `npm run check` green, 173 tests, coverage 93.1% lines / 80.1% branches / 69.0% functions, `npm audit --omit=dev` 0. Detailed descriptions in WORKLOG.md and the git history; this is the summary.
+
+### Full review pass 1 (architect → dev → qa)
+
+- [x] **ARCH-1 · Plugin availability cache now instance-keyed** (`src/api/plugin.ts`). The namespace-404 availability cache was keyed by API label alone; under concurrent multi-profile use (AsyncLocalStorage) a 404 cached for profile A's instance could fast-fail profile B's for up to the 5-min TTL. Keyed by `${instance}|${apiLabel}`; regression test in `test/plugin.test.js`.
+- [x] **DEV-1 · Caret-injection guard in `listTables` filter** (`src/api/meta.ts`) — K-5's `assertNoCaret` class fix had only landed in `scripts.ts`; `meta.ts` was missed. Test in `test/meta.test.js`.
+- [x] **DEV-2 · Caret-injection guard in `listAttachments`** (`src/api/attachment.ts`) — `assertNoCaret` on `table`/`sysId`. Test in `test/attachment.test.js`.
+- [x] **DEV-1/2 follow-up · guard de-duplicated** — `assertNoCaret` moved from a private copy in `scripts.ts` to `api/shared.ts` and reused in all three modules, so a future query builder cannot silently skip it.
+- [x] **DEV-3 · TOCTOU on `index.md` regeneration fixed** (`src/api/docs.ts`) — `regenerateIndex()` serialized through a tail promise (survives a failed rebuild); test (12 concurrent writes all appear) in `test/docs.test.js`. Latent under stdio, real once HTTP/pipelined clients arrive.
+- [x] **QA wave · 16 actionable findings fixed (QA-1…QA-16; QA-17 already covered).** Coverage rose to 93.1/80.1/69.0 across 172 tests. Added/cleared tests for per-host `invalidateToken` isolation, Basic-401 no-retry, `Retry-After` invalid-date fallback, the new `--functions 60` gate, `listAttachments`/Import-Set/aggregate/catalog happy-paths, and config-store/batch/snapshot/docs edge cases. 10 suggestions refuted (incl. tightening lines/branches — the headroom is intentional vs cross-Node flakiness).
+
+### Full review pass 2 (the session delta vs origin/main)
+
+- [x] **DEV-4 · Caret-injection guard in `tableLogic()`** (`src/api/scripts.ts`) — two encoded queries (`collection=…`, `nameLIKE…`) fired before the table-validated sub-requests rejected; `assertNoCaret(t, "table")` at the entry. Test in `test/scripts.test.js`. 172 → 173 tests.
+- [x] **ARCH-2 · dissolved on verification** — the XDG dir rename (`~/.config/servicenow-mcp` → `…-ai`) was flagged as an undocumented breaking change; investigation showed the package was never published and no old XDG config exists on disk, so no migration fallback or "Breaking Changes" note was needed.
+- Architect (rename coherence, plugin-cache lifecycle, docs serialization, release pipeline) and QA (new-test integrity, the `--functions 60` gate, `publish.yml` honesty) otherwise found nothing actionable.
+
+### Evening triple analysis — completed backlog
+
+- [x] **S2-1 · strict zod schemas** (reject unknown args; a `tabel` typo is now a validation error) — `e879321`.
+- [x] **S2-2 · per-host semaphore + telemetry** (was global) — `13a2810`.
+- [x] **S2-3 · `bin` launcher Node-12 CI test** (node:12-alpine container) — `ac14952`.
+- [x] **S2-4 · release process** — `.github/workflows/publish.yml` + `release:dry` + CONTRIBUTING "Releasing": tag-driven publish with `--provenance`, a tag↔version guard and the `npm run check` gate. _Needs an `NPM_TOKEN` repo secret before the first real publish (→ R-2)._
+- [x] **A2-1 · `PackageSpec = {name, tools, resources?, prompts?}`** — resources and prompts gating made fully declarative — `5daad20`.
+- [x] **Q2-1 · coverage gates** (lines 85 / branches 72) — `b8b9216`.
+- [x] **Q2-2 · property-based tests** (fast-check: 500 env round-trips + 200 base64 buffers) — `b8b9216`.
+- [x] **Q2-3 · Windows in the CI matrix** — `ac14952`.
+- [x] **Q2-4 · perf regression for `okQueryResult`** (10k records < 2 s) — `9ef092b`.
+- [x] **Q2-5 · elicitation accept-path test** (decline was already covered) — `9ef092b`.
+
+### Release readiness — completed
+
+- [x] **R-1 · LICENSE** — MIT (file + `"license": "MIT"`) — `fc1f62c`.
+- [x] **R-3 · release process / CHANGELOG** cut to `[1.0.0] - 2026-06-12` + annotated tag `v1.0.0` (= S2-4).
+- [x] **R-4 · package.json metadata** — `license`/`author`/`prepublishOnly` (`fc1f62c`), `repository`/`bugs`/`homepage` (`ac11df9`).
+- [x] **R-5 · WIP formatted & committed** — `e879321`.
+- [x] **R-6 · doc drift on the tool count** reconciled — 49 tools / 14 packages everywhere (sourced from the manifest fixture) — `08b71cc`.
+- [x] **R-7 · coverage gate in CI** (= Q2-1) — `b8b9216`.
+- [x] **R-8 · Windows in CI + the Node-12 launcher test** (= Q2-3, S2-3) — `ac14952`; the Windows job stays `continue-on-error` until the first green run (→ R-2).
+- [x] **R-9 · SECURITY.md + CONTRIBUTING.md** added (repo-standard pass). _If the release goes public, revisit the two won't-fix decisions in TODO.md — for third-party users the conservative defaults should win (for personal use they remain OK)._
+- [x] **R-10 · npm name resolved → `servicenow-mcp-ai`** (the free unscoped name; `servicenow-mcp` is held by an unrelated maintainer). Renamed coherently across `package.json` name/bin, the launcher, the MCP handshake name, the XDG config dir, `.vscode/mcp.json`, the CI launcher path and the README; the GitHub repo URLs stay `LeassTaTT/servicenow-mcp`.
