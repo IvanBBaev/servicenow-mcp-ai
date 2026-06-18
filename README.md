@@ -1,5 +1,7 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
+📖 **[Documentation site →](https://leasstatt.github.io/servicenow-mcp-ai/)**
+
 A [Model Context Protocol](https://modelcontextprotocol.io) server that lets an
 MCP client (VS Code, Claude Desktop, etc.) run commands against a **ServiceNow**
 instance through its REST APIs — Table, Aggregate, Attachment, Import Set, Batch
