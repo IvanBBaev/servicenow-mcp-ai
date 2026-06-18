@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>servicenow-mcp-ai — ServiceNow MCP Server documentation</title>
+    <meta
+      name="description"
+      content="Documentation for servicenow-mcp-ai: a Model Context Protocol server that lets an AI assistant operate a ServiceNow instance across the full REST surface, with governance built in."
+    />
+    <meta name="theme-color" content="#1ea672" />
+    <link rel="canonical" href="https://leasstatt.github.io/servicenow-mcp-ai/" />
+    <!-- Social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="servicenow-mcp-ai — ServiceNow MCP Server" />
+    <meta
+      property="og:description"
+      content="Turn any MCP-capable AI client into a ServiceNow power user: full REST surface, script intelligence, multi-instance and governance by design."
+    />
+    <meta property="og:url" content="https://leasstatt.github.io/servicenow-mcp-ai/" />
+    <meta
+      property="og:image"
+      content="https://leasstatt.github.io/servicenow-mcp-ai/assets/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="1200" />
+    <meta
+      property="og:image:alt"
+      content="servicenow-mcp-ai — drive ServiceNow from your AI assistant. 65 tools, 18 packages, Basic / OAuth 2.0, MIT."
+    />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="servicenow-mcp-ai — ServiceNow MCP Server" />
+    <meta
+      name="twitter:description"
+      content="An MCP server that lets an AI assistant operate ServiceNow across the full REST surface, with least-privilege guardrails."
+    />
+    <meta
+      name="twitter:image"
+      content="https://leasstatt.github.io/servicenow-mcp-ai/assets/og-image.png"
+    />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231ea672'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3ESN%3C/text%3E%3C/svg%3E"
+    />
+    <!-- Apply the saved/system theme before first paint to avoid a flash. -->
+    <script>
+      (function () {
+        try {
+          var t =
+            localStorage.getItem("sn-theme") ||
+            (window.matchMedia &&
+            matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light");
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="topbar">
+      <button class="icon-btn" id="menuBtn" aria-label="Toggle menu">☰</button>
+      <a class="brand" href="#top">
+        <span class="logo">SN</span>
+        servicenow-mcp-ai <small>· docs</small>
+      </a>
+      <span class="spacer"></span>
+      <nav class="toplinks">
+        <a href="#quickstart">Quick start</a>
+        <a href="#tools">Tools</a>
+        <a href="#use-cases">Use cases</a>
+        <a href="#security">Security</a>
+      </nav>
+      <a
+        class="icon-btn"
+        href="https://github.com/LeassTaTT/servicenow-mcp"
+        title="GitHub repository"
+        aria-label="GitHub repository"
+        target="_blank"
+        rel="noopener"
+        ><svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">🌙</button>
+    </header>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <div class="layout" id="top">
+      <aside class="sidebar" id="sidebar">
+        <h4>Getting started</h4>
+        <nav>
+          <a href="#overview">Overview</a>
+          <a href="#what-is-mcp">Why MCP?</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="#quickstart">Quick start</a>
+        </nav>
+        <h4>Configuration</h4>
+        <nav>
+          <a href="#credentials">Credentials</a>
+          <a href="#auth">Authentication</a>
+          <a href="#configuration">Environment variables</a>
+          <a href="#packages">Tool packages</a>
+        </nav>
+        <h4>Reference</h4>
+        <nav>
+          <a href="#tools">Tools</a>
+          <a href="#resources">Resources &amp; prompts</a>
+        </nav>
+        <h4>Guides</h4>
+        <nav>
+          <a href="#use-cases">Use cases</a>
+          <a href="#security">Security &amp; governance</a>
+          <a href="#architecture">Architecture</a>
+        </nav>
+        <h4>More</h4>
+        <nav>
+          <a href="#troubleshooting">Troubleshooting</a>
+          <a href="#faq">FAQ</a>
+        </nav>
+      </aside>
+
+      <main class="content" id="main">
+        <!-- HERO -->
+        <section class="hero" id="overview">
+          <div class="hero-grid">
+            <div class="hero-copy">
+          <span class="eyebrow">Model Context Protocol · ServiceNow</span>
+          <h1>Drive ServiceNow from your AI assistant.</h1>
+          <p class="lead">
+            <strong>servicenow-mcp-ai</strong> is an MCP server that turns any
+            MCP-capable AI client — Claude Desktop, Claude Code, VS Code Chat —
+            into a ServiceNow power user. It reads and writes across the full
+            REST surface, understands the instance's own code, and keeps
+            least-privilege guardrails between the model and your data.
+          </p>
+          <div class="hero-cta">
+            <a class="btn primary" href="#quickstart">Get started →</a>
+            <a
+              class="btn"
+              href="https://github.com/LeassTaTT/servicenow-mcp"
+              target="_blank"
+              rel="noopener"
+              >View on GitHub</a
+            >
+            <a class="btn" href="#use-cases">See use cases</a>
+          </div>
+          <div class="badges">
+            <span class="badge ok">MIT licensed</span>
+            <span class="badge">Node.js 20+</span>
+            <span class="badge">TypeScript · ESM</span>
+            <span class="badge">MCP SDK 1.29</span>
+            <span class="badge ok">Basic &amp; OAuth 2.0</span>
+          </div>
+            </div>
+            <div class="hero-visual">
+              <div class="chat" aria-hidden="true">
+                <div class="chat-bar">
+                  <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                  <span class="chat-title">Assistant · ServiceNow</span>
+                </div>
+                <div class="chat-body">
+                  <div class="bubble user">
+                    List the 5 most recent active incidents with their priority.
+                  </div>
+                  <div class="tool-chip">⚙ servicenow_query_table · incident</div>
+                  <div class="bubble bot">
+                    <b>5 incidents (most recent first)</b><br />
+                    INC0010023 · Email outage · <span class="p1">P1</span><br />
+                    INC0010019 · VPN latency · <span class="p2">P2</span><br />
+                    INC0010014 · Printer offline · <span class="p3">P3</span> …
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="stat-row">
+            <div class="stat"><b>65</b><span>tools</span></div>
+            <div class="stat"><b>18</b><span>packages</span></div>
+            <div class="stat"><b>6</b><span>MCP resources</span></div>
+            <div class="stat"><b>3</b><span>prompts</span></div>
+            <div class="stat"><b>10+</b><span>ServiceNow APIs</span></div>
+          </div>
+        </section>
+
+        <!-- WHAT IS MCP -->
+        <section id="what-is-mcp">
+          <h2>What is this, exactly?</h2>
+          <p>
+            The
+            <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener"
+              >Model Context Protocol</a
+            >
+            (MCP) is an open standard that lets an AI assistant call external
+            <em>tools</em> and read external <em>resources</em>. This project is
+            an MCP <strong>server</strong> for ServiceNow: you register it with
+            your MCP client once, and from then on the assistant can run real
+            actions against your instance — query a table, create a change,
+            inspect a business rule, compare two environments — instead of just
+            talking about them.
+          </p>
+          <div class="callout">
+            <span class="c-ico">💡</span>
+            <p>
+              You never call the tools by hand. You talk to your AI assistant in
+              natural language; it picks the right
+              <code>servicenow_*</code> tool, fills in the arguments, and shows
+              you the result. The server's job is to make that safe and
+              accurate.
+            </p>
+          </div>
+        </section>
+
+        <!-- CAPABILITIES -->
+        <section id="capabilities">
+          <h2>Capabilities</h2>
+          <p class="lead">
+            Breadth of the platform, plus three things a generic CRUD connector
+            doesn't give you.
+          </p>
+          <div class="cards">
+            <div class="card">
+              <div class="ico">🗂️</div>
+              <h3>Full REST surface</h3>
+              <p>
+                Table (CRUD + encoded queries + pagination), Aggregate,
+                Attachment, Import Set, Batch, CMDB/IRE, plus the Catalog,
+                Change, Knowledge and Email plugin APIs.
+              </p>
+            </div>
+            <div class="card">
+              <div class="ico">🔍</div>
+              <h3>Script intelligence</h3>
+              <p>
+                Read and search the instance's own code — business rules, script
+                includes, client scripts, UI policies/actions, ACLs — and get a
+                table's full automation picture. Read-only.
+              </p>
+            </div>
+            <div class="card">
+              <div class="ico">🧪</div>
+              <h3>Flow &amp; code checking</h3>
+              <p>
+                Trace what a table operation would run (ordered, with a Mermaid
+                flowchart), read Flow Designer flows and run history, lint scripts
+                against a local rule set, and run ATF tests via the CI/CD API.
+              </p>
+            </div>
+            <div class="card">
+              <div class="ico">🏢</div>
+              <h3>Multi-instance</h3>
+              <p>
+                Named profiles (dev / test / prod) with per-call routing,
+                per-profile policy, plus <code>snapshot_instance</code> and
+                <code>compare_instances</code> to catch environment drift.
+              </p>
+            </div>
+            <div class="card">
+              <div class="ico">📐</div>
+              <h3>Self-documentation</h3>
+              <p>
+                A local Markdown knowledge base and deterministic Mermaid
+                generators (ER diagrams, record-lifecycle flowcharts) so the
+                assistant builds durable, reusable context.
+              </p>
+            </div>
+            <div class="card">
+              <div class="ico">🛡️</div>
+              <h3>Governance by design</h3>
+              <p>
+                Two-axis policy (tables + packages), global read-only mode, SSRF
+                guard, host allow-list, and an elicitation confirm before
+                credentials change.
+              </p>
+            </div>
+            <div class="card">
+              <div class="ico">⚙️</div>
+              <h3>Resilience</h3>
+              <p>
+                Per-request timeout, retry with backoff and
+                <code>Retry-After</code>, a concurrency semaphore, schema
+                caching, and a result-size guard against oversized payloads.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- QUICK START -->
+        <section id="quickstart">
+          <h2>Quick start</h2>
+          <p>
+            You need <strong>Node.js 20+</strong> and a ServiceNow instance you
+            can reach (a free
+            <a
+              href="https://developer.servicenow.com/"
+              target="_blank"
+              rel="noopener"
+              >Personal Developer Instance</a
+            >
+            works great).
+          </p>
+
+          <h3>1 · Register the server with your MCP client</h3>
+          <p>
+            Point the server command at <code>npx</code> — no clone required.
+            For Claude Desktop, add this to your
+            <code>claude_desktop_config.json</code>; for VS Code use
+            <code>.vscode/mcp.json</code>.
+          </p>
+          <div class="codeblock" data-lang="json">
+            <pre><code>{
+  "mcpServers": {
+    "servicenow": {
+      "command": "npx",
+      "args": ["-y", "servicenow-mcp-ai"]
+    }
+  }
+}</code></pre>
+          </div>
+          <p>
+            Where that file lives:
+          </p>
+          <ul>
+            <li>
+              <strong>Claude Desktop</strong> —
+              <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>
+              (macOS) ·
+              <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows).
+            </li>
+            <li>
+              <strong>Claude Code (CLI)</strong> —
+              <code>claude mcp add servicenow -- npx -y servicenow-mcp-ai</code>.
+            </li>
+            <li>
+              <strong>VS Code</strong> — a <code>.vscode/mcp.json</code> in your
+              workspace.
+            </li>
+          </ul>
+
+          <h3>2 · Give it credentials</h3>
+          <p>
+            Create a <code>.env</code> file (the server also reads
+            <code>~/.config/servicenow-mcp-ai/.env</code> and real environment
+            variables, which take precedence):
+          </p>
+          <div class="codeblock" data-lang="dotenv">
+            <pre><code>SN_INSTANCE=your-instance.service-now.com
+SN_USER=your.username@example.com
+SN_PASSWORD=your-password</code></pre>
+          </div>
+          <p>
+            <code>SN_INSTANCE</code> accepts <code>dev12345</code>,
+            <code>dev12345.service-now.com</code> or a full
+            <code>https://</code> URL. You can also set or rotate credentials at
+            runtime by asking the assistant to use
+            <code>servicenow_set_credentials</code>.
+          </p>
+
+          <h3>3 · Talk to your assistant</h3>
+          <p>That's it. Try something like:</p>
+          <div class="prompt">
+            <span class="tag">You → assistant</span>
+            "Using ServiceNow, list the 5 most recent active incidents with their
+            number, short description and priority."
+          </div>
+          <p>
+            The assistant calls <code>servicenow_query_table</code> with the
+            right encoded query and returns the rows. Want to verify the
+            connection first? Ask it to run
+            <code>servicenow_test_connection</code>.
+          </p>
+
+          <div class="callout security">
+            <span class="c-ico">🛟</span>
+            <p>
+              <strong>First time? Start safe.</strong> Set
+              <code>SN_READONLY=true</code> so the assistant can read and explore
+              but never writes, and keep the default
+              <code>SN_TOOL_PACKAGES=core</code> to expose a small tool set.
+              Loosen both once you trust the workflow.
+            </p>
+          </div>
+          <div class="callout">
+            <span class="c-ico">🧪</span>
+            <p>
+              Developing from source instead?
+              <code>npm install &amp;&amp; npm run build</code>, then
+              <code>npm run inspector</code> to drive it from the MCP Inspector,
+              or <code>npm start</code> to run it directly.
+            </p>
+          </div>
+        </section>
+
+        <!-- CREDENTIALS -->
+        <section id="credentials">
+          <h2>Credentials &amp; where they live</h2>
+          <p>The env file is resolved in this order:</p>
+          <ol>
+            <li><code>SN_ENV_FILE</code> — an explicit path, if set.</li>
+            <li>
+              <code>~/.config/servicenow-mcp-ai/.env</code> (XDG) — if it exists.
+              A global / <code>npx</code> install writes here, not into
+              <code>node_modules</code>.
+            </li>
+            <li>The project-root <code>.env</code> (local development).</li>
+          </ol>
+          <p>
+            Real environment variables always win over the file. The file is
+            written <strong>owner-only (<code>0600</code>)</strong> because it
+            holds a plaintext password, and it is git-ignored — never commit real
+            credentials.
+          </p>
+          <div class="callout security">
+            <span class="c-ico">🔐</span>
+            <p>
+              The password / token is <strong>never</strong> logged and never
+              returned by any tool. <code>servicenow_get_status</code> reports
+              only whether a password is set.
+            </p>
+          </div>
+        </section>
+
+        <!-- AUTH -->
+        <section id="auth">
+          <h2>Authentication</h2>
+          <p>
+            Basic auth works out of the box from the three required variables.
+            For OAuth the recommended path is <strong>OAuth 2.1 — Authorization
+            Code + PKCE</strong> via a one-time interactive login (no password is
+            ever stored):
+          </p>
+          <div class="codeblock" data-lang="bash">
+            <pre><code># 1) Register an "Authorization Code" OAuth endpoint in ServiceNow with a
+#    loopback redirect, e.g. http://localhost:53682/callback
+# 2) Set the client id (and secret for a confidential client):
+SN_OAUTH_CLIENT_ID=your-client-id
+SN_OAUTH_CLIENT_SECRET=your-client-secret
+# 3) Log in once — opens the browser, captures the redirect, stores a refresh token:
+npx servicenow-mcp-ai login</code></pre>
+          </div>
+          <p>
+            PKCE (S256) is always used, the loopback listener captures the
+            redirect automatically, and the obtained <strong>refresh token</strong>
+            is persisted — the server then runs non-interactively
+            (refresh_token grant). The OAuth 2.0
+            <strong>password grant (ROPC) is deprecated</strong> and disabled on
+            many instances; <code>client_credentials</code> and
+            <code>refresh_token</code> remain available for service accounts.
+          </p>
+          <p>
+            Tokens are cached per host until just before expiry and are dropped
+            automatically on a credential change or a server-side
+            <code>401</code> (one transparent re-auth, then a real error). With
+            named profiles you can even mix modes — <code>prod</code> on OAuth,
+            <code>dev</code> on Basic — via the
+            <code>SN_PROFILE_&lt;NAME&gt;_AUTH</code> /
+            <code>_OAUTH_*</code> keys.
+          </p>
+
+          <h3>Every method ServiceNow supports</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Method</th><th><code>SN_AUTH</code></th><th>How</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Basic</td><td><code>basic</code></td><td><code>SN_USER</code> / <code>SN_PASSWORD</code> (default).</td></tr>
+                <tr><td>OAuth 2.1 — Auth Code + PKCE</td><td><code>oauth</code></td><td><code>login</code> (recommended).</td></tr>
+                <tr><td>OAuth — Client Credentials</td><td><code>oauth</code></td><td><code>SN_OAUTH_GRANT=client_credentials</code>.</td></tr>
+                <tr><td>OAuth — Refresh Token</td><td><code>oauth</code></td><td><code>refresh_token</code> + <code>SN_OAUTH_REFRESH_TOKEN</code>.</td></tr>
+                <tr><td>OAuth — JWT Bearer</td><td><code>oauth</code></td><td><code>jwt_bearer</code> + <code>SN_OAUTH_JWT_KEY</code> (RS256).</td></tr>
+                <tr><td>OAuth — Password (ROPC)</td><td><code>oauth</code></td><td><code>password</code> — <span class="pill wr">deprecated</span>.</td></tr>
+                <tr><td>API Key</td><td><code>apikey</code></td><td><code>SN_API_KEY</code> → <code>x-sn-apikey</code>.</td></tr>
+                <tr><td>Bearer token</td><td><code>token</code></td><td><code>SN_BEARER_TOKEN</code>, used verbatim.</td></tr>
+                <tr><td>Mutual TLS (client cert)</td><td><code>none</code></td><td><code>SN_TLS_CLIENT_CERT</code> / <code>_KEY</code> (optional <code>undici</code>).</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Multiple instances (dev + prod)</h3>
+          <p>
+            Define a profile per environment. A great default is a
+            <strong>read-only prod and a full-access dev</strong> in one server:
+          </p>
+          <div class="codeblock" data-lang="dotenv">
+            <pre><code># dev — full access (the default profile)
+SN_PROFILE_DEV_INSTANCE=dev12345.service-now.com
+SN_PROFILE_DEV_USER=admin
+SN_PROFILE_DEV_PASSWORD=••••••
+
+# prod — read-only
+SN_PROFILE_PROD_INSTANCE=acme.service-now.com
+SN_PROFILE_PROD_USER=svc.readonly
+SN_PROFILE_PROD_PASSWORD=••••••
+SN_PROFILE_PROD_READONLY=true
+
+SN_ACTIVE_PROFILE=dev</code></pre>
+          </div>
+          <p>
+            Switch the active one with <code>servicenow_use_instance</code>, or
+            target a single call by passing the automatic
+            <code>instance</code> argument — every tool accepts it.
+          </p>
+        </section>
+
+        <!-- CONFIGURATION -->
+        <section id="configuration">
+          <h2>Environment variables</h2>
+          <p>
+            Only the first three are required; the rest are optional tuning
+            knobs. See
+            <a
+              href="https://github.com/LeassTaTT/servicenow-mcp-ai/blob/main/.env.example"
+              target="_blank"
+              rel="noopener"
+              >.env.example</a
+            >
+            for a template.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Variable</th>
+                  <th>Default</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>SN_INSTANCE</code> <span class="req">*</span></td>
+                  <td>—</td>
+                  <td>Instance name, host, or <code>https://</code> URL.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_USER</code> <span class="req">*</span></td>
+                  <td>—</td>
+                  <td>ServiceNow username for Basic auth.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_PASSWORD</code> <span class="req">*</span></td>
+                  <td>—</td>
+                  <td>Password. Never logged or returned.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_TIMEOUT_MS</code></td>
+                  <td><code>30000</code></td>
+                  <td>Per-request timeout (ms).</td>
+                </tr>
+                <tr>
+                  <td><code>SN_MAX_RETRIES</code></td>
+                  <td><code>2</code></td>
+                  <td>
+                    Retries for transient failures (429/5xx, network). Writes
+                    retried only on connect errors.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>SN_MAX_RECORDS</code></td>
+                  <td><code>10000</code></td>
+                  <td>Hard cap on a <code>fetchAll</code> query.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_MAX_RESULT_CHARS</code></td>
+                  <td><code>100000</code></td>
+                  <td>Character budget before a result is truncated.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_ALLOWED_HOSTS</code></td>
+                  <td>—</td>
+                  <td>
+                    Allow-list of hosts. Unset → only
+                    <code>*.service-now.com</code> is reachable (SSRF guard).
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>SN_AUTH</code></td>
+                  <td>auto</td>
+                  <td><code>basic</code> or <code>oauth</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_OAUTH_CLIENT_ID</code></td>
+                  <td>—</td>
+                  <td>OAuth client id (its presence enables OAuth).</td>
+                </tr>
+                <tr>
+                  <td><code>SN_OAUTH_CLIENT_SECRET</code></td>
+                  <td>—</td>
+                  <td>OAuth client secret.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_OAUTH_GRANT</code></td>
+                  <td><code>password</code></td>
+                  <td><code>password</code> · <code>client_credentials</code> · <code>refresh_token</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_OAUTH_REFRESH_TOKEN</code></td>
+                  <td>—</td>
+                  <td>Required only for the refresh_token grant.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_TABLES_ALLOW</code></td>
+                  <td>—</td>
+                  <td>Allowlist; when set, only these tables are reachable.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_TABLES_DENY</code></td>
+                  <td>—</td>
+                  <td>Denylist; always wins over the allowlist.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_READONLY</code></td>
+                  <td><code>false</code></td>
+                  <td>When truthy, refuse every create/update/delete.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_LOG_LEVEL</code></td>
+                  <td><code>info</code></td>
+                  <td><code>error</code> · <code>warn</code> · <code>info</code> · <code>debug</code> (stderr).</td>
+                </tr>
+                <tr>
+                  <td><code>SN_ENV_FILE</code></td>
+                  <td>—</td>
+                  <td>Explicit path to the env file.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_TOOL_PACKAGES</code></td>
+                  <td><code>core</code></td>
+                  <td>Packages/profiles to enable (see below).</td>
+                </tr>
+                <tr>
+                  <td><code>SN_PACKAGES_DENY</code></td>
+                  <td>—</td>
+                  <td>
+                    Drop whole packages — the only way to block plugin APIs.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>SN_PACKAGES_READONLY</code></td>
+                  <td>—</td>
+                  <td>Register only a package's read tools.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_SCHEMA_CACHE_TTL_SEC</code></td>
+                  <td><code>300</code></td>
+                  <td>TTL for the schema-read cache. <code>0</code> disables.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_MAX_CONCURRENT</code></td>
+                  <td><code>4</code></td>
+                  <td>Max parallel HTTP requests to the instance.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_INCLUDE_REF_LINKS</code></td>
+                  <td><code>false</code></td>
+                  <td>Include reference-field <code>link</code> URLs (token cost).</td>
+                </tr>
+                <tr>
+                  <td><code>SN_RESULT_PRETTY</code></td>
+                  <td><code>false</code></td>
+                  <td>Pretty-print results (≈2× tokens).</td>
+                </tr>
+                <tr>
+                  <td><code>SN_DOCS_DIR</code></td>
+                  <td><code>docs/instance</code></td>
+                  <td>Where the <code>docs</code> package reads/writes Markdown.</td>
+                </tr>
+                <tr>
+                  <td><code>SN_CODESEARCH</code></td>
+                  <td><code>false</code></td>
+                  <td>
+                    Use the Code Search API for <code>search_code</code> when
+                    <code>true</code> (FT-7); falls back to the LIKE search.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>SN_PROFILE_&lt;NAME&gt;_*</code></td>
+                  <td>—</td>
+                  <td>
+                    Named profiles: <code>SN_PROFILE_DEV_INSTANCE</code> /
+                    <code>_USER</code> / <code>_PASSWORD</code> (+ optional
+                    <code>_AUTH</code> / <code>_OAUTH_*</code> / <code>_READONLY</code> /
+                    <code>_TABLES_*</code>).
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>SN_ACTIVE_PROFILE</code></td>
+                  <td><code>default</code></td>
+                  <td>Which profile tools use; switch with <code>servicenow_use_instance</code>.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p><span class="req">*</span> required.</p>
+        </section>
+
+        <!-- PACKAGES -->
+        <section id="packages">
+          <h2>Tool packages</h2>
+          <p>
+            Tools are grouped into packages so you expose only what a given
+            client needs — fewer tools keep the model focused. Set
+            <code>SN_TOOL_PACKAGES</code> to a comma/space-separated list of
+            profiles or package names:
+          </p>
+          <ul>
+            <li>
+              <code>core</code> (default) — <code>table</code>,
+              <code>schema</code>, <code>aggregate</code>,
+              <code>attachment</code>.
+            </li>
+            <li><code>all</code> — every package.</li>
+            <li>
+              Individual: <code>table</code>, <code>schema</code>,
+              <code>aggregate</code>, <code>attachment</code>,
+              <code>importset</code>, <code>batch</code>, <code>catalog</code>,
+              <code>change</code>, <code>knowledge</code>, <code>cmdb</code>,
+              <code>scripts</code>, <code>docs</code>, <code>instance</code>,
+              <code>email</code>.
+            </li>
+          </ul>
+          <div class="codeblock" data-lang="dotenv">
+            <pre><code># Only table + batch tools (the admin tools are always on)
+SN_TOOL_PACKAGES=table,batch</code></pre>
+          </div>
+          <p>
+            The admin tools are always registered regardless of packages.
+            Unknown names are ignored, and
+            <code>servicenow_get_status</code> reports the resolved
+            <code>enabledPackages</code>.
+          </p>
+        </section>
+
+        <!-- TOOLS -->
+        <section id="tools">
+          <h2>Tools reference</h2>
+          <p>
+            65 tools across 18 packages. <span class="pill ro">read</span> tools
+            never mutate the instance; <span class="pill wr">write</span> tools
+            respect the read-only and policy guards.
+          </p>
+
+          <h3>table — record CRUD</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_query_table</code></td><td><span class="pill ro">read</span></td><td>Read records from any table (encoded queries, fields, paging, fetchAll).</td></tr>
+                <tr><td><code>servicenow_get_record</code></td><td><span class="pill ro">read</span></td><td>Read a single record by sys_id.</td></tr>
+                <tr><td><code>servicenow_create_record</code></td><td><span class="pill wr">write</span></td><td>Create a record with the given field values.</td></tr>
+                <tr><td><code>servicenow_update_record</code></td><td><span class="pill wr">write</span></td><td>Update fields on a record by sys_id.</td></tr>
+                <tr><td><code>servicenow_delete_record</code></td><td><span class="pill wr">write</span></td><td>Delete a record by sys_id.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>schema — metadata</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_list_tables</code></td><td><span class="pill ro">read</span></td><td>List tables from sys_db_object, optionally filtered.</td></tr>
+                <tr><td><code>servicenow_describe_table</code></td><td><span class="pill ro">read</span></td><td>A table's columns from sys_dictionary, incl. the inherited super_class chain.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>aggregate · attachment · importset · batch</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_aggregate</code></td><td><span class="pill ro">read</span></td><td>Server-side count/avg/min/max/sum + group_by/having via the Stats API.</td></tr>
+                <tr><td><code>servicenow_list_attachments</code></td><td><span class="pill ro">read</span></td><td>List attachment metadata, optionally scoped to a record.</td></tr>
+                <tr><td><code>servicenow_get_attachment</code></td><td><span class="pill ro">read</span></td><td>Read one attachment's metadata by sys_id.</td></tr>
+                <tr><td><code>servicenow_download_attachment</code></td><td><span class="pill ro">read</span></td><td>Download bytes as base64 (size-guarded).</td></tr>
+                <tr><td><code>servicenow_upload_attachment</code></td><td><span class="pill wr">write</span></td><td>Attach a base64 file to a record.</td></tr>
+                <tr><td><code>servicenow_delete_attachment</code></td><td><span class="pill wr">write</span></td><td>Delete an attachment by sys_id.</td></tr>
+                <tr><td><code>servicenow_insert_import_set_row</code></td><td><span class="pill wr">write</span></td><td>Insert a staging row and run its transform map.</td></tr>
+                <tr><td><code>servicenow_get_import_set_row</code></td><td><span class="pill ro">read</span></td><td>Read the transform outcome for a staging row.</td></tr>
+                <tr><td><code>servicenow_batch</code></td><td><span class="pill wr">write</span></td><td>Several REST sub-requests in one round-trip; policy per sub-request.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>cmdb — class-aware CIs (IRE)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_list_cis</code></td><td><span class="pill ro">read</span></td><td>List CIs of a CMDB class via the Instance API.</td></tr>
+                <tr><td><code>servicenow_get_ci</code></td><td><span class="pill ro">read</span></td><td>A CI with attributes and relations.</td></tr>
+                <tr><td><code>servicenow_create_ci</code></td><td><span class="pill wr">write</span></td><td>Create a CI through Identification &amp; Reconciliation.</td></tr>
+                <tr><td><code>servicenow_update_ci</code></td><td><span class="pill wr">write</span></td><td>Update a CI's attributes via IRE.</td></tr>
+                <tr><td><code>servicenow_get_cmdb_meta</code></td><td><span class="pill ro">read</span></td><td>A CMDB class's schema/relationship rules.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>catalog · change · knowledge · email — plugin APIs</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_list_catalogs</code></td><td><span class="pill ro">read</span></td><td>List Service Catalogs.</td></tr>
+                <tr><td><code>servicenow_list_catalog_categories</code></td><td><span class="pill ro">read</span></td><td>Categories within a catalog.</td></tr>
+                <tr><td><code>servicenow_list_catalog_items</code></td><td><span class="pill ro">read</span></td><td>Search/list orderable items.</td></tr>
+                <tr><td><code>servicenow_get_catalog_item</code></td><td><span class="pill ro">read</span></td><td>An item with its order variables.</td></tr>
+                <tr><td><code>servicenow_order_catalog_item</code></td><td><span class="pill wr">write</span></td><td>Order an item ("order now").</td></tr>
+                <tr><td><code>servicenow_list_changes</code></td><td><span class="pill ro">read</span></td><td>List change requests.</td></tr>
+                <tr><td><code>servicenow_get_change</code></td><td><span class="pill ro">read</span></td><td>A change request by sys_id.</td></tr>
+                <tr><td><code>servicenow_create_change</code></td><td><span class="pill wr">write</span></td><td>Create a normal/standard/emergency change.</td></tr>
+                <tr><td><code>servicenow_update_change</code></td><td><span class="pill wr">write</span></td><td>Update a change request.</td></tr>
+                <tr><td><code>servicenow_change_conflicts</code></td><td><span class="pill wr">write</span></td><td>Read or recalculate schedule conflicts.</td></tr>
+                <tr><td><code>servicenow_search_knowledge</code></td><td><span class="pill ro">read</span></td><td>Full-text knowledge article search.</td></tr>
+                <tr><td><code>servicenow_get_knowledge_article</code></td><td><span class="pill ro">read</span></td><td>An article's content + metadata.</td></tr>
+                <tr><td><code>servicenow_knowledge_highlights</code></td><td><span class="pill ro">read</span></td><td>Featured / most-viewed articles.</td></tr>
+                <tr><td><code>servicenow_send_email</code></td><td><span class="pill wr">write</span></td><td>Send an email via the Email API.</td></tr>
+                <tr><td><code>servicenow_get_email</code></td><td><span class="pill ro">read</span></td><td>Read an email record by sys_id.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>scripts — code intelligence (read-only)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_list_scripts</code></td><td><span class="pill ro">read</span></td><td>List artefacts of one type as compact metadata (no source).</td></tr>
+                <tr><td><code>servicenow_get_script</code></td><td><span class="pill ro">read</span></td><td>One artefact in full, with source and context.</td></tr>
+                <tr><td><code>servicenow_search_code</code></td><td><span class="pill ro">read</span></td><td>Search script source for a substring across types.</td></tr>
+                <tr><td><code>servicenow_table_logic</code></td><td><span class="pill ro">read</span></td><td>A table's whole automation: BRs (by when+order), client scripts, UI policies/actions, ACLs.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>flows — flow intelligence (read-only)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_trace_table_event</code></td><td><span class="pill ro">read</span></td><td>Deterministic, ordered trace of what an operation runs (BRs by phase, flows, workflows, notifications) + a Mermaid flowchart.</td></tr>
+                <tr><td><code>servicenow_list_flows</code></td><td><span class="pill ro">read</span></td><td>Flow Designer flows (or legacy workflows) as metadata.</td></tr>
+                <tr><td><code>servicenow_get_flow</code></td><td><span class="pill ro">read</span></td><td>A flow's trigger + ordered steps (structured view).</td></tr>
+                <tr><td><code>servicenow_get_flow_runs</code></td><td><span class="pill ro">read</span></td><td>Flow execution history by flow or by record.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>codecheck — local code analysis</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_lint_script</code></td><td><span class="pill ro">read</span></td><td>Run deterministic rules over one script (hard-coded ids/URLs, unbounded/in-loop queries, eval, …).</td></tr>
+                <tr><td><code>servicenow_lint_table</code></td><td><span class="pill ro">read</span></td><td>Lint every active BR / client script / UI policy of a table.</td></tr>
+                <tr><td><code>servicenow_code_health</code></td><td><span class="pill wr">write</span></td><td>Script inventory + lint summary → a Markdown report in the docs folder.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>docs · instance — documentation &amp; environments</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_docs_list</code></td><td><span class="pill ro">read</span></td><td>List local Markdown docs (SN_DOCS_DIR).</td></tr>
+                <tr><td><code>servicenow_docs_read</code></td><td><span class="pill ro">read</span></td><td>Read one local Markdown doc.</td></tr>
+                <tr><td><code>servicenow_docs_search</code></td><td><span class="pill ro">read</span></td><td>Search the local docs for a substring.</td></tr>
+                <tr><td><code>servicenow_docs_write</code></td><td><span class="pill wr">write</span></td><td>Write/overwrite a local doc; refresh index.md.</td></tr>
+                <tr><td><code>servicenow_generate_er_diagram</code></td><td><span class="pill ro">read</span></td><td>Mermaid erDiagram from sys_dictionary references.</td></tr>
+                <tr><td><code>servicenow_generate_table_flow</code></td><td><span class="pill ro">read</span></td><td>Mermaid flowchart of a record lifecycle by BR phase.</td></tr>
+                <tr><td><code>servicenow_snapshot_instance</code></td><td><span class="pill wr">write</span></td><td>Dump structural metadata (tables/schema/plugins/apps/automation) into the docs folder.</td></tr>
+                <tr><td><code>servicenow_compare_instances</code></td><td><span class="pill wr">write</span></td><td>Diff two profiles: tables, columns, scripts (by SHA-256), plugins/apps.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>atf — Automated Test Framework (opt-in, non-default)</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_list_atf_tests</code></td><td><span class="pill ro">read</span></td><td>List ATF tests (sys_atf_test).</td></tr>
+                <tr><td><code>servicenow_list_atf_suites</code></td><td><span class="pill ro">read</span></td><td>List ATF test suites.</td></tr>
+                <tr><td><code>servicenow_run_atf_test</code></td><td><span class="pill wr">write</span></td><td>Run a test via the CI/CD API — executes on the instance.</td></tr>
+                <tr><td><code>servicenow_run_atf_suite</code></td><td><span class="pill wr">write</span></td><td>Run a suite via the CI/CD API — executes on the instance.</td></tr>
+                <tr><td><code>servicenow_get_atf_result</code></td><td><span class="pill ro">read</span></td><td>Poll a run's status / progress by execution id.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>admin — always on</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_set_credentials</code></td><td><span class="pill wr">write</span></td><td>Save/update connection credentials (per profile).</td></tr>
+                <tr><td><code>servicenow_list_instances</code></td><td><span class="pill ro">read</span></td><td>List configured profiles (no passwords).</td></tr>
+                <tr><td><code>servicenow_use_instance</code></td><td><span class="pill wr">write</span></td><td>Switch the active profile; clear identity caches.</td></tr>
+                <tr><td><code>servicenow_get_status</code></td><td><span class="pill ro">read</span></td><td>Instance, user, auth mode, policy, telemetry.</td></tr>
+                <tr><td><code>servicenow_test_connection</code></td><td><span class="pill ro">read</span></td><td>Verify credentials actually work (reads 1 sys_user).</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- USE CASES -->
+        <section id="use-cases">
+          <h2>Use cases</h2>
+          <p class="lead">
+            What you'd actually ask your assistant to do. Each example is plain
+            English — the server maps it to the right tools.
+          </p>
+
+          <div class="usecase">
+            <h3>🚨 Incident triage</h3>
+            <div class="who">Service desk · platform team</div>
+            <p>
+              Summarise an incident, sanity-check its priority/urgency/impact,
+              suggest a category and assignment group, find similar resolved
+              incidents and recommend next steps — in one shot via the built-in
+              <code>servicenow_incident_triage</code> prompt.
+            </p>
+            <div class="prompt">
+              <span class="tag">Prompt</span>
+              "Triage incident INC0012345 and tell me if its priority looks
+              right."
+            </div>
+          </div>
+
+          <div class="usecase">
+            <h3>🔁 Change impact analysis</h3>
+            <div class="who">Change manager · CAB</div>
+            <p>
+              Pull a change, identify affected CIs, check schedule conflicts,
+              list overlapping changes in the same window and produce a go/no-go
+              call with mitigations — the
+              <code>servicenow_change_impact_analysis</code> prompt.
+            </p>
+            <div class="prompt">
+              <span class="tag">Prompt</span>
+              "Run an impact analysis on CHG0030001 and give me a go/no-go."
+            </div>
+          </div>
+
+          <div class="usecase">
+            <h3>🧭 Catch dev → prod drift</h3>
+            <div class="who">ServiceNow consultancy · release team</div>
+            <p>
+              Configure two profiles and let
+              <code>servicenow_compare_instances</code> diff them: tables present
+              in only one, columns whose type/mandatory/reference differ, scripts
+              that are missing or changed (compared by SHA-256), and plugin/app
+              inventory. It writes a Markdown report you can attach to a release.
+            </p>
+            <div class="prompt">
+              <span class="tag">Prompt</span>
+              "Compare the dev and prod ServiceNow instances and summarise what
+              drifted."
+            </div>
+          </div>
+
+          <div class="usecase">
+            <h3>📚 Document a table</h3>
+            <div class="who">New joiner · platform owner</div>
+            <p>
+              Combine schema, automation and diagrams into a durable Markdown
+              page saved to the local docs store — via the
+              <code>servicenow_document_table</code> prompt (uses
+              <code>describe_table</code>, <code>table_logic</code> and both
+              Mermaid generators).
+            </p>
+            <div class="prompt">
+              <span class="tag">Prompt</span>
+              "Document the incident table: schema, automation, an ER diagram and
+              the record lifecycle, then save it."
+            </div>
+          </div>
+
+          <div class="usecase">
+            <h3>🔎 "Where is this used?"</h3>
+            <div class="who">Developer</div>
+            <p>
+              Search the instance's own code for a function, table or API call
+              with <code>servicenow_search_code</code>, or get the full
+              automation picture for a table with
+              <code>servicenow_table_logic</code> — without opening Studio.
+            </p>
+            <div class="prompt">
+              <span class="tag">Prompt</span>
+              "Find every business rule or script include that references
+              <code>GlideRecordSecure</code>."
+            </div>
+          </div>
+
+          <div class="usecase">
+            <h3>🛒 Order from the catalog</h3>
+            <div class="who">End user · automation</div>
+            <p>
+              Browse catalogs and categories, inspect an item's variables, and
+              place an order — the Service Catalog API, plugin-aware so it tells
+              you clearly if the plugin isn't active.
+            </p>
+            <div class="prompt">
+              <span class="tag">Prompt</span>
+              "Find the 'New laptop' catalog item and order one for me."
+            </div>
+          </div>
+        </section>
+
+        <!-- RESOURCES & PROMPTS -->
+        <section id="resources">
+          <h2>Resources &amp; prompts</h2>
+          <h3>MCP resources</h3>
+          <p>
+            Read-only metadata is also exposed as resources, so clients can
+            attach it declaratively instead of calling a tool.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>URI</th><th>Description</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow://status</code></td><td>Connection status, auth mode, access policy.</td></tr>
+                <tr><td><code>servicenow://tables</code></td><td>Tables from sys_db_object.</td></tr>
+                <tr><td><code>servicenow://schema/{table}</code></td><td>Columns of a table from sys_dictionary.</td></tr>
+                <tr><td><code>servicenow://instances</code></td><td>Configured connection profiles (no passwords).</td></tr>
+                <tr><td><code>servicenow://{profile}/schema/{table}</code></td><td>A table's schema read through a named profile.</td></tr>
+                <tr><td><code>servicenow://docs/{path}</code></td><td>A Markdown document from the local docs store.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Prompts</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Prompt</th><th>Argument</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td><code>servicenow_incident_triage</code></td><td><code>incident</code></td><td>Summarise, assess priority, categorise, recommend.</td></tr>
+                <tr><td><code>servicenow_change_impact_analysis</code></td><td><code>change</code></td><td>Affected CIs, conflicts, go/no-go.</td></tr>
+                <tr><td><code>servicenow_document_table</code></td><td><code>table</code></td><td>Schema + automation + diagrams → saved Markdown.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SECURITY -->
+        <section id="security">
+          <h2>Security &amp; governance</h2>
+          <p>
+            An AI with write access to ServiceNow is high-stakes by definition.
+            The server is built to keep that safe and auditable.
+          </p>
+          <div class="cards">
+            <div class="card">
+              <h3>Two-axis policy</h3>
+              <p>
+                <code>SN_TABLES_ALLOW</code>/<code>_DENY</code> guard the Table
+                API; <code>SN_PACKAGES_DENY</code>/<code>_READONLY</code> guard
+                the plugin APIs the table policy can't see. The Batch API obeys
+                both — a batch can't be used to bypass either.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Read-only deployments</h3>
+              <p>
+                <code>SN_READONLY=true</code> refuses every write globally;
+                per-package read-only registers only the read tools. Ideal for a
+                prod profile.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Host &amp; SSRF guard</h3>
+              <p>
+                Without an allow-list, only <code>*.service-now.com</code> hosts
+                are contacted; internal/loopback are always blocked. A
+                redirected or mistyped host can't silently receive credentials.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Confirm before change</h3>
+              <p>
+                When the client supports it, a credential change asks for
+                explicit confirmation (MCP elicitation) before anything is
+                written.
+              </p>
+            </div>
+          </div>
+          <div class="callout warn">
+            <span class="c-ico">⚠️</span>
+            <p>
+              <strong>Denying a table does not stop the plugin APIs.</strong>
+              <code>SN_TABLES_DENY=change_request</code> blocks the Table API
+              path, but the Change Management API (<code>sn_chg_rest</code>) can
+              still read/write changes. Use <code>SN_PACKAGES_DENY</code> or
+              <code>SN_PACKAGES_READONLY</code> to restrict the plugin-backed
+              surfaces.
+            </p>
+          </div>
+          <p>
+            Full details — including the reporting channel — are in
+            <a
+              href="https://github.com/LeassTaTT/servicenow-mcp-ai/blob/main/SECURITY.md"
+              target="_blank"
+              rel="noopener"
+              >SECURITY.md</a
+            >.
+          </p>
+        </section>
+
+        <!-- ARCHITECTURE -->
+        <section id="architecture">
+          <h2>Architecture</h2>
+          <p>
+            A small, layered TypeScript codebase with <strong>one-way
+            dependencies</strong> (enforced at lint time), so each concern stays
+            testable in isolation. Each layer may use only the layers beneath it:
+          </p>
+
+          <figure class="diagram">
+            <svg viewBox="0 0 760 352" role="img"
+              aria-label="Layered architecture: tools depend on mcp, which depends on api, which depends on core.">
+              <!-- tools (layer 3) -->
+              <rect class="box" x="120" y="14" width="540" height="64" rx="11" />
+              <text class="lbl" x="144" y="41">tools</text>
+              <text class="sub" x="144" y="60">declarative tool specs — a package is a plug-in</text>
+              <text class="tag" x="636" y="40" text-anchor="end">LAYER 3</text>
+              <!-- mcp (layer 2) -->
+              <rect class="box" x="120" y="100" width="540" height="64" rx="11" />
+              <text class="lbl" x="144" y="127">mcp</text>
+              <text class="sub" x="144" y="146">registry · runSpec · resources · prompts · status · define</text>
+              <text class="tag" x="636" y="126" text-anchor="end">LAYER 2 · MCP SDK</text>
+              <!-- api (layer 1) -->
+              <rect class="box" x="120" y="186" width="540" height="64" rx="11" />
+              <text class="lbl" x="144" y="213">api</text>
+              <text class="sub" x="144" y="232">Table · CMDB · scripts · batch · catalog · change · … (15 clients)</text>
+              <text class="tag" x="636" y="212" text-anchor="end">LAYER 1</text>
+              <!-- core (layer 0) -->
+              <rect class="box accent" x="120" y="272" width="540" height="64" rx="11" />
+              <text class="lbl" x="144" y="299">core</text>
+              <text class="sub" x="144" y="318">http · auth · policy · host · config · cache · logging · errors</text>
+              <text class="tag" x="636" y="298" text-anchor="end">LAYER 0 · no SDK</text>
+              <!-- dependency arrows (down = "uses") -->
+              <line class="edge" x1="390" y1="80" x2="390" y2="93" />
+              <polygon class="ah" points="384,93 396,93 390,99" />
+              <text class="edge-lbl" x="404" y="93">uses ↓</text>
+              <line class="edge" x1="390" y1="166" x2="390" y2="179" />
+              <polygon class="ah" points="384,179 396,179 390,185" />
+              <line class="edge" x1="390" y1="252" x2="390" y2="265" />
+              <polygon class="ah" points="384,265 396,265 390,271" />
+            </svg>
+            <figcaption>
+              Layers and one-way dependencies — a deliberate <code>api → mcp</code>
+              import fails the lint.
+            </figcaption>
+          </figure>
+
+          <p>
+            Tools are <em>data</em>: a declarative manifest drives MCP
+            registration, the generated docs and the contract snapshot tests, so
+            adding a package touches exactly one list. A single tool call then
+            flows through the same guards every time:
+          </p>
+
+          <figure class="diagram">
+            <svg viewBox="0 0 760 414" role="img"
+              aria-label="Request lifecycle: client to registry to policy/auth to HTTP client to the ServiceNow instance, and a result envelope back to the client.">
+              <!-- 1 client -->
+              <rect class="box" x="60" y="14" width="470" height="56" rx="11" />
+              <text class="lbl" x="84" y="40">MCP client</text>
+              <text class="sub" x="84" y="58">Claude · VS Code — a natural-language request</text>
+              <!-- 2 registry -->
+              <rect class="box" x="60" y="96" width="470" height="56" rx="11" />
+              <text class="lbl" x="84" y="122">Registry · runSpec</text>
+              <text class="sub" x="84" y="140">strict zod validation · per-profile routing (ALS)</text>
+              <!-- 3 policy/auth -->
+              <rect class="box" x="60" y="178" width="470" height="56" rx="11" />
+              <text class="lbl" x="84" y="204">Policy · Auth</text>
+              <text class="sub" x="84" y="222">table + package guards · read-only · Basic / OAuth</text>
+              <!-- 4 http -->
+              <rect class="box" x="60" y="260" width="470" height="56" rx="11" />
+              <text class="lbl" x="84" y="286">HTTP client</text>
+              <text class="sub" x="84" y="304">SSRF guard · concurrency semaphore · retry + backoff</text>
+              <!-- 5 instance -->
+              <rect class="box accent" x="60" y="342" width="470" height="56" rx="11" />
+              <text class="lbl" x="84" y="368">ServiceNow instance</text>
+              <text class="sub" x="84" y="386">REST APIs over HTTPS</text>
+              <!-- down arrows -->
+              <line class="edge" x1="295" y1="72" x2="295" y2="88" />
+              <polygon class="ah" points="289,88 301,88 295,94" />
+              <text class="edge-lbl" x="309" y="86">request ↓</text>
+              <line class="edge" x1="295" y1="154" x2="295" y2="170" />
+              <polygon class="ah" points="289,170 301,170 295,176" />
+              <line class="edge" x1="295" y1="236" x2="295" y2="252" />
+              <polygon class="ah" points="289,252 301,252 295,258" />
+              <line class="edge" x1="295" y1="318" x2="295" y2="334" />
+              <polygon class="ah" points="289,334 301,334 295,340" />
+              <!-- return path: instance -> client -->
+              <path class="edge"
+                d="M 530 370 H 668 Q 690 370 690 348 V 64 Q 690 42 668 42 H 540" />
+              <polygon class="ah" points="540,36 540,48 531,42" />
+              <text class="edge-lbl" transform="rotate(-90 706 206)" x="706" y="206"
+                text-anchor="middle">result envelope · ok() / fail()</text>
+            </svg>
+            <figcaption>
+              The lifecycle of one tool call — every request passes the same
+              policy, auth and resilience layers.
+            </figcaption>
+          </figure>
+
+          <p>
+            Tools are <em>data</em>: a declarative manifest drives MCP
+            registration, the generated docs and the contract snapshot tests, so
+            adding a package touches exactly one list. Quality is enforced by a
+            single gate — <code>npm run check</code> (build, type-checked lint,
+            format, coverage-gated tests, prod audit) — and a CI matrix across
+            Node 20/22/24 + macOS. See
+            <a
+              href="https://github.com/LeassTaTT/servicenow-mcp-ai/blob/main/ARCHITECTURE.md"
+              target="_blank"
+              rel="noopener"
+              >ARCHITECTURE.md</a
+            >
+            for the diagrams and ADRs.
+          </p>
+        </section>
+
+        <!-- TROUBLESHOOTING -->
+        <section id="troubleshooting">
+          <h2>Troubleshooting</h2>
+          <p>
+            Errors come back <strong>structured</strong> (with an HTTP status),
+            so your assistant can usually explain them — but here are the
+            common ones and their fix.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>401</code> Unauthorized</td>
+                  <td>Wrong username/password, or an expired OAuth token.</td>
+                  <td>
+                    Re-check <code>SN_USER</code>/<code>SN_PASSWORD</code>; run
+                    <code>servicenow_test_connection</code>. Update with
+                    <code>servicenow_set_credentials</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>403</code> Forbidden</td>
+                  <td>
+                    A ServiceNow ACL, or the table is blocked by
+                    <code>SN_TABLES_DENY</code> / not in
+                    <code>SN_TABLES_ALLOW</code>, or read-only mode.
+                  </td>
+                  <td>
+                    Check the user's roles; review the policy in
+                    <code>servicenow_get_status</code>; relax the allow/deny
+                    list or <code>SN_READONLY</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td>"…API/plugin may not be active"</td>
+                  <td>
+                    A plugin-scoped API (Catalog/Change/Knowledge/Email) is not
+                    installed on the instance.
+                  </td>
+                  <td>
+                    Activate the plugin in ServiceNow, or remove that package
+                    from <code>SN_TOOL_PACKAGES</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td>"not a <code>*.service-now.com</code> instance"</td>
+                  <td>
+                    A custom or sovereign-cloud host, blocked by the SSRF guard.
+                  </td>
+                  <td>
+                    Add it to <code>SN_ALLOWED_HOSTS</code> (comma-separated).
+                  </td>
+                </tr>
+                <tr>
+                  <td>A tool is missing from the client</td>
+                  <td>
+                    Its package isn't enabled, or it's a write tool in a
+                    read-only package.
+                  </td>
+                  <td>
+                    Add the package to <code>SN_TOOL_PACKAGES</code> (or use
+                    <code>all</code>); check
+                    <code>enabledPackages</code> in
+                    <code>servicenow_get_status</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Result says <code>truncated</code></td>
+                  <td>
+                    The read hit <code>SN_MAX_RECORDS</code> or
+                    <code>SN_MAX_RESULT_CHARS</code>.
+                  </td>
+                  <td>
+                    Narrow the query / select fewer fields, or raise the cap.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="callout">
+            <span class="c-ico">🔎</span>
+            <p>
+              Set <code>SN_LOG_LEVEL=debug</code> for verbose
+              <code>stderr</code> logging (no secrets, no raw queries), and ask
+              for <code>servicenow_get_status</code> to see the live config,
+              policy and per-host telemetry.
+            </p>
+          </div>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq">
+          <h2>FAQ</h2>
+          <h3>Does the AI run code on my instance?</h3>
+          <p>
+            No. There is no background-script execution. Everything goes through
+            documented REST APIs, and writes obey the policy and read-only
+            guards. Automated test execution (ATF) over the official CI/CD API is
+            a planned future addition.
+          </p>
+          <h3>Why is the npm package <code>servicenow-mcp-ai</code>?</h3>
+          <p>
+            The unscoped <code>servicenow-mcp</code> name was already taken on
+            npm, so the package ships as <code>servicenow-mcp-ai</code>. The
+            GitHub repository is
+            <a
+              href="https://github.com/LeassTaTT/servicenow-mcp"
+              target="_blank"
+              rel="noopener"
+              ><code>LeassTaTT/servicenow-mcp</code></a
+            >. The difference is cosmetic. This is an independent project, not
+            affiliated with or endorsed by ServiceNow, Inc.; "ServiceNow" is a
+            trademark of ServiceNow, Inc., used here only to indicate
+            compatibility.
+          </p>
+          <h3>Can I run prod and dev from one server?</h3>
+          <p>
+            Yes — that's what named profiles are for. Define
+            <code>SN_PROFILE_PROD_*</code> and <code>SN_PROFILE_DEV_*</code>,
+            make prod read-only, and route a single call to a specific instance
+            with the automatic <code>instance</code> argument, or switch the
+            active one with <code>servicenow_use_instance</code>.
+          </p>
+          <h3>Which clients work?</h3>
+          <p>
+            Any MCP client over stdio — Claude Desktop, Claude Code, VS Code
+            Chat, the MCP Inspector, and others. The server declares tool
+            annotations so clients can apply the right confirmation UX for
+            destructive actions.
+          </p>
+          <h3>Is it production-ready?</h3>
+          <p>
+            The engineering is: clean gates, ~200 tests, type-checked lint, a CI
+            matrix and a security model. It is an open-source project under the
+            MIT license — review the security model for your own deployment.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <footer>
+      <div class="foot-inner">
+        <div>
+          <strong>servicenow-mcp-ai</strong> · MIT License · built by Ivan Baev
+          <br />
+          A Model Context Protocol server for ServiceNow.
+        </div>
+        <div>
+          <a href="https://github.com/LeassTaTT/servicenow-mcp" target="_blank" rel="noopener">GitHub</a> ·
+          <a href="https://github.com/LeassTaTT/servicenow-mcp-ai/blob/main/README.md" target="_blank" rel="noopener">README</a> ·
+          <a href="https://github.com/LeassTaTT/servicenow-mcp-ai/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a> ·
+          <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">About MCP</a>
+        </div>
+      </div>
+      <p class="disclaimer" style="opacity: 0.7; font-size: 0.8rem; margin-top: 1rem">
+        <strong>servicenow-mcp-ai</strong> is an independent, community-built
+        project and is <strong>not affiliated with, endorsed by, or sponsored
+        by ServiceNow, Inc.</strong> "ServiceNow", the ServiceNow logo, "Now",
+        and related marks are trademarks or registered trademarks of
+        ServiceNow, Inc., used here only nominatively to indicate compatibility
+        with the ServiceNow platform.
+      </p>
+    </footer>
+
+    <button id="toTop" class="to-top" aria-label="Back to top" title="Back to top">
+      ↑
+    </button>
+
+    <script src="assets/app.js"></script>
+  </body>
+</html>
