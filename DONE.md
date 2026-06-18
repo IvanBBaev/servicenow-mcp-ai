@@ -72,36 +72,36 @@ Full finding descriptions live in WORKLOG.md (detailed) and the git history; thi
 
 ### Senior dev (S)
 
-- [x] **S-1 (critical) + S-2** · `describe_table` walks the inheritance chain (`sys_db_object.super_class`, dot-walk, cycle guard) — `incident` now shows the fields from `task` too; child overrides win; new `sourceTable` column; `listTables` returns the parent's real name. _(commit 9d8da51)_
-- [x] **S-3** · strict base64 validation on upload — `Buffer.from` never throws; invalid input is now an error with no HTTP call. _(385fd57)_
-- [x] **S-4** · download checks `size_bytes` from the metadata before pulling the bytes (no 1 GB in memory "just to check"). _(385fd57)_
-- [x] **S-5** · `servicenow_aggregate` requires at least one aggregation — fails fast offline. _(5c31ec7)_
-- [x] **S-6** · batch table policy also covers `/stats`, `/import`, `/cmdb/instance` sub-requests. _(6ad6821)_
-- [x] **S-7** · `invalidateTokens()` — the OAuth cache is cleared on credential changes (the key contains no password). _(946ea2d)_
-- [x] **S-8** · `search_code` logs the text length, not the text itself. _(70a961d)_
+- [x] **S-1 (critical) + S-2** · `describe_table` walks the inheritance chain (`sys_db_object.super_class`, dot-walk, cycle guard) — `incident` now shows the fields from `task` too; child overrides win; new `sourceTable` column; `listTables` returns the parent's real name. _(commit d60ea51)_
+- [x] **S-3** · strict base64 validation on upload — `Buffer.from` never throws; invalid input is now an error with no HTTP call. _(7c39681)_
+- [x] **S-4** · download checks `size_bytes` from the metadata before pulling the bytes (no 1 GB in memory "just to check"). _(7c39681)_
+- [x] **S-5** · `servicenow_aggregate` requires at least one aggregation — fails fast offline. _(7b1e46e)_
+- [x] **S-6** · batch table policy also covers `/stats`, `/import`, `/cmdb/instance` sub-requests. _(4a894d1)_
+- [x] **S-7** · `invalidateTokens()` — the OAuth cache is cleared on credential changes (the key contains no password). _(ed7198e)_
+- [x] **S-8** · `search_code` logs the text length, not the text itself. _(f9cc73e)_
 
 ### Architect (A)
 
-- [x] **A-1** · per-package policy: `SN_PACKAGES_DENY` (drops a whole package, incl. plugin APIs the table policy cannot see) + `SN_PACKAGES_READONLY` (registers only read tools); `effectivePackages()` — one source for registry and status; README warns that table deny ≠ plugin deny. _(90668d3)_
-- [x] **A-2** · ConfigStore: credentials are an atomic in-memory snapshot in `config.ts` — env is only the initial source; `saveCredentials` swaps the snapshot in one assignment (a torn read is structurally impossible); `reloadCredentialsFromEnv()` for startup/tests. The anchor for the MI-1 profiles. _(290a346)_
-- [x] **A-3** · capability cache in `pluginCall`: a namespace 404 ("does not represent any resource") is cached for 5 minutes with instant refusal; record 404s are not cached; availability is `pluginApis` in status. _(3cd86cb)_
-- [x] **A-4** · `api/shared.ts: expectResult/expectResultArray` — the 7 copies of the result check became one. _(da3f056)_
-- [x] **A-5** · one `buildStatusPayload()` for the tool and the resource — drift is impossible. _(4028969)_
-- [x] **A-6** · `noUncheckedIndexedAccess` in tsconfig; 6 files fixed with real guards. _(021cfa4)_
-- [x] **A-7** · type-checked ESLint + `no-floating-promises`; `no-base-to-string` caught a real trap → new `snString()` (an object at `display_value=all` no longer becomes `"[object Object]"`). _(42e1d5f)_
-- [x] **A-8** · the README tools table is generated: `describeAllTools()` → `scripts/readme-tools.mjs` (`npm run docs:readme`) → a section between GENERATED markers; `test/readme-sync.test.js` fails on drift. Only the env table remains manual. _(5bd5489)_
+- [x] **A-1** · per-package policy: `SN_PACKAGES_DENY` (drops a whole package, incl. plugin APIs the table policy cannot see) + `SN_PACKAGES_READONLY` (registers only read tools); `effectivePackages()` — one source for registry and status; README warns that table deny ≠ plugin deny. _(f9df1df)_
+- [x] **A-2** · ConfigStore: credentials are an atomic in-memory snapshot in `config.ts` — env is only the initial source; `saveCredentials` swaps the snapshot in one assignment (a torn read is structurally impossible); `reloadCredentialsFromEnv()` for startup/tests. The anchor for the MI-1 profiles. _(7c97cc3)_
+- [x] **A-3** · capability cache in `pluginCall`: a namespace 404 ("does not represent any resource") is cached for 5 minutes with instant refusal; record 404s are not cached; availability is `pluginApis` in status. _(8a3ab0d)_
+- [x] **A-4** · `api/shared.ts: expectResult/expectResultArray` — the 7 copies of the result check became one. _(efd0893)_
+- [x] **A-5** · one `buildStatusPayload()` for the tool and the resource — drift is impossible. _(39c2f52)_
+- [x] **A-6** · `noUncheckedIndexedAccess` in tsconfig; 6 files fixed with real guards. _(8b3155e)_
+- [x] **A-7** · type-checked ESLint + `no-floating-promises`; `no-base-to-string` caught a real trap → new `snString()` (an object at `display_value=all` no longer becomes `"[object Object]"`). _(94aa6cf)_
+- [x] **A-8** · the README tools table is generated: `describeAllTools()` → `scripts/readme-tools.mjs` (`npm run docs:readme`) → a section between GENERATED markers; `test/readme-sync.test.js` fails on drift. Only the env table remains manual. _(044cc31)_
 
 ### QA (Q)
 
-- [x] **Q-1 + Q-4** · in-memory MCP smoke tests: a real SDK `Client`+`McpServer` over `InMemoryTransport` — a contract snapshot of the core profile, zod → mapping → ok()/fail() envelopes, package gating, the status resource. _(f13f316)_
-- [x] **Q-2** · shared `test/helpers.js` (baselineEnv/withEnv/withFetch/jsonResponse); the 6 older files migrated, ~150 duplicated lines removed. _(edcd07b)_
-- [x] **Q-3** · 17 tests for the uncovered: fetchAll pagination + the SN*MAX_RECORDS cap, okQueryResult truncation, the retry matrix (GET/POST, Retry-After as a date), pluginCall, settings parsers. *(b6469f1)\_
-- [x] **Q-5** · env override tests (settings) + SN*LOG_LEVEL filter tests. *(b6469f1, be291e6)\_
+- [x] **Q-1 + Q-4** · in-memory MCP smoke tests: a real SDK `Client`+`McpServer` over `InMemoryTransport` — a contract snapshot of the core profile, zod → mapping → ok()/fail() envelopes, package gating, the status resource. _(d66fe60)_
+- [x] **Q-2** · shared `test/helpers.js` (baselineEnv/withEnv/withFetch/jsonResponse); the 6 older files migrated, ~150 duplicated lines removed. _(fab1a08)_
+- [x] **Q-3** · 17 tests for the uncovered: fetchAll pagination + the SN*MAX_RECORDS cap, okQueryResult truncation, the retry matrix (GET/POST, Retry-After as a date), pluginCall, settings parsers. *(bc0be0b)\_
+- [x] **Q-5** · env override tests (settings) + SN*LOG_LEVEL filter tests. *(bc0be0b, e473089)\_
 - [x] **Q-6** · test discipline institutionalised: rule 7 in the plan + three automatic guards — the README sync test, the core contract snapshot and the full suite. An undisciplined change breaks at least one of them.
 
 ### Alongside the review
 
-- [x] **P-1** · `git init` + baseline; one task = one commit. _(2424fcf)_
+- [x] **P-1** · `git init` + baseline; one task = one commit. _(035a77f)_
 - [x] Auto-approval of the recurring dev commands in `.claude/settings.json` (build/lint/test/commit; no push, no broad wildcards).
 - [x] **CHANGELOG.md** created (Keep a Changelog) — closes the old optional "changelog at publish time" item.
 - [x] The old optional items from the 2026-06-11 architecture review moved into the plan: trust boundary → X-2 (elicitation), MCP logging capability → X-4, PDI integration suite + Export API → the "Optional" section; the roadmap item is exhausted (Batch/Catalog/Knowledge/CMDB/IRE covered, Email was X-7).
@@ -110,58 +110,58 @@ Full finding descriptions live in WORKLOG.md (detailed) and the git history; thi
 
 ### Prerequisites and audit
 
-- [x] **P-1 · git init** + baseline; one-commit-per-task history. _(2424fcf)_
-- [x] **P-2 · Node 20+ guard on three levels**: a CJS launcher (`bin/servicenow-mcp.cjs`) with a guard before the ESM graph is parsed, a second guard in index.ts, `engines >=20` + `.npmrc engine-strict`. Verified under a real Node 12. _(2a84eb3)_
+- [x] **P-1 · git init** + baseline; one-commit-per-task history. _(035a77f)_
+- [x] **P-2 · Node 20+ guard on three levels**: a CJS launcher (`bin/servicenow-mcp.cjs`) with a guard before the ESM graph is parsed, a second guard in index.ts, `engines >=20` + `.npmrc engine-strict`. Verified under a real Node 12. _(a31ee78)_
 - [x] **X-1 · SDK upgrade 1.12 → 1.29** — found already done during the 2026-06-12 audit; InMemoryTransport is used by the smoke tests.
 - [x] **X-3 · Prompts module** — `prompts.ts` with the three templates (triage / change impact / document table), delivered with Phases 4/5.
 
 ### Correctness (the K series, complete)
 
-- [x] **K-1 · OAuth 401 → invalidation + a single retry** with a fresh token; a second 401 is a real error. _(b48a4f1)_
-- [x] **K-2 · Authorization per attempt** — a token cannot expire between backoff tries. _(b48a4f1)_
-- [x] **K-3 · Stable fetchAll pagination** — automatic `ORDERBYsys_id` when the query has no ordering. _(61cbd26)_
-- [x] **K-4 · Batch restricted to `/api/` paths** — `/oauth_token.do`, `/login.do` etc. unreachable. _(b10a50c)_
-- [x] **K-5 · `^` rejected in search/list filters** (the encoded-query separator has no escape). _(ff3e826)_
-- [x] **K-6 · `set_credentials` validates the host (resolveHost) before saving** — nothing is persisted for an invalid one. _(d0e2822)_
-- [x] **K-7 · Resources follow the package policy** (schema/docs packages; status always). _(07006b5)_
-- [x] **K-8 · CI Node matrix 20/22/24 + c8 coverage**; `npm test` without a duplicated build (`test:full` locally). _(5002c2d)_
+- [x] **K-1 · OAuth 401 → invalidation + a single retry** with a fresh token; a second 401 is a real error. _(369f5cf)_
+- [x] **K-2 · Authorization per attempt** — a token cannot expire between backoff tries. _(369f5cf)_
+- [x] **K-3 · Stable fetchAll pagination** — automatic `ORDERBYsys_id` when the query has no ordering. _(739c20f)_
+- [x] **K-4 · Batch restricted to `/api/` paths** — `/oauth_token.do`, `/login.do` etc. unreachable. _(9c7f02b)_
+- [x] **K-5 · `^` rejected in search/list filters** (the encoded-query separator has no escape). _(1585efb)_
+- [x] **K-6 · `set_credentials` validates the host (resolveHost) before saving** — nothing is persisted for an invalid one. _(d2a354d)_
+- [x] **K-7 · Resources follow the package policy** (schema/docs packages; status always). _(849ff92)_
+- [x] **K-8 · CI Node matrix 20/22/24 + c8 coverage**; `npm test` without a duplicated build (`test:full` locally). _(7d57b66)_
 
 ### Modularity and new capabilities
 
 - [x] **M-5 · Generated README tools table** — `describeAllTools()` + `scripts/readme-tools.mjs` + a sync test (see A-8); remainder: the env table.
-- [x] **M-6 · Manifest snapshot** — `{name, package, title, annotations}` for all tools against a checked-in fixture (`npm run gen:manifest`). _(ae7d123)_
-- [x] **X-6 · `servicenow_test_connection`** — reads 1 sys*user record, returns `{ok, status, latencyMs, user}`; 401/403/timeout come back structured, not as exceptions. *(373688b)\_
+- [x] **M-6 · Manifest snapshot** — `{name, package, title, annotations}` for all tools against a checked-in fixture (`npm run gen:manifest`). _(1d8e141)_
+- [x] **X-6 · `servicenow_test_connection`** — reads 1 sys*user record, returns `{ok, status, latencyMs, user}`; 401/403/timeout come back structured, not as exceptions. *(3ed5351)\_
 
 ### Optimisations (the O series, complete)
 
-- [x] **O-1 · `sysparm_exclude_reference_link=true` by default** (opt-out `SN_INCLUDE_REF_LINKS`) — −20–40% tokens on reference-heavy responses. _(05b0341)_
-- [x] **O-2 · Compact JSON output** (opt-in `SN_RESULT_PRETTY`) — pretty roughly doubled the tokens. _(05b0341)_
-- [x] **O-3 · Schema cache with TTL** (`SN_SCHEMA_CACHE_TTL_SEC`, default 300 s; instance in the key) for list*tables/describe_table/get_cmdb_meta. *(103ab7f)\_
-- [x] **O-4 · Semaphore `SN_MAX_CONCURRENT`** (default 4) around fetch. _(84ccbb5)_
-- [x] **O-5 · Telemetry** `{requests, retries, errors, totalMs}` in get*status and servicenow://status. *(84ccbb5)\_
+- [x] **O-1 · `sysparm_exclude_reference_link=true` by default** (opt-out `SN_INCLUDE_REF_LINKS`) — −20–40% tokens on reference-heavy responses. _(e57fa9c)_
+- [x] **O-2 · Compact JSON output** (opt-in `SN_RESULT_PRETTY`) — pretty roughly doubled the tokens. _(e57fa9c)_
+- [x] **O-3 · Schema cache with TTL** (`SN_SCHEMA_CACHE_TTL_SEC`, default 300 s; instance in the key) for list*tables/describe_table/get_cmdb_meta. *(29b37ec)\_
+- [x] **O-4 · Semaphore `SN_MAX_CONCURRENT`** (default 4) around fetch. _(12d2e97)_
+- [x] **O-5 · Telemetry** `{requests, retries, errors, totalMs}` in get*status and servicenow://status. *(12d2e97)\_
 
 ### Modularity (the M series, complete) — the afternoon sprint
 
-- [x] **M-1 · Directories `core/` / `api/` / `mcp/` / `tools/`** — a layered structure with one-way dependencies; a clean git mv + 56 rewritten import paths; zero behaviour change. _(5e6cd04)_
-- [x] **M-2 · ESLint layer boundaries** (no-restricted-imports zones: core⇍api/mcp/tools; api⇍mcp/tools; tools⇍core/http) + `api/diagnostics.ts` (test*connection logic moved out of tools). A deliberate bad import fails lint — verified. *(ab6c252)\_
-- [x] **M-3+M-4 · Declarative tool manifest** — `mcp/define.ts` (ToolSpec + defineTool + runSpec, absorbing tools/util), the 13 tools files rewritten as `specs: AnyToolSpec[]`, `ALL_TOOLS` in the registry (a package = one spread), readonly packages = a filter on annotations (the Proxy facade deleted), describeAllTools reads the manifest directly. The contract stayed byte-identical (the snapshot tests passed without regeneration). _(71b6058)_
+- [x] **M-1 · Directories `core/` / `api/` / `mcp/` / `tools/`** — a layered structure with one-way dependencies; a clean git mv + 56 rewritten import paths; zero behaviour change. _(08d16ce)_
+- [x] **M-2 · ESLint layer boundaries** (no-restricted-imports zones: core⇍api/mcp/tools; api⇍mcp/tools; tools⇍core/http) + `api/diagnostics.ts` (test*connection logic moved out of tools). A deliberate bad import fails lint — verified. *(a53e2cc)\_
+- [x] **M-3+M-4 · Declarative tool manifest** — `mcp/define.ts` (ToolSpec + defineTool + runSpec, absorbing tools/util), the 13 tools files rewritten as `specs: AnyToolSpec[]`, `ALL_TOOLS` in the registry (a package = one spread), readonly packages = a filter on annotations (the Proxy facade deleted), describeAllTools reads the manifest directly. The contract stayed byte-identical (the snapshot tests passed without regeneration). _(cc1b83e)_
 
 ### New capabilities (the X series) — the afternoon sprint
 
-- [x] **X-7 · Email package** — api/email.ts + tools/email.ts (send/get, pluginCall, write policy); plugging in = 1 import + 1 spread. _(5f95db9)_
-- [x] **X-2 · Elicitation for set_credentials** — a client with the elicitation capability confirms the change (decline → nothing saved); without the capability → the old behaviour. _(f15bb5d)_
-- [x] **X-4 · MCP logging capability** — `setLogSink` in core/logging + a `sendLoggingMessage` mirror after connect; a throwing sink is swallowed. _(f15bb5d)_
-- [x] **X-5 · outputSchema + structuredContent** — `ToolSpec.output` / `okStructured()`; applied to get*status and test_connection. Deviation from the plan: query_table/get_record/aggregate deliberately excluded — duplicating structuredContent contradicts O-2. *(f15bb5d)\_
+- [x] **X-7 · Email package** — api/email.ts + tools/email.ts (send/get, pluginCall, write policy); plugging in = 1 import + 1 spread. _(45ea8bb)_
+- [x] **X-2 · Elicitation for set_credentials** — a client with the elicitation capability confirms the change (decline → nothing saved); without the capability → the old behaviour. _(8dda598)_
+- [x] **X-4 · MCP logging capability** — `setLogSink` in core/logging + a `sendLoggingMessage` mirror after connect; a throwing sink is swallowed. _(8dda598)_
+- [x] **X-5 · outputSchema + structuredContent** — `ToolSpec.output` / `okStructured()`; applied to get*status and test_connection. Deviation from the plan: query_table/get_record/aggregate deliberately excluded — duplicating structuredContent contradicts O-2. *(8dda598)\_
 
 ## Phase 7 (Multi-instance) — core done
 
-- [x] **MI-1 · Named profiles** — `SN_PROFILE_<NAME>_INSTANCE/_USER/_PASSWORD`; the bare keys = `default` (full backwards compatibility); store = Map<profile, snapshot> with the same atomicity; `useProfile()` switches + persists SN*ACTIVE_PROFILE. *(07170cf)\_
-- [x] **MI-2 · Per-profile policy** — `SN_PROFILE_<NAME>_READONLY/_TABLES_ALLOW/_TABLES_DENY` with a global fallback: "prod read-only, dev full rights" in one server. _(84f283f)_
-- [x] **MI-3 · AsyncLocalStorage context** — every tool has an optional `instance` argument (except on a name collision); the whole stack resolves the profile at call time, zero threading through api/ signatures; an unknown profile → a clear refusal with no network. _(15785db)_
-- [x] **MI-4 · Admin tools** — `servicenow_list_instances` (no passwords), `servicenow_use_instance` (switch + clearing of the identity caches), `set_credentials` with an optional `profile`; status shows activeProfile + profiles. 51 tools. _(84f283f)_
-- [x] **MI-5 · Per-host cache and telemetry** — delivered earlier (per-host semaphore/counters from S2-2, schema cache keys with the instance from O-3). _(13a2810, 103ab7f)_
-- [x] **MI-6 · `servicenow_snapshot_instance`** — new `instance` package: tables.md+json, schema/<table>.md for the passed tables, plugins (v*plugin → sys_plugins fallback), apps, automation stats per script type, index.md — all into `SN_DOCS_DIR/<profile>/`; a failing section is a warning, not a failure; traversal guard extended with a .json whitelist for the internal writer. *(7037303)\_
-- [x] **MI-7 · `servicenow_compare_instances`** — table presence, column property drift, scripts by SHA-256 (only*in_a/only_in_b/different_source), plugin/app inventory; one dictionary pull and one pull per script type per side (no N+1); `from_snapshot` honours the stored MI-6 JSON with a live fallback + warning; MD report in `_compare/`. *(landed inside 82aad61)\_
+- [x] **MI-1 · Named profiles** — `SN_PROFILE_<NAME>_INSTANCE/_USER/_PASSWORD`; the bare keys = `default` (full backwards compatibility); store = Map<profile, snapshot> with the same atomicity; `useProfile()` switches + persists SN*ACTIVE_PROFILE. *(bf6712d)\_
+- [x] **MI-2 · Per-profile policy** — `SN_PROFILE_<NAME>_READONLY/_TABLES_ALLOW/_TABLES_DENY` with a global fallback: "prod read-only, dev full rights" in one server. _(4a129de)_
+- [x] **MI-3 · AsyncLocalStorage context** — every tool has an optional `instance` argument (except on a name collision); the whole stack resolves the profile at call time, zero threading through api/ signatures; an unknown profile → a clear refusal with no network. _(3bf1e12)_
+- [x] **MI-4 · Admin tools** — `servicenow_list_instances` (no passwords), `servicenow_use_instance` (switch + clearing of the identity caches), `set_credentials` with an optional `profile`; status shows activeProfile + profiles. 51 tools. _(4a129de)_
+- [x] **MI-5 · Per-host cache and telemetry** — delivered earlier (per-host semaphore/counters from S2-2, schema cache keys with the instance from O-3). _(aaab456, 29b37ec)_
+- [x] **MI-6 · `servicenow_snapshot_instance`** — new `instance` package: tables.md+json, schema/<table>.md for the passed tables, plugins (v*plugin → sys_plugins fallback), apps, automation stats per script type, index.md — all into `SN_DOCS_DIR/<profile>/`; a failing section is a warning, not a failure; traversal guard extended with a .json whitelist for the internal writer. *(17f0fc6)\_
+- [x] **MI-7 · `servicenow_compare_instances`** — table presence, column property drift, scripts by SHA-256 (only*in_a/only_in_b/different_source), plugin/app inventory; one dictionary pull and one pull per script type per side (no N+1); `from_snapshot` honours the stored MI-6 JSON with a live fallback + warning; MD report in `_compare/`. *(landed inside e265588)\_
 - [x] **MI-8 · Per-profile resources** — `servicenow://instances` + `servicenow://{profile}/schema/{table}` on the `instance` package; shared `profilesPayload()` keeps the tool and the resource identical; K-7 resource contract updated. 53 tools, 146 tests. _(fb85be0)_
 
 **Phase 7 is complete** (MI-1…MI-8, 2026-06-12).
@@ -189,26 +189,26 @@ Two `/full-review` passes (architect → dev → qa), the `servicenow-mcp-ai` re
 
 ### Evening triple analysis — completed backlog
 
-- [x] **S2-1 · strict zod schemas** (reject unknown args; a `tabel` typo is now a validation error) — `e879321`.
-- [x] **S2-2 · per-host semaphore + telemetry** (was global) — `13a2810`.
-- [x] **S2-3 · `bin` launcher Node-12 CI test** (node:12-alpine container) — `ac14952`.
+- [x] **S2-1 · strict zod schemas** (reject unknown args; a `tabel` typo is now a validation error) — `0b0111d`.
+- [x] **S2-2 · per-host semaphore + telemetry** (was global) — `aaab456`.
+- [x] **S2-3 · `bin` launcher Node-12 CI test** (node:12-alpine container) — `478e444`.
 - [x] **S2-4 · release process** — `.github/workflows/publish.yml` + `release:dry` + CONTRIBUTING "Releasing": tag-driven publish with `--provenance`, a tag↔version guard and the `npm run check` gate. _Needs an `NPM_TOKEN` repo secret before the first real publish (→ R-2)._
-- [x] **A2-1 · `PackageSpec = {name, tools, resources?, prompts?}`** — resources and prompts gating made fully declarative — `5daad20`.
-- [x] **Q2-1 · coverage gates** (lines 85 / branches 72) — `b8b9216`.
-- [x] **Q2-2 · property-based tests** (fast-check: 500 env round-trips + 200 base64 buffers) — `b8b9216`.
-- [x] **Q2-3 · Windows in the CI matrix** — `ac14952`.
-- [x] **Q2-4 · perf regression for `okQueryResult`** (10k records < 2 s) — `9ef092b`.
-- [x] **Q2-5 · elicitation accept-path test** (decline was already covered) — `9ef092b`.
+- [x] **A2-1 · `PackageSpec = {name, tools, resources?, prompts?}`** — resources and prompts gating made fully declarative — `6df0e57`.
+- [x] **Q2-1 · coverage gates** (lines 85 / branches 72) — `03e1120`.
+- [x] **Q2-2 · property-based tests** (fast-check: 500 env round-trips + 200 base64 buffers) — `03e1120`.
+- [x] **Q2-3 · Windows in the CI matrix** — `478e444`.
+- [x] **Q2-4 · perf regression for `okQueryResult`** (10k records < 2 s) — `1ace964`.
+- [x] **Q2-5 · elicitation accept-path test** (decline was already covered) — `1ace964`.
 
 ### Release readiness — completed
 
-- [x] **R-1 · LICENSE** — MIT (file + `"license": "MIT"`) — `fc1f62c`.
+- [x] **R-1 · LICENSE** — MIT (file + `"license": "MIT"`) — `3868a9c`.
 - [x] **R-3 · release process / CHANGELOG** cut to `[1.0.0] - 2026-06-12` + annotated tag `v1.0.0` (= S2-4).
-- [x] **R-4 · package.json metadata** — `license`/`author`/`prepublishOnly` (`fc1f62c`), `repository`/`bugs`/`homepage` (`ac11df9`).
-- [x] **R-5 · WIP formatted & committed** — `e879321`.
-- [x] **R-6 · doc drift on the tool count** reconciled — 49 tools / 14 packages everywhere (sourced from the manifest fixture) — `08b71cc`.
-- [x] **R-7 · coverage gate in CI** (= Q2-1) — `b8b9216`.
-- [x] **R-8 · Windows in CI + the Node-12 launcher test** (= Q2-3, S2-3) — `ac14952`; the Windows job stays `continue-on-error` until the first green run (→ R-2).
+- [x] **R-4 · package.json metadata** — `license`/`author`/`prepublishOnly` (`3868a9c`), `repository`/`bugs`/`homepage` (`ac11df9`).
+- [x] **R-5 · WIP formatted & committed** — `0b0111d`.
+- [x] **R-6 · doc drift on the tool count** reconciled — 49 tools / 14 packages everywhere (sourced from the manifest fixture) — `c120469`.
+- [x] **R-7 · coverage gate in CI** (= Q2-1) — `03e1120`.
+- [x] **R-8 · Windows in CI + the Node-12 launcher test** (= Q2-3, S2-3) — `478e444`; the Windows job stays `continue-on-error` until the first green run (→ R-2).
 - [x] **R-9 · SECURITY.md + CONTRIBUTING.md** added (repo-standard pass). _If the release goes public, revisit the two won't-fix decisions in TODO.md — for third-party users the conservative defaults should win (for personal use they remain OK)._
 - [x] **R-10 · npm name resolved → `servicenow-mcp-ai`** (the free unscoped name; `servicenow-mcp` is held by an unrelated maintainer). Renamed coherently across `package.json` name/bin, the launcher, the MCP handshake name, the XDG config dir, `.vscode/mcp.json`, the CI launcher path and the README; the GitHub repo URLs stay `LeassTaTT/servicenow-mcp`.
 
