@@ -5,6 +5,12 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-19
+
+### Fixed
+
+- MCP Registry namespace casing: `mcpName` and `server.json` `name` now use the exact GitHub login `io.github.LeassTaTT/servicenow-mcp-ai` (the registry namespace is case-sensitive), and the registry `description` is within the 100-character limit.
+
 ## [1.1.1] - 2026-06-19
 
 ### Added
@@ -90,7 +96,8 @@ cut and the subsequent work are consolidated here.)
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
 - Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.
 
-[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/releases/tag/v1.0.0
