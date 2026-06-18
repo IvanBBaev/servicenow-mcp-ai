@@ -5,6 +5,8 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-19
+
 ### Added
 
 - **Full ServiceNow authentication coverage.** Added OAuth 2.1 **Authorization Code + PKCE** via a one-time `servicenow-mcp-ai login` (loopback + browser, stores a refresh token), the OAuth **JWT bearer** grant (`SN_OAUTH_GRANT=jwt_bearer`, RS256, no password), **API Key** auth (`SN_API_KEY` → `x-sn-apikey`), a **static Bearer token** (`SN_BEARER_TOKEN`), **`none`** (certificate-only), and **mutual TLS** (`SN_TLS_CLIENT_CERT`/`_KEY`/`_CA`, via the optional `undici` package). `SN_AUTH` now accepts `basic`/`oauth`/`apikey`/`token`/`none` and is auto-detected from the keys present. The `AuthProvider` returns a header map (so non-`Authorization` schemes fit), with no new runtime dependency.
@@ -78,5 +80,6 @@ cut and the subsequent work are consolidated here.)
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
 - Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.
 
-[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/LeassTaTT/servicenow-mcp/releases/tag/v1.0.0
+[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/releases/tag/v1.0.0
