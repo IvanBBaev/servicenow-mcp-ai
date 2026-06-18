@@ -1,0 +1,60 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.leasstatt/servicenow-mcp-ai",
+  "description": "ServiceNow MCP server: 65 tools in 18 packages over the full ServiceNow REST surface, with every auth method, script & flow intelligence, local code checking, ATF runs, multi-instance profiles and Mermaid diagrams.",
+  "repository": {
+    "url": "https://github.com/LeassTaTT/servicenow-mcp-ai",
+    "source": "github"
+  },
+  "version": "1.1.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "servicenow-mcp-ai",
+      "version": "1.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SN_INSTANCE",
+          "description": "ServiceNow instance host, e.g. dev12345.service-now.com.",
+          "isRequired": true,
+          "format": "string"
+        },
+        {
+          "name": "SN_AUTH",
+          "description": "Auth mode: basic | oauth | apikey | token | none. Auto-detected from the keys present if omitted.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "SN_USER",
+          "description": "Username for basic auth or the OAuth password grant.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "SN_PASSWORD",
+          "description": "Password for basic auth or the OAuth password grant.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "SN_API_KEY",
+          "description": "ServiceNow API key, sent as the x-sn-apikey header (apikey auth).",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "SN_TOOL_PACKAGES",
+          "description": "Which tool packages to expose, e.g. core (default), all, or a comma-separated list.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

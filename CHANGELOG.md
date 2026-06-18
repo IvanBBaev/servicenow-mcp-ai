@@ -5,6 +5,16 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-19
+
+### Added
+
+- Listed on the official **MCP Registry**: a `server.json` manifest and the `mcpName` field in `package.json`, plus an automated registry publish (GitHub OIDC) wired into the release workflow so a `v*` tag publishes to npm and registers the server in one run.
+
+### Fixed
+
+- `package.json` `repository`/`homepage`/`bugs` URLs now point at the renamed `servicenow-mcp-ai` repository — npm provenance verification requires `repository.url` to match the GitHub repository the publish workflow runs in.
+
 ## [1.1.0] - 2026-06-19
 
 ### Added
@@ -80,6 +90,7 @@ cut and the subsequent work are consolidated here.)
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
 - Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.
 
-[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/releases/tag/v1.0.0

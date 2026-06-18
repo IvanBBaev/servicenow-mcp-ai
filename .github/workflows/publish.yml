@@ -31,3 +31,20 @@ jobs:
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Register on the official MCP Registry. GitHub OIDC needs no extra secret;
+      # the id-token: write permission above (used for npm provenance) covers it.
+      # Runs after npm publish so the registry can verify the published tarball's
+      # mcpName. A failure here can be re-run without re-publishing to npm.
+      - name: Sync server.json version to the tag
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          jq --arg v "$V" '.version = $v | (.packages[].version) = $v' server.json > server.tmp
+          mv server.tmp server.json
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Publish to the MCP Registry (GitHub OIDC)
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
