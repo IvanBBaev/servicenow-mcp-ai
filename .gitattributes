@@ -1,0 +1,8 @@
+# Force LF line endings on checkout across all platforms. The repo is authored
+# on macOS/Linux (LF), so this only changes what Windows checks out — it keeps
+# the generated-docs drift tests (e.g. test/readme-sync.test.js) byte-identical
+# to their LF originals on the Windows CI runner.
+* text=auto eol=lf
+
+# Binary assets git must never touch.
+*.png binary

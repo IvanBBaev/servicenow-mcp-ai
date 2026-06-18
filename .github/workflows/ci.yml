@@ -35,11 +35,11 @@ jobs:
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         run: npm audit --omit=dev --audit-level=high
 
-  # Q2-3: Windows visibility run. continue-on-error until the first green run
-  # confirms the suite is path-safe on win32; then drop the flag.
+  # Q2-3: Windows run (win32 path/line-ending safety). LF is enforced via
+  # .gitattributes so the generated-docs drift tests stay byte-identical to
+  # their LF originals on the Windows checkout.
   windows:
     runs-on: windows-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
