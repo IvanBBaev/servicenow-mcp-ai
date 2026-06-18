@@ -163,26 +163,36 @@ export async function snapshotInstance(
   // -- plugins.md (v_plugin, fallback sys_plugins) -----------------------------
   let pluginRecords: Record<string, unknown>[] | undefined;
   let pluginSource = "v_plugin";
+  const warnIfTruncated = (
+    truncated: boolean | undefined,
+    what: string,
+  ): void => {
+    if (truncated) {
+      warnings.push(
+        `${what} hit the SN_MAX_RECORDS cap — the list is partial.`,
+      );
+    }
+  };
   try {
-    pluginRecords = (
-      await queryTable({
-        table: "v_plugin",
-        fields: ["id", "name", "active", "version"],
-        displayValue: "false",
-        fetchAll: true,
-      })
-    ).records;
+    const r = await queryTable({
+      table: "v_plugin",
+      fields: ["id", "name", "active", "version"],
+      displayValue: "false",
+      fetchAll: true,
+    });
+    pluginRecords = r.records;
+    warnIfTruncated(r.truncated, "plugins: v_plugin");
   } catch {
     try {
       pluginSource = "sys_plugins";
-      pluginRecords = (
-        await queryTable({
-          table: "sys_plugins",
-          fields: ["source", "name", "active", "version"],
-          displayValue: "false",
-          fetchAll: true,
-        })
-      ).records;
+      const r = await queryTable({
+        table: "sys_plugins",
+        fields: ["source", "name", "active", "version"],
+        displayValue: "false",
+        fetchAll: true,
+      });
+      pluginRecords = r.records;
+      warnIfTruncated(r.truncated, "plugins: sys_plugins");
     } catch (e) {
       warnings.push(
         `plugins: unavailable — ${e instanceof Error ? e.message : String(e)}`,
@@ -225,12 +235,13 @@ export async function snapshotInstance(
   const appsJson: Record<string, unknown> = {};
   for (const table of ["sys_app", "sys_store_app"]) {
     try {
-      const { records } = await queryTable({
+      const { records, truncated } = await queryTable({
         table,
         fields: ["name", "scope", "version", "active"],
         displayValue: "false",
         fetchAll: true,
       });
+      warnIfTruncated(truncated, `apps: ${table}`);
       const rows = records.map((a) => ({
         name: snString(a.name),
         scope: snString(a.scope),

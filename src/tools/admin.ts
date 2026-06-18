@@ -123,9 +123,11 @@ export const specs: AnyToolSpec[] = [
       if (refusal) return refusal;
 
       const updated = saveCredentials(clean, profile);
-      // Nothing cached under the old identity may survive the change: OAuth
-      // tokens (key has no password), schema reads and plugin availability
-      // (keyed by label, not host) would all be stale on a new instance.
+      // Nothing cached under the old identity may survive the change. The OAuth
+      // token cache key omits the password/secret, and the schema and
+      // plugin-availability caches are instance-keyed — so a password rotation
+      // (same host) or an instance change on this profile would otherwise leave
+      // stale entries behind. Clear all three.
       invalidateTokens();
       clearSchemaCache();
       clearPluginAvailability();

@@ -87,10 +87,21 @@ export function resolveHost(instance: string): string {
         `Host "${host}" is not permitted by SN_ALLOWED_HOSTS.`,
       );
     }
-  } else if (isBlockedHost(host)) {
-    throw new ServiceNowError(
-      `Refusing to connect to internal/loopback host "${host}". Set SN_ALLOWED_HOSTS to override.`,
-    );
+  } else {
+    if (isBlockedHost(host)) {
+      throw new ServiceNowError(
+        `Refusing to connect to internal/loopback host "${host}". Set SN_ALLOWED_HOSTS to override.`,
+      );
+    }
+    // Without an explicit allowlist, only canonical ServiceNow instances are
+    // reachable. A custom or sovereign-cloud domain must be opted in through
+    // SN_ALLOWED_HOSTS, so a redirected/typo'd host cannot silently send Basic
+    // credentials to an arbitrary server.
+    if (!host.toLowerCase().endsWith(".service-now.com")) {
+      throw new ServiceNowError(
+        `Host "${host}" is not a *.service-now.com instance. Set SN_ALLOWED_HOSTS to allow a custom or sovereign-cloud domain.`,
+      );
+    }
   }
   return host;
 }

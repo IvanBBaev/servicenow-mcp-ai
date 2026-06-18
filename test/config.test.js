@@ -9,8 +9,8 @@ const roundTrip = (value) => dotenv.parse(`KEY=${formatEnvValue(value)}`).KEY;
 
 test("round-trips plain values without quoting", () => {
   for (const value of [
-    "nuvolo",
-    "Ivan.Baev@nuvolo.com",
+    "examplepass",
+    "jane.doe@example.com",
     "ven03019.service-now.com",
     "p@ssw0rd!",
     "has$dollar",

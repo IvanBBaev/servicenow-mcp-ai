@@ -2,4 +2,5 @@ build/
 node_modules/
 README.md
 docs/instance/
+docs/ai/
 coverage/

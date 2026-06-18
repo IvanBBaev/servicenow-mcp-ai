@@ -1,5 +1,6 @@
 import { snRequest } from "../core/http.js";
 import { assertTableAllowed } from "../core/policy.js";
+import { expectResult } from "./shared.js";
 
 /**
  * ServiceNow Aggregate (Stats) API: server-side count/avg/min/max/sum with
@@ -40,5 +41,5 @@ export async function aggregate(opts: AggregateOptions): Promise<unknown> {
     path: `/api/now/stats/${encodeURIComponent(opts.table)}`,
     params,
   });
-  return data.result;
+  return expectResult(data, "Aggregate API");
 }

@@ -1,5 +1,10 @@
 import { snRequest } from "../core/http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import {
+  assertTableAllowed,
+  assertWriteAllowed,
+  assertPackageAllowed,
+  assertPackageWriteAllowed,
+} from "../core/policy.js";
 import { ServiceNowError } from "../core/errors.js";
 
 /**
@@ -76,6 +81,79 @@ function tableFromUrl(url: string): string | undefined {
   return name ? decodeURIComponent(name) : undefined;
 }
 
+/**
+ * Map a sub-request path to the tool package that owns that REST surface, so a
+ * batch cannot bypass SN_PACKAGES_DENY / SN_PACKAGES_READONLY: a denied
+ * package's API must stay unreachable and a read-only package's writes must be
+ * refused even inside a batch (the package axis otherwise only filters at tool
+ * registration, which batch sub-requests skip). Unknown paths return undefined
+ * and fall back to the table/read-only axes alone.
+ */
+const PACKAGE_BY_PATH: [RegExp, string][] = [
+  [/^\/api\/sn_sc(?:\/|$)/i, "catalog"],
+  [/^\/api\/sn_chg_rest(?:\/|$)/i, "change"],
+  [/^\/api\/sn_km_api(?:\/|$)/i, "knowledge"],
+  [/^\/api\/now\/(?:v\d+\/)?email(?:\/|$)/i, "email"],
+  [/^\/api\/now\/(?:v\d+\/)?cmdb(?:\/|$)/i, "cmdb"],
+  [/^\/api\/now\/(?:v\d+\/)?import(?:\/|$)/i, "importset"],
+  [/^\/api\/now\/(?:v\d+\/)?stats(?:\/|$)/i, "aggregate"],
+  [/^\/api\/now\/(?:v\d+\/)?attachment(?:\/|$)/i, "attachment"],
+  [/^\/api\/now\/(?:v\d+\/)?table(?:\/|$)/i, "table"],
+];
+
+function packageForUrl(url: string): string | undefined {
+  const path = url.split(/[?#]/, 1)[0] ?? url;
+  for (const [re, pkg] of PACKAGE_BY_PATH) {
+    if (re.test(path)) return pkg;
+  }
+  return undefined;
+}
+
+/** True when a path contains an empty (`//`), `.` or `..` segment. */
+function hasTraversalSegments(path: string): boolean {
+  const segments = path.split("/");
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    // segments[0] is "" (paths start with "/"); a single trailing "" is just a
+    // trailing slash. Any other empty segment is "//"; "." / ".." are traversal.
+    const trailingSlash = seg === "" && i === segments.length - 1 && i > 0;
+    if (
+      (seg === "" && i !== 0 && !trailingSlash) ||
+      seg === "." ||
+      seg === ".."
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * ServiceNow's batch dispatcher normalizes a sub-request path (collapses `//`,
+ * resolves `.`/`..`, and percent-decodes) before routing it, so a non-canonical
+ * path such as `/api/now//table/x`, `/api/now/y/../table/x` or its encoded form
+ * `/api/now/%2e%2e/table/x` would reach a surface the anchored matchers above
+ * never see — bypassing every path-based guard (`SN_TABLES_*`, `SN_PACKAGES_*`).
+ * A legitimate ServiceNow REST path is plain and canonical, so any such segment
+ * (raw or percent-encoded) is refused before policy matching, which guarantees
+ * the path we check is the path ServiceNow executes.
+ */
+function assertCanonicalPath(url: string, index: number): void {
+  const rawPath = url.split(/[?#]/, 1)[0] ?? url;
+  let decodedPath = rawPath;
+  try {
+    decodedPath = decodeURIComponent(rawPath);
+  } catch {
+    // malformed percent-encoding — police the raw form only
+  }
+  if (hasTraversalSegments(rawPath) || hasTraversalSegments(decodedPath)) {
+    throw new ServiceNowError(
+      `Sub-request ${index + 1} has a non-canonical path "${rawPath}"; '//', '/./', '/../' (or their percent-encoded forms) are not allowed — they would bypass the access policy.`,
+      400,
+    );
+  }
+}
+
 function hasHeader(headers: { name: string }[], name: string): boolean {
   return headers.some((h) => h.name.toLowerCase() === name.toLowerCase());
 }
@@ -107,11 +185,22 @@ export async function runBatch(
         `Sub-request ${index + 1} must target a REST API path starting with "/api/".`,
       );
     }
-    // Enforce policy before sending: writes respect read-only mode and table
-    // paths respect the allow/deny list, so the batch cannot bypass guards.
+    // Reject path-traversal/empty-segment tricks before matching, so the path
+    // we police is exactly the one ServiceNow will normalize and route.
+    assertCanonicalPath(req.url, index);
+    // Enforce policy before sending: writes respect read-only mode, table
+    // paths respect the allow/deny list, and plugin-API paths respect the
+    // package allow/deny + read-only axes — so the batch cannot bypass guards.
     if (req.method !== "GET") assertWriteAllowed(`batch ${req.method}`);
     const table = tableFromUrl(req.url);
     if (table) assertTableAllowed(table);
+    const pkg = packageForUrl(req.url);
+    if (pkg) {
+      assertPackageAllowed(pkg);
+      if (req.method !== "GET") {
+        assertPackageWriteAllowed(pkg, `batch ${req.method}`);
+      }
+    }
 
     const headers = [...(req.headers ?? [])];
     if (!hasHeader(headers, "Accept")) {

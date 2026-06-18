@@ -221,3 +221,70 @@ test("from_snapshot uses stored JSON for tables and falls back live with a warni
     ),
   );
 });
+
+/**
+ * sys_dictionary served over two pages with X-Total-Count=2; every other table
+ * is empty. Under SN_MAX_RECORDS=1 the dictionary read truncates, so compare
+ * must report a partial-column-diff warning instead of silently under-diffing.
+ */
+function cappedDictionaryFetch(url) {
+  const u = new URL(url);
+  if (u.pathname.includes("/table/sys_db_object")) {
+    return jsonResponse(
+      200,
+      { result: [{ name: "incident", label: "Incident" }] },
+      { "x-total-count": "1" },
+    );
+  }
+  if (u.pathname.includes("/table/sys_dictionary")) {
+    const limit = Number(u.searchParams.get("sysparm_limit"));
+    const offset = Number(u.searchParams.get("sysparm_offset") ?? "0");
+    const all = [
+      {
+        name: "incident",
+        element: "a",
+        internal_type: "string",
+        mandatory: "false",
+        reference: "",
+      },
+      {
+        name: "incident",
+        element: "b",
+        internal_type: "string",
+        mandatory: "false",
+        reference: "",
+      },
+    ];
+    return jsonResponse(
+      200,
+      { result: all.slice(offset, offset + limit) },
+      { "x-total-count": String(all.length) },
+    );
+  }
+  // Scripts, plugins and apps are empty (total 0) so only the dictionary caps.
+  return jsonResponse(200, { result: [] }, { "x-total-count": "0" });
+}
+
+test("compareInstances warns when sys_dictionary hits the SN_MAX_RECORDS cap (QA-19)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const result = await withEnv({ ...PROFILE_ENV, SN_MAX_RECORDS: "1" }, () =>
+    withFetch(cappedDictionaryFetch, () =>
+      compareInstances({ a: "default", b: "prod" }),
+    ),
+  );
+
+  assert.ok(
+    result.warnings.some(
+      (w) => w.includes("sys_dictionary") && w.includes("cap"),
+    ),
+    `expected a partial-column-diff warning, got: ${JSON.stringify(result.warnings)}`,
+  );
+  // The warning must also reach the persisted Markdown report.
+  const report = await fs.readFile(
+    path.join(DOCS_DIR, "_compare", "default-vs-prod.md"),
+    "utf8",
+  );
+  assert.match(report, /Warnings/);
+  assert.match(report, /sys_dictionary.*cap/);
+});

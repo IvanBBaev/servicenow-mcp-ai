@@ -4,6 +4,7 @@ import {
   existsSync,
   renameSync,
   mkdirSync,
+  chmodSync,
 } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -289,6 +290,18 @@ function updateEnvFile(updates: Record<string, string>): void {
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   const tmpPath = `${path}.${process.pid}.tmp`;
-  writeFileSync(tmpPath, `${rewritten.join("\n")}\n`, "utf8");
+  // 0600: the file holds a plaintext password, so keep it owner-only rather
+  // than the default 0644. Set the mode on the temp file and re-assert it after
+  // the rename so the result is owner-only regardless of the process umask.
+  // chmod is best-effort — POSIX permissions are a no-op on Windows.
+  writeFileSync(tmpPath, `${rewritten.join("\n")}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
   renameSync(tmpPath, path);
+  try {
+    chmodSync(path, 0o600);
+  } catch {
+    // platforms without POSIX file modes (Windows) — ignore
+  }
 }

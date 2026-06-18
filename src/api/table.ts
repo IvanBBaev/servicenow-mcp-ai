@@ -5,6 +5,7 @@ import {
   includeReferenceLinks,
   MAX_PAGE_SIZE,
 } from "../core/settings.js";
+import { logger } from "../core/logging.js";
 import { expectResult, expectResultArray } from "./shared.js";
 
 // Re-exported so existing imports and host/SSRF unit tests keep working.
@@ -27,6 +28,13 @@ export type SnRecord = Record<string, unknown>;
 export interface QueryResult {
   records: SnRecord[];
   total?: number;
+  /**
+   * True when a `fetchAll` read stopped at the SN_MAX_RECORDS cap while the
+   * instance still had more matching rows — i.e. the returned set is partial.
+   * Consumers that imply completeness (snapshot, compare) must surface this so
+   * they never present a truncated read as the whole picture.
+   */
+  truncated?: boolean;
 }
 
 function tablePath(table: string): string {
@@ -87,10 +95,14 @@ export async function queryTable(opts: QueryOptions): Promise<QueryResult> {
   const records: SnRecord[] = [];
   let total: number | undefined;
   let offset = opts.offset ?? 0;
+  let hitCap = false;
 
   for (;;) {
     const want = Math.min(pageSize, cap - records.length);
-    if (want <= 0) break;
+    if (want <= 0) {
+      hitCap = true; // stopped on the cap, not on an exhausted result set
+      break;
+    }
     const page = await queryPage(opts, want, offset);
     if (total === undefined) total = page.total;
     records.push(...page.records);
@@ -98,7 +110,20 @@ export async function queryTable(opts: QueryOptions): Promise<QueryResult> {
     offset += page.records.length;
   }
 
-  return { records, total };
+  // Prefer X-Total-Count (exact: a cap equal to the row count is NOT a
+  // truncation); fall back to "we broke on the cap" when the header is absent.
+  const truncated =
+    total !== undefined ? records.length < total : hitCap || undefined;
+  if (truncated) {
+    logger.warn("fetchAll stopped at the SN_MAX_RECORDS cap (partial result)", {
+      table: opts.table,
+      returned: records.length,
+      cap,
+      total,
+    });
+  }
+
+  return { records, total, truncated: truncated || undefined };
 }
 
 /** Read a single record by sys_id. */

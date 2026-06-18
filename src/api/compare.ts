@@ -103,8 +103,11 @@ async function tablesFor(
 /** One sys_dictionary pull per side: table → column → comparable properties. */
 type DictionaryMap = Map<string, Map<string, Record<string, string>>>;
 
-async function dictionaryFor(profile: string): Promise<DictionaryMap> {
-  const { records } = await runWithProfile(profile, () =>
+async function dictionaryFor(
+  profile: string,
+  warnings: string[],
+): Promise<DictionaryMap> {
+  const { records, truncated } = await runWithProfile(profile, () =>
     queryTable({
       table: "sys_dictionary",
       query: "elementISNOTEMPTY",
@@ -113,6 +116,11 @@ async function dictionaryFor(profile: string): Promise<DictionaryMap> {
       fetchAll: true,
     }),
   );
+  if (truncated) {
+    warnings.push(
+      `columns: sys_dictionary on "${profile}" hit the SN_MAX_RECORDS cap — the column diff is partial (raise SN_MAX_RECORDS for a complete comparison).`,
+    );
+  }
   const map: DictionaryMap = new Map();
   for (const r of records) {
     const table = snString(r.name);
@@ -140,7 +148,7 @@ async function scriptHashesFor(
   const byType = new Map<string, Map<string, string>>();
   for (const [type, descriptor] of Object.entries(SCRIPT_TYPES)) {
     try {
-      const { records } = await runWithProfile(profile, () =>
+      const { records, truncated } = await runWithProfile(profile, () =>
         queryTable({
           table: descriptor.table,
           fields: [descriptor.nameField, ...descriptor.scriptFields],
@@ -148,6 +156,11 @@ async function scriptHashesFor(
           fetchAll: true,
         }),
       );
+      if (truncated) {
+        warnings.push(
+          `scripts: ${type} on "${profile}" hit the SN_MAX_RECORDS cap — the script diff is partial.`,
+        );
+      }
       const hashes = new Map<string, string>();
       for (const r of records) {
         const name = snString(r[descriptor.nameField]);
@@ -203,7 +216,7 @@ async function inventoryFor(
   }
 
   try {
-    const { records } = await runWithProfile(profile, () =>
+    const { records, truncated } = await runWithProfile(profile, () =>
       queryTable({
         table: "v_plugin",
         fields: ["id", "name", "active", "version"],
@@ -211,6 +224,11 @@ async function inventoryFor(
         fetchAll: true,
       }),
     );
+    if (truncated) {
+      warnings.push(
+        `plugins: v_plugin on "${profile}" hit the SN_MAX_RECORDS cap — the plugin diff is partial.`,
+      );
+    }
     for (const p of records) plugins.add(pluginLine(p));
   } catch (e) {
     warnings.push(
@@ -219,7 +237,7 @@ async function inventoryFor(
   }
   for (const table of ["sys_app", "sys_store_app"]) {
     try {
-      const { records } = await runWithProfile(profile, () =>
+      const { records, truncated } = await runWithProfile(profile, () =>
         queryTable({
           table,
           fields: ["name", "scope", "version", "active"],
@@ -227,6 +245,11 @@ async function inventoryFor(
           fetchAll: true,
         }),
       );
+      if (truncated) {
+        warnings.push(
+          `apps: ${table} on "${profile}" hit the SN_MAX_RECORDS cap — the app diff is partial.`,
+        );
+      }
       for (const a of records) apps.add(appLine(a));
     } catch (e) {
       warnings.push(
@@ -273,7 +296,10 @@ export async function compareInstances(
   const tablesOnlyInB = onlyIn(namesB, namesA);
 
   // -- columns (one dictionary pull per side, diff over common tables) -----
-  const [dictA, dictB] = [await dictionaryFor(a), await dictionaryFor(b)];
+  const [dictA, dictB] = [
+    await dictionaryFor(a, warnings),
+    await dictionaryFor(b, warnings),
+  ];
   const columnDiffs: ColumnDiff[] = [];
   for (const [table, columnsA] of dictA) {
     const columnsB = dictB.get(table);

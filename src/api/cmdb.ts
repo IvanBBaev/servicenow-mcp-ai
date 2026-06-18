@@ -2,6 +2,7 @@ import { snRequest } from "../core/http.js";
 import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import { getCredentials } from "../core/config.js";
 import { cached } from "../core/cache.js";
+import { expectResult } from "./shared.js";
 
 /**
  * ServiceNow CMDB Instance API (`/api/now/cmdb/instance/{class}`) and CMDB Meta
@@ -35,7 +36,7 @@ export async function listCmdbInstances(
     path: `${INSTANCE}/${encodeURIComponent(className)}`,
     params,
   });
-  return data.result;
+  return expectResult(data, "CMDB API");
 }
 
 export async function getCmdbInstance(
@@ -47,7 +48,7 @@ export async function getCmdbInstance(
     method: "GET",
     path: `${INSTANCE}/${encodeURIComponent(className)}/${encodeURIComponent(sysId)}`,
   });
-  return data.result;
+  return expectResult(data, "CMDB API");
 }
 
 export interface CmdbWrite {
@@ -67,7 +68,7 @@ export async function createCmdbInstance(args: CmdbWrite): Promise<unknown> {
     path: `${INSTANCE}/${encodeURIComponent(args.className)}`,
     body,
   });
-  return data.result;
+  return expectResult(data, "CMDB API");
 }
 
 export async function updateCmdbInstance(
@@ -83,7 +84,7 @@ export async function updateCmdbInstance(
     path: `${INSTANCE}/${encodeURIComponent(args.className)}/${encodeURIComponent(sysId)}`,
     body,
   });
-  return data.result;
+  return expectResult(data, "CMDB API");
 }
 
 export async function getCmdbMeta(className: string): Promise<unknown> {
@@ -95,7 +96,7 @@ export async function getCmdbMeta(className: string): Promise<unknown> {
         method: "GET",
         path: `${META}/${encodeURIComponent(className)}`,
       });
-      return data.result;
+      return expectResult(data, "CMDB API");
     },
   );
 }

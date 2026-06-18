@@ -6,6 +6,7 @@ import {
   pluginAvailability,
   clearPluginAvailability,
 } from "../build/api/plugin.js";
+import { expectResult } from "../build/api/shared.js";
 import { ServiceNowError } from "../build/core/errors.js";
 import { withEnv } from "./helpers.js";
 
@@ -30,6 +31,27 @@ test("pluginCall annotates 404s with the inactive-plugin hint", async () => {
       err instanceof ServiceNowError &&
       err.status === 404 &&
       /Knowledge API\/plugin may not be active/.test(err.message),
+  );
+});
+
+test("a missing-result error inside pluginCall propagates without mismarking availability (ARCH-4)", async () => {
+  // catalog/change/knowledge unwrap via expectResult INSIDE pluginCall. A 200
+  // body with no `result` must surface a clear error (status undefined → not the
+  // 404 path) and must NOT mark the API unavailable — the namespace responded.
+  await assert.rejects(
+    pluginCall("Knowledge", async () =>
+      expectResult({ notResult: 1 }, "Knowledge API"),
+    ),
+    (err) =>
+      err instanceof ServiceNowError &&
+      err.status === undefined &&
+      /missing 'result'/.test(err.message) &&
+      !/may not be active/.test(err.message),
+  );
+  assert.deepEqual(
+    pluginAvailability(),
+    {},
+    "a missing-result error is not plugin absence",
   );
 });
 

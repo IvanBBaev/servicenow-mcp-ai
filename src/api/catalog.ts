@@ -1,5 +1,6 @@
 import { snRequest } from "../core/http.js";
 import { assertWriteAllowed } from "../core/policy.js";
+import { expectResult } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 
 /**
@@ -18,7 +19,7 @@ export async function listCatalogs(): Promise<unknown> {
       method: "GET",
       path: `${BASE}/catalogs`,
     });
-    return data.result;
+    return expectResult(data, "Service Catalog API");
   });
 }
 
@@ -30,7 +31,7 @@ export async function listCatalogCategories(
       method: "GET",
       path: `${BASE}/catalogs/${encodeURIComponent(catalogSysId)}/categories`,
     });
-    return data.result;
+    return expectResult(data, "Service Catalog API");
   });
 }
 
@@ -56,7 +57,7 @@ export async function listCatalogItems(
       path: `${BASE}/items`,
       params,
     });
-    return data.result;
+    return expectResult(data, "Service Catalog API");
   });
 }
 
@@ -66,7 +67,7 @@ export async function getCatalogItem(itemSysId: string): Promise<unknown> {
       method: "GET",
       path: `${BASE}/items/${encodeURIComponent(itemSysId)}`,
     });
-    return data.result;
+    return expectResult(data, "Service Catalog API");
   });
 }
 
@@ -89,6 +90,6 @@ export async function orderCatalogItem(args: OrderItemArgs): Promise<unknown> {
       path: `${BASE}/items/${encodeURIComponent(args.itemSysId)}/order_now`,
       body,
     });
-    return data.result;
+    return expectResult(data, "Service Catalog API");
   });
 }

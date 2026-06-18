@@ -136,3 +136,23 @@ test("saveCredentials persists, updates env and swaps the snapshot at once", asy
     baselineEnv();
   }
 });
+
+test("the env file is written owner-only, mode 0600 (SEC-7)", async (t) => {
+  if (process.platform === "win32") {
+    t.skip("POSIX file modes are a no-op on Windows");
+    return;
+  }
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "servicenow-mcp-mode-"));
+  const envFile = path.join(dir, ".env");
+  try {
+    await withEnv({ SN_ENV_FILE: envFile }, async () => {
+      // The file holds a plaintext password, so it must not be world-readable.
+      saveCredentials({ user: "bob", password: "n3w" });
+      const mode = (await fs.stat(envFile)).mode & 0o777;
+      assert.equal(mode, 0o600, `expected 0600, got 0o${mode.toString(8)}`);
+    });
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+    baselineEnv();
+  }
+});

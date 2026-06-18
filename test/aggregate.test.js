@@ -56,3 +56,19 @@ test("aggregate honours the table deny list before any request (QA-11)", async (
     ),
   );
 });
+
+test("aggregate surfaces a clear error when the response has no result (ARCH-4)", async () => {
+  // Every API module now unwraps the `result` envelope through the shared
+  // expectResult, so a malformed body is a clear error, not `undefined` data.
+  await withFetch(
+    () => jsonResponse(200, { notResult: 1 }),
+    async () => {
+      await assert.rejects(
+        aggregate({ table: "incident", count: true }),
+        (err) =>
+          err instanceof ServiceNowError &&
+          /missing 'result'/.test(err.message),
+      );
+    },
+  );
+});

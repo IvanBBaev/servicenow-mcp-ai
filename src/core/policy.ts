@@ -1,5 +1,6 @@
 import { ServiceNowError } from "./errors.js";
 import { activeProfile } from "./config.js";
+import { getDeniedPackages, getReadOnlyPackages } from "./settings.js";
 
 /**
  * Access policy for ServiceNow tables and operations, configured via env:
@@ -72,6 +73,37 @@ export function assertWriteAllowed(operation: string): void {
   if (isReadOnly()) {
     throw new ServiceNowError(
       `Server is in read-only mode (SN_READONLY); "${operation}" is not permitted.`,
+      403,
+    );
+  }
+}
+
+/**
+ * Throw when a tool package is denied via SN_PACKAGES_DENY. Mirrors the
+ * registry's package gate so a path that reaches a package's REST surface
+ * outside the normal tool registration (the Batch API) cannot bypass the deny.
+ */
+export function assertPackageAllowed(pkg: string): void {
+  if (getDeniedPackages().includes(pkg)) {
+    throw new ServiceNowError(
+      `Access to package "${pkg}" is denied by SN_PACKAGES_DENY.`,
+      403,
+    );
+  }
+}
+
+/**
+ * Throw when a write targets a package made read-only via SN_PACKAGES_READONLY.
+ * The package axis only removes write tools at registration time; this enforces
+ * the same rule on the Batch API, whose sub-requests skip that registration.
+ */
+export function assertPackageWriteAllowed(
+  pkg: string,
+  operation: string,
+): void {
+  if (getReadOnlyPackages().includes(pkg)) {
+    throw new ServiceNowError(
+      `Package "${pkg}" is read-only (SN_PACKAGES_READONLY); "${operation}" is not permitted.`,
       403,
     );
   }

@@ -55,18 +55,50 @@ test("fetchAll needs one probe page when rows divide evenly", async () => {
 test("fetchAll honours the SN_MAX_RECORDS cap and shrinks the last page", async () => {
   await withEnv({ SN_MAX_RECORDS: "3" }, () =>
     withFetch(pagedHandler(makeRows(10)), async (calls) => {
-      const { records, total } = await queryTable({
+      const { records, total, truncated } = await queryTable({
         table: "incident",
         fetchAll: true,
         limit: 2,
       });
       assert.equal(records.length, 3);
       assert.equal(total, 10, "total still reports all matching rows");
+      // ARCH-3: a cap that hides rows must be flagged so consumers (snapshot,
+      // compare) cannot present a partial read as the whole picture.
+      assert.equal(truncated, true);
       const limits = calls.map((c) =>
         new URL(c.url).searchParams.get("sysparm_limit"),
       );
       // Second request asks only for the single record left under the cap.
       assert.deepEqual(limits, ["2", "1"]);
+    }),
+  );
+});
+
+test("fetchAll does not flag truncated when it reads every matching row (QA-18)", async () => {
+  await withFetch(pagedHandler(makeRows(5)), async () => {
+    const { records, truncated } = await queryTable({
+      table: "incident",
+      fetchAll: true,
+      limit: 2,
+    });
+    assert.equal(records.length, 5);
+    assert.equal(truncated, undefined, "a complete read is never truncated");
+  });
+});
+
+test("fetchAll does not flag truncated when the row count equals the cap exactly (QA-18)", async () => {
+  // X-Total-Count == cap is a complete read, not a truncation: the next page
+  // would be empty, so consumers must not be warned about a partial result.
+  await withEnv({ SN_MAX_RECORDS: "4" }, () =>
+    withFetch(pagedHandler(makeRows(4)), async () => {
+      const { records, total, truncated } = await queryTable({
+        table: "incident",
+        fetchAll: true,
+        limit: 2,
+      });
+      assert.equal(records.length, 4);
+      assert.equal(total, 4);
+      assert.equal(truncated, undefined);
     }),
   );
 });

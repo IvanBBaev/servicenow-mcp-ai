@@ -1,4 +1,5 @@
 import { snRequest } from "../core/http.js";
+import { expectResult } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 
 /**
@@ -34,7 +35,7 @@ export async function searchKnowledge(
       path: `${BASE}/articles`,
       params,
     });
-    return data.result;
+    return expectResult(data, "Knowledge API");
   });
 }
 
@@ -44,7 +45,7 @@ export async function getKnowledgeArticle(sysId: string): Promise<unknown> {
       method: "GET",
       path: `${BASE}/articles/${encodeURIComponent(sysId)}`,
     });
-    return data.result;
+    return expectResult(data, "Knowledge API");
   });
 }
 
@@ -62,6 +63,6 @@ export async function knowledgeHighlights(
       path: `${BASE}/articles/${mode}`,
       params,
     });
-    return data.result;
+    return expectResult(data, "Knowledge API");
   });
 }

@@ -1,6 +1,7 @@
 import { snRequest } from "../core/http.js";
 import { assertWriteAllowed } from "../core/policy.js";
 import { ServiceNowError } from "../core/errors.js";
+import { expectResult } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 
 /**
@@ -34,7 +35,7 @@ export async function listChanges(opts: ChangeQuery = {}): Promise<unknown> {
       path: BASE,
       params,
     });
-    return data.result;
+    return expectResult(data, "Change Management API");
   });
 }
 
@@ -44,7 +45,7 @@ export async function getChange(sysId: string): Promise<unknown> {
       method: "GET",
       path: `${BASE}/${encodeURIComponent(sysId)}`,
     });
-    return data.result;
+    return expectResult(data, "Change Management API");
   });
 }
 
@@ -74,7 +75,7 @@ export async function createChange(args: CreateChangeArgs): Promise<unknown> {
       path,
       body: args.fields ?? {},
     });
-    return data.result;
+    return expectResult(data, "Change Management API");
   });
 }
 
@@ -89,7 +90,7 @@ export async function updateChange(
       path: `${BASE}/${encodeURIComponent(sysId)}`,
       body: fields,
     });
-    return data.result;
+    return expectResult(data, "Change Management API");
   });
 }
 
@@ -107,6 +108,6 @@ export async function changeConflicts(
       method: calculate ? "POST" : "GET",
       path: `${BASE}/${encodeURIComponent(sysId)}/conflict`,
     });
-    return data.result;
+    return expectResult(data, "Change Management API");
   });
 }
