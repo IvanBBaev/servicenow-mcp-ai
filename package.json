@@ -6,11 +6,11 @@
   "author": "Ivan Baev <ivanbbaev@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/LeassTaTT/servicenow-mcp.git"
+    "url": "git+https://github.com/LeassTaTT/servicenow-mcp-ai.git"
   },
-  "homepage": "https://github.com/LeassTaTT/servicenow-mcp#readme",
+  "homepage": "https://github.com/LeassTaTT/servicenow-mcp-ai#readme",
   "bugs": {
-    "url": "https://github.com/LeassTaTT/servicenow-mcp/issues"
+    "url": "https://github.com/LeassTaTT/servicenow-mcp-ai/issues"
   },
   "type": "module",
   "bin": {
