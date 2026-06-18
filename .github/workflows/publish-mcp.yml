@@ -1,0 +1,30 @@
+name: Publish to MCP Registry
+
+# Register the server in the official MCP Registry (registry.modelcontextprotocol.io)
+# from server.json. Runs after the npm "Publish" workflow succeeds (so the registry
+# can verify the published tarball's mcpName), and can be re-run on demand via
+# workflow_dispatch without re-publishing to npm. server.json carries the version
+# (kept in sync with package.json), so this always registers the current release.
+on:
+  workflow_run:
+    workflows: ["Publish"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # GitHub OIDC for mcp-publisher (no extra secret needed)
+
+jobs:
+  publish-mcp:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+      - name: Publish to the MCP Registry (GitHub OIDC)
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
