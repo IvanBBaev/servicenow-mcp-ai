@@ -221,7 +221,7 @@ Third `/full-review` pass over the whole tree on top of 1.0.0. One real correctn
 - [x] **QA-18 · `truncated` contract pinned** — three unit tests in `test/fetchall.test.js` (capped read flags truncated; complete read does not; row count == cap is complete).
 - [x] **QA-19 · consumer-side warning pinned** — `compareInstances` test in `test/compare.test.js` pages `sys_dictionary` over the cap and asserts the partial-diff warning reaches both the result and the Markdown report. 173 → 176 tests; branch coverage 80.16% → 80.47%.
 
-### Follow-up (2026-06-17) — "фиксвай всичко": every remaining finding closed
+### Follow-up (2026-06-17) — "fix everything": every remaining finding closed
 
 The two architect-deferred items and the two former won't-fix security decisions, all implemented with tests. `npm run check` green: 176 → **182 tests**, coverage 93.0% lines / 81.0% branches / 69.4% functions, audit 0. No deferred review items remain.
 
