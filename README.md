@@ -8,6 +8,11 @@ instance through its REST APIs — Table, Aggregate, Attachment, Import Set, Bat
 and CMDB, plus the Service Catalog, Change Management and Knowledge plugin APIs.
 Credentials are kept in a local env file and can be updated at runtime through a tool.
 
+> **Upgrading from 1.x?** v2.0 makes writes **plan-by-default**: `create`/`update`/`delete`
+> and the other record-write tools return a non-mutating preview unless you pass
+> `apply: true` (or set `SN_WRITE_MODE=apply` to restore the v1 "execute immediately"
+> behaviour). See the [CHANGELOG](CHANGELOG.md) → 2.0.0 for the full migration note.
+
 **Contents:** [Features](#features) · [Requirements](#requirements) ·
 [Setup](#setup) · [Configure credentials](#configure-credentials) ·
 [Run / debug](#run--debug) · [Develop](#develop) · [Tools](#tools) ·

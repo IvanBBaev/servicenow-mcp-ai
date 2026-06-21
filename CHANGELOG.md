@@ -5,6 +5,25 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-21
+
+v2.0 makes the breadth of v1 **safe and self-aware**: writes preview before they run, the server reports which capabilities it can actually achieve on your instance, and `code_health` audits the access-control layer. (v1 = breadth; v2 = trust + depth.)
+
+### Breaking changes
+
+- **Writes are plan-by-default.** `SN_WRITE_MODE=plan` is the new default. The record-style write tools — `servicenow_create_record` / `update_record` / `delete_record`, `servicenow_create_change` / `update_change`, `servicenow_create_ci` / `update_ci`, and `servicenow_insert_import_set_row` — now return a non-mutating **before/after preview** instead of executing.
+  - **Migration:** to apply a change, pass `apply: true` on the call, or set **`SN_WRITE_MODE=apply`** to restore the v1.x "execute immediately" behaviour globally. Automations that relied on a write running on the first call must do one of these.
+
+### Added
+
+- **DF-0 — capability preflight.** New always-on `servicenow_check_capabilities` tool and `servicenow://capabilities` resource: probe which admin-restricted `sys_*` tables the connected user can actually read, and report which capabilities (schema reads, script intelligence, ACL audit) are achievable — so the script/codecheck tools never promise a read they cannot make. `servicenow_table_logic` now degrades a 401/403 on one artefact type to an `unreadable` flag instead of failing the whole overview. (66 tools / 18 packages.)
+- **DF-2 — plan-and-apply + local audit journal.** `SN_WRITE_MODE` (plan|apply) and a per-call `apply` argument gate every record-style write tool; each applied mutation is appended to a per-profile, append-only journal at `<SN_DOCS_DIR>/<profile>/write-journal.{jsonl,md}` — a client-side audit trail where there is no AI Control Tower.
+- **DF-1 — ACL security scan.** `servicenow_code_health` now folds in a security dimension over the active ACLs (`sys_security_acl`): `eval`/side-effects/`gs.getUser` in ACL evaluation scripts, and roles-only ACLs (no condition and no script). The `sys_security_acl` read is gated behind DF-0 — when it is unreadable the scan reports the role needed rather than a silently empty all-clear.
+
+### Changed
+
+- The out-of-the-box posture for writes is now **safe-by-default** (preview first) — see Breaking changes.
+
 ## [1.1.2] - 2026-06-19
 
 ### Fixed
@@ -96,7 +115,8 @@ cut and the subsequent work are consolidated here.)
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
 - Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.
 
-[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.2...v2.0.0
 [1.1.2]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/LeassTaTT/servicenow-mcp-ai/compare/v1.0.0...v1.1.0
