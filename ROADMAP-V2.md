@@ -22,7 +22,7 @@ DX-1, DX-3**; DF-4/DF-5/DF-6 follow in 2.1 if capacity demands triage.
 | --- | -------- | ----------- | -------------------------------------------------------------------- | ------------------------ |
 | 1   | **DF-0** | Depth       | Precondition for DF-1/DF-4; closes the permission paradox (R1/R2/B4) | 🟢 preflight shipped     |
 | 2   | **DF-2** | Trust       | The root enabler — makes raw-REST writes safe (dry-run + audit)      | 🟡 record writes shipped |
-| 3   | **DF-1** | Depth       | Headline "knows your instance"; extends Phase 8 codecheck            | ⬜                       |
+| 3   | **DF-1** | Depth       | Headline "knows your instance"; extends Phase 8 codecheck            | 🟢 ACL scan shipped      |
 | 4   | **DX-1** | Discovery   | MCP Registry + Claude Code plugin — biggest adoption lever           | ⬜                       |
 | 5   | **DX-3** | Discovery   | One sharp "find-usages / what-runs / dev-vs-prod" demo               | ⬜                       |
 | —   | DF-4/5/6 | Depth/Reach | where-used graph · redaction · HTTP transport — 2.1 triage           | ⬜ deferred              |
@@ -43,9 +43,10 @@ regenerated, and the README/env reference kept in sync (the project's standing g
       `npm run check` green (241 tests, coverage 95/82/99).
 - [x] `table_logic` degrades a 401/403 per artefact type to an `unreadable` flag
       instead of a hard failure or a silently empty overview.
-- [ ] _2.1 / DF-1:_ extend the same degrade to `code_health` when the security scan lands.
+- [x] `code_health` degrades the ACL read to `available:false` when `sys_security_acl` is
+      unreadable (DF-1 security scan landed).
 
-### DF-2 — Plan-and-apply + local audit journal (Table CRUD shipped)
+### DF-2 — Plan-and-apply + local audit journal (record writes shipped)
 
 - [x] `SN_WRITE_MODE=plan|apply` (default **plan**) + per-tool `apply:true`; plan returns
       a non-mutating before/after preview. Shipped for **Table CRUD** (create/update/
@@ -59,11 +60,13 @@ regenerated, and the README/env reference kept in sync (the project's standing g
 - [ ] _Remaining (2.1 ok):_ the special write tools — batch, catalog order, attachment
       upload/delete, email send, ATF runs.
 
-### DF-1 — Instance linter + security scan
+### DF-1 — Instance linter + security scan (ACL scan shipped)
 
-- [ ] Fold a security dimension into `code_health`: world-/role-open ACLs, tables with no
-      ACL, public Scripted REST/pages, admin-overlap roles, `eval`/`gs.getUser()` in ACL
-      scripts. Gate the readable scope behind DF-0.
+- [x] `securityScan()` folded into `code_health`: ACL evaluation scripts flagged for
+      `eval`/side-effects/`gs.getUser`, plus roles-only ACLs (no condition + no script).
+      The `sys_security_acl` read is gated behind DF-0 — a 401/403 degrades to
+      `available:false` with the role needed, never a silently empty "all clear".
+- [ ] _2.1 ok:_ extend to public Scripted REST/pages, tables with no ACL, admin-overlap roles.
 
 ### DX-1 / DX-3 — Discovery
 

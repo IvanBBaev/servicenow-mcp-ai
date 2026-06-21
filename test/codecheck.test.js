@@ -9,6 +9,7 @@ import {
   lintScript,
   lintTable,
   codeHealth,
+  securityScan,
 } from "../build/api/codecheck.js";
 import { baselineEnv, withFetch, withEnv, jsonResponse } from "./helpers.js";
 
@@ -114,6 +115,10 @@ test("codeHealth counts scripts and writes a report (FT-6)", async () => {
     await withEnv({ SN_DOCS_DIR: dir }, async () => {
       await withFetch(
         (url) => {
+          // DF-1: the security scan reads the ACL table.
+          if (url.includes("/api/now/table/sys_security_acl")) {
+            return jsonResponse(200, { result: [] });
+          }
           // every script-type aggregate returns a count
           assert.match(url, /\/api\/now\/stats\//);
           return jsonResponse(200, { result: { stats: { count: "7" } } });
@@ -122,6 +127,7 @@ test("codeHealth counts scripts and writes a report (FT-6)", async () => {
           const health = await codeHealth();
           assert.equal(health.scope, "instance");
           assert.equal(health.scriptCounts.business_rule, 7);
+          assert.equal(health.security.available, true);
           assert.ok(health.reportFile.endsWith("code-health.md"));
           assert.ok(existsSync(join(dir, health.reportFile)));
         },
@@ -130,4 +136,74 @@ test("codeHealth counts scripts and writes a report (FT-6)", async () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("securityScan flags eval and side-effects in ACL scripts (DF-1)", async () => {
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/api\/now\/table\/sys_security_acl/);
+      return jsonResponse(200, {
+        result: [
+          {
+            sys_id: "a1",
+            name: "incident.read",
+            operation: "read",
+            script: "answer = eval(gs.getProperty('x'));",
+            condition: "",
+          },
+          {
+            sys_id: "a2",
+            name: "incident.write",
+            operation: "write",
+            script: "gr.update();",
+            condition: "active=true",
+          },
+        ],
+      });
+    },
+    async () => {
+      const scan = await securityScan();
+      assert.equal(scan.available, true);
+      assert.equal(scan.aclCount, 2);
+      const ruleIds = scan.findings.map((f) => f.rule);
+      assert.ok(ruleIds.includes("eval-in-acl"));
+      assert.ok(ruleIds.includes("gr-write-in-acl"));
+      assert.ok(scan.bySeverity.error >= 1);
+    },
+  );
+});
+
+test("securityScan flags a roles-only ACL with no script or condition (DF-1)", async () => {
+  await withFetch(
+    () =>
+      jsonResponse(200, {
+        result: [
+          {
+            sys_id: "a3",
+            name: "incident.create",
+            operation: "create",
+            script: "",
+            condition: "",
+          },
+        ],
+      }),
+    async () => {
+      const scan = await securityScan();
+      const f = scan.findings.find((x) => x.rule === "acl-roles-only");
+      assert.ok(f);
+      assert.equal(f.severity, "info");
+    },
+  );
+});
+
+test("securityScan degrades to available:false when the ACL table is forbidden (DF-1/DF-0)", async () => {
+  await withFetch(
+    () => jsonResponse(403, { error: { message: "no access" } }),
+    async () => {
+      const scan = await securityScan();
+      assert.equal(scan.available, false);
+      assert.match(scan.unavailableReason, /security_admin|admin/);
+      assert.equal(scan.findings.length, 0);
+    },
+  );
 });

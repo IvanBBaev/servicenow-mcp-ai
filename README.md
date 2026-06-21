@@ -265,7 +265,7 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `flows` | `servicenow_get_flow_runs` | yes | Read flow execution evidence from sys_flow_context — by flow sys_id or by the record (document) it ran agai… |
 | `codecheck` | `servicenow_lint_script` | yes | Run deterministic code-quality rules over one script artefact (hard-coded sys_ids/URLs, unbounded or in-loo… |
 | `codecheck` | `servicenow_lint_table` | yes | Lint every active business rule, client script and UI policy of a table (via table_logic), returning per-sc… |
-| `codecheck` | `servicenow_code_health` | no | Aggregate code-health picture: script counts by type, and (when a table scope is given) the lint findings b… |
+| `codecheck` | `servicenow_code_health` | no | Aggregate code-health picture: script counts by type, a security scan of the access-control layer (ACL scri… |
 | `docs` | `servicenow_docs_list` | yes | List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR) |
 | `docs` | `servicenow_docs_read` | yes | Read one Markdown document from the local instance-documentation folder |
 | `docs` | `servicenow_docs_search` | yes | Search the local instance documentation for a substring; returns a snippet per match |

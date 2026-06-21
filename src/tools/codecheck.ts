@@ -49,9 +49,10 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_code_health",
     title: "Code health report",
     description:
-      "Aggregate code-health picture: script counts by type, and (when a table scope is given) the " +
-      "lint findings by severity with the top offenders. Writes a Markdown report to " +
-      "SN_DOCS_DIR/<profile>/code-health.md.",
+      "Aggregate code-health picture: script counts by type, a security scan of the access-control " +
+      "layer (ACL scripts with eval/side-effects, roles-only ACLs — degrades gracefully if " +
+      "sys_security_acl is unreadable), and (when a table scope is given) the lint findings by " +
+      "severity with the top offenders. Writes a Markdown report to SN_DOCS_DIR/<profile>/code-health.md.",
     package: "codecheck",
     annotations: {
       readOnlyHint: false,

@@ -1,4 +1,5 @@
 import { getScript, tableLogic, SCRIPT_TYPES } from "./scripts.js";
+import { queryTable } from "./table.js";
 import { aggregate } from "./aggregate.js";
 import { docsWriteRaw } from "./docs.js";
 import { snString } from "./shared.js";
@@ -291,6 +292,128 @@ function countFromStats(result: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+// --- DF-1: security scan over the access-control layer (sys_security_acl) -----
+
+export interface SecurityFinding {
+  sys_id: string;
+  name: string;
+  operation: string;
+  rule: string;
+  severity: Severity;
+  hint: string;
+}
+
+export interface SecurityScan {
+  /** False when sys_security_acl is unreadable for the connected user (DF-0). */
+  available: boolean;
+  unavailableReason?: string;
+  aclCount: number;
+  findings: SecurityFinding[];
+  bySeverity: Record<Severity, number>;
+}
+
+/** Rules over an ACL's evaluation script — where a weak check becomes a hole. */
+const ACL_SCRIPT_RULES: {
+  id: string;
+  severity: Severity;
+  re: RegExp;
+  hint: string;
+}[] = [
+  {
+    id: "eval-in-acl",
+    severity: "error",
+    re: /\beval\s*\(/,
+    hint: "eval() in an ACL evaluation script is a security risk — an attacker-influenced value could flip the access decision.",
+  },
+  {
+    id: "gr-write-in-acl",
+    severity: "warn",
+    re: /\.(update|insertWithReferences|deleteRecord)\s*\(/,
+    hint: "An ACL script that writes records has side effects during an access check — ACLs must be read-only decisions.",
+  },
+  {
+    id: "getuser-in-acl",
+    severity: "info",
+    re: /gs\.getUser(ID|Name)?\s*\(/,
+    hint: "gs.getUser* inside an ACL script — verify the identity logic genuinely belongs in the access check.",
+  },
+];
+
+/**
+ * DF-1 — scan the active ACLs for weak access controls. Reads `sys_security_acl`
+ * (admin-restricted, so the read is gated: a 401/403 degrades to
+ * `available:false` with the role needed, never a silently empty "all clear").
+ * Flags eval/side-effects in ACL scripts and ACLs that gate on roles alone.
+ */
+export async function securityScan(limit = 500): Promise<SecurityScan> {
+  const findings: SecurityFinding[] = [];
+  const bySeverity: Record<Severity, number> = { error: 0, warn: 0, info: 0 };
+
+  let records;
+  try {
+    const res = await queryTable({
+      table: "sys_security_acl",
+      query: "active=true^ORDERBYname",
+      fields: ["sys_id", "name", "operation", "script", "condition"],
+      limit,
+    });
+    records = res.records;
+  } catch (error) {
+    if (
+      error instanceof ServiceNowError &&
+      (error.status === 403 || error.status === 401)
+    ) {
+      return {
+        available: false,
+        unavailableReason:
+          "sys_security_acl is not readable for this user (needs the security_admin or admin role). Run servicenow_check_capabilities.",
+        aclCount: 0,
+        findings: [],
+        bySeverity,
+      };
+    }
+    throw error;
+  }
+
+  for (const r of records) {
+    const sys_id = snString(r.sys_id);
+    const name = snString(r.name);
+    const operation = snString(r.operation);
+    const script = snString(r.script);
+    const condition = snString(r.condition);
+
+    for (const rule of ACL_SCRIPT_RULES) {
+      if (script && rule.re.test(script)) {
+        findings.push({
+          sys_id,
+          name,
+          operation,
+          rule: rule.id,
+          severity: rule.severity,
+          hint: rule.hint,
+        });
+        bySeverity[rule.severity]++;
+      }
+    }
+
+    // An active ACL with neither a condition nor a script grants on its roles
+    // alone — and an ACL with an empty role list is open to everyone.
+    if (!script.trim() && !condition.trim()) {
+      findings.push({
+        sys_id,
+        name,
+        operation,
+        rule: "acl-roles-only",
+        severity: "info",
+        hint: "Active ACL with no condition and no script — access depends entirely on its assigned roles; confirm a role is set (an empty role list grants everyone).",
+      });
+      bySeverity.info++;
+    }
+  }
+
+  return { available: true, aclCount: records.length, findings, bySeverity };
+}
+
 export interface CodeHealth {
   scope: string;
   profile: string;
@@ -298,6 +421,7 @@ export interface CodeHealth {
   reportFile?: string;
   scriptCounts: Record<string, number>;
   lint?: TableLint;
+  security?: SecurityScan;
   warnings: string[];
 }
 
@@ -333,6 +457,14 @@ export async function codeHealth(scope?: string): Promise<CodeHealth> {
         `lint ${scope!}: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
+  }
+
+  // DF-1: the security dimension, folded into the same health report.
+  let security: SecurityScan | undefined;
+  try {
+    security = await securityScan();
+  } catch (e) {
+    warnings.push(`security: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   const md: string[] = [
@@ -375,6 +507,34 @@ export async function codeHealth(scope?: string): Promise<CodeHealth> {
     }
   }
 
+  if (security) {
+    md.push("## Security — ACL scan", "");
+    if (!security.available) {
+      md.push(`_Unavailable:_ ${security.unavailableReason}`, "");
+    } else {
+      md.push(
+        `${security.aclCount} active ACLs scanned · ${security.findings.length} findings ` +
+          `(error ${security.bySeverity.error} · warn ${security.bySeverity.warn} · info ${security.bySeverity.info}).`,
+        "",
+      );
+      const topAcl = security.findings
+        .filter((f) => f.severity !== "info")
+        .slice(0, 20);
+      if (topAcl.length > 0) {
+        md.push(
+          "| ACL | Operation | Rule | Severity |",
+          "| --- | --- | --- | --- |",
+        );
+        for (const f of topAcl) {
+          md.push(
+            `| ${f.name.replaceAll("|", "\\|")} | ${f.operation} | ${f.rule} | ${f.severity} |`,
+          );
+        }
+        md.push("");
+      }
+    }
+  }
+
   let reportFile: string | undefined;
   try {
     reportFile = `${profile}/code-health.md`;
@@ -391,6 +551,7 @@ export async function codeHealth(scope?: string): Promise<CodeHealth> {
     reportFile,
     scriptCounts,
     lint,
+    security,
     warnings,
   };
 }
