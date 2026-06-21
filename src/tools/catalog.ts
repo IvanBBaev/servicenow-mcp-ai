@@ -8,6 +8,8 @@ import {
 } from "../api/catalog.js";
 import { ok } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { appendWriteJournal } from "../core/write-journal.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -92,12 +94,29 @@ export const specs: AnyToolSpec[] = [
         .record(z.unknown())
         .optional()
         .describe("Variable name/value pairs for the item."),
+      apply: applyInput,
     },
-    handler: async ({ item_sys_id, quantity, variables }) => {
+    handler: async ({ item_sys_id, quantity, variables, apply }) => {
+      if (!shouldApply(apply)) {
+        return planPreview({
+          action: "create",
+          table: "sc_request",
+          after: {
+            item: item_sys_id,
+            quantity: quantity ?? 1,
+            ...(variables ? { variables } : {}),
+          },
+        });
+      }
       const result = await orderCatalogItem({
         itemSysId: item_sys_id,
         quantity,
         variables,
+      });
+      appendWriteJournal({
+        action: "create",
+        table: "sc_request",
+        fields: { item: item_sys_id, quantity: quantity ?? 1 },
       });
       return ok({ message: "Order submitted", result });
     },

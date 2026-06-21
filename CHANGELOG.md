@@ -11,7 +11,7 @@ v2.0 makes the breadth of v1 **safe and self-aware**: writes preview before they
 
 ### Breaking changes
 
-- **Writes are plan-by-default.** `SN_WRITE_MODE=plan` is the new default. The record-style write tools — `servicenow_create_record` / `update_record` / `delete_record`, `servicenow_create_change` / `update_change`, `servicenow_create_ci` / `update_ci`, and `servicenow_insert_import_set_row` — now return a non-mutating **before/after preview** instead of executing.
+- **Writes are plan-by-default.** `SN_WRITE_MODE=plan` is the new default. The write tools — record CRUD (`create`/`update`/`delete_record`), change (`create`/`update_change`), CMDB CI (`create`/`update_ci`), import-set insert, **email send**, **catalog order**, and **attachment upload/delete** — now return a non-mutating **before/after preview** instead of executing. (The multi-write `batch` and ATF run tools keep their v1 behaviour for now.)
   - **Migration:** to apply a change, pass `apply: true` on the call, or set **`SN_WRITE_MODE=apply`** to restore the v1.x "execute immediately" behaviour globally. Automations that relied on a write running on the first call must do one of these.
 
 ### Added

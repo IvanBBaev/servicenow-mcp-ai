@@ -2,6 +2,8 @@ import { z } from "zod";
 import { sendEmail, getEmail } from "../api/email.js";
 import { ok } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { appendWriteJournal } from "../core/write-journal.js";
 
 /** Email package: only enabled explicitly or via the `all` profile. */
 export const specs: AnyToolSpec[] = [
@@ -31,9 +33,24 @@ export const specs: AnyToolSpec[] = [
         .string()
         .optional()
         .describe("sys_id of the record to associate the email with."),
+      apply: applyInput,
     },
     logFields: (args) => ({ recipients: args.to.length, table: args.table }),
-    handler: async ({ to, subject, body, cc, bcc, table, sys_id }) => {
+    handler: async ({ to, subject, body, cc, bcc, table, sys_id, apply }) => {
+      if (!shouldApply(apply)) {
+        return planPreview({
+          action: "create",
+          table: "email",
+          after: {
+            to,
+            subject,
+            ...(cc ? { cc } : {}),
+            ...(bcc ? { bcc } : {}),
+            body,
+            ...(table && sys_id ? { record: `${table}/${sys_id}` } : {}),
+          },
+        });
+      }
       const result = await sendEmail({
         to,
         subject,
@@ -42,6 +59,12 @@ export const specs: AnyToolSpec[] = [
         bcc,
         table,
         sysId: sys_id,
+      });
+      // The body can be large/sensitive — journal only the envelope.
+      appendWriteJournal({
+        action: "create",
+        table: "email",
+        fields: { to, subject, recipients: to.length },
       });
       return ok({ message: "Email queued", result });
     },

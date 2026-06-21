@@ -8,6 +8,8 @@ import {
 } from "../api/attachment.js";
 import { ok } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { appendWriteJournal } from "../core/write-journal.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -86,6 +88,7 @@ export const specs: AnyToolSpec[] = [
         .string()
         .optional()
         .describe("MIME type, e.g. 'text/plain'. Defaults to octet-stream."),
+      apply: applyInput,
     },
     logFields: (args) => ({ table: args.table, file_name: args.file_name }),
     handler: async ({
@@ -94,13 +97,36 @@ export const specs: AnyToolSpec[] = [
       file_name,
       content_base64,
       content_type,
+      apply,
     }) => {
+      if (!shouldApply(apply)) {
+        // Never echo the base64 payload — preview the envelope only.
+        return planPreview({
+          action: "create",
+          table,
+          sys_id,
+          after: {
+            file_name,
+            content_type: content_type ?? "application/octet-stream",
+            base64_chars: content_base64.length,
+          },
+        });
+      }
       const record = await uploadAttachment({
         table,
         sysId: sys_id,
         fileName: file_name,
         contentBase64: content_base64,
         contentType: content_type,
+      });
+      appendWriteJournal({
+        action: "create",
+        table,
+        sys_id,
+        fields: {
+          file_name,
+          content_type: content_type ?? "application/octet-stream",
+        },
       });
       return ok({ message: "Attachment uploaded", record });
     },
@@ -121,9 +147,24 @@ export const specs: AnyToolSpec[] = [
       attachment_sys_id: z
         .string()
         .describe("The sys_id of the attachment to delete."),
+      apply: applyInput,
     },
-    handler: async ({ attachment_sys_id }) => {
+    handler: async ({ attachment_sys_id, apply }) => {
+      if (!shouldApply(apply)) {
+        const before = await getAttachmentMeta(attachment_sys_id);
+        return planPreview({
+          action: "delete",
+          table: "sys_attachment",
+          sys_id: attachment_sys_id,
+          before,
+        });
+      }
       const result = await deleteAttachment(attachment_sys_id);
+      appendWriteJournal({
+        action: "delete",
+        table: "sys_attachment",
+        sys_id: attachment_sys_id,
+      });
       return ok({ message: "Attachment deleted", ...result });
     },
   }),

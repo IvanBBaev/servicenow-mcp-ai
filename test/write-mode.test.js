@@ -8,6 +8,9 @@ import { specs as tableSpecs } from "../build/tools/table.js";
 import { specs as changeSpecs } from "../build/tools/change.js";
 import { specs as cmdbSpecs } from "../build/tools/cmdb.js";
 import { specs as importsetSpecs } from "../build/tools/importset.js";
+import { specs as emailSpecs } from "../build/tools/email.js";
+import { specs as catalogSpecs } from "../build/tools/catalog.js";
+import { specs as attachmentSpecs } from "../build/tools/attachment.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();
@@ -17,6 +20,9 @@ const allSpecs = [
   ...changeSpecs,
   ...cmdbSpecs,
   ...importsetSpecs,
+  ...emailSpecs,
+  ...catalogSpecs,
+  ...attachmentSpecs,
 ];
 const tool = (name) => allSpecs.find((s) => s.name === name);
 const out = (res) => JSON.parse(res.content[0].text);
@@ -230,5 +236,105 @@ test("create_change apply executes and journals an unwrapped sys_id (DF-2)", asy
         assert.match(jsonl, /"sys_id":"chg9"/); // resultSysId unwrapped {value}
       },
     ),
+  );
+});
+
+// --- special write tools: email / catalog / attachment ----------------------
+
+test("send_email plan mode previews the envelope, no send (DF-2)", async () => {
+  await withFetch(
+    (_url, init) => {
+      if (init?.method === "POST") {
+        throw new Error("must not send in plan mode");
+      }
+      return jsonResponse(200, { result: {} });
+    },
+    async (calls) => {
+      const o = out(
+        await tool("servicenow_send_email").handler({
+          to: ["a@b.com"],
+          subject: "Hi",
+          body: "Body text",
+        }),
+      );
+      assert.equal(o.mode, "plan");
+      assert.equal(o.table, "email");
+      assert.deepEqual(o.after.to, ["a@b.com"]);
+      assert.equal(o.after.body, "Body text");
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
+test("order_catalog_item plan mode previews an sc_request, no order (DF-2)", async () => {
+  await withFetch(
+    (_url, init) => {
+      if (init?.method === "POST") {
+        throw new Error("must not order in plan mode");
+      }
+      return jsonResponse(200, { result: {} });
+    },
+    async (calls) => {
+      const o = out(
+        await tool("servicenow_order_catalog_item").handler({
+          item_sys_id: "item1",
+          quantity: 2,
+        }),
+      );
+      assert.equal(o.mode, "plan");
+      assert.equal(o.table, "sc_request");
+      assert.equal(o.after.item, "item1");
+      assert.equal(o.after.quantity, 2);
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
+test("upload_attachment plan mode previews without echoing the base64 (DF-2)", async () => {
+  await withFetch(
+    (_url, init) => {
+      if (init?.method === "POST") {
+        throw new Error("must not upload in plan mode");
+      }
+      return jsonResponse(200, { result: {} });
+    },
+    async (calls) => {
+      const res = await tool("servicenow_upload_attachment").handler({
+        table: "incident",
+        sys_id: "rec1",
+        file_name: "log.txt",
+        content_base64: "QUJD",
+      });
+      const o = out(res);
+      assert.equal(o.mode, "plan");
+      assert.equal(o.after.file_name, "log.txt");
+      assert.equal(o.after.base64_chars, 4);
+      // The payload itself must never appear in the preview.
+      assert.equal(res.content[0].text.includes("QUJD"), false);
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
+test("delete_attachment plan mode fetches before, no DELETE (DF-2)", async () => {
+  await withFetch(
+    (_url, init) => {
+      if (init?.method === "DELETE") {
+        throw new Error("must not delete in plan mode");
+      }
+      return jsonResponse(200, {
+        result: { sys_id: "att1", file_name: "old.txt" },
+      });
+    },
+    async () => {
+      const o = out(
+        await tool("servicenow_delete_attachment").handler({
+          attachment_sys_id: "att1",
+        }),
+      );
+      assert.equal(o.mode, "plan");
+      assert.equal(o.action, "delete");
+      assert.equal(o.table, "sys_attachment");
+    },
   );
 });
