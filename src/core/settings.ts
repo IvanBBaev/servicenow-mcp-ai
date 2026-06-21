@@ -144,3 +144,16 @@ export function getDocsDir(): string {
   const raw = process.env.SN_DOCS_DIR?.trim();
   return raw ? path.resolve(raw) : path.resolve(process.cwd(), "docs/instance");
 }
+
+/**
+ * Plan-and-apply write mode (DF-2). In "plan" (the default) a write tool returns
+ * a structured before/after preview **without** mutating the instance; "apply"
+ * executes the change. A tool's own `apply: true` argument forces execution for
+ * that one call regardless of the mode. Safe-by-default: an unconfigured server
+ * never mutates on the first call.
+ */
+export function getWriteMode(): "plan" | "apply" {
+  return process.env.SN_WRITE_MODE?.trim().toLowerCase() === "apply"
+    ? "apply"
+    : "plan";
+}

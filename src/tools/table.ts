@@ -8,6 +8,8 @@ import {
 } from "../api/table.js";
 import { ok, okQueryResult } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import { shouldApply, planPreview } from "../mcp/write-mode.js";
+import { appendWriteJournal } from "../core/write-journal.js";
 
 /**
  * A ServiceNow field value. The Table API accepts flat scalar values only;
@@ -16,6 +18,14 @@ import { defineTool, type AnyToolSpec } from "../mcp/define.js";
 const fieldsSchema = z.record(
   z.union([z.string(), z.number(), z.boolean(), z.null()]),
 );
+
+/** DF-2: the plan-and-apply gate every Table write tool exposes. */
+const applyInput = z
+  .boolean()
+  .optional()
+  .describe(
+    "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+  );
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -107,10 +117,20 @@ export const specs: AnyToolSpec[] = [
       fields: fieldsSchema.describe(
         'Field name/value pairs for the new record, e.g. { "short_description": "Printer down", "urgency": "2" }.',
       ),
+      apply: applyInput,
     },
     logFields: (args) => ({ table: args.table }),
-    handler: async ({ table, fields }) => {
+    handler: async ({ table, fields, apply }) => {
+      if (!shouldApply(apply)) {
+        return planPreview({ action: "create", table, after: fields });
+      }
       const record = await createRecord(table, fields);
+      appendWriteJournal({
+        action: "create",
+        table,
+        sys_id: typeof record.sys_id === "string" ? record.sys_id : undefined,
+        fields,
+      });
       return ok({ message: "Record created", record });
     },
   }),
@@ -133,10 +153,22 @@ export const specs: AnyToolSpec[] = [
       fields: fieldsSchema.describe(
         "Field name/value pairs to change on the record.",
       ),
+      apply: applyInput,
     },
     logFields: (args) => ({ table: args.table }),
-    handler: async ({ table, sys_id, fields }) => {
+    handler: async ({ table, sys_id, fields, apply }) => {
+      if (!shouldApply(apply)) {
+        const before = await getRecord(table, sys_id, Object.keys(fields));
+        return planPreview({
+          action: "update",
+          table,
+          sys_id,
+          before,
+          after: fields,
+        });
+      }
       const record = await updateRecord(table, sys_id, fields);
+      appendWriteJournal({ action: "update", table, sys_id, fields });
       return ok({ message: "Record updated", record });
     },
   }),
@@ -155,10 +187,16 @@ export const specs: AnyToolSpec[] = [
     input: {
       table: z.string().describe("Table name, e.g. 'incident'."),
       sys_id: z.string().describe("The sys_id of the record to delete."),
+      apply: applyInput,
     },
     logFields: (args) => ({ table: args.table }),
-    handler: async ({ table, sys_id }) => {
+    handler: async ({ table, sys_id, apply }) => {
+      if (!shouldApply(apply)) {
+        const before = await getRecord(table, sys_id);
+        return planPreview({ action: "delete", table, sys_id, before });
+      }
       const result = await deleteRecord(table, sys_id);
+      appendWriteJournal({ action: "delete", table, sys_id });
       return ok({ message: "Record deleted", ...result });
     },
   }),

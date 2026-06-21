@@ -695,6 +695,16 @@ SN_ACTIVE_PROFILE=dev</code></pre>
                   <td>When truthy, refuse every create/update/delete.</td>
                 </tr>
                 <tr>
+                  <td><code>SN_WRITE_MODE</code></td>
+                  <td><code>plan</code></td>
+                  <td>
+                    <code>plan</code> (default) previews a write as a
+                    before/after diff without mutating;
+                    <code>apply</code> executes. A tool's
+                    <code>apply:true</code> forces one call.
+                  </td>
+                </tr>
+                <tr>
                   <td><code>SN_LOG_LEVEL</code></td>
                   <td><code>info</code></td>
                   <td><code>error</code> · <code>warn</code> · <code>info</code> · <code>debug</code> (stderr).</td>
