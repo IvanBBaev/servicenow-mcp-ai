@@ -186,6 +186,8 @@ See [.env.example](.env.example) for a template.
 | `SN_WRITE_MODE` | no | `plan` | `plan` (default) previews a write as a before/after diff without mutating; `apply` executes; passing `apply:true` forces a single call. |
 | `SN_REDACT_FIELDS` | no | — | DF-5: mask these field values before records reach the model (comma/space-separated). |
 | `SN_REDACT_PII` | no | `false` | DF-5: also mask email/phone/national-id patterns inside string values. |
+| `SN_TRANSPORT` | no | `stdio` | DF-6: `stdio` (default) or `http` (Streamable HTTP for remote/agent clients). |
+| `SN_PORT` | no | `3000` | DF-6: TCP port for the http transport. |
 | `SN_LOG_LEVEL`           |    no    | `info`          | Log verbosity on stderr: `error`, `warn`, `info`, `debug`.                                                                                                                                                                                                                 |
 | `SN_ENV_FILE`            |    no    | —               | Explicit path to the env file to read/write.                                                                                                                                                                                                                               |
 | `SN_TOOL_PACKAGES`       |    no    | `core`          | Comma/space-separated tool packages or profiles to enable. Profiles: `core` (default) and `all`. Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. |

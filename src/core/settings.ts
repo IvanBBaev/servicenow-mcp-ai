@@ -176,3 +176,20 @@ export function getRedactFields(): string[] {
 export function redactPII(): boolean {
   return /^(1|true|yes|on)$/i.test(process.env.SN_REDACT_PII?.trim() ?? "");
 }
+
+/**
+ * DF-6 — transport selection. Default `stdio` (one local client); `http` listens
+ * over Streamable HTTP so the official ServiceNow MCP *Client* app and remote
+ * clients can consume it. Securing the endpoint is the operator's job.
+ */
+export function getTransport(): "stdio" | "http" {
+  return process.env.SN_TRANSPORT?.trim().toLowerCase() === "http"
+    ? "http"
+    : "stdio";
+}
+
+/** DF-6 — TCP port for the HTTP transport (`SN_PORT`, default 3000). */
+export function getHttpPort(): number {
+  const n = Number(process.env.SN_PORT);
+  return Number.isInteger(n) && n > 0 && n < 65536 ? n : 3000;
+}

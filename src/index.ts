@@ -11,7 +11,7 @@ if (nodeMajor < 20) {
 }
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { connectTransport } from "./mcp/transport.js";
 import { createRequire } from "node:module";
 import { loadEnv, hasCredentials } from "./core/config.js";
 import { registerAllTools, registerResources } from "./mcp/registry.js";
@@ -64,8 +64,8 @@ const MCP_LEVEL: Record<LogLevel, "debug" | "info" | "warning" | "error"> = {
 };
 
 async function main(): Promise<void> {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  // DF-6: stdio (default) or Streamable HTTP, chosen by SN_TRANSPORT.
+  const transportKind = await connectTransport(server);
   // Mirror stderr logs to the client over the MCP logging capability (X-4).
   setLogSink((level, message, fields) => {
     void server.server
@@ -75,8 +75,8 @@ async function main(): Promise<void> {
       })
       .catch(() => undefined);
   });
-  // STDIO servers must never write to stdout; logging goes to stderr.
-  logger.info("servicenow-mcp-ai server running on stdio", {
+  // Logs always go to stderr (never stdout — that is the stdio protocol channel).
+  logger.info(`servicenow-mcp-ai server running on ${transportKind}`, {
     version: pkg.version,
   });
   if (!hasCredentials()) {
