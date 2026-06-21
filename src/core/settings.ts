@@ -193,3 +193,21 @@ export function getHttpPort(): number {
   const n = Number(process.env.SN_PORT);
   return Number.isInteger(n) && n > 0 && n < 65536 ? n : 3000;
 }
+
+/**
+ * Bind address for the HTTP transport (`SN_HTTP_HOST`). Defaults to loopback
+ * (`127.0.0.1`) so the endpoint is not exposed to the network unless the
+ * operator opts in (e.g. `0.0.0.0`).
+ */
+export function getHttpHost(): string {
+  return process.env.SN_HTTP_HOST?.trim() || "127.0.0.1";
+}
+
+/**
+ * Optional bearer token for the HTTP transport (`SN_HTTP_TOKEN`). When set, every
+ * HTTP request must carry `Authorization: Bearer <token>`; unset = no auth (only
+ * safe behind loopback or an external gateway).
+ */
+export function getHttpToken(): string | undefined {
+  return process.env.SN_HTTP_TOKEN?.trim() || undefined;
+}

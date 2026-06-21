@@ -188,6 +188,8 @@ See [.env.example](.env.example) for a template.
 | `SN_REDACT_PII` | no | `false` | DF-5: also mask email/phone/national-id patterns inside string values. |
 | `SN_TRANSPORT` | no | `stdio` | DF-6: `stdio` (default) or `http` (Streamable HTTP for remote/agent clients). |
 | `SN_PORT` | no | `3000` | DF-6: TCP port for the http transport. |
+| `SN_HTTP_HOST` | no | `127.0.0.1` | DF-6: bind address for the http transport (loopback by default). |
+| `SN_HTTP_TOKEN` | no | — | DF-6: when set, http requests must send `Authorization: Bearer <token>`. |
 | `SN_LOG_LEVEL`           |    no    | `info`          | Log verbosity on stderr: `error`, `warn`, `info`, `debug`.                                                                                                                                                                                                                 |
 | `SN_ENV_FILE`            |    no    | —               | Explicit path to the env file to read/write.                                                                                                                                                                                                                               |
 | `SN_TOOL_PACKAGES`       |    no    | `core`          | Comma/space-separated tool packages or profiles to enable. Profiles: `core` (default) and `all`. Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. |
