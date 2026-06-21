@@ -14,6 +14,7 @@ import { resolveHost } from "../core/host.js";
 import { buildStatusPayload, profilesPayload } from "../mcp/status.js";
 import { getServer } from "../mcp/context.js";
 import { testConnection } from "../api/diagnostics.js";
+import { checkCapabilities } from "../api/capabilities.js";
 import { ok, okStructured, fail } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
 
@@ -250,5 +251,16 @@ export const specs: AnyToolSpec[] = [
       okStructured(
         (await testConnection()) as unknown as Record<string, unknown>,
       ),
+  }),
+
+  defineTool({
+    name: "servicenow_check_capabilities",
+    title: "Check achievable capabilities",
+    description:
+      "Preflight which admin-restricted sys_* tables the connected user can actually read, and report which higher-level capabilities (schema reads, script intelligence, ACL audit) are achievable. Run this before relying on the scripts/flows/codecheck tools on a governed instance — on a least-privilege account those reads may be silently empty.",
+    package: "admin",
+    annotations: { readOnlyHint: true, openWorldHint: true },
+    input: {},
+    handler: async () => ok(await checkCapabilities()),
   }),
 ];

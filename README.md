@@ -285,6 +285,7 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `admin` | `servicenow_use_instance` | no | Switch the active ServiceNow connection profile (persisted to the env file) |
 | `admin` | `servicenow_get_status` | yes | Show the configured instance, user, auth mode and access policy, and whether credentials are complete |
 | `admin` | `servicenow_test_connection` | yes | Verify that the configured credentials actually work: reads one sys_user record and reports ok/status/latency |
+| `admin` | `servicenow_check_capabilities` | yes | Preflight which admin-restricted sys_* tables the connected user can actually read, and report which higher… |
 
 <!-- GENERATED:TOOLS:END -->
 

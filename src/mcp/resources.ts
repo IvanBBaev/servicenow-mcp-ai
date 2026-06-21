@@ -5,6 +5,7 @@ import {
 import { buildStatusPayload, profilesPayload } from "./status.js";
 import { listTables, describeTable } from "../api/meta.js";
 import { docsRead } from "../api/docs.js";
+import { checkCapabilities } from "../api/capabilities.js";
 import { listProfiles } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
@@ -43,6 +44,38 @@ export function registerStatusResource(server: McpServer): void {
     },
     (uri) => jsonContents(uri, buildStatusPayload()),
   );
+}
+
+/** Achievable-capabilities preflight (admin package, DF-0). */
+export function registerCapabilitiesResource(server: McpServer): void {
+  server.registerResource(
+    "capabilities",
+    "servicenow://capabilities",
+    {
+      title: "Achievable ServiceNow capabilities",
+      description:
+        "Which admin-restricted sys_* tables the connected user can read, and which capabilities (schema reads, script intelligence, ACL audit) are therefore achievable.",
+      mimeType: JSON_MIME,
+    },
+    async (uri) => {
+      try {
+        return jsonContents(uri, await checkCapabilities());
+      } catch (error) {
+        logger.warn("capabilities resource failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return jsonContents(uri, {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+  );
+}
+
+/** Always-on admin resources: connection status + the capability preflight. */
+export function registerAdminResources(server: McpServer): void {
+  registerStatusResource(server);
+  registerCapabilitiesResource(server);
 }
 
 /** Tables + per-table schema (schema package). */

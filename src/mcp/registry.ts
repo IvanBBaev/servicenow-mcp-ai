@@ -7,7 +7,7 @@ import {
   type PackageSpec,
 } from "./define.js";
 import {
-  registerStatusResource,
+  registerAdminResources,
   registerSchemaResources,
   registerDocsResources,
   registerInstanceResources,
@@ -65,7 +65,7 @@ export const PACKAGES: PackageSpec[] = [
   },
   { name: "email", tools: emailSpecs },
   { name: "atf", tools: atfSpecs },
-  { name: "admin", tools: adminSpecs, resources: registerStatusResource },
+  { name: "admin", tools: adminSpecs, resources: registerAdminResources },
 ];
 
 // Invariant: a tool's own package tag must match the manifest entry it sits in.

@@ -50,6 +50,7 @@ const toolNames = async (client) =>
 /** The contract for the default (core) profile: admin + table/schema/aggregate/attachment. */
 const CORE_TOOLS = [
   "servicenow_aggregate",
+  "servicenow_check_capabilities",
   "servicenow_create_record",
   "servicenow_delete_attachment",
   "servicenow_delete_record",
@@ -337,21 +338,23 @@ test("resources follow the package policy (K-7)", async () => {
     return [...direct, ...templated].sort();
   };
 
-  // table package only: no schema, no docs → only the status resource.
+  // table package only: no schema, no docs → only the always-on admin
+  // resources (connection status + the capability preflight).
   await withEnv({ SN_TOOL_PACKAGES: "table" }, async () => {
     const { client, close } = await startServer();
     try {
-      assert.deepEqual(await resourceNames(client), ["status"]);
+      assert.deepEqual(await resourceNames(client), ["capabilities", "status"]);
     } finally {
       await close();
     }
   });
 
-  // all packages: status + tables + schema + docs + the instance pair (MI-8).
+  // all packages: capabilities + status + tables + schema + docs + the instance pair (MI-8).
   await withEnv({ SN_TOOL_PACKAGES: "all" }, async () => {
     const { client, close } = await startServer();
     try {
       assert.deepEqual(await resourceNames(client), [
+        "capabilities",
         "docs",
         "instances",
         "profile-schema",

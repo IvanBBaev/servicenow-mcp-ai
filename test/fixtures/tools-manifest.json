@@ -31,6 +31,15 @@
     }
   },
   {
+    "name": "servicenow_check_capabilities",
+    "package": "admin",
+    "title": "Check achievable capabilities",
+    "annotations": {
+      "readOnlyHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
     "name": "servicenow_code_health",
     "package": "codecheck",
     "title": "Code health report",
