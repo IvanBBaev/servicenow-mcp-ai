@@ -196,6 +196,32 @@ test("tableLogic gathers automation across the script tables", async () => {
   );
 });
 
+test("tableLogic degrades a 403 on one artefact table to an 'unreadable' flag (DF-0)", async () => {
+  await withFetch(
+    (url) => {
+      const seg = new URL(url).pathname.split("/").pop();
+      if (seg === "sys_security_acl") {
+        return jsonResponse(403, { error: { message: "no read access" } });
+      }
+      const byTable = {
+        sys_script: [{ sys_id: "br1", name: "BR", when: "after" }],
+        sys_script_client: [{ sys_id: "cs1", name: "CS" }],
+        sys_ui_policy: [{ sys_id: "up1", short_description: "UP" }],
+        sys_ui_action: [{ sys_id: "ua1", name: "UA" }],
+      };
+      return jsonResponse(200, { result: byTable[seg] ?? [] });
+    },
+    async () => {
+      const logic = await tableLogic("incident");
+      // Readable types still come back...
+      assert.equal(logic.businessRules[0].name, "BR");
+      assert.equal(logic.acls.length, 0);
+      // ...and the denied one is flagged, not a hard failure.
+      assert.deepEqual(logic.unreadable, ["acl"]);
+    },
+  );
+});
+
 test("tableLogic orders business rules by when then order", async () => {
   await withFetch(
     (url) => {

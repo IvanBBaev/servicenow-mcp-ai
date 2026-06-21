@@ -18,14 +18,14 @@ The API surface is complete; v2.0 is the release that makes the breadth **safe**
 The business analysis cut line for a tight single-maintainer 2.0 is **DF-0, DF-2, DF-1,
 DX-1, DX-3**; DF-4/DF-5/DF-6 follow in 2.1 if capacity demands triage.
 
-| #   | Item     | Pillar      | Why this order                                                       | Status         |
-| --- | -------- | ----------- | -------------------------------------------------------------------- | -------------- |
+| #   | Item     | Pillar      | Why this order                                                       | Status               |
+| --- | -------- | ----------- | -------------------------------------------------------------------- | -------------------- |
 | 1   | **DF-0** | Depth       | Precondition for DF-1/DF-4; closes the permission paradox (R1/R2/B4) | 🟢 preflight shipped |
-| 2   | **DF-2** | Trust       | The root enabler — makes raw-REST writes safe (dry-run + audit)      | 🚧 next        |
-| 3   | **DF-1** | Depth       | Headline "knows your instance"; extends Phase 8 codecheck            | ⬜             |
-| 4   | **DX-1** | Discovery   | MCP Registry + Claude Code plugin — biggest adoption lever           | ⬜             |
-| 5   | **DX-3** | Discovery   | One sharp "find-usages / what-runs / dev-vs-prod" demo               | ⬜             |
-| —   | DF-4/5/6 | Depth/Reach | where-used graph · redaction · HTTP transport — 2.1 triage           | ⬜ deferred    |
+| 2   | **DF-2** | Trust       | The root enabler — makes raw-REST writes safe (dry-run + audit)      | 🚧 next              |
+| 3   | **DF-1** | Depth       | Headline "knows your instance"; extends Phase 8 codecheck            | ⬜                   |
+| 4   | **DX-1** | Discovery   | MCP Registry + Claude Code plugin — biggest adoption lever           | ⬜                   |
+| 5   | **DX-3** | Discovery   | One sharp "find-usages / what-runs / dev-vs-prod" demo               | ⬜                   |
+| —   | DF-4/5/6 | Depth/Reach | where-used graph · redaction · HTTP transport — 2.1 triage           | ⬜ deferred          |
 
 ## Definition of done (per item)
 
@@ -40,10 +40,10 @@ regenerated, and the README/env reference kept in sync (the project's standing g
 - [x] `servicenow_check_capabilities` admin tool (always-on, read-only).
 - [x] `servicenow://capabilities` MCP resource.
 - [x] Tests (probe readable / 403 / transport) + regenerated manifest + README;
-      `npm run check` green (240 tests, coverage 95/82/99).
-- [ ] _Remaining:_ make the script-intelligence / codecheck tools consume the preflight
-      and report "N artefacts unreadable (needs role X)" rather than a silently empty
-      result. (Next sub-task of DF-0.)
+      `npm run check` green (241 tests, coverage 95/82/99).
+- [x] `table_logic` degrades a 401/403 per artefact type to an `unreadable` flag
+      instead of a hard failure or a silently empty overview.
+- [ ] _2.1 / DF-1:_ extend the same degrade to `code_health` when the security scan lands.
 
 ### DF-2 — Plan-and-apply + local audit journal (next)
 

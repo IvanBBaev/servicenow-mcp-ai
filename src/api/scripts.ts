@@ -397,6 +397,39 @@ export interface TableLogic {
   uiPolicies: LogicEntry[];
   uiActions: LogicEntry[];
   acls: LogicEntry[];
+  /**
+   * Artefact types the connected user could not read (the table is
+   * admin-restricted and the user lacks a read role). Present only when at
+   * least one sub-query was denied — DF-0 graceful degrade, so an overview on a
+   * governed instance is partial-and-flagged rather than a hard 403 or a
+   * silently empty result. Run servicenow_check_capabilities for the full map.
+   */
+  unreadable?: string[];
+}
+
+/**
+ * Run one tableLogic sub-query, degrading a 401/403 (the artefact table is
+ * admin-restricted and the user lacks a read role) to an empty list plus a
+ * recorded label, so one unreadable artefact type does not fail the whole
+ * overview. Any other error is genuinely unexpected and propagates.
+ */
+async function readableEntries(
+  label: string,
+  load: Promise<LogicEntry[]>,
+  unreadable: string[],
+): Promise<LogicEntry[]> {
+  try {
+    return await load;
+  } catch (error) {
+    if (
+      error instanceof ServiceNowError &&
+      (error.status === 403 || error.status === 401)
+    ) {
+      unreadable.push(label);
+      return [];
+    }
+    throw error;
+  }
 }
 
 /**
@@ -411,20 +444,41 @@ export async function tableLogic(table: string): Promise<TableLogic> {
   // encoded query (collection=…, nameLIKE…), so a stray `^` would otherwise
   // fire injected clauses before the table-validated sub-requests reject.
   assertNoCaret(t, "table");
+  const unreadable: string[] = [];
+  const wrap = (label: string, load: Promise<LogicEntry[]>) =>
+    readableEntries(label, load, unreadable);
   const [businessRules, clientScripts, uiPolicies, uiActions, acls] =
     await Promise.all([
-      listOrdered("business_rule", `collection=${t}^ORDERBYwhen^ORDERBYorder`),
-      listScripts({ type: "client_script", table: t, limit: 200 }).then(
-        (r) => r.scripts,
+      wrap(
+        "business_rule",
+        listOrdered(
+          "business_rule",
+          `collection=${t}^ORDERBYwhen^ORDERBYorder`,
+        ),
       ),
-      listScripts({ type: "ui_policy", table: t, limit: 200 }).then(
-        (r) => r.scripts,
+      wrap(
+        "client_script",
+        listScripts({ type: "client_script", table: t, limit: 200 }).then(
+          (r) => r.scripts,
+        ),
       ),
-      listScripts({ type: "ui_action", table: t, limit: 200 }).then(
-        (r) => r.scripts,
+      wrap(
+        "ui_policy",
+        listScripts({ type: "ui_policy", table: t, limit: 200 }).then(
+          (r) => r.scripts,
+        ),
       ),
-      listScripts({ type: "acl", query: `nameLIKE${t}`, limit: 200 }).then(
-        (r) => r.scripts,
+      wrap(
+        "ui_action",
+        listScripts({ type: "ui_action", table: t, limit: 200 }).then(
+          (r) => r.scripts,
+        ),
+      ),
+      wrap(
+        "acl",
+        listScripts({ type: "acl", query: `nameLIKE${t}`, limit: 200 }).then(
+          (r) => r.scripts,
+        ),
       ),
     ]);
   return {
@@ -434,6 +488,7 @@ export async function tableLogic(table: string): Promise<TableLogic> {
     uiPolicies,
     uiActions,
     acls,
+    ...(unreadable.length ? { unreadable } : {}),
   };
 }
 
