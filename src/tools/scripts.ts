@@ -6,6 +6,7 @@ import {
   tableLogic,
   SCRIPT_TYPE_NAMES,
 } from "../api/scripts.js";
+import { whereUsed } from "../api/whereused.js";
 import { ok } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
 
@@ -115,5 +116,31 @@ export const specs: AnyToolSpec[] = [
     },
     logFields: (args) => ({ table: args.table }),
     handler: ({ table }) => tableLogic(table).then(ok),
+  }),
+
+  defineTool({
+    name: "servicenow_where_used",
+    title: "Where used",
+    description:
+      "Find where a table, field or script is referenced across the instance's code: textual references in every script source, plus (for a table) the business rules, client scripts, UI policies/actions and ACLs attached to it. Read-only; optionally renders a Mermaid reference graph.",
+    package: "scripts",
+    annotations: { readOnlyHint: true, openWorldHint: true },
+    input: {
+      kind: z
+        .enum(["table", "field", "script"])
+        .describe(
+          "What to look up: a table, a field, or a script/script-include name.",
+        ),
+      name: z
+        .string()
+        .describe("The table/field/script name to find usages of."),
+      mermaid: z
+        .boolean()
+        .optional()
+        .describe("Also render a Mermaid reference graph."),
+    },
+    logFields: (args) => ({ kind: args.kind }),
+    handler: ({ kind, name, mermaid }) =>
+      whereUsed(kind, name, { mermaid }).then(ok),
   }),
 ];

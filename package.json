@@ -2,7 +2,7 @@
   "name": "servicenow-mcp-ai",
   "version": "2.0.0",
   "mcpName": "io.github.LeassTaTT/servicenow-mcp-ai",
-  "description": "ServiceNow MCP server: 66 tools in 18 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
+  "description": "ServiceNow MCP server: 67 tools in 18 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "license": "MIT",
   "author": "Ivan Baev <ivanbbaev@gmail.com>",
   "repository": {

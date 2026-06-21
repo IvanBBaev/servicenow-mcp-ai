@@ -266,6 +266,7 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `scripts` | `servicenow_get_script` | yes | Read one script artefact in full, including its source code and execution context |
 | `scripts` | `servicenow_search_code` | yes | Search script source for a literal substring across one or all script types |
 | `scripts` | `servicenow_table_logic` | yes | Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI po… |
+| `scripts` | `servicenow_where_used` | yes | Find where a table, field or script is referenced across the instance's code: textual references in every s… |
 | `flows` | `servicenow_trace_table_event` | yes | Deterministically trace what ServiceNow would run for a table operation, in execution order: display/before… |
 | `flows` | `servicenow_list_flows` | yes | List Flow Designer flows (sys_hub_flow) or legacy workflows (kind: 'workflow') as compact metadata |
 | `flows` | `servicenow_get_flow` | yes | Get a structured view of one flow or workflow: its trigger (table/condition/when) and ordered steps |

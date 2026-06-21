@@ -632,5 +632,14 @@
       "idempotentHint": true,
       "openWorldHint": false
     }
+  },
+  {
+    "name": "servicenow_where_used",
+    "package": "scripts",
+    "title": "Where used",
+    "annotations": {
+      "readOnlyHint": true,
+      "openWorldHint": true
+    }
   }
 ]
