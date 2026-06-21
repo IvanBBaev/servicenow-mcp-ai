@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://leasstatt.github.io/servicenow-mcp-ai/sitemap.xml

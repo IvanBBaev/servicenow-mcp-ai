@@ -929,3 +929,136 @@ h3:hover .anchor {
     padding-top: 16px;
   }
 }
+
+/* ---- Tools reference: per-tool detail panels ---- */
+.tools-controls {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+.ghost-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.ghost-btn:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+}
+.pkg-meta {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: 14px;
+}
+.pkg-meta em {
+  font-style: normal;
+  opacity: 0.75;
+}
+details.tool {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  margin: 8px 0;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+details.tool > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+details.tool > summary::-webkit-details-marker {
+  display: none;
+}
+details.tool > summary::before {
+  content: "▸";
+  color: var(--muted);
+  font-size: 11px;
+  transition: transform 0.15s ease;
+}
+details.tool[open] > summary::before {
+  transform: rotate(90deg);
+}
+details.tool > summary:hover {
+  background: var(--surface-2);
+}
+details.tool > summary code {
+  font-weight: 600;
+  color: var(--accent-strong);
+  white-space: nowrap;
+}
+.tool-sum {
+  color: var(--muted);
+  font-size: 13px;
+  flex: 1;
+}
+.tool-params {
+  border-top: 1px solid var(--border);
+  padding: 4px 16px 14px;
+}
+.tool-params table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tool-params th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 8px 10px 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.tool-params td {
+  padding: 7px 10px 7px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.tool-params tr:last-child td {
+  border-bottom: none;
+}
+.tool-params td:nth-child(2) {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.opt {
+  color: var(--muted);
+  font-weight: 500;
+}
+.noparams {
+  color: var(--muted);
+  font-style: italic;
+  margin: 8px 0 2px;
+}
+
+/* ---- Use cases: under-the-hood tool chain ---- */
+.under-hood {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 2;
+}
+.under-hood code {
+  font-size: 12px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+.under-hood .arrow {
+  color: var(--muted);
+  opacity: 0.6;
+  margin: 0 2px;
+}

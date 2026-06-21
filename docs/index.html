@@ -38,6 +38,86 @@
       name="twitter:image"
       content="https://leasstatt.github.io/servicenow-mcp-ai/assets/og-image.png"
     />
+    <meta
+      name="twitter:image:alt"
+      content="servicenow-mcp-ai — drive ServiceNow from your AI assistant. 65 tools, 18 packages, Basic / OAuth 2.0, MIT."
+    />
+    <!-- Structured data: software listing + FAQ rich results -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "name": "servicenow-mcp-ai",
+            "alternateName": "ServiceNow MCP Server",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Cross-platform (Node.js 20+)",
+            "description": "A Model Context Protocol server that lets an MCP-capable AI client operate a ServiceNow instance across the full REST surface, with script intelligence, multi-instance profiles and least-privilege governance.",
+            "url": "https://leasstatt.github.io/servicenow-mcp-ai/",
+            "downloadUrl": "https://www.npmjs.com/package/servicenow-mcp-ai",
+            "softwareVersion": "1.1.2",
+            "license": "https://opensource.org/licenses/MIT",
+            "author": { "@type": "Person", "name": "Ivan Baev" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "keywords": "mcp, model context protocol, servicenow, llm, ai, rest"
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How is this different from ServiceNow's own MCP Server?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "ServiceNow's MCP Server Console is a governed, on-instance service for production agents (paid Now Assist SKU, metered). servicenow-mcp-ai is an external, self-run server for developers and consultants: it works against any instance, including a free PDI, with the model and client you choose, at no licence cost, and adds code intelligence and cross-instance diffing the platform service does not."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Does the AI run code on my ServiceNow instance?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No arbitrary code execution. There is no background-script evaluation; everything goes through documented REST APIs, and writes obey the policy and read-only guards. The one exception is the opt-in, non-default atf package, which runs your own existing Automated Test Framework tests through the official CI/CD API; it executes code on the instance by design, so it is meant for non-production environments."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Why is the npm package called servicenow-mcp-ai?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The unscoped servicenow-mcp name was already taken on npm, so the package ships as servicenow-mcp-ai. The difference is cosmetic. This is an independent project, not affiliated with or endorsed by ServiceNow, Inc."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I run prod and dev from one server?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. That is what named profiles are for. Define SN_PROFILE_PROD_* and SN_PROFILE_DEV_*, make prod read-only, and route a single call to a specific instance with the automatic instance argument, or switch the active one with servicenow_use_instance."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which MCP clients work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Any MCP client over stdio, including Claude Desktop, Claude Code, VS Code Chat and the MCP Inspector. The server declares tool annotations so clients can apply the right confirmation UX for destructive actions."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is it production-ready?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "The engineering is: clean gates, around 200 tests, type-checked lint, a CI matrix and a security model. It is an open-source project under the MIT license; review the security model for your own deployment."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
     <link rel="stylesheet" href="assets/styles.css" />
     <link
       rel="icon"
@@ -75,7 +155,7 @@
       </nav>
       <a
         class="icon-btn"
-        href="https://github.com/LeassTaTT/servicenow-mcp"
+        href="https://github.com/LeassTaTT/servicenow-mcp-ai"
         title="GitHub repository"
         aria-label="GitHub repository"
         target="_blank"
@@ -110,6 +190,7 @@
         <h4>Guides</h4>
         <nav>
           <a href="#use-cases">Use cases</a>
+          <a href="#compare">How it compares</a>
           <a href="#security">Security &amp; governance</a>
           <a href="#architecture">Architecture</a>
         </nav>
@@ -138,7 +219,7 @@
             <a class="btn primary" href="#quickstart">Get started →</a>
             <a
               class="btn"
-              href="https://github.com/LeassTaTT/servicenow-mcp"
+              href="https://github.com/LeassTaTT/servicenow-mcp-ai"
               target="_blank"
               rel="noopener"
               >View on GitHub</a
@@ -715,8 +796,9 @@ SN_ACTIVE_PROFILE=dev</code></pre>
               <code>aggregate</code>, <code>attachment</code>,
               <code>importset</code>, <code>batch</code>, <code>catalog</code>,
               <code>change</code>, <code>knowledge</code>, <code>cmdb</code>,
-              <code>scripts</code>, <code>docs</code>, <code>instance</code>,
-              <code>email</code>.
+              <code>scripts</code>, <code>flows</code>, <code>codecheck</code>,
+              <code>docs</code>, <code>instance</code>, <code>email</code>,
+              <code>atf</code>.
             </li>
           </ul>
           <div class="codeblock" data-lang="dotenv">
@@ -737,172 +819,505 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <p>
             65 tools across 18 packages. <span class="pill ro">read</span> tools
             never mutate the instance; <span class="pill wr">write</span> tools
-            respect the read-only and policy guards.
+            respect the read-only and policy guards. <strong>Click any tool</strong>
+            to expand its full parameter list — name, type, whether it is required
+            and any allowed values.
+          </p>
+          <p class="tools-controls">
+            <button type="button" class="ghost-btn" id="expand-all-tools">
+              Expand all
+            </button>
+            <button type="button" class="ghost-btn" id="collapse-all-tools">
+              Collapse all
+            </button>
           </p>
 
-          <h3>table — record CRUD</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_query_table</code></td><td><span class="pill ro">read</span></td><td>Read records from any table (encoded queries, fields, paging, fetchAll).</td></tr>
-                <tr><td><code>servicenow_get_record</code></td><td><span class="pill ro">read</span></td><td>Read a single record by sys_id.</td></tr>
-                <tr><td><code>servicenow_create_record</code></td><td><span class="pill wr">write</span></td><td>Create a record with the given field values.</td></tr>
-                <tr><td><code>servicenow_update_record</code></td><td><span class="pill wr">write</span></td><td>Update fields on a record by sys_id.</td></tr>
-                <tr><td><code>servicenow_delete_record</code></td><td><span class="pill wr">write</span></td><td>Delete a record by sys_id.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>schema — metadata</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_list_tables</code></td><td><span class="pill ro">read</span></td><td>List tables from sys_db_object, optionally filtered.</td></tr>
-                <tr><td><code>servicenow_describe_table</code></td><td><span class="pill ro">read</span></td><td>A table's columns from sys_dictionary, incl. the inherited super_class chain.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>aggregate · attachment · importset · batch</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_aggregate</code></td><td><span class="pill ro">read</span></td><td>Server-side count/avg/min/max/sum + group_by/having via the Stats API.</td></tr>
-                <tr><td><code>servicenow_list_attachments</code></td><td><span class="pill ro">read</span></td><td>List attachment metadata, optionally scoped to a record.</td></tr>
-                <tr><td><code>servicenow_get_attachment</code></td><td><span class="pill ro">read</span></td><td>Read one attachment's metadata by sys_id.</td></tr>
-                <tr><td><code>servicenow_download_attachment</code></td><td><span class="pill ro">read</span></td><td>Download bytes as base64 (size-guarded).</td></tr>
-                <tr><td><code>servicenow_upload_attachment</code></td><td><span class="pill wr">write</span></td><td>Attach a base64 file to a record.</td></tr>
-                <tr><td><code>servicenow_delete_attachment</code></td><td><span class="pill wr">write</span></td><td>Delete an attachment by sys_id.</td></tr>
-                <tr><td><code>servicenow_insert_import_set_row</code></td><td><span class="pill wr">write</span></td><td>Insert a staging row and run its transform map.</td></tr>
-                <tr><td><code>servicenow_get_import_set_row</code></td><td><span class="pill ro">read</span></td><td>Read the transform outcome for a staging row.</td></tr>
-                <tr><td><code>servicenow_batch</code></td><td><span class="pill wr">write</span></td><td>Several REST sub-requests in one round-trip; policy per sub-request.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>cmdb — class-aware CIs (IRE)</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_list_cis</code></td><td><span class="pill ro">read</span></td><td>List CIs of a CMDB class via the Instance API.</td></tr>
-                <tr><td><code>servicenow_get_ci</code></td><td><span class="pill ro">read</span></td><td>A CI with attributes and relations.</td></tr>
-                <tr><td><code>servicenow_create_ci</code></td><td><span class="pill wr">write</span></td><td>Create a CI through Identification &amp; Reconciliation.</td></tr>
-                <tr><td><code>servicenow_update_ci</code></td><td><span class="pill wr">write</span></td><td>Update a CI's attributes via IRE.</td></tr>
-                <tr><td><code>servicenow_get_cmdb_meta</code></td><td><span class="pill ro">read</span></td><td>A CMDB class's schema/relationship rules.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>catalog · change · knowledge · email — plugin APIs</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_list_catalogs</code></td><td><span class="pill ro">read</span></td><td>List Service Catalogs.</td></tr>
-                <tr><td><code>servicenow_list_catalog_categories</code></td><td><span class="pill ro">read</span></td><td>Categories within a catalog.</td></tr>
-                <tr><td><code>servicenow_list_catalog_items</code></td><td><span class="pill ro">read</span></td><td>Search/list orderable items.</td></tr>
-                <tr><td><code>servicenow_get_catalog_item</code></td><td><span class="pill ro">read</span></td><td>An item with its order variables.</td></tr>
-                <tr><td><code>servicenow_order_catalog_item</code></td><td><span class="pill wr">write</span></td><td>Order an item ("order now").</td></tr>
-                <tr><td><code>servicenow_list_changes</code></td><td><span class="pill ro">read</span></td><td>List change requests.</td></tr>
-                <tr><td><code>servicenow_get_change</code></td><td><span class="pill ro">read</span></td><td>A change request by sys_id.</td></tr>
-                <tr><td><code>servicenow_create_change</code></td><td><span class="pill wr">write</span></td><td>Create a normal/standard/emergency change.</td></tr>
-                <tr><td><code>servicenow_update_change</code></td><td><span class="pill wr">write</span></td><td>Update a change request.</td></tr>
-                <tr><td><code>servicenow_change_conflicts</code></td><td><span class="pill wr">write</span></td><td>Read or recalculate schedule conflicts.</td></tr>
-                <tr><td><code>servicenow_search_knowledge</code></td><td><span class="pill ro">read</span></td><td>Full-text knowledge article search.</td></tr>
-                <tr><td><code>servicenow_get_knowledge_article</code></td><td><span class="pill ro">read</span></td><td>An article's content + metadata.</td></tr>
-                <tr><td><code>servicenow_knowledge_highlights</code></td><td><span class="pill ro">read</span></td><td>Featured / most-viewed articles.</td></tr>
-                <tr><td><code>servicenow_send_email</code></td><td><span class="pill wr">write</span></td><td>Send an email via the Email API.</td></tr>
-                <tr><td><code>servicenow_get_email</code></td><td><span class="pill ro">read</span></td><td>Read an email record by sys_id.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>scripts — code intelligence (read-only)</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_list_scripts</code></td><td><span class="pill ro">read</span></td><td>List artefacts of one type as compact metadata (no source).</td></tr>
-                <tr><td><code>servicenow_get_script</code></td><td><span class="pill ro">read</span></td><td>One artefact in full, with source and context.</td></tr>
-                <tr><td><code>servicenow_search_code</code></td><td><span class="pill ro">read</span></td><td>Search script source for a substring across types.</td></tr>
-                <tr><td><code>servicenow_table_logic</code></td><td><span class="pill ro">read</span></td><td>A table's whole automation: BRs (by when+order), client scripts, UI policies/actions, ACLs.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>flows — flow intelligence (read-only)</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_trace_table_event</code></td><td><span class="pill ro">read</span></td><td>Deterministic, ordered trace of what an operation runs (BRs by phase, flows, workflows, notifications) + a Mermaid flowchart.</td></tr>
-                <tr><td><code>servicenow_list_flows</code></td><td><span class="pill ro">read</span></td><td>Flow Designer flows (or legacy workflows) as metadata.</td></tr>
-                <tr><td><code>servicenow_get_flow</code></td><td><span class="pill ro">read</span></td><td>A flow's trigger + ordered steps (structured view).</td></tr>
-                <tr><td><code>servicenow_get_flow_runs</code></td><td><span class="pill ro">read</span></td><td>Flow execution history by flow or by record.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>codecheck — local code analysis</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_lint_script</code></td><td><span class="pill ro">read</span></td><td>Run deterministic rules over one script (hard-coded ids/URLs, unbounded/in-loop queries, eval, …).</td></tr>
-                <tr><td><code>servicenow_lint_table</code></td><td><span class="pill ro">read</span></td><td>Lint every active BR / client script / UI policy of a table.</td></tr>
-                <tr><td><code>servicenow_code_health</code></td><td><span class="pill wr">write</span></td><td>Script inventory + lint summary → a Markdown report in the docs folder.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>docs · instance — documentation &amp; environments</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_docs_list</code></td><td><span class="pill ro">read</span></td><td>List local Markdown docs (SN_DOCS_DIR).</td></tr>
-                <tr><td><code>servicenow_docs_read</code></td><td><span class="pill ro">read</span></td><td>Read one local Markdown doc.</td></tr>
-                <tr><td><code>servicenow_docs_search</code></td><td><span class="pill ro">read</span></td><td>Search the local docs for a substring.</td></tr>
-                <tr><td><code>servicenow_docs_write</code></td><td><span class="pill wr">write</span></td><td>Write/overwrite a local doc; refresh index.md.</td></tr>
-                <tr><td><code>servicenow_generate_er_diagram</code></td><td><span class="pill ro">read</span></td><td>Mermaid erDiagram from sys_dictionary references.</td></tr>
-                <tr><td><code>servicenow_generate_table_flow</code></td><td><span class="pill ro">read</span></td><td>Mermaid flowchart of a record lifecycle by BR phase.</td></tr>
-                <tr><td><code>servicenow_snapshot_instance</code></td><td><span class="pill wr">write</span></td><td>Dump structural metadata (tables/schema/plugins/apps/automation) into the docs folder.</td></tr>
-                <tr><td><code>servicenow_compare_instances</code></td><td><span class="pill wr">write</span></td><td>Diff two profiles: tables, columns, scripts (by SHA-256), plugins/apps.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>atf — Automated Test Framework (opt-in, non-default)</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_list_atf_tests</code></td><td><span class="pill ro">read</span></td><td>List ATF tests (sys_atf_test).</td></tr>
-                <tr><td><code>servicenow_list_atf_suites</code></td><td><span class="pill ro">read</span></td><td>List ATF test suites.</td></tr>
-                <tr><td><code>servicenow_run_atf_test</code></td><td><span class="pill wr">write</span></td><td>Run a test via the CI/CD API — executes on the instance.</td></tr>
-                <tr><td><code>servicenow_run_atf_suite</code></td><td><span class="pill wr">write</span></td><td>Run a suite via the CI/CD API — executes on the instance.</td></tr>
-                <tr><td><code>servicenow_get_atf_result</code></td><td><span class="pill ro">read</span></td><td>Poll a run's status / progress by execution id.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3>admin — always on</h3>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Tool</th><th>Access</th><th>Description</th></tr></thead>
-              <tbody>
-                <tr><td><code>servicenow_set_credentials</code></td><td><span class="pill wr">write</span></td><td>Save/update connection credentials (per profile).</td></tr>
-                <tr><td><code>servicenow_list_instances</code></td><td><span class="pill ro">read</span></td><td>List configured profiles (no passwords).</td></tr>
-                <tr><td><code>servicenow_use_instance</code></td><td><span class="pill wr">write</span></td><td>Switch the active profile; clear identity caches.</td></tr>
-                <tr><td><code>servicenow_get_status</code></td><td><span class="pill ro">read</span></td><td>Instance, user, auth mode, policy, telemetry.</td></tr>
-                <tr><td><code>servicenow_test_connection</code></td><td><span class="pill ro">read</span></td><td>Verify credentials actually work (reads 1 sys_user).</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <h3 id="pkg-table">table <span class="pkg-meta">— Record CRUD over the Table API. <em>(5 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_query_table</code> <span class="pill ro">read</span><span class="tool-sum">Read records from any ServiceNow table through the Table API. Supports encoded queries, field selection and pagination.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident', 'sys_user', 'change_request'.</td></tr>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>offset</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>displayValue</code></td><td>enum</td><td><span class="opt">optional</span></td><td>one of: <code>true</code> · <code>false</code> · <code>all</code></td></tr>
+              <tr><td><code>fetchAll</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_record</code> <span class="pill ro">read</span><span class="tool-sum">Read a single record from a table by its sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident'.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the record to read.</td></tr>
+              <tr><td><code>fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_create_record</code> <span class="pill wr">write</span><span class="tool-sum">Create a new record in a table with the given field values.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident'.</td></tr>
+              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Field name/value pairs for the new record, e.g. { "short_description": "Printer down", "urgency": "2" }.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_update_record</code> <span class="pill wr">write</span><span class="tool-sum">Update fields on an existing record identified by its sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident'.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the record to update.</td></tr>
+              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Field name/value pairs to change on the record.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_delete_record</code> <span class="pill wr">write</span><span class="tool-sum">Delete a record from a table by its sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident'.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the record to delete.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-schema">schema <span class="pkg-meta">— Table &amp; column metadata, including the inherited super_class chain. <em>(2 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_list_tables</code> <span class="pill ro">read</span><span class="tool-sum">List tables from sys_db_object, optionally filtered by a name or label fragment.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>filter</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_describe_table</code> <span class="pill ro">read</span><span class="tool-sum">List a table's columns (name, label, type, mandatory, reference) from sys_dictionary.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name to describe, e.g. 'incident'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-aggregate">aggregate <span class="pkg-meta">— Server-side statistics (count / avg / min / max / sum) via the Stats API. <em>(1 tool)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_aggregate</code> <span class="pill ro">read</span><span class="tool-sum">Compute server-side aggregates (count, avg, min, max, sum) over a table via the Stats API, with optional grouping. Avoids pulling individual rows.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident'.</td></tr>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>count</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>avg_fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>min_fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>max_fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>sum_fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>group_by</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>having</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-attachment">attachment <span class="pkg-meta">— File attachments — list, read, download, upload and delete. <em>(5 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_list_attachments</code> <span class="pill ro">read</span><span class="tool-sum">List attachment metadata, optionally scoped to a specific record (table + sys_id).</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_attachment</code> <span class="pill ro">read</span><span class="tool-sum">Read a single attachment's metadata by its sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>attachment_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment record.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_download_attachment</code> <span class="pill ro">read</span><span class="tool-sum">Download an attachment's bytes, returned as base64. Large files are refused (see SN_MAX_RESULT_CHARS).</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>attachment_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment to download.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_upload_attachment</code> <span class="pill wr">write</span><span class="tool-sum">Attach a file (provided as base64) to a record identified by table + sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table the record belongs to.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the record to attach to.</td></tr>
+              <tr><td><code>file_name</code></td><td>string</td><td><span class="req">required</span></td><td>File name to store, e.g. 'log.txt'.</td></tr>
+              <tr><td><code>content_base64</code></td><td>string</td><td><span class="req">required</span></td><td>File contents, base64-encoded.</td></tr>
+              <tr><td><code>content_type</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_delete_attachment</code> <span class="pill wr">write</span><span class="tool-sum">Delete an attachment by its sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>attachment_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment to delete.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-importset">importset <span class="pkg-meta">— Import Set staging inserts and their transform outcome. <em>(2 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_insert_import_set_row</code> <span class="pill wr">write</span><span class="tool-sum">Insert a single row into a staging table and run its transform map. Returns the transform result.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>staging_table</code></td><td>string</td><td><span class="req">required</span></td><td>Import staging table, e.g. 'u_imp_incident'.</td></tr>
+              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Column name/value pairs for the staging row.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_import_set_row</code> <span class="pill ro">read</span><span class="tool-sum">Read the transform outcome for a previously inserted staging row by its sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>staging_table</code></td><td>string</td><td><span class="req">required</span></td><td>Import staging table name.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the staging row.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-batch">batch <span class="pkg-meta">— Several REST sub-requests in a single round-trip; policy is enforced per sub-request. <em>(1 tool)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_batch</code> <span class="pill wr">write</span><span class="tool-sum">Execute several ServiceNow REST sub-requests in a single HTTP round-trip via the Batch API. Each sub-request runs through the same read-only and table-access policy as a direct call.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>requests</code></td><td>array</td><td><span class="req">required</span></td><td>The sub-requests to run together.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-catalog">catalog <span class="pkg-meta">— Service Catalog — browse catalogs, categories and items, then order. <em>(5 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_list_catalogs</code> <span class="pill ro">read</span><span class="tool-sum">List the Service Catalogs available on the instance (Service Catalog API).</span></summary>
+            <div class="tool-params"><p class="noparams">No parameters.</p></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_list_catalog_categories</code> <span class="pill ro">read</span><span class="tool-sum">List the categories within a service catalog.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>catalog_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_list_catalog_items</code> <span class="pill ro">read</span><span class="tool-sum">Search/list orderable catalog items, optionally by text or category.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>text</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>category</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>offset</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_catalog_item</code> <span class="pill ro">read</span><span class="tool-sum">Get a catalog item, including its order variables, by sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>item_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog item.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_order_catalog_item</code> <span class="pill wr">write</span><span class="tool-sum">Order a catalog item directly ('order now'). Creates a request/RITM. Provide variable values keyed by their names.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>item_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog item.</td></tr>
+              <tr><td><code>quantity</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>variables</code></td><td>object</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-change">change <span class="pkg-meta">— Change Management — typed create (normal / standard / emergency), conflicts, update. <em>(5 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_list_changes</code> <span class="pill ro">read</span><span class="tool-sum">List change requests through the Change Management API. Supports an encoded query, field selection and paging.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>offset</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_change</code> <span class="pill ro">read</span><span class="tool-sum">Get a single change request by sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the change request.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_create_change</code> <span class="pill wr">write</span><span class="tool-sum">Create a normal, standard or emergency change. Standard changes require a template_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>type</code></td><td>enum</td><td><span class="req">required</span></td><td>Change type. — one of: <code>normal</code> · <code>standard</code> · <code>emergency</code></td></tr>
+              <tr><td><code>template_id</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>fields</code></td><td>object</td><td><span class="opt">optional</span></td><td>Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_update_change</code> <span class="pill wr">write</span><span class="tool-sum">Update fields on a change request by sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the change request.</td></tr>
+              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_change_conflicts</code> <span class="pill wr">write</span><span class="tool-sum">Read schedule conflicts for a change, or recalculate them (calculate=true). Recalculation is a write and is blocked in read-only mode.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the change request.</td></tr>
+              <tr><td><code>calculate</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-knowledge">knowledge <span class="pkg-meta">— Knowledge Base — relevance search and article retrieval. <em>(3 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_search_knowledge</code> <span class="pill ro">read</span><span class="tool-sum">Full-text search of knowledge articles (Knowledge API), with optional encoded query and paging.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>search</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>fields</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>offset</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_knowledge_article</code> <span class="pill ro">read</span><span class="tool-sum">Get a knowledge article (content and metadata) by sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the knowledge article.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_knowledge_highlights</code> <span class="pill ro">read</span><span class="tool-sum">List featured or most-viewed knowledge articles for the current user.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>mode</code></td><td>enum</td><td><span class="req">required</span></td><td>Which highlight list to return. — one of: <code>featured</code> · <code>most_viewed</code></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-cmdb">cmdb <span class="pkg-meta">— Class-aware configuration items through Identification &amp; Reconciliation (IRE). <em>(5 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_list_cis</code> <span class="pill ro">read</span><span class="tool-sum">List configuration items of a CMDB class through the class-aware CMDB Instance API.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class/table, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>offset</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_ci</code> <span class="pill ro">read</span><span class="tool-sum">Get a CI with its attributes and inbound/outbound relations by class and sys_id.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the CI.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_create_ci</code> <span class="pill wr">write</span><span class="tool-sum">Create a CI via the CMDB Instance API (routed through Identification &amp; Reconciliation).</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>attributes</code></td><td>object</td><td><span class="req">required</span></td><td>CI attribute name/value pairs.</td></tr>
+              <tr><td><code>source</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_update_ci</code> <span class="pill wr">write</span><span class="tool-sum">Update a CI's attributes via the CMDB Instance API (IRE).</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the CI.</td></tr>
+              <tr><td><code>attributes</code></td><td>object</td><td><span class="req">required</span></td><td>CI attribute name/value pairs.</td></tr>
+              <tr><td><code>source</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_cmdb_meta</code> <span class="pill ro">read</span><span class="tool-sum">Get the schema/metadata of a CMDB class (attributes, relationship rules) from the CMDB Meta API.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-scripts">scripts <span class="pkg-meta">— Read-only code intelligence over server-side script artefacts. <em>(4 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_list_scripts</code> <span class="pill ro">read</span><span class="tool-sum">List script artefacts of one type as compact metadata (no source code). Types: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl. Filter by applied table, name fragment, active flag, or a raw encoded query.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>type</code></td><td>enum</td><td><span class="req">required</span></td><td>Script type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl. — one of: <code>business_rule</code> · <code>script_include</code> · <code>client_script</code> · <code>ui_policy</code> · <code>ui_action</code> · <code>scheduled_job</code> · <code>transform</code> · <code>rest_operation</code> · <code>acl</code></td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>name</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>active</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>offset</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_script</code> <span class="pill ro">read</span><span class="tool-sum">Read one script artefact in full, including its source code and execution context.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>type</code></td><td>enum</td><td><span class="req">required</span></td><td>Script type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl. — one of: <code>business_rule</code> · <code>script_include</code> · <code>client_script</code> · <code>ui_policy</code> · <code>ui_action</code> · <code>scheduled_job</code> · <code>transform</code> · <code>rest_operation</code> · <code>acl</code></td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the script record.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_search_code</code> <span class="pill ro">read</span><span class="tool-sum">Search script source for a literal substring across one or all script types. Returns a short snippet per match (not whole scripts). Answers 'where is X used?'.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>text</code></td><td>string</td><td><span class="req">required</span></td><td>Substring to search for in script source.</td></tr>
+              <tr><td><code>type</code></td><td>enum</td><td><span class="opt">optional</span></td><td>one of: <code>business_rule</code> · <code>script_include</code> · <code>client_script</code> · <code>ui_policy</code> · <code>ui_action</code> · <code>scheduled_job</code> · <code>transform</code> · <code>rest_operation</code> · <code>acl</code></td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_table_logic</code> <span class="pill ro">read</span><span class="tool-sum">Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI policies, UI actions and ACLs. Metadata only.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table to analyse, e.g. 'incident'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-flows">flows <span class="pkg-meta">— Flow &amp; automation intelligence (read-only) — event tracing, Flow Designer, run history. <em>(4 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_trace_table_event</code> <span class="pill ro">read</span><span class="tool-sum">Deterministically trace what ServiceNow would run for a table operation, in execution order: display/before/after/async business rules, then flows, workflows and notifications — each with its condition, plus a Mermaid flowchart. A logical test without executing anything.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table to trace, e.g. 'incident'.</td></tr>
+              <tr><td><code>operation</code></td><td>enum</td><td><span class="req">required</span></td><td>The database operation to simulate. — one of: <code>insert</code> · <code>update</code> · <code>delete</code> · <code>query</code></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_list_flows</code> <span class="pill ro">read</span><span class="tool-sum">List Flow Designer flows (sys_hub_flow) or legacy workflows (kind: 'workflow') as compact metadata. Filter by applied table, active flag or a name fragment.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>kind</code></td><td>enum</td><td><span class="opt">optional</span></td><td>one of: <code>flow</code> · <code>workflow</code></td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>active</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>name</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_flow</code> <span class="pill ro">read</span><span class="tool-sum">Get a structured view of one flow or workflow: its trigger (table/condition/when) and ordered steps. Not a full decompilation — enough to reason about the logic.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the flow or workflow.</td></tr>
+              <tr><td><code>kind</code></td><td>enum</td><td><span class="opt">optional</span></td><td>one of: <code>flow</code> · <code>workflow</code></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_flow_runs</code> <span class="pill ro">read</span><span class="tool-sum">Read flow execution evidence from sys_flow_context — by flow sys_id or by the record (document) it ran against: when it started, its state and the outcome.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>flow</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>record</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-codecheck">codecheck <span class="pkg-meta">— Local static analysis of instance scripts — no code is executed on the instance. <em>(3 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_lint_script</code> <span class="pill ro">read</span><span class="tool-sum">Run deterministic code-quality rules over one script artefact (hard-coded sys_ids/URLs, unbounded or in-loop GlideRecord queries, eval, gs.sleep, setWorkflow(false), client-side GlideRecord, sync getReference, …). Returns findings with rule, severity, line and a fix hint.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>type</code></td><td>enum</td><td><span class="req">required</span></td><td>Script type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl. — one of: <code>business_rule</code> · <code>script_include</code> · <code>client_script</code> · <code>ui_policy</code> · <code>ui_action</code> · <code>scheduled_job</code> · <code>transform</code> · <code>rest_operation</code> · <code>acl</code></td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the script record.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_lint_table</code> <span class="pill ro">read</span><span class="tool-sum">Lint every active business rule, client script and UI policy of a table (via table_logic), returning per-script findings and a severity summary.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table to lint, e.g. 'incident'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_code_health</code> <span class="pill wr">write</span><span class="tool-sum">Aggregate code-health picture: script counts by type, and (when a table scope is given) the lint findings by severity with the top offenders. Writes a Markdown report to SN_DOCS_DIR/&lt;profile&gt;/code-health.md.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>scope</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-docs">docs <span class="pkg-meta">— Local Markdown self-documentation store and Mermaid diagram generators. <em>(6 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_docs_list</code> <span class="pill ro">read</span><span class="tool-sum">List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR).</span></summary>
+            <div class="tool-params"><p class="noparams">No parameters.</p></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_docs_read</code> <span class="pill ro">read</span><span class="tool-sum">Read one Markdown document from the local instance-documentation folder.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>path</code></td><td>string</td><td><span class="req">required</span></td><td>Document path relative to the docs folder, e.g. 'tables/incident.md'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_docs_search</code> <span class="pill ro">read</span><span class="tool-sum">Search the local instance documentation for a substring; returns a snippet per match.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>text</code></td><td>string</td><td><span class="req">required</span></td><td>Substring to search for across all documents.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_docs_write</code> <span class="pill wr">write</span><span class="tool-sum">Create or overwrite a Markdown document in the local docs folder and refresh index.md. Use this to record durable knowledge (descriptions, Mermaid diagrams, instance quirks).</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>path</code></td><td>string</td><td><span class="req">required</span></td><td>Target document path relative to the docs folder, e.g. 'tables/incident.md'.</td></tr>
+              <tr><td><code>content</code></td><td>string</td><td><span class="req">required</span></td><td>Full Markdown content to write.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_generate_er_diagram</code> <span class="pill ro">read</span><span class="tool-sum">Build a Mermaid erDiagram from sys_dictionary: an entity per table plus a relationship for every reference field. Returns Mermaid markup ready to embed in Markdown.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>tables</code></td><td>array</td><td><span class="req">required</span></td><td>Tables to include, e.g. ['incident', 'problem'].</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_generate_table_flow</code> <span class="pill ro">read</span><span class="tool-sum">Build a Mermaid flowchart of a record's lifecycle on a table, grouping active business rules by phase (display/before/after/async) in execution order.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table to diagram, e.g. 'incident'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-instance">instance <span class="pkg-meta">— Cross-instance structural snapshots and comparison. <em>(2 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_snapshot_instance</code> <span class="pill wr">write</span><span class="tool-sum">Download the instance's structural metadata into the local docs folder (SN_DOCS_DIR/&lt;profile&gt;/): tables.md+json, schema/&lt;table&gt;.md for the given tables, plugins, installed apps and script-automation statistics, plus an index.md. Markdown is for humans/LLMs, the JSON companions feed instance comparison. Idempotent: re-running overwrites the previous snapshot of the same profile.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>tables</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_compare_instances</code> <span class="pill wr">write</span><span class="tool-sum">Diff two connection profiles: tables present in only one, common columns whose type/mandatory/reference differ, scripts (per type+name) missing or with different source (compared by SHA-256, always live), and plugin/app inventory differences. Writes a Markdown report to _compare/&lt;a&gt;-vs-&lt;b&gt;.md in the docs folder and returns the structured summary. With from_snapshot, tables/plugins/apps are read from the profiles' stored snapshots when available.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>a</code></td><td>string</td><td><span class="req">required</span></td><td>First connection profile, e.g. 'dev'.</td></tr>
+              <tr><td><code>b</code></td><td>string</td><td><span class="req">required</span></td><td>Second connection profile, e.g. 'prod'.</td></tr>
+              <tr><td><code>from_snapshot</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-email">email <span class="pkg-meta">— Email — send and read. <em>(2 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_send_email</code> <span class="pill wr">write</span><span class="tool-sum">Send an email through the instance's Email API, optionally associated with a record (table + sys_id). Requires the Email API plugin to be active.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>to</code></td><td>array</td><td><span class="req">required</span></td><td>Recipient email addresses.</td></tr>
+              <tr><td><code>subject</code></td><td>string</td><td><span class="req">required</span></td><td>Email subject.</td></tr>
+              <tr><td><code>body</code></td><td>string</td><td><span class="req">required</span></td><td>Plain-text email body.</td></tr>
+              <tr><td><code>cc</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>bcc</code></td><td>array</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_email</code> <span class="pill ro">read</span><span class="tool-sum">Read a sent/received email record by its sys_id (Email API).</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the email record.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-atf">atf <span class="pkg-meta">— Automated Test Framework via the CI/CD API (opt-in, non-default — runs on the instance). <em>(5 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_list_atf_tests</code> <span class="pill ro">read</span><span class="tool-sum">List Automated Test Framework tests (sys_atf_test) as metadata: name, active flag, description.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>active</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_list_atf_suites</code> <span class="pill ro">read</span><span class="tool-sum">List Automated Test Framework test suites (sys_atf_test_suite) as metadata.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>active</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_run_atf_test</code> <span class="pill wr">write</span><span class="tool-sum">Run a single ATF test through the CI/CD API. EXECUTES CODE on the instance — use only on a non-production instance with the sn_cicd plugin active. Returns an execution id to poll with servicenow_get_atf_result.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>test_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the ATF test (sys_atf_test).</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_run_atf_suite</code> <span class="pill wr">write</span><span class="tool-sum">Run an ATF test suite through the CI/CD API. EXECUTES CODE on the instance. Returns an execution id to poll with servicenow_get_atf_result.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>suite_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the ATF test suite (sys_atf_test_suite).</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_atf_result</code> <span class="pill ro">read</span><span class="tool-sum">Poll an ATF run by its execution id: status, percent complete and message (CI/CD progress API).</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>execution_id</code></td><td>string</td><td><span class="req">required</span></td><td>The execution/progress id returned by a run tool.</td></tr>
+            </tbody></table></div>
+          </details>
+          <h3 id="pkg-admin">admin <span class="pkg-meta">— Always-on connection, profile and status tools. <em>(5 tools)</em></span></h3>
+          <details class="tool">
+            <summary><code>servicenow_set_credentials</code> <span class="pill wr">write</span><span class="tool-sum">Save or update the ServiceNow connection credentials. Values are persisted to the env file and used for all subsequent requests. Provide any subset of fields.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>instance</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>user</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>password</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+              <tr><td><code>profile</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_list_instances</code> <span class="pill ro">read</span><span class="tool-sum">List the configured ServiceNow connection profiles (instances): name, host, user, read-only flag and whether credentials are complete. Passwords are never included.</span></summary>
+            <div class="tool-params"><p class="noparams">No parameters.</p></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_use_instance</code> <span class="pill wr">write</span><span class="tool-sum">Switch the active ServiceNow connection profile (persisted to the env file). All identity-scoped caches (OAuth tokens, schema, plugin availability) are cleared.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>name</code></td><td>string</td><td><span class="req">required</span></td><td>Profile to activate, e.g. 'default' or 'dev'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_get_status</code> <span class="pill ro">read</span><span class="tool-sum">Show the configured instance, user, auth mode and access policy, and whether credentials are complete. The password is never revealed.</span></summary>
+            <div class="tool-params"><p class="noparams">No parameters.</p></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_test_connection</code> <span class="pill ro">read</span><span class="tool-sum">Verify that the configured credentials actually work: reads one sys_user record and reports ok/status/latency. Auth and connectivity problems are returned structurally (ok:false), not as errors.</span></summary>
+            <div class="tool-params"><p class="noparams">No parameters.</p></div>
+          </details>
         </section>
 
         <!-- USE CASES -->
@@ -927,6 +1342,12 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               "Triage incident INC0012345 and tell me if its priority looks
               right."
             </div>
+            <div class="under-hood">
+              <span class="tag">Tools</span> <code>servicenow_get_record</code>
+              <span class="arrow">→</span> <code>servicenow_query_table</code>
+              <span class="arrow">→</span>
+              <code>servicenow_search_knowledge</code>
+            </div>
           </div>
 
           <div class="usecase">
@@ -941,6 +1362,11 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             <div class="prompt">
               <span class="tag">Prompt</span>
               "Run an impact analysis on CHG0030001 and give me a go/no-go."
+            </div>
+            <div class="under-hood">
+              <span class="tag">Tools</span> <code>servicenow_get_change</code>
+              <span class="arrow">→</span> <code>servicenow_change_conflicts</code>
+              <span class="arrow">→</span> <code>servicenow_list_changes</code>
             </div>
           </div>
 
@@ -959,6 +1385,11 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               "Compare the dev and prod ServiceNow instances and summarise what
               drifted."
             </div>
+            <div class="under-hood">
+              <span class="tag">Tools</span>
+              <code>servicenow_list_instances</code> <span class="arrow">→</span>
+              <code>servicenow_compare_instances</code>
+            </div>
           </div>
 
           <div class="usecase">
@@ -976,6 +1407,15 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               "Document the incident table: schema, automation, an ER diagram and
               the record lifecycle, then save it."
             </div>
+            <div class="under-hood">
+              <span class="tag">Tools</span> <code>servicenow_describe_table</code>
+              <span class="arrow">→</span> <code>servicenow_table_logic</code>
+              <span class="arrow">→</span>
+              <code>servicenow_generate_er_diagram</code>
+              <span class="arrow">→</span>
+              <code>servicenow_generate_table_flow</code>
+              <span class="arrow">→</span> <code>servicenow_docs_write</code>
+            </div>
           </div>
 
           <div class="usecase">
@@ -992,6 +1432,10 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               "Find every business rule or script include that references
               <code>GlideRecordSecure</code>."
             </div>
+            <div class="under-hood">
+              <span class="tag">Tools</span> <code>servicenow_search_code</code>
+              <span class="arrow">→</span> <code>servicenow_table_logic</code>
+            </div>
           </div>
 
           <div class="usecase">
@@ -1006,6 +1450,99 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               <span class="tag">Prompt</span>
               "Find the 'New laptop' catalog item and order one for me."
             </div>
+            <div class="under-hood">
+              <span class="tag">Tools</span> <code>servicenow_list_catalogs</code>
+              <span class="arrow">→</span>
+              <code>servicenow_list_catalog_items</code>
+              <span class="arrow">→</span> <code>servicenow_get_catalog_item</code>
+              <span class="arrow">→</span> <code>servicenow_order_catalog_item</code>
+            </div>
+          </div>
+        </section>
+
+        <!-- HOW IT COMPARES -->
+        <section id="compare">
+          <h2>How it compares</h2>
+          <p class="lead">
+            ServiceNow now ships its own <strong>MCP Server Console</strong> — a
+            governed, on-instance service for production AI agents. This project
+            is a different tool for a different job: an external, self-run server
+            for developers and consultants who need to <em>understand and safely
+            change</em> an instance — any instance, with the model and client
+            they choose.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Dimension</th>
+                  <th>servicenow-mcp-ai (this)</th>
+                  <th>Official MCP Server Console</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Where it runs</td>
+                  <td>Locally, next to your MCP client</td>
+                  <td>Remote, hosted on the instance</td>
+                </tr>
+                <tr>
+                  <td>Requirements</td>
+                  <td>Just credentials — <strong>any instance, incl. a free PDI</strong></td>
+                  <td>Paid Now Assist SKU + a recent release</td>
+                </tr>
+                <tr>
+                  <td>AI model</td>
+                  <td><strong>Bring your own</strong> — any client, any model incl. local</td>
+                  <td>Inside ServiceNow's governed AI layer</td>
+                </tr>
+                <tr>
+                  <td>Cost</td>
+                  <td><strong>Free</strong> (MIT), plain REST calls</td>
+                  <td>Metered via Assist currency</td>
+                </tr>
+                <tr>
+                  <td>Surface</td>
+                  <td>Raw REST breadth + script intelligence + cross-instance diff</td>
+                  <td>Curated Now Assist skills, flows, scripted REST</td>
+                </tr>
+                <tr>
+                  <td>Governance</td>
+                  <td>Client-side policy, read-only, SSRF guard</td>
+                  <td>Native ACLs + AI Control Tower (enterprise audit)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="cards">
+            <div class="card">
+              <div class="ico">🛠️</div>
+              <h3>Choose this when…</h3>
+              <p>
+                You're developing, consulting or exploring; you work against PDIs
+                or many instances; you want code-level insight — what runs on
+                save, where a field is used, dev↔prod drift — or you want your
+                own model (cloud or local) at no licence cost.
+              </p>
+            </div>
+            <div class="card">
+              <div class="ico">🏛️</div>
+              <h3>Choose the official when…</h3>
+              <p>
+                You're running production enterprise agents that need native ACL
+                enforcement, approval workflows, enterprise audit and metering,
+                and vendor support for governed catalog/approval/playbook
+                actions.
+              </p>
+            </div>
+          </div>
+          <div class="callout">
+            <span class="c-ico">⚖️</span>
+            <p>
+              <strong>Not affiliated with ServiceNow, Inc.</strong> This is an
+              independent, community-built project; “ServiceNow” is a trademark
+              of ServiceNow, Inc., used here only to indicate compatibility.
+            </p>
           </div>
         </section>
 
@@ -1320,12 +1857,25 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
         <!-- FAQ -->
         <section id="faq">
           <h2>FAQ</h2>
+          <h3>How is this different from ServiceNow's own MCP Server?</h3>
+          <p>
+            ServiceNow's <strong>MCP Server Console</strong> is a governed,
+            on-instance service for production agents (paid Now Assist SKU,
+            metered). This is an external, self-run server for developers and
+            consultants: it works against <strong>any</strong> instance — incl. a
+            free PDI — with the model and client you choose, at no licence cost,
+            and adds code intelligence and cross-instance diffing the platform
+            service doesn't. See <a href="#compare">How it compares</a>.
+          </p>
           <h3>Does the AI run code on my instance?</h3>
           <p>
-            No. There is no background-script execution. Everything goes through
-            documented REST APIs, and writes obey the policy and read-only
-            guards. Automated test execution (ATF) over the official CI/CD API is
-            a planned future addition.
+            No arbitrary code execution. There is no background-script
+            evaluation; everything goes through documented REST APIs, and writes
+            obey the policy and read-only guards. The one exception is the
+            opt-in, non-default <code>atf</code> package, which runs your own
+            existing Automated Test Framework tests through the official CI/CD
+            API — it executes code on the instance by design, so it is meant for
+            non-production environments.
           </p>
           <h3>Why is the npm package <code>servicenow-mcp-ai</code>?</h3>
           <p>
@@ -1333,10 +1883,10 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             npm, so the package ships as <code>servicenow-mcp-ai</code>. The
             GitHub repository is
             <a
-              href="https://github.com/LeassTaTT/servicenow-mcp"
+              href="https://github.com/LeassTaTT/servicenow-mcp-ai"
               target="_blank"
               rel="noopener"
-              ><code>LeassTaTT/servicenow-mcp</code></a
+              ><code>LeassTaTT/servicenow-mcp-ai</code></a
             >. The difference is cosmetic. This is an independent project, not
             affiliated with or endorsed by ServiceNow, Inc.; "ServiceNow" is a
             trademark of ServiceNow, Inc., used here only to indicate
@@ -1375,7 +1925,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           A Model Context Protocol server for ServiceNow.
         </div>
         <div>
-          <a href="https://github.com/LeassTaTT/servicenow-mcp" target="_blank" rel="noopener">GitHub</a> ·
+          <a href="https://github.com/LeassTaTT/servicenow-mcp-ai" target="_blank" rel="noopener">GitHub</a> ·
           <a href="https://github.com/LeassTaTT/servicenow-mcp-ai/blob/main/README.md" target="_blank" rel="noopener">README</a> ·
           <a href="https://github.com/LeassTaTT/servicenow-mcp-ai/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a> ·
           <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">About MCP</a>

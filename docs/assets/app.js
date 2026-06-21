@@ -201,4 +201,27 @@
       observer.observe(s);
     });
   }
+
+  /* ---- Tools reference: expand / collapse all parameter panels ---- */
+  function allToolDetails() {
+    return Array.prototype.slice.call(
+      document.querySelectorAll("#tools details.tool"),
+    );
+  }
+  var expandBtn = document.getElementById("expand-all-tools");
+  var collapseBtn = document.getElementById("collapse-all-tools");
+  if (expandBtn) {
+    expandBtn.addEventListener("click", function () {
+      allToolDetails().forEach(function (d) {
+        d.open = true;
+      });
+    });
+  }
+  if (collapseBtn) {
+    collapseBtn.addEventListener("click", function () {
+      allToolDetails().forEach(function (d) {
+        d.open = false;
+      });
+    });
+  }
 })();
