@@ -11,6 +11,8 @@ import { specs as importsetSpecs } from "../build/tools/importset.js";
 import { specs as emailSpecs } from "../build/tools/email.js";
 import { specs as catalogSpecs } from "../build/tools/catalog.js";
 import { specs as attachmentSpecs } from "../build/tools/attachment.js";
+import { specs as atfSpecs } from "../build/tools/atf.js";
+import { specs as batchSpecs } from "../build/tools/batch.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();
@@ -23,6 +25,8 @@ const allSpecs = [
   ...emailSpecs,
   ...catalogSpecs,
   ...attachmentSpecs,
+  ...atfSpecs,
+  ...batchSpecs,
 ];
 const tool = (name) => allSpecs.find((s) => s.name === name);
 const out = (res) => JSON.parse(res.content[0].text);
@@ -335,6 +339,66 @@ test("delete_attachment plan mode fetches before, no DELETE (DF-2)", async () =>
       assert.equal(o.mode, "plan");
       assert.equal(o.action, "delete");
       assert.equal(o.table, "sys_attachment");
+    },
+  );
+});
+
+// --- batch + ATF (the last two write tools) ---------------------------------
+
+test("run_atf_test plan mode previews the run, no execution (DF-2)", async () => {
+  await withFetch(
+    (_url, init) => {
+      if (init?.method === "POST") {
+        throw new Error("must not run in plan mode");
+      }
+      return jsonResponse(200, { result: {} });
+    },
+    async (calls) => {
+      const o = out(
+        await tool("servicenow_run_atf_test").handler({ test_sys_id: "t1" }),
+      );
+      assert.equal(o.mode, "plan");
+      assert.equal(o.action, "execute");
+      assert.equal(o.sys_id, "t1");
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
+test("batch with writes is plan-gated; a read-only batch runs directly (DF-2)", async () => {
+  // A batch containing a write previews instead of executing.
+  await withFetch(
+    (_url, init) => {
+      if (init?.method === "POST") {
+        throw new Error("must not run a writing batch in plan mode");
+      }
+      return jsonResponse(200, { result: { serviced_requests: [] } });
+    },
+    async () => {
+      const o = out(
+        await tool("servicenow_batch").handler({
+          requests: [
+            { method: "POST", url: "/api/now/table/incident", body: {} },
+          ],
+        }),
+      );
+      assert.equal(o.mode, "plan");
+      assert.equal(o.table, "batch");
+    },
+  );
+  // An all-GET batch has no write to gate — it runs.
+  await withFetch(
+    () => jsonResponse(200, { result: { serviced_requests: [] } }),
+    async (calls) => {
+      const o = out(
+        await tool("servicenow_batch").handler({
+          requests: [
+            { method: "GET", url: "/api/now/table/incident?sysparm_limit=1" },
+          ],
+        }),
+      );
+      assert.notEqual(o.mode, "plan"); // executed, not previewed
+      assert.ok(calls.length >= 1);
     },
   );
 });

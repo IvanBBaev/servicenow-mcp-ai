@@ -14,7 +14,7 @@ import { logger } from "./logging.js";
  * blocks or fails the write that already happened on the instance.
  */
 
-export type WriteAction = "create" | "update" | "delete";
+export type WriteAction = "create" | "update" | "delete" | "execute";
 
 export interface JournalEntry {
   ts: string;

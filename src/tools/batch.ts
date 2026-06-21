@@ -2,6 +2,8 @@ import { z } from "zod";
 import { runBatch } from "../api/batch.js";
 import { ok } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { appendWriteJournal } from "../core/write-journal.js";
 
 const subRequestSchema = z.object({
   id: z
@@ -47,10 +49,29 @@ export const specs: AnyToolSpec[] = [
         .array(subRequestSchema)
         .min(1)
         .describe("The sub-requests to run together."),
+      apply: applyInput,
     },
     logFields: (args) => ({ count: args.requests.length }),
-    handler: async ({ requests }) => {
+    handler: async ({ requests, apply }) => {
+      // A read-only batch (all GET) needs no plan gate; a batch that writes does.
+      const hasWrites = requests.some((r) => r.method !== "GET");
+      if (hasWrites && !shouldApply(apply)) {
+        return planPreview({
+          action: "execute",
+          table: "batch",
+          after: {
+            requests: requests.map((r) => ({ method: r.method, url: r.url })),
+          },
+        });
+      }
       const results = await runBatch(requests);
+      if (hasWrites) {
+        appendWriteJournal({
+          action: "execute",
+          table: "batch",
+          fields: { sub_requests: requests.length },
+        });
+      }
       return ok({ count: results.length, results });
     },
   }),

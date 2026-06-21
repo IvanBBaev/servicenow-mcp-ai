@@ -8,6 +8,8 @@ import {
 } from "../api/atf.js";
 import { ok } from "../mcp/result.js";
 import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { appendWriteJournal } from "../core/write-journal.js";
 
 /**
  * ATF package (Phase 8): list and run Automated Test Framework tests/suites via
@@ -68,8 +70,25 @@ export const specs: AnyToolSpec[] = [
       test_sys_id: z
         .string()
         .describe("sys_id of the ATF test (sys_atf_test)."),
+      apply: applyInput,
     },
-    handler: ({ test_sys_id }) => runAtfTest(test_sys_id).then(ok),
+    handler: async ({ test_sys_id, apply }) => {
+      if (!shouldApply(apply)) {
+        return planPreview({
+          action: "execute",
+          table: "sys_atf_test",
+          sys_id: test_sys_id,
+          after: { run: "ATF test" },
+        });
+      }
+      const result = await runAtfTest(test_sys_id);
+      appendWriteJournal({
+        action: "execute",
+        table: "sys_atf_test",
+        sys_id: test_sys_id,
+      });
+      return ok(result);
+    },
   }),
 
   defineTool({
@@ -89,8 +108,25 @@ export const specs: AnyToolSpec[] = [
       suite_sys_id: z
         .string()
         .describe("sys_id of the ATF test suite (sys_atf_test_suite)."),
+      apply: applyInput,
     },
-    handler: ({ suite_sys_id }) => runAtfSuite(suite_sys_id).then(ok),
+    handler: async ({ suite_sys_id, apply }) => {
+      if (!shouldApply(apply)) {
+        return planPreview({
+          action: "execute",
+          table: "sys_atf_test_suite",
+          sys_id: suite_sys_id,
+          after: { run: "ATF suite" },
+        });
+      }
+      const result = await runAtfSuite(suite_sys_id);
+      appendWriteJournal({
+        action: "execute",
+        table: "sys_atf_test_suite",
+        sys_id: suite_sys_id,
+      });
+      return ok(result);
+    },
   }),
 
   defineTool({

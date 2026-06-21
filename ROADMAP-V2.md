@@ -18,14 +18,14 @@ The API surface is complete; v2.0 is the release that makes the breadth **safe**
 The business analysis cut line for a tight single-maintainer 2.0 is **DF-0, DF-2, DF-1,
 DX-1, DX-3**; DF-4/DF-5/DF-6 follow in 2.1 if capacity demands triage.
 
-| #   | Item     | Pillar      | Why this order                                                       | Status                 |
-| --- | -------- | ----------- | -------------------------------------------------------------------- | ---------------------- |
-| 1   | **DF-0** | Depth       | Precondition for DF-1/DF-4; closes the permission paradox (R1/R2/B4) | 🟢 preflight shipped   |
-| 2   | **DF-2** | Trust       | The root enabler — makes raw-REST writes safe (dry-run + audit)      | 🟡 most writes shipped |
-| 3   | **DF-1** | Depth       | Headline "knows your instance"; extends Phase 8 codecheck            | 🟢 ACL scan shipped    |
-| 4   | **DX-1** | Discovery   | MCP Registry + Claude Code plugin — biggest adoption lever           | ⬜                     |
-| 5   | **DX-3** | Discovery   | One sharp "find-usages / what-runs / dev-vs-prod" demo               | ⬜                     |
-| —   | DF-4/5/6 | Depth/Reach | where-used graph · redaction · HTTP transport — 2.1 triage           | ⬜ deferred            |
+| #   | Item     | Pillar      | Why this order                                                       | Status                |
+| --- | -------- | ----------- | -------------------------------------------------------------------- | --------------------- |
+| 1   | **DF-0** | Depth       | Precondition for DF-1/DF-4; closes the permission paradox (R1/R2/B4) | 🟢 preflight shipped  |
+| 2   | **DF-2** | Trust       | The root enabler — makes raw-REST writes safe (dry-run + audit)      | 🟢 all writes shipped |
+| 3   | **DF-1** | Depth       | Headline "knows your instance"; extends Phase 8 codecheck            | 🟢 ACL scan shipped   |
+| 4   | **DX-1** | Discovery   | MCP Registry + Claude Code plugin — biggest adoption lever           | ⬜                    |
+| 5   | **DX-3** | Discovery   | One sharp "find-usages / what-runs / dev-vs-prod" demo               | ⬜                    |
+| —   | DF-4/5/6 | Depth/Reach | where-used graph · redaction · HTTP transport — 2.1 triage           | ⬜ deferred           |
 
 ## Definition of done (per item)
 
@@ -46,7 +46,7 @@ regenerated, and the README/env reference kept in sync (the project's standing g
 - [x] `code_health` degrades the ACL read to `available:false` when `sys_security_acl` is
       unreadable (DF-1 security scan landed).
 
-### DF-2 — Plan-and-apply + local audit journal (most writes shipped)
+### DF-2 — Plan-and-apply + local audit journal (all writes shipped)
 
 - [x] `SN_WRITE_MODE=plan|apply` (default **plan**) + per-tool `apply:true`; plan returns
       a non-mutating before/after preview. Shipped for **Table CRUD** (create/update/
@@ -60,7 +60,8 @@ regenerated, and the README/env reference kept in sync (the project's standing g
 - [x] Special writes: email send, catalog order, attachment upload/delete —
       `tools/email.ts`, `tools/catalog.ts`, `tools/attachment.ts` (base64/body never
       echoed in the preview or journal).
-- [ ] _Remaining (2.1 ok):_ the multi-write `batch` and the ATF run tools.
+- [x] batch (write batches) and the ATF run tools — **all 13 instance-mutating write
+      tools** now plan-and-apply.
 
 ### DF-1 — Instance linter + security scan (ACL scan shipped)
 
