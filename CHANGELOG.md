@@ -24,6 +24,7 @@ v2.0 makes the breadth of v1 **safe and self-aware**: writes preview before they
 - **DF-6 — HTTP transport.** `SN_TRANSPORT=http` (port `SN_PORT`, default 3000) serves the MCP server over **Streamable HTTP** so the official ServiceNow MCP Client app and remote clients can consume it; the default stays `stdio`. The endpoint binds to **loopback (`127.0.0.1`) by default** (`SN_HTTP_HOST` to widen) and supports an optional **`SN_HTTP_TOKEN`** bearer guard (constant-time check); broader TLS/network hardening remains the operator's responsibility.
 - **CSV export.** `servicenow_query_table` accepts `format: "csv"` for a spreadsheet-friendly export — a dependency-free RFC-4180 formatter that reuses the DF-5 redaction.
 - **Claude Code plugin (DX-1).** A `.claude-plugin/` bundle (plugin + marketplace manifest) makes the server installable with `/plugin marketplace add LeassTaTT/servicenow-mcp-ai` then `/plugin install servicenow-mcp-ai` — zero-config, the server wired up.
+- **DF-3 — CI drift gate.** `servicenow-mcp-ai drift <profileA> <profileB>` promotes `compare_instances` to a release artifact: it prints the Markdown drift report and exits non-zero when the instances differ, so a pipeline can block a deploy on configuration drift.
 
 ### Changed
 

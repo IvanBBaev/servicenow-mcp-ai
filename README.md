@@ -218,6 +218,14 @@ See [.env.example](.env.example) for a template.
 - **MCP Inspector**: `npm run inspector`
 - **Directly**: `npm start`
 
+### CI drift gate (DF-3)
+
+Compare two configured profiles and **fail a pipeline on configuration drift**:
+
+```bash
+servicenow-mcp-ai drift dev prod   # prints a Markdown report; exits 1 on drift, 0 if clean
+```
+
 ## Develop
 
 ```bash

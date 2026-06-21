@@ -429,3 +429,15 @@ export async function compareInstances(
     warnings,
   };
 }
+
+/** DF-3 — total number of differences across every dimension of a comparison. */
+export function driftCount(result: CompareResult): number {
+  return (
+    result.tablesOnlyInA.length +
+    result.tablesOnlyInB.length +
+    result.columnDiffs.length +
+    result.scriptDiffs.length +
+    result.pluginDiffs.length +
+    result.appDiffs.length
+  );
+}

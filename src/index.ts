@@ -39,6 +39,34 @@ if (process.argv.includes("login")) {
   }
 }
 
+// `servicenow-mcp-ai drift <a> <b>` — DF-3 CI drift gate: compare two configured
+// profiles and exit non-zero on configuration drift, instead of starting the server.
+// stdout = the Markdown report (capture as a CI artifact); exit 0 clean / 1 drift / 2 error.
+if (process.argv[2] === "drift") {
+  const { compareInstances, driftCount } = await import("./api/compare.js");
+  const [a, b] = process.argv.slice(3);
+  if (!a || !b) {
+    process.stderr.write(
+      "Usage: servicenow-mcp-ai drift <profileA> <profileB>\n",
+    );
+    process.exit(2);
+  }
+  try {
+    const result = await compareInstances({ a, b });
+    process.stdout.write(result.report.trimEnd() + "\n");
+    const drift = driftCount(result);
+    process.stderr.write(
+      `\nDrift: ${drift} difference(s) between "${a}" and "${b}".\n`,
+    );
+    process.exit(drift > 0 ? 1 : 0);
+  } catch (error) {
+    process.stderr.write(
+      `Drift gate failed: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    process.exit(2);
+  }
+}
+
 const requireJson = createRequire(import.meta.url);
 const pkg = requireJson("../package.json") as { version: string };
 
