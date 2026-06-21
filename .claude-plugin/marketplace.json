@@ -1,0 +1,11 @@
+{
+  "name": "servicenow-mcp-ai",
+  "owner": { "name": "Ivan Baev", "url": "https://github.com/LeassTaTT" },
+  "plugins": [
+    {
+      "name": "servicenow-mcp-ai",
+      "source": "./",
+      "description": "ServiceNow MCP server — 67 tools, plan-and-apply write safety, capability preflight and an ACL security scan. Add with: /plugin marketplace add LeassTaTT/servicenow-mcp-ai"
+    }
+  ]
+}

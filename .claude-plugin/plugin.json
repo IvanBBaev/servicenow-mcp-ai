@@ -1,0 +1,17 @@
+{
+  "name": "servicenow-mcp-ai",
+  "displayName": "ServiceNow MCP",
+  "version": "2.0.0",
+  "description": "Drive ServiceNow from your AI assistant — 67 tools over the full REST surface, with plan-and-apply write safety, capability preflight and an ACL security scan.",
+  "author": { "name": "Ivan Baev", "url": "https://github.com/LeassTaTT" },
+  "homepage": "https://leasstatt.github.io/servicenow-mcp-ai/",
+  "repository": "https://github.com/LeassTaTT/servicenow-mcp-ai",
+  "license": "MIT",
+  "keywords": ["servicenow", "mcp", "model-context-protocol", "itsm", "rest"],
+  "mcpServers": {
+    "servicenow": {
+      "command": "npx",
+      "args": ["-y", "servicenow-mcp-ai"]
+    }
+  }
+}

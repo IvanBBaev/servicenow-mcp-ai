@@ -93,6 +93,13 @@ pointing the server command at `npx`:
 }
 ```
 
+**Claude Code plugin** (zero-config — installs the server wired up):
+
+```bash
+/plugin marketplace add LeassTaTT/servicenow-mcp-ai
+/plugin install servicenow-mcp-ai
+```
+
 Credentials are read from `~/.config/servicenow-mcp-ai/.env` (or real environment
 variables) — see below.
 
