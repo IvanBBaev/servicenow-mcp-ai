@@ -27,27 +27,26 @@ timeline
         Phase 8 : flow tracing : code linting : ATF
         Phase 9 (v2.0) : linter + security scan : plan-and-apply + audit : drift gate : where-used graph : PII redaction : HTTP transport
         Reviews : 3 full-review passes : release-readiness + adversarial audit
+        2.0.0 ship : v2.0.0 tag : npm publish (provenance) : MCP Registry listing
     section Next
-        2.0.0 publish : tag : npm (R-2) : MCP Registry listing
         DX-3 : hero demo written : screen-capture GIF
     section On request
         Optional : PDI e2e : vitest
 ```
 
-## Now — ship 2.0.0 (owner action R-2)
+## Shipped — 2.0.0 (R-2 complete, 2026-06-22)
 
-v2.0 is cut in code (`package.json` 2.0.0, `CHANGELOG [2.0.0]`, 303/303 tests) but is
-**not yet tagged or published** — npm and the git tags are still at **1.1.2**.
-Publishing is a human checklist (see [TODO.md](TODO.md) → R-2):
+v2.0 is **tagged and published**: npm `servicenow-mcp-ai@2.0.0` (the `latest` tag, built with
+`--provenance --access public` from CI, never a laptop) and the **MCP Registry** lists
+`io.github.LeassTaTT/servicenow-mcp-ai → 2.0.0`.
 
-- [ ] Tag **`v2.0.0`** on the release HEAD; move any accrued `CHANGELOG [Unreleased]`
-      entries under the dated `[2.0.0]` heading.
-- [ ] Make the GitHub repo **public** (required for `npm publish --provenance`) and add the
-      **`NPM_TOKEN`** repo secret.
-- [ ] `git push origin main`, confirm the first CI run is green (drop the Windows `continue-on-error`
-      once it is), then push the tag to fire `publish.yml`.
-- [ ] After the npm publish, list on the **MCP Registry** (`server.json` is ready) — the
-      discovery half of DX-1.
+- [x] Tagged **`v2.0.0`** on the release HEAD; the `CHANGELOG [Unreleased]` entries were folded
+      under the dated `[2.0.0]` heading.
+- [x] The GitHub repo is **public** and the **`NPM_TOKEN`** secret is bound.
+- [x] `git push origin main` with the CI matrix green (ubuntu 20/22/24, macOS, Windows), then the
+      tag fired `publish.yml` (which re-ran the gate before publishing).
+- [x] Listed on the **MCP Registry** (`publish-mcp.yml` via `server.json`) — the discovery half
+      of DX-1.
 
 ## Done — Phase 8 · Logical flow testing + code checking (2026-06-19)
 
@@ -152,11 +151,11 @@ Recommended order (highest value first):
 > move that needle; **DF-0** (the permission preflight) is the fourth and lives in
 > Phase 9.
 
-- [ ] **DX-1 · Publish & be discoverable** _(bundle shipped; publish pending)_ — the **Claude Code plugin / skills bundle**
-      (`.claude-plugin/`) and a **VS Code extension** (`extension/`) are **shipped**;
-      what remains is the npm publish (the R-2 checklist) and the **MCP Registry**
-      listing (`server.json` ready), both gated on going public. Discovery and
-      one-command install are the single biggest adoption lever.
+- [x] **DX-1 · Publish & be discoverable** _(shipped)_ — the **Claude Code plugin / skills bundle**
+      (`.claude-plugin/`) and a **VS Code extension** (`extension/`), plus the **npm publish**
+      (`servicenow-mcp-ai@2.0.0`, provenance) and the **MCP Registry** listing
+      (`io.github.LeassTaTT/servicenow-mcp-ai`). Discovery and one-command install are the single
+      biggest adoption lever.
 - [x] **DX-2 · Safe by default** — the out-of-the-box posture is now safe: **DF-2 makes
       writes plan-by-default** (`SN_WRITE_MODE=plan`), so an LLM cannot delete/mutate on
       any table without an explicit `apply: true`. A fully read-only `core`

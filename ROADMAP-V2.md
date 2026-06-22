@@ -17,16 +17,16 @@ The API surface is complete; v2.0 is the release that makes the breadth **safe**
 
 The business-analysis cut line for a tight single-maintainer 2.0 was **DF-0, DF-2,
 DF-1, DX-1, DX-3**; in the event **DF-3/DF-4/DF-5/DF-6 also landed in 2.0** (drift
-gate, where-used, redaction, HTTP transport). With the **DX-3 hero demo written**
-(README + docs site), only its **screen-capture GIF** and the npm/registry publish
-remain.
+gate, where-used, redaction, HTTP transport). **2.0.0 is published** — npm
+`servicenow-mcp-ai@2.0.0` (provenance) and the MCP Registry listing; only the DX-3
+**screen-capture GIF** remains.
 
 | #   | Item       | Pillar      | Why this order                                                       | Status                        |
 | --- | ---------- | ----------- | -------------------------------------------------------------------- | ----------------------------- |
 | 1   | **DF-0**   | Depth       | Precondition for DF-1/DF-4; closes the permission paradox (R1/R2/B4) | 🟢 preflight shipped          |
 | 2   | **DF-2**   | Trust       | The root enabler — makes raw-REST writes safe (dry-run + audit)      | 🟢 all 13 writes shipped      |
 | 3   | **DF-1**   | Depth       | Headline "knows your instance"; extends Phase 8 codecheck            | 🟢 ACL scan shipped           |
-| 4   | **DX-1**   | Discovery   | MCP Registry + Claude Code plugin — biggest adoption lever           | 🟢 plugin + VS Code ext       |
+| 4   | **DX-1**   | Discovery   | MCP Registry + Claude Code plugin — biggest adoption lever           | 🟢 published + registry       |
 | 5   | **DX-3**   | Discovery   | One sharp "find-usages / what-runs / dev-vs-prod" demo               | 🟡 demo written · GIF pending |
 | —   | DF-3/4/5/6 | Depth/Reach | drift gate · where-used graph · redaction · HTTP transport           | 🟢 shipped in 2.0             |
 
@@ -98,12 +98,12 @@ green at the 303/303-test gate, with tests in the same change and the README/env
       optional constant-time `SN_HTTP_TOKEN` bearer guard. Triggered the A2-4 `mcp/transport.ts`
       extraction.
 
-### DX-1 / DX-3 — Discovery (plugin shipped; registry listing + demo GIF pending)
+### DX-1 / DX-3 — Discovery (DX-1 shipped; DX-3 demo GIF pending)
 
 - [x] Claude Code plugin / skills bundle (`.claude-plugin/`) **and** a VS Code extension
-      (`extension/`) that auto-registers the server with Copilot Chat. `server.json` is
-      ready for the **MCP Registry** listing — that listing follows the npm publish
-      (npm and the git tags are still at **1.1.2**).
+      (`extension/`) that auto-registers the server with Copilot Chat. **Published:** npm
+      `servicenow-mcp-ai@2.0.0` (`--provenance`) and the **MCP Registry** listing
+      (`io.github.LeassTaTT/servicenow-mcp-ai → 2.0.0`) — DX-1's discovery half.
 - [x] DX-3 hero demo **written** — a "Quick demo" section in both the README
       ([README.md](README.md#quick-demo)) and the docs site (`docs/index.html` →
       `#quick-demo`): find-usages (`servicenow_where_used`), what-runs-on-save
