@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { describeAllTools } from "../build/mcp/registry.js";
+import { loadToolsFromSource } from "./registry-from-source.mjs";
 
 export const BEGIN = "<!-- GENERATED:TOOLS:BEGIN (npm run docs:readme) -->";
 export const END = "<!-- GENERATED:TOOLS:END -->";
@@ -20,8 +20,9 @@ function summary(description) {
   return safe.length > 110 ? `${safe.slice(0, 107)}…` : safe;
 }
 
-export function buildToolsSection() {
-  const rows = describeAllTools().map(
+/** Render the Tools table from a ToolInfo[] (the sync test passes its own). */
+export function buildToolsSection(tools) {
+  const rows = tools.map(
     (t) =>
       `| \`${t.package}\` | \`${t.name}\` | ${t.readOnly ? "yes" : "no"} | ${summary(t.description)} |`,
   );
@@ -39,7 +40,7 @@ export function buildToolsSection() {
   ].join("\n");
 }
 
-export function updateReadme(path = README_PATH) {
+export function updateReadme(tools, path = README_PATH) {
   const source = readFileSync(path, "utf8");
   const begin = source.indexOf(BEGIN);
   const end = source.indexOf(END);
@@ -48,14 +49,14 @@ export function updateReadme(path = README_PATH) {
   }
   const updated =
     source.slice(0, begin) +
-    buildToolsSection() +
+    buildToolsSection(tools) +
     source.slice(end + END.length);
   if (updated !== source) writeFileSync(path, updated);
   return updated !== source;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const changed = updateReadme();
+  const changed = updateReadme(await loadToolsFromSource());
   console.error(
     changed
       ? "README tools section regenerated."

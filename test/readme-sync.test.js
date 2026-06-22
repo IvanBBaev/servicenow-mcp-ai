@@ -17,7 +17,7 @@ test("README tools section matches the live tool registrations", () => {
   const actual = readme.slice(begin, end + END.length);
   assert.equal(
     actual,
-    buildToolsSection(),
+    buildToolsSection(describeAllTools()),
     "README is stale — run `npm run docs:readme` and commit the result",
   );
 });
