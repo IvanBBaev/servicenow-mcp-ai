@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,7 +21,7 @@
       name="description"
       content="Documentation for servicenow-mcp-ai: a Model Context Protocol server that lets an AI assistant operate a ServiceNow instance across the full REST surface, with governance built in."
     />
-    <meta name="theme-color" content="#1ea672" />
+    <meta name="theme-color" content="#0a0d0c" />
     <link rel="canonical" href="https://leasstatt.github.io/servicenow-mcp-ai/" />
     <!-- Social sharing -->
     <meta property="og:type" content="website" />
@@ -39,7 +39,7 @@
     <meta property="og:image:height" content="1200" />
     <meta
       property="og:image:alt"
-      content="servicenow-mcp-ai — drive ServiceNow from your AI assistant. 67 tools, 18 packages, Basic / OAuth 2.0, MIT."
+      content="servicenow-mcp-ai — drive ServiceNow from your AI assistant. 67 tools, 18 packages, OAuth 2.1 PKCE, MIT."
     />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="servicenow-mcp-ai — ServiceNow MCP Server" />
@@ -53,7 +53,7 @@
     />
     <meta
       name="twitter:image:alt"
-      content="servicenow-mcp-ai — drive ServiceNow from your AI assistant. 67 tools, 18 packages, Basic / OAuth 2.0, MIT."
+      content="servicenow-mcp-ai — drive ServiceNow from your AI assistant. 67 tools, 18 packages, OAuth 2.1 PKCE, MIT."
     />
     <!-- Structured data: software listing + FAQ rich results -->
     <script type="application/ld+json">
@@ -69,7 +69,7 @@
             "description": "A Model Context Protocol server that lets an MCP-capable AI client operate a ServiceNow instance across the full REST surface, with script intelligence, multi-instance profiles and least-privilege governance.",
             "url": "https://leasstatt.github.io/servicenow-mcp-ai/",
             "downloadUrl": "https://www.npmjs.com/package/servicenow-mcp-ai",
-            "softwareVersion": "1.1.2",
+            "softwareVersion": "2.0.0",
             "license": "https://opensource.org/licenses/MIT",
             "author": { "@type": "Person", "name": "Ivan Baev" },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -131,27 +131,21 @@
         ]
       }
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="assets/styles.css" />
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231ea672'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3ESN%3C/text%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232ee89e'/%3E%3Ctext x='50' y='68' font-size='54' text-anchor='middle' fill='%2304130d' font-family='monospace' font-weight='bold'%3ESN%3C/text%3E%3C/svg%3E"
     />
-    <!-- Apply the saved/system theme before first paint to avoid a flash. -->
-    <script>
-      (function () {
-        try {
-          var t =
-            localStorage.getItem("sn-theme") ||
-            (window.matchMedia &&
-            matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light");
-          document.documentElement.setAttribute("data-theme", t);
-        } catch (e) {}
-      })();
-    </script>
   </head>
   <body>
+    <div class="bg-glow" aria-hidden="true"></div>
+    <div class="bg-grid" aria-hidden="true"></div>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="topbar">
       <button class="icon-btn" id="menuBtn" aria-label="Toggle menu">☰</button>
@@ -166,6 +160,7 @@
         <a href="#use-cases">Use cases</a>
         <a href="#security">Security</a>
       </nav>
+      <span class="ver-pill">v2.0.0</span>
       <a
         class="icon-btn"
         href="https://github.com/LeassTaTT/servicenow-mcp-ai"
@@ -174,7 +169,6 @@
         target="_blank"
         rel="noopener"
         ><svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
-      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">🌙</button>
     </header>
 
     <div class="backdrop" id="backdrop"></div>
@@ -222,7 +216,7 @@
           <div class="hero-grid">
             <div class="hero-copy">
           <span class="eyebrow">Model Context Protocol · ServiceNow</span>
-          <h1>Drive ServiceNow from your AI assistant.</h1>
+          <h1>Drive ServiceNow from your <span class="accent">AI assistant</span>.</h1>
           <p class="lead">
             <strong>servicenow-mcp-ai</strong> is an MCP server that turns any
             MCP-capable AI client — Claude Desktop, Claude Code, VS Code Chat —
@@ -242,29 +236,56 @@
             <a class="btn" href="#use-cases">See use cases</a>
           </div>
           <div class="badges">
-            <span class="badge ok">MIT licensed</span>
+            <span class="badge">MIT licensed</span>
             <span class="badge">Node.js 20+</span>
             <span class="badge">TypeScript · ESM</span>
             <span class="badge">MCP SDK 1.29</span>
-            <span class="badge ok">Basic &amp; OAuth 2.0</span>
+            <span class="badge">OAuth 2.1 PKCE</span>
           </div>
             </div>
             <div class="hero-visual">
-              <div class="chat" aria-hidden="true">
-                <div class="chat-bar">
-                  <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-                  <span class="chat-title">Assistant · ServiceNow</span>
-                </div>
-                <div class="chat-body">
-                  <div class="bubble user">
-                    List the 5 most recent active incidents with their priority.
+              <div class="terminal-wrap">
+                <div class="terminal" aria-hidden="true">
+                  <div class="term-bar">
+                    <span class="term-dot" style="background:#ff5f57"></span>
+                    <span class="term-dot" style="background:#febc2e"></span>
+                    <span class="term-dot" style="background:#28c840"></span>
+                    <span class="term-label">assistant · servicenow</span>
+                    <span class="term-live">live</span>
                   </div>
-                  <div class="tool-chip">⚙ servicenow_query_table · incident</div>
-                  <div class="bubble bot">
-                    <b>5 incidents (most recent first)</b><br />
-                    INC0010023 · Email outage · <span class="p1">P1</span><br />
-                    INC0010019 · VPN latency · <span class="p2">P2</span><br />
-                    INC0010014 · Printer offline · <span class="p3">P3</span> …
+                  <div class="term-body">
+                    <span class="term-scan"></span>
+                    <div class="term-line tl1">
+                      <span class="tprompt">you →</span> List the 5 most recent
+                      active incidents with their priority.
+                    </div>
+                    <div class="term-line tl2 term-call">
+                      <span class="pill ro">read</span>
+                      <span class="tcall">servicenow_query_table</span>
+                      <span class="tdim">· incident</span>
+                    </div>
+                    <div class="term-line tl3 tdim2">
+                      5 incidents (most recent first)
+                    </div>
+                    <div class="term-line tl4 term-row">
+                      <span>INC0010023 · Email outage</span
+                      ><span class="prio p1">P1</span>
+                    </div>
+                    <div class="term-line tl5 term-row">
+                      <span>INC0010019 · VPN latency</span
+                      ><span class="prio p2">P2</span>
+                    </div>
+                    <div class="term-line tl6 term-row">
+                      <span>INC0010014 · Printer offline</span
+                      ><span class="prio p3">P3</span>
+                    </div>
+                    <div class="term-line tl7 term-row last">
+                      <span>INC0010008 · Slow login</span
+                      ><span class="prio p3">P3</span>
+                    </div>
+                    <div class="term-line tl8 term-cursor">
+                      ▌<span class="cur">_</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -281,51 +302,89 @@
 
         <!-- QUICK DEMO -->
         <section id="quick-demo">
-          <h2>Quick demo</h2>
+          <span class="eyebrow">Quick demo</span>
+          <h2>Three things the platform makes hard.</h2>
           <p class="lead">
-            Three things the platform makes hard, one call each — all read-only,
-            against any instance (a free PDI included).
+            One call each — all read-only, against any instance (a free PDI
+            included). The IDE-grade answers ServiceNow has no button for.
           </p>
 
-          <h3>1 · "Where is this field actually used?"</h3>
-          <p>
-            Every script, business rule, client script, UI policy/action and ACL
-            that touches it, as JSON or a Mermaid graph — the IDE-grade
-            <em>find usages</em> ServiceNow has no button for.
-          </p>
-          <div class="prompt">
-            <span class="tag">You → assistant</span>
-            "Where is the <code>u_cost_center</code> field used across the
-            instance? Draw the reference graph."
-          </div>
-          <div class="codeblock" data-lang="jsonc">
-            <pre><code>// servicenow_where_used
-{ "kind": "field", "name": "u_cost_center", "mermaid": true }</code></pre>
+          <div class="tabs" id="demo-tabs" role="tablist">
+            <button class="tab active" data-tab="0" role="tab" aria-selected="true">
+              <span class="tab-index">01</span>Where is this field used?
+            </button>
+            <button class="tab" data-tab="1" role="tab" aria-selected="false">
+              <span class="tab-index">02</span>What runs when I save?
+            </button>
+            <button class="tab" data-tab="2" role="tab" aria-selected="false">
+              <span class="tab-index">03</span>What drifted dev → prod?
+            </button>
           </div>
 
-          <h3>2 · "What runs when I save this record?"</h3>
-          <p>
-            The full automation chain in execution order (display → before → after
-            → async business rules, then flows, workflows and notifications), each
-            with its condition — a logical test that runs <strong>nothing</strong>.
-          </p>
-          <div class="prompt">
-            <span class="tag">You → assistant</span>
-            "Trace what runs when an <code>incident</code> is updated."
-          </div>
-          <div class="codeblock" data-lang="jsonc">
-            <pre><code>// servicenow_trace_table_event
-{ "table": "incident", "operation": "update" }</code></pre>
-          </div>
+          <div class="tab-panels">
+            <div class="tab-panel active" data-panel="0" role="tabpanel">
+              <div class="tab-left">
+                <h3>Find usages, instance-wide.</h3>
+                <p>
+                  Every script, business rule, client script, UI policy/action
+                  and ACL that touches a field — as JSON or a Mermaid graph. The
+                  IDE-grade <em>find usages</em> ServiceNow has no button for.
+                </p>
+                <span class="tool-pill"
+                  ><span class="pill ro">read</span
+                  ><code>servicenow_where_used</code></span
+                >
+              </div>
+              <div class="tab-right">
+                <div class="code-box">
+                  <span class="cb-comment">// "Where is u_cost_center used? Draw the graph."</span>
+                  <pre>{ "kind": "field", "name": "u_cost_center", "mermaid": true }</pre>
+                </div>
+              </div>
+            </div>
 
-          <h3>3 · "What drifted between dev and prod?"</h3>
-          <p>
-            A Markdown diff of tables, columns, scripts (by SHA-256) and plugins
-            between two configured profiles, with a CI-friendly exit code so a
-            pipeline can block a risky deploy.
-          </p>
-          <div class="codeblock" data-lang="bash">
-            <pre><code>servicenow-mcp-ai drift dev prod   # report on stdout; exit 1 on drift, 0 if clean</code></pre>
+            <div class="tab-panel" data-panel="1" role="tabpanel">
+              <div class="tab-left">
+                <h3>Trace the automation chain.</h3>
+                <p>
+                  The full chain in execution order — display → before → after →
+                  async business rules, then flows, workflows and notifications —
+                  each with its condition. A logical test that runs
+                  <strong>nothing</strong>.
+                </p>
+                <span class="tool-pill"
+                  ><span class="pill ro">read</span
+                  ><code>servicenow_trace_table_event</code></span
+                >
+              </div>
+              <div class="tab-right">
+                <div class="code-box">
+                  <span class="cb-comment">// "Trace what runs when an incident is updated."</span>
+                  <pre>{ "table": "incident", "operation": "update" }</pre>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-panel" data-panel="2" role="tabpanel">
+              <div class="tab-left">
+                <h3>Diff two instances.</h3>
+                <p>
+                  A Markdown diff of tables, columns, scripts (by SHA-256) and
+                  plugins between two configured profiles, with a CI-friendly
+                  exit code so a pipeline can block a risky deploy.
+                </p>
+                <span class="tool-pill"
+                  ><span class="pill ro">read</span
+                  ><code>servicenow-mcp-ai drift</code></span
+                >
+              </div>
+              <div class="tab-right">
+                <div class="code-box">
+                  <span class="cb-comment"># report on stdout; exit 1 on drift, 0 if clean</span>
+                  <pre>servicenow-mcp-ai drift dev prod</pre>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -975,6 +1034,18 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             to expand its full parameter list — name, type, whether it is required
             and any allowed values.
           </p>
+          <div class="tools-search">
+            <span class="ts-glyph" aria-hidden="true">⌘</span>
+            <input
+              type="text"
+              id="tools-filter"
+              placeholder="Search tools…  e.g. query, change, drift"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Search tools"
+            />
+            <span class="ts-count" id="tools-count" aria-live="polite"></span>
+          </div>
           <p class="tools-controls">
             <button type="button" class="ghost-btn" id="expand-all-tools">
               Expand all
@@ -982,6 +1053,9 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             <button type="button" class="ghost-btn" id="collapse-all-tools">
               Collapse all
             </button>
+          </p>
+          <p class="tools-empty" id="tools-empty">
+            No tools match that search.
           </p>
 
           <h3 id="pkg-table">table <span class="pkg-meta">— Record CRUD over the Table API. <em>(5 tools)</em></span></h3>
@@ -1249,7 +1323,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
             </tbody></table></div>
           </details>
-          <h3 id="pkg-scripts">scripts <span class="pkg-meta">— Read-only code intelligence over server-side script artefacts. <em>(4 tools)</em></span></h3>
+          <h3 id="pkg-scripts">scripts <span class="pkg-meta">— Read-only code intelligence over server-side script artefacts. <em>(5 tools)</em></span></h3>
           <details class="tool">
             <summary><code>servicenow_list_scripts</code> <span class="pill ro">read</span><span class="tool-sum">List script artefacts of one type as compact metadata (no source code). Types: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl. Filter by applied table, name fragment, active flag, or a raw encoded query.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
@@ -1282,6 +1356,14 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             <summary><code>servicenow_table_logic</code> <span class="pill ro">read</span><span class="tool-sum">Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI policies, UI actions and ACLs. Metadata only.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table to analyse, e.g. 'incident'.</td></tr>
+            </tbody></table></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_where_used</code> <span class="pill ro">read</span><span class="tool-sum">Find where a table, field or script is referenced across the instance's code: textual references in every script source, plus (for a table) the business rules, client scripts, UI policies/actions and ACLs attached to it. Read-only; optionally renders a Mermaid reference graph.</span></summary>
+            <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
+              <tr><td><code>kind</code></td><td>enum</td><td><span class="req">required</span></td><td>What to look up: one of <code>table</code> · <code>field</code> · <code>script</code>.</td></tr>
+              <tr><td><code>name</code></td><td>string</td><td><span class="req">required</span></td><td>The table/field/script name to find usages of.</td></tr>
+              <tr><td><code>mermaid</code></td><td>boolean</td><td><span class="opt">optional</span></td><td>Also render a Mermaid reference graph.</td></tr>
             </tbody></table></div>
           </details>
           <h3 id="pkg-flows">flows <span class="pkg-meta">— Flow &amp; automation intelligence (read-only) — event tracing, Flow Designer, run history. <em>(4 tools)</em></span></h3>
@@ -1442,7 +1524,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               <tr><td><code>execution_id</code></td><td>string</td><td><span class="req">required</span></td><td>The execution/progress id returned by a run tool.</td></tr>
             </tbody></table></div>
           </details>
-          <h3 id="pkg-admin">admin <span class="pkg-meta">— Always-on connection, profile and status tools. <em>(5 tools)</em></span></h3>
+          <h3 id="pkg-admin">admin <span class="pkg-meta">— Always-on connection, profile and status tools. <em>(6 tools)</em></span></h3>
           <details class="tool">
             <summary><code>servicenow_set_credentials</code> <span class="pill wr">write</span><span class="tool-sum">Save or update the ServiceNow connection credentials. Values are persisted to the env file and used for all subsequent requests. Provide any subset of fields.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
@@ -1468,6 +1550,10 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </details>
           <details class="tool">
             <summary><code>servicenow_test_connection</code> <span class="pill ro">read</span><span class="tool-sum">Verify that the configured credentials actually work: reads one sys_user record and reports ok/status/latency. Auth and connectivity problems are returned structurally (ok:false), not as errors.</span></summary>
+            <div class="tool-params"><p class="noparams">No parameters.</p></div>
+          </details>
+          <details class="tool">
+            <summary><code>servicenow_check_capabilities</code> <span class="pill ro">read</span><span class="tool-sum">Preflight which admin-restricted sys_* tables the connected user can actually read, and report which higher-level capabilities (schema reads, script intelligence, ACL audit) are achievable. Run this before relying on the scripts/flows/codecheck tools on a governed instance — on a least-privilege account those reads may be silently empty.</span></summary>
             <div class="tool-params"><p class="noparams">No parameters.</p></div>
           </details>
         </section>
