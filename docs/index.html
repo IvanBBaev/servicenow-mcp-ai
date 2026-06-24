@@ -492,10 +492,12 @@
 
         <!-- QUICK START -->
         <section id="quickstart">
-          <h2>Quick start</h2>
-          <p>
-            You need <strong>Node.js 20+</strong> and a ServiceNow instance you
-            can reach (a free
+          <span class="eyebrow">Quick start</span>
+          <h2>Connected in under a minute.</h2>
+          <p class="lead">
+            Install once, point it at your instance, and add it to any MCP
+            client. You need <strong>Node.js 20+</strong> and a ServiceNow
+            instance you can reach (a free
             <a
               href="https://developer.servicenow.com/"
               target="_blank"
@@ -505,63 +507,131 @@
             works great).
           </p>
 
-          <h3>1 · Register the server with your MCP client</h3>
-          <p>
-            Point the server command at <code>npx</code> — no clone required.
-            For Claude Desktop, add this to your
-            <code>claude_desktop_config.json</code>; for VS Code use
-            <code>.vscode/mcp.json</code>.
-          </p>
-          <div class="codeblock" data-lang="json">
-            <pre><code>{
+          <div class="qs-grid">
+            <!-- Left: three install steps -->
+            <div class="qs-steps">
+              <article class="qs-step">
+                <div class="qs-step-head">
+                  <span class="qs-num">1</span>
+                  <span class="qs-step-title">Install the server</span>
+                </div>
+                <div class="qs-cmd">
+                  <pre class="qs-cmd-text"><code>npm install -g servicenow-mcp-ai</code></pre>
+                  <button
+                    class="qs-cmd-copy"
+                    type="button"
+                    aria-label="Copy command"
+                  >
+                    copy
+                  </button>
+                </div>
+              </article>
+
+              <article class="qs-step">
+                <div class="qs-step-head">
+                  <span class="qs-num">2</span>
+                  <span class="qs-step-title">Point it at your instance</span>
+                </div>
+                <div class="qs-cmd">
+                  <pre class="qs-cmd-text"><code>export SN_INSTANCE=dev12345.service-now.com
+export SN_USER=admin
+export SN_PASSWORD=••••••</code></pre>
+                  <button
+                    class="qs-cmd-copy"
+                    type="button"
+                    aria-label="Copy command"
+                  >
+                    copy
+                  </button>
+                </div>
+              </article>
+
+              <article class="qs-step">
+                <div class="qs-step-head">
+                  <span class="qs-num">3</span>
+                  <span class="qs-step-title">Verify the connection</span>
+                </div>
+                <div class="qs-cmd">
+                  <pre class="qs-cmd-text"><code>servicenow_test_connection</code></pre>
+                  <button
+                    class="qs-cmd-copy"
+                    type="button"
+                    aria-label="Copy command"
+                  >
+                    copy
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <!-- Right: client config panel with tabs -->
+            <div class="qs-config" id="client-config">
+              <div class="qs-config-head">
+                <div class="qs-tabs" role="tablist" aria-label="MCP client">
+                  <button
+                    class="qs-tab active"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                    data-client="claude"
+                  >
+                    Claude Desktop
+                  </button>
+                  <button
+                    class="qs-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                    data-client="vscode"
+                  >
+                    VS Code
+                  </button>
+                  <button
+                    class="qs-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                    data-client="cursor"
+                  >
+                    Cursor
+                  </button>
+                </div>
+                <button class="qs-config-copy" type="button">copy config</button>
+              </div>
+              <div class="qs-config-body">
+                <div class="qs-config-path" data-config-path>
+                  // ~/Library/Application
+                  Support/Claude/claude_desktop_config.json
+                </div>
+                <pre class="qs-config-pre"><code data-config-json>{
   "mcpServers": {
     "servicenow": {
-      "command": "npx",
-      "args": ["-y", "servicenow-mcp-ai"]
+      "command": "servicenow-mcp-ai"
     }
   }
 }</code></pre>
+              </div>
+            </div>
           </div>
-          <p>
-            Where that file lives:
-          </p>
-          <ul>
-            <li>
-              <strong>Claude Desktop</strong> —
-              <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>
-              (macOS) ·
-              <code>%APPDATA%\Claude\claude_desktop_config.json</code> (Windows).
-            </li>
-            <li>
-              <strong>Claude Code (CLI)</strong> —
-              <code>claude mcp add servicenow -- npx -y servicenow-mcp-ai</code>.
-            </li>
-            <li>
-              <strong>VS Code</strong> — a <code>.vscode/mcp.json</code> in your
-              workspace.
-            </li>
-          </ul>
 
-          <h3>2 · Give it credentials</h3>
-          <p>
-            Create a <code>.env</code> file (the server also reads
-            <code>~/.config/servicenow-mcp-ai/.env</code> and real environment
-            variables, which take precedence):
-          </p>
-          <div class="codeblock" data-lang="dotenv">
-            <pre><code>SN_INSTANCE=your-instance.service-now.com
-SN_USER=your.username@example.com
-SN_PASSWORD=your-password</code></pre>
-          </div>
-          <p>
+          <p class="qs-note">
             <code>SN_INSTANCE</code> accepts <code>dev12345</code>,
-            <code>dev12345.service-now.com</code> or a full
-            <code>https://</code> URL. You can also set or rotate credentials at
-            runtime by asking the assistant to use
-            <code>servicenow_set_credentials</code>.
+            <code>dev12345.service-now.com</code> or a full <code>https://</code>
+            URL. Credentials can also live in a <code>.env</code> file
+            (<code>~/.config/servicenow-mcp-ai/.env</code> or the project root)
+            and be rotated at runtime via
+            <code>servicenow_set_credentials</code>. Step&nbsp;3 isn't a shell
+            command — it's the <code>servicenow_test_connection</code> tool; ask
+            your assistant to call it once the server is wired up.
+          </p>
+          <p class="qs-note">
+            Don't want a global install? Use
+            <code>"command": "npx", "args": ["-y", "servicenow-mcp-ai"]</code>
+            instead. On the Claude Code CLI it's a one-liner:
+            <code>claude mcp add servicenow -- npx -y servicenow-mcp-ai</code>.
           </p>
 
-          <h3>3 · Talk to your assistant</h3>
+          <h3>Talk to your assistant</h3>
           <p>That's it. Try something like:</p>
           <div class="prompt">
             <span class="tag">You → assistant</span>
@@ -570,9 +640,7 @@ SN_PASSWORD=your-password</code></pre>
           </div>
           <p>
             The assistant calls <code>servicenow_query_table</code> with the
-            right encoded query and returns the rows. Want to verify the
-            connection first? Ask it to run
-            <code>servicenow_test_connection</code>.
+            right encoded query and returns the rows.
           </p>
 
           <div class="callout security">

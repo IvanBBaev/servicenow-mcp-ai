@@ -988,6 +988,178 @@ th code {
   font-weight: 600;
 }
 
+/* ---- Quick start: install grid + client config panel ---- */
+.qs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 20px;
+  align-items: start;
+  margin: 28px 0 8px;
+}
+.qs-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.qs-step {
+  border: 1px solid var(--hair);
+  background: rgba(255, 255, 255, 0.018);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.qs-step-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+}
+.qs-num {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: rgba(46, 232, 158, 0.12);
+  border: 1px solid rgba(46, 232, 158, 0.25);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+}
+.qs-step-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15.5px;
+  color: #eef6f1;
+}
+.qs-cmd {
+  position: relative;
+  background: var(--code-bg);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  padding: 12px 42px 12px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+.qs-cmd:hover {
+  border-color: var(--accent-border);
+}
+.qs-cmd-text {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--code-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.qs-cmd-text code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.qs-cmd-copy {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--hair);
+  background: transparent;
+  color: var(--muted-2);
+  cursor: pointer;
+}
+.qs-cmd-copy.copied {
+  color: #bdf3da;
+  border-color: rgba(46, 232, 158, 0.3);
+  background: rgba(46, 232, 158, 0.09);
+}
+.qs-config {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.qs-config-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.qs-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.qs-tab {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  background: transparent;
+  color: var(--muted-2);
+  cursor: pointer;
+}
+.qs-tab.active {
+  border-color: rgba(46, 232, 158, 0.3);
+  background: rgba(46, 232, 158, 0.09);
+  color: #bdf3da;
+}
+.qs-config-copy {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.qs-config-copy.copied {
+  color: #bdf3da;
+  border-color: rgba(46, 232, 158, 0.3);
+  background: rgba(46, 232, 158, 0.12);
+}
+.qs-config-body {
+  padding: 18px 20px;
+}
+.qs-config-path {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--dim);
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+.qs-config-pre {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.qs-config-pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.qs-note {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 14px 0 0;
+}
+
 /* ---- Use cases: under-the-hood tool chain ---- */
 .under-hood {
   margin-top: 12px;
@@ -1333,6 +1505,9 @@ h3:hover .anchor {
     grid-template-columns: repeat(2, 1fr);
   }
   .tab-panel.active {
+    grid-template-columns: 1fr;
+  }
+  .qs-grid {
     grid-template-columns: 1fr;
   }
 }

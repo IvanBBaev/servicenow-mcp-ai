@@ -209,6 +209,97 @@
     });
   }
 
+  /* ---- Quick start: click-to-copy + client config tabs ---- */
+  function copyToClipboard(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+      } catch (e) {
+        /* ignore */
+      }
+      document.body.removeChild(ta);
+      done();
+    }
+  }
+  function flashCopied(btn, label) {
+    btn.textContent = "copied ✓";
+    btn.classList.add("copied");
+    clearTimeout(btn._copyReset);
+    btn._copyReset = setTimeout(function () {
+      btn.textContent = label;
+      btn.classList.remove("copied");
+    }, 1400);
+  }
+
+  document.querySelectorAll(".qs-cmd").forEach(function (box) {
+    var btn = box.querySelector(".qs-cmd-copy");
+    var code = box.querySelector("code");
+    if (!btn || !code) return;
+    box.addEventListener("click", function () {
+      copyToClipboard(code.innerText, function () {
+        flashCopied(btn, "copy");
+      });
+    });
+  });
+
+  var clientConfig = document.getElementById("client-config");
+  if (clientConfig) {
+    var CONFIGS = {
+      claude: {
+        path: "~/Library/Application Support/Claude/claude_desktop_config.json",
+        json:
+          '{\n  "mcpServers": {\n    "servicenow": {\n      "command": "servicenow-mcp-ai"\n    }\n  }\n}',
+      },
+      vscode: {
+        path: ".vscode/mcp.json",
+        json:
+          '{\n  "servers": {\n    "servicenow": {\n      "command": "servicenow-mcp-ai",\n      "type": "stdio"\n    }\n  }\n}',
+      },
+      cursor: {
+        path: "~/.cursor/mcp.json",
+        json:
+          '{\n  "mcpServers": {\n    "servicenow": {\n      "command": "servicenow-mcp-ai"\n    }\n  }\n}',
+      },
+    };
+    var cfgTabs = Array.prototype.slice.call(
+      clientConfig.querySelectorAll(".qs-tab"),
+    );
+    var cfgPath = clientConfig.querySelector("[data-config-path]");
+    var cfgJson = clientConfig.querySelector("[data-config-json]");
+    var cfgCopy = clientConfig.querySelector(".qs-config-copy");
+    var currentClient = "claude";
+    function showClient(name) {
+      var cfg = CONFIGS[name];
+      if (!cfg) return;
+      currentClient = name;
+      if (cfgPath) cfgPath.textContent = "// " + cfg.path;
+      if (cfgJson) cfgJson.textContent = cfg.json;
+      cfgTabs.forEach(function (t) {
+        var on = t.getAttribute("data-client") === name;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", String(on));
+      });
+    }
+    cfgTabs.forEach(function (t) {
+      t.addEventListener("click", function () {
+        showClient(t.getAttribute("data-client"));
+      });
+    });
+    if (cfgCopy) {
+      cfgCopy.addEventListener("click", function () {
+        copyToClipboard(CONFIGS[currentClient].json, function () {
+          flashCopied(cfgCopy, "copy config");
+        });
+      });
+    }
+  }
+
   /* ---- Hero terminal: live, self-typing, looping demo ----
      Progressive enhancement: the static .term-body markup is the no-JS /
      reduced-motion fallback (it already renders scenario 1 in full). When JS
