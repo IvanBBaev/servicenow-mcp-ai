@@ -6,12 +6,12 @@
     "url": "https://github.com/IvanBBaev/servicenow-mcp-ai",
     "source": "github"
   },
-  "version": "2.0.0",
+  "version": "2.0.1",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "servicenow-mcp-ai",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "transport": {
         "type": "stdio"
       },
