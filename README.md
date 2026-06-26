@@ -1,5 +1,13 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
+[![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai)](https://www.npmjs.com/package/servicenow-mcp-ai)
+[![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai)](https://www.npmjs.com/package/servicenow-mcp-ai)
+[![node](https://img.shields.io/node/v/servicenow-mcp-ai)](https://www.npmjs.com/package/servicenow-mcp-ai)
+[![CI](https://img.shields.io/github/actions/workflow/status/LeassTaTT/servicenow-mcp-ai/ci.yml?branch=main&label=CI)](https://github.com/LeassTaTT/servicenow-mcp-ai/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/LeassTaTT/servicenow-mcp-ai)](https://github.com/LeassTaTT/servicenow-mcp-ai/releases)
+[![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-server-orange)](https://modelcontextprotocol.io)
+
 📖 **[Documentation site →](https://leasstatt.github.io/servicenow-mcp-ai/)**
 
 A [Model Context Protocol](https://modelcontextprotocol.io) server that lets an
