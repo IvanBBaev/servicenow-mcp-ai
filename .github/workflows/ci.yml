@@ -31,6 +31,14 @@ jobs:
       # just below the real report (~95 / ~82 / ~99). Runs once on ubuntu/Node 22.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         run: npm run test:coverage
+      # Upload the lcov report to Codecov (public repo). Non-blocking: a Codecov
+      # outage must not fail CI. Runs once, on the same ubuntu/Node 22 leg.
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
       # Production-dependency audit: fail on high+ advisories.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         run: npm audit --omit=dev --audit-level=high

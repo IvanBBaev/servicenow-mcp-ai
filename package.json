@@ -32,7 +32,7 @@
     "start": "node build/index.js",
     "dev": "node --watch build/index.js",
     "test": "node --test test/*.test.js",
-    "test:coverage": "node scripts/coverage-guard.mjs && c8 --check-coverage --lines 94 --branches 82 --functions 97 --reporter=text-summary node --test test/*.test.js",
+    "test:coverage": "node scripts/coverage-guard.mjs && c8 --check-coverage --lines 94 --branches 82 --functions 97 --reporter=text-summary --reporter=lcov node --test test/*.test.js",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
