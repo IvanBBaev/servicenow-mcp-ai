@@ -1,12 +1,11 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-[![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai)](https://www.npmjs.com/package/servicenow-mcp-ai)
-[![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai)](https://www.npmjs.com/package/servicenow-mcp-ai)
-[![node](https://img.shields.io/node/v/servicenow-mcp-ai)](https://www.npmjs.com/package/servicenow-mcp-ai)
-[![CI](https://img.shields.io/github/actions/workflow/status/LeassTaTT/servicenow-mcp-ai/ci.yml?branch=main&label=CI)](https://github.com/LeassTaTT/servicenow-mcp-ai/actions/workflows/ci.yml)
-[![GitHub release](https://img.shields.io/github/v/release/LeassTaTT/servicenow-mcp-ai)](https://github.com/LeassTaTT/servicenow-mcp-ai/releases)
-[![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai)](LICENSE)
-[![MCP](https://img.shields.io/badge/MCP-server-orange)](https://modelcontextprotocol.io)
+[![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai)
+[![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai)
+[![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai)
+[![CI](https://img.shields.io/github/actions/workflow/status/LeassTaTT/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/LeassTaTT/servicenow-mcp-ai/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE)
+[![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io)
 
 📖 **[Documentation site →](https://leasstatt.github.io/servicenow-mcp-ai/)**
 
