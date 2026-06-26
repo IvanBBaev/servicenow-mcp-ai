@@ -1,16 +1,8 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-[![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai)
-[![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai)
-[![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai)
-[![tools](https://img.shields.io/badge/tools-67-blue?style=flat-square)](https://github.com/LeassTaTT/servicenow-mcp-ai#tools)
-[![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE)
-
-[![CI](https://img.shields.io/github/actions/workflow/status/LeassTaTT/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/LeassTaTT/servicenow-mcp-ai/actions/workflows/ci.yml)
-[![coverage](https://img.shields.io/codecov/c/github/LeassTaTT/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/LeassTaTT/servicenow-mcp-ai)
-[![last commit](https://img.shields.io/github/last-commit/LeassTaTT/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/LeassTaTT/servicenow-mcp-ai/commits/main)
-[![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io)
-[![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai)
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-67-blue?style=flat-square)](https://github.com/LeassTaTT/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| :--: | :--: | :--: | :--: | :--: |
+| [![CI](https://img.shields.io/github/actions/workflow/status/LeassTaTT/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/LeassTaTT/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/LeassTaTT/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/LeassTaTT/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/LeassTaTT/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/LeassTaTT/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
 📖 **[Documentation site →](https://leasstatt.github.io/servicenow-mcp-ai/)**
 
