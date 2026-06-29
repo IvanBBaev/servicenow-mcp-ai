@@ -250,6 +250,14 @@ footer,
   color: #ea4aaa;
   background: rgba(234, 74, 170, 0.12);
 }
+.topbar nav.toplinks a.kofi-link {
+  color: #ff5e5b;
+  border: 1px solid rgba(255, 94, 91, 0.35);
+}
+.topbar nav.toplinks a.kofi-link:hover {
+  color: #ff5e5b;
+  background: rgba(255, 94, 91, 0.12);
+}
 .ver-pill {
   font-family: var(--mono);
   font-size: 12px;

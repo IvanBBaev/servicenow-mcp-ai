@@ -25,6 +25,20 @@ Credentials are kept in a local env file and can be updated at runtime through a
 [Security notes](#security-notes) · [Project documentation](#project-documentation) ·
 [Support](#support)
 
+## Support
+
+This project is built and maintained in my own time. If it saves you or your team
+time, please consider supporting its continued development — sponsorship directly
+funds new tools, bug fixes and keeping pace with ServiceNow's REST surface.
+
+- **[GitHub Sponsors](https://github.com/sponsors/IvanBBaev)** — one-off or
+  recurring, with no platform fee taken out (the preferred option).
+- **[Ko-fi](https://ko-fi.com/ivanbbaev)** — quick one-off support; it also
+  accepts **PayPal**, so it's the fallback for anyone without a GitHub account.
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/IvanBBaev)
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/ivanbbaev)
+
 ## Quick demo
 
 Three things the platform makes hard, one call each. Point your MCP client at an
@@ -557,20 +571,6 @@ insist on reading real values from the instance:
 | [DONE.md](DONE.md) / [TODO.md](TODO.md) | Completed work with commit refs / remaining decisions |
 | [WORKLOG.md](WORKLOG.md) / [CHANGELOG.md](CHANGELOG.md) | Detailed work journal / user-facing changelog |
 | [CONTRIBUTING.md](CONTRIBUTING.md) / [SECURITY.md](SECURITY.md) | Dev setup, gates and conventions / security model and reporting |
-
-## Support
-
-This project is built and maintained in my own time. If it saves you or your team
-time, please consider supporting its continued development — sponsorship directly
-funds new tools, bug fixes and keeping pace with ServiceNow's REST surface.
-
-- **[GitHub Sponsors](https://github.com/sponsors/IvanBBaev)** — one-off or
-  recurring, with no platform fee taken out (the preferred option).
-- **[Ko-fi](https://ko-fi.com/ivanbbaev)** — quick one-off support; it also
-  accepts **PayPal**, so it's the fallback for anyone without a GitHub account.
-
-[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/IvanBBaev)
-[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/ivanbbaev)
 
 ## Trademark
 
