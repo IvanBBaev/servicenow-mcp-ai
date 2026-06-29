@@ -258,6 +258,14 @@ footer,
   color: #ff5e5b;
   background: rgba(255, 94, 91, 0.12);
 }
+.topbar nav.toplinks a.donate-link {
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+.topbar nav.toplinks a.donate-link:hover {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
 .ver-pill {
   font-family: var(--mono);
   font-size: 12px;
