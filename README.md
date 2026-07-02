@@ -173,6 +173,11 @@ SN_PASSWORD=your-password
 Everything else is optional tuning; see the full
 [Environment variables](#environment-variables) reference for the rest.
 
+> **Past a quick try, prefer OAuth over a stored password.** For anything shared or
+> long-lived, run the one-time `npx servicenow-mcp-ai login` instead — it stores a
+> refresh token, not your password. See
+> [Configure credentials](#configure-credentials) → _OAuth 2.1_.
+
 ### Verify your setup
 
 Once the three variables are set, confirm the connection before you start:
@@ -310,6 +315,12 @@ So denying the `change_request` table still leaves the Change Management API
 (`sn_chg_rest`) able to read/write changes — the **package axis is why it exists**.
 See [Security notes](#security-notes) for the full model (including how the Batch
 API obeys both axes).
+
+**List syntax:** table lists (`SN_TABLES_ALLOW` / `SN_TABLES_DENY`) are
+comma-separated; package lists (`SN_TOOL_PACKAGES`, `SN_PACKAGES_DENY`,
+`SN_PACKAGES_READONLY`) accept commas **or** whitespace. Surrounding spaces are
+trimmed in both, and table matching is case-insensitive — so
+`SN_TABLES_DENY=Change_Request, sys_user` works.
 
 ## Run / debug
 
