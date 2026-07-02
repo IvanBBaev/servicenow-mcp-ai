@@ -67,6 +67,25 @@ if (process.argv[2] === "drift") {
   }
 }
 
+// `servicenow-mcp-ai doctor` — UX §11.8 one-shot health check: credentials
+// presence, a live connectivity probe and the capability preflight, fused into
+// one report, instead of starting the server. stdout = the readable report;
+// exit 0 healthy / 1 degraded or unreachable / 2 not configured (see doctor.ts).
+if (process.argv[2] === "doctor") {
+  const { runDoctor, formatDoctorReport, EXIT } =
+    await import("./api/doctor.js");
+  try {
+    const report = await runDoctor();
+    process.stdout.write(formatDoctorReport(report).trimEnd() + "\n");
+    process.exit(EXIT[report.status]);
+  } catch (error) {
+    process.stderr.write(
+      `Doctor failed: ${error instanceof Error ? error.message : String(error)}\n`,
+    );
+    process.exit(1);
+  }
+}
+
 const requireJson = createRequire(import.meta.url);
 const pkg = requireJson("../package.json") as { version: string };
 
