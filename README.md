@@ -25,22 +25,9 @@ Credentials are kept in a local env file and can be updated at runtime through a
 [Security notes](#security-notes) · [Project documentation](#project-documentation) ·
 [Support](#support)
 
-## Support
-
-This project is built and maintained in my own time. If it saves you or your team
-time, please consider supporting its continued development — sponsorship directly
-funds new tools, bug fixes and keeping pace with ServiceNow's REST surface.
-
-- **[GitHub Sponsors](https://github.com/sponsors/IvanBBaev)** — one-off or
-  recurring, with no platform fee taken out (the preferred option).
-- **[Ko-fi](https://ko-fi.com/ivanbbaev)** — quick one-off support; it also
-  accepts **PayPal**, so it's the fallback for anyone without a GitHub account.
-- **[Donate (Donatree)](https://donatr.ee/ivanbbaev/)** — a no-account donation
-  page (card, PayPal and more) for a one-off tip.
-
-[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/IvanBBaev)
-[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/ivanbbaev)
-[![Donate via Donatree](https://img.shields.io/badge/Donate-Donatree-22c55e?style=flat-square&logo=liberapay&logoColor=white)](https://donatr.ee/ivanbbaev/)
+_Built and maintained in my own time — if it helps, a
+[GitHub Sponsors](https://github.com/sponsors/IvanBBaev) tip keeps it going.
+Full [Support](#support) options are near the end._
 
 ## Quick demo
 
@@ -172,6 +159,35 @@ in Copilot Chat (agent mode) automatically, no manual `mcp.json`. Source:
 Credentials are read from `~/.config/servicenow-mcp-ai/.env` (or real environment
 variables) — see below.
 
+### Quickstart
+
+The fastest path is three lines of Basic auth — set these (in the env file or the
+real environment) and you are connected:
+
+```dotenv
+SN_INSTANCE=dev12345.service-now.com
+SN_USER=your.username
+SN_PASSWORD=your-password
+```
+
+Everything else is optional tuning; see the full
+[Environment variables](#environment-variables) reference for the rest.
+
+### Verify your setup
+
+Once the three variables are set, confirm the connection before you start:
+
+1. Run the `servicenow_test_connection` tool — it reads one `sys_user` record and
+   reports `ok`, HTTP status and latency.
+2. Run `servicenow_check_capabilities` — it previews which admin-restricted `sys_*`
+   tables the connected user can actually read.
+
+Or do both from the shell in one shot:
+
+```bash
+npx servicenow-mcp-ai doctor   # checks credentials, reachability and capabilities
+```
+
 ## Configure credentials
 
 Credentials live in `.env` at the project root (git-ignored):
@@ -279,6 +295,21 @@ See [.env.example](.env.example) for a template.
 | `SN_CODESEARCH`          |    no    | `false`         | Opt in to the Code Search API (`sn_codesearch`) for `servicenow_search_code` (FT-7). When `true` and the plugin is active it replaces the LIKE iteration; falls back to LIKE on any failure.                                                                                |
 | `SN_PROFILE_<NAME>_*`    |    no    | —               | Named connection profiles: `SN_PROFILE_DEV_INSTANCE` / `_USER` / `_PASSWORD` define profile `dev`. The bare `SN_INSTANCE`/`SN_USER`/`SN_PASSWORD` keys are the `default` profile.                                                                                          |
 | `SN_ACTIVE_PROFILE`      |    no    | `default`       | Which profile tools use. Switch at runtime with `servicenow_use_instance` (persisted to the env file).                                                                                                                                                                     |
+
+### Two-axis access policy
+
+Access is controlled on **two independent axes**, because a table restriction does
+not reach the plugin-backed APIs (Change, Catalog, Knowledge…). Guard both:
+
+| Axis         | Enable / deny / read-only                                | Example                                                                       |
+| ------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Tables**   | `SN_TABLES_ALLOW` / `SN_TABLES_DENY` / `SN_READONLY`     | `SN_TABLES_DENY=change_request` blocks the **Table API** path only.           |
+| **Packages** | `SN_TOOL_PACKAGES` / `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` | `SN_PACKAGES_DENY=change` also blocks the Change Management **plugin API**. |
+
+So denying the `change_request` table still leaves the Change Management API
+(`sn_chg_rest`) able to read/write changes — the **package axis is why it exists**.
+See [Security notes](#security-notes) for the full model (including how the Batch
+API obeys both axes).
 
 ## Run / debug
 
@@ -442,6 +473,23 @@ always registered, regardless of the active packages. Unknown names are ignored.
 SN_TOOL_PACKAGES=table,batch
 ```
 
+#### Presets
+
+If you would rather not curate the list yourself, three named presets cover the
+common roles. The admin tools are always on, so they are not listed. Each preset
+also has a one-word alias — `SN_TOOL_PACKAGES=reader|developer|admin` — that
+expands to the same package set.
+
+| Preset      | `SN_TOOL_PACKAGES=…`                                   | For whom                                                        |
+| ----------- | ----------------------------------------------------- | -------------------------------------------------------------- |
+| `reader`    | `table,schema,aggregate`                              | First contact, analysts, a PDI play — read and query only.     |
+| `developer` | `table,schema,aggregate,scripts,flows,codecheck,docs` | The core segment: script intelligence, flow tracing, linting, docs and diagrams. |
+| `admin`     | `all`                                                 | Everything, including the plugin and write-heavy packages.     |
+
+The `developer` preset builds on the `reader` set; the `docs` package includes the
+Mermaid diagram generators. Use the alias for brevity or spell the packages out to
+add or drop one.
+
 ### Examples
 
 Query the 5 most recent active incidents:
@@ -574,6 +622,23 @@ insist on reading real values from the instance:
 | [DONE.md](DONE.md) / [TODO.md](TODO.md) | Completed work with commit refs / remaining decisions |
 | [WORKLOG.md](WORKLOG.md) / [CHANGELOG.md](CHANGELOG.md) | Detailed work journal / user-facing changelog |
 | [CONTRIBUTING.md](CONTRIBUTING.md) / [SECURITY.md](SECURITY.md) | Dev setup, gates and conventions / security model and reporting |
+
+## Support
+
+This project is built and maintained in my own time. If it saves you or your team
+time, please consider supporting its continued development — sponsorship directly
+funds new tools, bug fixes and keeping pace with ServiceNow's REST surface.
+
+- **[GitHub Sponsors](https://github.com/sponsors/IvanBBaev)** — one-off or
+  recurring, with no platform fee taken out (the preferred option).
+- **[Ko-fi](https://ko-fi.com/ivanbbaev)** — quick one-off support; it also
+  accepts **PayPal**, so it's the fallback for anyone without a GitHub account.
+- **[Donate (Donatree)](https://donatr.ee/ivanbbaev/)** — a no-account donation
+  page (card, PayPal and more) for a one-off tip.
+
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-GitHub-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/IvanBBaev)
+[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-Support-ff5e5b?style=flat-square&logo=kofi&logoColor=white)](https://ko-fi.com/ivanbbaev)
+[![Donate via Donatree](https://img.shields.io/badge/Donate-Donatree-22c55e?style=flat-square&logo=liberapay&logoColor=white)](https://donatr.ee/ivanbbaev/)
 
 ## Trademark
 
