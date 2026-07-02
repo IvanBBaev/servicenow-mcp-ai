@@ -91,12 +91,39 @@ export const ALL_PACKAGES: string[] = [
 const CORE_PROFILE = ["table", "schema", "aggregate", "attachment"];
 
 /**
- * Named profiles that expand to a set of packages. `core` is the default
- * profile loaded when SN_TOOL_PACKAGES is unset; `all` enables everything.
+ * The read-first surface: browse data and inspect schema without any write or
+ * scripting tools. The base for the `developer` preset.
+ */
+const READER_PROFILE = ["table", "schema", "aggregate"];
+
+/**
+ * The developer surface: the reader set plus the build/inspect packages —
+ * scripts, flows, code check, and the docs/diagram generators. (There is no
+ * separate `diagrams` package; the Mermaid generators live in `docs` and
+ * `scripts`.)
+ */
+const DEVELOPER_PROFILE = [
+  ...READER_PROFILE,
+  "scripts",
+  "flows",
+  "codecheck",
+  "docs",
+];
+
+/**
+ * Named profiles that expand to a set of packages, resolved by
+ * {@link resolveEnabledPackages}. `core` is the default profile loaded when
+ * SN_TOOL_PACKAGES is unset; `all` (and its `admin` alias) enables everything.
+ * The `reader` / `developer` / `admin` presets (UX review §11) give clients a
+ * memorable name for the common surfaces instead of a hand-typed package list;
+ * a preset may still be combined with explicit packages in SN_TOOL_PACKAGES.
  */
 const PROFILES: Record<string, string[]> = {
   core: CORE_PROFILE,
   all: ALL_PACKAGES,
+  reader: READER_PROFILE,
+  developer: DEVELOPER_PROFILE,
+  admin: ALL_PACKAGES,
 };
 
 /**

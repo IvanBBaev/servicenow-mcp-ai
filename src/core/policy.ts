@@ -3,6 +3,12 @@ import { activeProfile } from "./config.js";
 import { getDeniedPackages, getReadOnlyPackages } from "./settings.js";
 
 /**
+ * Discoverability hint appended to every policy-denial message so a model or
+ * human knows where the active policy is surfaced (UX review §6 / §11).
+ */
+const POLICY_HINT = " Run servicenow_get_status to see the active policy.";
+
+/**
  * Access policy for ServiceNow tables and operations, configured via env:
  *
  * - `SN_TABLES_ALLOW`  comma-separated allowlist; when set, only these tables
@@ -55,14 +61,14 @@ export function assertTableAllowed(table: string): void {
   const t = table.trim().toLowerCase();
   if (getDeniedTables().includes(t)) {
     throw new ServiceNowError(
-      `Access to table "${table}" is denied by SN_TABLES_DENY.`,
+      `Access to table "${table}" is denied by SN_TABLES_DENY.${POLICY_HINT}`,
       403,
     );
   }
   const allowed = getAllowedTables();
   if (allowed.length > 0 && !allowed.includes(t)) {
     throw new ServiceNowError(
-      `Access to table "${table}" is not permitted by SN_TABLES_ALLOW.`,
+      `Access to table "${table}" is not permitted by SN_TABLES_ALLOW.${POLICY_HINT}`,
       403,
     );
   }
@@ -72,7 +78,7 @@ export function assertTableAllowed(table: string): void {
 export function assertWriteAllowed(operation: string): void {
   if (isReadOnly()) {
     throw new ServiceNowError(
-      `Server is in read-only mode (SN_READONLY); "${operation}" is not permitted.`,
+      `Server is in read-only mode (SN_READONLY); "${operation}" is not permitted.${POLICY_HINT}`,
       403,
     );
   }
@@ -86,7 +92,7 @@ export function assertWriteAllowed(operation: string): void {
 export function assertPackageAllowed(pkg: string): void {
   if (getDeniedPackages().includes(pkg)) {
     throw new ServiceNowError(
-      `Access to package "${pkg}" is denied by SN_PACKAGES_DENY.`,
+      `Access to package "${pkg}" is denied by SN_PACKAGES_DENY.${POLICY_HINT}`,
       403,
     );
   }
@@ -103,7 +109,7 @@ export function assertPackageWriteAllowed(
 ): void {
   if (getReadOnlyPackages().includes(pkg)) {
     throw new ServiceNowError(
-      `Package "${pkg}" is read-only (SN_PACKAGES_READONLY); "${operation}" is not permitted.`,
+      `Package "${pkg}" is read-only (SN_PACKAGES_READONLY); "${operation}" is not permitted.${POLICY_HINT}`,
       403,
     );
   }
