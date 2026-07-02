@@ -36,6 +36,18 @@ Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email), plus:
 Start read-only and safe: set `SN_READONLY=true` and keep the default
 `SN_TOOL_PACKAGES=core` until you trust the workflow.
 
+## After install
+
+MCP tools are only surfaced in **agent mode**, so open Copilot Chat and switch
+its mode selector to **Agent** — the `servicenow_*` tools become available there.
+To confirm everything is wired up, ask the model to run a connection check,
+e.g. _"Run servicenow_test_connection and show me the result."_
+
+<!-- TODO(owner): capture a screenshot of the Copilot Chat agent-mode selector,
+     add it to the extension package, and uncomment the line below:
+![Copilot Chat mode selector switched to Agent](docs/agent-mode.png) -->
+
+
 ## Links
 
 - Documentation: https://ivanbbaev.github.io/servicenow-mcp-ai/
