@@ -58,9 +58,9 @@
     "eslint-config-prettier": "^9.1.2",
     "fast-check": "^4.8.0",
     "globals": "^15.15.0",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.4",
     "typescript": "^5.5.0",
-    "typescript-eslint": "^8.61.0"
+    "typescript-eslint": "^8.62.1"
   },
   "keywords": [
     "mcp",
