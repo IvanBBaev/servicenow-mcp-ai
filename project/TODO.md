@@ -16,7 +16,7 @@
 > Next moves are owner decisions, not dev tasks — see
 > [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §7 + §8.4 (the two-week plan) and
 > [UX-REVIEW-2026-07.md](UX-REVIEW-2026-07.md) §11 (the UX backlog); "Optional" items (Export
-> API, PDI e2e, vitest) on request. The work chronology is in [WORKLOG.md](WORKLOG.md).
+> API, PDI e2e, vitest) on request. The work chronology is in [WORKLOG.md](../WORKLOG.md).
 
 ## Full review (2026-06-16 → 17) — architect → dev → qa
 

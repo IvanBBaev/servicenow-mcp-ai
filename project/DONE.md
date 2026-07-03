@@ -1,6 +1,6 @@
 # servicenow-mcp — Done
 
-Completed and verified work, moved out of the reviews and the plan. Active, not-yet-done tasks live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) and [TODO.md](TODO.md); the work chronology is in [WORKLOG.md](WORKLOG.md).
+Completed and verified work, moved out of the reviews and the plan. Active, not-yet-done tasks live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) and [TODO.md](TODO.md); the work chronology is in [WORKLOG.md](../WORKLOG.md).
 
 State: clean build · clean ESLint (type-checked) · `node:test` suite green — 173 tests, coverage 93.1% lines / 80.1% branches / 69.0% functions · `npm audit --omit=dev` 0 · GitHub Actions CI · git repository with a one-commit-per-task history · **the 2026-06-12 review is fully implemented (22/22)** · **Phase 6 complete** · **Phase 7 core done** · **two full-review passes (2026-06-13) clean** · **release-ready** (pending the owner push + `NPM_TOKEN`, R-2).
 

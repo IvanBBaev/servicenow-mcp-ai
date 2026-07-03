@@ -21,7 +21,7 @@ safety.
   prompts and resources.
 - `src/tools/` — the per-package tool definitions consumed by the registry.
 - `src/core/jira/` + `src/api/jira/` — Jira Cloud client scaffolding; **no
-  Jira tools are exposed yet** (pending the ARCH-14 decision in TODO.md).
+  Jira tools are exposed yet** (pending the ARCH-14 decision in project/TODO.md).
 - `bin/` — entry points; `src/index.ts` is the server entry (stdio by default,
   Streamable HTTP with `SN_TRANSPORT=http`).
 

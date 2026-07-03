@@ -625,12 +625,12 @@ insist on reading real values from the instance:
 
 | Document | Contents |
 | -------- | -------- |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Layered architecture, Mermaid diagrams (modules, request lifecycle, security model, auth, packages), condensed ADRs |
-| [PRODUCT-STATE.md](PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
-| [ROADMAP.md](ROADMAP.md) | Forward plan: ship 1.0.0, Phase 8 (flow testing + code analysis), Phase 9 (competitive differentiators), optional and deferred items |
-| [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) | Positioning vs the official ServiceNow MCP Server Console: comparison, where it structurally lags, the Phase 9 boost plan, and platform risks |
-| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) | Detailed specs for the upcoming phases (harness 2.0, multi-instance, flow testing) |
-| [DONE.md](DONE.md) / [TODO.md](TODO.md) | Completed work with commit refs / remaining decisions |
+| [ARCHITECTURE.md](project/ARCHITECTURE.md) | Layered architecture, Mermaid diagrams (modules, request lifecycle, security model, auth, packages), condensed ADRs |
+| [PRODUCT-STATE.md](project/PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
+| [ROADMAP.md](project/ROADMAP.md) | Forward plan: ship 1.0.0, Phase 8 (flow testing + code analysis), Phase 9 (competitive differentiators), optional and deferred items |
+| [COMPETITIVE-ANALYSIS.md](project/COMPETITIVE-ANALYSIS.md) | Positioning vs the official ServiceNow MCP Server Console: comparison, where it structurally lags, the Phase 9 boost plan, and platform risks |
+| [IMPLEMENTATION-PLAN.md](project/IMPLEMENTATION-PLAN.md) | Detailed specs for the upcoming phases (harness 2.0, multi-instance, flow testing) |
+| [DONE.md](project/DONE.md) / [TODO.md](project/TODO.md) | Completed work with commit refs / remaining decisions |
 | [WORKLOG.md](WORKLOG.md) / [CHANGELOG.md](CHANGELOG.md) | Detailed work journal / user-facing changelog |
 | [CONTRIBUTING.md](CONTRIBUTING.md) / [SECURITY.md](SECURITY.md) | Dev setup, gates and conventions / security model and reporting |
 

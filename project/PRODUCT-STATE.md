@@ -2,7 +2,7 @@
 
 Date: 2026-07-02 · clean build · clean ESLint (type-checked + layer boundaries) · **380/380 tests** (coverage 95.29% lines / 84.36% branches / 98.56% functions) · CI: Node 20/22/24 + macOS matrix (lint + format also on Windows), coverage (lines 94 / branches 82 / functions 97) + prod-audit gates, CodeQL SAST + weekly dependabot · git history one-commit-per-task.
 **Phase 6 is complete** (the optional X-8 HTTP transport shipped in v2.0 as DF-6): layered core/api/mcp/tools directories, a declarative tool manifest (a package is a plug-in), elicitation, MCP logging, outputSchema, the email package. **Phase 7 (multi-instance) is complete** (MI-1…MI-8: profiles, per-profile policy, per-call routing, snapshot, comparison, per-profile resources). **Phase 8 (flow testing + code checking) is complete** (FT-1…FT-7: the `flows`, `codecheck` and `atf` packages — deterministic table-event tracing, Flow Designer reading + run history, a local lint rule set + code-health report, ATF runs via the CI/CD API). **Phase 9 / v2.0 is complete** (DF-0…DF-6 trust + depth + reach; v2.0.0 published 2026-06-22 — npm `servicenow-mcp-ai` now at 2.0.1, MCP Registry, Claude Code plugin, VS Code extension 2.0.1). An uncommitted **Jira Cloud client WIP** (`src/core/jira/`, `src/api/jira/` — no tools yet) was reviewed 2026-07-01 and awaits the ARCH-14 go/no-go decision (see [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §5 and §8).
-Related documents: [ARCHITECTURE.md](ARCHITECTURE.md) (how it is built), [DONE.md](DONE.md) (everything completed), [ROADMAP.md](ROADMAP.md) (forward plan), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (detailed specs), [WORKLOG.md](WORKLOG.md) (chronology), [CHANGELOG.md](CHANGELOG.md).
+Related documents: [ARCHITECTURE.md](ARCHITECTURE.md) (how it is built), [DONE.md](DONE.md) (everything completed), [ROADMAP.md](ROADMAP.md) (forward plan), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (detailed specs), [WORKLOG.md](../WORKLOG.md) (chronology), [CHANGELOG.md](../CHANGELOG.md).
 
 ## 1. TL;DR — what works today
 
@@ -111,7 +111,7 @@ Detailed specifications live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md)
 
 | File                                                     | Contents                                                                                       |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [README.md](README.md)                                   | setup, env reference, generated tools table, examples, security                                |
+| [README.md](../README.md)                                | setup, env reference, generated tools table, examples, security                                |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                       | layers, diagrams, policy/auth/config models, ADR decisions                                     |
 | [PRODUCT-STATE.md](PRODUCT-STATE.md)                     | this file — what/how far/how                                                                   |
 | [ROADMAP.md](ROADMAP.md)                                 | forward plan: ship 1.0.0, Phase 8, Phase 9 differentiators, optional                           |
@@ -123,5 +123,5 @@ Detailed specifications live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md)
 | [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md)         | Phase 6–8 specifications + optional items                                                      |
 | [DONE.md](DONE.md)                                       | everything completed, with commit references                                                   |
 | [TODO.md](TODO.md)                                       | backlog (triple analysis S2/A2/Q2), release checklist R-1…R-9, won't-fix                       |
-| [WORKLOG.md](WORKLOG.md)                                 | detailed chronology: problem/solution/alternatives/verification                                |
-| [CHANGELOG.md](CHANGELOG.md)                             | user-facing change overview (Keep a Changelog)                                                 |
+| [WORKLOG.md](../WORKLOG.md)                              | detailed chronology: problem/solution/alternatives/verification                                |
+| [CHANGELOG.md](../CHANGELOG.md)                          | user-facing change overview (Keep a Changelog)                                                 |

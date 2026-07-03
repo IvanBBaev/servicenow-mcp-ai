@@ -44,12 +44,12 @@ report. Raise them as tests are added; never lower them.
   [test/fixtures/tools-manifest.json](test/fixtures/tools-manifest.json);
   regenerate with `npm run gen:manifest` only when the change is deliberate.
 - Docs move with the code: [CHANGELOG.md](CHANGELOG.md) (Unreleased section),
-  [TODO.md](TODO.md)/[DONE.md](DONE.md) when an item closes,
-  [PRODUCT-STATE.md](PRODUCT-STATE.md) on milestones.
+  [TODO.md](project/TODO.md)/[DONE.md](project/DONE.md) when an item closes,
+  [PRODUCT-STATE.md](project/PRODUCT-STATE.md) on milestones.
 
 ## Where things live
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the layer model
+See [ARCHITECTURE.md](project/ARCHITECTURE.md) for the layer model
 (`core` → `api` → `mcp` → `tools`), the request lifecycle and the module
 contract for adding a tool or a package.
 

@@ -161,7 +161,7 @@ Recommended order (highest value first):
       any table without an explicit `apply: true`. A fully read-only `core`
       (`SN_READONLY=true`) profile would be the remaining, narrower step.
 - [~] **DX-3 · One sharp dev demo** — the README/site hero **scenario is shipped**: a
-  "Quick demo" section in both [README.md](README.md#quick-demo) and the docs site
+  "Quick demo" section in both [README.md](../README.md#quick-demo) and the docs site
   (`#quick-demo`) for the 10-second hook — "find every usage of this field"
   (`where_used`), "what runs when I save this record" (`trace_table_event` / flow
   trace) and "diff dev vs prod" (`drift`). **Remaining:** the screen-capture GIF (a

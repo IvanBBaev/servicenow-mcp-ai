@@ -108,7 +108,7 @@ green at the 303/303-test gate, with tests in the same change and the README/env
       `servicenow-mcp-ai@2.0.0` (`--provenance`) and the **MCP Registry** listing
       (`io.github.IvanBBaev/servicenow-mcp-ai → 2.0.0`) — DX-1's discovery half.
 - [x] DX-3 hero demo **written** — a "Quick demo" section in both the README
-      ([README.md](README.md#quick-demo)) and the docs site (`docs/index.html` →
+      ([README.md](../README.md#quick-demo)) and the docs site (`docs/index.html` →
       `#quick-demo`): find-usages (`servicenow_where_used`), what-runs-on-save
       (`servicenow_trace_table_event`) and dev-vs-prod (`servicenow-mcp-ai drift`).
 - [ ] Record the matching **screen-capture GIF** (a manual capture) and drop it into the
