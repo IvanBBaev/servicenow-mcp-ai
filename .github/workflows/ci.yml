@@ -34,7 +34,7 @@ jobs:
       # Upload the lcov report to Codecov (public repo). Non-blocking: a Codecov
       # outage must not fail CI. Runs once, on the same ubuntu/Node 22 leg.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
