@@ -1,6 +1,8 @@
 # servicenow-mcp-ai — Business Analysis for v2.0
 
 Date: 2026-06-21 · Horizon: the next major version (v2.0) and the 12–18 months around it.
+_v2.0 has since shipped (2026-06-22); the post-ship review that measures the outcome
+against this analysis is [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md)._
 Companion to [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) (the "why" behind the
 moat), [ROADMAP.md](ROADMAP.md) (Phase 9 DF-0…DF-6 and the DX adoption levers) and
 [PRODUCT-STATE.md](PRODUCT-STATE.md) (what ships today). This document adds the

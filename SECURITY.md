@@ -7,8 +7,12 @@ Report vulnerabilities privately to <ivanbbaev@gmail.com> or via
 
 ## Security model (summary)
 
-- **Transport:** stdio only; logs go to stderr as structured JSON. The
-  password/token is never logged and never returned by any tool.
+- **Transport:** stdio by default; logs go to stderr as structured JSON. The
+  optional Streamable HTTP transport (`SN_TRANSPORT=http`, DF-6) binds to
+  loopback (`127.0.0.1`) by default and supports an `SN_HTTP_TOKEN` bearer
+  guard (constant-time check); widening the bind (`SN_HTTP_HOST`) and TLS
+  termination are the operator's responsibility. The password/token is never
+  logged and never returned by any tool.
 - **Credentials:** a git-ignored env file (`SN_ENV_FILE`, then
   `~/.config/servicenow-mcp-ai/.env`, then the project `.env`); real environment
   variables take precedence. Runtime updates go through

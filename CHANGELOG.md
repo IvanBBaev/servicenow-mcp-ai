@@ -7,7 +7,33 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ### Added
 
-- **VS Code extension published.** The extension is now live on the VS Code Marketplace as [`ivanbbaev.servicenow-mcp-ai`](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai) — install with `code --install-extension ivanbbaev.servicenow-mcp-ai`, or find "ServiceNow MCP" in the Extensions view. A new `publish-vscode` CI workflow ships it on each version tag.
+- **VS Code extension published.** The extension is now live on the VS Code Marketplace as [`ivanbbaev.servicenow-mcp-ai`](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai) — install with `code --install-extension ivanbbaev.servicenow-mcp-ai`, or find "ServiceNow MCP" in the Extensions view. A new `publish-vscode` CI workflow ships it on each version tag (with a version-sync gate: the extension version must match the tag).
+- **Env-docs sync gate.** A documentation test now fails the build when an `SN_*` variable read in `src/` is missing from the README env reference or `.env.example`; `.env.example` gained the previously missing `SN_OAUTH_JWT_KID`, `SN_OAUTH_JWT_EXP_SEC` and `SN_CODESEARCH` entries.
+
+### Changed
+
+- **HTTP retry policy tightened.** `502`/`503`/`504` responses are now retried only for idempotent requests (a write may already have executed on the instance), and a server-supplied `Retry-After` is honoured but capped at 60 s so a misbehaving proxy cannot stall a call indefinitely.
+
+### CI
+
+- **CodeQL** static analysis and **weekly dependabot** (npm root + `extension/` + github-actions); the Windows CI leg now runs lint + format as well.
+
+### Internal
+
+- The retry matrix, per-host concurrency semaphore and per-host telemetry moved into a shared substrate (`src/core/http-util.ts`). **Jira Cloud client scaffolding** (`src/core/jira/`, ADF helpers under `src/api/jira/`) landed fully reviewed and tested — **no Jira tools are exposed yet**; the surface stays dark pending the go/no-go decision (ARCH-14).
+- Dedicated unit tests for the policy engine, the write journal and OAuth redirect parsing; the suite is now 380 tests.
+
+## [2.0.1] - 2026-06-27
+
+No functional changes — a republish release after the GitHub account rename.
+
+### Changed
+
+- **GitHub account rename `LeassTaTT` → `IvanBBaev`:** all repository references updated; the npm package republished and the MCP Registry listing re-registered under the `io.github.IvanBBaev` namespace.
+
+### Documentation
+
+- The GitHub Pages site redesigned (terminal-grade dark theme, live hero terminal, the CLI reference mirrored into the site); the README Quick start reworked into an install grid with client-config tabs; status badges added (CI, Codecov coverage, Snyk, tools count, last commit).
 
 ## [2.0.0] - 2026-06-22
 

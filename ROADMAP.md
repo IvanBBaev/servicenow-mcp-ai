@@ -1,6 +1,6 @@
 # servicenow-mcp — Roadmap
 
-Date: 2026-06-22 · Status: **v2.0 — trust + depth + reach** (303/303 tests, coverage 95/84/99, full REST coverage, every auth method, Phases 1–9 + DX shipped; see [ROADMAP-V2.md](ROADMAP-V2.md)).
+Date: 2026-07-02 · Status: **v2.0 — trust + depth + reach** (380/380 tests, coverage 95.29/84.36/98.56, full REST coverage, every auth method, Phases 1–9 + DX shipped; see [ROADMAP-V2.md](ROADMAP-V2.md)).
 This is the forward-looking view. Full task specifications live in
 [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md); completed work with commit refs is in
 [DONE.md](DONE.md); the current state is in [PRODUCT-STATE.md](PRODUCT-STATE.md).

@@ -280,3 +280,141 @@ A **manifest-integrity smoke test** (`test/all-tools-smoke.test.js`) then drove 
 - [x] **API Key** (`SN_AUTH=apikey`, `SN_API_KEY`) → the `x-sn-apikey` header. **Static Bearer** (`SN_AUTH=token`, `SN_BEARER_TOKEN`) → `Authorization: Bearer …` verbatim. **`none`** (cert-only) → no auth header. `getAuthMode()` auto-detects from the present keys (api key → bearer → OAuth → Basic).
 - [x] **Mutual TLS** (`SN_TLS_CLIENT_CERT`/`_KEY`/`_CA`, PEM or `_FILE`). `core/mtls.ts` builds an undici `Agent` dispatcher (client cert on the handshake; ServiceNow maps it to a user). undici is loaded by a **dynamic import** so it stays an OPTIONAL dependency — a clear "install undici" error if absent; the supported runtimes are otherwise untouched. Tests cover the not-configured and undici-absent branches.
 - [x] **Password grant (ROPC) marked deprecated** (OAuth 2.1 forbids it); kept for back-compat. Docs synced: README (env table + a "Supported authentication methods" matrix), `.env.example`, the docs site auth section.
+
+## Full review (2026-07-01) — the uncommitted Jira integration (cycle 1)
+
+Scope: the work-in-progress Jira Cloud integration (`src/core/jira/`, `src/api/jira/`,
+`src/core/http-util.ts` and the touched `core/http.ts`/`core/host.ts`), reviewed before it grows a
+tool layer.
+
+### Cycle 1 — Architect (ARCH-9, ARCH-11, ARCH-12, ARCH-13)
+
+- [x] **ARCH-9 · host-resolution/SSRF policy deduplicated.** `resolveHost` (ServiceNow) and
+      `resolveJiraHost` implemented the same normalise → validate → allowlist/blocklist algorithm
+      line-for-line; a hardening fix to one would silently miss the other. Extracted
+      `resolveHostWithPolicy(raw, policy)` + `HostPolicy` in `core/host.ts`; both resolvers are now
+      thin policy wrappers (canonical suffix, env var, error wording, error class) with verbatim
+      error messages, so the existing message-pinning tests pass unchanged.
+- [x] **ARCH-11 · Jira failures now throw `JiraError`.** Every throw in `core/jira/*` and
+      `api/jira/shared.ts` used `ServiceNowError` (so `err.name` lied and code could never branch
+      per system). Added `JiraError extends ServiceNowError` in `core/errors.ts` and threw it from
+      all Jira modules — the subclass keeps every existing `instanceof ServiceNowError` boundary
+      (`mcp/result.ts`) and test green. The fuller taxonomy rename (neutral base class, `snDetail` →
+      generic key) is a public-contract change — deferred to the owner (see TODO).
+- [x] **ARCH-12 · shared `SN_*` transport knobs documented.** The Jira client rides
+      `SN_TIMEOUT_MS`/`SN_MAX_RETRIES`/`SN_MAX_CONCURRENT`; the `settings.ts` docstrings now state
+      the knobs govern every REST client (the `SN_` prefix is historical). Per-system `JIRA_*`
+      overrides remain a config-surface decision — deferred to the owner (see TODO).
+- [x] **ARCH-13 · `parseTotalCount` moved back into `http.ts`.** `X-Total-Count` is a ServiceNow
+      Table API concept with a single consumer; keeping it in `http-util.ts` polluted the shared
+      transport module with system-specific policy. `http-util.ts` is system-agnostic again.
+
+Gate after the architect step: `npm run check` green — build + ESLint + Prettier, **358 tests**,
+coverage 95.22% lines / 84.07% branches / 98.56% functions, audit 0.
+
+### Cycle 1 — Dev (DEV-8, DEV-9, DEV-10)
+
+- [x] **DEV-8 · `snRequest` created the timeout signal before acquiring the semaphore slot**
+      (`src/core/http.ts`). `AbortSignal.timeout(SN_TIMEOUT_MS)` started ticking when the request
+      `init` was built, _before_ `withSlot` granted a per-host slot — so with a saturated semaphore
+      (`SN_MAX_CONCURRENT` in-flight requests, e.g. a `fetchAll` chain plus `tableLogic`'s parallel
+      salvo) a queued request could burn its whole timeout budget waiting and abort without ever
+      touching the network. The Jira twin already did this right (signal built inside the thunk);
+      `snRequest` now builds `init` inside the `withSlot` thunk, so the timeout covers only the
+      actual network attempt.
+- [x] **DEV-9 · `snRequest` lacked the `?`-join guard** (`src/core/http.ts`). A caller passing a
+      `path` that already carries a query string plus `params` would produce a malformed
+      double-`?` URL (`…?a=1?b=2`); the Jira client already joined with the right separator. No
+      current caller does this — fixed as latent-parity hardening so the twin clients cannot
+      diverge on URL building.
+- [x] **DEV-10 · `jiraRequest` let `extraHeaders` clobber managed headers**
+      (`src/core/jira/http.ts`). The `...extraHeaders` spread came last, so an entry for
+      `Authorization`, `Accept` or `Content-Type` silently replaced the client-managed value — and
+      under a different casing (`authorization`) both keys survived in the record and fetch merges
+      them into one broken comma-joined header. The client now rejects reserved-header entries with
+      a clear `JiraError` (same style as the body+form mutual-exclusion guard); legitimate extras
+      like `X-Atlassian-Token: no-check` pass through unchanged.
+
+Reviewed and confirmed correct (no action): the retry-matrix tightening that ships with this change
+(503 moved from retry-any-method to GET-only — a 503 write may already have landed, so replaying it
+could duplicate a create/transition; pinned by the new `http-retry` test) and the new 60s
+`Retry-After` cap in `http-util.ts`.
+
+Gate after the dev step: `npm run check` green — build + ESLint + Prettier, **358 tests**, coverage
+95.19% lines / 84.01% branches / 98.56% functions, audit 0.
+
+### Cycle 1 — QA (QA-23 … QA-27)
+
+- [x] **QA-23 · The `JiraError` contract was not pinned by any test.** `jira-http.test.js` and
+      `jira-adf.test.js` asserted only `instanceof ServiceNowError`, so a regression that threw the
+      base class again (losing the per-system distinction ARCH-11 introduced) — or broke the
+      subclass name/inheritance — would pass the suite. The error-mapping, transport and 503
+      assertions now check `instanceof JiraError`, `toAdf` rejections assert `JiraError`, and a
+      dedicated contract test pins `name === "JiraError"`, `status`/`detail` passthrough and
+      `instanceof ServiceNowError` (the check `mcp/result.ts` narrows on).
+- [x] **QA-24 · The `snRequest` `?`-join guard (DEV-9) was untested.** Only the Jira twin had a
+      URL-join test; the SN side could silently regress to the double-`?` bug. Added a direct
+      `snRequest` test in `coverage-extra.test.js` asserting the `&` join when the path already
+      carries a query string.
+- [x] **QA-25 · The reserved-`extraHeaders` guard (DEV-10) was untested** — per-file coverage showed
+      `src/core/jira/http.ts:111-114` (the throw) uncovered. Added a negative test using the
+      different-casing attack (`AUTHORIZATION`) that asserts the `JiraError`, the header name in the
+      message, and that fetch is never called.
+- [x] **QA-26 · The Jira per-host telemetry claim was untested.** `http-util.ts` documents that the
+      shared per-host telemetry gives a "multi-system breakdown for free", but no test exercised it
+      through `jiraRequest`. Added a test pinning that a Jira request is counted under
+      `perHost["mycompany.atlassian.net"]` and in the aggregate.
+- [x] **QA-27 · The `message` fallback in `extractJiraErrorDetail` was uncovered**
+      (`src/core/jira/http.ts:63-64`): Jira bodies that carry only a top-level `message` (typical
+      for 5xx) fell through untested. Added an error-mapping test for a `{ message: … }`-only body.
+
+No product code was touched in the QA step — all five findings were test gaps, not bugs.
+
+Gate after the QA step: `npm run check` green — build + ESLint + Prettier, **363 tests** (+5),
+coverage 95.23% lines / 84.17% branches / 98.56% functions, audit 0. The previously uncovered
+`jira/http.ts` guard lines (111–114) and `message` fallback (63–64) are now exercised.
+
+## Gap analysis (2026-07-01 → 02) — ruthless sweep, GA-1 … GA-6 executed
+
+Two parallel code sweeps plus a manual verification pass on top of the 2026-07-01 gate. The
+heavy code claims were **verified false** (probeTable's per-item error isolation, the flows
+caret guard, the OAuth-login timeout and the per-instance schema-cache keying are all fine) —
+the codebase was sound; the actionable gaps were CI/supply-chain and test hygiene. GA-7 stays
+deferred (trigger-gated) and GA-8/GA-9 stay owner actions — tracked in TODO.md.
+
+- [x] **GA-1 · No dependency-update automation.** Added `.github/dependabot.yml`: npm (root),
+      npm (`extension/`) and github-actions, weekly, minor+patch grouped so majors (the class
+      that bit before — the c8 Node-25 breakage) get individual review.
+- [x] **GA-2 · No SAST in CI.** Added `.github/workflows/codeql.yml`: javascript-typescript,
+      `security-and-quality` queries, on push/PR plus a weekly cron so advisories in unchanged
+      code still surface. Least-privilege permissions (contents:read + security-events:write).
+- [x] **GA-3 · Extension version skew.** The extension shipped 2.0.0 while npm was at 2.0.1.
+      Bumped `extension/package.json` (+ lock) to 2.0.1 and added a version-sync gate to
+      `publish-vscode.yml` that fails the publish when the extension and root versions differ.
+- [x] **GA-4 · The Windows CI leg skipped lint + format.** `npm run lint` and
+      `npm run format:check` now run on windows-latest too (the coverage ratchet stays
+      ubuntu-only by design). Also fixed the stale coverage comment in `ci.yml` (93/80/96 →
+      the real 94/82/97 ratchet under the ~95/~84/~99 report).
+- [x] **GA-5 · Security-critical core modules lacked isolated unit tests.** New
+      `test/policy.test.js` (10 tests: list parsing/normalisation, deny-wins-over-allow,
+      `isReadOnly` truthiness variants, the per-profile override chain including the
+      scoped-empty-string-beats-global contract, and the package-axis guards the Batch API
+      rides) and `test/write-journal.test.js` (entry shape with real ISO ts + profile, jsonl
+      round-trip, append-only accumulation, md rows keys-only/em-dash — values never leak into
+      Markdown — and per-profile directory routing). `oauth-login.ts` was already covered by
+      `oauth.test.js` (full PKCE loopback flow + precondition errors); added the two missing
+      `parseRedirect` edges there (error_description preferred over the error code; a
+      malformed request-URL returns an error instead of throwing).
+- [x] **GA-6 · The README env table was manual (the M-5 remainder).** New
+      `test/env-docs-sync.test.js`: scans `src/**/*.ts` for literal `SN_*`/`JIRA_*` tokens
+      **plus** `authEnv("SUFFIX")` call sites (suffix-built names like `SN_OAUTH_JWT_KID`
+      never appear literally) and asserts every var is documented in both `README.md` and
+      `.env.example`. Sentinel + floor assertions pin the extraction itself so a refactor
+      cannot silently pass an empty inventory. The dark Jira surface (ARCH-14) rides an
+      explicit `PENDING_DARK_SURFACE` exception with a self-destruct test — the moment
+      `JIRA_*` enters the README, the exception must be deleted and the sync becomes binding.
+      The scan found three real doc gaps: `.env.example` gained `SN_OAUTH_JWT_KID`,
+      `SN_OAUTH_JWT_EXP_SEC` and `SN_CODESEARCH`.
+
+Gate: `npm run check` green — build + ESLint + Prettier, **380 tests** (+17), coverage
+95.29% lines / 84.36% branches / 98.56% functions, `npm audit --omit=dev` 0 vulnerabilities.

@@ -51,7 +51,7 @@ below.
 | ---------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | Category                     | External, client-side tool you run                                                                 | Platform-native service on the instance                    |
 | Where it runs                | Local, next to your MCP client                                                                     | Remote, hosted by ServiceNow                               |
-| Transport                    | stdio (HTTP planned — DF-6)                                                                        | Streamable HTTP + SSE (remote only)                        |
+| Transport                    | stdio + Streamable HTTP (DF-6 — shipped in v2.0; loopback default, token guard)                    | Streamable HTTP + SSE (remote only)                        |
 | AI model                     | **Bring your own** — any client, any model incl. local                                             | Any client, but inside ServiceNow's governed AI layer      |
 | Cost                         | **Free** (MIT), plain REST calls                                                                   | Metered via Assist currency                                |
 | Requirements                 | Just credentials — **any instance, incl. free PDI**                                                | Paid Now Assist SKU + Zurich P4+ + AI apps                 |

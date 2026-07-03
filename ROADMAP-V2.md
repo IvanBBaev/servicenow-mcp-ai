@@ -1,9 +1,12 @@
 # servicenow-mcp-ai — v2.0 Execution Roadmap
 
-Date: 2026-06-21 · The operational plan for the next major version. Derived from
+Date: 2026-06-21 · Status: **shipped** — v2.0.0 tagged 2026-06-22, republished as 2.0.1
+on 2026-06-27; every DF-/DX- item below is done except the DX-3 screen-capture GIF
+(owner action, tracked in [TODO.md](TODO.md)). Derived from
 [BUSINESS-ANALYSIS-V2.md](BUSINESS-ANALYSIS-V2.md) (the "why" and the sequencing) and
 [ROADMAP.md](ROADMAP.md) (the full DF-/DX- task specs). This file is the **execution
-tracker**: what ships in v2.0, in what order, and the definition of done for each.
+tracker**: what shipped in v2.0, in what order, and the definition of done for each.
+The post-ship outcome review is [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md).
 
 ## Milestone definition
 

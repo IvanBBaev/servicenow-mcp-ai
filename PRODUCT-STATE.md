@@ -1,7 +1,7 @@
 # servicenow-mcp — Product State
 
-Date: 2026-06-22 · clean build · clean ESLint (type-checked + layer boundaries) · **303/303 tests** (coverage 95.1% lines / 83.6% branches / 98.7% functions) · CI: Node 20/22/24 + macOS matrix, coverage (lines 94 / branches 82 / functions 97) + prod-audit gates · git history one-commit-per-task.
-**Phase 6 is complete** (the optional X-8 HTTP transport shipped in v2.0 as DF-6): layered core/api/mcp/tools directories, a declarative tool manifest (a package is a plug-in), elicitation, MCP logging, outputSchema, the email package. **Phase 7 (multi-instance) is complete** (MI-1…MI-8: profiles, per-profile policy, per-call routing, snapshot, comparison, per-profile resources). **Phase 8 (flow testing + code checking) is complete** (FT-1…FT-7: the `flows`, `codecheck` and `atf` packages — deterministic table-event tracing, Flow Designer reading + run history, a local lint rule set + code-health report, ATF runs via the CI/CD API).
+Date: 2026-07-02 · clean build · clean ESLint (type-checked + layer boundaries) · **380/380 tests** (coverage 95.29% lines / 84.36% branches / 98.56% functions) · CI: Node 20/22/24 + macOS matrix (lint + format also on Windows), coverage (lines 94 / branches 82 / functions 97) + prod-audit gates, CodeQL SAST + weekly dependabot · git history one-commit-per-task.
+**Phase 6 is complete** (the optional X-8 HTTP transport shipped in v2.0 as DF-6): layered core/api/mcp/tools directories, a declarative tool manifest (a package is a plug-in), elicitation, MCP logging, outputSchema, the email package. **Phase 7 (multi-instance) is complete** (MI-1…MI-8: profiles, per-profile policy, per-call routing, snapshot, comparison, per-profile resources). **Phase 8 (flow testing + code checking) is complete** (FT-1…FT-7: the `flows`, `codecheck` and `atf` packages — deterministic table-event tracing, Flow Designer reading + run history, a local lint rule set + code-health report, ATF runs via the CI/CD API). **Phase 9 / v2.0 is complete** (DF-0…DF-6 trust + depth + reach; v2.0.0 published 2026-06-22 — npm `servicenow-mcp-ai` now at 2.0.1, MCP Registry, Claude Code plugin, VS Code extension 2.0.1). An uncommitted **Jira Cloud client WIP** (`src/core/jira/`, `src/api/jira/` — no tools yet) was reviewed 2026-07-01 and awaits the ARCH-14 go/no-go decision (see [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §5 and §8).
 Related documents: [ARCHITECTURE.md](ARCHITECTURE.md) (how it is built), [DONE.md](DONE.md) (everything completed), [ROADMAP.md](ROADMAP.md) (forward plan), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (detailed specs), [WORKLOG.md](WORKLOG.md) (chronology), [CHANGELOG.md](CHANGELOG.md).
 
 ## 1. TL;DR — what works today
@@ -56,9 +56,9 @@ pie title 67 tools by package
 
 - **Language/runtime:** TypeScript strict + `noUncheckedIndexedAccess`, ESM, Node ≥ 20 (note: the default shell Node here is v12 — use nvm 22), MCP SDK 1.29.
 - **Lint:** typescript-eslint type-checked + `no-floating-promises` + layer-boundary rules; Prettier (checked in CI).
-- **Tests: 303 on 4 levels** (unit → api over mock fetch → in-memory MCP client → documentation guards, incl. property-based, perf and a manifest-integrity smoke that drives every tool), ~1 second, zero network. A contract snapshot protects the `core` tool list; sync tests protect the README tools table and the package description counts.
-- **CI:** GitHub Actions (lint + format + build + test on Node 20/22/24 Linux + Node 22 macOS; coverage gate `--lines 94 --branches 82 --functions 97`; prod-dependency audit; Windows visibility job; Node 12 launcher probe). Locally the same chain is one command: `npm run check`.
-- **Documentation as code:** the README tools table is generated (`npm run docs:readme`); the env reference + `.env.example` are maintained by working rule; WORKLOG/DONE/TODO discipline after every task.
+- **Tests: 380 on 4 levels** (unit → api over mock fetch → in-memory MCP client → documentation guards, incl. property-based, perf and a manifest-integrity smoke that drives every tool), ~1 second, zero network. A contract snapshot protects the `core` tool list; sync tests protect the README tools table, the package description counts and the env reference (every `SN_*` var read in `src/` must appear in `README.md` **and** `.env.example` — `test/env-docs-sync.test.js`).
+- **CI:** GitHub Actions (lint + format + build + test on Node 20/22/24 Linux + Node 22 macOS; lint + format also on the Windows leg; coverage gate `--lines 94 --branches 82 --functions 97`; prod-dependency audit; Node 12 launcher probe), plus CodeQL SAST and weekly dependabot (npm root + `extension/` + github-actions). Locally the same chain is one command: `npm run check`.
+- **Documentation as code:** the README tools table is generated (`npm run docs:readme`); the env reference + `.env.example` are enforced by the sync test above; WORKLOG/DONE/TODO discipline after every task.
 
 ## 4. History — how we got here
 
@@ -75,6 +75,14 @@ timeline
         Phase 6 : layered dirs : declarative manifest : elicitation, logging, outputSchema, email
         Quality : 59 to 137 tests : type-checked lint : generated README : v1.0.0 cut
         Phase 7 core : named profiles : per-profile policy : per-call instance routing : rebrand to servicenow-mcp
+    section 2026-06-16 … 22
+        Reviews : full-review passes (06-16→17, 06-18 ×3) : hardened defaults (.env 0600, host allow-list)
+        Phase 8 : flows + codecheck + atf packages (FT-1…FT-7)
+        v2.0 : DF-0…DF-6 trust + depth + reach : published to npm + MCP Registry : VS Code extension + Claude Code plugin
+    section 2026-07-01 … 02
+        Jira WIP review : full review of the uncommitted Jira client (16 findings, 12 fixed, 4 deferred)
+        Gap sweep : GA-1…GA-6 (dependabot, CodeQL, Windows lint, unit tests, env-docs sync) : 380-test gate
+        Analyses : BUSINESS-REVIEW-2026-07 (+ §8 merciless addendum) : UX-REVIEW-2026-07
 ```
 
 The most important review fixes (full list in [DONE.md](DONE.md)): `describe_table` now sees inherited columns (critical for any extended table such as `incident`); batch can no longer bypass the table policy via stats/import/cmdb URLs; plugin APIs have a capability cache; credentials live in an atomic ConfigStore; a per-package policy axis covers the plugin APIs.
@@ -83,29 +91,37 @@ The most important review fixes (full list in [DONE.md](DONE.md)): `describe_tab
 
 Detailed specifications live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) — written as a handoff spec:
 
-| Phase                                | What                                                                       | Effort     | Key tasks                          |
-| ------------------------------------ | -------------------------------------------------------------------------- | ---------- | ---------------------------------- |
-| ~~8 · Flow testing + code analysis~~ | **done (2026-06-19)** — `flows` + `codecheck` + `atf` packages (FT-1…FT-7) | —          | shipped                            |
-| Optional                             | PDI e2e suite, XLSX export (needs a binary-writer dep), vitest migration   | on request | the "Optional" section in the plan |
+| Phase                                | What                                                                       | Effort     | Key tasks                                                                              |
+| ------------------------------------ | -------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
+| ~~8 · Flow testing + code analysis~~ | **done (2026-06-19)** — `flows` + `codecheck` + `atf` packages (FT-1…FT-7) | —          | shipped                                                                                |
+| ~~9 · v2.0 differentiators~~         | **done (2026-06-22)** — DF-0…DF-6 (see [ROADMAP-V2.md](ROADMAP-V2.md))     | —          | shipped as v2.0.0 / 2.0.1                                                              |
+| Undecided                            | the uncommitted Jira Cloud surface — go/no-go, safety rails, packaging     | owner call | ARCH-14 in TODO.md; [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §5 + §8.2 |
+| Owner actions                        | GA-8 distribution execution, DX-3 demo GIF, GA-9 PDI e2e nightly           | owner call | TODO.md owner actions; [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §8.4   |
+| Optional                             | PDI e2e suite, XLSX export (needs a binary-writer dep), vitest migration   | on request | the "Optional" section in the plan                                                     |
 
 ## 6. Known limitations and deliberate decisions
 
 - **Hardened defaults (2026-06-17):** `.env` is written owner-only (`0600`); a request host must be `*.service-now.com` unless `SN_ALLOWED_HOSTS` is set (the SSRF guard + X-2 elicitation still apply on top). These were the two former "won't-fix" single-user risks, flipped for the public release.
 - **Table policy ≠ plugin policy:** denying a table does not stop the plugin APIs — that is what the package axis (`SN_PACKAGES_DENY`/`SN_PACKAGES_READONLY`) is for; documented in the README security section.
-- **The README env table** is still manual (the tools table no longer is) — the remainder of M-5.
-- **No code execution on the instance** (incl. background scripts) — ATF through the official CI/CD API is the planned path (Phase 8).
+- **No code execution on the instance** (incl. background scripts) — ATF through the official CI/CD API is the shipped alternative (Phase 8, opt-in).
+- **The whole test suite is mock-fetch** — nothing yet proves the server against a live instance; the PDI e2e nightly is tracked as GA-9 (owner, needs a PDI + credentials).
+- **The Jira Cloud client WIP is uncommitted and dark** — `src/core/jira/` + `src/api/jira/shared.ts` exist and are reviewed/tested, but expose no tools and no registry entry until the ARCH-14 decision (safety rails: package axis, plan/apply, journal, redaction).
 
 ## 7. Document compass
 
-| File                                               | Contents                                                                  |
-| -------------------------------------------------- | ------------------------------------------------------------------------- |
-| [README.md](README.md)                             | setup, env reference, generated tools table, examples, security           |
-| [ARCHITECTURE.md](ARCHITECTURE.md)                 | layers, diagrams, policy/auth/config models, ADR decisions                |
-| [PRODUCT-STATE.md](PRODUCT-STATE.md)               | this file — what/how far/how                                              |
-| [ROADMAP.md](ROADMAP.md)                           | forward plan: ship 1.0.0, Phase 8, Phase 9 differentiators, optional      |
-| [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) | positioning vs the official MCP Server Console; Phase 9 boost plan; risks |
-| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md)   | Phase 6–8 specifications + optional items                                 |
-| [DONE.md](DONE.md)                                 | everything completed, with commit references                              |
-| [TODO.md](TODO.md)                                 | backlog (triple analysis S2/A2/Q2), release checklist R-1…R-9, won't-fix  |
-| [WORKLOG.md](WORKLOG.md)                           | detailed chronology: problem/solution/alternatives/verification           |
-| [CHANGELOG.md](CHANGELOG.md)                       | user-facing change overview (Keep a Changelog)                            |
+| File                                                     | Contents                                                                                       |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [README.md](README.md)                                   | setup, env reference, generated tools table, examples, security                                |
+| [ARCHITECTURE.md](ARCHITECTURE.md)                       | layers, diagrams, policy/auth/config models, ADR decisions                                     |
+| [PRODUCT-STATE.md](PRODUCT-STATE.md)                     | this file — what/how far/how                                                                   |
+| [ROADMAP.md](ROADMAP.md)                                 | forward plan: ship 1.0.0, Phase 8, Phase 9 differentiators, optional                           |
+| [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md)       | positioning vs the official MCP Server Console; Phase 9 boost plan; risks                      |
+| [BUSINESS-ANALYSIS-V2.md](BUSINESS-ANALYSIS-V2.md)       | market, business model, monetization; what "v2.0" means as a milestone                         |
+| [ROADMAP-V2.md](ROADMAP-V2.md)                           | the v2.0 execution tracker (DF-0…DF-6, DX-1/DX-3) with definition of done                      |
+| [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) | post-2.0 business review: delivery scorecard, adoption reality, the Jira decision, 30-day plan |
+| [UX-REVIEW-2026-07.md](UX-REVIEW-2026-07.md)             | post-2.0 UX/DX review: onboarding funnel, tool surface, errors, docs site, prioritized backlog |
+| [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md)         | Phase 6–8 specifications + optional items                                                      |
+| [DONE.md](DONE.md)                                       | everything completed, with commit references                                                   |
+| [TODO.md](TODO.md)                                       | backlog (triple analysis S2/A2/Q2), release checklist R-1…R-9, won't-fix                       |
+| [WORKLOG.md](WORKLOG.md)                                 | detailed chronology: problem/solution/alternatives/verification                                |
+| [CHANGELOG.md](CHANGELOG.md)                             | user-facing change overview (Keep a Changelog)                                                 |

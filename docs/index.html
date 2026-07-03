@@ -69,7 +69,7 @@
             "description": "A Model Context Protocol server that lets an MCP-capable AI client operate a ServiceNow instance across the full REST surface, with script intelligence, multi-instance profiles and least-privilege governance.",
             "url": "https://ivanbbaev.github.io/servicenow-mcp-ai/",
             "downloadUrl": "https://www.npmjs.com/package/servicenow-mcp-ai",
-            "softwareVersion": "2.0.0",
+            "softwareVersion": "2.0.1",
             "license": "https://opensource.org/licenses/MIT",
             "author": { "@type": "Person", "name": "Ivan Baev" },
             "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
@@ -138,6 +138,119 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
+    <!-- Inline enhancements: sidebar doc-search + footer support cluster.
+         Kept inline so docs/index.html stays a single self-contained file. -->
+    <style>
+      /* ---- Sidebar documentation search ---- */
+      .toc-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        background: var(--card);
+        padding: 8px 10px;
+        margin: 4px 0 6px;
+      }
+      .toc-search:focus-within {
+        border-color: var(--accent-border);
+        box-shadow: 0 0 0 2px var(--accent-soft);
+      }
+      .toc-search-glyph {
+        display: inline-flex;
+        color: var(--accent);
+        flex: 0 0 auto;
+      }
+      .toc-search-input {
+        flex: 1 1 auto;
+        min-width: 0;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--text);
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+      /* Hide the native search "clear" control so styling stays consistent. */
+      .toc-search-input::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      .toc-search-input::placeholder {
+        color: var(--dim);
+      }
+      .toc-search-count {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--dim);
+        white-space: nowrap;
+        flex: 0 0 auto;
+      }
+      .toc-search-empty {
+        margin: 0 0 8px;
+        padding: 6px 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      /* Dim TOC links whose section is filtered out by the search. */
+      .sidebar nav a.toc-hidden {
+        display: none;
+      }
+      /* Hide a whole TOC group when none of its links match. */
+      .sidebar h4.toc-hidden {
+        display: none;
+      }
+      /* Search highlight applied to matched text in the content. */
+      mark.doc-hit {
+        background: var(--accent-soft);
+        color: var(--accent-strong);
+        border-radius: 3px;
+        padding: 0 1px;
+        box-shadow: inset 0 0 0 1px var(--accent-border);
+      }
+      /* When a search is active, fade sections with no match so hits stand out. */
+      .content.doc-search-active section.doc-nomatch {
+        opacity: 0.28;
+        filter: saturate(0.6);
+      }
+      .content section {
+        transition: opacity 0.15s ease;
+      }
+
+      /* ---- Footer support cluster (relocated Ko-fi / Donate) ---- */
+      .foot-support {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        margin-left: 12px;
+        padding-left: 12px;
+        border-left: 1px solid var(--hair);
+      }
+      .foot-support-label {
+        color: var(--dim);
+        font-size: 0.85em;
+        letter-spacing: 0.02em;
+      }
+      footer .foot-support a.sponsor-link:hover {
+        color: var(--p1);
+      }
+      footer .foot-support a.kofi-link:hover {
+        color: var(--write);
+      }
+      footer .foot-support a.donate-link:hover {
+        color: var(--accent-strong);
+      }
+      @media (max-width: 720px) {
+        .foot-support {
+          margin-left: 0;
+          padding-left: 0;
+          border-left: none;
+          margin-top: 8px;
+          width: 100%;
+        }
+      }
+    </style>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232ee89e'/%3E%3Ctext x='50' y='68' font-size='54' text-anchor='middle' fill='%2304130d' font-family='monospace' font-weight='bold'%3ESN%3C/text%3E%3C/svg%3E"
@@ -166,22 +279,8 @@
           rel="noopener"
           >&#9829; Sponsor</a
         >
-        <a
-          class="kofi-link"
-          href="https://ko-fi.com/ivanbbaev"
-          target="_blank"
-          rel="noopener"
-          >&#9749; Ko-fi</a
-        >
-        <a
-          class="donate-link"
-          href="https://donatr.ee/ivanbbaev/"
-          target="_blank"
-          rel="noopener"
-          >&#127873; Donate</a
-        >
       </nav>
-      <span class="ver-pill">v2.0.0</span>
+      <span class="ver-pill">v2.0.1</span>
       <a
         class="icon-btn"
         href="https://github.com/IvanBBaev/servicenow-mcp-ai"
@@ -196,6 +295,25 @@
 
     <div class="layout" id="top">
       <aside class="sidebar" id="sidebar">
+        <div class="toc-search" role="search">
+          <span class="toc-search-glyph" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><line x1="10.5" y1="10.5" x2="14" y2="14" stroke-linecap="round"></line></svg>
+          </span>
+          <input
+            type="search"
+            id="doc-search"
+            class="toc-search-input"
+            placeholder="Search docs…"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search the documentation"
+            aria-describedby="doc-search-count"
+          />
+          <span class="toc-search-count" id="doc-search-count" aria-live="polite"></span>
+        </div>
+        <p class="toc-search-empty" id="doc-search-empty" hidden>
+          No sections match that search.
+        </p>
         <h4>Getting started</h4>
         <nav>
           <a href="#overview">Overview</a>
@@ -2267,10 +2385,13 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <a href="https://github.com/IvanBBaev/servicenow-mcp-ai" target="_blank" rel="noopener">GitHub</a> ·
           <a href="https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/README.md" target="_blank" rel="noopener">README</a> ·
           <a href="https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a> ·
-          <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">About MCP</a> ·
-          <a href="https://github.com/sponsors/IvanBBaev" target="_blank" rel="noopener">Sponsor</a> ·
-          <a href="https://ko-fi.com/ivanbbaev" target="_blank" rel="noopener">Ko-fi</a> ·
-          <a href="https://donatr.ee/ivanbbaev/" target="_blank" rel="noopener">Donate</a>
+          <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">About MCP</a>
+          <span class="foot-support" aria-label="Support this project">
+            <span class="foot-support-label">Support:</span>
+            <a class="sponsor-link" href="https://github.com/sponsors/IvanBBaev" target="_blank" rel="noopener">&#9829; Sponsor</a>
+            <a class="kofi-link" href="https://ko-fi.com/ivanbbaev" target="_blank" rel="noopener">&#9749; Ko-fi</a>
+            <a class="donate-link" href="https://donatr.ee/ivanbbaev/" target="_blank" rel="noopener">&#127873; Donate</a>
+          </span>
         </div>
       </div>
       <p class="disclaimer" style="opacity: 0.7; font-size: 0.8rem; margin-top: 1rem">
@@ -2288,5 +2409,206 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
     </button>
 
     <script src="assets/app.js"></script>
+    <!-- Inline, dependency-free client-side documentation search.
+         Filters the sticky sidebar TOC and highlights matches in-page.
+         No external assets, no network, plain DOM over the page's own content. -->
+    <script>
+      (function () {
+        "use strict";
+        var input = document.getElementById("doc-search");
+        var content = document.querySelector("main.content");
+        var sidebar = document.getElementById("sidebar");
+        var countEl = document.getElementById("doc-search-count");
+        var emptyEl = document.getElementById("doc-search-empty");
+        if (!input || !content || !sidebar) return;
+
+        // All content sections that carry an id (these are the TOC targets).
+        var sections = Array.prototype.slice.call(
+          content.querySelectorAll("section[id]"),
+        );
+        // Sidebar TOC links + their group heading (h4) for group hiding.
+        var navLinks = Array.prototype.slice.call(
+          sidebar.querySelectorAll("nav a[href^='#']"),
+        );
+        var groupHeadings = Array.prototype.slice.call(
+          sidebar.querySelectorAll("h4"),
+        );
+
+        // Map: section id -> its sidebar link (may be undefined for some).
+        var linkById = {};
+        navLinks.forEach(function (a) {
+          var id = (a.getAttribute("href") || "").slice(1);
+          if (id) linkById[id] = a;
+        });
+
+        // Cache the lowercased searchable text per section once (headings +
+        // body text), so typing stays cheap even with 67 tools on the page.
+        var sectionText = new Map();
+        sections.forEach(function (sec) {
+          sectionText.set(sec, (sec.textContent || "").toLowerCase());
+        });
+
+        // ---- Highlighting (safe, fully reversible) --------------------------
+        // We only wrap matches inside text nodes, never touching element markup,
+        // and we remember every <mark> we create so clearing restores the DOM.
+        var SKIP = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, MARK: 1 };
+        var activeMarks = [];
+
+        function clearHighlights() {
+          activeMarks.forEach(function (mark) {
+            var parent = mark.parentNode;
+            if (!parent) return;
+            // Replace the <mark> with its plain text, then merge text nodes.
+            parent.replaceChild(
+              document.createTextNode(mark.textContent),
+              mark,
+            );
+            parent.normalize();
+          });
+          activeMarks = [];
+        }
+
+        function highlightIn(root, needle) {
+          if (!needle) return;
+          var walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT,
+            {
+              acceptNode: function (node) {
+                if (!node.nodeValue || !node.nodeValue.trim())
+                  return NodeFilter.FILTER_REJECT;
+                var p = node.parentNode;
+                while (p && p !== root) {
+                  if (SKIP[p.nodeName]) return NodeFilter.FILTER_REJECT;
+                  p = p.parentNode;
+                }
+                return node.nodeValue.toLowerCase().indexOf(needle) !== -1
+                  ? NodeFilter.FILTER_ACCEPT
+                  : NodeFilter.FILTER_REJECT;
+              },
+            },
+          );
+          var targets = [];
+          var n;
+          while ((n = walker.nextNode())) targets.push(n);
+          targets.forEach(function (textNode) {
+            var text = textNode.nodeValue;
+            var lower = text.toLowerCase();
+            var frag = document.createDocumentFragment();
+            var pos = 0;
+            var idx;
+            while ((idx = lower.indexOf(needle, pos)) !== -1) {
+              if (idx > pos)
+                frag.appendChild(
+                  document.createTextNode(text.slice(pos, idx)),
+                );
+              var mark = document.createElement("mark");
+              mark.className = "doc-hit";
+              mark.textContent = text.slice(idx, idx + needle.length);
+              frag.appendChild(mark);
+              activeMarks.push(mark);
+              pos = idx + needle.length;
+            }
+            if (pos < text.length)
+              frag.appendChild(document.createTextNode(text.slice(pos)));
+            textNode.parentNode.replaceChild(frag, textNode);
+          });
+        }
+
+        // ---- Apply the current query ---------------------------------------
+        function apply() {
+          var q = input.value.trim().toLowerCase();
+          clearHighlights();
+
+          if (q === "") {
+            content.classList.remove("doc-search-active");
+            sections.forEach(function (s) {
+              s.classList.remove("doc-nomatch");
+            });
+            navLinks.forEach(function (a) {
+              a.classList.remove("toc-hidden");
+            });
+            groupHeadings.forEach(function (h) {
+              h.classList.remove("toc-hidden");
+            });
+            if (countEl) countEl.textContent = "";
+            if (emptyEl) emptyEl.hidden = true;
+            return;
+          }
+
+          content.classList.add("doc-search-active");
+          var matches = 0;
+          var matchedLinks = new Set();
+          sections.forEach(function (sec) {
+            var hit = (sectionText.get(sec) || "").indexOf(q) !== -1;
+            sec.classList.toggle("doc-nomatch", !hit);
+            if (hit) {
+              matches++;
+              highlightIn(sec, q);
+              var link = linkById[sec.id];
+              if (link) matchedLinks.add(link);
+            }
+          });
+
+          // Filter the sidebar TOC to the sections that matched.
+          navLinks.forEach(function (a) {
+            a.classList.toggle("toc-hidden", !matchedLinks.has(a));
+          });
+          // Hide a group heading when all of its links are hidden.
+          groupHeadings.forEach(function (h) {
+            var group = [];
+            var node = h.nextElementSibling;
+            while (node && node.tagName !== "H4") {
+              if (node.tagName === "NAV") {
+                group = group.concat(
+                  Array.prototype.slice.call(node.querySelectorAll("a")),
+                );
+              }
+              node = node.nextElementSibling;
+            }
+            var anyVisible = group.some(function (a) {
+              return !a.classList.contains("toc-hidden");
+            });
+            h.classList.toggle("toc-hidden", group.length > 0 && !anyVisible);
+          });
+
+          if (countEl)
+            countEl.textContent =
+              matches + "/" + sections.length;
+          if (emptyEl) emptyEl.hidden = matches !== 0;
+        }
+
+        // Debounce input so highlighting many nodes never blocks typing.
+        var debounce;
+        input.addEventListener("input", function () {
+          clearTimeout(debounce);
+          debounce = setTimeout(apply, 120);
+        });
+
+        // Escape clears the search from within the field.
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && input.value) {
+            e.preventDefault();
+            input.value = "";
+            apply();
+          }
+        });
+
+        // Global "/" shortcut focuses the doc search (unless already typing).
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+          var t = e.target;
+          var tag = t && t.tagName;
+          if (
+            tag === "INPUT" ||
+            tag === "TEXTAREA" ||
+            (t && t.isContentEditable)
+          )
+            return;
+          e.preventDefault();
+          input.focus();
+        });
+      })();
+    </script>
   </body>
 </html>

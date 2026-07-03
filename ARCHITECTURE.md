@@ -1,6 +1,6 @@
 # servicenow-mcp — Architecture
 
-Date: 2026-06-22 · Reflects the code through v2.0 (Phases 1–9 + DX; 303/303 tests).
+Date: 2026-07-02 · Reflects the committed code through v2.0 (Phases 1–9 + DX; 380/380 tests). The uncommitted Jira Cloud client WIP is deliberately not covered here until the ARCH-14 decision lands (see TODO.md).
 Related documents: [PRODUCT-STATE.md](PRODUCT-STATE.md) (state), [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) (future), [DONE.md](DONE.md) (history), [WORKLOG.md](WORKLOG.md) (chronology).
 
 ## 1. What servicenow-mcp is
