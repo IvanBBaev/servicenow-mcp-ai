@@ -27,8 +27,8 @@ jobs:
       - run: npm run format:check
       - run: npm run build
       - run: npm test
-      # Coverage gate — lines 93 / branches 80 / functions 96, a ratchet set
-      # just below the real report (~95 / ~82 / ~99). Runs once on ubuntu/Node 22.
+      # Coverage gate — lines 94 / branches 82 / functions 97, a ratchet set
+      # just below the real report (~95 / ~84 / ~99). Runs once on ubuntu/Node 22.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         run: npm run test:coverage
       # Upload the lcov report to Codecov (public repo). Non-blocking: a Codecov
@@ -45,7 +45,9 @@ jobs:
 
   # Q2-3: Windows run (win32 path/line-ending safety). LF is enforced via
   # .gitattributes so the generated-docs drift tests stay byte-identical to
-  # their LF originals on the Windows checkout.
+  # their LF originals on the Windows checkout. GA-4: lint + format run here
+  # too, so style consistency is proven on win32 paths as well; the coverage
+  # ratchet stays ubuntu-only (it runs once, on the ubuntu/Node 22 leg).
   windows:
     runs-on: windows-latest
     steps:
@@ -55,6 +57,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
       - run: npm run build
       - run: npm test
 

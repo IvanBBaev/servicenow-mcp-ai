@@ -27,6 +27,16 @@ jobs:
           cache: npm
           cache-dependency-path: extension/package-lock.json
       - run: npm ci
+      # GA-3: the extension version must match the root package version, so the
+      # Marketplace can never lag behind an npm release (2.0.0 vs 2.0.1 happened).
+      - name: Check version sync with the root package
+        run: |
+          root=$(node -p "require('../package.json').version")
+          ext=$(node -p "require('./package.json').version")
+          if [ "$root" != "$ext" ]; then
+            echo "Version skew: root $root vs extension $ext" >&2
+            exit 1
+          fi
       - run: npm run compile
       - name: Publish to the Marketplace
         run: npx vsce publish --no-dependencies -p "$VSCE_PAT"

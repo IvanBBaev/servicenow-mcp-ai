@@ -1,0 +1,25 @@
+# GA-1: automated dependency updates (npm root, npm extension, GitHub Actions).
+# Weekly cadence, minor+patch grouped to keep PR noise low; majors stay separate
+# so breaking bumps (e.g. the c8 Node-25 breakage) get individual review.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: npm
+    directory: /extension
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
