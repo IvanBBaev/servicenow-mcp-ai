@@ -20,12 +20,16 @@ function positiveInt(envVar: string, fallback: number): number {
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : fallback;
 }
 
-/** Per-request timeout in milliseconds (SN_TIMEOUT_MS). */
+/**
+ * Per-request timeout in milliseconds (SN_TIMEOUT_MS). Like the retry and
+ * concurrency knobs below, it governs every REST client in this server —
+ * ServiceNow and Jira alike; the SN_ prefix is historical.
+ */
 export function getTimeoutMs(): number {
   return positiveInt("SN_TIMEOUT_MS", DEFAULT_TIMEOUT_MS);
 }
 
-/** Retries for transient failures (SN_MAX_RETRIES). Zero is allowed. */
+/** Retries for transient failures (SN_MAX_RETRIES, all REST clients). Zero is allowed. */
 export function getMaxRetries(): number {
   const raw = Number(process.env.SN_MAX_RETRIES);
   return Number.isFinite(raw) && raw >= 0
@@ -62,7 +66,7 @@ export function resultPretty(): boolean {
 
 export const DEFAULT_MAX_CONCURRENT = 4;
 
-/** Maximum parallel requests to the instance (SN_MAX_CONCURRENT). */
+/** Maximum parallel requests per host (SN_MAX_CONCURRENT, all REST clients). */
 export function getMaxConcurrent(): number {
   return positiveInt("SN_MAX_CONCURRENT", DEFAULT_MAX_CONCURRENT);
 }

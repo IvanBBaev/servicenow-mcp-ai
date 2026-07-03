@@ -4,95 +4,26 @@ import { resolveHost } from "./host.js";
 import { getAuthProvider, getAuthMode, invalidateToken } from "./auth.js";
 import { getTlsDispatcher } from "./mtls.js";
 import { logger } from "./logging.js";
-import { getMaxConcurrent, getMaxRetries, getTimeoutMs } from "./settings.js";
+import { getMaxRetries, getTimeoutMs } from "./settings.js";
+import {
+  backoffMs,
+  countError,
+  delay,
+  isIdempotent,
+  retryAfterMs,
+  shouldRetryStatus,
+  telemetryFor,
+  withSlot,
+} from "./http-util.js";
 
-/**
- * In-process telemetry: enough to answer "why is it slow / what is failing"
- * from the client itself (exposed via get_status and servicenow://status).
- * Counted per host so the multi-instance work (Phase 7) gets a usable
- * breakdown for free; getTelemetry() also returns the aggregate.
- */
-export interface Telemetry {
-  requests: number;
-  retries: number;
-  errors: Record<string, number>;
-  totalMs: number;
-}
-
-export interface TelemetrySnapshot extends Telemetry {
-  perHost: Record<string, Telemetry>;
-}
-
-const perHostTelemetry = new Map<string, Telemetry>();
-
-function telemetryFor(host: string): Telemetry {
-  let t = perHostTelemetry.get(host);
-  if (!t) {
-    t = { requests: 0, retries: 0, errors: {}, totalMs: 0 };
-    perHostTelemetry.set(host, t);
-  }
-  return t;
-}
-
-export function getTelemetry(): TelemetrySnapshot {
-  const aggregate: TelemetrySnapshot = {
-    requests: 0,
-    retries: 0,
-    errors: {},
-    totalMs: 0,
-    perHost: {},
-  };
-  for (const [host, t] of perHostTelemetry) {
-    aggregate.requests += t.requests;
-    aggregate.retries += t.retries;
-    aggregate.totalMs += t.totalMs;
-    for (const [k, n] of Object.entries(t.errors)) {
-      aggregate.errors[k] = (aggregate.errors[k] ?? 0) + n;
-    }
-    aggregate.perHost[host] = { ...t, errors: { ...t.errors } };
-  }
-  return aggregate;
-}
-
-/** Test hook. */
-export function _resetTelemetry(): void {
-  perHostTelemetry.clear();
-}
-
-function countError(t: Telemetry, key: string | number | undefined): void {
-  const k = String(key ?? "transport");
-  t.errors[k] = (t.errors[k] ?? 0) + 1;
-}
-
-// Plain counting semaphore around fetch, per host: protects each instance
-// from request salvos (tableLogic fires 5 in parallel, fetchAll can chain
-// dozens) without one instance starving another (Phase 7).
-interface Slot {
-  active: number;
-  waiters: (() => void)[];
-}
-
-const slots = new Map<string, Slot>();
-
-async function withSlot<T>(host: string, fn: () => Promise<T>): Promise<T> {
-  const limit = getMaxConcurrent();
-  let slot = slots.get(host);
-  if (!slot) {
-    slot = { active: 0, waiters: [] };
-    slots.set(host, slot);
-  }
-  const s = slot;
-  while (s.active >= limit) {
-    await new Promise<void>((resolve) => s.waiters.push(resolve));
-  }
-  s.active += 1;
-  try {
-    return await fn();
-  } finally {
-    s.active -= 1;
-    s.waiters.shift()?.();
-  }
-}
+// Telemetry is owned by http-util.ts (shared with the Jira client) but kept
+// importable here for the status payload and the existing tests.
+export {
+  getTelemetry,
+  _resetTelemetry,
+  type Telemetry,
+  type TelemetrySnapshot,
+} from "./http-util.js";
 
 /** Arguments for a single ServiceNow REST request. */
 export interface SnRequestArgs {
@@ -119,36 +50,6 @@ export interface SnResponse<T> {
   status: number;
   /** Content-Type of the response, useful for binary downloads. */
   contentType?: string;
-}
-
-const RETRYABLE_ANY_METHOD = new Set([429, 503]);
-const RETRYABLE_IDEMPOTENT = new Set([502, 504]);
-
-function isIdempotent(method: string): boolean {
-  return method === "GET";
-}
-
-function shouldRetryStatus(status: number, method: string): boolean {
-  if (RETRYABLE_ANY_METHOD.has(status)) return true;
-  return isIdempotent(method) && RETRYABLE_IDEMPOTENT.has(status);
-}
-
-function backoffMs(attempt: number): number {
-  const base = Math.min(500 * 2 ** (attempt - 1), 8000);
-  return base + Math.floor(Math.random() * 250);
-}
-
-function retryAfterMs(res: Response): number | undefined {
-  const header = res.headers.get("retry-after");
-  if (!header) return undefined;
-  const seconds = Number(header);
-  if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
-  const date = Date.parse(header);
-  return Number.isNaN(date) ? undefined : Math.max(0, date - Date.now());
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** Parse the X-Total-Count header (total matching rows) when present. */
@@ -198,7 +99,10 @@ export async function snRequest<T>({
   const host = resolveHost(instance);
   const base = `https://${host}`;
   const qs = params?.toString();
-  const url = `${base}${path}${qs ? `?${qs}` : ""}`;
+  // The path already carrying a query string is a caller mistake, but join with
+  // the right separator so we never emit a malformed double-"?" URL.
+  const sep = path.includes("?") ? "&" : "?";
+  const url = `${base}${path}${qs ? `${sep}${qs}` : ""}`;
   const safeUrl = `${base}${path}`;
   const timeoutMs = getTimeoutMs();
   const maxRetries = getMaxRetries();
@@ -230,15 +134,19 @@ export async function snRequest<T>({
     let res: Response;
     try {
       // Node's fetch accepts Uint8Array bodies and a `dispatcher` (undici) at
-      // runtime; the cast bridges gaps in the DOM RequestInit typing.
-      const init: Record<string, unknown> = {
-        method,
-        headers,
-        body: payload,
-        signal: AbortSignal.timeout(timeoutMs),
-      };
-      if (dispatcher) init.dispatcher = dispatcher;
-      res = await withSlot(host, () => fetch(url, init as RequestInit));
+      // runtime; the loose record bridges gaps in the DOM RequestInit typing.
+      // The timeout signal is created inside the slot, so time spent queued on
+      // the per-host semaphore does not consume the request's timeout budget.
+      res = await withSlot(host, () => {
+        const init: Record<string, unknown> = {
+          method,
+          headers,
+          body: payload,
+          signal: AbortSignal.timeout(timeoutMs),
+        };
+        if (dispatcher) init.dispatcher = dispatcher;
+        return fetch(url, init);
+      });
     } catch (cause) {
       const err = cause instanceof Error ? cause : new Error(String(cause));
       const timedOut = err.name === "TimeoutError" || err.name === "AbortError";

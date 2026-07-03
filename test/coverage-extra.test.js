@@ -115,6 +115,25 @@ test("snRequest fails clearly when no instance is configured", async () => {
   });
 });
 
+test("snRequest joins params with & when the path already carries a query string", async () => {
+  await withFetch(
+    (url) => {
+      assert.equal(
+        url,
+        "https://dev00000.service-now.com/api/now/table/incident?sysparm_query=active%3Dtrue&sysparm_limit=1",
+      );
+      return jsonResponse(200, { result: [] });
+    },
+    async () => {
+      await snRequest({
+        method: "GET",
+        path: "/api/now/table/incident?sysparm_query=active%3Dtrue",
+        params: new URLSearchParams({ sysparm_limit: "1" }),
+      });
+    },
+  );
+});
+
 test("snRequest maps a timeout and a transport error to clear messages", async () => {
   await withFetch(
     () => {

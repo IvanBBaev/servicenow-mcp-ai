@@ -147,6 +147,33 @@ test("a 502 is retried for GET but not for POST", async () => {
   });
 });
 
+test("a 503 is retried for GET but not for POST", async () => {
+  await withEnv({ SN_MAX_RETRIES: "1" }, async () => {
+    // GET: first 503, then success.
+    await withFetch(
+      (_url, _init, callNo) =>
+        callNo === 1
+          ? jsonResponse(503, {}, { "retry-after": "0" })
+          : jsonResponse(200, { result: [] }),
+      async (calls) => {
+        await queryTable({ table: "incident" });
+        assert.equal(calls.length, 2);
+      },
+    );
+    // POST: a received 503 must surface immediately (the write may have landed).
+    await withFetch(
+      () => jsonResponse(503, { error: { message: "unavailable" } }),
+      async (calls) => {
+        await assert.rejects(
+          createRecord("incident", { short_description: "x" }),
+          (err) => err instanceof ServiceNowError && err.status === 503,
+        );
+        assert.equal(calls.length, 1);
+      },
+    );
+  });
+});
+
 test("a 401 under Basic auth surfaces immediately — only OAuth re-auths (QA-3)", async () => {
   // baselineEnv() is Basic auth; the 401 re-auth path is gated on OAuth mode.
   await withEnv({ SN_MAX_RETRIES: "2" }, () =>

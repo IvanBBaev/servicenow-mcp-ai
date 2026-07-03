@@ -113,6 +113,19 @@ test("parseRedirect validates state and extracts the code", () => {
     /access_denied/,
   );
   assert.ok(parseRedirect("/callback?state=s1", "s1").error);
+  // GA-5: error_description (human text) is preferred over the error code.
+  assert.equal(
+    parseRedirect(
+      "/callback?error=access_denied&error_description=User+denied&state=s1",
+      "s1",
+    ).error,
+    "User denied",
+  );
+  // GA-5: an unparseable request-URL is an error, not an exception.
+  assert.equal(
+    parseRedirect("http://[bad", "s1").error,
+    "malformed redirect request",
+  );
 });
 
 test("runOAuthLogin completes the PKCE flow and stores the refresh token", async () => {

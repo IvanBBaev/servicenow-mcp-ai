@@ -15,3 +15,16 @@ export class ServiceNowError extends Error {
     this.name = "ServiceNowError";
   }
 }
+
+/**
+ * Error thrown when a Jira request fails. It extends ServiceNowError — the
+ * server's established error type — so every existing boundary (result
+ * mapping, policy guards, tests) handles it uniformly, while the distinct
+ * class and name let a caller tell the two systems apart.
+ */
+export class JiraError extends ServiceNowError {
+  constructor(message: string, status?: number, detail?: unknown) {
+    super(message, status, detail);
+    this.name = "JiraError";
+  }
+}

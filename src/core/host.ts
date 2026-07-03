@@ -31,9 +31,30 @@ function isBlockedHost(host: string): boolean {
   return false;
 }
 
-/** Optional comma-separated allowlist of permitted hosts (SN_ALLOWED_HOSTS). */
-function getAllowedHosts(): string[] {
-  return (process.env.SN_ALLOWED_HOSTS ?? "")
+/**
+ * Per-system host policy: the canonical domain suffix, the allowlist env var,
+ * the error wording and the error type. The ServiceNow and Jira resolvers are
+ * thin wrappers over one shared algorithm (resolveHostWithPolicy), so the
+ * normalisation and SSRF rules cannot silently drift apart.
+ */
+export interface HostPolicy {
+  /** Subject for validation errors, e.g. "ServiceNow instance" / "Jira site". */
+  subject: string;
+  /** System name for the malformed-host error, e.g. "ServiceNow" / "Jira". */
+  system: string;
+  /** Suffix appended to a bare (dot-less) name, e.g. ".service-now.com". */
+  canonicalSuffix: string;
+  /** Env var holding the optional comma-separated host allowlist. */
+  allowedHostsEnv: string;
+  /** Error for a non-canonical host when no allowlist is configured. */
+  nonCanonicalError: (host: string) => string;
+  /** Error constructor, so each system throws its own error class. */
+  makeError: (message: string) => Error;
+}
+
+/** Optional comma-separated allowlist of permitted hosts from `envVar`. */
+function getAllowedHosts(envVar: string): string[] {
+  return (process.env[envVar] ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
@@ -48,27 +69,28 @@ function isAllowed(host: string, allowed: string[]): boolean {
 }
 
 /**
- * Normalise and validate an instance value into a hostname.
- * Accepts "dev12345", "dev12345.service-now.com" or a full https URL, and
- * rejects malformed hosts, embedded credentials, and internal/loopback
- * targets (unless explicitly permitted through SN_ALLOWED_HOSTS).
+ * Normalise and validate a host value under the given policy.
+ * Accepts a bare name (gets the canonical suffix appended), a fully qualified
+ * host or a full https URL, and rejects malformed hosts, embedded credentials,
+ * and internal/loopback targets (unless explicitly permitted through the
+ * policy's allowlist env var).
  */
-export function resolveHost(instance: string): string {
-  let host = instance.trim().replace(/^https?:\/\//i, "");
+export function resolveHostWithPolicy(raw: string, policy: HostPolicy): string {
+  let host = raw.trim().replace(/^https?:\/\//i, "");
   // Drop any path, query or fragment.
   host = host.split(/[/?#]/, 1)[0] ?? "";
   if (host.includes("@")) {
-    throw new ServiceNowError(
-      "Invalid ServiceNow instance: embedded credentials are not allowed.",
+    throw policy.makeError(
+      `Invalid ${policy.subject}: embedded credentials are not allowed.`,
     );
   }
   // Drop a trailing port.
   host = host.replace(/:\d+$/, "");
   if (!host) {
-    throw new ServiceNowError("ServiceNow instance is empty or invalid.");
+    throw policy.makeError(`${policy.subject} is empty or invalid.`);
   }
   if (!host.includes(".")) {
-    host = `${host}.service-now.com`;
+    host = `${host}${policy.canonicalSuffix}`;
   }
   if (
     !/^[A-Za-z0-9.-]+$/.test(host) ||
@@ -77,33 +99,50 @@ export function resolveHost(instance: string): string {
     host.endsWith(".") ||
     host.startsWith("-")
   ) {
-    throw new ServiceNowError(`Invalid ServiceNow host: "${host}".`);
+    throw policy.makeError(`Invalid ${policy.system} host: "${host}".`);
   }
 
-  const allowed = getAllowedHosts();
+  const allowed = getAllowedHosts(policy.allowedHostsEnv);
   if (allowed.length > 0) {
     if (!isAllowed(host, allowed)) {
-      throw new ServiceNowError(
-        `Host "${host}" is not permitted by SN_ALLOWED_HOSTS.`,
+      throw policy.makeError(
+        `Host "${host}" is not permitted by ${policy.allowedHostsEnv}.`,
       );
     }
   } else {
     if (isBlockedHost(host)) {
-      throw new ServiceNowError(
-        `Refusing to connect to internal/loopback host "${host}". Set SN_ALLOWED_HOSTS to override.`,
+      throw policy.makeError(
+        `Refusing to connect to internal/loopback host "${host}". Set ${policy.allowedHostsEnv} to override.`,
       );
     }
-    // Without an explicit allowlist, only canonical ServiceNow instances are
-    // reachable. A custom or sovereign-cloud domain must be opted in through
-    // SN_ALLOWED_HOSTS, so a redirected/typo'd host cannot silently send Basic
-    // credentials to an arbitrary server.
-    if (!host.toLowerCase().endsWith(".service-now.com")) {
-      throw new ServiceNowError(
-        `Host "${host}" is not a *.service-now.com instance. Set SN_ALLOWED_HOSTS to allow a custom or sovereign-cloud domain.`,
-      );
+    // Without an explicit allowlist, only hosts under the canonical domain are
+    // reachable. A custom domain must be opted in through the allowlist env
+    // var, so a redirected/typo'd host cannot silently receive credentials.
+    if (!host.toLowerCase().endsWith(policy.canonicalSuffix)) {
+      throw policy.makeError(policy.nonCanonicalError(host));
     }
   }
   return host;
+}
+
+const SN_HOST_POLICY: HostPolicy = {
+  subject: "ServiceNow instance",
+  system: "ServiceNow",
+  canonicalSuffix: ".service-now.com",
+  allowedHostsEnv: "SN_ALLOWED_HOSTS",
+  nonCanonicalError: (host) =>
+    `Host "${host}" is not a *.service-now.com instance. Set SN_ALLOWED_HOSTS to allow a custom or sovereign-cloud domain.`,
+  makeError: (message) => new ServiceNowError(message),
+};
+
+/**
+ * Normalise and validate an instance value into a hostname.
+ * Accepts "dev12345", "dev12345.service-now.com" or a full https URL, and
+ * rejects malformed hosts, embedded credentials, and internal/loopback
+ * targets (unless explicitly permitted through SN_ALLOWED_HOSTS).
+ */
+export function resolveHost(instance: string): string {
+  return resolveHostWithPolicy(instance, SN_HOST_POLICY);
 }
 
 /** Base origin for an instance, e.g. "https://dev12345.service-now.com". */
