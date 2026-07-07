@@ -17,7 +17,7 @@ jobs:
           - os: macos-latest
             node: 22
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
@@ -51,7 +51,7 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -67,7 +67,7 @@ jobs:
   launcher-node12:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # No container: checkout runs under the runner's modern Node; setup-node
       # then installs the old runtime so only the launcher probe runs on it.
       # (A node:12 container cannot run the Node 20 that powers checkout@v4.)
