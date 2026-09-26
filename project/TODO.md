@@ -390,6 +390,19 @@
       plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
       139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
       on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [ ] **H-11 · Policy model v2 — done 2026-09-26 (uncommitted) bar the BREAKING defaults.** Glob
+      patterns + one evaluator (`explain_policy`, `servicenow://policy`), `POLICY_DENIED`,
+      `SN_PROTECTED_TABLES_WRITE` (default `allow`), `SN_IMPORT_SET_TABLES`, write caps (`WRITE_CAP`),
+      `SN_ENV` / `SN_PROFILE_<NAME>_ENV` + per-profile `WRITE_MODE` + `PROD_WRITES` ack; 17 tests.
+      Owner decisions: (a) 3.0 defaults — `SN_PROTECTED_TABLES_WRITE=deny` (B11),
+      `SN_IMPORT_SET_TABLES=u_*,imp_*`, caps 500 writes (HTTP) / 100 deletes / 50 batch writes? (b)
+      the protected list — `sys_security_acl_role` added; anything else (`sys_user_preference`,
+      `sys_script_include`, `sys_ui_script`, `sys_hub_*`)? (c) should an attachment upload/delete
+      on a protected table's record count as a protected write? (d) `SN_TABLE_POLICY_FILE` —
+      still wanted? (e) `SN_ENV` is the default profile's only; should it also be the fallback for
+      unmarked named profiles? (f) prod + apply mode + a client without elicitation refuses
+      destructive applies (`CONFIRM_REQUIRED`) even with `I_UNDERSTAND` — right? (g) the
+      `tools/list` budgets rose to 140,000 / 36,000 (measured 139,089 / 35,473).
 - [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (uncommitted).** Attachments follow
       the parent table; plugin-API tools check backing tables; Code Search hits filtered; batch:
       nested batch refused, tables from query/body, attachment-by-id resolved under a table policy,

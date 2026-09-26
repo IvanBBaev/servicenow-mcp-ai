@@ -53,10 +53,13 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * The merged batch 12 tree (93 tools) measured 137,276 (all) and 34,426 (core).
  * H-3 (the automatic plan_token argument on six destructive-apply tools)
  * measured 137,894 (all) and 34,632 (core): the all budget rises to 139,000.
+ * H-4 (change_conflicts apply + plan_token) measured 138,248 (all).
+ * H-11 (servicenow_explain_policy, always-on admin; 94 tools) measured
+ * 139,089 (all) and 35,473 (core): the budgets rise to 140,000 / 36,000.
  * owner to restate (M-6 budget)
  */
-const TOOLS_LIST_BUDGET_ALL = 139_000;
-const TOOLS_LIST_BUDGET_CORE = 35_000;
+const TOOLS_LIST_BUDGET_ALL = 140_000;
+const TOOLS_LIST_BUDGET_CORE = 36_000;
 
 async function listTools(packages) {
   return withEnv({ SN_TOOL_PACKAGES: packages }, async () => {

@@ -1,13 +1,18 @@
 import { snRequest } from "../core/http.js";
 import {
   assertTableAllowed,
+  assertTableWriteAllowed,
   assertWriteAllowed,
   assertPackageAllowed,
   assertPackageWriteAllowed,
   getAllowedTables,
   getDeniedTables,
 } from "../core/policy.js";
-import { getBatchMaxRequests, getBatchUnmapped } from "../core/settings.js";
+import {
+  getBatchMaxRequests,
+  getBatchUnmapped,
+  getMaxBatchWrites,
+} from "../core/settings.js";
 import { getAttachmentMeta } from "./attachment.js";
 import { ServiceNowError } from "../core/errors.js";
 import { reportProgress } from "../core/progress.js";
@@ -281,6 +286,20 @@ export async function runBatch(
       400,
     );
   }
+  // H-11 (L3-02): the per-batch write cap, also before anything is built.
+  const maxWrites = getMaxBatchWrites();
+  const writes = requests.filter((r) => r.method !== "GET").length;
+  if (maxWrites && writes > maxWrites) {
+    throw new ServiceNowError(
+      `A batch may carry at most ${maxWrites} write sub-requests (SN_MAX_BATCH_WRITES); this one has ${writes}. Nothing was sent.`,
+      429,
+      undefined,
+      {
+        code: "WRITE_CAP",
+        hint: "Split the batch or raise SN_MAX_BATCH_WRITES.",
+      },
+    );
+  }
 
   const restRequests: RestRequestPayload[] = requests.map((req, index) => {
     // Only the REST surface: same-host endpoints like /oauth_token.do or
@@ -303,7 +322,10 @@ export async function runBatch(
       );
     }
     if (req.method !== "GET") assertWriteAllowed(`batch ${req.method}`);
-    for (const table of tablesForSubRequest(req)) assertTableAllowed(table);
+    // H-11: a write sub-request also meets the protected-table rule.
+    const checkTable =
+      req.method === "GET" ? assertTableAllowed : assertTableWriteAllowed;
+    for (const table of tablesForSubRequest(req)) checkTable(table);
     const pkg = packageForUrl(req.url);
     if (!pkg && getBatchUnmapped() === "deny") {
       throw new ServiceNowError(

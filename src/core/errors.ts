@@ -91,7 +91,24 @@ export type ServiceNowErrorCode =
    * destructive apply and the user declined (or the prompt failed) — nothing
    * was sent; the refusal is journaled.
    */
-  | "CONFIRM_DECLINED";
+  | "CONFIRM_DECLINED"
+  /**
+   * H-11: the table policy refused the call (SN_TABLES_ALLOW / SN_TABLES_DENY,
+   * a protected table under SN_PROTECTED_TABLES_WRITE=deny, or
+   * SN_IMPORT_SET_TABLES). servicenow_explain_policy names the rule.
+   */
+  | "POLICY_DENIED"
+  /**
+   * H-11 (L3-02): a session or batch write cap (SN_MAX_WRITES_PER_SESSION,
+   * SN_MAX_DELETES_PER_SESSION, SN_MAX_BATCH_WRITES) would be exceeded —
+   * nothing was sent.
+   */
+  | "WRITE_CAP"
+  /**
+   * H-11 (L3-03 / L5-04): a destructive apply on a prod profile in apply mode
+   * from a client that cannot confirm it (no elicitation) — nothing was sent.
+   */
+  | "CONFIRM_REQUIRED";
 
 /** The hint every CANCELLED error carries. */
 export const CANCELLED_HINT =

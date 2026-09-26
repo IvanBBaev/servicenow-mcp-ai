@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { logger } from "../core/logging.js";
 import { activeProfile, listProfiles } from "../core/config.js";
-import { getDestructiveConfirm } from "../core/settings.js";
+import { getDestructiveConfirm, getProfileEnv } from "../core/settings.js";
 import {
   runWithProfile,
   runWithClient,
@@ -192,7 +192,7 @@ async function runSpecInner(
   call.profile = profile || activeProfile();
   // H-3: a destructive-apply tool's call knows its plan binding, so its plan
   // preview can issue a plan_token for exactly these arguments.
-  if (spec.confirm && getDestructiveConfirm() !== "off") {
+  if (spec.confirm && getDestructiveConfirm(call.profile) !== "off") {
     call.plan = { argsHash: planArgsHash(args) };
   }
   const fields = spec.logFields?.(args) ?? {};
@@ -212,7 +212,12 @@ async function runSpecInner(
       ms: Date.now() - start,
       isError: result.isError ?? false,
     });
-    return spec.output ? withStructuredContent(spec, result) : result;
+    // H-11 (L3-03): a result from a profile marked with an environment says so.
+    const env = getProfileEnv(call.profile);
+    const marked = env
+      ? { ...result, _meta: { ...result._meta, environment: env } }
+      : result;
+    return spec.output ? withStructuredContent(spec, marked) : marked;
   } catch (error) {
     const cancelled = call.signal?.aborted === true;
     logger.warn(`tool ${spec.name} ${cancelled ? "cancelled" : "error"}`, {

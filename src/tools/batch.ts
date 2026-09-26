@@ -190,6 +190,12 @@ export const specs: AnyToolSpec[] = [
           batch_id: batchId,
         },
         () => runBatch(requests),
+        undefined,
+        // H-11: the session caps count the write sub-requests, not the envelope.
+        {
+          writes: requests.filter((r) => r.method !== "GET").length,
+          deletes: requests.filter((r) => r.method === "DELETE").length,
+        },
       );
       journalSubRequests(batchId, requests, results);
       return ok({ count: results.length, results });

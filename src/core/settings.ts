@@ -5,6 +5,7 @@
  */
 
 import path from "node:path";
+import { activeProfile } from "./profile.js";
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_RETRIES = 2;
@@ -150,30 +151,97 @@ export function getDocsDir(): string {
 }
 
 /**
- * Plan-and-apply write mode (DF-2). In "plan" (the default) a write tool returns
- * a structured before/after preview **without** mutating the instance; "apply"
- * executes the change. A tool's own `apply: true` argument forces execution for
- * that one call regardless of the mode. Safe-by-default: an unconfigured server
- * never mutates on the first call.
+ * H-11 (L3-03) — the environment a profile is marked as
+ * (`SN_PROFILE_<NAME>_ENV`, or `SN_ENV` for the default profile). Unset = not
+ * marked (every pre-H-11 profile). A `prod` profile gets: plan mode unless
+ * acknowledged (see getWriteMode), mandatory confirmation of destructive
+ * applies (getDestructiveConfirm), `_meta.environment` on results and a
+ * warning when it becomes active.
  */
-export function getWriteMode(): "plan" | "apply" {
-  return process.env.SN_WRITE_MODE?.trim().toLowerCase() === "apply"
+export type ProfileEnv = "prod" | "test" | "dev";
+
+function profileKey(profile: string, suffix: string, globalKey: string) {
+  return profile === "default"
+    ? process.env[globalKey]
+    : process.env[`SN_PROFILE_${profile.toUpperCase()}_${suffix}`];
+}
+
+export function getProfileEnv(
+  profile: string = activeProfile(),
+): ProfileEnv | undefined {
+  const v = profileKey(profile, "ENV", "SN_ENV")?.trim().toLowerCase();
+  return v === "prod" || v === "test" || v === "dev" ? v : undefined;
+}
+
+/** The acknowledgement a prod profile needs before apply mode takes effect. */
+export const PROD_WRITES_ACK = "I_UNDERSTAND";
+
+/**
+ * The configured write mode of a profile: `SN_PROFILE_<NAME>_WRITE_MODE`
+ * (H-11), falling back to `SN_WRITE_MODE`.
+ */
+function configuredWriteMode(profile: string): "plan" | "apply" {
+  const scoped =
+    profile === "default"
+      ? undefined
+      : process.env[`SN_PROFILE_${profile.toUpperCase()}_WRITE_MODE`];
+  return (scoped ?? process.env.SN_WRITE_MODE)?.trim().toLowerCase() === "apply"
     ? "apply"
     : "plan";
 }
 
 /**
+ * H-11: why a profile configured for apply runs in plan mode (a prod profile
+ * without `SN_PROFILE_<NAME>_PROD_WRITES=I_UNDERSTAND`), or undefined.
+ */
+export function writeModeHold(
+  profile: string = activeProfile(),
+): string | undefined {
+  if (configuredWriteMode(profile) !== "apply") return undefined;
+  if (getProfileEnv(profile) !== "prod") return undefined;
+  const ack = profileKey(profile, "PROD_WRITES", "SN_PROD_WRITES")?.trim();
+  if (ack === PROD_WRITES_ACK) return undefined;
+  const key =
+    profile === "default"
+      ? "SN_PROD_WRITES"
+      : `SN_PROFILE_${profile.toUpperCase()}_PROD_WRITES`;
+  return `Profile "${profile}" is marked prod, so it stays in plan mode although apply is configured; set ${key}=${PROD_WRITES_ACK} to allow apply mode.`;
+}
+
+/**
+ * Plan-and-apply write mode (DF-2). In "plan" (the default) a write tool returns
+ * a structured before/after preview **without** mutating the instance; "apply"
+ * executes the change. A tool's own `apply: true` argument forces execution for
+ * that one call regardless of the mode. Safe-by-default: an unconfigured server
+ * never mutates on the first call. H-11: per profile
+ * (`SN_PROFILE_<NAME>_WRITE_MODE`), and a prod profile stays in plan mode
+ * until acknowledged (writeModeHold).
+ */
+export function getWriteMode(
+  profile: string = activeProfile(),
+): "plan" | "apply" {
+  if (writeModeHold(profile)) return "plan";
+  return configuredWriteMode(profile);
+}
+
+/**
  * H-3 — how a destructive apply (`apply:true` on delete_record,
  * delete_attachment, a writing batch, send_email, order_catalog_item,
- * revert_write, change_conflicts with calculate) is confirmed in plan mode (`SN_DESTRUCTIVE_CONFIRM`):
+ * revert_write, change_conflicts with calculate) is confirmed
+ * (`SN_DESTRUCTIVE_CONFIRM`):
  * - `off` (default until 3.0): no extra check — today's behaviour;
- * - `token`: the call must carry the `plan_token` of a matching, unexpired,
- *   unused plan preview (`PLAN_REQUIRED` otherwise);
+ * - `token`: in plan mode the call must carry the `plan_token` of a
+ *   matching, unexpired, unused plan preview (`PLAN_REQUIRED` otherwise);
  * - `elicit`: `token`, and a client that supports elicitation is also asked
  *   to confirm (a decline or a failed prompt refuses the write).
- * `SN_WRITE_MODE=apply` (a trusted operator) bypasses all of it.
+ * Apply mode (a trusted operator) bypasses it — except on a prod profile
+ * (H-11), which is always at least `elicit` and is confirmed in apply mode
+ * too (confirm.ts).
  */
-export function getDestructiveConfirm(): "off" | "token" | "elicit" {
+export function getDestructiveConfirm(
+  profile: string = activeProfile(),
+): "off" | "token" | "elicit" {
+  if (getProfileEnv(profile) === "prod") return "elicit";
   const v = process.env.SN_DESTRUCTIVE_CONFIRM?.trim().toLowerCase();
   return v === "token" || v === "elicit" ? v : "off";
 }
@@ -200,6 +268,31 @@ export function getBatchUnmapped(): "allow" | "deny" {
 export function getBatchMaxRequests(): number {
   const n = Number(process.env.SN_BATCH_MAX_REQUESTS);
   return Number.isInteger(n) && n >= 1 && n <= 1000 ? n : 1000;
+}
+
+/**
+ * H-11 (L3-02) — per-session write caps. A session is the runtime container
+ * (the process on stdio, one MCP session over HTTP). `0` / unset = no cap
+ * (the pre-H-11 behaviour; the 3.0 defaults are an owner decision, O-4).
+ */
+function capSetting(name: string): number {
+  const n = Number(process.env[name]);
+  return Number.isInteger(n) && n > 0 ? n : 0;
+}
+
+/** Applied instance writes per session (`SN_MAX_WRITES_PER_SESSION`; a batch counts its write sub-requests). */
+export function getMaxWritesPerSession(): number {
+  return capSetting("SN_MAX_WRITES_PER_SESSION");
+}
+
+/** Applied deletes per session (`SN_MAX_DELETES_PER_SESSION`). */
+export function getMaxDeletesPerSession(): number {
+  return capSetting("SN_MAX_DELETES_PER_SESSION");
+}
+
+/** Write (non-GET) sub-requests in one batch (`SN_MAX_BATCH_WRITES`). */
+export function getMaxBatchWrites(): number {
+  return capSetting("SN_MAX_BATCH_WRITES");
 }
 
 /**

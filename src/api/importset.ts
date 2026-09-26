@@ -1,5 +1,10 @@
 import { snRequest } from "../core/http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import {
+  assertImportSetTable,
+  assertTableAllowed,
+  assertTableWriteAllowed,
+  assertWriteAllowed,
+} from "../core/policy.js";
 import { queryTable, type SnRecord } from "./table.js";
 import { snString } from "./shared.js";
 
@@ -21,7 +26,9 @@ export async function insertImportSetRow(
   stagingTable: string,
   record: SnRecord,
 ): Promise<ImportSetResult> {
-  assertTableAllowed(stagingTable);
+  // H-11: a staging table (SN_IMPORT_SET_TABLES), then the write rules.
+  assertImportSetTable(stagingTable);
+  assertTableWriteAllowed(stagingTable);
   assertWriteAllowed("import-set insert");
   const { data } = await snRequest<ImportSetResult>({
     method: "POST",

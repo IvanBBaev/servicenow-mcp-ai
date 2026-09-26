@@ -337,6 +337,7 @@ test("get_status v2: server, policy, redaction, docs, limits, writes, profile so
       for (const v of Object.values(s.limits)) assert.equal(typeof v, "number");
       assert.deepEqual(Object.keys(s.writes).sort(), [
         "applied",
+        "caps",
         "failed",
         "lastAt",
         "local",
