@@ -6,7 +6,19 @@ import {
   currentRequestProfile,
   runWithProfile,
 } from "../core/request-context.js";
-import { getDocsDir, getMaxRecords } from "../core/settings.js";
+import {
+  getDeniedPackages,
+  getDocsDir,
+  getMaxRecords,
+} from "../core/settings.js";
+import { explainFlow, flowMermaid } from "./explain-flow.js";
+import { explainPortal, portalMermaid } from "./portal.js";
+import {
+  artifactDependencies,
+  dependencyMermaid,
+  type DependencyResult,
+} from "./dependencies.js";
+import { lintArtifacts } from "./codecheck.js";
 import {
   ARTIFACT_GROUPS,
   ARTIFACT_TYPES,
@@ -98,6 +110,11 @@ export interface CollectOptions {
   columns?: ErColumns;
   /** document_instance: the run the README and artifact-types kinds describe. */
   instance?: InstanceRunContext;
+  /**
+   * document_app (P-21): also a Mermaid diagram per flow, subflow, workflow
+   * and portal, a dependency graph and a lint summary (default false).
+   */
+  detail?: boolean;
 }
 
 export interface RenderContext {
@@ -606,7 +623,225 @@ export interface AppDocData {
   /** Types the user could not read. */
   unreadable: string[];
   er?: string;
+  /** P-21 (`detail`): diagrams, dependency graph and lint summary. */
+  detail?: AppDetail;
   caveats: string[];
+}
+
+/** P-21: the `detail` part of the application document. */
+export interface AppDetail {
+  diagrams: { type: string; sys_id: string; name: string; mermaid: string }[];
+  dependencies?: {
+    roots: number;
+    nodes: number;
+    edges: number;
+    mermaid: string;
+  };
+  lint?: {
+    scanned: number;
+    findingCount: number;
+    bySeverity: Record<string, number>;
+    types: Record<string, { scanned: number; findingCount: number }>;
+    top: {
+      type: string;
+      name: string;
+      field: string;
+      findings: number;
+      rule: string;
+    }[];
+  };
+}
+
+/** P-21: diagrams per explained type, dependency roots, lint rows per type. */
+export const APP_DETAIL_LIMITS = {
+  diagramsPerType: 10,
+  dependencyRoots: 10,
+  lintPerType: 50,
+  lintTop: 20,
+} as const;
+
+/** Which explainer draws each diagram type (and the package it belongs to). */
+const APP_DIAGRAM_TYPES: {
+  type: string;
+  pkg: string;
+  load: (sysId: string) => Promise<{ mermaid: string; truncated: number }>;
+}[] = [
+  {
+    type: "flow",
+    pkg: "flows",
+    load: async (id) =>
+      flowMermaid(await explainFlow({ sys_id: id, kind: "flow", depth: 0 })),
+  },
+  {
+    type: "subflow",
+    pkg: "flows",
+    load: async (id) =>
+      flowMermaid(await explainFlow({ sys_id: id, kind: "subflow", depth: 0 })),
+  },
+  {
+    type: "workflow",
+    pkg: "flows",
+    load: async (id) =>
+      flowMermaid(await explainFlow({ sys_id: id, kind: "workflow" })),
+  },
+  {
+    type: "sp_portal",
+    pkg: "ui",
+    load: async (id) => portalMermaid(await explainPortal({ portal: id })),
+  },
+];
+
+/** Types never used as dependency roots (their own sections, or runtime rows). */
+const NOT_DEPENDENCY_ROOTS = new Set([
+  "table",
+  "role",
+  "cross_scope_privilege",
+  "flow_context",
+  "workflow_context",
+]);
+
+function packageDenied(pkg: string): boolean {
+  return getDeniedPackages().includes(pkg);
+}
+
+/**
+ * P-21 — the `detail` part: bounded, and every piece degrades to a caveat
+ * (a denied package, an unreadable table, an unverified type) instead of
+ * failing the document.
+ */
+async function collectAppDetail(
+  scopeRef: string,
+  artefacts: Record<string, ArtifactSummary[]>,
+  caveats: string[],
+): Promise<AppDetail> {
+  const L = APP_DETAIL_LIMITS;
+  const diagrams: AppDetail["diagrams"] = [];
+  for (const d of APP_DIAGRAM_TYPES) {
+    const rows = artefacts[d.type] ?? [];
+    if (!rows.length) continue;
+    if (packageDenied(d.pkg)) {
+      caveats.push(
+        `Diagrams of ${d.type}: the ${d.pkg} package is denied (SN_PACKAGES_DENY).`,
+      );
+      continue;
+    }
+    if (rows.length > L.diagramsPerType) {
+      caveats.push(
+        `Diagrams of ${d.type}: the first ${L.diagramsPerType} of ${rows.length} are drawn.`,
+      );
+    }
+    for (const row of rows.slice(0, L.diagramsPerType)) {
+      throwIfCancelled();
+      const mermaid = await diagram(
+        `${d.type} ${row.name || row.sys_id}`,
+        () => d.load(row.sys_id),
+        caveats,
+      );
+      if (mermaid !== undefined) {
+        diagrams.push({
+          type: d.type,
+          sys_id: row.sys_id,
+          name: row.name,
+          mermaid,
+        });
+      }
+    }
+  }
+
+  const detail: AppDetail = { diagrams };
+
+  if (packageDenied("artifacts")) {
+    caveats.push(
+      "Dependencies: the artifacts package is denied (SN_PACKAGES_DENY).",
+    );
+  } else {
+    const roots = ARTIFACT_TYPES.filter(
+      (t) => !NOT_DEPENDENCY_ROOTS.has(t.type),
+    ).flatMap((t) => (artefacts[t.type] ?? []).map((row) => ({ t, row })));
+    if (roots.length > L.dependencyRoots) {
+      caveats.push(
+        `Dependencies: outbound edges of the first ${L.dependencyRoots} of ${roots.length} artefacts.`,
+      );
+    }
+    const nodes = new Map<string, DependencyResult["nodes"][number]>();
+    const edges = new Map<string, DependencyResult["edges"][number]>();
+    let used = 0;
+    for (const { t, row } of roots.slice(0, L.dependencyRoots)) {
+      throwIfCancelled();
+      try {
+        const r = await artifactDependencies({
+          artifactType: t.type,
+          sys_id: row.sys_id,
+          direction: "outbound",
+          depth: 1,
+        });
+        used++;
+        for (const n of r.nodes) if (!nodes.has(n.id)) nodes.set(n.id, n);
+        for (const e of r.edges) edges.set(`${e.from}|${e.to}|${e.field}`, e);
+      } catch (e) {
+        rethrowCancelled(e);
+        caveats.push(
+          `Dependencies of ${t.type} ${row.name || row.sys_id}: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    }
+    if (used > 0) {
+      const merged = {
+        root: null,
+        nodes: [...nodes.values()],
+        edges: [...edges.values()],
+      } as unknown as DependencyResult;
+      const drawn = dependencyMermaid(merged);
+      if (drawn.truncated) {
+        caveats.push(
+          `Dependency graph: ${drawn.truncated} node(s) left out by SN_DIAGRAM_MAX_NODES.`,
+        );
+      }
+      detail.dependencies = {
+        roots: used,
+        nodes: nodes.size,
+        edges: edges.size,
+        mermaid: drawn.mermaid,
+      };
+    }
+  }
+
+  if (packageDenied("codecheck")) {
+    caveats.push("Lint: the codecheck package is denied (SN_PACKAGES_DENY).");
+  } else {
+    try {
+      const a = await lintArtifacts({ scope: scopeRef, limit: L.lintPerType });
+      for (const w of a.warnings) caveats.push(`Lint: ${w}`);
+      detail.lint = {
+        scanned: a.scanned,
+        findingCount: a.findingCount,
+        bySeverity: a.bySeverity,
+        types: Object.fromEntries(
+          Object.entries(a.types)
+            .filter(([, t]) => t.scanned > 0)
+            .map(([k, t]) => [
+              k,
+              { scanned: t.scanned, findingCount: t.findingCount },
+            ]),
+        ),
+        top: a.results.slice(0, L.lintTop).map((r) => ({
+          type: r.type,
+          name: r.name,
+          field: r.field,
+          findings: r.findings.length,
+          rule: r.findings[0]?.rule ?? "",
+        })),
+      };
+    } catch (e) {
+      rethrowCancelled(e);
+      caveats.push(`Lint: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+  return detail;
+}
+
+function rethrowCancelled(e: unknown): void {
+  if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
 }
 
 /**
@@ -797,7 +1032,10 @@ async function collectScopeArtefacts(
 }
 
 /** Collect the application document's data (metadata only). */
-export async function collectApp(scope: string): Promise<AppDocData> {
+export async function collectApp(
+  scope: string,
+  opts: CollectOptions = {},
+): Promise<AppDocData> {
   const s = scope.trim();
   assertNoCaret(s, "scope");
   if (s.toLowerCase() === "global") {
@@ -853,6 +1091,10 @@ export async function collectApp(scope: string): Promise<AppDocData> {
     );
   }
 
+  const detail = opts.detail
+    ? await collectAppDetail(scopeRef, artefacts, caveats)
+    : undefined;
+
   return {
     app,
     tables,
@@ -860,8 +1102,69 @@ export async function collectApp(scope: string): Promise<AppDocData> {
     degraded,
     unreadable,
     ...(er !== undefined ? { er } : {}),
+    ...(detail ? { detail } : {}),
     caveats,
   };
+}
+
+/** P-21: the `detail` sections of the application document. */
+function renderAppDetail(d: AppDetail): string[] {
+  const lines: string[] = ["## Diagrams", ""];
+  if (!d.diagrams.length) lines.push("_None._", "");
+  for (const g of d.diagrams) {
+    lines.push(
+      `### ${code(g.type)} ${cell(g.name || g.sys_id)}`,
+      "",
+      mermaidBlock(g.mermaid),
+      "",
+    );
+  }
+  lines.push("## Dependencies", "");
+  if (d.dependencies) {
+    lines.push(
+      `Outbound references of ${d.dependencies.roots} artefact(s): ${d.dependencies.nodes} nodes, ${d.dependencies.edges} edges.`,
+      "",
+      mermaidBlock(d.dependencies.mermaid),
+      "",
+    );
+  } else {
+    lines.push("_None._", "");
+  }
+  lines.push("## Lint summary", "");
+  if (d.lint) {
+    const l = d.lint;
+    lines.push(
+      `${l.scanned} artefacts scanned · ${l.findingCount} findings (error ${l.bySeverity.error ?? 0} · warn ${l.bySeverity.warn ?? 0} · info ${l.bySeverity.info ?? 0}).`,
+      "",
+      tableOrNone(
+        ["Type", "Scanned", "Findings"],
+        Object.entries(l.types).map(([t, v]) => [
+          code(t),
+          String(v.scanned),
+          String(v.findingCount),
+        ]),
+      ),
+      "",
+    );
+    if (l.top.length) {
+      lines.push(
+        mdTable(
+          ["Type", "Artefact", "Field", "Findings", "Top rule"],
+          l.top.map((r) => [
+            code(r.type),
+            cell(r.name),
+            r.field,
+            String(r.findings),
+            r.rule,
+          ]),
+        ),
+        "",
+      );
+    }
+  } else {
+    lines.push("_Not available._", "");
+  }
+  return lines;
 }
 
 /** Render the application document (pure: same data, same bytes). */
@@ -942,6 +1245,8 @@ export function renderApp(data: AppDocData, ctx: RenderContext): string {
     }
   }
   if (!any) lines.push("_None._", "");
+
+  if (data.detail) lines.push(...renderAppDetail(data.detail));
 
   if (data.degraded.length) {
     lines.push(
@@ -2574,7 +2879,7 @@ const appKind: DocKind<AppDocData> = {
   requires: ["docs"],
   generator: "servicenow_document_app",
   path: (scope) => `apps/${scope}.md`,
-  collect: (scope) => collectApp(scope),
+  collect: (scope, opts) => collectApp(scope, opts),
   render: renderApp,
   sources: (d) => [
     d.app.table,

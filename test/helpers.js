@@ -115,7 +115,8 @@ export const METADATA_TABLES = [
   /^sys_security_acl$/,
   /^sys_security_acl_role$/,
   /^sys_user_role(_contains)?$/,
-  /^sys_hub_[a-z_]+$/,
+  // Flow Designer definition tables, versioned ones included (…_v2).
+  /^sys_hub_[a-z0-9_]+$/,
   /^wf_workflow$/,
   /^sysevent_email_action$/,
   // Script-bearing configuration the where-used scan reads (scripts.ts).

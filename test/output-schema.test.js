@@ -63,6 +63,7 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * P-20 (types/scope on snapshot_instance and compare_instances, both in the
  * opt-in instance package) measured 140,142 (all) and 35,805 (core): the all
  * budget rises to 141,000.
+ * P-21 (document_app detail) measured 140,292 (all): within the budget.
  * owner to restate (M-6 budget)
  */
 const TOOLS_LIST_BUDGET_ALL = 141_000;

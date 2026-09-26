@@ -35,6 +35,7 @@ import {
   withMetadataFetch,
 } from "./helpers.js";
 import { lintMermaid } from "./mermaid-lint.js";
+import { docsRead } from "../build/api/docs.js";
 
 /**
  * S-15 document writers (ID-18 … ID-26): the `table`, `app` and `security`
@@ -557,6 +558,91 @@ test("app doc: the JSON companion carries app, tables, artefacts, degraded, unre
         ["x_acme_request", "x_acme_step"],
       );
       assert.ok(existsSync(path.join(dir, "default/apps/x_acme.md")));
+    }),
+  );
+});
+
+// --- P-21: detail (diagrams, dependency graph, lint summary) ---------------
+
+const FLOW_ID = "f".repeat(32);
+const PORTAL_ID = "9".repeat(32);
+
+const appDetailTables = () => ({
+  ...appTables(),
+  sys_hub_flow: (q) =>
+    q.includes("type=subflow")
+      ? []
+      : [
+          {
+            sys_id: FLOW_ID,
+            name: "Route request",
+            internal_name: "route_request",
+            type: "flow",
+            active: "true",
+            status: "published",
+            "sys_scope.scope": "x_acme",
+          },
+        ],
+  sp_portal: [
+    {
+      sys_id: PORTAL_ID,
+      title: "Acme portal",
+      url_suffix: "acme",
+      "sys_scope.scope": "x_acme",
+    },
+  ],
+  sys_script_include: [
+    {
+      sys_id: "c".repeat(32),
+      name: "AcmeUtils",
+      api_name: "x_acme.AcmeUtils",
+      active: "true",
+      script:
+        'var AcmeUtils = Class.create(); AcmeUtils.prototype = { x: function(){ eval("1"); return new x_acme.Helper(); } };',
+      "sys_scope.scope": "x_acme",
+    },
+  ],
+});
+
+test("app doc detail: diagrams per flow and portal, a dependency graph and a lint summary; Mermaid parses; docs_read returns it (acceptance)", async () => {
+  const dir = tempDocs();
+  await withEnv({ SN_DOCS_DIR: dir }, () =>
+    withMetadataFetch(router(appDetailTables()), async () => {
+      const r = await documentApp("x_acme", { detail: true });
+      assert.equal(r.status, "created");
+      const { content: md } = await docsRead("apps/x_acme.md", {
+        profile: "default",
+      });
+      assert.match(md, /## Diagrams/);
+      assert.match(md, /### `flow` Route request/);
+      assert.match(md, /### `sp_portal` Acme portal/);
+      assert.match(md, /## Dependencies/);
+      assert.match(md, /## Lint summary/);
+      assert.match(md, /eval-usage/);
+      assert.ok(lintBlocks(md) >= 3, "ER + flow + portal diagrams at least");
+      const json = JSON.parse(
+        readFileSync(path.join(dir, "default/apps/x_acme.json"), "utf8"),
+      );
+      assert.equal(json.detail.diagrams.length, 2);
+      assert.ok(json.detail.lint.findingCount >= 1);
+    }),
+  );
+});
+
+test("app doc detail: off by default; denied packages become caveats", async () => {
+  await withMetadataFetch(router(appDetailTables()), async () => {
+    const plain = await documentApp("x_acme", { write: false });
+    assert.doesNotMatch(plain.markdown, /## Diagrams|## Lint summary/);
+  });
+  await withEnv({ SN_PACKAGES_DENY: "flows,ui,artifacts,codecheck" }, () =>
+    withMetadataFetch(router(appDetailTables()), async () => {
+      const r = await documentApp("x_acme", { write: false, detail: true });
+      const md = r.markdown;
+      assert.match(md, /Diagrams of flow: the flows package is denied/);
+      assert.match(md, /Diagrams of sp_portal: the ui package is denied/);
+      assert.match(md, /Dependencies: the artifacts package is denied/);
+      assert.match(md, /Lint: the codecheck package is denied/);
+      assert.match(md, /## Lint summary\n\n_Not available._/);
     }),
   );
 });
