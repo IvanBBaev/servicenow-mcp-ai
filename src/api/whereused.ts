@@ -180,7 +180,13 @@ function buildMermaid(
 export async function whereUsed(
   kind: WhereUsedKind,
   name: string,
-  opts: { mermaid?: boolean; scope?: string; structural?: boolean } = {},
+  opts: {
+    mermaid?: boolean;
+    scope?: string;
+    structural?: boolean;
+    /** P-18: also search the opt-in registry script types. */
+    extended?: boolean;
+  } = {},
 ): Promise<WhereUsed> {
   const references: UsageRef[] = [];
   const scope = opts.scope?.trim() || undefined;
@@ -191,6 +197,7 @@ export async function whereUsed(
     limit: SEARCH_LIMIT,
     maxHits: HITS_PER_REF,
     ...(scope ? { scope } : {}),
+    ...(opts.extended ? { extended: true } : {}),
   });
   const skipped = [...unreadable];
   for (const m of matches) {

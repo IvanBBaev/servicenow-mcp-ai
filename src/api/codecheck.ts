@@ -2,8 +2,11 @@ import {
   getScript,
   tableLogic,
   scriptArtifact,
+  scopeClause,
   SCRIPT_TYPES,
+  OPT_IN_SCRIPT_TYPES,
 } from "./scripts.js";
+import { queryTable } from "./table.js";
 import { aggregate } from "./aggregate.js";
 import { docsWriteRaw } from "./docs.js";
 import { snString } from "./shared.js";
@@ -97,7 +100,65 @@ const LINE_RULES: LineRule[] = [
     hint: "getReference without a callback is a synchronous server round-trip — pass a callback.",
     scope: "client",
   },
+  // P-18: Service Portal client rules (widget client controllers, link
+  // functions, angular providers).
+  {
+    id: "sce-trust-as-html",
+    severity: "warn",
+    re: /\$sce\.trustAs(?:Html)?\s*\(/,
+    hint: "$sce.trustAsHtml marks the value as safe HTML and skips sanitising — never pass user or record data; bind it with ng-bind-html and let $sanitize clean it.",
+    scope: "client",
+  },
+  {
+    id: "sanitize-bypass",
+    severity: "error",
+    re: /\$sceProvider\.enabled\s*\(\s*false\s*\)/,
+    hint: "$sceProvider.enabled(false) turns off Strict Contextual Escaping for the whole app — remove it.",
+    scope: "client",
+  },
 ];
+
+/**
+ * P-18: server-side values taken from the page URL (`$sp.getParameter`) are
+ * attacker-controlled. Assigned names are tracked through the script; using
+ * one (or the call itself) as an encoded query, a table name or evaluated
+ * code is flagged. `addQuery(field, value)` and `get(sys_id)` escape the
+ * value and are not.
+ */
+const SP_PARAM_ASSIGN =
+  /(?:var|let|const)\s+([A-Za-z_$][\w$]*)\s*=\s*\$sp\.getParameter\s*\(/g;
+const SP_PARAM_SINKS =
+  /(addEncodedQuery|new\s+GlideRecord(?:Secure)?|new\s+GlideAggregate|gs\.eval|GlideEvaluator\.evaluateString)\s*\(([^)]*)\)/g;
+
+function spParamFindings(lines: string[]): Finding[] {
+  const tainted = new Set<string>();
+  for (const line of lines) {
+    for (const [, name] of line.matchAll(SP_PARAM_ASSIGN)) {
+      if (name) tainted.add(name);
+    }
+  }
+  const findings: Finding[] = [];
+  lines.forEach((line, i) => {
+    for (const [, sink = "", arg = ""] of line.matchAll(SP_PARAM_SINKS)) {
+      const fromParam =
+        /\$sp\.getParameter/.test(arg) ||
+        [...tainted].some((n) =>
+          new RegExp(`(^|[^\\w$.])${n.replace(/\$/g, "\\$")}([^\\w$]|$)`).test(
+            arg,
+          ),
+        );
+      if (!fromParam) continue;
+      findings.push({
+        rule: "sp-param-unvalidated",
+        severity: "warn",
+        line: i + 1,
+        snippet: line.trim().slice(0, 200),
+        hint: `A URL parameter ($sp.getParameter) reaches ${sink.replace(/\s+/g, " ")} unvalidated — check it against an allow-list or use addQuery(field, value).`,
+      });
+    }
+  });
+  return findings;
+}
 
 const GLIDE_QUERY = /new\s+GlideRecord|\.query\s*\(/;
 const QUERY_BOUND =
@@ -173,6 +234,8 @@ export function lintSource(source: string, scope: Scope = "server"): Finding[] {
     }
   }
 
+  if (scope === "server") findings.push(...spParamFindings(lines));
+
   // Cheap syntax probe for server-side ES5 (SN globals are undefined here, so
   // only true parse errors surface).
   if (scope === "server") {
@@ -219,15 +282,16 @@ export async function lintScript(
   type: string,
   sysId: string,
 ): Promise<{ type: string; sys_id: string; results: ScriptLint[] }> {
-  const descriptor = SCRIPT_TYPES[type];
+  // P-18: the opt-in registry types (UI Builder, portal providers…) too.
+  const descriptor = SCRIPT_TYPES[type] ?? OPT_IN_SCRIPT_TYPES[type];
   if (!descriptor) {
     throw new ServiceNowError(
-      `Unknown script type '${type}'. Valid: ${Object.keys(SCRIPT_TYPES).join(", ")}.`,
+      `Unknown script type '${type}'. Valid: ${[...Object.keys(SCRIPT_TYPES), ...Object.keys(OPT_IN_SCRIPT_TYPES)].join(", ")}.`,
       400,
     );
   }
   const { record } = await getScript(type, sysId);
-  const { clientFields, markupFields } = scriptArtifact(type);
+  const { clientFields, markupFields } = scriptArtifact(type, true);
   const name = snString(record[descriptor.nameField]);
   const results: ScriptLint[] = [];
   for (const field of descriptor.scriptFields) {
@@ -318,6 +382,130 @@ export {
   type SecurityFindingKind,
 } from "./security.js";
 
+/** P-18: per-type records read by the registry sweep (default / max). */
+export const ARTIFACT_LINT_LIMIT = 50;
+export const ARTIFACT_LINT_LIMIT_MAX = 200;
+/** Most lint results the sweep returns (the counts cover all of them). */
+const ARTIFACT_LINT_TOP = 50;
+
+export interface ArtifactTypeLint {
+  table: string;
+  scanned: number;
+  /** True when the type had more records than the per-type limit. */
+  capped: boolean;
+  findingCount: number;
+  bySeverity: Record<Severity, number>;
+}
+
+export interface ArtifactLint {
+  limitPerType: number;
+  scanned: number;
+  findingCount: number;
+  bySeverity: Record<Severity, number>;
+  types: Record<string, ArtifactTypeLint>;
+  /** The scripts with the most findings, at most ARTIFACT_LINT_TOP. */
+  results: ScriptLint[];
+  warnings: string[];
+}
+
+/**
+ * P-18 — lint every registry script type (the default and the opt-in ones:
+ * business rules to portal widgets, UI Builder client scripts, data broker
+ * scripts, angular providers, search sources…) instance-wide: the most
+ * recently updated `limit` records of each type, every non-markup script
+ * field, client fields with the client rules. A type whose table cannot be
+ * read (unverified, missing plugin, ACL, policy) is a warning, not a failure.
+ */
+export async function lintArtifacts(
+  opts: { limit?: number; scope?: string } = {},
+): Promise<ArtifactLint> {
+  const limit = Math.min(
+    Math.max(1, Math.trunc(opts.limit ?? ARTIFACT_LINT_LIMIT)),
+    ARTIFACT_LINT_LIMIT_MAX,
+  );
+  const empty = (): Record<Severity, number> => ({
+    error: 0,
+    warn: 0,
+    info: 0,
+  });
+  const total = empty();
+  const types: Record<string, ArtifactTypeLint> = {};
+  const results: ScriptLint[] = [];
+  const warnings: string[] = [];
+  let scanned = 0;
+
+  const all = { ...SCRIPT_TYPES, ...OPT_IN_SCRIPT_TYPES };
+  for (const [type, descriptor] of Object.entries(all)) {
+    const artifact = scriptArtifact(type, true);
+    const fields = descriptor.scriptFields.filter(
+      (f) => !artifact.markupFields?.includes(f),
+    );
+    if (fields.length === 0) continue;
+    const query = [
+      ...(artifact.baseQuery ? [artifact.baseQuery] : []),
+      ...(opts.scope ? [scopeClause(artifact.scopeField, opts.scope)] : []),
+      "ORDERBYDESCsys_updated_on",
+    ].join("^");
+    let records: Record<string, unknown>[];
+    let capped = false;
+    try {
+      const res = await queryTable({
+        table: descriptor.table,
+        query,
+        fields: ["sys_id", descriptor.nameField, ...fields],
+        limit: limit + 1,
+        displayValue: "false",
+      });
+      records = res.records;
+      capped = records.length > limit;
+      records = records.slice(0, limit);
+    } catch (e) {
+      warnings.push(
+        `${type} (${descriptor.table}): ${e instanceof Error ? e.message : String(e)}`,
+      );
+      continue;
+    }
+    const bySeverity = empty();
+    for (const record of records) {
+      const sysId = snString(record.sys_id);
+      const name = snString(record[descriptor.nameField]);
+      for (const field of fields) {
+        const src = snString(record[field]);
+        if (!src) continue;
+        const findings = lintSource(
+          src,
+          scopeForField(artifact.clientFields, field),
+        );
+        for (const f of findings) {
+          bySeverity[f.severity]++;
+          total[f.severity]++;
+        }
+        if (findings.length > 0) {
+          results.push({ type, sys_id: sysId, name, field, findings });
+        }
+      }
+    }
+    scanned += records.length;
+    types[type] = {
+      table: descriptor.table,
+      scanned: records.length,
+      capped,
+      findingCount: bySeverity.error + bySeverity.warn + bySeverity.info,
+      bySeverity,
+    };
+  }
+  results.sort((a, b) => b.findings.length - a.findings.length);
+  return {
+    limitPerType: limit,
+    scanned,
+    findingCount: total.error + total.warn + total.info,
+    bySeverity: total,
+    types,
+    results: results.slice(0, ARTIFACT_LINT_TOP),
+    warnings,
+  };
+}
+
 export interface CodeHealth {
   scope: string;
   profile: string;
@@ -325,6 +513,8 @@ export interface CodeHealth {
   reportFile?: string;
   scriptCounts: Record<string, number>;
   lint?: TableLint;
+  /** P-18: the registry-wide sweep (`extended`). */
+  artifacts?: ArtifactLint;
   security?: SecurityScan;
   warnings: string[];
 }
@@ -334,15 +524,22 @@ export interface CodeHealth {
  * summarises; instance-wide it counts scripts by type. Writes a Markdown report
  * into the profile's docs folder (alongside the MI-6 snapshot).
  */
-export async function codeHealth(scope?: string): Promise<CodeHealth> {
+export async function codeHealth(
+  scope?: string,
+  opts: { extended?: boolean; limit?: number } = {},
+): Promise<CodeHealth> {
   const profile = activeProfile();
   const generatedAt = new Date().toISOString();
   const warnings: string[] = [];
   const scriptCounts: Record<string, number> = {};
+  // P-18: `extended` also counts (and sweeps) the opt-in registry types.
+  const inventory = opts.extended
+    ? { ...SCRIPT_TYPES, ...OPT_IN_SCRIPT_TYPES }
+    : SCRIPT_TYPES;
 
-  for (const [type, descriptor] of Object.entries(SCRIPT_TYPES)) {
+  for (const [type, descriptor] of Object.entries(inventory)) {
     try {
-      const { baseQuery } = scriptArtifact(type);
+      const { baseQuery } = scriptArtifact(type, true);
       const stats = await aggregate({
         table: descriptor.table,
         ...(baseQuery ? { query: baseQuery } : {}),
@@ -385,7 +582,7 @@ export async function codeHealth(scope?: string): Promise<CodeHealth> {
     "",
     "| Type | Table | Count |",
     "| --- | --- | --- |",
-    ...Object.entries(SCRIPT_TYPES).map(
+    ...Object.entries(inventory).map(
       ([type, d]) =>
         `| ${type} | ${d.table} | ${scriptCounts[type] ?? "n/a"} |`,
     ),
@@ -465,6 +662,47 @@ export async function codeHealth(scope?: string): Promise<CodeHealth> {
     }
   }
 
+  let artifacts: ArtifactLint | undefined;
+  if (opts.extended) {
+    try {
+      artifacts = await lintArtifacts({ limit: opts.limit });
+    } catch (e) {
+      warnings.push(
+        `artifact lint: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+  if (artifacts) {
+    md.push(
+      "## Artefact lint (registry sweep)",
+      "",
+      `${artifacts.scanned} artefacts scanned (the ${artifacts.limitPerType} most recently updated per type) · ` +
+        `${artifacts.findingCount} findings (error ${artifacts.bySeverity.error} · warn ${artifacts.bySeverity.warn} · info ${artifacts.bySeverity.info}).`,
+      "",
+      "| Type | Table | Scanned | Findings |",
+      "| --- | --- | --- | --- |",
+      ...Object.entries(artifacts.types).map(
+        ([type, t]) =>
+          `| ${type} | ${t.table} | ${t.scanned}${t.capped ? "+" : ""} | ${t.findingCount} |`,
+      ),
+      "",
+    );
+    const top = artifacts.results.slice(0, 20);
+    if (top.length > 0) {
+      md.push(
+        "| Type | Script | Field | Findings | Top rule |",
+        "| --- | --- | --- | --- | --- |",
+      );
+      for (const r of top) {
+        md.push(
+          `| ${r.type} | ${r.name.replaceAll("|", "\\|")} | ${r.field} | ${r.findings.length} | ${r.findings[0]?.rule ?? ""} |`,
+        );
+      }
+      md.push("");
+    }
+    for (const w of artifacts.warnings) warnings.push(`artifact lint: ${w}`);
+  }
+
   let reportFile: string | undefined;
   try {
     reportFile = `${profile}/code-health.md`;
@@ -479,6 +717,7 @@ export async function codeHealth(scope?: string): Promise<CodeHealth> {
         scriptCounts,
         lint,
         security,
+        ...(artifacts ? { artifacts } : {}),
         warnings,
       },
       legacy: /^# Code health — /,
@@ -495,6 +734,7 @@ export async function codeHealth(scope?: string): Promise<CodeHealth> {
     reportFile,
     scriptCounts,
     lint,
+    ...(artifacts ? { artifacts } : {}),
     security,
     warnings,
   };

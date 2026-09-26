@@ -589,6 +589,14 @@ unless it says so.
       without validation, GlideRecord in loops.
 - **Depends on:** P-9, S-4 (search/where-used bullet), S-3; S-12 when landed.
 - **Acceptance:** `code_health` on the fixture reports findings in at least one widget and one UX client script.
+- **Done 2026-09-26 (local, uncommitted)** against a mock fixture (no PDI fixture yet — O-5).
+  Rules `sce-trust-as-html`, `sanitize-bypass`, `sp-param-unvalidated` (GlideRecord-in-loop was
+  already `query-in-loop`); `lint_script` over the opt-in types; `code_health({extended, limit})`
+  sweeps every registry script type (`lintArtifacts`, `src/api/codecheck.ts`);
+  `where_used({extended})`; `search_code` already had `extended` (S-4). Action script steps,
+  GraphQL resolvers and scan checks join as soon as the registry declares their `scriptFields`
+  (their descriptors carry none today). `test/p18-registry-lint.test.js` (6 tests,
+  mutation-checked).
 
 #### P-19 — Domain analysers (M)
 

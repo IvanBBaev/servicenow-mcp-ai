@@ -85,8 +85,8 @@ function scriptTypeView(
  * client and markup fields, base query. Kept apart from the `SCRIPT_TYPES` view
  * so that view stays exactly what it was before S-4.
  */
-export function scriptArtifact(type: string): ArtifactType {
-  resolveType(type);
+export function scriptArtifact(type: string, optIn = false): ArtifactType {
+  resolveType(type, optIn);
   return getArtifactType(type)!;
 }
 

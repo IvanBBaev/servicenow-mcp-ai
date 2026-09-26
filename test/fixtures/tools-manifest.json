@@ -473,10 +473,20 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "extended": {
+            "description": "Also count the opt-in types and lint every registry script type instance-wide (newest `limit` per type).",
+            "type": "boolean"
+          },
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
             "type": "string"
+          },
+          "limit": {
+            "description": "Records per type for extended (default 50).",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
           },
           "scope": {
             "description": "Table to lint in depth, e.g. 'incident'. Omit for an instance-wide inventory.",
@@ -3257,7 +3267,7 @@
             "type": "string"
           },
           "type": {
-            "description": "Script type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl, script_action, transform_map, transform_entry, fix_script, email_script, processor, data_source, rest_message_fn, ui_script, ui_page, ui_macro, validation_script, sp_widget, catalog_client_script, dictionary_script.",
+            "description": "Script type (default and opt-in types).",
             "enum": [
               "business_rule",
               "script_include",
@@ -3282,7 +3292,16 @@
               "validation_script",
               "sp_widget",
               "catalog_client_script",
-              "dictionary_script"
+              "dictionary_script",
+              "uib_client_script",
+              "uib_client_script_include",
+              "uib_data_broker_transform",
+              "uib_data_broker_scriptlet",
+              "sp_ng_template",
+              "sp_angular_provider",
+              "sp_theme",
+              "sp_css",
+              "sp_search_source"
             ],
             "type": "string"
           }
@@ -5569,6 +5588,10 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "extended": {
+            "description": "Also search the opt-in UI Builder / portal script types.",
+            "type": "boolean"
+          },
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,

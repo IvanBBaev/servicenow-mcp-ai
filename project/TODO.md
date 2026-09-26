@@ -390,6 +390,12 @@
       plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
       139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
       on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [x] **P-18 · Registry-driven lint and search** — done 2026-09-26 (uncommitted): three portal
+      rules, `lint_script` opt-in types, `code_health({extended, limit})` registry sweep,
+      `where_used({extended})`; 6 tests. Owner decisions: (a) the sweep is opt-in (`extended`) —
+      about 30 bounded reads; make it the default? (b) per-type default 50 / max 200; (c) the
+      `sp-param-unvalidated` sinks (encoded query, GlideRecord / GlideAggregate table name,
+      `gs.eval`, `GlideEvaluator`) — more? (d) findings verified on mocks only (O-5).
 - [x] **H-3 remainder** — done 2026-09-26 (uncommitted): `expected_mod_count` → `STALE_RECORD` on
       update / delete, `unknown_fields` from the schema cache, email `body_preview` (2 KB) +
       `body_sha256`, `expected_*` outside the plan-token hash; 5 tests. Owner decisions: (a) no

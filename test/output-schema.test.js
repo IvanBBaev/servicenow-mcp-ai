@@ -58,6 +58,8 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * 139,089 (all) and 35,473 (core): the budgets rise to 140,000 / 36,000.
  * H-3 remainder (expected_mod_count on update/delete_record) measured
  * 139,421 (all) and 35,805 (core): within the budget.
+ * P-18 (code_health extended/limit, where_used extended, lint_script opt-in
+ * types) measured 139,658 (all) and 35,805 (core): within the budget.
  * owner to restate (M-6 budget)
  */
 const TOOLS_LIST_BUDGET_ALL = 140_000;
