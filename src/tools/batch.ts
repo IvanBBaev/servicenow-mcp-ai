@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   runBatch,
+  packageForUrl,
+  tablesForSubRequest,
   type BatchResult,
   type BatchSubRequest,
 } from "../api/batch.js";
@@ -135,6 +137,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    // H-3: only a batch that writes needs a plan (a GET-only batch has none).
+    confirm: {
+      when: (args) =>
+        Array.isArray(args.requests) &&
+        args.requests.some((r: { method?: unknown }) => r.method !== "GET"),
+      target: () => ({ action: "execute", table: "batch" }),
+    },
     input: {
       requests: z
         .array(subRequestSchema)
@@ -151,8 +160,20 @@ export const specs: AnyToolSpec[] = [
         return planPreview({
           action: "execute",
           table: "batch",
+          // H-4: the preview shows what each sub-request would send (bodies
+          // pass the result redaction like any output) and what it targets.
           after: {
-            requests: requests.map((r) => ({ method: r.method, url: r.url })),
+            requests: requests.map((r) => {
+              const tables = tablesForSubRequest(r);
+              const pkg = packageForUrl(r.url);
+              return {
+                method: r.method,
+                url: r.url,
+                ...(r.body !== undefined ? { body: r.body } : {}),
+                ...(tables.length ? { tables } : {}),
+                package: pkg ?? null,
+              };
+            }),
           },
         });
       }
@@ -169,6 +190,12 @@ export const specs: AnyToolSpec[] = [
           batch_id: batchId,
         },
         () => runBatch(requests),
+        undefined,
+        // H-11: the session caps count the write sub-requests, not the envelope.
+        {
+          writes: requests.filter((r) => r.method !== "GET").length,
+          deletes: requests.filter((r) => r.method === "DELETE").length,
+        },
       );
       journalSubRequests(batchId, requests, results);
       return ok({ count: results.length, results });

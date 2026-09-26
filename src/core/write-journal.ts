@@ -14,9 +14,14 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { getDocsDir, getJournalMaxBytes } from "./settings.js";
+import {
+  getDocsDir,
+  getJournalMaxBytes,
+  getMaxDeletesPerSession,
+  getMaxWritesPerSession,
+} from "./settings.js";
 import { activeProfile } from "./config.js";
-import { currentClient, currentTool } from "./request-context.js";
+import { currentCall, currentClient, currentTool } from "./request-context.js";
 import { redactValue } from "./redaction.js";
 import { ServiceNowError } from "./errors.js";
 import { logger } from "./logging.js";
@@ -84,7 +89,7 @@ export interface JournalEntry {
   result?: WriteResult;
   /** The error message of a failed/refused write. */
   error?: string;
-  /** H-3 plan token binding the apply to its plan — reserved, not yet issued. */
+  /** H-3: the plan token the apply consumed (SN_DESTRUCTIVE_CONFIRM=token|elicit). */
   plan_token?: string;
   /** S-6: sys_id of the update set an applied write was bound to (`update_set` / SN_UPDATE_SET). */
   update_set?: string;
@@ -114,6 +119,8 @@ export interface JournalEntry {
   reverts?: string;
   /** On a revert's own line: the drift check was overridden with `force:true`. */
   force?: boolean;
+  /** H-11: the call was refused by a session write cap (WRITE_CAP). */
+  cap_hit?: boolean;
   /** sha256 of the previous journal line (absent on the first line / v1 lines). */
   prev?: string;
 }
@@ -296,6 +303,86 @@ const writeCountersPart = defineRuntimePart(
   },
 );
 
+/**
+ * H-11 (L3-02): what the per-session caps count — applied instance writes (a
+ * batch counts its write sub-requests, not its envelope) and deletes among
+ * them. Kept apart from WriteCounters, which count journal lines.
+ */
+const capUsagePart = defineRuntimePart(
+  "write-cap-usage",
+  () => ({ writes: 0, deletes: 0 }),
+  (u) => {
+    u.writes = u.deletes = 0;
+  },
+);
+
+/** The caps and their usage in this session, for `get_status`. */
+export function getWriteCaps() {
+  const u = currentRuntime().get(capUsagePart);
+  return {
+    writes: { used: u.writes, max: getMaxWritesPerSession() || null },
+    deletes: { used: u.deletes, max: getMaxDeletesPerSession() || null },
+  };
+}
+
+const INSTANCE_ACTIONS = new Set<WriteAction>([
+  "create",
+  "update",
+  "delete",
+  "execute",
+]);
+
+/** How many writes / deletes an applied journaled write counts for. */
+export interface WriteWeight {
+  writes: number;
+  deletes: number;
+}
+
+function weightOf(entry: JournalInput, weight?: WriteWeight): WriteWeight {
+  if (weight) return weight;
+  if (!INSTANCE_ACTIONS.has(entry.action)) return { writes: 0, deletes: 0 };
+  return { writes: 1, deletes: entry.action === "delete" ? 1 : 0 };
+}
+
+/**
+ * H-11: refuse a write that would pass a session cap — before any request —
+ * with WRITE_CAP, journaled as `refused` with `cap_hit`.
+ */
+export function assertWriteCap(
+  entry: JournalInput,
+  weight?: WriteWeight,
+): void {
+  const w = weightOf(entry, weight);
+  if (w.writes === 0 && w.deletes === 0) return;
+  const u = currentRuntime().get(capUsagePart);
+  const maxWrites = getMaxWritesPerSession();
+  const maxDeletes = getMaxDeletesPerSession();
+  let message: string | undefined;
+  if (maxDeletes && u.deletes + w.deletes > maxDeletes) {
+    message = `Delete cap reached: ${u.deletes} of ${maxDeletes} deletes used in this session (SN_MAX_DELETES_PER_SESSION); this call needs ${w.deletes} more.`;
+  } else if (maxWrites && u.writes + w.writes > maxWrites) {
+    message = `Write cap reached: ${u.writes} of ${maxWrites} writes used in this session (SN_MAX_WRITES_PER_SESSION); this call needs ${w.writes} more.`;
+  }
+  if (!message) return;
+  appendWriteJournal({
+    ...entry,
+    result: "refused",
+    error: message,
+    cap_hit: true,
+  });
+  throw new ServiceNowError(message, 429, undefined, {
+    code: "WRITE_CAP",
+    hint: "Nothing was sent. Start a new session (restart the server or reconnect) or raise the cap.",
+  });
+}
+
+function countCap(entry: JournalInput, weight?: WriteWeight): void {
+  const w = weightOf(entry, weight);
+  const u = currentRuntime().get(capUsagePart);
+  u.writes += w.writes;
+  u.deletes += w.deletes;
+}
+
 /** A snapshot of the write counters, for `get_status`. */
 export function getWriteCounters(): WriteCounters {
   return { ...currentRuntime().get(writeCountersPart) };
@@ -317,6 +404,7 @@ function countWrite(entry: JournalEntry): void {
 export function appendWriteJournal(entry: JournalInput): JournalEntry {
   const client = entry.client ?? currentClient();
   const tool = entry.tool ?? currentTool();
+  const planToken = entry.plan_token ?? currentCall()?.plan?.token;
   const base: JournalEntry = {
     schema_version: JOURNAL_SCHEMA_VERSION,
     id: ulid(),
@@ -324,6 +412,7 @@ export function appendWriteJournal(entry: JournalInput): JournalEntry {
     profile: activeProfile(),
     ...redactEntry(entry),
     ...(tool ? { tool } : {}),
+    ...(planToken ? { plan_token: planToken } : {}),
     result: entry.result ?? "applied",
     ...(client ? { client } : {}),
   };
@@ -381,7 +470,10 @@ export async function journaledWrite<T>(
   entry: JournalInput,
   run: () => Promise<T>,
   derive?: (result: T) => Partial<JournalInput>,
+  weight?: WriteWeight,
 ): Promise<T> {
+  // H-11: the session caps are checked before anything is sent.
+  assertWriteCap(entry, weight);
   let result: T;
   try {
     result = await run();
@@ -394,6 +486,7 @@ export async function journaledWrite<T>(
     throw error;
   }
   appendWriteJournal({ ...entry, ...derive?.(result) });
+  countCap(entry, weight);
   return result;
 }
 

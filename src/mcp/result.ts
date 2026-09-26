@@ -9,6 +9,8 @@ export type ToolResult = {
   content: { type: "text"; text: string }[];
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
+  /** MCP result metadata (H-11: `environment` of a marked profile). */
+  _meta?: Record<string, unknown>;
 };
 
 /** Compact by default; SN_RESULT_PRETTY=true switches to indented output. */

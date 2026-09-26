@@ -318,15 +318,22 @@ export const specs: AnyToolSpec[] = [
       ),
       profile: docProfileArg,
       write: writeArg,
+      detail: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also a Mermaid diagram per flow/subflow/workflow/portal, a dependency graph and a lint summary (bounded).",
+        ),
     },
     logFields: (args) => ({
       scope: args.scope,
       profile: args.profile,
       write: args.write !== false,
+      detail: args.detail === true,
     }),
-    handler: async ({ scope, profile, write }) =>
+    handler: async ({ scope, profile, write, detail }) =>
       deliverDocument(
-        await documentApp(scope, { profile, write }),
+        await documentApp(scope, { profile, write, detail }),
         `document-app-${scope}`,
       ),
   }),

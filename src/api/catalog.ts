@@ -1,5 +1,5 @@
 import { snRequest } from "../core/http.js";
-import { assertWriteAllowed } from "../core/policy.js";
+import { assertWriteAllowed, assertTableAllowed } from "../core/policy.js";
 import { expectResult, snParams } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 
@@ -14,6 +14,7 @@ const BASE = "/api/sn_sc/servicecatalog";
 const LABEL = "Service Catalog";
 
 export async function listCatalogs(): Promise<unknown> {
+  assertTableAllowed("sc_catalog"); // H-4: the backing table
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",
@@ -26,6 +27,7 @@ export async function listCatalogs(): Promise<unknown> {
 export async function listCatalogCategories(
   catalogSysId: string,
 ): Promise<unknown> {
+  assertTableAllowed("sc_category"); // H-4: the backing table
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",
@@ -45,6 +47,7 @@ export interface CatalogItemQuery {
 export async function listCatalogItems(
   opts: CatalogItemQuery = {},
 ): Promise<unknown> {
+  assertTableAllowed("sc_cat_item"); // H-4: the backing table
   const params = snParams({
     sysparm_text: opts.text,
     sysparm_category: opts.category,
@@ -62,6 +65,7 @@ export async function listCatalogItems(
 }
 
 export async function getCatalogItem(itemSysId: string): Promise<unknown> {
+  assertTableAllowed("sc_cat_item"); // H-4: the backing table
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",
@@ -79,6 +83,10 @@ export interface OrderItemArgs {
 
 /** Order a catalog item directly ("order now"), producing a request/RITM. */
 export async function orderCatalogItem(args: OrderItemArgs): Promise<unknown> {
+  // H-4: an order reads the item and creates sc_request / sc_req_item rows.
+  for (const table of ["sc_cat_item", "sc_request", "sc_req_item"]) {
+    assertTableAllowed(table);
+  }
   assertWriteAllowed("catalog order");
   const body: Record<string, unknown> = {
     sysparm_quantity: String(args.quantity ?? 1),

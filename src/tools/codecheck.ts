@@ -1,6 +1,12 @@
 import { z } from "zod";
-import { lintScript, lintTable, codeHealth } from "../api/codecheck.js";
-import { SCRIPT_TYPE_NAMES } from "../api/scripts.js";
+import {
+  ARTIFACT_LINT_LIMIT,
+  ARTIFACT_LINT_LIMIT_MAX,
+  lintScript,
+  lintTable,
+  codeHealth,
+} from "../api/codecheck.js";
+import { OPT_IN_SCRIPT_TYPE_NAMES, SCRIPT_TYPE_NAMES } from "../api/scripts.js";
 import { ok } from "../mcp/result.js";
 import {
   defineTool,
@@ -9,8 +15,11 @@ import {
   type AnyToolSpec,
 } from "../mcp/define.js";
 
-const scriptType = z.enum(SCRIPT_TYPE_NAMES as [string, ...string[]]);
-const TYPE_LIST = SCRIPT_TYPE_NAMES.join(", ");
+// P-18: lint_script takes the opt-in registry types (UI Builder, portal) too.
+const scriptType = z.enum([
+  ...SCRIPT_TYPE_NAMES,
+  ...OPT_IN_SCRIPT_TYPE_NAMES,
+] as [string, ...string[]]);
 
 /**
  * Code checking package (Phase 8): deterministic local analysis of the
@@ -36,7 +45,7 @@ export const specs: AnyToolSpec[] = [
       results: z.array(z.unknown()),
     },
     input: {
-      type: scriptType.describe(`Script type. One of: ${TYPE_LIST}.`),
+      type: scriptType.describe("Script type (default and opt-in types)."),
       sys_id: sysId().describe("sys_id of the script record."),
     },
     logFields: (args) => ({ type: args.type }),
@@ -94,8 +103,24 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Table to lint in depth, e.g. 'incident'. Omit for an instance-wide inventory.",
         ),
+      extended: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also count the opt-in types and lint every registry script type instance-wide (newest `limit` per type).",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(ARTIFACT_LINT_LIMIT_MAX)
+        .optional()
+        .describe(
+          `Records per type for extended (default ${ARTIFACT_LINT_LIMIT}).`,
+        ),
     },
     logFields: (args) => ({ scope: args.scope ?? "instance" }),
-    handler: ({ scope }) => codeHealth(scope).then(ok),
+    handler: ({ scope, extended, limit }) =>
+      codeHealth(scope, { extended, limit }).then(ok),
   }),
 ];

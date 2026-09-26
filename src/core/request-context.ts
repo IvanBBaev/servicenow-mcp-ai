@@ -82,6 +82,12 @@ export interface CallContext {
   signal?: AbortSignal;
   /** Present only when the client sent a progressToken. */
   progress?: ProgressSink;
+  /**
+   * H-3: set on a destructive-apply tool's call while SN_DESTRUCTIVE_CONFIRM
+   * is on — the hash of the arguments a plan preview binds its plan_token to,
+   * and, once an apply was confirmed, the consumed token (journaled).
+   */
+  plan?: { argsHash: string; token?: string };
 }
 
 const callAls = new AsyncLocalStorage<CallContext>();

@@ -15,6 +15,11 @@ import {
   type RecordSectionId,
 } from "./collectors.js";
 import { ServiceNowError } from "../core/errors.js";
+import {
+  collectArtifactType,
+  resolveArtifactTypes,
+  type ArtifactTypeSnapshot,
+} from "./artifact-snapshot.js";
 import { mdTable } from "./shared.js";
 import { activeProfile } from "../core/config.js";
 import { getDocsDir, getMaxConcurrent } from "../core/settings.js";
@@ -72,6 +77,13 @@ export interface SnapshotOptions {
   sections?: SnapshotSection[];
   /** Skip units a previous interrupted run finished (files unchanged). */
   resume?: boolean;
+  /**
+   * P-20: registry artefact types to snapshot with their children into
+   * `artifacts/<type>.json` (+ `.md`); `["all"]` = every type. Default none.
+   */
+  types?: string[];
+  /** P-20: limit the artefact types to one application scope. */
+  scope?: string;
 }
 
 export interface SnapshotResult {
@@ -199,6 +211,63 @@ export async function snapshotInstance(
     );
     u.tick("tables");
   });
+
+  // P-20: one unit per registry type, opted into by `types` (not a section).
+  for (const type of resolveArtifactTypes(opts.types ?? [])) {
+    units.push({
+      id: `artifact:${type}`,
+      steps: 1,
+      run: async (u) => {
+        let snap: ArtifactTypeSnapshot;
+        try {
+          snap = await collectArtifactType(type, { scope: opts.scope });
+        } catch (e) {
+          if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+          u.warn(
+            `artifact ${type}: unavailable — ${e instanceof Error ? e.message : String(e)}`,
+          );
+          u.tick(`artifact: ${type} unavailable`);
+          return;
+        }
+        u.warn(...snap.warnings);
+        if (snap.truncated) u.warn(capWarn(`artifact ${type}: ${snap.table}`));
+        const source = { ...snap, scope: opts.scope?.trim() ?? "" };
+        const childTables = [
+          ...new Set(snap.records.flatMap((r) => Object.keys(r.children))),
+        ];
+        await u.write(
+          `artifacts/${type}.md`,
+          [
+            `# Artefacts \`${type}\` — profile \`${profile}\``,
+            "",
+            `Source \`${snap.table}\`${opts.scope ? ` (scope \`${opts.scope}\`)` : ""}, snapshot ${generatedAt}. ${snap.records.length} records${childTables.length ? `; children from ${childTables.map((c) => `\`${c}\``).join(", ")}` : ""}.${snap.verified ? "" : " Descriptor unverified (O-5)."}`,
+            "",
+            mdTable(
+              ["Key", "Name", "sys_id", ...childTables],
+              snap.records
+                .slice(0, MD_ROWS)
+                .map((r) => [
+                  r.key,
+                  r.name,
+                  r.sys_id,
+                  ...childTables.map((c) => String(r.children[c]?.length ?? 0)),
+                ]),
+            ),
+            "",
+          ].join("\n"),
+          "artifacts",
+          source,
+        );
+        await u.write(
+          `artifacts/${type}.json`,
+          JSON.stringify({ profile, generatedAt, ...source }, null, 2),
+          "artifacts",
+          source,
+        );
+        u.tick(`artifact: ${type}`);
+      },
+    });
+  }
 
   // Schema units follow `tables` and are not a selectable section of their
   // own: the `tables` option already opts in.

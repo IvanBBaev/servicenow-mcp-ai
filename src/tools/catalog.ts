@@ -106,6 +106,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    confirm: {
+      target: (args) => ({
+        action: "create",
+        table: "sc_request",
+        fields: { item: args.item_sys_id, quantity: args.quantity ?? 1 },
+      }),
+    },
     input: {
       item_sys_id: sysId().describe("sys_id of the catalog item."),
       quantity: z

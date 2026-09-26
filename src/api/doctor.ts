@@ -1,3 +1,4 @@
+import { getProfileEnv, type ProfileEnv } from "../core/settings.js";
 import {
   getCredentials,
   hasCredentials,
@@ -45,6 +46,8 @@ export interface DoctorConfig {
   missing: string[];
   /** Non-fatal credential warnings (token expiry, env-file ACLs, …). */
   warnings: string[];
+  /** H-11 (L3-03): the profile's environment marker, when set. */
+  env?: ProfileEnv;
 }
 
 export interface DoctorReport {
@@ -87,6 +90,7 @@ function inspectConfig(profile: string): DoctorConfig {
     ...(refresh !== "none" ? { refreshToken: refresh } : {}),
     missing: status.missing,
     warnings: credentialWarnings(profile),
+    ...(getProfileEnv(profile) ? { env: getProfileEnv(profile) } : {}),
   };
 }
 
@@ -193,6 +197,7 @@ export function formatDoctorReport(report: DoctorReport): string {
   lines.push(`    user:     ${config.user}`);
   lines.push(
     `    auth:     ${config.auth}${config.grant ? ` (${config.grant})` : ""}`,
+    ...(config.env ? [`    env:      ${config.env}`] : []),
   );
   if (config.refreshToken) {
     lines.push(`    refresh:  ${config.refreshToken}`);

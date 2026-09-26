@@ -1,5 +1,5 @@
 import { snRequest } from "../core/http.js";
-import { assertWriteAllowed } from "../core/policy.js";
+import { assertWriteAllowed, assertTableAllowed } from "../core/policy.js";
 import { ServiceNowError } from "../core/errors.js";
 import { expectResult, snParams } from "./shared.js";
 import { pluginCall } from "./plugin.js";
@@ -12,6 +12,7 @@ import { pluginCall } from "./plugin.js";
 
 const BASE = "/api/sn_chg_rest/change";
 const LABEL = "Change Management";
+const CHANGE_TABLE = "change_request";
 
 export type ChangeType = "normal" | "standard" | "emergency";
 
@@ -23,6 +24,8 @@ export interface ChangeQuery {
 }
 
 export async function listChanges(opts: ChangeQuery = {}): Promise<unknown> {
+  // H-4: the Change API is governed by its backing table.
+  assertTableAllowed(CHANGE_TABLE);
   const params = snParams({
     sysparm_query: opts.query,
     sysparm_limit: opts.limit,
@@ -40,6 +43,8 @@ export async function listChanges(opts: ChangeQuery = {}): Promise<unknown> {
 }
 
 export async function getChange(sysId: string): Promise<unknown> {
+  // H-4: the Change API is governed by its backing table.
+  assertTableAllowed(CHANGE_TABLE);
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",
@@ -57,6 +62,8 @@ export interface CreateChangeArgs {
 }
 
 export async function createChange(args: CreateChangeArgs): Promise<unknown> {
+  // H-4: the Change API is governed by its backing table.
+  assertTableAllowed(CHANGE_TABLE);
   assertWriteAllowed(`create ${args.type} change`);
   let path: string;
   if (args.type === "standard") {
@@ -83,6 +90,8 @@ export async function updateChange(
   sysId: string,
   fields: Record<string, unknown>,
 ): Promise<unknown> {
+  // H-4: the Change API is governed by its backing table.
+  assertTableAllowed(CHANGE_TABLE);
   assertWriteAllowed("update change");
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
@@ -102,7 +111,12 @@ export async function changeConflicts(
   sysId: string,
   calculate = false,
 ): Promise<unknown> {
-  if (calculate) assertWriteAllowed("calculate change conflicts");
+  // H-4: conflicts are change_request data; calculating writes `conflict` rows.
+  assertTableAllowed(CHANGE_TABLE);
+  if (calculate) {
+    assertTableAllowed("conflict");
+    assertWriteAllowed("calculate change conflicts");
+  }
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: calculate ? "POST" : "GET",

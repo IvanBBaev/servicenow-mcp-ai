@@ -1,10 +1,19 @@
 import { snRequest } from "../core/http.js";
 import {
   assertTableAllowed,
+  assertTableWriteAllowed,
   assertWriteAllowed,
   assertPackageAllowed,
   assertPackageWriteAllowed,
+  getAllowedTables,
+  getDeniedTables,
 } from "../core/policy.js";
+import {
+  getBatchMaxRequests,
+  getBatchUnmapped,
+  getMaxBatchWrites,
+} from "../core/settings.js";
+import { getAttachmentMeta } from "./attachment.js";
 import { ServiceNowError } from "../core/errors.js";
 import { reportProgress } from "../core/progress.js";
 
@@ -90,8 +99,11 @@ function tableFromUrl(url: string): string | undefined {
  * registration, which batch sub-requests skip). Unknown paths return undefined
  * and fall back to the table/read-only axes alone.
  */
-const PACKAGE_BY_PATH: [RegExp, string][] = [
+export const PACKAGE_BY_PATH: [RegExp, string][] = [
   [/^\/api\/sn_sc(?:\/|$)/i, "catalog"],
+  [/^\/api\/sn_cicd(?:\/|$)/i, "atf"],
+  [/^\/api\/sn_codesearch(?:\/|$)/i, "scripts"],
+  [/^\/api\/now\/(?:v\d+\/)?identifyreconcile(?:\/|$)/i, "cmdb"],
   [/^\/api\/sn_chg_rest(?:\/|$)/i, "change"],
   [/^\/api\/sn_km_api(?:\/|$)/i, "knowledge"],
   [/^\/api\/now\/(?:v\d+\/)?email(?:\/|$)/i, "email"],
@@ -102,12 +114,100 @@ const PACKAGE_BY_PATH: [RegExp, string][] = [
   [/^\/api\/now\/(?:v\d+\/)?table(?:\/|$)/i, "table"],
 ];
 
-function packageForUrl(url: string): string | undefined {
+export function packageForUrl(url: string): string | undefined {
   const path = url.split(/[?#]/, 1)[0] ?? url;
   for (const [re, pkg] of PACKAGE_BY_PATH) {
     if (re.test(path)) return pkg;
   }
   return undefined;
+}
+
+/** A batch inside a batch would hide its sub-requests from every guard. */
+const NESTED_BATCH = /^\/api\/now\/(?:v\d+\/)?batch(?:\/|$)/i;
+
+/** `/api/now/attachment/<sys_id>[/file]` — the parent table is not in the path. */
+const ATTACHMENT_BY_ID =
+  /^\/api\/now\/(?:v\d+\/)?attachment\/(?!file(?:$|\/))([^/?#]+)(?:\/file)?\/?$/i;
+
+/** `/api/now/attachment` (list) and `/api/now/attachment/file` (upload). */
+const ATTACHMENT_ROOT = /^\/api\/now\/(?:v\d+\/)?attachment(?:\/file)?\/?$/i;
+
+function tablePolicyActive(): boolean {
+  return getAllowedTables().length > 0 || getDeniedTables().length > 0;
+}
+
+/**
+ * H-4: every table a sub-request names — in its path (Table, Stats, Import
+ * Set, CMDB instance), its query (`table_name`, or `table_name=` inside an
+ * attachment `sysparm_query`) and its body (`table_name` of an Email API
+ * send, the item classes of an IRE payload). Headers carry no table on any
+ * REST API this server maps.
+ */
+export function tablesForSubRequest(req: {
+  url: string;
+  body?: unknown;
+}): string[] {
+  const tables = new Set<string>();
+  const fromPath = tableFromUrl(req.url);
+  if (fromPath) tables.add(fromPath);
+  const query = req.url.includes("?")
+    ? new URLSearchParams(req.url.slice(req.url.indexOf("?") + 1).split("#")[0])
+    : undefined;
+  const qTable = query?.get("table_name");
+  if (qTable) tables.add(qTable);
+  if (ATTACHMENT_ROOT.test(pathOf(req.url))) {
+    for (const [, t] of (query?.get("sysparm_query") ?? "").matchAll(
+      /(?:^|\^)table_name=([^^]+)/g,
+    )) {
+      if (t) tables.add(t);
+    }
+  }
+  if (req.body && typeof req.body === "object" && !Array.isArray(req.body)) {
+    const body = req.body as Record<string, unknown>;
+    if (typeof body.table_name === "string" && body.table_name) {
+      tables.add(body.table_name);
+    }
+    if (packageForUrl(req.url) === "cmdb" && Array.isArray(body.items)) {
+      for (const item of body.items) {
+        const cls = (item as { className?: unknown } | null)?.className;
+        if (typeof cls === "string" && cls) tables.add(cls);
+      }
+      if (Array.isArray(body.relations) && body.relations.length > 0) {
+        tables.add("cmdb_rel_ci");
+      }
+    }
+  }
+  return [...tables];
+}
+
+function pathOf(url: string): string {
+  return url.split(/[?#]/, 1)[0] ?? url;
+}
+
+/**
+ * H-4: a sub-request that names its target only by attachment sys_id is
+ * governed by the attachment's parent table — resolved with one metadata read
+ * (which applies the table policy) while a table policy is configured. An
+ * unscoped attachment list is refused then: its rows could come from any table.
+ */
+async function assertAttachmentScope(
+  req: BatchSubRequest,
+  index: number,
+  named: string[],
+): Promise<void> {
+  if (!tablePolicyActive()) return;
+  const path = pathOf(req.url);
+  const byId = ATTACHMENT_BY_ID.exec(path);
+  if (byId?.[1]) {
+    await getAttachmentMeta(decodeURIComponent(byId[1]));
+    return;
+  }
+  if (req.method === "GET" && ATTACHMENT_ROOT.test(path) && !named.length) {
+    throw new ServiceNowError(
+      `Sub-request ${index + 1} lists attachments without naming a table (table_name) while SN_TABLES_ALLOW / SN_TABLES_DENY is set — its rows could come from a denied table. Use servicenow_list_attachments, or add table_name=<table> to sysparm_query.`,
+      403,
+    );
+  }
 }
 
 /** True when a path contains an empty (`//`), `.` or `..` segment. */
@@ -178,6 +278,29 @@ export async function runBatch(
     throw new ServiceNowError("A batch needs at least one sub-request.");
   }
 
+  // H-4 (L2-03): the size cap is checked before any sub-request is built.
+  const max = getBatchMaxRequests();
+  if (requests.length > max) {
+    throw new ServiceNowError(
+      `A batch may carry at most ${max} sub-requests (SN_BATCH_MAX_REQUESTS); this one has ${requests.length}. Split it.`,
+      400,
+    );
+  }
+  // H-11 (L3-02): the per-batch write cap, also before anything is built.
+  const maxWrites = getMaxBatchWrites();
+  const writes = requests.filter((r) => r.method !== "GET").length;
+  if (maxWrites && writes > maxWrites) {
+    throw new ServiceNowError(
+      `A batch may carry at most ${maxWrites} write sub-requests (SN_MAX_BATCH_WRITES); this one has ${writes}. Nothing was sent.`,
+      429,
+      undefined,
+      {
+        code: "WRITE_CAP",
+        hint: "Split the batch or raise SN_MAX_BATCH_WRITES.",
+      },
+    );
+  }
+
   const restRequests: RestRequestPayload[] = requests.map((req, index) => {
     // Only the REST surface: same-host endpoints like /oauth_token.do or
     // /login.do are outside the policy model and must not be reachable.
@@ -192,10 +315,24 @@ export async function runBatch(
     // Enforce policy before sending: writes respect read-only mode, table
     // paths respect the allow/deny list, and plugin-API paths respect the
     // package allow/deny + read-only axes — so the batch cannot bypass guards.
+    if (NESTED_BATCH.test(pathOf(req.url))) {
+      throw new ServiceNowError(
+        `Sub-request ${index + 1} targets the Batch API itself; a nested batch would hide its sub-requests from the access policy.`,
+        403,
+      );
+    }
     if (req.method !== "GET") assertWriteAllowed(`batch ${req.method}`);
-    const table = tableFromUrl(req.url);
-    if (table) assertTableAllowed(table);
+    // H-11: a write sub-request also meets the protected-table rule.
+    const checkTable =
+      req.method === "GET" ? assertTableAllowed : assertTableWriteAllowed;
+    for (const table of tablesForSubRequest(req)) checkTable(table);
     const pkg = packageForUrl(req.url);
+    if (!pkg && getBatchUnmapped() === "deny") {
+      throw new ServiceNowError(
+        `Sub-request ${index + 1} targets "${pathOf(req.url)}", which no tool package owns, and SN_BATCH_UNMAPPED=deny refuses unmapped REST paths in a batch.`,
+        403,
+      );
+    }
     if (pkg) {
       assertPackageAllowed(pkg);
       if (req.method !== "GET") {
@@ -223,6 +360,12 @@ export async function runBatch(
     }
     return payload;
   });
+
+  // H-4: the attachment scope needs a metadata read, so it runs after every
+  // local check above passed and before the batch is sent.
+  for (const [index, req] of requests.entries()) {
+    await assertAttachmentScope(req, index, tablesForSubRequest(req));
+  }
 
   // M-3: the Batch API is one round-trip, so progress is two coarse steps —
   // validated and sent, then answered — counted in sub-requests.

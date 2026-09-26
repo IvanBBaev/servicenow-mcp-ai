@@ -59,6 +59,7 @@ const CORE_TOOLS = [
   "servicenow_disable_package",
   "servicenow_download_attachment",
   "servicenow_enable_package",
+  "servicenow_explain_policy",
   "servicenow_get_attachment",
   "servicenow_get_record",
   "servicenow_get_status",
@@ -358,6 +359,7 @@ test("resources follow the package policy (K-7)", async () => {
       assert.deepEqual(await resourceNames(client), [
         "capabilities",
         "encoded-query",
+        "policy",
         "status",
         "tools-reference",
       ]);
@@ -377,6 +379,7 @@ test("resources follow the package policy (K-7)", async () => {
         "docs",
         "encoded-query",
         "instances",
+        "policy",
         "profile-schema",
         "schema",
         "status",

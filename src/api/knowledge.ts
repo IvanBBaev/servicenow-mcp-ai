@@ -1,4 +1,5 @@
 import { snRequest } from "../core/http.js";
+import { assertTableAllowed } from "../core/policy.js";
 import { expectResult, snParams } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 
@@ -22,6 +23,7 @@ export interface KnowledgeSearch {
 export async function searchKnowledge(
   opts: KnowledgeSearch = {},
 ): Promise<unknown> {
+  assertTableAllowed("kb_knowledge"); // H-4: the backing table
   const params = snParams({
     sysparm_search: opts.search,
     sysparm_query: opts.query,
@@ -40,6 +42,7 @@ export async function searchKnowledge(
 }
 
 export async function getKnowledgeArticle(sysId: string): Promise<unknown> {
+  assertTableAllowed("kb_knowledge"); // H-4: the backing table
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",
@@ -55,6 +58,7 @@ export async function knowledgeHighlights(
   mode: KnowledgeHighlight,
   limit?: number,
 ): Promise<unknown> {
+  assertTableAllowed("kb_knowledge"); // H-4: the backing table
   const params = snParams({ sysparm_limit: limit });
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({

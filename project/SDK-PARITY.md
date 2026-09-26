@@ -589,6 +589,14 @@ unless it says so.
       without validation, GlideRecord in loops.
 - **Depends on:** P-9, S-4 (search/where-used bullet), S-3; S-12 when landed.
 - **Acceptance:** `code_health` on the fixture reports findings in at least one widget and one UX client script.
+- **Done 2026-09-26 (local, uncommitted)** against a mock fixture (no PDI fixture yet — O-5).
+  Rules `sce-trust-as-html`, `sanitize-bypass`, `sp-param-unvalidated` (GlideRecord-in-loop was
+  already `query-in-loop`); `lint_script` over the opt-in types; `code_health({extended, limit})`
+  sweeps every registry script type (`lintArtifacts`, `src/api/codecheck.ts`);
+  `where_used({extended})`; `search_code` already had `extended` (S-4). Action script steps,
+  GraphQL resolvers and scan checks join as soon as the registry declares their `scriptFields`
+  (their descriptors carry none today). `test/p18-registry-lint.test.js` (6 tests,
+  mutation-checked).
 
 #### P-19 — Domain analysers (M)
 
@@ -608,6 +616,13 @@ unless it says so.
       diffed as text.
 - **Depends on:** S-7 (this extends its snapshot list to the whole registry), P-7…P-10.
 - **Acceptance:** snapshot of the same instance twice gives an empty diff; `drift` exit codes unchanged.
+- **Done 2026-09-26 (local, uncommitted), bar flows from the published snapshot.**
+  `src/api/artifact-snapshot.ts` (`collectArtifactType`, `normalizeRow`, `diffArtifactType`);
+  `types` / `scope` on both tools (opt-in, so defaults and the `drift` CLI are unchanged). Direct
+  children only — a child that hangs off another child (`parentTable`, e.g. the portal layout
+  tree) is named in a warning; `alsoMatch` composite links are honoured. Not done: reading flows
+  from `sys_hub_flow_snapshot` (the published/draft authority is unverified, O-5) and Mermaid
+  graphs diffed as text. `test/p20-artifact-snapshot.test.js` (8 tests, mutation-checked).
 
 #### P-21 — Application documentation generator (M)
 
@@ -617,6 +632,12 @@ unless it says so.
   adding a second writer; `document_app` already collects through P-5's `listArtifacts` over
   `ARTIFACT_GROUPS` — INSTANCE-DOCS pass 2 ID-22; frontmatter + manifest from the S-14 store contract).
 - **Acceptance:** fixture scope produces a Markdown doc that `docs_read` returns and Mermaid blocks that parse.
+- **Done 2026-09-26 (local, uncommitted) bar UI Builder experiences (P-14).** `document_app({detail})`
+  (`collectAppDetail` / `renderAppDetail`, `src/api/document.ts`): diagrams per flow / subflow /
+  workflow / portal (10 per type), a merged outbound dependency graph (10 roots, depth 1), the P-18
+  lint sweep scoped to the app (50 per type); every piece degrades to a caveat. The test helper's
+  metadata allow-list now admits versioned `sys_hub_*_v2` tables (explain_flow reads
+  `sys_hub_trigger_instance_v2`). Mocked fixture only (O-5).
 
 ### P4 — Writes
 
@@ -629,6 +650,14 @@ unless it says so.
 - **Depends on:** P-3, H-11, O-6.
 - **Acceptance:** a write plan into a declared SDK-managed scope warns (3.x) / is refused with
   `SDK_MANAGED_SCOPE` (deny).
+- **Done 2026-09-26 (local, uncommitted).** `src/mcp/sdk-guard.ts`; wired into `create_record`,
+  `update_record`, `upsert_record`, `delete_record`, `set_property` and `revert_write` (plan and
+  apply). The scope comes from the written `sys_scope` and the record's current one (a
+  `sysparm_fields=sys_scope` read, only while `SN_SDK_MANAGED_SCOPES` / `SN_SDK_PROJECT_DIRS` is
+  set), detection with `lookup:true`; the guard asserts the H-11 write policy first. `deny` →
+  `SDK_MANAGED_SCOPE` (409). Not covered: `servicenow_batch` sub-requests, CMDB / import-set /
+  attachment writes (data, not scoped metadata), and a create without `sys_scope` (the user's
+  current application scope is not resolved). `test/sdk-guard.test.js` (9 tests, mutation-checked).
 
 #### P-23 — `upsert_artifact` plan/apply (L)
 

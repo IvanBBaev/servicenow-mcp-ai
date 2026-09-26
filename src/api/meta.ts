@@ -96,6 +96,32 @@ export function cachedTableNames(
   return [...names].sort();
 }
 
+/**
+ * H-3 (L2-06): the column names of `table` if the schema cache already holds
+ * its description (a describe_table, a lint or a trace read it), else
+ * undefined. Never calls the instance.
+ */
+export function cachedColumnNames(table: string): Set<string> | undefined {
+  const key = cacheKey(["describeTable", table]);
+  const hit = peekSchemaCache(key).find(([k]) => k === key);
+  if (!hit) return undefined;
+  return new Set((hit[1] as ColumnInfo[]).map((c) => c.element));
+}
+
+/**
+ * H-3 (L2-06): the written field names the cached schema does not know —
+ * a typo the instance would silently ignore. `undefined` when the schema is
+ * not cached (nothing is read to find out); dot-walked names are skipped.
+ */
+export function unknownFields(
+  table: string,
+  fields: Record<string, unknown>,
+): string[] | undefined {
+  const known = cachedColumnNames(table);
+  if (!known) return undefined;
+  return Object.keys(fields).filter((f) => !f.includes(".") && !known.has(f));
+}
+
 /** Guard against malformed/cyclic super_class data on the instance. */
 const MAX_CHAIN_DEPTH = 20;
 

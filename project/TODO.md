@@ -182,7 +182,7 @@
 - [x] **P-6 · explain_artifact** — done 2026-09-25 (uncommitted). Owner questions: opt-in package
       vs reader/developer; budget split 1/20 per value, 4/5 per result; `whenFields` descriptor field.
 - [ ] **Next up (2026-09-24):** **H-3** plan-token binding + elicitation (BREAKING parts wait for
-      O-4). H-11 and every BREAKING item wait for O-4. Five **high** findings gate 3.0.0: L1-03 and
+      O-4; the opt-in part landed 2026-09-26, see below). H-11 and every BREAKING item wait for O-4. Five **high** findings gate 3.0.0: L1-03 and
       L1-10 (done in H-10), L3-01 (H-11, BREAKING → O-4), L5-01 (M-6/E-6), L6-01 (D-2).
 - [ ] **Owner decisions from the 2026-09-25 instance-docs pass:** (a) raise the `pack:check`
       ceiling (1 MB) or trim before S-15; (b) accept a generic `servicenow_document_kind` tool
@@ -379,6 +379,81 @@
       whenever stdout is not a TTY (piped / CI). (g) `init` writes through `persistEnv`, so the E-6
       defects F1/F2 (a value ending in `\`, U+2028/U+2029) apply to wizard answers too. (h) The
       pack grew to 1328.6 KB unpacked (ceiling 800 KB, pending the owner).
+- [ ] **H-3 · Plan tokens + elicitation — partly done 2026-09-26 (uncommitted), non-breaking.**
+      `SN_DESTRUCTIVE_CONFIRM=off|token|elicit` (default `off`) + `SN_PLAN_TOKEN_TTL_SEC`; six
+      destructive-apply tools gain `plan_token`; `PLAN_REQUIRED` / `CONFIRM_DECLINED`; 16 tests.
+      Owner decisions: (a) the 3.0 default — `token` or `elicit` (B4, O-4)? (b) the token is an
+      opaque server-held id, not the HMAC the roadmap sketched (single use + `SN_REDACT_PII`
+      safety) — accept? (c) `PLAN_REQUIRED` is not journaled (only elicitation refusals are) —
+      journal injected applies too? (d) a mismatched token stays valid until it expires or is
+      used — consume on any failed attempt instead? (e) `revert_write` with `force:true` needs a
+      plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
+      139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
+      on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [ ] **P-21 · Application documentation detail — done 2026-09-26 (uncommitted) bar UIB
+      experiences (P-14).** `document_app({detail})`; 2 tests. Owner decisions: (a) `detail` is
+      opt-in — make it the default for `document_app` (and pass it from `document_instance`)?
+      (b) bounds 10 diagrams per type, 10 dependency roots, 50 lint rows per type; (c) the
+      dependency graph merges each root's outbound edges only (no inbound walk).
+- [ ] **P-20 · Snapshot / compare over the registry — done 2026-09-26 (uncommitted) bar flow
+      snapshots.** `types` / `scope` on both tools; 8 tests. Owner decisions: (a) flows from
+      `sys_hub_flow_snapshot` need the published/draft authority confirmed (O-5); (b) nested
+      children (portal layout rows / columns / instances) are skipped with a warning — walk them?
+      (c) secret fields are masked, so a changed secret is not drift — hash them instead? (d)
+      `["all"]` reads every registry type (about 100 primary reads plus children) — cap it? (e)
+      the `all` tools/list budget rose to 141,000 (measured 140,142).
+- [x] **P-18 · Registry-driven lint and search** — done 2026-09-26 (uncommitted): three portal
+      rules, `lint_script` opt-in types, `code_health({extended, limit})` registry sweep,
+      `where_used({extended})`; 6 tests. Owner decisions: (a) the sweep is opt-in (`extended`) —
+      about 30 bounded reads; make it the default? (b) per-type default 50 / max 200; (c) the
+      `sp-param-unvalidated` sinks (encoded query, GlideRecord / GlideAggregate table name,
+      `gs.eval`, `GlideEvaluator`) — more? (d) findings verified on mocks only (O-5).
+- [x] **H-3 remainder** — done 2026-09-26 (uncommitted): `expected_mod_count` → `STALE_RECORD` on
+      update / delete, `unknown_fields` from the schema cache, email `body_preview` (2 KB) +
+      `body_sha256`, `expected_*` outside the plan-token hash; 5 tests. Owner decisions: (a) no
+      `force` flag — omitting `expected_mod_count` applies unchecked; make the check automatic
+      when a `plan_token` is used? (b) `unknown_fields` only when the schema is cached — read it
+      on demand in plan mode instead (one dictionary read per table)? (c) the email preview cap
+      2,048 characters.
+- [x] **P-22 · SDK-managed write guard** — done 2026-09-26 (uncommitted): `SN_SDK_MANAGED_WRITES`
+      (default `warn`), `sdkManaged` in plans and results, `SDK_MANAGED_SCOPE` under `deny`; 9 tests.
+      Owner decisions: (a) O-6 authority order is still the P-3 default; (b) the guard skips batch
+      sub-requests and a create without `sys_scope` (resolving the user's current app scope costs
+      a preference read per create) — extend? (c) `deny` as the 4.0 default (breaking register).
+- [ ] **H-11 · Policy model v2 — done 2026-09-26 (uncommitted) bar the BREAKING defaults.** Glob
+      patterns + one evaluator (`explain_policy`, `servicenow://policy`), `POLICY_DENIED`,
+      `SN_PROTECTED_TABLES_WRITE` (default `allow`), `SN_IMPORT_SET_TABLES`, write caps (`WRITE_CAP`),
+      `SN_ENV` / `SN_PROFILE_<NAME>_ENV` + per-profile `WRITE_MODE` + `PROD_WRITES` ack; 17 tests.
+      Owner decisions: (a) 3.0 defaults — `SN_PROTECTED_TABLES_WRITE=deny` (B11),
+      `SN_IMPORT_SET_TABLES=u_*,imp_*`, caps 500 writes (HTTP) / 100 deletes / 50 batch writes? (b)
+      the protected list — `sys_security_acl_role` added; anything else (`sys_user_preference`,
+      `sys_script_include`, `sys_ui_script`, `sys_hub_*`)? (c) should an attachment upload/delete
+      on a protected table's record count as a protected write? (d) `SN_TABLE_POLICY_FILE` —
+      still wanted? (e) `SN_ENV` is the default profile's only; should it also be the fallback for
+      unmarked named profiles? (f) prod + apply mode + a client without elicitation refuses
+      destructive applies (`CONFIRM_REQUIRED`) even with `I_UNDERSTAND` — right? (g) the
+      `tools/list` budgets rose to 140,000 / 36,000 (measured 139,089 / 35,473).
+- [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (uncommitted).** Attachments follow
+      the parent table; plugin-API tools check backing tables; Code Search hits filtered; batch:
+      nested batch refused, tables from query/body, attachment-by-id resolved under a table policy,
+      `SN_BATCH_UNMAPPED` (default `allow`), `SN_BATCH_MAX_REQUESTS` (default 1000), bodies in the
+      preview; `change_conflicts(calculate)` is plan/apply + journaled (**behaviour change**,
+      CHANGELOG → Changed); 17 tests incl. the read-only / table-deny sweep over every write tool.
+      Owner decisions: (a) 3.0 defaults — `SN_BATCH_UNMAPPED=deny` and `SN_BATCH_MAX_REQUESTS=50`
+      (O-4)? (b) the knob is `SN_BATCH_UNMAPPED=allow|deny`, not the roadmap's
+      `SN_BATCH_ALLOW_UNMAPPED=1` — accept the rename? (c) `change_conflicts(calculate:true)` now
+      previews in plan mode — ship in 2.1 as a plan-by-default fix, or hold for O-4? (d)
+      `test_connection` stays outside the table policy (one `sys_user` sys_id) — keep the
+      exception? (e) a denied parent table now also hides attachment metadata and an unscoped
+      attachment list in a batch is refused while a table policy is set — acceptable? (f) the Code
+      Search LIKE fallback refuses the whole search when a default script table is denied, while
+      the API path filters — make the LIKE path skip denied types too? (g) `delete_attachment`
+      apply reads the metadata twice (journal `before` + the policy check) — one extra GET.
+- [x] **Test hermeticity** — done 2026-09-26 (uncommitted): with `HTTPS_PROXY` set in the shell
+      (corporate / cloud dev environments) 553 tests failed and `test/tasks.test.js` spun at 100 %
+      CPU — H-10's dispatcher asks for the optional `undici` package. `baselineEnv()` in
+      `test/helpers.js` now clears `SN_HTTPS_PROXY` / `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`
+      (both cases); the suite is green with a proxy in the environment.
 - [ ] **SDK parity epic** (P-1…P-29, owner gates O-5…O-9) — post-3.0 (3.x minors; only P-22's
       `deny` default is a 4.0 break); plan in [SDK-PARITY.md](SDK-PARITY.md), rows 55–83 of
       ROADMAP-V3 §"Sequencing".

@@ -177,6 +177,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    confirm: {
+      target: (args) => ({
+        action: "delete",
+        table: "sys_attachment",
+        sys_id: String(args.attachment_sys_id),
+      }),
+    },
     input: {
       attachment_sys_id: sysId().describe(
         "The sys_id of the attachment to delete.",

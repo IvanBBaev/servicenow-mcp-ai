@@ -297,6 +297,11 @@
             "maxLength": 128,
             "type": "string"
           },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
           "requests": {
             "description": "The sub-requests to run together.",
             "items": {
@@ -352,7 +357,7 @@
       "package": "change",
       "title": "Change schedule conflicts",
       "since": "2.0.1",
-      "description_sha256": "1fbdda56856bd99e468bf986735369984e4244b07f2646164af63f1e82ceaa98",
+      "description_sha256": "fb2795d506bd9e20440d329dc998b92cf503e3e1cf64c55f25aa231adb13a085",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -363,6 +368,10 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "apply": {
+            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "type": "boolean"
+          },
           "calculate": {
             "description": "When true, recalculate conflicts (POST) instead of reading.",
             "type": "boolean"
@@ -370,6 +379,11 @@
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
             "type": "string"
           },
           "sys_id": {
@@ -459,10 +473,20 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "extended": {
+            "description": "Also count the opt-in types and lint every registry script type instance-wide (newest `limit` per type).",
+            "type": "boolean"
+          },
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
             "type": "string"
+          },
+          "limit": {
+            "description": "Records per type for extended (default 50).",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
           },
           "scope": {
             "description": "Table to lint in depth, e.g. 'incident'. Omit for an instance-wide inventory.",
@@ -526,6 +550,11 @@
             "maxLength": 128,
             "type": "string"
           },
+          "scope": {
+            "description": "Scope for types.",
+            "maxLength": 128,
+            "type": "string"
+          },
           "sections": {
             "description": "Also compare these snapshot record sections, matched by sys_id then name: properties, choices, acls, notifications, flows, catalog, roles. Default none.",
             "items": {
@@ -541,6 +570,13 @@
               "type": "string"
             },
             "maxItems": 7,
+            "minItems": 1,
+            "type": "array"
+          },
+          "types": {
+            "description": "Registry types (with children) or ['all']; default none.",
+            "items": { "maxLength": 80, "type": "string" },
+            "maxItems": 200,
             "minItems": 1,
             "type": "array"
           }
@@ -911,6 +947,11 @@
             "description": "Profile name (default: active)",
             "maxLength": 128,
             "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": ["attachment_sys_id"],
@@ -937,9 +978,19 @@
             "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
             "type": "boolean"
           },
+          "expected_mod_count": {
+            "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
+            "minimum": 0,
+            "type": "integer"
+          },
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
             "type": "string"
           },
           "sys_id": {
@@ -1236,6 +1287,10 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "detail": {
+            "description": "Also a Mermaid diagram per flow/subflow/workflow/portal, a dependency graph and a lint summary (bounded).",
+            "type": "boolean"
+          },
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
@@ -1703,6 +1758,42 @@
           "verified": { "type": "boolean" }
         },
         "required": ["kind", "verified"],
+        "type": "object"
+      }
+    },
+    {
+      "name": "servicenow_explain_policy",
+      "package": "admin",
+      "title": "Explain ServiceNow access policy",
+      "since": "2.0.1",
+      "description_sha256": "a1018612a8fe6943d050d0c28cd1d3bee0838c1728d68eec910ec13a93451bea",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "description": "Default read.",
+            "enum": ["read", "write"],
+            "type": "string"
+          },
+          "instance": {
+            "description": "Profile name (default: active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "table": {
+            "description": "Table to check.",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "type": "string"
+          }
+        },
         "type": "object"
       }
     },
@@ -3192,7 +3283,7 @@
             "type": "string"
           },
           "type": {
-            "description": "Script type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl, script_action, transform_map, transform_entry, fix_script, email_script, processor, data_source, rest_message_fn, ui_script, ui_page, ui_macro, validation_script, sp_widget, catalog_client_script, dictionary_script.",
+            "description": "Script type (default and opt-in types).",
             "enum": [
               "business_rule",
               "script_include",
@@ -3217,7 +3308,16 @@
               "validation_script",
               "sp_widget",
               "catalog_client_script",
-              "dictionary_script"
+              "dictionary_script",
+              "uib_client_script",
+              "uib_client_script_include",
+              "uib_data_broker_transform",
+              "uib_data_broker_scriptlet",
+              "sp_ng_template",
+              "sp_angular_provider",
+              "sp_theme",
+              "sp_css",
+              "sp_search_source"
             ],
             "type": "string"
           }
@@ -4341,6 +4441,11 @@
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
           "quantity": {
             "description": "Quantity to order (default 1).",
             "exclusiveMinimum": 0,
@@ -4502,6 +4607,11 @@
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
             "type": "string"
           }
         },
@@ -4791,6 +4901,11 @@
             "maxLength": 128,
             "type": "string"
           },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
           "subject": {
             "description": "Email subject.",
             "maxLength": 1000,
@@ -4963,6 +5078,11 @@
             "description": "Continue an interrupted snapshot: skip the sections whose files still carry the recorded source hash (default false).",
             "type": "boolean"
           },
+          "scope": {
+            "description": "Scope for types.",
+            "maxLength": 128,
+            "type": "string"
+          },
           "sections": {
             "description": "Sections to collect (default all): tables, plugins, apps, automation, properties, choices, acls, notifications, flows, catalog, roles.",
             "items": {
@@ -4993,6 +5113,13 @@
               "type": "string"
             },
             "maxItems": 1000,
+            "type": "array"
+          },
+          "types": {
+            "description": "Registry types (with children) or ['all']; default none.",
+            "items": { "maxLength": 80, "type": "string" },
+            "maxItems": 200,
+            "minItems": 1,
             "type": "array"
           }
         },
@@ -5273,6 +5400,11 @@
             "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
             "type": "boolean"
           },
+          "expected_mod_count": {
+            "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
+            "minimum": 0,
+            "type": "integer"
+          },
           "fields": {
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
@@ -5484,6 +5616,10 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "extended": {
+            "description": "Also search the opt-in UI Builder / portal script types.",
+            "type": "boolean"
+          },
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
