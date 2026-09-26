@@ -224,9 +224,13 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Also search configuration structurally (dictionary references, layouts, catalog variables, flow inputs, reports). Default true; false skips those reads.",
         ),
+      extended: z
+        .boolean()
+        .optional()
+        .describe("Also search the opt-in UI Builder / portal script types."),
     },
     logFields: (args) => ({ kind: args.kind, scope: args.scope }),
-    handler: ({ kind, name, mermaid, scope, structural }) =>
-      whereUsed(kind, name, { mermaid, scope, structural }).then(ok),
+    handler: ({ kind, name, mermaid, scope, structural, extended }) =>
+      whereUsed(kind, name, { mermaid, scope, structural, extended }).then(ok),
   }),
 ];
