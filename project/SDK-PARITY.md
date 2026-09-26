@@ -629,6 +629,14 @@ unless it says so.
 - **Depends on:** P-3, H-11, O-6.
 - **Acceptance:** a write plan into a declared SDK-managed scope warns (3.x) / is refused with
   `SDK_MANAGED_SCOPE` (deny).
+- **Done 2026-09-26 (local, uncommitted).** `src/mcp/sdk-guard.ts`; wired into `create_record`,
+  `update_record`, `upsert_record`, `delete_record`, `set_property` and `revert_write` (plan and
+  apply). The scope comes from the written `sys_scope` and the record's current one (a
+  `sysparm_fields=sys_scope` read, only while `SN_SDK_MANAGED_SCOPES` / `SN_SDK_PROJECT_DIRS` is
+  set), detection with `lookup:true`; the guard asserts the H-11 write policy first. `deny` →
+  `SDK_MANAGED_SCOPE` (409). Not covered: `servicenow_batch` sub-requests, CMDB / import-set /
+  attachment writes (data, not scoped metadata), and a create without `sys_scope` (the user's
+  current application scope is not resolved). `test/sdk-guard.test.js` (9 tests, mutation-checked).
 
 #### P-23 — `upsert_artifact` plan/apply (L)
 

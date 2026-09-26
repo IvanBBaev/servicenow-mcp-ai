@@ -1,3 +1,4 @@
+import { sdkGuard, type SdkGuardTarget } from "../mcp/sdk-guard.js";
 import { z } from "zod";
 import {
   queryTable,
@@ -319,9 +320,13 @@ export const specs: AnyToolSpec[] = [
       if (!shouldApply(apply)) {
         return planPreview(
           { action: "create", table, after: fields },
-          bindingPlanDetail(binding),
+          {
+            ...bindingPlanDetail(binding),
+            ...(await sdkGuard({ table, fields }, "plan")),
+          },
         );
       }
+      const sdk = await sdkGuard({ table, fields }, "apply");
       const { result: record, report } = await applyInUpdateSet(
         binding,
         (extra) =>
@@ -334,7 +339,7 @@ export const specs: AnyToolSpec[] = [
             }),
           ),
       );
-      return ok({ message: "Record created", record, ...report });
+      return ok({ message: "Record created", record, ...report, ...sdk });
     },
   }),
 
@@ -374,9 +379,13 @@ export const specs: AnyToolSpec[] = [
         const before = await getRecord(table, sys_id, Object.keys(fields));
         return planPreview(
           { action: "update", table, sys_id, before, after: fields },
-          bindingPlanDetail(binding),
+          {
+            ...bindingPlanDetail(binding),
+            ...(await sdkGuard({ table, sys_id, fields }, "plan")),
+          },
         );
       }
+      const sdk = await sdkGuard({ table, sys_id, fields }, "apply");
       const before = await captureBefore(() =>
         getRecord(table, sys_id, Object.keys(fields)),
       );
@@ -389,7 +398,7 @@ export const specs: AnyToolSpec[] = [
             (r) => ({ after_mod_count: resultModCount(r) }),
           ),
       );
-      return ok({ message: "Record updated", record, ...report });
+      return ok({ message: "Record updated", record, ...report, ...sdk });
     },
   }),
 
@@ -476,10 +485,15 @@ export const specs: AnyToolSpec[] = [
                 : {}),
             },
             ...bindingPlanDetail(binding),
+            ...(await sdkGuard(upsertTarget(table, decision, payload), "plan")),
           },
         );
       }
       assertUpsertUnchanged(decision, expected_action, expected_sys_id);
+      const sdk = await sdkGuard(
+        upsertTarget(table, decision, payload),
+        "apply",
+      );
       if (decision.action === "create") {
         const { result: record, report } = await applyInUpdateSet(
           binding,
@@ -498,6 +512,7 @@ export const specs: AnyToolSpec[] = [
           action: "create",
           record,
           ...report,
+          ...sdk,
         });
       }
       const { sys_id, before } = decision;
@@ -515,6 +530,7 @@ export const specs: AnyToolSpec[] = [
         action: "update",
         record,
         ...report,
+        ...sdk,
       });
     },
   }),
@@ -550,9 +566,13 @@ export const specs: AnyToolSpec[] = [
         const before = await getRecord(table, sys_id);
         return planPreview(
           { action: "delete", table, sys_id, before },
-          bindingPlanDetail(binding),
+          {
+            ...bindingPlanDetail(binding),
+            ...(await sdkGuard({ table, sys_id, record: before }, "plan")),
+          },
         );
       }
+      const sdk = await sdkGuard({ table, sys_id }, "apply");
       const before = await captureBefore(() => getRecord(table, sys_id));
       const { result, report } = await applyInUpdateSet(binding, (extra) =>
         journaledWrite(
@@ -560,10 +580,21 @@ export const specs: AnyToolSpec[] = [
           () => deleteRecord(table, sys_id),
         ),
       );
-      return ok({ message: "Record deleted", ...result, ...report });
+      return ok({ message: "Record deleted", ...result, ...report, ...sdk });
     },
   }),
 ];
+
+/** P-22: what an upsert writes, for the SDK-managed guard. */
+function upsertTarget(
+  table: string,
+  decision: UpsertDecision,
+  payload: Record<string, unknown>,
+): SdkGuardTarget {
+  return decision.action === "update"
+    ? { table, sys_id: decision.sys_id, fields: payload }
+    : { table, fields: payload };
+}
 
 /**
  * S-8 (L2-14): refuse an upsert apply whose create-or-update decision moved

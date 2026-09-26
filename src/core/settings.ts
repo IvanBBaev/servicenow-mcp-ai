@@ -644,6 +644,17 @@ export function getPluginNegativeTtlMs(): number {
  * entry is a scope namespace (`x_acme_app`) or a `sys_scope` sys_id. It is the
  * highest source of authority for `detectSdkManaged` (pending gate O-6).
  */
+/**
+ * P-22 — what a write into an SDK-managed scope (P-3 detection) gets
+ * (`SN_SDK_MANAGED_WRITES`): `warn` (default in 3.x) previews and applies with
+ * an `sdkManaged` warning; `deny` refuses the apply with SDK_MANAGED_SCOPE
+ * (the proposed 4.0 default); `allow` skips the check.
+ */
+export function getSdkManagedWrites(): "allow" | "warn" | "deny" {
+  const v = process.env.SN_SDK_MANAGED_WRITES?.trim().toLowerCase();
+  return v === "allow" || v === "deny" ? v : "warn";
+}
+
 export function getSdkManagedScopes(): string[] {
   return parseNameList(process.env.SN_SDK_MANAGED_SCOPES);
 }
