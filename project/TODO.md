@@ -390,6 +390,22 @@
       plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
       139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
       on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (uncommitted).** Attachments follow
+      the parent table; plugin-API tools check backing tables; Code Search hits filtered; batch:
+      nested batch refused, tables from query/body, attachment-by-id resolved under a table policy,
+      `SN_BATCH_UNMAPPED` (default `allow`), `SN_BATCH_MAX_REQUESTS` (default 1000), bodies in the
+      preview; `change_conflicts(calculate)` is plan/apply + journaled (**behaviour change**,
+      CHANGELOG → Changed); 17 tests incl. the read-only / table-deny sweep over every write tool.
+      Owner decisions: (a) 3.0 defaults — `SN_BATCH_UNMAPPED=deny` and `SN_BATCH_MAX_REQUESTS=50`
+      (O-4)? (b) the knob is `SN_BATCH_UNMAPPED=allow|deny`, not the roadmap's
+      `SN_BATCH_ALLOW_UNMAPPED=1` — accept the rename? (c) `change_conflicts(calculate:true)` now
+      previews in plan mode — ship in 2.1 as a plan-by-default fix, or hold for O-4? (d)
+      `test_connection` stays outside the table policy (one `sys_user` sys_id) — keep the
+      exception? (e) a denied parent table now also hides attachment metadata and an unscoped
+      attachment list in a batch is refused while a table policy is set — acceptable? (f) the Code
+      Search LIKE fallback refuses the whole search when a default script table is denied, while
+      the API path filters — make the LIKE path skip denied types too? (g) `delete_attachment`
+      apply reads the metadata twice (journal `before` + the policy check) — one extra GET.
 - [x] **Test hermeticity** — done 2026-09-26 (uncommitted): with `HTTPS_PROXY` set in the shell
       (corporate / cloud dev environments) 553 tests failed and `test/tasks.test.js` spun at 100 %
       CPU — H-10's dispatcher asks for the optional `undici` package. `baselineEnv()` in

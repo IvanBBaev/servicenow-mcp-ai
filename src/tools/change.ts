@@ -171,7 +171,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_change_conflicts",
     title: "Change schedule conflicts",
     description:
-      "Read schedule conflicts for a change, or recalculate them (calculate=true). Recalculation is a write and is blocked in read-only mode.",
+      "Read schedule conflicts for a change, or recalculate them (calculate=true). Recalculation is a write: plan/apply like other writes, journaled, blocked in read-only mode.",
     package: "change",
     annotations: {
       readOnlyHint: false,
@@ -187,9 +187,42 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "When true, recalculate conflicts (POST) instead of reading.",
         ),
+      apply: applyInput,
+    },
+    // H-3 / H-4: recalculation replaces the change's conflict rows.
+    confirm: {
+      when: (args) => args.calculate === true,
+      target: (args) => ({
+        action: "execute",
+        table: "conflict",
+        sys_id: String(args.sys_id),
+      }),
     },
     logFields: (args) => ({ calculate: args.calculate }),
-    handler: async ({ sys_id, calculate }) =>
-      ok({ result: await changeConflicts(sys_id, calculate ?? false) }),
+    handler: async ({ sys_id, calculate, apply }) => {
+      if (!calculate) {
+        return ok({ result: await changeConflicts(sys_id, false) });
+      }
+      // H-4: a recalculation is a write — preview it in plan mode (with the
+      // conflicts it would replace) and journal it when applied.
+      if (!shouldApply(apply)) {
+        return planPreview({
+          action: "execute",
+          table: "conflict",
+          sys_id,
+          before: await changeConflicts(sys_id, false),
+        });
+      }
+      const result = await journaledWrite(
+        {
+          action: "execute",
+          table: "conflict",
+          sys_id,
+          fields: { calculate: true, change_request: sys_id },
+        },
+        () => changeConflicts(sys_id, true),
+      );
+      return ok({ result });
+    },
   }),
 ];

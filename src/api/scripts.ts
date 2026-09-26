@@ -1,3 +1,4 @@
+import { isTableAllowed } from "../core/policy.js";
 import { ServiceNowError } from "../core/errors.js";
 import { snRequest } from "../core/http.js";
 import { useCodeSearch } from "../core/settings.js";
@@ -456,6 +457,9 @@ async function codeSearchApi(
       const r = it as Record<string, unknown>;
       const tbl = snString(r.table ?? r.tableName ?? r.table_name);
       if (table && tbl && tbl !== table) continue;
+      // H-4: the Code Search API scans every script table itself, so a hit
+      // on a denied table is dropped here (the LIKE path asserts per table).
+      if (tbl && !isTableAllowed(tbl)) continue;
       const lineNo = Number(snString(r.line ?? r.lineNumber ?? r.line_number));
       const field =
         snString(r.field ?? r.fieldName ?? r.field_name) || "script";

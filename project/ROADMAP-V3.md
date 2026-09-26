@@ -90,7 +90,7 @@ Effort key (single maintainer): **S** ≤ 1 day · **M** 2–5 days · **L** 1�
 | 10  | **H-7** HTTP transport v2                               | H      | Multi-session + per-session profile + rebinding guard + e2e; the biggest verified defect.                                                                                                                                                                                                                                                | L      | 🔴                                                                                                                                                                               |
 | 11  | **M-2** error contract v2                               | M      | Public-contract break; ship in the same minor as M-7 so clients migrate once.                                                                                                                                                                                                                                                            | M      | 🔴                                                                                                                                                                               |
 | 12  | **M-7** tool naming convention v3                       | M      | Public-contract break; alias map + manifest diff; must precede README/site regeneration.                                                                                                                                                                                                                                                 | L      | 🔴                                                                                                                                                                               |
-| 13  | **H-4** policy-axis bypass closure                      | H      | Every write must be governed before writes become reversible.                                                                                                                                                                                                                                                                            | M      | 🔴                                                                                                                                                                               |
+| 13  | **H-4** policy-axis bypass closure                      | H      | **Partly done 2026-09-26 (local, opt-in default).** Nested batch refused, tables from query/body, attachment parent-table checks, backing tables for plugin APIs, `change_conflicts` plan/apply, sweep test. Open: `SN_BATCH_UNMAPPED` / max defaults (O-4).                                                                             | M      | 🟡                                                                                                                                                                               |
 | 14  | **H-5** journal v2 + deep redaction                     | H      | **Done 2026-09-23 (local).** v2 lines (ULID, `result`, `before`, `client`, sha256 `prev` chain + head file), rotation at `SN_JOURNAL_MAX_BYTES`, batch sub-request lines, `local_write`/`config` entries, deep redaction at `ok`/`fail`, CSV formula guard + BOM.                                                                        | M      | 🟢                                                                                                                                                                               |
 | 15  | **H-3** plan-token binding + elicitation                | H      | **Partly done 2026-09-26 (local, opt-in).** `SN_DESTRUCTIVE_CONFIRM` `token` / `elicit` (default `off`): single-use `plan_token`, `PLAN_REQUIRED` / `CONFIRM_DECLINED`, journaled. Open: 3.0 default (O-4), `change_conflicts` (H-4), `STALE_RECORD`, email preview cap.                                                                 | M      | 🟡                                                                                                                                                                               |
 | 16  | **H-6** outbound hardening                              | H      | **Done 2026-09-23 (local).** Redirects blocked, `SN_MAX_BODY_BYTES`, IPv6-aware host guard (suffix entries never open internal hosts), TLS-off warning, OAuth callback path/`state`, upload caps + MIME allow-list, docs store device-name/`:`/symlink/size guards, `send_email` recipient allow-list (behaviour change → O-4).          | M      | 🟢                                                                                                                                                                               |
@@ -256,8 +256,8 @@ a CHANGELOG line. Breaking items add a row to the migration table in the CHANGEL
   asks only clients that advertise elicitation (others rely on the token); a decline or a
   failed prompt → `CONFIRM_DECLINED` (403), journaled `refused`. `PLAN_REQUIRED` (428) is not
   journaled (nothing was attempted). `test/plan-token.test.js` (16 tests, mutation-checked).
-  **Open:** the 3.0 default (O-4 / B4); `change_conflicts(calculate:true)` has no plan/apply yet
-  (H-4); `STALE_RECORD` + `force` on delete (L2-05); prod profiles → `CONFIRM_REQUIRED` (needs
+  `change_conflicts(calculate:true)` joined as the seventh tool with H-4 (2026-09-26).
+  **Open:** the 3.0 default (O-4 / B4); `STALE_RECORD` + `force` on delete (L2-05); prod profiles → `CONFIRM_REQUIRED` (needs
   the H-11 environment marker, L5-04); email `body_preview` + `body_sha256` (L4-06);
   `unknown_fields` (L2-06); the D-8 `PreToolUse` hook.
 
@@ -278,6 +278,31 @@ a CHANGELOG line. Breaking items add a row to the migration table in the CHANGEL
 - [ ] _(gap pass 2026-09-09)_ `SN_BATCH_MAX_REQUESTS` (50) enforced before any request is built — L2-03; probe-read semantics (`unknown`, not an error) are defined in H-11 — L3-05.
 - **Acceptance:** a property test over every write tool proves no path reaches the instance
   without a policy verdict.
+- **Partly done 2026-09-26 (local, uncommitted), non-breaking:** batch — nested batch paths are
+  always refused; `SN_BATCH_UNMAPPED=allow|deny` (default `allow` until O-4; the roadmap's
+  `SN_BATCH_ALLOW_UNMAPPED=1` becomes `SN_BATCH_UNMAPPED=allow` so one knob covers both sides of
+  the flip); tables come from the path, the query (`table_name`, attachment `sysparm_query`) and
+  the body (Email API `table_name`, IRE `items[].className` + `cmdb_rel_ci`); an attachment
+  addressed by sys_id is resolved to its parent table with one metadata read while a table policy
+  is set, and an unscoped attachment list is refused then; `SN_BATCH_MAX_REQUESTS` (1–1000,
+  default 1000 — the 50 of L2-03 is an O-4 decision) is checked first; `PACKAGE_BY_PATH` gains
+  `sn_cicd` → atf, `sn_codesearch` → scripts, `identifyreconcile` → cmdb; previews list each
+  sub-request's body (through the result redaction), tables and package. Attachments get /
+  download / delete check the parent `table_name`; an unscoped `list_attachments` drops rows of a
+  denied table. Backing tables: change (`change_request`, `conflict` on calculate), catalog
+  (`sc_catalog`, `sc_category`, `sc_cat_item`, `sc_request` + `sc_req_item` on order), knowledge
+  (`kb_knowledge`), email (`sys_email` + the associated record's table), ATF (`sys_atf_test`,
+  `sys_atf_test_suite`); Code Search API hits on a denied table are dropped. `change_conflicts`
+  (`calculate:true`) is plan/apply, journaled (`execute` on `conflict`) and an H-3 destructive
+  apply. Headers carry no table on any mapped API, so nothing is read from them.
+  `test/policy-h4.test.js` (17 tests, mutation-checked): the acceptance sweep calls every tool
+  with an `apply` argument under `SN_READONLY` and with its target table denied — no mutating
+  request in either; the GA-7 pin test fails when `src/api` calls a REST prefix that
+  `PACKAGE_BY_PATH` does not map. **Deliberate exception:** `test_connection` still reads one
+  `sys_user` sys_id past the table policy (a diagnostic). **Open:** the unmapped / max-requests
+  defaults (O-4); probe-read semantics and `SN_IMPORT_SET_TABLES` (H-11); the Code Search LIKE
+  fallback still refuses the whole search when a default script table is denied (the API path
+  filters instead).
 
 ### H-5 — Journal v2 + deep redaction (M)
 

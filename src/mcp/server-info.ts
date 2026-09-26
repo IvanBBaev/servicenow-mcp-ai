@@ -86,7 +86,7 @@ function writesLine(): string {
   // H-3: say how a destructive apply is confirmed, so the model keeps the token.
   return getDestructiveConfirm() === "off"
     ? plan
-    : `${plan} Destructive applies (deletes, writing batches, email, catalog orders, reverts) also need the preview's single-use plan_token.`;
+    : `${plan} Destructive applies (deletes, writing batches, email, catalog orders, reverts, conflict recalculation) also need the preview's single-use plan_token.`;
 }
 
 /**
