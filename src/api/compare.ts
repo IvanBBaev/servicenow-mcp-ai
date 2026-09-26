@@ -15,6 +15,13 @@ import {
   type RecordSectionId,
 } from "./collectors.js";
 import { unifiedDiff } from "./unified-diff.js";
+import {
+  collectArtifactType,
+  diffArtifactType,
+  resolveArtifactTypes,
+  type ArtifactDiff,
+  type ArtifactTypeSnapshot,
+} from "./artifact-snapshot.js";
 import { snString, mdTable } from "./shared.js";
 import { listProfiles } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
@@ -47,6 +54,10 @@ export interface CompareOptions {
   fromSnapshot?: boolean;
   /** Record sections to compare as well (S-7); default none. */
   sections?: RecordSectionId[];
+  /** P-20: registry artefact types to compare (`["all"]` = every type). */
+  types?: string[];
+  /** P-20: limit the artefact types to one application scope. */
+  scope?: string;
 }
 
 interface ColumnDiff {
@@ -88,6 +99,8 @@ export interface CompareResult {
   appDiffs: string[];
   /** Only with `sections`. */
   recordDiffs?: RecordDiff[];
+  /** Only with `types` (P-20). */
+  artifactDiffs?: ArtifactDiff[];
   warnings: string[];
   /**
    * Standing limits of the comparison (H-8 C-11): domain separation and ACL
@@ -355,6 +368,48 @@ function diffRecords(
   return out.sort((x, y) => x.key.localeCompare(y.key));
 }
 
+/**
+ * P-20: one side of a registry type — the snapshot's `artifacts/<type>.json`
+ * when allowed (and taken for the same scope), else a live read.
+ */
+async function artifactsFor(
+  profile: string,
+  type: string,
+  scope: string,
+  fromSnapshot: boolean,
+  warnings: string[],
+): Promise<ArtifactTypeSnapshot | undefined> {
+  if (fromSnapshot) {
+    const snap = (await readSnapshotJson(profile, `artifacts/${type}.json`)) as
+      | (ArtifactTypeSnapshot & { scope?: string })
+      | undefined;
+    if (Array.isArray(snap?.records) && (snap.scope ?? "") === scope) {
+      return snap;
+    }
+    warnings.push(
+      `artifact ${type}: no snapshot${scope ? ` for scope ${scope}` : ""} for "${profile}", reading live`,
+    );
+  }
+  try {
+    const snap = await runWithProfile(profile, () =>
+      collectArtifactType(type, { scope: scope || undefined }),
+    );
+    for (const w of snap.warnings) warnings.push(`${w} (${profile})`);
+    if (snap.truncated) {
+      warnings.push(
+        `artifact ${type}: ${snap.table} hit the SN_MAX_RECORDS cap — the list is partial. (${profile})`,
+      );
+    }
+    return snap;
+  } catch (e) {
+    rethrowCancel(e);
+    warnings.push(
+      `artifact ${type}: unavailable on "${profile}" — ${e instanceof Error ? e.message : String(e)}`,
+    );
+    return undefined;
+  }
+}
+
 /** Plugin/app identity sets ("id name@version [inactive]") per side. */
 async function inventoryFor(
   profile: string,
@@ -449,7 +504,9 @@ export async function compareInstances(
   const warnings: string[] = [];
   const generatedAt = new Date().toISOString();
   const sections = [...new Set(opts.sections ?? [])];
-  const progress = trackProgress(9 + 2 * sections.length);
+  const types = resolveArtifactTypes(opts.types ?? []);
+  const typeScope = opts.scope?.trim() ?? "";
+  const progress = trackProgress(9 + 2 * sections.length + 2 * types.length);
   /** Run one side of one dimension as a progress step. */
   const step = async <T>(label: string, fn: () => Promise<T>): Promise<T> => {
     const value = await fn();
@@ -552,6 +609,18 @@ export async function compareInstances(
     if (rowsA && rowsB) recordDiffs.push(...diffRecords(section, rowsA, rowsB));
   }
 
+  // -- registry artefacts (P-20) ----------------------------------------------
+  const artifactDiffs: ArtifactDiff[] = [];
+  for (const type of types) {
+    const sideA = await step(`artifact ${type}: ${a}`, () =>
+      artifactsFor(a, type, typeScope, fromSnapshot, warnings),
+    );
+    const sideB = await step(`artifact ${type}: ${b}`, () =>
+      artifactsFor(b, type, typeScope, fromSnapshot, warnings),
+    );
+    if (sideA && sideB) artifactDiffs.push(...diffArtifactType(sideA, sideB));
+  }
+
   // -- plugins / apps -------------------------------------------------------
   const [invA, invB] = [
     await step(`inventory: ${a}`, () =>
@@ -639,6 +708,32 @@ export async function compareInstances(
               : ["No differences.", ""]),
           ]
         : []),
+      ...(types.length > 0
+        ? [
+            `## Artefacts (${types.length} registry type${types.length === 1 ? "" : "s"}${typeScope ? `, scope ${typeScope}` : ""})`,
+            "",
+            ...(artifactDiffs.length > 0
+              ? [
+                  mdTable(
+                    ["Type", "Key", "Status", "Fields", "Children"],
+                    artifactDiffs.map((d) => [
+                      d.type,
+                      d.key,
+                      d.status,
+                      d.fields?.join(", ") ?? "",
+                      Object.entries(d.children ?? {})
+                        .map(
+                          ([t, c]) =>
+                            `${t}: -${c.only_in_a} +${c.only_in_b} ~${c.different}`,
+                        )
+                        .join("; "),
+                    ]),
+                  ),
+                  "",
+                ]
+              : ["No differences.", ""]),
+          ]
+        : []),
       "## Plugins",
       "",
       ...(pluginDiffs.length > 0
@@ -675,6 +770,7 @@ export async function compareInstances(
         pluginDiffs,
         appDiffs,
         ...(sections.length > 0 ? { sections, recordDiffs } : {}),
+        ...(types.length > 0 ? { types, scope: typeScope, artifactDiffs } : {}),
         warnings,
       },
       legacy: /^# Instance comparison — /,
@@ -693,6 +789,7 @@ export async function compareInstances(
     pluginDiffs,
     appDiffs,
     ...(sections.length > 0 ? { recordDiffs } : {}),
+    ...(types.length > 0 ? { artifactDiffs } : {}),
     warnings,
     caveats: [...COMPARE_CAVEATS],
   };
@@ -707,6 +804,7 @@ export function driftCount(result: CompareResult): number {
     result.scriptDiffs.length +
     result.pluginDiffs.length +
     result.appDiffs.length +
-    (result.recordDiffs?.length ?? 0)
+    (result.recordDiffs?.length ?? 0) +
+    (result.artifactDiffs?.length ?? 0)
   );
 }
