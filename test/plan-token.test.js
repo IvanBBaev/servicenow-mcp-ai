@@ -404,12 +404,13 @@ test("token: SN_REDACT_PII cannot mangle the token (letters only)", async () => 
   );
 });
 
-test("schema: exactly the six destructive-apply tools gain plan_token", () => {
+test("schema: exactly the seven destructive-apply tools gain plan_token", () => {
   const withToken = ALL_TOOLS.filter(
     (s) => "plan_token" in buildInputSchema(s).shape,
   ).map((s) => s.name);
   assert.deepEqual(withToken.sort(), [
     "servicenow_batch",
+    "servicenow_change_conflicts",
     "servicenow_delete_attachment",
     "servicenow_delete_record",
     "servicenow_order_catalog_item",

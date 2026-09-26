@@ -165,7 +165,7 @@ export function getWriteMode(): "plan" | "apply" {
 /**
  * H-3 — how a destructive apply (`apply:true` on delete_record,
  * delete_attachment, a writing batch, send_email, order_catalog_item,
- * revert_write) is confirmed in plan mode (`SN_DESTRUCTIVE_CONFIRM`):
+ * revert_write, change_conflicts with calculate) is confirmed in plan mode (`SN_DESTRUCTIVE_CONFIRM`):
  * - `off` (default until 3.0): no extra check — today's behaviour;
  * - `token`: the call must carry the `plan_token` of a matching, unexpired,
  *   unused plan preview (`PLAN_REQUIRED` otherwise);
@@ -182,6 +182,24 @@ export function getDestructiveConfirm(): "off" | "token" | "elicit" {
 export function getPlanTokenTtlSec(): number {
   const n = Number(process.env.SN_PLAN_TOKEN_TTL_SEC);
   return Number.isInteger(n) && n >= 30 && n <= 86_400 ? n : 600;
+}
+
+/**
+ * H-4 — what a Batch API sub-request whose path maps to no tool package gets
+ * (`SN_BATCH_UNMAPPED`): `allow` (default until 3.0) checks it against the
+ * table and read-only axes only; `deny` refuses it, so a new plugin API cannot
+ * slip past SN_PACKAGES_DENY / SN_PACKAGES_READONLY inside a batch.
+ */
+export function getBatchUnmapped(): "allow" | "deny" {
+  return process.env.SN_BATCH_UNMAPPED?.trim().toLowerCase() === "deny"
+    ? "deny"
+    : "allow";
+}
+
+/** H-4 — most sub-requests one batch may carry (`SN_BATCH_MAX_REQUESTS`, 1–1000, default 1000). */
+export function getBatchMaxRequests(): number {
+  const n = Number(process.env.SN_BATCH_MAX_REQUESTS);
+  return Number.isInteger(n) && n >= 1 && n <= 1000 ? n : 1000;
 }
 
 /**

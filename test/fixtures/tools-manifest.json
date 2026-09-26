@@ -357,7 +357,7 @@
       "package": "change",
       "title": "Change schedule conflicts",
       "since": "2.0.1",
-      "description_sha256": "1fbdda56856bd99e468bf986735369984e4244b07f2646164af63f1e82ceaa98",
+      "description_sha256": "fb2795d506bd9e20440d329dc998b92cf503e3e1cf64c55f25aa231adb13a085",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -368,6 +368,10 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "apply": {
+            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "type": "boolean"
+          },
           "calculate": {
             "description": "When true, recalculate conflicts (POST) instead of reading.",
             "type": "boolean"
@@ -375,6 +379,11 @@
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
             "type": "string"
           },
           "sys_id": {

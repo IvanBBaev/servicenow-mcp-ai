@@ -56,6 +56,19 @@ export function isReadOnly(profile?: string): boolean {
   return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
 }
 
+/**
+ * H-4: the table axis as a predicate — for filtering rows that name their
+ * table (attachment lists, code-search hits) instead of refusing the call.
+ */
+export function isTableAllowed(table: string): boolean {
+  try {
+    assertTableAllowed(table);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Throw a 403-style ServiceNowError when the table is not permitted. */
 export function assertTableAllowed(table: string): void {
   const t = table.trim().toLowerCase();

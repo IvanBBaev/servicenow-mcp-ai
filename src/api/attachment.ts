@@ -1,5 +1,9 @@
 import { snRequest } from "../core/http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import {
+  assertTableAllowed,
+  assertWriteAllowed,
+  isTableAllowed,
+} from "../core/policy.js";
 import { createHash } from "node:crypto";
 import {
   getMaxResultChars,
@@ -44,7 +48,10 @@ export async function listAttachments(
     path: "/api/now/attachment",
     params,
   });
-  return expectResultArray(data, "Attachment API");
+  // H-4: an unscoped list must not surface attachments of a denied table.
+  return expectResultArray<AttachmentMeta>(data, "Attachment API").filter(
+    (a) => !a.table_name || isTableAllowed(a.table_name),
+  );
 }
 
 /** Read a single attachment's metadata by its sys_id. */
@@ -55,7 +62,11 @@ export async function getAttachmentMeta(
     method: "GET",
     path: `/api/now/attachment/${encodeURIComponent(attachmentSysId)}`,
   });
-  return expectResult(data, "Attachment API");
+  const meta = expectResult<AttachmentMeta>(data, "Attachment API");
+  // H-4: an attachment is governed by the table of the record it hangs on,
+  // so get / download / delete cannot reach a denied table's files.
+  if (meta.table_name) assertTableAllowed(meta.table_name);
+  return meta;
 }
 
 /** Standard base64: 4-char groups, '=' padding only at the end. */
@@ -304,6 +315,8 @@ export async function deleteAttachment(
   attachmentSysId: string,
 ): Promise<{ deleted: true; sys_id: string }> {
   assertWriteAllowed("attachment delete");
+  // H-4: read the metadata first so the parent table's policy applies.
+  await getAttachmentMeta(attachmentSysId);
   await snRequest<unknown>({
     method: "DELETE",
     path: `/api/now/attachment/${encodeURIComponent(attachmentSysId)}`,

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   runBatch,
+  packageForUrl,
+  tablesForSubRequest,
   type BatchResult,
   type BatchSubRequest,
 } from "../api/batch.js";
@@ -158,8 +160,20 @@ export const specs: AnyToolSpec[] = [
         return planPreview({
           action: "execute",
           table: "batch",
+          // H-4: the preview shows what each sub-request would send (bodies
+          // pass the result redaction like any output) and what it targets.
           after: {
-            requests: requests.map((r) => ({ method: r.method, url: r.url })),
+            requests: requests.map((r) => {
+              const tables = tablesForSubRequest(r);
+              const pkg = packageForUrl(r.url);
+              return {
+                method: r.method,
+                url: r.url,
+                ...(r.body !== undefined ? { body: r.body } : {}),
+                ...(tables.length ? { tables } : {}),
+                package: pkg ?? null,
+              };
+            }),
           },
         });
       }
