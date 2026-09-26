@@ -390,6 +390,13 @@
       plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
       139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
       on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [ ] **P-20 · Snapshot / compare over the registry — done 2026-09-26 (uncommitted) bar flow
+      snapshots.** `types` / `scope` on both tools; 8 tests. Owner decisions: (a) flows from
+      `sys_hub_flow_snapshot` need the published/draft authority confirmed (O-5); (b) nested
+      children (portal layout rows / columns / instances) are skipped with a warning — walk them?
+      (c) secret fields are masked, so a changed secret is not drift — hash them instead? (d)
+      `["all"]` reads every registry type (about 100 primary reads plus children) — cap it? (e)
+      the `all` tools/list budget rose to 141,000 (measured 140,142).
 - [x] **P-18 · Registry-driven lint and search** — done 2026-09-26 (uncommitted): three portal
       rules, `lint_script` opt-in types, `code_health({extended, limit})` registry sweep,
       `where_used({extended})`; 6 tests. Owner decisions: (a) the sweep is opt-in (`extended`) —

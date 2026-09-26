@@ -616,6 +616,13 @@ unless it says so.
       diffed as text.
 - **Depends on:** S-7 (this extends its snapshot list to the whole registry), P-7…P-10.
 - **Acceptance:** snapshot of the same instance twice gives an empty diff; `drift` exit codes unchanged.
+- **Done 2026-09-26 (local, uncommitted), bar flows from the published snapshot.**
+  `src/api/artifact-snapshot.ts` (`collectArtifactType`, `normalizeRow`, `diffArtifactType`);
+  `types` / `scope` on both tools (opt-in, so defaults and the `drift` CLI are unchanged). Direct
+  children only — a child that hangs off another child (`parentTable`, e.g. the portal layout
+  tree) is named in a warning; `alsoMatch` composite links are honoured. Not done: reading flows
+  from `sys_hub_flow_snapshot` (the published/draft authority is unverified, O-5) and Mermaid
+  graphs diffed as text. `test/p20-artifact-snapshot.test.js` (8 tests, mutation-checked).
 
 #### P-21 — Application documentation generator (M)
 

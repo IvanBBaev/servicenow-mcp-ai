@@ -550,6 +550,11 @@
             "maxLength": 128,
             "type": "string"
           },
+          "scope": {
+            "description": "Scope for types.",
+            "maxLength": 128,
+            "type": "string"
+          },
           "sections": {
             "description": "Also compare these snapshot record sections, matched by sys_id then name: properties, choices, acls, notifications, flows, catalog, roles. Default none.",
             "items": {
@@ -565,6 +570,13 @@
               "type": "string"
             },
             "maxItems": 7,
+            "minItems": 1,
+            "type": "array"
+          },
+          "types": {
+            "description": "Registry types (with children) or ['all']; default none.",
+            "items": { "maxLength": 80, "type": "string" },
+            "maxItems": 200,
             "minItems": 1,
             "type": "array"
           }
@@ -5062,6 +5074,11 @@
             "description": "Continue an interrupted snapshot: skip the sections whose files still carry the recorded source hash (default false).",
             "type": "boolean"
           },
+          "scope": {
+            "description": "Scope for types.",
+            "maxLength": 128,
+            "type": "string"
+          },
           "sections": {
             "description": "Sections to collect (default all): tables, plugins, apps, automation, properties, choices, acls, notifications, flows, catalog, roles.",
             "items": {
@@ -5092,6 +5109,13 @@
               "type": "string"
             },
             "maxItems": 1000,
+            "type": "array"
+          },
+          "types": {
+            "description": "Registry types (with children) or ['all']; default none.",
+            "items": { "maxLength": 80, "type": "string" },
+            "maxItems": 200,
+            "minItems": 1,
             "type": "array"
           }
         },
