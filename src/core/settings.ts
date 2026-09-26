@@ -163,6 +163,28 @@ export function getWriteMode(): "plan" | "apply" {
 }
 
 /**
+ * H-3 — how a destructive apply (`apply:true` on delete_record,
+ * delete_attachment, a writing batch, send_email, order_catalog_item,
+ * revert_write) is confirmed in plan mode (`SN_DESTRUCTIVE_CONFIRM`):
+ * - `off` (default until 3.0): no extra check — today's behaviour;
+ * - `token`: the call must carry the `plan_token` of a matching, unexpired,
+ *   unused plan preview (`PLAN_REQUIRED` otherwise);
+ * - `elicit`: `token`, and a client that supports elicitation is also asked
+ *   to confirm (a decline or a failed prompt refuses the write).
+ * `SN_WRITE_MODE=apply` (a trusted operator) bypasses all of it.
+ */
+export function getDestructiveConfirm(): "off" | "token" | "elicit" {
+  const v = process.env.SN_DESTRUCTIVE_CONFIRM?.trim().toLowerCase();
+  return v === "token" || v === "elicit" ? v : "off";
+}
+
+/** H-3 — lifetime of a plan token (`SN_PLAN_TOKEN_TTL_SEC`, default 600, 30–86400). */
+export function getPlanTokenTtlSec(): number {
+  const n = Number(process.env.SN_PLAN_TOKEN_TTL_SEC);
+  return Number.isInteger(n) && n >= 30 && n <= 86_400 ? n : 600;
+}
+
+/**
  * S-6 — the update set applied Table-API writes are bound to by default
  * (SN_UPDATE_SET: a sys_update_set sys_id or name; per profile
  * SN_PROFILE_<NAME>_UPDATE_SET). Unset = no binding, the pre-S-6 behaviour.

@@ -82,6 +82,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    confirm: {
+      target: (args) => ({
+        action: "execute",
+        table: "write_journal",
+        reverts: String(args.entry_id),
+      }),
+    },
     input: {
       entry_id: shortText(128)
         .min(1)

@@ -16,7 +16,7 @@ import {
 import path from "node:path";
 import { getDocsDir, getJournalMaxBytes } from "./settings.js";
 import { activeProfile } from "./config.js";
-import { currentClient, currentTool } from "./request-context.js";
+import { currentCall, currentClient, currentTool } from "./request-context.js";
 import { redactValue } from "./redaction.js";
 import { ServiceNowError } from "./errors.js";
 import { logger } from "./logging.js";
@@ -84,7 +84,7 @@ export interface JournalEntry {
   result?: WriteResult;
   /** The error message of a failed/refused write. */
   error?: string;
-  /** H-3 plan token binding the apply to its plan — reserved, not yet issued. */
+  /** H-3: the plan token the apply consumed (SN_DESTRUCTIVE_CONFIRM=token|elicit). */
   plan_token?: string;
   /** S-6: sys_id of the update set an applied write was bound to (`update_set` / SN_UPDATE_SET). */
   update_set?: string;
@@ -317,6 +317,7 @@ function countWrite(entry: JournalEntry): void {
 export function appendWriteJournal(entry: JournalInput): JournalEntry {
   const client = entry.client ?? currentClient();
   const tool = entry.tool ?? currentTool();
+  const planToken = entry.plan_token ?? currentCall()?.plan?.token;
   const base: JournalEntry = {
     schema_version: JOURNAL_SCHEMA_VERSION,
     id: ulid(),
@@ -324,6 +325,7 @@ export function appendWriteJournal(entry: JournalInput): JournalEntry {
     profile: activeProfile(),
     ...redactEntry(entry),
     ...(tool ? { tool } : {}),
+    ...(planToken ? { plan_token: planToken } : {}),
     result: entry.result ?? "applied",
     ...(client ? { client } : {}),
   };

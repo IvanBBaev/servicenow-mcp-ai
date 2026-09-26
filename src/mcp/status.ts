@@ -14,6 +14,7 @@ import {
 } from "../core/auth.js";
 import {
   getWriteMode,
+  getDestructiveConfirm,
   getTransport,
   getHttpHost,
   getHttpPort,
@@ -221,6 +222,8 @@ export function buildStatusPayload() {
     writeMode: getWriteMode(),
     policy: {
       writeMode: getWriteMode(),
+      // H-3: how a destructive apply is confirmed in plan mode.
+      destructiveConfirm: getDestructiveConfirm(),
       readOnly: isReadOnly(),
       summary: policySummary(),
     },

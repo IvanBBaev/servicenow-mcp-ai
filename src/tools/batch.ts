@@ -135,6 +135,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    // H-3: only a batch that writes needs a plan (a GET-only batch has none).
+    confirm: {
+      when: (args) =>
+        Array.isArray(args.requests) &&
+        args.requests.some((r: { method?: unknown }) => r.method !== "GET"),
+      target: () => ({ action: "execute", table: "batch" }),
+    },
     input: {
       requests: z
         .array(subRequestSchema)
