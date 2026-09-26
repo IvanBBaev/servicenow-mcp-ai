@@ -7,9 +7,14 @@ import {
   orderCatalogItem,
 } from "../api/catalog.js";
 import { ok } from "../mcp/result.js";
-import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import {
+  defineTool,
+  shortText,
+  sysId,
+  type AnyToolSpec,
+} from "../mcp/define.js";
 import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
-import { appendWriteJournal } from "../core/write-journal.js";
+import { journaledWrite } from "../core/write-journal.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -18,7 +23,12 @@ export const specs: AnyToolSpec[] = [
     description:
       "List the Service Catalogs available on the instance (Service Catalog API).",
     package: "catalog",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {},
     handler: async () => ok({ result: await listCatalogs() }),
   }),
@@ -28,9 +38,14 @@ export const specs: AnyToolSpec[] = [
     title: "List catalog categories",
     description: "List the categories within a service catalog.",
     package: "catalog",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      catalog_sys_id: z.string().describe("sys_id of the catalog."),
+      catalog_sys_id: sysId().describe("sys_id of the catalog."),
     },
     handler: async ({ catalog_sys_id }) =>
       ok({ result: await listCatalogCategories(catalog_sys_id) }),
@@ -42,11 +57,15 @@ export const specs: AnyToolSpec[] = [
     description:
       "Search/list orderable catalog items, optionally by text or category.",
     package: "catalog",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      text: z.string().optional().describe("Free-text search filter."),
-      category: z
-        .string()
+      text: shortText(1000).optional().describe("Free-text search filter."),
+      category: shortText()
         .optional()
         .describe("Restrict to a category sys_id."),
       limit: z.number().int().positive().max(100).optional(),
@@ -62,9 +81,14 @@ export const specs: AnyToolSpec[] = [
     description:
       "Get a catalog item, including its order variables, by sys_id.",
     package: "catalog",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      item_sys_id: z.string().describe("sys_id of the catalog item."),
+      item_sys_id: sysId().describe("sys_id of the catalog item."),
     },
     handler: async ({ item_sys_id }) =>
       ok({ result: await getCatalogItem(item_sys_id) }),
@@ -83,7 +107,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      item_sys_id: z.string().describe("sys_id of the catalog item."),
+      item_sys_id: sysId().describe("sys_id of the catalog item."),
       quantity: z
         .number()
         .int()
@@ -108,16 +132,19 @@ export const specs: AnyToolSpec[] = [
           },
         });
       }
-      const result = await orderCatalogItem({
-        itemSysId: item_sys_id,
-        quantity,
-        variables,
-      });
-      appendWriteJournal({
-        action: "create",
-        table: "sc_request",
-        fields: { item: item_sys_id, quantity: quantity ?? 1 },
-      });
+      const result = await journaledWrite(
+        {
+          action: "create",
+          table: "sc_request",
+          fields: { item: item_sys_id, quantity: quantity ?? 1 },
+        },
+        () =>
+          orderCatalogItem({
+            itemSysId: item_sys_id,
+            quantity,
+            variables,
+          }),
+      );
       return ok({ message: "Order submitted", result });
     },
   }),

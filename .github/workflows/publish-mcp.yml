@@ -19,11 +19,25 @@ jobs:
   publish-mcp:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    env:
+      # H-9: a pinned mcp-publisher release instead of `releases/latest`, verified
+      # against the checksums file of the same release, so a moved or tampered
+      # asset cannot run with the OIDC token. Bump deliberately:
+      # https://github.com/modelcontextprotocol/registry/releases
+      MCP_PUBLISHER_VERSION: 1.8.1
     steps:
-      - uses: actions/checkout@v4
-      - name: Install mcp-publisher
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Install mcp-publisher (pinned, checksum-verified)
         run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          os=$(uname -s | tr '[:upper:]' '[:lower:]')
+          arch=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+          asset="mcp-publisher_${os}_${arch}.tar.gz"
+          checksums="registry_${MCP_PUBLISHER_VERSION}_checksums.txt"
+          base="https://github.com/modelcontextprotocol/registry/releases/download/v${MCP_PUBLISHER_VERSION}"
+          curl -fsSLO "$base/$asset"
+          curl -fsSLO "$base/$checksums"
+          sha256sum --check --ignore-missing "$checksums"
+          tar xzf "$asset" mcp-publisher
       - name: Publish to the MCP Registry (GitHub OIDC)
         run: |
           ./mcp-publisher login github-oidc

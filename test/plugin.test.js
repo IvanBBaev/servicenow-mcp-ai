@@ -5,12 +5,18 @@ import {
   pluginCall,
   pluginAvailability,
   clearPluginAvailability,
+  setPluginProbe,
 } from "../build/api/plugin.js";
 import { expectResult } from "../build/api/shared.js";
 import { ServiceNowError } from "../build/core/errors.js";
 import { withEnv } from "./helpers.js";
 
-test.beforeEach(() => clearPluginAvailability());
+test.beforeEach(() => {
+  clearPluginAvailability();
+  // These tests throw errors directly (no fetch mock): keep the H-8 C-10
+  // plugin-state probe off the network — "unknown" keeps the generic wording.
+  setPluginProbe(async () => undefined);
+});
 
 const namespace404 = () =>
   new ServiceNowError("ServiceNow API error (404): not found", 404, {

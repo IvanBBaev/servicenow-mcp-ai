@@ -5,12 +5,15 @@ import {
   renameSync,
   mkdirSync,
   chmodSync,
+  unlinkSync,
 } from "node:fs";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import dotenv from "dotenv";
 import { currentRequestProfile } from "./request-context.js";
+import { currentRuntime, defineRuntimePart } from "./runtime.js";
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 
@@ -76,7 +79,7 @@ export function assertValidProfileName(profile: string): void {
   }
 }
 
-function envKeysFor(profile: string): {
+export function envKeysFor(profile: string): {
   instance: string;
   user: string;
   password: string;
@@ -128,8 +131,15 @@ export function listProfiles(): string[] {
  * returns the same immutable snapshot until saveCredentials/useProfile (or an
  * explicit reload) swaps the store in a single assignment. A torn read
  * (new user + old password) is structurally impossible.
+ *
+ * E-3: the store is held by the runtime container (a fresh runtime re-reads
+ * the environment); it survives dispose() — credentials are not session state.
  */
-let store = new Map<string, ServiceNowCredentials>();
+const profileStorePart = defineRuntimePart("profiles", () => ({
+  snapshots: new Map<string, ServiceNowCredentials>(),
+}));
+
+const profileStore = () => currentRuntime().get(profileStorePart);
 
 function snapshotFromEnv(profile: string): ServiceNowCredentials {
   const keys = envKeysFor(profile);
@@ -144,6 +154,7 @@ function snapshotFromEnv(profile: string): ServiceNowCredentials {
 export function getCredentials(
   profile: string = activeProfile(),
 ): ServiceNowCredentials {
+  const store = profileStore().snapshots;
   let creds = store.get(profile);
   if (!creds) {
     creds = snapshotFromEnv(profile);
@@ -157,25 +168,182 @@ export function getCredentials(
  * loadEnv() at startup and by tests that stage the environment directly.
  */
 export function reloadCredentialsFromEnv(): ServiceNowCredentials {
-  store = new Map();
+  profileStore().snapshots = new Map();
   return getCredentials();
 }
 
-/** True when the profile's instance, user and password are all present. */
-export function hasCredentials(profile: string = activeProfile()): boolean {
+// ---------------------------------------------------------------------------
+// D-2 — per-auth-method credential model
+// ---------------------------------------------------------------------------
+
+/** Every inbound REST auth method ServiceNow supports. */
+export type AuthMode = "basic" | "oauth" | "apikey" | "token" | "none";
+
+/** The auth settings `servicenow_set_credentials` can write (env suffixes). */
+export type AuthSetting =
+  | "AUTH"
+  | "API_KEY"
+  | "OAUTH_CLIENT_ID"
+  | "OAUTH_CLIENT_SECRET"
+  | "OAUTH_GRANT";
+
+/** Pending (not yet persisted) auth values, keyed by env suffix. */
+export type PendingAuth = Partial<Record<string, string>>;
+
+/**
+ * Read an auth env var for `profile`: SN_PROFILE_<NAME>_<SUFFIX> first, then
+ * the global SN_<SUFFIX> (an empty override falls through). `pending` values
+ * win over both — used to evaluate a change before it is written.
+ */
+export function profileAuthEnv(
+  suffix: string,
+  profile: string,
+  pending: PendingAuth = {},
+): string | undefined {
+  const staged = pending[suffix];
+  if (staged !== undefined) return staged;
+  if (profile !== "default") {
+    const scoped = process.env[`SN_PROFILE_${profile.toUpperCase()}_${suffix}`];
+    if (scoped !== undefined && scoped.trim() !== "") return scoped;
+  }
+  return process.env[`SN_${suffix}`];
+}
+
+/** The env key a profile's auth setting is written to. */
+export function authEnvKey(suffix: string, profile: string): string {
+  return profile === "default"
+    ? `SN_${suffix}`
+    : `SN_PROFILE_${profile.toUpperCase()}_${suffix}`;
+}
+
+const AUTH_MODES: readonly AuthMode[] = [
+  "basic",
+  "oauth",
+  "apikey",
+  "token",
+  "none",
+];
+
+/**
+ * Resolve a profile's auth mode. An explicit SN_AUTH wins; otherwise it is
+ * inferred from the present keys: API key → bearer token (inline or file) →
+ * OAuth client id → Basic.
+ */
+export function authModeFor(
+  profile: string,
+  pending: PendingAuth = {},
+): AuthMode {
+  const env = (suffix: string) =>
+    profileAuthEnv(suffix, profile, pending)?.trim();
+  const explicit = env("AUTH")?.toLowerCase();
+  if (explicit && (AUTH_MODES as readonly string[]).includes(explicit)) {
+    return explicit as AuthMode;
+  }
+  if (env("API_KEY")) return "apikey";
+  if (env("BEARER_TOKEN") || env("TOKEN_FILE")) return "token";
+  if (env("OAUTH_CLIENT_ID")) return "oauth";
+  return "basic";
+}
+
+/** A profile's OAuth grant (lower-cased; `password` when unset). */
+export function oauthGrantFor(
+  profile: string,
+  pending: PendingAuth = {},
+): string {
+  return (
+    profileAuthEnv("OAUTH_GRANT", profile, pending)?.trim().toLowerCase() ||
+    "password"
+  );
+}
+
+/** Presence-only view of a profile's credentials — never carries a secret. */
+export interface CredentialStatus {
+  /** True when every field the auth method needs is present. */
+  configured: boolean;
+  mode: AuthMode;
+  /** The OAuth grant — only for `oauth`. */
+  grant?: string;
+  /** Missing fields, named by role (e.g. `password`, `api_key`). */
+  missing: string[];
+}
+
+/**
+ * Evaluate a profile against the requirements of its own auth method (D-2):
+ *   basic   instance + user + password
+ *   apikey  instance + API key
+ *   token   instance + bearer token (SN_BEARER_TOKEN or SN_TOKEN_FILE)
+ *   oauth   instance + client id + the grant's material — user + password
+ *           (password), client secret (client_credentials), refresh token
+ *           (refresh_token), private key + subject (jwt_bearer)
+ *   none    instance only (certificate-only mutual TLS)
+ */
+export function credentialStatus(
+  profile: string = activeProfile(),
+): CredentialStatus {
   const c = getCredentials(profile);
-  return Boolean(c.instance && c.user && c.password);
+  const env = (suffix: string) => profileAuthEnv(suffix, profile)?.trim();
+  const mode = authModeFor(profile);
+  const missing: string[] = [];
+  if (!c.instance) missing.push("instance");
+  let grant: string | undefined;
+  switch (mode) {
+    case "basic":
+      if (!c.user) missing.push("user");
+      if (!c.password) missing.push("password");
+      break;
+    case "apikey":
+      if (!env("API_KEY")) missing.push("api_key");
+      break;
+    case "token":
+      if (!env("BEARER_TOKEN") && !env("TOKEN_FILE"))
+        missing.push("bearer_token");
+      break;
+    case "oauth":
+      grant = oauthGrantFor(profile);
+      if (!env("OAUTH_CLIENT_ID")) missing.push("oauth_client_id");
+      if (grant === "password") {
+        if (!c.user) missing.push("user");
+        if (!c.password) missing.push("password");
+      } else if (grant === "client_credentials") {
+        if (!env("OAUTH_CLIENT_SECRET")) missing.push("oauth_client_secret");
+      } else if (grant === "refresh_token") {
+        if (!env("OAUTH_REFRESH_TOKEN")) missing.push("oauth_refresh_token");
+      } else if (grant === "jwt_bearer") {
+        // The inline key may legitimately carry surrounding whitespace.
+        if (!env("OAUTH_JWT_KEY") && !env("OAUTH_JWT_KEY_FILE"))
+          missing.push("oauth_jwt_key");
+        if (!env("OAUTH_JWT_SUB") && !c.user) missing.push("oauth_jwt_sub");
+      } else {
+        missing.push("oauth_grant");
+      }
+      break;
+    case "none":
+      break;
+  }
+  return {
+    configured: missing.length === 0,
+    mode,
+    ...(grant ? { grant } : {}),
+    missing,
+  };
+}
+
+/** True when the profile has everything its auth method needs (D-2). */
+export function hasCredentials(profile: string = activeProfile()): boolean {
+  return credentialStatus(profile).configured;
 }
 
 /**
  * Persist credentials to the .env file and update process.env so the new
  * values take effect immediately. Only the provided fields are changed;
  * any other keys already in .env are preserved. Non-default profiles write
- * their prefixed keys.
+ * their prefixed keys. `auth` carries D-2 auth settings (SN_AUTH, SN_API_KEY,
+ * SN_OAUTH_*) written in the same atomic update.
  */
 export function saveCredentials(
   partial: Partial<ServiceNowCredentials>,
   profile: string = activeProfile(),
+  auth: Partial<Record<AuthSetting, string>> = {},
 ): ServiceNowCredentials {
   assertValidProfileName(profile);
   const keys = envKeysFor(profile);
@@ -184,6 +352,10 @@ export function saveCredentials(
     updates[keys.instance] = partial.instance.trim();
   if (partial.user !== undefined) updates[keys.user] = partial.user.trim();
   if (partial.password !== undefined) updates[keys.password] = partial.password;
+  // D-2: auth settings go through the same single atomic write.
+  for (const [suffix, value] of Object.entries(auth)) {
+    if (value !== undefined) updates[authEnvKey(suffix, profile)] = value;
+  }
 
   updateEnvFile(updates);
 
@@ -193,7 +365,7 @@ export function saveCredentials(
 
   // Swap the store in one assignment — readers never observe a half-applied
   // credential change.
-  store = new Map();
+  profileStore().snapshots = new Map();
   return getCredentials(profile);
 }
 
@@ -213,44 +385,56 @@ export function useProfile(name: string): ServiceNowCredentials {
   }
   updateEnvFile({ SN_ACTIVE_PROFILE: profile });
   process.env.SN_ACTIVE_PROFILE = profile;
-  store = new Map();
+  profileStore().snapshots = new Map();
   return getCredentials(profile);
 }
 
 /**
  * Serialise a value for an .env line so that dotenv parses it back identically.
  *
- * dotenv (v16) only strips one pair of surrounding quotes and, for double
- * quotes, expands `\n`/`\r`; it does NOT unescape `\\` or `\"`. The only
- * lossless quoting is therefore single quotes (taken literally), which cannot
- * contain a single quote or newline. Unquoted values are also literal except
- * that leading/trailing whitespace is trimmed and `#` starts a comment.
+ * dotenv (v16) strips one pair of surrounding quotes and, for double quotes
+ * only, expands `\n`/`\r`; it never unescapes `\\`, `\'`, `\"` or `` \` ``.
+ * Single- and backtick-quoted values are therefore fully literal — backslashes
+ * included (L2-11: a Windows path such as `C:\Program Files\ca.pem` round-trips)
+ * — as long as they do not contain their own quote character. Double quotes
+ * are the last resort and only for values without a backslash (an escape
+ * sequence could be expanded). Unquoted values are literal except that
+ * leading/trailing whitespace is trimmed and `#` starts a comment. A newline
+ * is never written: it would split the line on a rewrite.
  */
 export function formatEnvValue(value: string): string {
+  if (/[\r\n]/.test(value)) {
+    throw new Error(
+      "Value cannot be stored safely in .env: it contains a newline.",
+    );
+  }
   const needsQuoting =
-    value === "" || /^\s|\s$|[#\r\n]/.test(value) || /^['"`]/.test(value);
+    value === "" || /^\s|\s$|#/.test(value) || /^['"`]/.test(value);
   if (!needsQuoting) {
     // Unquoted values are literal (backslashes, $, quotes in the middle all
     // survive), so no escaping is required here.
     return value;
   }
-  // Inside quotes dotenv treats \' \" \` as escapes but never unescapes a
-  // backslash, so a value that needs quoting cannot contain a backslash or
-  // newline and still round-trip reliably.
-  if (/[\\\r\n]/.test(value)) {
-    throw new Error(
-      "Value cannot be stored safely in .env: it needs quoting but contains a backslash or newline that dotenv cannot round-trip.",
-    );
-  }
-  if (!value.includes("'")) {
-    return `'${value}'`;
-  }
-  if (!value.includes('"')) {
-    return `"${value}"`;
-  }
+  if (!value.includes("'")) return `'${value}'`;
+  if (!value.includes("`")) return `\`${value}\``;
+  if (!value.includes('"') && !value.includes("\\")) return `"${value}"`;
   throw new Error(
-    "Value cannot be stored safely in .env: it contains both single and double quotes.",
+    "Value cannot be stored safely in .env: it contains single quotes, backticks and either double quotes or a backslash.",
   );
+}
+
+/**
+ * L2-11 — POSIX `0600` is a no-op on Windows: the env file inherits the ACLs of
+ * its directory. The server never changes ACLs itself; it says so instead.
+ */
+export const ENV_FILE_ACL_WARNING =
+  "On Windows the env file inherits its directory's ACLs (chmod 0600 has no effect) — restrict it to your account, e.g. icacls <file> /inheritance:r /grant:r %USERNAME%:F.";
+
+/** The Windows ACL warning, or undefined on platforms with POSIX modes. */
+export function envFileAclWarning(
+  platform: NodeJS.Platform = process.platform,
+): string | undefined {
+  return platform === "win32" ? ENV_FILE_ACL_WARNING : undefined;
 }
 
 /**
@@ -272,6 +456,8 @@ export function persistEnv(updates: Record<string, string>): void {
 function updateEnvFile(updates: Record<string, string>): void {
   const path = getEnvPath();
   const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
+  // L2-11: keep the file's line ending — a CRLF file stays CRLF.
+  const eol = raw.includes("\r\n") ? "\r\n" : "\n";
   const lines = raw.split(/\r?\n/);
 
   // Drop a single trailing empty entry caused by a final newline; we re-add
@@ -301,16 +487,28 @@ function updateEnvFile(updates: Record<string, string>): void {
   // target directory exists first (e.g. ~/.config/servicenow-mcp-ai on first run).
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const tmpPath = `${path}.${process.pid}.tmp`;
+  // H-5: pid + random suffix — two writers in one process (concurrent
+  // set_credentials calls) must never share a temp file.
+  const tmpPath = `${path}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`;
   // 0600: the file holds a plaintext password, so keep it owner-only rather
   // than the default 0644. Set the mode on the temp file and re-assert it after
   // the rename so the result is owner-only regardless of the process umask.
   // chmod is best-effort — POSIX permissions are a no-op on Windows.
-  writeFileSync(tmpPath, `${rewritten.join("\n")}\n`, {
-    encoding: "utf8",
-    mode: 0o600,
-  });
-  renameSync(tmpPath, path);
+  try {
+    writeFileSync(tmpPath, `${rewritten.join(eol)}${eol}`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    renameSync(tmpPath, path);
+  } catch (error) {
+    // Never leave a plaintext-password temp file behind on a failed write.
+    try {
+      unlinkSync(tmpPath);
+    } catch {
+      // already gone (or never created)
+    }
+    throw error;
+  }
   try {
     chmodSync(path, 0o600);
   } catch {

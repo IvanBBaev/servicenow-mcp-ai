@@ -1,0 +1,18 @@
+---
+sn_generated: true
+sn_generator: servicenow_snapshot_instance
+sn_generator_version: 1
+sn_kind: roles
+sn_profile: default
+sn_instance: dev00000.service-now.com
+sn_generated_at: <generatedAt>
+sn_source_hash: sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8
+---
+
+# Roles — profile `default`
+
+Source `sys_user_role`, snapshot <generatedAt>. 1 records.
+
+| name | elevated_privilege |
+| --- | --- |
+| itil | false |

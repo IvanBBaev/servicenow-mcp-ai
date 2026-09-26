@@ -38,17 +38,40 @@ export function resultSysId(result: unknown): string | undefined {
   return undefined;
 }
 
-/** A non-mutating before/after preview returned by a write tool in plan mode. */
-export function planPreview(plan: {
-  action: WriteAction;
-  table: string;
-  sys_id?: string;
-  before?: unknown;
-  after?: unknown;
-}): ToolResult {
+/**
+ * A non-mutating before/after preview returned by a write tool in plan mode.
+ * `details` carries tool-specific facts (S-2's revert adds the reverted entry
+ * and its drift check).
+ */
+export function planPreview(
+  plan: {
+    action: WriteAction;
+    table: string;
+    sys_id?: string;
+    before?: unknown;
+    after?: unknown;
+  },
+  details: Record<string, unknown> = {},
+): ToolResult {
   return ok({
     mode: "plan",
     ...plan,
+    ...details,
     note: "No change was made (plan mode). Re-run the same call with apply:true to execute it, or set SN_WRITE_MODE=apply to execute by default.",
   });
+}
+
+/**
+ * H-5 — best-effort pre-write state for the journal's `before` field, so an
+ * update/delete line is enough to build its inverse (S-2). A failed read
+ * (missing record, ACL, network) yields `undefined` and never blocks the write.
+ */
+export async function captureBefore(
+  read: () => Promise<unknown>,
+): Promise<unknown> {
+  try {
+    return await read();
+  } catch {
+    return undefined;
+  }
 }

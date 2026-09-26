@@ -4,7 +4,11 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { compareInstances } from "../build/api/compare.js";
+import {
+  compareInstances,
+  driftCount,
+  matchBySysId,
+} from "../build/api/compare.js";
 import { clearSchemaCache } from "../build/core/cache.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
@@ -179,6 +183,9 @@ test("compareInstances diffs tables, columns, scripts, plugins and apps", async 
     /\| incident \| severity \| type \| integer \| string \|/,
   );
   assert.match(report, /Common BR.*different_source/);
+  // H-8 C-11/C-12: the drift report states what it cannot see.
+  assert.ok(result.caveats.some((c) => /Domain separation/.test(c)));
+  assert.match(report, /## Caveats[\s\S]*Domain separation/);
 });
 
 test("compareInstances validates profiles and rejects self-comparison", async () => {
@@ -290,4 +297,179 @@ test("compareInstances warns when sys_dictionary hits the SN_MAX_RECORDS cap (QA
   );
   assert.match(report, /Warnings/);
   assert.match(report, /sys_dictionary.*cap/);
+});
+
+// --- S-7: sys_id matching, unified diffs, record sections --------------------
+
+/** dev renamed a script include (same sys_id) and changed its body. */
+function s7Fetch(url) {
+  const u = new URL(url);
+  const prod = u.hostname === PROD_HOST;
+  if (u.pathname.endsWith("/table/sys_script_include")) {
+    return jsonResponse(200, {
+      result: [
+        {
+          sys_id: "si1",
+          name: prod ? "OldUtil" : "NewUtil",
+          script: ["var a = 1;", "var b = 2;", prod ? "old();" : "new();"].join(
+            "\n",
+          ),
+        },
+      ],
+    });
+  }
+  if (u.pathname.endsWith("/table/sys_script")) {
+    return jsonResponse(200, { result: [] });
+  }
+  if (u.pathname.endsWith("/table/sys_properties")) {
+    return jsonResponse(200, {
+      result: [
+        {
+          sys_id: "p1",
+          name: "glide.ui.title",
+          type: "string",
+          value: prod ? "Prod" : "Dev",
+        },
+        ...(prod
+          ? []
+          : [{ sys_id: "p2", name: "x.only_dev", type: "string", value: "1" }]),
+      ],
+    });
+  }
+  return twoInstanceFetch(url);
+}
+
+test("compare matches scripts by sys_id and shows a unified diff (S-7)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const result = await withEnv(PROFILE_ENV, () =>
+    withFetch(s7Fetch, () => compareInstances({ a: "default", b: "prod" })),
+  );
+  const renamed = result.scriptDiffs.find((d) => d.status === "renamed");
+  assert.equal(renamed.name, "NewUtil");
+  assert.equal(renamed.nameB, "OldUtil");
+  // The diff reads a -> b: dev's line removed, prod's added.
+  assert.match(renamed.diff, /^-new\(\);$/m);
+  assert.match(renamed.diff, /^\+old\(\);$/m);
+  // Record sections are opt-in: the default run neither reads nor counts them.
+  assert.equal(result.recordDiffs, undefined);
+
+  const report = await fs.readFile(
+    path.join(DOCS_DIR, "_compare", "default-vs-prod.md"),
+    "utf8",
+  );
+  assert.match(report, /NewUtil → OldUtil/);
+  assert.match(report, /```diff\n--- default\/NewUtil/);
+  assert.match(report, /matched by sys_id then name/);
+});
+
+test("compare diffs record sections live and from the snapshot (S-7)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const live = await withEnv(PROFILE_ENV, () =>
+    withFetch(s7Fetch, () =>
+      compareInstances({ a: "default", b: "prod", sections: ["properties"] }),
+    ),
+  );
+  assert.deepEqual(live.recordDiffs, [
+    {
+      section: "properties",
+      key: "glide.ui.title",
+      status: "different",
+      fields: ["value"],
+    },
+    { section: "properties", key: "x.only_dev", status: "only_in_a" },
+  ]);
+  const withoutRecords = { ...live, recordDiffs: undefined };
+  assert.equal(driftCount(live), driftCount(withoutRecords) + 2);
+  const report = await fs.readFile(
+    path.join(DOCS_DIR, "_compare", "default-vs-prod.md"),
+    "utf8",
+  );
+  assert.match(report, /## Records/);
+  assert.match(report, /glide\.ui\.title/);
+
+  // Stored snapshot for prod only: prod reads the file, default reads live.
+  await fs.mkdir(path.join(DOCS_DIR, "prod"), { recursive: true });
+  await fs.writeFile(
+    path.join(DOCS_DIR, "prod", "roles.json"),
+    JSON.stringify({
+      profile: "prod",
+      table: "sys_user_role",
+      records: [{ sys_id: "r9", name: "itil", elevated_privilege: "true" }],
+    }),
+  );
+  clearSchemaCache();
+  const snap = await withEnv(PROFILE_ENV, () =>
+    withFetch(
+      (url) =>
+        new URL(url).pathname.endsWith("/sys_user_role")
+          ? jsonResponse(200, {
+              result: [
+                { sys_id: "r1", name: "itil", elevated_privilege: "false" },
+              ],
+            })
+          : s7Fetch(url),
+      () =>
+        compareInstances({
+          a: "default",
+          b: "prod",
+          fromSnapshot: true,
+          sections: ["roles"],
+        }),
+    ),
+  );
+  assert.deepEqual(snap.recordDiffs, [
+    {
+      section: "roles",
+      key: "itil",
+      status: "different",
+      fields: ["elevated_privilege"],
+    },
+  ]);
+  assert.ok(
+    snap.warnings.some(
+      (w) => w === 'roles: no snapshot for "default", reading live',
+    ),
+  );
+});
+
+test("an unreadable record section becomes a warning (S-7)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const result = await withEnv(PROFILE_ENV, () =>
+    withFetch(s7Fetch, () =>
+      compareInstances({ a: "default", b: "prod", sections: ["acls"] }),
+    ),
+  );
+  assert.deepEqual(result.recordDiffs, []);
+  assert.ok(
+    result.warnings.some((w) => /^acls: sys_security_acl unavailable/.test(w)),
+  );
+});
+
+test("matchBySysId pairs by sys_id first, then by key", () => {
+  const a = [
+    { sysId: "1", name: "x" },
+    { sysId: "", name: "y" },
+    { sysId: "3", name: "z" },
+  ];
+  const b = [
+    { sysId: "1", name: "renamed" },
+    { sysId: "9", name: "y" },
+    { sysId: "8", name: "w" },
+  ];
+  const { pairs, onlyA, onlyB } = matchBySysId(a, b, (i) => i.name);
+  assert.deepEqual(
+    pairs.map(([l, r]) => `${l.name}:${r.name}`),
+    ["x:renamed", "y:y"],
+  );
+  assert.deepEqual(
+    onlyA.map((i) => i.name),
+    ["z"],
+  );
+  assert.deepEqual(
+    onlyB.map((i) => i.name),
+    ["w"],
+  );
 });

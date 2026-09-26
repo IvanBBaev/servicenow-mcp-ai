@@ -11,8 +11,14 @@ import {
   saveJiraCredentials,
 } from "../build/core/jira/config.js";
 import { JiraError, ServiceNowError } from "../build/core/errors.js";
-import { getTelemetry, _resetTelemetry } from "../build/core/http-util.js";
-import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+import { getTelemetry } from "../build/core/http-util.js";
+import {
+  baselineEnv,
+  freshRuntime,
+  withEnv,
+  withFetch,
+  jsonResponse,
+} from "./helpers.js";
 
 baselineEnv();
 
@@ -482,7 +488,7 @@ test("a Jira request is counted under its own host in the shared telemetry", asy
     withFetch(
       () => jsonResponse(200, { ok: true }),
       async () => {
-        _resetTelemetry();
+        freshRuntime();
         await jiraRequest({ method: "GET", path: "/rest/api/3/myself" });
         const t = getTelemetry();
         assert.equal(t.requests, 1);

@@ -3,8 +3,14 @@ import assert from "node:assert/strict";
 
 import { snRequest } from "../build/core/http.js";
 import { jiraRequest } from "../build/core/jira/http.js";
-import { getTelemetry, _resetTelemetry } from "../build/core/http-util.js";
-import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+import { getTelemetry } from "../build/core/http-util.js";
+import {
+  baselineEnv,
+  freshRuntime,
+  withEnv,
+  withFetch,
+  jsonResponse,
+} from "./helpers.js";
 
 baselineEnv();
 
@@ -52,7 +58,7 @@ async function observe(client, scenario) {
   let retries = 0;
   await withEnv({ ...JIRA, SN_MAX_RETRIES: scenario.maxRetries }, () =>
     withFetch(scenario.handler, async (c) => {
-      _resetTelemetry();
+      freshRuntime();
       try {
         await client.call({ method: scenario.method });
       } catch {
@@ -191,6 +197,9 @@ test("twin parity — queue time is not billed to the per-request timeout (§8.2
         ...JIRA,
         SN_MAX_CONCURRENT: "1",
         SN_TIMEOUT_MS: String(TIMEOUT_MS),
+        // The queue wait limit defaults to SN_TIMEOUT_MS (H-10); lift it so
+        // this test keeps measuring the per-attempt clock, not the wait line.
+        SN_QUEUE_TIMEOUT_MS: "1000",
         SN_MAX_RETRIES: "0",
       },
       () =>

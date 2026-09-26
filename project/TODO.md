@@ -1,14 +1,27 @@
-# TODO — status as of 2026-07-02
+# TODO — status as of 2026-09-23
 
-> **No active/actionable dev work remains.** Everything completed is in [DONE.md](DONE.md) — the
+> **2026-09 update.** On 2026-09-02 `npm run check` was **red** on its last step
+> (`npm audit --omit=dev --audit-level=high` — two HIGH transitive advisories via
+> `@modelcontextprotocol/sdk@1.29.0`); the five-lens [DEEP-REVIEW-2026-09.md](DEEP-REVIEW-2026-09.md)
+> and the proposed v3.0 tracker [ROADMAP-V3.md](ROADMAP-V3.md) were written that day. On
+> 2026-09-03 **H-1** fixed the gate (green locally, uncommitted). On 2026-09-09 a second-pass
+> gap analysis ([GAP-ANALYSIS-2026-09.md](GAP-ANALYSIS-2026-09.md) — 67 findings) extended the tracker with
+> **H-10, H-11, S-13, M-9, D-9, E-9** and B11–B13; see "Active (2026-09-02)" below. H-2
+> (2026-09-09), E-9 (2026-09-10), H-10, S-1, H-8 and H-9 (2026-09-23) are done since (local gate
+> green at 519 tests, uncommitted). On 2026-09-23 the SDK parity epic (P-1…P-29, owner gates
+> O-5…O-9) was added in [SDK-PARITY.md](SDK-PARITY.md) — post-3.0, none of it in the 3.0 cut.
+> Everything after that section reflects the 2026-07-06 state.
+>
+> **As of 2026-07-06, no active/actionable dev work remained.** Everything completed is in [DONE.md](DONE.md) — the
 > morning review (22/22), Phases 6–8, five full-review passes, **Phase 9 / v2.0** (DF-0…DF-6
 > trust + depth + reach; published 2026-06-22 — npm `servicenow-mcp-ai` now at 2.0.1, MCP
 > Registry, Claude Code plugin, VS Code extension 2.0.1), **full ServiceNow authentication
 > coverage** (OAuth 2.1 Authorization Code + PKCE login, JWT bearer, API key, bearer token, `none`,
-> mutual TLS) and the 2026-07-01 → 02 gap sweep (GA-1…GA-6). Gate green at **380 tests**
-> (coverage 95.29/84.36/98.56, audit 0). What is left below is **not pending dev work**: deferred
-> design decisions on the uncommitted Jira WIP (ARCH-10/11b/12b/14), a trigger-gated backlog and
-> owner actions (GA-8 distribution, DX-3 GIF, GA-9 PDI e2e).
+> mutual TLS), the 2026-07-01 → 02 gap sweep (GA-1…GA-6) and the 2026-07-03 landing of the
+> **dark Jira scaffold** (`ad2799c`, with the http-twin parity drift guard). Gate green at
+> **406 tests** (coverage 95.41/84.94/98.58, audit 0). What is left below is **not pending dev
+> work**: deferred design decisions on the dark Jira surface (ARCH-10/11b/12b/14), a
+> trigger-gated backlog and owner actions (GA-8 distribution, DX-3 GIF, GA-9 PDI e2e).
 >
 > Marker key — ⏳ **deferred** (activates only when its trigger fires) · 👤 **owner action**
 > (needs Ivan, not a dev task).
@@ -17,6 +30,360 @@
 > [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §7 + §8.4 (the two-week plan) and
 > [UX-REVIEW-2026-07.md](UX-REVIEW-2026-07.md) §11 (the UX backlog); "Optional" items (Export
 > API, PDI e2e, vitest) on request. The work chronology is in [WORKLOG.md](../WORKLOG.md).
+
+## Active (2026-09-02)
+
+- [x] **H-1 · Make the gate green again** — done 2026-09-03 (uncommitted): SDK `^1.30.0`, zod
+      `^3.25.0`, lock-only `npm audit fix` for the transitive `fast-uri` / `ip-address` / `hono` /
+      `@hono/node-server` / `qs` / `body-parser`; `npm run check` green (406/406, audit 0),
+      CHANGELOG `[Unreleased]` → Security. Still open from the item: cut **2.1.0** (owner:
+      version bump + tag), and two dev-only HIGH advisories (`brace-expansion`, `js-yaml`) that
+      the gate does not cover — ROADMAP-V3 §H-1.
+- [x] **H-2 · Credential host binding** — done 2026-09-09 (uncommitted): an instance change on a
+      configured profile needs `user` + `password` in the same call (`CREDENTIALS_INCOMPLETE`, nothing
+      written), the elicitation confirmation fails closed unless `SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1`,
+      8 new tests (414/414). Open inside the item: the allow-list / `isBlockedHost` bullet is deferred
+      to H-6 as an open decision (keep the documented opt-in, a per-client `HostPolicy` flag, or
+      strict for both) — ROADMAP-V3 §H-2.
+- [x] **E-9 · Process lifecycle + bounded state** — done 2026-09-10 (uncommitted): crash handlers
+      log one structured secret-free line and exit 1 (SIGTERM = SIGINT), `dispose()` in
+      `src/core/lifecycle.ts` resets the singletons on signals / HTTP session close, the HTTP
+      transport fails startup on a bind error, LRU schema cache `SN_SCHEMA_CACHE_MAX` (256) with
+      counters in `get_status`; 17 new tests (431/431). H-10's dispatcher / queue / breaker hooks
+      were wired into `dispose()` on 2026-09-23 — ROADMAP-V3 §E-9.
+- 👤 **Owner decisions that gate v3.0** (ROADMAP-V3 §O): **O-1** ARCH-14 go/no-go (also settles
+  ARCH-10 / 11b / 12b, scheduled as E-8 / M-2 / E-4); **O-2** PDI credentials for the live smoke
+  (GA-9 → E-6); **O-3** distribution + KPI checkpoint (GA-8, DX-3 GIF; the 2026-08-01 checkpoint
+  passed unreviewed — next at 3.0.0 + 30 days); **O-4** approve the breaking-change register
+  (B1–B13; B11–B13 were added on 2026-09-09) before any 3.0.0-beta.
+- [x] **H-10 · HTTP client resilience + identity** — done 2026-09-23 (uncommitted): one
+      `getDispatcher(host)` for proxy (`SN_HTTPS_PROXY` → `HTTPS_PROXY` / `HTTP_PROXY` + `NO_PROXY`)
+      and TLS without a client cert, identifying `User-Agent` (+ `SN_USER_AGENT_SUFFIX`),
+      `SN_DEADLINE_MS` / `SN_RETRY_AFTER_MAX_MS`, bounded per-host queue (`SN_MAX_QUEUE`,
+      `SN_QUEUE_TIMEOUT_MS` → `BUSY`), `UPSTREAM_HTML` shaping, OAuth through the shared primitive,
+      host:port / IPv6 allow-list policy, opt-in breaker (`SN_BREAKER_*` → `CIRCUIT_OPEN`), `code` /
+      `hint` on errors, `get_status.http`; 50 new tests (481/481). Slipped to 3.x: rate-limit header
+      parsing into telemetry (L1-07 second half) — ROADMAP-V3 §H-10.
+- [x] **S-1 · Inherited + global business rules in the trace** — done 2026-09-23 (uncommitted):
+      `traceTableEvent` and `generateTableFlow` walk `getTableChain` (now cached) and query
+      `collectionIN<chain>^ORglobal=true…^ORDERBYorder`; entries carry `table` / `inherited_from` /
+      `global`, the diagram gets inherited / global lanes, flow triggers / workflows / notifications
+      are filtered by the traced operation; 5 new tests (486/486) — ROADMAP-V3 §S-1.
+- [x] **H-9 · CI + version hygiene** — done 2026-09-23 (uncommitted): SHA-pinned actions,
+      least-privilege `permissions`, `concurrency` / `timeout-minutes` / `actionlint` in `ci.yml`,
+      `pack:check` tarball guard (`!build/**/jira/**`), `sync-version` + `npm version` hook +
+      `test/version-sync.test.js`, checksummed `mcp-publisher` 1.8.1, `.env*` ignore rules,
+      Prettier idempotency; 8 new tests (494/494) — ROADMAP-V3 §H-9.
+- [x] **H-8 · Platform corner-case pins** — done 2026-09-23 (uncommitted): `INSTANCE_HTML_RESPONSE` + wake hint for a 2xx HTML page, `fetchAll` past ACL-short pages with `truncatedReason` /
+      `filtered`, `display_value=all` pins, attachment edges (`data:` URLs, `sizeBytes`), plugin
+      inactive vs missing, drift / where-used `caveats`; 25 new tests (519/519 after the port onto
+      H-10 / S-1 / H-9). Open: plugin ids and the hibernation wording are unverified live;
+      snapshot's scan-limit message — ROADMAP-V3 §H-8. With it the 2.1.0 hardening batch (items
+      1–5) is complete; the 2.1.0 cut is the owner's (commit, `npm version minor`, tag).
+- [x] **Instance-documentation analysis · S-14…S-16** — done 2026-09-23 (docs only, uncommitted):
+      `project/INSTANCE-DOCS-ANALYSIS-2026-09.md` (17 findings `ID-01`…`ID-17` over the docs store,
+      the Mermaid generators, the `document_table` prompt and the missing table / app / instance
+      documents) added **S-14** docs store v2 + generator depth (must-have, after S-2), **S-15**
+      document generators (stretch, after S-4/S-7) and **S-16** native discovery (with D-8) to
+      ROADMAP-V3 and refined S-7, S-11, M-3, M-4, M-8, M-9, E-7, H-5, D-8. No code changed.
+- [x] **Instance-documentation analysis, second pass · ID-18…ID-29** — done 2026-09-25 (docs only,
+      uncommitted): `project/INSTANCE-DOCS-ANALYSIS-2026-09-25.md` reassessed `ID-01`…`ID-17`
+      against the batch-6 tree (7 closed, 3 partial, 7 open — `document_app` and the `security`
+      kind unblocked by P-1 / S-4 / P-5 / S-3) and added 12 findings: per-writer generator
+      version, manifest `runs` / `partial`, `.json` companions, compare report placement,
+      registry-driven `document_app` over `listArtifacts`, the `security` kind from
+      `securityScan()`, named E-7 collectors, prompt gating (M-8's ID-16 bullet overstated —
+      `registerPrompts` is unconditional), Mermaid truncation on two builders, the shared
+      metadata-only guard, writer goldens, the registry catalog in discovery. ROADMAP-V3 S-15 /
+      S-16 / M-4 / M-8 / S-7 / E-6 / E-7 + rows 53–54, SDK-PARITY P-21, mirrors. No code changed.
+- [x] **H-5 · Journal v2 + deep redaction** — done 2026-09-23 (uncommitted): v2 journal lines
+      (ULID `id`, `result` applied/failed/refused, `before` on update/delete, `client`, sha256 `prev`
+      chain with `write-journal.head`), rotation at `SN_JOURNAL_MAX_BYTES`, one line per batch
+      sub-request (`batch_id`), `local_write` and `config` entries, deep redaction at `ok()`/`fail()`,
+      CSV formula guard + BOM. Deferred: `plan_token` (H-3), `update_set` (S-6), revert (S-2), batch
+      `before`, `SN_BATCH_MAX_REQUESTS` (H-4) — ROADMAP-V3 §H-5.
+- [x] **H-6 · Outbound hardening** — done 2026-09-23 (uncommitted): redirects blocked
+      (`REDIRECT_BLOCKED`), `SN_MAX_BODY_BYTES`, IPv6-aware host guard (settles the H-2 allow-list
+      decision: a suffix entry never opens an internal host), TLS-off warning, OAuth callback path +
+      `state`, upload caps + MIME allow-list, docs store guards, `send_email` recipient allow-list.
+      **Behaviour change for O-4:** `send_email` now fails closed to `sys_user` addresses unless
+      `SN_EMAIL_ALLOWED_DOMAINS` is set (`*` = old behaviour). Deferred: connect-time DNS check,
+      email body preview cap (H-3), size cap on `docsWriteRaw` — ROADMAP-V3 §H-6. Gate after the
+      merge: 568/568.
+- [x] **E-3 · Runtime container** — done 2026-09-23 (uncommitted): `src/core/runtime.ts`
+      (`createRuntime()` / `installRuntime()` / `runWithRuntime()` / `currentRuntime()`, lazy
+      parts for caches, tokens, telemetry, queue, breakers, dispatchers, profiles, plugin
+      availability); passed to `registerAllTools`; `dispose()` in place; `_reset*` hooks deleted,
+      tests use `freshRuntime()`. Session registry + task store join as parts with H-7.
+- [x] **S-2 · Journal-based revert** — done 2026-09-23 (uncommitted): opt-in `revert` package,
+      `servicenow_list_writes` + `servicenow_revert_write` (plan/apply, `STALE_RECORD` drift guard
+      unless `force`, `NOT_REVERTIBLE` with a reason, `reverts:<id>`); journal lines record `tool`
+      and `after_mod_count`. 69 tools in 19 packages. Owner questions: core profile or opt-in;
+      CMDB create stays non-revertible; redacted `before` refuses the whole entry (partial opt-in?).
+- [x] **S-14 · Docs store v2 + generator depth** — done 2026-09-23 (uncommitted): `sn_*`
+      frontmatter + `sn_source_hash`, `unchanged` re-runs, manual blocks, `DOC_GENERATED` both ways,
+      `index.json` manifest, docs tool filters, `src/api/mermaid.ts`, ER `columns` / `max_columns` /
+      `depth`, table-flow `operation`; defaults byte-identical (goldens). Owner questions: detailed
+      ER as the 3.0 default (BREAKING); the metadata allow-list now includes `sys_ui_policy`,
+      `sys_ui_action`, `sys_transform_script`, `sys_ws_operation`, `sysauto_script`. Gate after the
+      E-3 + S-2 + S-14 merge: 621/621.
+- [x] **M-3 · `extra` plumbing** — done 2026-09-24 (uncommitted): call context (`runWithCall`),
+      cancellation → `CANCELLED` (no retry), throttled progress (250 ms), log context. Owner
+      questions: a cancelled write has an unknown outcome (hint points to the journal); throttle 250 ms.
+- [x] **S-3 · Security-scan extension** — done 2026-09-24 (uncommitted): `src/api/security.ts`,
+      seven checks with per-check `available`. Owner questions: severities; `table-no-acl` only for
+      `u_` / `x_` tables; `public` role = everyone; 404 on ACLs now degrades; report header `Item`.
+- [x] **S-8 · Table API completeness + cursor paging** — done 2026-09-24 (uncommitted): new query
+      params, keyset paging, encoded-query resource, `servicenow_upsert_record` (70 tools). Owner
+      questions: upsert joins the core profile (16 → 17); `expected_action` / `expected_sys_id` until
+      H-3 plan tokens; new code `AMBIGUOUS_KEY`; pack size now close to the 600 KB limit.
+- [x] **P-1 · Artefact registry** — done 2026-09-24 (uncommitted): `src/core/artifacts/registry.ts`,
+      byte-identical derived views. Owner questions: `sdkSince` convention (`"<=3.0"` / null);
+      natural keys beyond `script_include`; widen the capability probe to the new seeds.
+- [x] **S-4 · Script-intelligence widening** — done 2026-09-24 (uncommitted). Owner questions:
+      unverified field names (`data_source`, `validator`, `rest_message_fn`); `dictionary_script`
+      `baseQuery`; sweeps now 24 queries instead of 9; `scope` on the remaining script tools.
+- [x] **S-13 · Capability preflight v2** — done 2026-09-24 (uncommitted). Owner questions: extended
+      `check_capabilities` instead of a new tool; plugin negative TTL 5 min → 60 s; matrix is
+      informational (no doctor verdict change); 5xx = `unknown`, cached 60 s.
+- [x] **D-2 · Credentials model completeness** — done 2026-09-24 (uncommitted). Owner questions:
+      `api_key` elicitation-only; `password` argument kept (move to elicitation = O-4 candidate);
+      `SN_TOKEN_FILE` wins over `SN_BEARER_TOKEN`; auth env vars not yet in the settings manifest.
+- [x] **P-3 / P-4 · SDK-managed detection + release tracking** — done 2026-09-24 (uncommitted).
+      Owner questions: O-6 authority order; bump `SDK_BASELINE` to 4.13.0; allow-list
+      JsInclude / CssInclude (no docs page); `~` expansion in `SN_SDK_PROJECT_DIRS`.
+- [x] **M-8 · Small protocol fixes** — done 2026-09-24 (uncommitted). Owner questions: lenient
+      `sysId` / `tableName` patterns; `encodedQuery` cap 8000 (spec said 4000); list caps (fields 200,
+      sys_ids 500, recipients 50, batch 1000); optional filters now reject `""`; `SN_LOG_NOTIFY_RATE`
+      default 20/s; private SDK `isMessageIgnored` reached via a guard.
+- [x] **S-9 · Structural where-used** — done 2026-09-24 (uncommitted). Owner questions: default ON
+      (up to 9 extra reads per call); unverified catalog / flow-input / report columns; catalog
+      mapped fields match on any table.
+- [x] **E-5 · Observability** — done 2026-09-24 (uncommitted). Owner questions: logger now masks
+      credential keys and applies `SN_REDACT_*`; `SN_LOG_FILE` always JSONL, 5 generations fixed;
+      `/metrics` needs `SN_HTTP_TOKEN`; `diagnostics_channel` names become public API.
+- [x] **P-5 · Generic artifact reads** — done 2026-09-24 (uncommitted). Owner questions: opt-in
+      package vs reader/developer (SDK-PARITY §5(d)); list default 50 / max 1000, 200 children per
+      level; which types declare `secretFields`.
+- [ ] **Pack size (blocking `npm run check`):** 1416.6 KB unpacked after batch 12, over the 800 KB `pack:check` ceiling (1298.7 KB after batch 11, 1222.8 KB after batch 10, 1136.2 KB after batch 9, 984.5 KB after batch 8, 868.7 KB after batch 7, 794.0 KB after batch 6) — raise the ceiling
+      or trim the package before the next feature batch. S-15's first writer
+      (`src/api/document.ts` + goldens) will not fit under 800 KB — decide before it starts
+      (INSTANCE-DOCS pass 2 §7).
+- [x] **S-5 · Trace v2** — done 2026-09-25 (uncommitted). Owner questions: lane placement in the
+      chain is a modelling choice; scheduled jobs matched by `scriptLIKE<table>` (false positives);
+      transform maps on the traced table only; script-fired events missed; lane columns unverified (O-5).
+- [x] **S-7 · Snapshot/compare v2** — done 2026-09-25 (uncommitted). Owner questions: snapshot
+      default now all eleven sections (7 more reads) vs the old four; `renamed` status lowers drift
+      count for renames; property redaction heuristic; should the manifest read `sn_*` from `.json`.
+- [x] **M-4 · Completions + reference resources** — done 2026-09-25 (uncommitted). Owner
+      questions: prompt arguments now capped at 200 chars; docs resource content wrapped in the
+      boundary (text changes); docs template `{+path}`; `tools-reference` always on; boundary on
+      tool results left out.
+- [x] **P-6 · explain_artifact** — done 2026-09-25 (uncommitted). Owner questions: opt-in package
+      vs reader/developer; budget split 1/20 per value, 4/5 per result; `whenFields` descriptor field.
+- [ ] **Next up (2026-09-24):** **H-3** plan-token binding + elicitation (BREAKING parts wait for
+      O-4). H-11 and every BREAKING item wait for O-4. Five **high** findings gate 3.0.0: L1-03 and
+      L1-10 (done in H-10), L3-01 (H-11, BREAKING → O-4), L5-01 (M-6/E-6), L6-01 (D-2).
+- [ ] **Owner decisions from the 2026-09-25 instance-docs pass:** (a) raise the `pack:check`
+      ceiling (1 MB) or trim before S-15; (b) accept a generic `servicenow_document_kind` tool
+      (73rd) so the `security` kind ships with `document_table` before the E-7 split, or hold it
+      for `document_instance`; (c) restate M-6's tool-count budget (86 today after batch 9).
+- [ ] **Owner decisions from batch 8 (2026-09-25):** (a) S-11 — default `SN_OVERSIZE_TO_FILE` on?
+      keep `readOnlyHint` on `format:"file"` reads or refuse them under `SN_READONLY`? export
+      retention / size cap under `exports/`; the `preview_truncated` name; CSV columns come from the
+      first page only. (b) S-6 — always restore the previous update set? preference writes are not
+      journalled; the switch lock is per process; `canSet` is a heuristic; scoped sets also switch
+      `updateSetForScope<app>`; fail closed on an invalid `SN_UPDATE_SET`? bind the other write
+      packages (catalog, change, knowledge) later? (c) P-9 — keep the `scriptToolsOptIn` /
+      `extended` split, and when do opt-in types join lint and snapshot; `wf_activity` parent
+      field and `FLOW_CHILDREN` tables need a live instance (O-5). (d) P-7 — `available`
+      semantics (table present vs readable); field names unverified (O-5); `choice_set` has no
+      `sdkSince`. (e) `test/cancel-progress.test.js` "a cancelled snapshot stops issuing requests
+      within one retry window" is timing-sensitive under load — widen its headroom?
+- [ ] **Owner decisions from batch 9 (2026-09-26):** (a) S-10b — syslog level values, the
+      `sys_trigger` states treated as stuck, the `sys_email` fields, reading `sys_semaphore`, Stats
+      API `having` support, the orphan-reference query and its ACL effect, `javascript:` clauses in
+      queries; is `data_health` right in `ops`? (b) P-8 — tables / fields unverified (O-5), the
+      licensed families (O-9); child rows now accumulate across parents. (c) S-10a —
+      `set_property` binds to the update set?; the secret-name regex, and secret properties cannot
+      be reverted; no property create; the `import_set_run` fields; the IRE identify endpoint and
+      `sysparm_data_source`; the `since` `javascript:` clause; `sys_audit` / journal / directory
+      field names; CI/CD status codes. (d) S-15 — 93 `verified:false` types listed in the app
+      document; `sys_app` / `sys_store_app` fields; property values omitted from documents; ID-23:
+      expose `security` via `document_kind` or `document_instance`?; where-used lost its 40-edge
+      Mermaid cap (now `mermaidTruncated`). (e) E-7 — a cancelled compare now throws `CANCELLED`;
+      collector signatures are ctx-first; `expectJson` skipped. (f) The pack ceiling (1136.2 KB).
+- [ ] **Owner decisions from batch 10 (S-15, 2026-09-26):** (a) ID-23 — `security` is reachable
+      only through `document_instance({kinds:["security"]})`; ship `servicenow_document_kind`
+      (88th tool) or leave it there? (b) the README is written first, so its links may point at
+      documents a cancelled run never reached (a Caveats line says so) — accept, or write it last?
+      (c) with no `tables` / `apps` the run writes only the README, the requested kinds and
+      `artifact-types.md` — auto-select (e.g. every custom scope) instead? (d) the 50-target cap
+      on `tables` and `apps` each; (e) `catalog` lists only variables attached directly to an item
+      (not variable-set variables), and `integrations` reads descriptive fields only — the
+      `sc_cat_item.sc_catalogs`, `item_option_new.type` codes and `sys_ws_definition` /
+      `sys_rest_message` / `sys_data_source` field names need a live instance (O-5); (f)
+      "Collected in this run" on `artifact-types.md` means "a document of this run read the type's
+      table", not "records found"; (g) `depth` (S-16) not shipped yet; (h) tool count 88 after the batch 10 merge — M-6's
+      budget; (i) the pack ceiling — 1416.6 KB unpacked after batch 12 (1298.7 KB after batch 11).
+- [ ] **Owner decisions from batch 10 (M-9)** (2026-09-26, `SN_EXPERIMENTAL_TASKS`): (a) native
+      task augmentation — advertise `tasks.requests.tools.call` and register the task tools with
+      the SDK's `registerToolTask` (`execution.taskSupport:"optional"`)? The SDK then turns every
+      plain call of those tools into a blocking create-and-poll, so M-9 ships the `run_as_task`
+      argument only. (b) Clients without the `tasks/*` methods (most chat clients today) get a
+      handle they cannot poll — add a model-facing `servicenow_task_status` / `_task_result` tool?
+      (c) No cap on the number of retained tasks / result bytes (1 h TTL only) — add one
+      (e.g. 50 tasks per runtime)? (d) The TTL runs from creation, not from completion, and a
+      client-requested `ttl` can only shorten it. (e) The SDK API is marked experimental — pin
+      the SDK minor while M-9 stays in, or drop M-9 on the first breaking change? (f) The ATF
+      `wait_seconds` loop and a task both bound a run — cap `wait_seconds` differently when
+      `run_as_task` is set? (g) Add `document_instance` / `document_app` to `TASK_TOOLS` once
+      S-15 lands (ID-15).
+- [ ] **Owner decisions from batch 10 (P-16, 2026-09-26):** (a) a new opt-in `ui` package for
+      `servicenow_explain_portal` (SDK-PARITY §5(d)) — or fold it into `artifacts`? (b) Every SP
+      field name is unverified (O-5): `sp_column.size`, rows nested in a column via
+      `sp_row.sp_column`, `sp_page_route_map.portals` as a sys_id list, `sp_instance.widget_parameters`
+      as JSON, the m2m include tables. (c) Bounds: full layout for 5 pages (`LAYOUT_PAGES`), depth
+      default 3 / max 6 — right defaults? (d) Classic widget options stored in `sp_instance`
+      columns (not `widget_parameters`) are not mapped; a `widget_parameters` key absent from
+      `option_schema` lands in `unknownOptions`. (e) The pack grows further past the 800 KB ceiling.
+- [ ] **Owner decisions from batch 10 (M-6, 2026-09-26):** (a) the `tools/list` budget — measured
+      `all` 124,050 / `core` 30,560 against the 45,000 / 14,000 targets; the test ratchets at
+      125,000 / 31,000 ("owner to restate (M-6 budget)"); after the batch 10 merge (88 tools) `all`
+      measured 127,239 and the ratchet moved to 128,000. Restate, or trim? (b) The bulk is parameter
+      descriptions; trim them further, and should `core` keep `get_status`'s ~3.6 KB output schema?
+      (c) `structuredContent` duplicates the text payload (e.g. `query_table`, `get_record`) — keep
+      it always, or make it opt-in? (d) Manifest `since` is 2.0.1 for every tool — backfill from
+      history? (e) Tools added by later batches must regenerate the manifest and raise the budget
+      constants (about 760 bytes of headroom on `all` after batch 10). (f) M-9 interplay: a task-capable
+      tool's output schema has every field optional while `SN_EXPERIMENTAL_TASKS` is on, so the
+      task handle validates — accept, or give handles their own result type?
+- [ ] **Owner decisions from batch 11 (D-4, 2026-09-26):** (a) client syntaxes not verified
+      against a live client — Zed `context_servers` (`"source": "custom"` + flat `command` /
+      `args`; older Zed builds nest `command: {path, args}`), the JetBrains AI Assistant menu path
+      (Settings → Tools → AI Assistant → Model Context Protocol → Add → As JSON), the Cursor web
+      redirect `https://cursor.com/en/install-mcp?...` and the Windsurf / Cline file locations;
+      Gemini CLI is documented through `settings.json` only (no `gemini mcp add` line, its
+      handling of `-y` after the command was not confirmed). Click-test the three README buttons on
+      github.com once pushed. (b) No link carries an `env` block, so a fresh install still needs
+      the env file / `login` / `set_credentials` — accept, or add VS Code `inputs` (prompted,
+      `password: true`) to the VS Code link? (c) The server key is `servicenow` everywhere
+      (matches the plugin manifest); the MCP registry name is
+      `io.github.IvanBBaev/servicenow-mcp-ai` — keep the short key? (d) D-1 (`init` wizard) could
+      later write these client configs itself.
+- [ ] **Owner decisions from batch 11 (M-1, 2026-09-26):** (a) the core `tools/list` budget rose
+      31,000 → 32,000 (measured core 31,151, all 127,830 — about 170 bytes of headroom on `all`;
+      batch 11 merges that add tools must raise it): `get_status` v2 declares only anchor keys
+      (`server`, `policy`, `writes`, `profileDetails`) in its passthrough output schema — declare
+      the rest (`redaction`, `docs`, `limits`, `profileSource`, `writeMode`) at ~450 more bytes?
+      (b) `profiles` stays a string list for compatibility; rename `profileDetails` to `profiles`
+      in the O-4 breaking window (M-2)? (c) Per-profile `env` (dev/test/prod) has no source until
+      H-11 / L3-03 — `profileDetails` omits it. (d) The instructions name the active instance host
+      but never the user or the env-file path (get_status shows the path) — acceptable? Cap 2 KB,
+      measured 511 B (core, configured) / 868 B (all packages, unconfigured). (e) `NOT_CONFIGURED`
+      is tagged on the existing "not configured" / "requires …" errors (messages unchanged); M-2
+      makes `code` mandatory. (f) Icon: a brand-neutral inline SVG (not the ServiceNow logo);
+      `websiteUrl` is the GitHub Pages site. (g) Write counters are per runtime (reset on dispose),
+      counted per journal line (a batch counts its sub-requests); plans are not counted.
+- [ ] **Owner decisions from batch 11 (P-10/P-13, 2026-09-26):** (a) `servicenow_explain_flow`
+      sits in the `flows` package, so the `reader` / `developer` profiles gain it — keep it there, or
+      move it to an opt-in package (`artifacts`, a new `explain`)? (b) The `tools/list` budget moved
+      again: `all` measured 129,083 with 89 tools and the ratchet is now 130,000. (c) `get_flow` does
+      not delegate to `explain_flow` (S-5 bullet, SDK-PARITY P-10): its `FlowDetail` contract differs,
+      so a delegation is a behaviour change — do it under O-4, or leave `get_flow` as the light read?
+      (d) Every Flow Designer and workflow field is unverified (O-5): the `values` compression
+      (plain JSON vs base64 + gzip JSON), v1 vs `_v2` authority when a step is in both (the `_v2` row
+      wins today), how snapshot children are keyed (`flow = <snapshot sys_id>`), the `label_cache`
+      shape, `wf_activity` keyed by `workflow_version`, the `sys_flow_log` level values (`error` or
+      `2` counts as an error) and the `wf_context` state values (`executing`). No PDI fixtures yet;
+      the Workflow Studio tree check of the acceptance criterion is still manual. (e) `runs` and
+      `migration` read runtime tables (`sys_flow_context`, `sys_flow_log`, `wf_context`) — opt-in,
+      off by default; acceptable in `flows`? (f) Bounds: runs default 5 / max 20, 10 log errors per
+      run, step depth 32, 50 inputs per step, 1,000-char raw preview — right defaults? (g) The pack
+      grows further past the 800 KB ceiling.
+- [ ] **Owner decisions from batch 11 (E-6, 2026-09-26):** (a) O-2 — the redacted PDI fixture
+      corpus and the optional live smoke job (secrets-gated) are not started. (b) `--help` /
+      `--version` spawn tests wait for D-1 (no such flags today). (c) L9-03 folder layout stays
+      deferred — the new suites sit flat in `test/`. (d) Property runs: 100 per property by
+      default (`SN_FC_RUNS`, fixed `SN_FC_SEED`); add a nightly or CI leg with `SN_FC_RUNS=800` and
+      a random seed? (e) Extension lint: `extension/` has no ESLint config and the root config
+      ignores it — the new CI job typechecks only; add a lint config there, or lint it from the root?
+      (f) The policy-glob property covers the host and MIME allow-lists only; the table glob lands
+      with H-11 / L3-01. (g) Three defects found by the properties, kept as `todo` tests, src
+      untouched: **F1** — `formatEnvValue` writes a quoted value that ends in `\` as `'…\'`; dotenv
+      reads `\'` as an escaped quote and swallows the next line (e.g. a password `pa#ss\` loses the
+      following key); **F2** — U+2028 / U+2029 are written unquoted and break dotenv's line split;
+      **F3** — `docsWriteRaw` accepts `index.md` / `index.json`, which the store silently rebuilds
+      after the write. Fix F1/F2 in the env writer and reject the store's own files in F3?
+- [ ] **Owner decisions from batch 12 (S-16/D-8, 2026-09-26):** (a) The S-16 acceptance says
+      `document_instance({depth:"apps"})` produces the four-file set; as built, `depth` is
+      cumulative — `apps` writes `overview.md`, `apps.md` and `tables-<scope>.md`, and
+      `artifacts-<scope>.md` needs `depth:"artefacts"`. Keep the tiers, or make `apps` write all
+      four? (b) Without `apps`, discovery scopes come from `sys_app` only (non-global, capped at
+      `INSTANCE_TARGETS_MAX`, the rest reported as skipped) — store apps (`sys_store_app`) are
+      not included; add them? (c) The D-8 `PreToolUse` hook that blocks `apply:true` without a
+      `plan_token` waits for H-3 (BREAKING, O-4); no `hooks/hooks.json` ships. (d) Slash
+      commands (`commands/*.md`) were skipped — the plugin skills are already invocable as
+      `/servicenow-mcp-ai:sn-*`; add thin command wrappers anyway? (e) The harness
+      `~/.claude/skills/discovery` should delegate to `servicenow_document_instance({depth})` when
+      a configured profile exists and keep `curl` as the fallback — a harness change outside this
+      repo, not done. (f) `pack:check` stays over the 800 KB ceiling (the skills are not in the
+      tarball; the growth is `src/api/document.ts`).
+- [ ] **Owner decisions from batch 12 (P-11, 2026-09-26):** (a) `explain_flow` now expands
+      subflow / action calls by default (`depth` 1): every flow read costs up to four more bounded
+      reads per level (actions, their steps, called subflows and their step tables) and expands OOB
+      spoke actions too — keep the default at 1, or make it 0 (opt-in expansion) or custom-scope only?
+      (b) The bounds — depth max 3, 20 distinct callees per call, a cycle marked, not re-read — right?
+      (c) Unverified fields (O-5): `sys_hub_step_instance` (`action`, `label`, `step_type`, `values`),
+      `sys_hub_action_input` / `_output` with `element` falling back to `name`, `sys_decision_input.model`,
+      `sys_decision_question` (`condition`, `answer`, `default_answer`, `label`) and
+      `sys_decision.answer_table`; no PDI fixture yet. (d) `decision_table` is `R` + `X` now; the
+      SDK-PARITY target is R/X/A/S — the `A`/`S` tiers wait for P-17 / P-20. (e) `kind:"action"` does
+      not read `sys_hub_action_type_snapshot` (published vs draft) — a later item? (f) The `tools/list`
+      `all` budget measured 129,926 (ratchet unchanged at 130,000; core 31,151) and the pack grows
+      further past the 800 KB ceiling (1,312.7 KB).
+- [ ] **Owner decisions from batch 12 (P-17, 2026-09-26):** (a) `servicenow_artifact_dependencies`
+      sits in the opt-in `artifacts` package — keep it there (it is not in `reader` / `developer`)?
+      (b) The `tools/list` budget moved again: `all` measured 133,469 with 90 tools and the ratchet
+      is now 134,000; `core` is unchanged at 31,151. (c) Inbound flow-step edges use a `valuesLIKE`
+      query, so steps whose `values` are stored base64 + gzip are not found (O-5 still open; the
+      result carries a caveat). (d) Script callers come from `search_code` over the default script
+      types (not the `extended` set) and are re-checked for a real call (`new X(`, `X.method(`,
+      `GlideAjax('X')`); a name mentioned only in a comment line with a call shape still counts.
+      (e) Bounds: depth default 1 / max 3, 25 rows per inbound source (max 100), 150 nodes — right
+      defaults? (f) Tables are leaves (no dictionary walk); a record reached only by an inbound edge
+      is not expanded outbound. (g) The pack grows further past the 800 KB ceiling.
+- [ ] **Owner decisions from batch 12 (M-5, 2026-09-26):** (a) A client can now widen the
+      surface beyond `SN_TOOL_PACKAGES` with `servicenow_enable_package`, write packages included;
+      only `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` bound it. Add an off switch (e.g.
+      `SN_DYNAMIC_PACKAGES=off`) or an allow-list for toggles? (b) The M-1 server instructions are a
+      startup snapshot and are not refreshed after a toggle. (c) The overview prompt always tells
+      the model to treat the profile as production until the H-11 environment marker lands. (d) A
+      call to a disabled tool now returns the SDK's "Tool X disabled" instead of "not found". (e)
+      Package resource templates are registered / `remove()`d rather than toggled (the SDK ignores
+      `enabled` on templates) — revisit on an SDK upgrade. (f) The core `tools/list` budget rose to
+      35,000 (measured 34,426) for the three new admin tools; `all` to 133,000 (132,949); the merged
+      batch 12 tree (93 tools) measured 137,276 / 34,426, ratchets 138,000 / 35,000 — M-6
+      budget restatement is still open. (g) Enable accepts one package per call — accept a list or
+      named profiles? (h) `get_status` reports the session set only after a toggle; the configured
+      set otherwise.
+- [ ] **Owner decisions from batch 12 (D-1, 2026-09-26):** (a) `init` accepts only
+      `*.service-now.com` names (or a bare instance name) unless `SN_ALLOWED_HOSTS` allows the custom
+      domain — offer to add it to the allow-list from the wizard? (b) `init` exits with the doctor
+      code (1 when the fresh credentials cannot reach the instance) — keep, or exit 0 once written?
+      (c) An unknown command or option now exits 2 instead of starting the server (clients that pass
+      stray arguments break) — changelog it as breaking for O-4? (d) `login` / `drift` are recognised
+      only as the first argument (`servicenow-mcp-ai --foo login` no longer logs in). (e) The support
+      bundle is one JSON file, not a zip; secret masking is by key-name heuristic plus a scrub of
+      the masked values — instance and user names stay visible. (f) `doctor` text output is ASCII
+      whenever stdout is not a TTY (piped / CI). (g) `init` writes through `persistEnv`, so the E-6
+      defects F1/F2 (a value ending in `\`, U+2028/U+2029) apply to wizard answers too. (h) The
+      pack grew to 1328.6 KB unpacked (ceiling 800 KB, pending the owner).
+- [ ] **SDK parity epic** (P-1…P-29, owner gates O-5…O-9) — post-3.0 (3.x minors; only P-22's
+      `deny` default is a 4.0 break); plan in [SDK-PARITY.md](SDK-PARITY.md), rows 55–83 of
+      ROADMAP-V3 §"Sequencing".
+- Everything else in the plan is 🔴 not started and waits for the owner to pick the cut
+  (recommended: ROADMAP-V3 §"Sequencing", items 1–19 + 25–29 + 46–50 + 52).
 
 ## Full review (2026-06-16 → 17) — architect → dev → qa
 

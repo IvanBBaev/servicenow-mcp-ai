@@ -1,0 +1,138 @@
+{
+  "artifactType": "sp_page",
+  "table": "sp_page",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "name": "Acme home",
+  "key": {
+    "id": "acme_home"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "sp_page 'Acme home' (sp_page); scope x_acme_app; 5 child record(s) in 4 table(s); 1/2 JSON field(s) decoded; unverified type",
+  "when": null,
+  "fields": {
+    "title": "Acme home",
+    "id": "acme_home",
+    "public": "false"
+  },
+  "children": [
+    {
+      "table": "sp_container",
+      "parentField": "sp_page",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "cccccccccccccccccccccccccccccccc",
+          "order": "1",
+          "sp_page": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "width": "container"
+        }
+      ]
+    },
+    {
+      "table": "sp_row",
+      "parentField": "sp_container",
+      "parentTable": "sp_container",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "dddddddddddddddddddddddddddddddd",
+          "order": "1",
+          "sp_container": "cccccccccccccccccccccccccccccccc"
+        }
+      ]
+    },
+    {
+      "table": "sp_column",
+      "parentField": "sp_row",
+      "parentTable": "sp_row",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "order": "1",
+          "sp_row": "dddddddddddddddddddddddddddddddd",
+          "size": "12"
+        }
+      ]
+    },
+    {
+      "table": "sp_instance",
+      "parentField": "sp_column",
+      "parentTable": "sp_column",
+      "verified": false,
+      "count": 2,
+      "items": [
+        {
+          "sys_id": "ffffffffffffffffffffffffffffffff",
+          "order": "1",
+          "sp_column": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "sp_widget": "00000000000000000000000000000000"
+        },
+        {
+          "sys_id": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+          "order": "2",
+          "sp_column": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "sp_widget": "00000000000000000000000000000000"
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "field": "sp_widget",
+      "table": "sp_widget",
+      "type": "sp_widget",
+      "sys_id": "00000000000000000000000000000000",
+      "from": {
+        "table": "sp_instance",
+        "sys_id": "ffffffffffffffffffffffffffffffff"
+      }
+    },
+    {
+      "field": "sp_widget",
+      "table": "sp_widget",
+      "type": "sp_widget",
+      "sys_id": "00000000000000000000000000000000",
+      "from": {
+        "table": "sp_instance",
+        "sys_id": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+      }
+    }
+  ],
+  "decoded": [
+    {
+      "source": "sp_instance",
+      "sys_id": "ffffffffffffffffffffffffffffffff",
+      "field": "widget_parameters",
+      "decoder": "json",
+      "decoded": true,
+      "value": {
+        "title": {
+          "value": "Welcome"
+        }
+      }
+    },
+    {
+      "source": "sp_instance",
+      "sys_id": "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
+      "field": "widget_parameters",
+      "decoder": "json",
+      "decoded": false,
+      "reason": "Not valid JSON.",
+      "raw": "{'title': broken}"
+    }
+  ]
+}

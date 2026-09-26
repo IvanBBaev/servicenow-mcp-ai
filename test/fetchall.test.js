@@ -39,7 +39,7 @@ test("fetchAll pages through everything and stops on a short page", async () => 
   });
 });
 
-test("fetchAll needs one probe page when rows divide evenly", async () => {
+test("fetchAll needs no probe page when X-Total-Count says the rows divide evenly", async () => {
   await withFetch(pagedHandler(makeRows(4)), async (calls) => {
     const { records } = await queryTable({
       table: "incident",
@@ -47,8 +47,8 @@ test("fetchAll needs one probe page when rows divide evenly", async () => {
       limit: 2,
     });
     assert.equal(records.length, 4);
-    // 2 + 2 + empty probe page.
-    assert.deepEqual(offsetsOf(calls), ["0", "2", "4"]);
+    // 2 + 2, then offset 4 >= X-Total-Count 4 ends the read (H-8 C-1).
+    assert.deepEqual(offsetsOf(calls), ["0", "2"]);
   });
 });
 
@@ -173,7 +173,7 @@ test("fetchAll respects a starting offset", async () => {
       records.map((r) => r.n),
       [3, 4],
     );
-    // Full page at offset 3, then the empty probe page at 5.
-    assert.deepEqual(offsetsOf(calls), ["3", "5"]);
+    // Full page at offset 3; offset 5 reaches X-Total-Count 5, so no probe.
+    assert.deepEqual(offsetsOf(calls), ["3"]);
   });
 });

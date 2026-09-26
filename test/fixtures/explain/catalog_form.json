@@ -1,0 +1,107 @@
+{
+  "kind": "catalog-form",
+  "variables": [
+    {
+      "sys_id": "3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+      "name": "reason",
+      "label": "Why do you need it?",
+      "order": "100",
+      "type": "2",
+      "typeName": "Multi Line Text",
+      "mandatory": false,
+      "choices": []
+    },
+    {
+      "sys_id": "2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c",
+      "name": "model",
+      "label": "Model",
+      "order": "200",
+      "type": "5",
+      "typeName": "Select Box",
+      "mandatory": true,
+      "choices": [
+        {
+          "value": "air",
+          "text": "Air",
+          "order": "10"
+        },
+        {
+          "value": "pro",
+          "text": "Pro",
+          "order": "20"
+        },
+        {
+          "value": "old",
+          "text": "Legacy",
+          "order": "30",
+          "inactive": true
+        }
+      ]
+    }
+  ],
+  "variableSets": [
+    {
+      "sys_id": "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c",
+      "order": "300",
+      "title": "Cost details",
+      "variables": ["cost_center"]
+    }
+  ],
+  "setVariables": [
+    {
+      "sys_id": "4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c",
+      "name": "cost_center",
+      "label": "Cost center",
+      "order": "10",
+      "type": "8",
+      "typeName": "Reference",
+      "mandatory": false,
+      "variableSet": "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c",
+      "choices": []
+    }
+  ],
+  "clientScripts": [
+    {
+      "sys_id": "7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c",
+      "name": "Model hint",
+      "type": "onChange",
+      "variable": "model",
+      "uiType": "all UIs"
+    },
+    {
+      "sys_id": "8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8c",
+      "name": "Cost check",
+      "type": "onSubmit",
+      "uiType": "desktop",
+      "variableSet": "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c"
+    }
+  ],
+  "uiPolicies": [
+    {
+      "sys_id": "acacacacacacacacacacacacacacacac",
+      "name": "Explain a pro order",
+      "order": "100",
+      "condition": "IO:2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c=pro^EQ",
+      "reverseIfFalse": true,
+      "onLoad": true,
+      "effects": [
+        {
+          "variable": "reason",
+          "whenTrue": ["visible", "mandatory"],
+          "whenFalse": ["hidden", "optional"]
+        }
+      ]
+    }
+  ],
+  "lines": [
+    "Catalog item 'Acme laptop': 3 variable(s) (2 own, 1 from 1 variable set(s)), 2 catalog client script(s), 1 catalog UI policy(ies).",
+    "100 reason \"Why do you need it?\" [Multi Line Text]",
+    "200 model \"Model\" [Select Box, mandatory]: air=\"Air\", pro=\"Pro\", old=\"Legacy\" (inactive)",
+    "Variable set 'Cost details' (order 300): 1 variable(s).",
+    "  10 cost_center \"Cost center\" [Reference]",
+    "Client script 'Model hint': onChange of model (all UIs).",
+    "Client script 'Cost check': onSubmit (desktop) from set 'Cost details'.",
+    "UI policy 'Explain a pro order': when IO:2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c=pro^EQ: reason visible, mandatory. Otherwise: reason hidden, optional.",
+    "sc_cat_item_user_criteria_mtom was not read: rejected by the instance (400)."
+  ]
+}

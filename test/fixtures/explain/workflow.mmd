@@ -1,0 +1,13 @@
+flowchart TD
+  wf["Workflow: Legacy Approval"]
+  a_2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a["Begin"]
+  wf -.-> a_2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a
+  a_2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b["Approval - User"]
+  a_2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c["Set Approved"]
+  a_2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d["Set Rejected"]
+  a_2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e["End"]
+  a_2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a -->|"Always"| a_2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b
+  a_2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b -->|"Approved"| a_2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c
+  a_2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b -->|"Rejected"| a_2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d
+  a_2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c --> a_2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e
+  a_2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d --> a_2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e

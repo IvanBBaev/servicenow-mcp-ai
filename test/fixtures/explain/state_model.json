@@ -1,0 +1,193 @@
+{
+  "artifactType": "state_model",
+  "table": "sttrm_model",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "11111111111111111111111111111111",
+  "name": "Acme task lifecycle",
+  "key": {
+    "sys_id": "11111111111111111111111111111111"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "state_model 'Acme task lifecycle' (sttrm_model); applies to x_acme_task; scope x_acme_app; 8 child record(s) in 3 table(s); unverified type",
+  "when": null,
+  "fields": {
+    "name": "Acme task lifecycle",
+    "table": "x_acme_task",
+    "state_field": "state"
+  },
+  "explanation": {
+    "kind": "state-model",
+    "states": [
+      {
+        "sys_id": "22222222222222222222222222222222",
+        "value": "1",
+        "label": "New"
+      },
+      {
+        "sys_id": "33333333333333333333333333333333",
+        "value": "2",
+        "label": "Work in progress"
+      },
+      {
+        "sys_id": "44444444444444444444444444444444",
+        "value": "3",
+        "label": "Closed"
+      }
+    ],
+    "transitions": [
+      {
+        "sys_id": "55555555555555555555555555555555",
+        "from": "New (1)",
+        "to": "Work in progress (2)"
+      },
+      {
+        "sys_id": "66666666666666666666666666666666",
+        "name": "Close",
+        "from": "Work in progress (2)",
+        "to": "Closed (3)",
+        "conditions": ["close_notesISNOTEMPTY"]
+      },
+      {
+        "sys_id": "77777777777777777777777777777777",
+        "from": "(any)",
+        "to": "9"
+      }
+    ],
+    "lines": [
+      "State model 'Acme task lifecycle' on x_acme_task.state: 3 state(s), 3 transition(s).",
+      "States: New (1), Work in progress (2), Closed (3).",
+      "New (1) -> Work in progress (2)",
+      "Work in progress (2) -> Closed (3) when close_notesISNOTEMPTY",
+      "(any) -> 9"
+    ]
+  },
+  "children": [
+    {
+      "table": "sttrm_state",
+      "parentField": "model",
+      "verified": false,
+      "count": 3,
+      "items": [
+        {
+          "sys_id": "22222222222222222222222222222222",
+          "label": "New",
+          "model": "11111111111111111111111111111111",
+          "state_value": "1"
+        },
+        {
+          "sys_id": "33333333333333333333333333333333",
+          "label": "Work in progress",
+          "model": "11111111111111111111111111111111",
+          "state_value": "2"
+        },
+        {
+          "sys_id": "44444444444444444444444444444444",
+          "label": "Closed",
+          "model": "11111111111111111111111111111111",
+          "state_value": "3"
+        }
+      ]
+    },
+    {
+      "table": "sttrm_state_transition",
+      "parentField": "model",
+      "verified": false,
+      "count": 3,
+      "items": [
+        {
+          "sys_id": "55555555555555555555555555555555",
+          "model": "11111111111111111111111111111111",
+          "from_state": "22222222222222222222222222222222",
+          "to_state": "33333333333333333333333333333333"
+        },
+        {
+          "sys_id": "66666666666666666666666666666666",
+          "name": "Close",
+          "model": "11111111111111111111111111111111",
+          "from_state": "33333333333333333333333333333333",
+          "to_state": "3"
+        },
+        {
+          "sys_id": "77777777777777777777777777777777",
+          "model": "11111111111111111111111111111111",
+          "to_state": "9"
+        }
+      ]
+    },
+    {
+      "table": "sttrm_transition_condition",
+      "parentField": "transition",
+      "parentTable": "sttrm_state_transition",
+      "verified": false,
+      "count": 2,
+      "items": [
+        {
+          "sys_id": "88888888888888888888888888888888",
+          "transition": "66666666666666666666666666666666",
+          "condition": "close_notesISNOTEMPTY"
+        },
+        {
+          "sys_id": "99999999999999999999999999999999",
+          "transition": "66666666666666666666666666666666"
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "field": "from_state",
+      "table": "sttrm_state",
+      "sys_id": "22222222222222222222222222222222",
+      "from": {
+        "table": "sttrm_state_transition",
+        "sys_id": "55555555555555555555555555555555"
+      }
+    },
+    {
+      "field": "to_state",
+      "table": "sttrm_state",
+      "sys_id": "33333333333333333333333333333333",
+      "from": {
+        "table": "sttrm_state_transition",
+        "sys_id": "55555555555555555555555555555555"
+      }
+    },
+    {
+      "field": "from_state",
+      "table": "sttrm_state",
+      "sys_id": "33333333333333333333333333333333",
+      "from": {
+        "table": "sttrm_state_transition",
+        "sys_id": "66666666666666666666666666666666"
+      }
+    },
+    {
+      "field": "to_state",
+      "table": "sttrm_state",
+      "sys_id": "3",
+      "from": {
+        "table": "sttrm_state_transition",
+        "sys_id": "66666666666666666666666666666666"
+      }
+    },
+    {
+      "field": "to_state",
+      "table": "sttrm_state",
+      "sys_id": "9",
+      "from": {
+        "table": "sttrm_state_transition",
+        "sys_id": "77777777777777777777777777777777"
+      }
+    }
+  ],
+  "decoded": []
+}

@@ -1,0 +1,176 @@
+{
+  "artifactType": "catalog_item",
+  "table": "sc_cat_item",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c",
+  "name": "Acme laptop",
+  "key": {
+    "sys_id": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "catalog_item 'Acme laptop' (sc_cat_item); active; scope x_acme_app; 2 child record(s) in 2 table(s); unverified type. Request a laptop.",
+  "when": null,
+  "fields": {
+    "name": "Acme laptop",
+    "active": "true",
+    "short_description": "Request a laptop.",
+    "workflow": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
+  },
+  "explanation": {
+    "kind": "catalog-form",
+    "variables": [
+      {
+        "sys_id": "2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c",
+        "name": "model",
+        "label": "Model",
+        "order": "100",
+        "type": "5",
+        "typeName": "Select Box",
+        "mandatory": false,
+        "choices": []
+      }
+    ],
+    "variableSets": [],
+    "setVariables": [],
+    "clientScripts": [
+      {
+        "sys_id": "3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+        "name": "onLoad hint",
+        "type": "onLoad"
+      }
+    ],
+    "uiPolicies": [],
+    "lines": [
+      "Catalog item 'Acme laptop': 1 variable(s) (1 own, 0 from 0 variable set(s)), 1 catalog client script(s), 0 catalog UI policy(ies).",
+      "100 model \"Model\" [Select Box]",
+      "Client script 'onLoad hint': onLoad."
+    ]
+  },
+  "children": [
+    {
+      "table": "item_option_new",
+      "parentField": "cat_item",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c",
+          "name": "model",
+          "order": "100",
+          "cat_item": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c",
+          "question_text": "Model",
+          "type": "5"
+        }
+      ]
+    },
+    {
+      "table": "io_set_item",
+      "parentField": "sc_cat_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "item_option_new_set",
+      "parentField": "sys_id",
+      "parentTable": "io_set_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "item_option_new",
+      "parentField": "variable_set",
+      "parentTable": "io_set_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "question_choice",
+      "parentField": "question",
+      "parentTable": "item_option_new",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "catalog_script_client",
+      "parentField": "cat_item",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c",
+          "name": "onLoad hint",
+          "cat_item": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c",
+          "script": "function onLoad() {}",
+          "type": "onLoad"
+        }
+      ]
+    },
+    {
+      "table": "catalog_ui_policy",
+      "parentField": "catalog_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "catalog_script_client",
+      "parentField": "variable_set",
+      "parentTable": "io_set_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "catalog_ui_policy",
+      "parentField": "variable_set",
+      "parentTable": "io_set_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "catalog_ui_policy_action",
+      "parentField": "ui_policy",
+      "parentTable": "catalog_ui_policy",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sc_cat_item_category",
+      "parentField": "sc_cat_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sc_cat_item_user_criteria_mtom",
+      "parentField": "sc_cat_item",
+      "verified": false,
+      "count": 0,
+      "items": []
+    }
+  ],
+  "references": [
+    {
+      "field": "workflow",
+      "table": "wf_workflow",
+      "type": "workflow",
+      "sys_id": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
+    }
+  ],
+  "decoded": []
+}

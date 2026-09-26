@@ -1,7 +1,22 @@
 import { snRequest } from "../core/http.js";
 import { ServiceNowError } from "../core/errors.js";
 import { getCredentials } from "../core/config.js";
-import { SCRIPT_TYPES } from "./scripts.js";
+import { ARTIFACT_TYPES } from "../core/artifacts/registry.js";
+import { assertTableAllowed } from "../core/policy.js";
+import { clearPluginAvailability } from "./plugin.js";
+import {
+  clearCapabilityCache,
+  probeCapabilityMatrix,
+  MATRIX_GROUPS,
+  type MatrixEntry,
+  type MatrixGroup,
+} from "./capability-matrix.js";
+
+export { MATRIX_GROUPS, type MatrixEntry, type MatrixGroup };
+import {
+  sdkManagedStatus,
+  type SdkManagedStatus,
+} from "../core/artifacts/sdk-managed.js";
 
 /**
  * DF-0 — capability preflight.
@@ -14,14 +29,29 @@ import { SCRIPT_TYPES } from "./scripts.js";
  * module probes, up front, which of those tables the connected user can
  * actually read and maps the result to the higher-level capabilities that
  * depend on them — so the assistant never promises a read it cannot make.
+ *
+ * S-13 adds the capability matrix (writes, update sets, attachments,
+ * aggregate, import sets, email, ATF, version, roles — see
+ * capability-matrix.ts) to the same report, and routes the table probes
+ * through the table policy: a table SN_TABLES_ALLOW/DENY forbids is reported
+ * unreadable without a request, because no tool could read it either.
  */
 
 /** Tables behind the schema tools. */
 const SCHEMA_TABLES = ["sys_db_object", "sys_dictionary"];
 
-/** Every distinct artefact table the script-intelligence readers touch. */
+/**
+ * Every distinct artefact table the script-intelligence readers touch: the
+ * primary tables of the registry types exposed through the script tools (P-1).
+ * Verified types only: the S-4 widened types are unverified until O-5, and a
+ * missing optional table must not flip `script_intelligence` to unavailable.
+ */
 const ARTEFACT_TABLES = [
-  ...new Set(Object.values(SCRIPT_TYPES).map((t) => t.table)),
+  ...new Set(
+    ARTIFACT_TYPES.filter((t) => t.scriptTools && t.verified).map(
+      (t) => t.table,
+    ),
+  ),
 ];
 
 /** A higher-level capability and the tables it needs to be achievable. */
@@ -59,6 +89,8 @@ export interface TableProbe {
   status?: number;
   /** Human-readable reason when not readable. */
   reason?: string;
+  /** True when the table policy forbids it, so it was not probed (S-13). */
+  policyDenied?: boolean;
 }
 
 export interface CapabilityResult {
@@ -78,6 +110,20 @@ export interface CapabilityReport {
   degraded: boolean;
   recommendation: string;
   summary: string;
+  /**
+   * S-13 — per-group capability matrix (all groups unless `groups` narrowed
+   * it). Informational: it does not change `degraded`.
+   */
+  matrix: Partial<Record<MatrixGroup, MatrixEntry>>;
+  /** P-3: scopes the local sources declare SDK-managed (additive). */
+  sdkManaged: SdkManagedStatus;
+}
+
+export interface CheckCapabilitiesOptions {
+  /** Matrix groups to probe (default: all). The table preflight always runs. */
+  groups?: readonly MatrixGroup[];
+  /** Drop the cached matrix results and plugin availability first. */
+  refresh?: boolean;
 }
 
 /**
@@ -87,6 +133,16 @@ export interface CapabilityReport {
  * transport-level error (no HTTP status) is genuinely global and is re-thrown.
  */
 async function probeTable(table: string): Promise<TableProbe> {
+  try {
+    assertTableAllowed(table);
+  } catch (error) {
+    return {
+      table,
+      readable: false,
+      policyDenied: true,
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
   const params = new URLSearchParams({
     sysparm_limit: "1",
     sysparm_fields: "sys_id",
@@ -96,6 +152,8 @@ async function probeTable(table: string): Promise<TableProbe> {
       method: "GET",
       path: `/api/now/table/${encodeURIComponent(table)}`,
       params,
+      // Preflight/doctor diagnostic: answer even while the queue is stalled.
+      bypassQueue: true,
     });
     return { table, readable: true, status: res.status };
   } catch (error) {
@@ -120,11 +178,21 @@ async function probeTable(table: string): Promise<TableProbe> {
  * Probe the admin-restricted tables behind the read-heavy capabilities and
  * report which capabilities are actually achievable for the connected user.
  */
-export async function checkCapabilities(): Promise<CapabilityReport> {
+export async function checkCapabilities(
+  opts: CheckCapabilitiesOptions = {},
+): Promise<CapabilityReport> {
   const { instance, user } = getCredentials();
   const tables = [...new Set([...SCHEMA_TABLES, ...ARTEFACT_TABLES])];
 
-  const probed = await Promise.all(tables.map(probeTable));
+  if (opts.refresh) {
+    clearCapabilityCache();
+    clearPluginAvailability();
+  }
+  // The matrix never throws; a table-probe transport error still does.
+  const [probed, matrix] = await Promise.all([
+    Promise.all(tables.map(probeTable)),
+    probeCapabilityMatrix(opts.groups ?? MATRIX_GROUPS),
+  ]);
   const readable = new Set(
     probed.filter((p) => p.readable).map((p) => p.table),
   );
@@ -156,5 +224,7 @@ export async function checkCapabilities(): Promise<CapabilityReport> {
     degraded,
     recommendation,
     summary,
+    matrix,
+    sdkManaged: sdkManagedStatus(),
   };
 }

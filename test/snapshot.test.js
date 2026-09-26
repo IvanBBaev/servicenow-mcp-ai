@@ -6,7 +6,9 @@ import path from "node:path";
 
 import { snapshotInstance } from "../build/api/snapshot.js";
 import { clearSchemaCache } from "../build/core/cache.js";
-import { baselineEnv, withFetch, jsonResponse } from "./helpers.js";
+import { runSpec } from "../build/mcp/define.js";
+import { specs as instanceSpecs } from "../build/tools/instance.js";
+import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 // Each test file runs in its own process, so a per-file temp docs dir is safe.
 const DOCS_DIR = path.join(
@@ -101,8 +103,68 @@ function instanceFetch(url) {
       ],
     });
   }
+  const records = RECORD_ROWS[u.pathname.split("/").pop()];
+  if (records) return jsonResponse(200, { result: records });
   return jsonResponse(404, { error: { message: `unmocked: ${u.pathname}` } });
 }
+
+/** S-7 record sections: one or two rows per table. */
+const RECORD_ROWS = {
+  sys_properties: [
+    { sys_id: "p1", name: "glide.ui.title", type: "string", value: "Dev" },
+    { sys_id: "p2", name: "x.api_key", type: "string", value: "s3cr3t" },
+    { sys_id: "p3", name: "x.login", type: "password2", value: "enc" },
+  ],
+  sys_choice: [
+    {
+      sys_id: "c1",
+      name: "incident",
+      element: "state",
+      value: "1",
+      label: "New",
+      sequence: "1",
+    },
+  ],
+  sys_security_acl: [
+    {
+      sys_id: "a1",
+      name: "incident",
+      operation: "read",
+      type: "record",
+      active: "true",
+      admin_overrides: "true",
+      script: "answer = true;",
+    },
+  ],
+  sysevent_email_action: [
+    {
+      sys_id: "n1",
+      name: "Incident opened",
+      collection: "incident",
+      event_name: "incident.inserted",
+      active: "true",
+    },
+  ],
+  sys_hub_flow: [
+    {
+      sys_id: "f1",
+      name: "Onboard",
+      internal_name: "onboard",
+      type: "flow",
+      active: "true",
+      status: "published",
+    },
+  ],
+  sc_cat_item: [
+    {
+      sys_id: "i1",
+      name: "Laptop",
+      sys_class_name: "sc_cat_item",
+      active: "true",
+    },
+  ],
+  sys_user_role: [{ sys_id: "r1", name: "itil", elevated_privilege: "false" }],
+};
 
 test("snapshotInstance writes the documented file set", async () => {
   baselineEnv();
@@ -157,13 +219,19 @@ test("snapshotInstance writes the documented file set", async () => {
     "2026-06-01 10:00:00",
   );
 
+  // S-14: the file list lives in the root index; the profile page is a README.
   const index = await fs.readFile(
     path.join(DOCS_DIR, "default", "index.md"),
     "utf8",
   );
-  assert.match(index, /\[tables\.md\]\(tables\.md\)/);
-  assert.match(index, /\[schema\/incident\.md\]\(schema\/incident\.md\)/);
+  assert.doesNotMatch(index, /\[tables\.md\]\(tables\.md\)/);
   assert.doesNotMatch(index, /## Warnings/);
+  const rootIndex = await fs.readFile(path.join(DOCS_DIR, "index.md"), "utf8");
+  assert.match(rootIndex, /\[default\/tables\.md\]\(default\/tables\.md\)/);
+  assert.match(
+    rootIndex,
+    /\[default\/schema\/incident\.md\]\(default\/schema\/incident\.md\)/,
+  );
 });
 
 test("snapshotInstance is idempotent and skips unsafe table names", async () => {
@@ -264,4 +332,289 @@ test("snapshot skips the plugins section and warns when BOTH sources fail (QA-6)
     fs.access(path.join(DOCS_DIR, "default", "plugins.md")),
     "plugins.md must not exist when both sources fail",
   );
+});
+
+test("a snapshot re-run is unchanged and keeps manual notes (S-14)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const first = await withFetch(instanceFetch, () =>
+    snapshotInstance({ tables: ["incident"] }),
+  );
+  const indexPath = path.join(DOCS_DIR, "default", "index.md");
+  const hashes = {};
+  for (const rel of first.files) {
+    const text = await fs.readFile(path.join(DOCS_DIR, rel), "utf8");
+    hashes[rel] = /sn_source_hash"?: "?(sha256:[0-9a-f]{64})/.exec(text)?.[1];
+    assert.ok(hashes[rel], `${rel} carries sn_source_hash`);
+  }
+  assert.match(
+    await fs.readFile(path.join(DOCS_DIR, "default", "tables.md"), "utf8"),
+    /^---\nsn_generated: true\nsn_generator: servicenow_snapshot_instance\n/,
+  );
+
+  // A human writes into the notes block of the profile README.
+  const notes =
+    "<!-- sn:manual:start -->\nRefresh after every upgrade — Ivan\n<!-- sn:manual:end -->";
+  const readme = await fs.readFile(indexPath, "utf8");
+  assert.match(readme, /<!-- sn:manual:start -->\n<!-- sn:manual:end -->/);
+  await fs.writeFile(
+    indexPath,
+    readme.replace(/<!-- sn:manual:start -->\n<!-- sn:manual:end -->/, notes),
+  );
+
+  clearSchemaCache();
+  const second = await withFetch(instanceFetch, () =>
+    snapshotInstance({ tables: ["incident"] }),
+  );
+  assert.deepEqual(second.files, first.files);
+  for (const rel of second.files) {
+    assert.equal(second.changes[rel], "unchanged", rel);
+    const text = await fs.readFile(path.join(DOCS_DIR, rel), "utf8");
+    assert.ok(text.includes(hashes[rel]), `${rel} keeps its hash`);
+  }
+  assert.ok((await fs.readFile(indexPath, "utf8")).includes(notes));
+
+  // A changed section regenerates, and the notes still survive.
+  clearSchemaCache();
+  const third = await withFetch(instanceFetch, () =>
+    snapshotInstance({ tables: ["incident", "Bad Name"] }),
+  );
+  assert.equal(third.changes["default/index.md"], "updated");
+  assert.equal(third.changes["default/tables.md"], "unchanged");
+  const regenerated = await fs.readFile(indexPath, "utf8");
+  assert.ok(regenerated.includes(notes));
+  assert.match(regenerated, /## Warnings/);
+});
+
+test("a snapshot does not overwrite a hand-written file in its way", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const hand = path.join(DOCS_DIR, "default", "apps.md");
+  await fs.writeFile(hand, "# My own app notes\n");
+  const r = await withFetch(instanceFetch, () =>
+    snapshotInstance({ tables: ["incident"] }),
+  );
+  assert.equal(await fs.readFile(hand, "utf8"), "# My own app notes\n");
+  assert.ok(
+    r.warnings.some((w) => /apps\.md/.test(w) && /hand-written/.test(w)),
+  );
+  assert.ok(!r.files.includes("default/apps.md"));
+});
+
+test("snapshot automation follows the registry: base query, active field (S-4)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const statsUrls = new Map();
+  await withFetch(
+    (url) => {
+      const u = new URL(url);
+      if (u.pathname.includes("/api/now/stats/")) {
+        statsUrls.set(u.pathname.split("/").pop(), u.searchParams);
+      }
+      return instanceFetch(url);
+    },
+    () => snapshotInstance({ tables: [] }),
+  );
+  // Pre-S-4 request shape for an original type.
+  const br = statsUrls.get("sys_script");
+  assert.equal(br.get("sysparm_group_by"), "active");
+  assert.equal(br.get("sysparm_query"), null);
+  // sys_dictionary is narrowed to the rows that carry script.
+  assert.match(
+    statsUrls.get("sys_dictionary").get("sysparm_query"),
+    /^virtual=true\^ORdefault_valueSTARTSWITHjavascript:$/,
+  );
+  // A fix script has no active flag: no group-by, active is null / n/a.
+  assert.equal(statsUrls.get("sys_script_fix").get("sysparm_group_by"), null);
+  const automation = JSON.parse(
+    await fs.readFile(
+      path.join(DOCS_DIR, "default", "automation.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(automation.automation.fix_script.active, null);
+  assert.equal(automation.automation.fix_script.total, 7);
+  const md = await fs.readFile(
+    path.join(DOCS_DIR, "default", "automation.md"),
+    "utf8",
+  );
+  assert.match(md, /\| fix_script \| sys_script_fix \| 7 \| n\/a \|/);
+});
+
+// --- S-7: record sections, fan-out, cancel + resume --------------------------
+
+const readJson = async (rel) =>
+  JSON.parse(await fs.readFile(path.join(DOCS_DIR, rel), "utf8"));
+
+test("record sections are written redacted, and `sections` narrows the run (S-7)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const paths = [];
+  const result = await withFetch(
+    (url) => {
+      paths.push(new URL(url).pathname);
+      return instanceFetch(url);
+    },
+    () => snapshotInstance({ sections: ["properties", "acls", "roles"] }),
+  );
+  // Only the chosen sections were read.
+  assert.ok(
+    paths.every((p) => /sys_properties|sys_security_acl|sys_user_role/.test(p)),
+  );
+  for (const id of ["properties", "acls", "roles"]) {
+    assert.ok(result.files.includes(`default/${id}.md`), id);
+    assert.ok(result.files.includes(`default/${id}.json`), id);
+  }
+  assert.ok(!result.files.includes("default/tables.md"));
+  assert.equal(result.resumed, undefined);
+
+  const props = (await readJson("default/properties.json")).records;
+  assert.equal(props.find((r) => r.name === "glide.ui.title").value, "Dev");
+  assert.equal(props.find((r) => r.name === "x.api_key").value, "[redacted]");
+  assert.equal(props.find((r) => r.name === "x.login").value, "[redacted]");
+  const md = await fs.readFile(
+    path.join(DOCS_DIR, "default", "properties.md"),
+    "utf8",
+  );
+  assert.doesNotMatch(md, /s3cr3t/);
+
+  const [acl] = (await readJson("default/acls.json")).records;
+  assert.equal(acl.script, undefined);
+  assert.match(acl.script_hash, /^[0-9a-f]{16}$/);
+  assert.match(
+    await fs.readFile(path.join(DOCS_DIR, "default", "index.md"), "utf8"),
+    /domain separation/,
+  );
+});
+
+test("the snapshot fans out to at most four reads at a time (S-7)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  let inflight = 0;
+  let peak = 0;
+  await withEnv({ SN_MAX_CONCURRENT: "10" }, () =>
+    withFetch(
+      async (url) => {
+        inflight++;
+        peak = Math.max(peak, inflight);
+        await new Promise((r) => setTimeout(r, 5));
+        inflight--;
+        return instanceFetch(url);
+      },
+      () => snapshotInstance({ tables: ["incident"] }),
+    ),
+  );
+  assert.ok(peak > 1, `ran in parallel (peak ${peak})`);
+  assert.ok(peak <= 4, `peak ${peak} <= 4`);
+});
+
+test("a cancelled snapshot leaves a partial index; resume skips finished units (S-7)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  await fs.rm(path.join(DOCS_DIR, "default"), { recursive: true, force: true });
+  const spec = instanceSpecs.find(
+    (s) => s.name === "servicenow_snapshot_instance",
+  );
+  const controller = new AbortController();
+  await withEnv({ SN_MAX_CONCURRENT: "1" }, () =>
+    withFetch(
+      (url) => {
+        if (new URL(url).pathname.endsWith("/sys_security_acl")) {
+          controller.abort();
+        }
+        return instanceFetch(url);
+      },
+      async () => {
+        const r = await runSpec(
+          spec,
+          { tables: ["incident"] },
+          { signal: controller.signal },
+        );
+        assert.equal(JSON.parse(r.content[0].text).error.code, "CANCELLED");
+      },
+    ),
+  );
+  const state = await fs.readFile(
+    path.join(DOCS_DIR, "default", "snapshot.json"),
+    "utf8",
+  );
+  assert.match(state, /"sn_partial": true/);
+  assert.equal((await readJson("index.json")).partial, true);
+  // The profile README says so; index.json flags the entry.
+  const readme = await fs.readFile(
+    path.join(DOCS_DIR, "default", "index.md"),
+    "utf8",
+  );
+  assert.match(readme, /^sn_partial: true$/m);
+  assert.match(readme, /Interrupted/);
+  const entry = (await readJson("index.json")).files.find(
+    (e) => e.path === "default/index.md",
+  );
+  assert.equal(entry.partial, true);
+
+  // Resume: finished units are not read again.
+  clearSchemaCache();
+  const paths = [];
+  const resumed = await withFetch(
+    (url) => {
+      paths.push(new URL(url).pathname);
+      return instanceFetch(url);
+    },
+    () => snapshotInstance({ tables: ["incident"], resume: true }),
+  );
+  assert.ok(resumed.resumed.includes("plugins"));
+  assert.ok(resumed.resumed.includes("schema:incident"));
+  assert.ok(!resumed.resumed.includes("roles"));
+  assert.ok(!paths.some((p) => p.endsWith("/v_plugin")));
+  assert.ok(paths.some((p) => p.endsWith("/sys_user_role")));
+  assert.equal(resumed.changes["default/plugins.md"], "unchanged");
+  assert.equal(resumed.changes["default/index.md"], "updated");
+  assert.equal((await readJson("index.json")).partial, undefined);
+  assert.ok((await readJson("default/schema.json")).schema.incident);
+
+  // A complete run is not resumable: everything is read again.
+  clearSchemaCache();
+  const again = await withFetch(instanceFetch, () =>
+    snapshotInstance({ tables: ["incident"], resume: true }),
+  );
+  assert.deepEqual(again.resumed, []);
+});
+
+test("resume re-runs a unit whose file changed on disk (S-7)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const controller = new AbortController();
+  const spec = instanceSpecs.find(
+    (s) => s.name === "servicenow_snapshot_instance",
+  );
+  await withEnv({ SN_MAX_CONCURRENT: "1" }, () =>
+    withFetch(
+      (url) => {
+        if (new URL(url).pathname.endsWith("/sys_user_role")) {
+          controller.abort();
+        }
+        return instanceFetch(url);
+      },
+      () =>
+        runSpec(
+          spec,
+          { sections: ["plugins", "roles"] },
+          { signal: controller.signal },
+        ),
+    ),
+  );
+  // Tamper with a finished unit's output.
+  const f = path.join(DOCS_DIR, "default", "plugins.md");
+  await fs.writeFile(
+    f,
+    (await fs.readFile(f, "utf8")).replace(
+      /sn_source_hash: \S+/,
+      "sn_source_hash: sha256:x",
+    ),
+  );
+  const r = await withFetch(instanceFetch, () =>
+    snapshotInstance({ sections: ["plugins", "roles"], resume: true }),
+  );
+  assert.deepEqual(r.resumed, []);
+  assert.equal(r.changes["default/plugins.md"], "updated");
 });

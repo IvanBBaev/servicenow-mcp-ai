@@ -51,19 +51,26 @@ test("saveCredentials on a named profile writes prefixed keys only", async () =>
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "servicenow-mcp-prof-"));
   const envFile = path.join(dir, ".env");
   try {
-    await withEnv({ SN_ENV_FILE: envFile, ...DEV }, async () => {
-      saveCredentials({ user: "new-dev-user" }, "dev");
-      assert.equal(getCredentials("dev").user, "new-dev-user");
-      assert.equal(
-        getCredentials("default").user,
-        "alice",
-        "default untouched",
-      );
+    await withEnv(
+      { SN_ENV_FILE: envFile, SN_DOCS_DIR: dir, ...DEV },
+      async () => {
+        saveCredentials({ user: "new-dev-user" }, "dev");
+        assert.equal(getCredentials("dev").user, "new-dev-user");
+        assert.equal(
+          getCredentials("default").user,
+          "alice",
+          "default untouched",
+        );
 
-      const parsed = dotenv.parse(await fs.readFile(envFile, "utf8"));
-      assert.equal(parsed.SN_PROFILE_DEV_USER, "new-dev-user");
-      assert.equal(parsed.SN_USER, undefined, "bare keys must not be written");
-    });
+        const parsed = dotenv.parse(await fs.readFile(envFile, "utf8"));
+        assert.equal(parsed.SN_PROFILE_DEV_USER, "new-dev-user");
+        assert.equal(
+          parsed.SN_USER,
+          undefined,
+          "bare keys must not be written",
+        );
+      },
+    );
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
     baselineEnv();
@@ -123,10 +130,11 @@ test("the automatic instance argument routes a single call (MI-3)", async () => 
   const { InMemoryTransport } =
     await import("@modelcontextprotocol/sdk/inMemory.js");
   const { registerAllTools } = await import("../build/mcp/registry.js");
+  const { currentRuntime } = await import("../build/core/runtime.js");
 
   await withEnv({ ...DEV, SN_TOOL_PACKAGES: undefined }, async () => {
     const server = new McpServer({ name: "t", version: "0" });
-    registerAllTools(server);
+    registerAllTools(server, currentRuntime());
     const client = new Client({ name: "c", version: "0" });
     const [ct, st] = InMemoryTransport.createLinkedPair();
     await Promise.all([server.connect(st), client.connect(ct)]);
@@ -173,18 +181,21 @@ test("useProfile switches and persists; unknown/invalid names throw", async () =
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "servicenow-mcp-prof-"));
   const envFile = path.join(dir, ".env");
   try {
-    await withEnv({ SN_ENV_FILE: envFile, ...DEV }, async () => {
-      const switched = useProfile("dev");
-      assert.equal(switched.instance, "dev1.service-now.com");
-      assert.equal(activeProfile(), "dev");
-      assert.equal(getCredentials().user, "dev-user");
+    await withEnv(
+      { SN_ENV_FILE: envFile, SN_DOCS_DIR: dir, ...DEV },
+      async () => {
+        const switched = useProfile("dev");
+        assert.equal(switched.instance, "dev1.service-now.com");
+        assert.equal(activeProfile(), "dev");
+        assert.equal(getCredentials().user, "dev-user");
 
-      const parsed = dotenv.parse(await fs.readFile(envFile, "utf8"));
-      assert.equal(parsed.SN_ACTIVE_PROFILE, "dev");
+        const parsed = dotenv.parse(await fs.readFile(envFile, "utf8"));
+        assert.equal(parsed.SN_ACTIVE_PROFILE, "dev");
 
-      assert.throws(() => useProfile("prod"), /Unknown profile "prod"/);
-      assert.throws(() => useProfile("Bad Name!"), /Invalid profile name/);
-    });
+        assert.throws(() => useProfile("prod"), /Unknown profile "prod"/);
+        assert.throws(() => useProfile("Bad Name!"), /Invalid profile name/);
+      },
+    );
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
     baselineEnv();

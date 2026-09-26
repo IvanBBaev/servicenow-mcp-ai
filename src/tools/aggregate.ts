@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { aggregate } from "../api/aggregate.js";
 import { ok, fail } from "../mcp/result.js";
-import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import {
+  defineTool,
+  encodedQuery,
+  fieldList,
+  tableName,
+  type AnyToolSpec,
+} from "../mcp/define.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -10,36 +16,32 @@ export const specs: AnyToolSpec[] = [
     description:
       "Compute server-side aggregates (count, avg, min, max, sum) over a table via the Stats API, with optional grouping. Avoids pulling individual rows.",
     package: "aggregate",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    output: { result: z.unknown() },
     input: {
-      table: z.string().describe("Table name, e.g. 'incident'."),
-      query: z
-        .string()
+      table: tableName().describe("Table name, e.g. 'incident'."),
+      query: encodedQuery()
         .optional()
         .describe("Encoded query to filter rows before aggregating."),
       count: z
         .boolean()
         .optional()
         .describe("Include a record count (sysparm_count)."),
-      avg_fields: z
-        .array(z.string())
-        .optional()
-        .describe("Numeric fields to average."),
-      min_fields: z
-        .array(z.string())
+      avg_fields: fieldList().optional().describe("Numeric fields to average."),
+      min_fields: fieldList()
         .optional()
         .describe("Fields to take the minimum of."),
-      max_fields: z
-        .array(z.string())
+      max_fields: fieldList()
         .optional()
         .describe("Fields to take the maximum of."),
-      sum_fields: z
-        .array(z.string())
-        .optional()
-        .describe("Numeric fields to sum."),
-      group_by: z.array(z.string()).optional().describe("Fields to group by."),
-      having: z
-        .string()
+      sum_fields: fieldList().optional().describe("Numeric fields to sum."),
+      group_by: fieldList().optional().describe("Fields to group by."),
+      having: encodedQuery()
         .optional()
         .describe("HAVING clause to filter groups (sysparm_having)."),
     },

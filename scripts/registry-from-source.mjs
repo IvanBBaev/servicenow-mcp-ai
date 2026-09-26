@@ -11,13 +11,20 @@ import { register } from "node:module";
 
 let pending;
 
-/** Resolve the full ToolInfo[] from the TypeScript sources (cached). */
-export function loadToolsFromSource() {
+function loadRegistry() {
   if (!pending) {
     register("./ts-source-loader.mjs", import.meta.url);
-    pending = import("../src/mcp/registry.ts").then((m) =>
-      m.describeAllTools(),
-    );
+    pending = import("../src/mcp/registry.ts");
   }
   return pending;
+}
+
+/** Resolve the full ToolInfo[] from the TypeScript sources (cached). */
+export function loadToolsFromSource() {
+  return loadRegistry().then((m) => m.describeAllTools());
+}
+
+/** Resolve every tool's registered JSON Schemas from the sources (M-6). */
+export function loadToolSchemasFromSource() {
+  return loadRegistry().then((m) => m.describeToolSchemas());
 }

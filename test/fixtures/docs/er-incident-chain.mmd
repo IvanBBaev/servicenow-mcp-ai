@@ -1,0 +1,11 @@
+erDiagram
+  incident {
+    reference assigned_to
+    reference caller_id
+    choice category
+    string number
+    string short_description
+    GUID sys_id
+  }
+  incident }o--|| sys_user : "assigned_to"
+  incident }o--|| sys_user : "caller_id"

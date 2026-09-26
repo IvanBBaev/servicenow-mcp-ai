@@ -1,0 +1,34 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_snapshot_instance",
+  "sn_generator_version": "1",
+  "sn_kind": "snapshot",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:804ac830b7bffe7aff63da26ae91de06c48196833c2d673be2a37ed13500caa3",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "units": {
+    "plugins": {
+      "files": {},
+      "warnings": [
+        "plugins: unavailable — ServiceNow API error (403): denied"
+      ]
+    },
+    "apps": {
+      "files": {},
+      "warnings": [
+        "apps: sys_app unavailable — ServiceNow API error (403): denied",
+        "apps: sys_store_app unavailable — ServiceNow API error (403): no access to sys_store_app"
+      ]
+    },
+    "roles": {
+      "files": {
+        "default/roles.md": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8",
+        "default/roles.json": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8"
+      },
+      "warnings": []
+    }
+  }
+}

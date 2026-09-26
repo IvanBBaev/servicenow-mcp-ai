@@ -1,7 +1,8 @@
 import { queryTable, type SnRecord } from "./table.js";
 import { getCredentials } from "../core/config.js";
-import { cached } from "../core/cache.js";
+import { cached, peekSchemaCache } from "../core/cache.js";
 import { assertNoCaret, snString } from "./shared.js";
+import { ServiceNowError } from "../core/errors.js";
 
 /** Cache key prefix carrying the instance, so profiles never cross-pollute. */
 const cacheKey = (parts: string[]): string =>
@@ -50,14 +51,67 @@ async function listTablesUncached(filter?: string): Promise<TableInfo[]> {
   }));
 }
 
+/**
+ * M-4 (L5-03): tables every instance has, offered by completions and the
+ * schema resource list before any schema read has been cached.
+ */
+export const SEED_TABLES = [
+  "incident",
+  "problem",
+  "change_request",
+  "sc_request",
+  "sc_req_item",
+  "sc_task",
+  "task",
+  "sys_user",
+  "sys_user_group",
+  "cmdb_ci",
+  "kb_knowledge",
+] as const;
+
+/**
+ * Table names the schema cache already knows for `instance` (default: the
+ * active profile's) — described tables, their inheritance chains and
+ * reference targets, and cached `listTables` results. Never calls the
+ * instance, so completions and resource lists stay free and offline.
+ */
+export function cachedTableNames(
+  instance: string = getCredentials().instance,
+): string[] {
+  const names = new Set<string>();
+  for (const [key, value] of peekSchemaCache(`${instance}|`)) {
+    const [, kind, table] = key.split("|");
+    if (kind === "describeTable" && table) {
+      names.add(table);
+      for (const c of value as ColumnInfo[]) {
+        if (c.reference) names.add(c.reference);
+      }
+    } else if (kind === "tableChain") {
+      for (const t of value as string[]) names.add(t);
+    } else if (kind === "listTables") {
+      for (const t of value as TableInfo[]) names.add(t.name);
+    }
+  }
+  names.delete("");
+  return [...names].sort();
+}
+
 /** Guard against malformed/cyclic super_class data on the instance. */
 const MAX_CHAIN_DEPTH = 20;
 
 /**
  * Resolve a table's inheritance chain (child first, root last) by walking
- * sys_db_object.super_class. An unknown table yields just itself.
+ * sys_db_object.super_class. An unknown table yields just itself. Cached with
+ * the other schema reads (S-1): the trace and diagram generators resolve the
+ * chain on every call, and it changes as rarely as the dictionary does.
  */
 export async function getTableChain(table: string): Promise<string[]> {
+  return cached(cacheKey(["tableChain", table]), () =>
+    getTableChainUncached(table),
+  );
+}
+
+async function getTableChainUncached(table: string): Promise<string[]> {
   const chain = [table];
   let current = table;
   for (let depth = 0; depth < MAX_CHAIN_DEPTH; depth++) {
@@ -85,6 +139,26 @@ export interface ColumnInfo {
   reference?: string;
   /** Table in the inheritance chain that defines this column. */
   sourceTable?: string;
+  // S-7: the rest of the dictionary entry. Flags are set only when true.
+  defaultValue?: string;
+  readOnly?: boolean;
+  unique?: boolean;
+  /** The table's display field. */
+  display?: boolean;
+  /** Choice mode (`1` dropdown with -- None --, `3` without, …). */
+  choice?: string;
+  /** Active choice list (sys_choice, `language=en`); with `details` only. */
+  choices?: { value: string; label: string }[];
+  /** sys_dictionary_override rows applying here, child first; `details` only. */
+  overrides?: ColumnOverride[];
+}
+
+/** One sys_dictionary_override row: what a (child) table overrides. */
+export interface ColumnOverride {
+  table: string;
+  defaultValue?: string;
+  mandatory?: boolean;
+  readOnly?: boolean;
 }
 
 /**
@@ -115,6 +189,11 @@ async function describeTableUncached(table: string): Promise<ColumnInfo[]> {
       "max_length",
       "reference",
       "name",
+      "default_value",
+      "read_only",
+      "unique",
+      "display",
+      "choice",
     ],
     displayValue: "false",
     fetchAll: true,
@@ -139,9 +218,118 @@ async function describeTableUncached(table: string): Promise<ColumnInfo[]> {
       element: snString(r.element),
       label: snString(r.column_label) || undefined,
       type: snString(r.internal_type) || undefined,
-      mandatory: r.mandatory === "true" || r.mandatory === true,
-      maxLength: r.max_length ? Number(r.max_length) : undefined,
+      // snString unwraps a C-4 `{ value, display_value }` pair.
+      mandatory: snString(r.mandatory) === "true",
+      maxLength: snString(r.max_length)
+        ? Number(snString(r.max_length))
+        : undefined,
       reference: snString(r.reference) || undefined,
       sourceTable: snString(r.name) || undefined,
+      defaultValue: snString(r.default_value) || undefined,
+      readOnly: flag(r.read_only),
+      unique: flag(r.unique),
+      display: flag(r.display),
+      choice: ["", "0"].includes(snString(r.choice))
+        ? undefined
+        : snString(r.choice),
     }));
+}
+
+const flag = (v: unknown): true | undefined =>
+  snString(v) === "true" ? true : undefined;
+
+/**
+ * S-7 — describeTable plus the choice lists (sys_choice) and the dictionary
+ * overrides (sys_dictionary_override) of the table's chain: two more reads,
+ * so the describe_table tool asks for them with `details`. The nearest table
+ * of the chain wins a choice list; an unreadable table becomes a warning.
+ */
+export async function describeTableDetails(
+  table: string,
+): Promise<{ columns: ColumnInfo[]; warnings: string[] }> {
+  const columns = (await describeTable(table)).map((c) => ({ ...c }));
+  const chain = await getTableChain(table);
+  const rank = (t: unknown): number => {
+    const i = chain.indexOf(snString(t));
+    return i < 0 ? chain.length : i;
+  };
+  const byElement = new Map(columns.map((c) => [c.element, c]));
+  const warnings: string[] = [];
+  const read = async (
+    t: string,
+    query: string,
+    fields: string[],
+  ): Promise<SnRecord[]> => {
+    try {
+      const r = await cached(cacheKey(["details", t, table]), () =>
+        queryTable({
+          table: t,
+          query,
+          fields,
+          displayValue: "false",
+          fetchAll: true,
+        }),
+      );
+      if (r.truncated)
+        warnings.push(`${t}: hit the SN_MAX_RECORDS cap — partial.`);
+      return r.records;
+    } catch (e) {
+      if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+      warnings.push(
+        `${t}: unavailable — ${e instanceof Error ? e.message : String(e)}`,
+      );
+      return [];
+    }
+  };
+  const nameIn = `nameIN${chain.join(",")}`;
+
+  const choices = await read(
+    "sys_choice",
+    `${nameIn}^inactive=false^language=en^ORDERBYsequence`,
+    ["name", "element", "value", "label"],
+  );
+  const choiceRank = new Map<string, number>();
+  for (const r of choices) {
+    const col = byElement.get(snString(r.element));
+    if (!col) continue;
+    const at = rank(r.name);
+    const best = choiceRank.get(col.element) ?? Number.MAX_SAFE_INTEGER;
+    if (at > best) continue;
+    if (at < best) col.choices = [];
+    choiceRank.set(col.element, at);
+    col.choices!.push({ value: snString(r.value), label: snString(r.label) });
+  }
+
+  const overrides = await read(
+    "sys_dictionary_override",
+    `${nameIn}^ORDERBYname`,
+    [
+      "name",
+      "element",
+      "default_value_override",
+      "default_value",
+      "mandatory_override",
+      "mandatory",
+      "read_only_override",
+      "read_only",
+    ],
+  );
+  for (const r of [...overrides].sort((x, y) => rank(x.name) - rank(y.name))) {
+    const col = byElement.get(snString(r.element));
+    if (!col) continue;
+    const on = (f: string): boolean => snString(r[`${f}_override`]) === "true";
+    (col.overrides ??= []).push({
+      table: snString(r.name),
+      ...(on("default_value")
+        ? { defaultValue: snString(r.default_value) }
+        : {}),
+      ...(on("mandatory")
+        ? { mandatory: snString(r.mandatory) === "true" }
+        : {}),
+      ...(on("read_only")
+        ? { readOnly: snString(r.read_only) === "true" }
+        : {}),
+    });
+  }
+  return { columns, warnings };
 }

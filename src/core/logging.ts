@@ -6,9 +6,22 @@
  * The level is read from SN_LOG_LEVEL (falling back to LOG_LEVEL), defaulting
  * to "info".
  *
+ * Inside a tool call every line also carries the call's correlation fields
+ * (M-3): `profile`, `requestId`, `sessionId` (HTTP only) and `tool` — see
+ * logContext() in request-context.ts. Explicit `fields` win on a clash.
+ *
  * Never pass secrets (passwords, tokens) or raw encoded queries (which may
  * contain personal data) in the `fields` object.
+ *
+ * E-5 (L7-01): `SN_LOG_FORMAT=text` switches the stderr line to
+ * `HH:MM:SS level message key=value …` (JSON stays the default);
+ * `SN_LOG_FILE` adds a size-rotated JSON Lines file sink. Every sink receives
+ * the same redacted fields — credential-named keys are masked and the
+ * `SN_REDACT_FIELDS` / `SN_REDACT_PII` rules apply (see log-file.ts).
  */
+import { logContext } from "./request-context.js";
+import { formatLogLine, redactLogFields, writeLogFile } from "./log-file.js";
+
 export type LogLevel = "error" | "warn" | "info" | "debug";
 
 const LEVELS: Record<LogLevel, number> = {
@@ -45,16 +58,21 @@ function emit(
   fields?: Record<string, unknown>,
 ): void {
   if (LEVELS[level] > LEVELS[configuredLevel()]) return;
+  const context = logContext();
+  const merged = redactLogFields(
+    context ? { ...context, ...(fields ?? {}) } : fields,
+  );
   const entry = {
     ts: new Date().toISOString(),
     level,
     message,
-    ...(fields ?? {}),
+    ...(merged ?? {}),
   };
   // stderr only — stdout is reserved for the MCP protocol.
-  console.error(JSON.stringify(entry));
+  console.error(formatLogLine(entry));
+  writeLogFile(entry);
   try {
-    sink?.(level, message, fields);
+    sink?.(level, message, merged);
   } catch {
     // A failing sink must never break (or recurse into) logging.
   }

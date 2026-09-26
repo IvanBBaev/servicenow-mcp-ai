@@ -1,0 +1,46 @@
+{
+  "artifactType": "atf_test",
+  "table": "sys_atf_test",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d",
+  "name": "Acme laptop order",
+  "key": {
+    "sys_id": "1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "atf_test 'Acme laptop order' (sys_atf_test); active; scope x_acme_app; 1 child record(s) in 1 table(s); unverified type. Orders a laptop through the catalog.",
+  "when": null,
+  "fields": {
+    "name": "Acme laptop order",
+    "description": "Orders a laptop through the catalog.",
+    "active": "true"
+  },
+  "children": [
+    {
+      "table": "sys_atf_step",
+      "parentField": "test",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d2d",
+          "step_config": "3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d",
+          "order": "1",
+          "test": "1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d",
+          "description": "Open a catalog item"
+        }
+      ]
+    }
+  ],
+  "references": [],
+  "decoded": []
+}

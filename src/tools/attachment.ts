@@ -5,11 +5,25 @@ import {
   uploadAttachment,
   downloadAttachment,
   deleteAttachment,
+  prepareUpload,
+  describeUpload,
+  sanitizeFileName,
 } from "../api/attachment.js";
 import { ok } from "../mcp/result.js";
-import { defineTool, type AnyToolSpec } from "../mcp/define.js";
-import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
-import { appendWriteJournal } from "../core/write-journal.js";
+import {
+  defineTool,
+  shortText,
+  sysId,
+  tableName,
+  type AnyToolSpec,
+} from "../mcp/define.js";
+import {
+  shouldApply,
+  planPreview,
+  applyInput,
+  captureBefore,
+} from "../mcp/write-mode.js";
+import { journaledWrite } from "../core/write-journal.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -18,14 +32,17 @@ export const specs: AnyToolSpec[] = [
     description:
       "List attachment metadata, optionally scoped to a specific record (table + sys_id).",
     package: "attachment",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      table: z
-        .string()
+      table: tableName()
         .optional()
         .describe("Table the record belongs to, e.g. 'incident'."),
-      sys_id: z
-        .string()
+      sys_id: sysId()
         .optional()
         .describe("sys_id of the record whose attachments to list."),
     },
@@ -41,11 +58,16 @@ export const specs: AnyToolSpec[] = [
     title: "Get ServiceNow attachment metadata",
     description: "Read a single attachment's metadata by its sys_id.",
     package: "attachment",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      attachment_sys_id: z
-        .string()
-        .describe("The sys_id of the attachment record."),
+      attachment_sys_id: sysId().describe(
+        "The sys_id of the attachment record.",
+      ),
     },
     handler: async ({ attachment_sys_id }) =>
       ok(await getAttachmentMeta(attachment_sys_id)),
@@ -57,11 +79,16 @@ export const specs: AnyToolSpec[] = [
     description:
       "Download an attachment's bytes, returned as base64. Large files are refused (see SN_MAX_RESULT_CHARS).",
     package: "attachment",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      attachment_sys_id: z
-        .string()
-        .describe("The sys_id of the attachment to download."),
+      attachment_sys_id: sysId().describe(
+        "The sys_id of the attachment to download.",
+      ),
     },
     handler: async ({ attachment_sys_id }) =>
       ok(await downloadAttachment(attachment_sys_id)),
@@ -80,12 +107,11 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      table: z.string().describe("Table the record belongs to."),
-      sys_id: z.string().describe("sys_id of the record to attach to."),
-      file_name: z.string().describe("File name to store, e.g. 'log.txt'."),
+      table: tableName().describe("Table the record belongs to."),
+      sys_id: sysId().describe("sys_id of the record to attach to."),
+      file_name: shortText().describe("File name to store, e.g. 'log.txt'."),
       content_base64: z.string().describe("File contents, base64-encoded."),
-      content_type: z
-        .string()
+      content_type: shortText()
         .optional()
         .describe("MIME type, e.g. 'text/plain'. Defaults to octet-stream."),
       apply: applyInput,
@@ -100,34 +126,42 @@ export const specs: AnyToolSpec[] = [
       apply,
     }) => {
       if (!shouldApply(apply)) {
-        // Never echo the base64 payload — preview the envelope only.
+        // Never echo the base64 payload — preview the validated envelope only
+        // (sanitised name, effective type, decoded size, sha256).
+        const upload = prepareUpload({
+          fileName: file_name,
+          contentBase64: content_base64,
+          contentType: content_type,
+        });
         return planPreview({
           action: "create",
           table,
           sys_id,
           after: {
-            file_name,
-            content_type: content_type ?? "application/octet-stream",
+            ...describeUpload(upload),
             base64_chars: content_base64.length,
           },
         });
       }
-      const record = await uploadAttachment({
-        table,
-        sysId: sys_id,
-        fileName: file_name,
-        contentBase64: content_base64,
-        contentType: content_type,
-      });
-      appendWriteJournal({
-        action: "create",
-        table,
-        sys_id,
-        fields: {
-          file_name,
-          content_type: content_type ?? "application/octet-stream",
+      const record = await journaledWrite(
+        {
+          action: "create",
+          table,
+          sys_id,
+          fields: {
+            file_name: sanitizeFileName(file_name),
+            content_type: content_type ?? "application/octet-stream",
+          },
         },
-      });
+        () =>
+          uploadAttachment({
+            table,
+            sysId: sys_id,
+            fileName: file_name,
+            contentBase64: content_base64,
+            contentType: content_type,
+          }),
+      );
       return ok({ message: "Attachment uploaded", record });
     },
   }),
@@ -144,9 +178,9 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      attachment_sys_id: z
-        .string()
-        .describe("The sys_id of the attachment to delete."),
+      attachment_sys_id: sysId().describe(
+        "The sys_id of the attachment to delete.",
+      ),
       apply: applyInput,
     },
     handler: async ({ attachment_sys_id, apply }) => {
@@ -159,12 +193,18 @@ export const specs: AnyToolSpec[] = [
           before,
         });
       }
-      const result = await deleteAttachment(attachment_sys_id);
-      appendWriteJournal({
-        action: "delete",
-        table: "sys_attachment",
-        sys_id: attachment_sys_id,
-      });
+      const before = await captureBefore(() =>
+        getAttachmentMeta(attachment_sys_id),
+      );
+      const result = await journaledWrite(
+        {
+          action: "delete",
+          table: "sys_attachment",
+          sys_id: attachment_sys_id,
+          before,
+        },
+        () => deleteAttachment(attachment_sys_id),
+      );
       return ok({ message: "Attachment deleted", ...result });
     },
   }),

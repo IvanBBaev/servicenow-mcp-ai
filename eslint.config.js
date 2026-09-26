@@ -24,10 +24,9 @@ export default tseslint.config(
       // The one we are really after: a forgotten await in an async tool
       // handler silently drops errors.
       "@typescript-eslint/no-floating-promises": "error",
-      // ServiceNow payloads are untyped JSON; unwrapping them relies on
-      // runtime checks, so these stay advisory rather than blocking.
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
+      // E-7: no-unsafe-assignment / no-unsafe-member-access are on (the
+      // recommendedTypeChecked default): untyped JSON is unwrapped as
+      // `unknown` and narrowed, never as `any`.
       "@typescript-eslint/restrict-template-expressions": [
         "error",
         { allowNumber: true, allowBoolean: true },

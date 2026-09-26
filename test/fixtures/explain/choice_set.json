@@ -1,0 +1,109 @@
+{
+  "artifactType": "choice_set",
+  "table": "sys_choice_set",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "11111111111111111111111111111111",
+  "name": "priority",
+  "key": {
+    "name": "incident",
+    "element": "priority"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "choice_set 'priority' (sys_choice_set); applies to incident; scope x_acme_app; 4 child record(s) in 1 table(s); unverified type",
+  "when": null,
+  "fields": {
+    "element": "priority",
+    "name": "incident"
+  },
+  "explanation": {
+    "kind": "choice-table",
+    "elements": [
+      {
+        "element": "priority",
+        "choices": [
+          {
+            "value": "1",
+            "label": "Critical",
+            "sequence": "1"
+          },
+          {
+            "value": "2",
+            "label": "High",
+            "sequence": "2"
+          },
+          {
+            "value": "4",
+            "label": "Low",
+            "sequence": ""
+          },
+          {
+            "value": "5",
+            "label": "Planning",
+            "sequence": "",
+            "inactive": true,
+            "dependent_value": "x",
+            "language": "de"
+          }
+        ]
+      }
+    ],
+    "lines": [
+      "4 choice(s) on 1 element(s) of incident.",
+      "priority: 1=\"Critical\", 2=\"High\", 4=\"Low\", 5=\"Planning\" (inactive) [if x] {de}"
+    ]
+  },
+  "children": [
+    {
+      "table": "sys_choice",
+      "parentField": "name",
+      "verified": false,
+      "count": 4,
+      "items": [
+        {
+          "sys_id": "22222222222222222222222222222222",
+          "label": "High",
+          "sequence": "2",
+          "name": "incident",
+          "element": "priority",
+          "value": "2"
+        },
+        {
+          "sys_id": "33333333333333333333333333333333",
+          "label": "Critical",
+          "sequence": "1",
+          "name": "incident",
+          "element": "priority",
+          "value": "1"
+        },
+        {
+          "sys_id": "44444444444444444444444444444444",
+          "label": "Planning",
+          "name": "incident",
+          "dependent_value": "x",
+          "element": "priority",
+          "inactive": "true",
+          "language": "de",
+          "value": "5"
+        },
+        {
+          "sys_id": "55555555555555555555555555555555",
+          "label": "Low",
+          "name": "incident",
+          "element": "priority",
+          "value": "4"
+        }
+      ]
+    }
+  ],
+  "references": [],
+  "decoded": []
+}

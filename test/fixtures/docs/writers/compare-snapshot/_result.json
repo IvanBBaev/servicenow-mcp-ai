@@ -1,0 +1,48 @@
+{
+  "a": "default",
+  "b": "prod",
+  "report": "_compare/default-vs-prod.md",
+  "tablesOnlyInA": [],
+  "tablesOnlyInB": [],
+  "columnDiffs": [
+    {
+      "table": "incident",
+      "column": "severity",
+      "property": "type",
+      "a": "integer",
+      "b": "string"
+    }
+  ],
+  "scriptDiffs": [
+    {
+      "type": "business_rule",
+      "name": "Common BR",
+      "status": "different_source",
+      "diff": "--- default/Common BR\n+++ prod/Common BR\n@@ -1,1 +1,1 @@\n-new();\n+old();"
+    }
+  ],
+  "pluginDiffs": [
+    "only in default: com.snc.cmdb CMDB@2.0 [inactive]",
+    "only in default: com.snc.incident Incident@1.0",
+    "only in prod: com.snc.base Base@1"
+  ],
+  "appDiffs": [
+    "only in default: sn_store Store@3",
+    "only in default: x_hr HR App@2.1",
+    "only in default: x_old Old App@0.9 [inactive]",
+    "only in prod: x_prod Prod App@1.0"
+  ],
+  "recordDiffs": [],
+  "warnings": [
+    "tables: no snapshot for \"prod\", reading live",
+    "scripts: acl unavailable on \"prod\" — ServiceNow API error (403): acl denied",
+    "roles: no snapshot for \"prod\", reading live",
+    "inventory: no snapshot for \"prod\", reading live",
+    "apps: sys_store_app unavailable on \"prod\" — ServiceNow API error (403): store denied"
+  ],
+  "caveats": [
+    "Domain separation: on a domain-separated instance each profile sees only the records of its user's domain (and its visible parents). Domain-specific overrides of scripts and dictionary entries can therefore show up as — or hide — drift. Compare with users in the same domain (or global) for a like-for-like result.",
+    "Visibility: every read runs as the profile's user. ACLs, before-query rules and roles that differ between the two users make records appear 'only in' one side; use equivalent (ideally admin) read access on both instances.",
+    "Matching: scripts and records are matched by sys_id, then by name across all application scopes; two artefacts with the same name in different scopes (and different sys_ids) are compared as one."
+  ]
+}

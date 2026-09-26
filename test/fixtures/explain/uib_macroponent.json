@@ -1,0 +1,92 @@
+{
+  "artifactType": "uib_macroponent",
+  "table": "sys_ux_macroponent",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "88888888888888888888888888888888",
+  "name": "Acme home",
+  "key": {
+    "sys_id": "88888888888888888888888888888888"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "uib_macroponent 'Acme home' (sys_ux_macroponent); scope x_acme_app; 1 child record(s) in 1 table(s); 3/4 JSON field(s) decoded; unverified type",
+  "when": null,
+  "fields": {
+    "name": "Acme home",
+    "category": "page"
+  },
+  "children": [
+    {
+      "table": "sys_ux_client_script",
+      "parentField": "macroponent",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "99999999999999999999999999999999",
+          "name": "onTabChange",
+          "macroponent": "88888888888888888888888888888888",
+          "script": "function handler({api}) { api.setState('tab', 1); }"
+        }
+      ]
+    }
+  ],
+  "references": [],
+  "decoded": [
+    {
+      "source": "record",
+      "sys_id": "88888888888888888888888888888888",
+      "field": "composition",
+      "decoder": "uib-composition",
+      "via": "json",
+      "decoded": true,
+      "value": [
+        {
+          "elementId": "heading_1",
+          "definition": {
+            "id": "abc"
+          }
+        }
+      ]
+    },
+    {
+      "source": "record",
+      "sys_id": "88888888888888888888888888888888",
+      "field": "data",
+      "decoder": "json",
+      "decoded": false,
+      "reason": "Not valid JSON.",
+      "raw": "{not json"
+    },
+    {
+      "source": "record",
+      "sys_id": "88888888888888888888888888888888",
+      "field": "props",
+      "decoder": "json",
+      "decoded": true,
+      "value": {
+        "title": "Home"
+      }
+    },
+    {
+      "source": "record",
+      "sys_id": "88888888888888888888888888888888",
+      "field": "state_properties",
+      "decoder": "json",
+      "decoded": true,
+      "value": [
+        {
+          "name": "tab"
+        }
+      ]
+    }
+  ]
+}

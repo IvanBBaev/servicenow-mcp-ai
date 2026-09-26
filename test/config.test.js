@@ -38,11 +38,24 @@ test("round-trips values that require quoting", () => {
   }
 });
 
+test("L2-11: backslashes and mixed quotes round-trip through the literal quote forms", () => {
+  for (const value of [
+    " back\\slash",
+    "C:\\Program Files\\ca.pem ",
+    "#x\\",
+    " a'b\"c",
+    "'\\n'",
+  ]) {
+    assert.equal(roundTrip(value), value, `value: ${JSON.stringify(value)}`);
+  }
+  // A backslash in a value that needs quoting uses single quotes (literal).
+  assert.equal(formatEnvValue(" back\\slash"), "' back\\slash'");
+});
+
 test("refuses values dotenv cannot round-trip", () => {
-  // Needs quoting (leading space) and contains a backslash.
-  assert.throws(() => formatEnvValue(" back\\slash"));
   // Contains a newline.
   assert.throws(() => formatEnvValue("line\nbreak"));
-  // Needs quoting and contains both single and double quotes.
-  assert.throws(() => formatEnvValue(" a'b\"c"));
+  assert.throws(() => formatEnvValue("carriage\rreturn"));
+  // Needs quoting and contains single, double and back quotes.
+  assert.throws(() => formatEnvValue(" a'b\"c`d"));
 });

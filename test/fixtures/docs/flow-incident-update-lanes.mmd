@@ -1,0 +1,80 @@
+flowchart TD
+  op[/"update on incident"/]
+  subgraph P_transform_map["transform maps"]
+    direction TB
+    n0["Legacy import"]
+  end
+  op --> P_transform_map
+  subgraph P_scheduled_job["scheduled jobs"]
+    direction TB
+    n1["Nightly cleanup"]
+  end
+  P_transform_map --> P_scheduled_job
+  subgraph P_display["display business rules"]
+    direction TB
+    n2["Load form hints (10)"]
+  end
+  P_scheduled_job --> P_display
+  subgraph P_client["client scripts and UI policies"]
+    direction TB
+    n3["Form setup"]
+    subgraph P_client_task["inherited from task"]
+      direction TB
+      n4["Show caller (100)"]
+    end
+    n3 --> P_client_task
+  end
+  P_display --> P_client
+  subgraph P_data_policy["data policies"]
+    direction TB
+    n5["Close notes"]
+  end
+  P_client --> P_data_policy
+  subgraph P_before["before business rules"]
+    direction TB
+    n6["Incident defaults (100)"]
+    subgraph P_before_task["inherited from task"]
+      direction TB
+      n7["Task SLA (50)"]
+    end
+    n6 --> P_before_task
+  end
+  P_data_policy --> P_before
+  db[("database write")]
+  P_before --> db
+  subgraph P_after["after business rules"]
+    direction TB
+    n8["Notify (200)"]
+    subgraph P_after_global["global"]
+      direction TB
+      n9["Global audit (150)"]
+    end
+    n8 --> P_after_global
+  end
+  db --> P_after
+  subgraph P_async["async business rules"]
+    direction TB
+    n10["Sync to CMDB (0)"]
+  end
+  P_after --> P_async
+  subgraph P_sla["SLA definitions"]
+    direction TB
+    n11["P1 resolution"]
+  end
+  P_async --> P_sla
+  subgraph P_flow["flows"]
+    direction TB
+    n12["Incident SLA"]
+  end
+  P_sla --> P_flow
+  subgraph P_notification["notifications"]
+    direction TB
+    n13["Incident assigned"]
+  end
+  P_flow --> P_notification
+  subgraph P_event_script["event script actions"]
+    direction TB
+    n14["Log assignment"]
+  end
+  P_notification --> P_event_script
+  P_event_script --> done([record saved])

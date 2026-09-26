@@ -2,7 +2,10 @@ import {
   getCredentials,
   hasCredentials,
   activeProfile,
+  credentialStatus,
+  type AuthMode,
 } from "../core/config.js";
+import { credentialWarnings, refreshTokenState } from "../core/auth.js";
 import { testConnection, type ConnectionProbe } from "./diagnostics.js";
 import { checkCapabilities, type CapabilityReport } from "./capabilities.js";
 
@@ -27,13 +30,21 @@ export type DoctorStatus = "healthy" | "degraded" | "not_configured";
 
 /** Credential-presence stage — never carries the password, only flags. */
 export interface DoctorConfig {
-  /** True when instance + user + password are all present for the profile. */
+  /** True when everything the profile's auth method needs is present (D-2). */
   configured: boolean;
   profile: string;
   instance: string;
   user: string;
+  /** The auth method the profile uses (basic, oauth, apikey, token, none). */
+  auth: AuthMode;
+  /** The OAuth grant — only for `oauth`. */
+  grant?: string;
+  /** OAuth refresh-token state (L6-01) — only when one is configured. */
+  refreshToken?: "configured" | "rotated-in-memory";
   /** Which required fields are missing (empty when fully configured). */
   missing: string[];
+  /** Non-fatal credential warnings (token expiry, env-file ACLs, …). */
+  warnings: string[];
 }
 
 export interface DoctorReport {
@@ -62,18 +73,37 @@ export const EXIT: Record<DoctorStatus, number> = {
 
 /** Inspect the active profile's credentials without touching the network. */
 function inspectConfig(profile: string): DoctorConfig {
-  const { instance, user, password } = getCredentials(profile);
-  const missing: string[] = [];
-  if (!instance) missing.push("instance");
-  if (!user) missing.push("user");
-  if (!password) missing.push("password");
+  const { instance, user } = getCredentials(profile);
+  // D-2: evaluated against the profile's own auth method, not only Basic.
+  const status = credentialStatus(profile);
+  const refresh = refreshTokenState(profile);
   return {
-    configured: missing.length === 0,
+    configured: status.configured,
     profile,
     instance: instance || "(not set)",
     user: user || "(not set)",
-    missing,
+    auth: status.mode,
+    ...(status.grant ? { grant: status.grant } : {}),
+    ...(refresh !== "none" ? { refreshToken: refresh } : {}),
+    missing: status.missing,
+    warnings: credentialWarnings(profile),
   };
+}
+
+/** Where to set the missing credentials, per auth method. */
+function configureHint(config: DoctorConfig): string {
+  switch (config.auth) {
+    case "apikey":
+      return "Set SN_INSTANCE and SN_API_KEY (or use servicenow_set_credentials with request_secrets).";
+    case "token":
+      return "Set SN_INSTANCE and SN_BEARER_TOKEN or SN_TOKEN_FILE.";
+    case "oauth":
+      return "Set SN_INSTANCE, SN_OAUTH_CLIENT_ID and the material for SN_OAUTH_GRANT (see the README auth section).";
+    case "none":
+      return "Set SN_INSTANCE (and a client certificate for mutual TLS).";
+    default:
+      return "Set credentials with servicenow_set_credentials or the SN_INSTANCE/SN_USER/SN_PASSWORD env vars.";
+  }
 }
 
 /**
@@ -91,7 +121,7 @@ export async function runDoctor(): Promise<DoctorReport> {
     return {
       status: "not_configured",
       config,
-      summary: `Profile "${profile}" is not configured (missing: ${config.missing.join(", ")}). Set credentials with servicenow_set_credentials or the SN_INSTANCE/SN_USER/SN_PASSWORD env vars.`,
+      summary: `Profile "${profile}" is not configured (missing: ${config.missing.join(", ")}). ${configureHint(config)}`,
     };
   }
 
@@ -146,6 +176,7 @@ function describeConnection(c: ConnectionProbe): string {
 
 const CHECK = "✓";
 const CROSS = "✗";
+const WARN = "!";
 
 /** Render a DoctorReport as a readable, plain-text block for the terminal. */
 export function formatDoctorReport(report: DoctorReport): string {
@@ -160,8 +191,17 @@ export function formatDoctorReport(report: DoctorReport): string {
   );
   lines.push(`    instance: ${config.instance}`);
   lines.push(`    user:     ${config.user}`);
+  lines.push(
+    `    auth:     ${config.auth}${config.grant ? ` (${config.grant})` : ""}`,
+  );
+  if (config.refreshToken) {
+    lines.push(`    refresh:  ${config.refreshToken}`);
+  }
   if (!config.configured) {
     lines.push(`    missing:  ${config.missing.join(", ")}`);
+  }
+  for (const warning of config.warnings) {
+    lines.push(`    ${WARN} ${warning}`);
   }
 
   // -- connectivity -------------------------------------------------------
@@ -191,9 +231,105 @@ export function formatDoctorReport(report: DoctorReport): string {
       lines.push("");
       lines.push(`    ${cap.recommendation}`);
     }
+    // S-13 capability matrix — informational, it does not change the verdict.
+    const matrix = Object.entries(cap.matrix ?? {});
+    if (matrix.length > 0) {
+      lines.push("");
+      lines.push("  Capability matrix");
+      for (const [group, m] of matrix) {
+        const mark =
+          m.status === "available" ? CHECK : m.status === "unknown" ? "?" : "-";
+        lines.push(
+          `    ${mark} ${group}: ${m.status}${m.reason ? ` (${m.reason})` : ""}`,
+        );
+      }
+    }
   }
 
   lines.push("");
   lines.push(report.summary);
   return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// D-1 / L4-05 — machine-readable and ASCII output for the CLI
+// ---------------------------------------------------------------------------
+
+/** One stage of the report as a flat check (`doctor --json | jq .checks`). */
+export interface DoctorCheck {
+  name: "credentials" | "connectivity" | "capabilities";
+  ok: boolean;
+  detail: string;
+}
+
+/** The report's stages as a flat list; skipped stages are omitted. */
+export function doctorChecks(report: DoctorReport): DoctorCheck[] {
+  const { config } = report;
+  const checks: DoctorCheck[] = [
+    {
+      name: "credentials",
+      ok: config.configured,
+      detail: config.configured
+        ? `profile "${config.profile}" (${config.auth})`
+        : `missing: ${config.missing.join(", ")}`,
+    },
+  ];
+  if (report.connection) {
+    const c = report.connection;
+    checks.push({
+      name: "connectivity",
+      ok: c.ok,
+      detail: c.ok
+        ? `HTTP ${c.status} in ${c.latencyMs}ms`
+        : describeConnection(c),
+    });
+  }
+  if (report.capabilities) {
+    checks.push({
+      name: "capabilities",
+      ok: !report.capabilities.degraded,
+      detail: report.capabilities.summary,
+    });
+  }
+  return checks;
+}
+
+/** The first line of every doctor output: which env file was chosen. */
+export function envFileLine(path: string, exists: boolean): string {
+  return `env file: ${path} (${exists ? "exists" : "missing"})`;
+}
+
+/**
+ * L4-05 — plain ASCII is used when asked for, when stdout is not a terminal,
+ * and on a Windows console that is not Windows Terminal (`cmd.exe` and legacy
+ * PowerShell render the check glyphs as `?`).
+ */
+export function shouldUseAscii(options: {
+  flag?: boolean;
+  isTTY?: boolean;
+  platform?: NodeJS.Platform;
+  env?: NodeJS.ProcessEnv;
+}): boolean {
+  if (options.flag) return true;
+  if (!options.isTTY) return true;
+  return options.platform === "win32" && !options.env?.WT_SESSION;
+}
+
+const ASCII_MAP: Record<string, string> = {
+  [CHECK]: "[ok]",
+  [CROSS]: "[x]",
+  "—": "-",
+  "–": "-",
+  "…": "...",
+  "→": "->",
+  "·": "-",
+  "“": '"',
+  "”": '"',
+  "‘": "'",
+  "’": "'",
+};
+
+/** Transliterate a report to pure ASCII (anything unmapped becomes `?`). */
+export function toAscii(text: string): string {
+  return text.replace(/[^\t\n\r\x20-\x7e]/g, (ch) => ASCII_MAP[ch] ?? "?");
 }

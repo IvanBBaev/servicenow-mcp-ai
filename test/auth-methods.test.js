@@ -5,10 +5,11 @@ import { generateKeyPairSync, createVerify } from "node:crypto";
 import { queryTable } from "../build/api/table.js";
 import { getAuthMode, invalidateTokens } from "../build/core/auth.js";
 import { signJwtRS256 } from "../build/core/jwt.js";
-import { getTlsDispatcher, _resetTlsDispatcher } from "../build/core/mtls.js";
+import { getTlsDispatcher } from "../build/core/mtls.js";
 import { ServiceNowError } from "../build/core/errors.js";
 import {
   baselineEnv,
+  freshRuntime,
   withEnv,
   withFetch,
   jsonResponse,
@@ -151,7 +152,7 @@ test("OAuth JWT-bearer grant signs an assertion and exchanges it for a token", a
 });
 
 test("mutual TLS: no dispatcher unless configured; clear error when undici is absent", async () => {
-  _resetTlsDispatcher();
+  freshRuntime();
   assert.equal(
     await getTlsDispatcher(),
     undefined,
@@ -166,7 +167,7 @@ test("mutual TLS: no dispatcher unless configured; clear error when undici is ab
         "-----BEGIN PRIVATE KEY-----\nx\n-----END PRIVATE KEY-----",
     },
     async () => {
-      _resetTlsDispatcher();
+      freshRuntime();
       // undici is an optional dependency and is not installed in this project.
       await assert.rejects(
         getTlsDispatcher(),
@@ -174,7 +175,7 @@ test("mutual TLS: no dispatcher unless configured; clear error when undici is ab
       );
     },
   );
-  _resetTlsDispatcher();
+  freshRuntime();
 });
 
 test("OAuth client_credentials grant mints a bearer token", async () => {

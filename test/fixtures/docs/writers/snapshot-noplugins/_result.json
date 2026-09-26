@@ -1,0 +1,22 @@
+{
+  "profile": "default",
+  "dir": "<docsDir>",
+  "generatedAt": "<generatedAt>",
+  "files": [
+    "default/roles.md",
+    "default/roles.json",
+    "default/index.md",
+    "default/snapshot.json"
+  ],
+  "changes": {
+    "default/index.md": "created",
+    "default/roles.json": "created",
+    "default/roles.md": "created",
+    "default/snapshot.json": "created"
+  },
+  "warnings": [
+    "plugins: unavailable — ServiceNow API error (403): denied",
+    "apps: sys_app unavailable — ServiceNow API error (403): denied",
+    "apps: sys_store_app unavailable — ServiceNow API error (403): no access to sys_store_app"
+  ]
+}

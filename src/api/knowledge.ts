@@ -1,5 +1,5 @@
 import { snRequest } from "../core/http.js";
-import { expectResult } from "./shared.js";
+import { expectResult, snParams } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 
 /**
@@ -22,13 +22,13 @@ export interface KnowledgeSearch {
 export async function searchKnowledge(
   opts: KnowledgeSearch = {},
 ): Promise<unknown> {
-  const params = new URLSearchParams();
-  if (opts.search) params.set("sysparm_search", opts.search);
-  if (opts.query) params.set("sysparm_query", opts.query);
-  if (opts.limit !== undefined) params.set("sysparm_limit", String(opts.limit));
-  if (opts.offset !== undefined)
-    params.set("sysparm_offset", String(opts.offset));
-  if (opts.fields?.length) params.set("sysparm_fields", opts.fields.join(","));
+  const params = snParams({
+    sysparm_search: opts.search,
+    sysparm_query: opts.query,
+    sysparm_limit: opts.limit,
+    sysparm_offset: opts.offset,
+    sysparm_fields: opts.fields,
+  });
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",
@@ -55,8 +55,7 @@ export async function knowledgeHighlights(
   mode: KnowledgeHighlight,
   limit?: number,
 ): Promise<unknown> {
-  const params = new URLSearchParams();
-  if (limit !== undefined) params.set("sysparm_limit", String(limit));
+  const params = snParams({ sysparm_limit: limit });
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",

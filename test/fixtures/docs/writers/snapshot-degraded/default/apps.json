@@ -1,0 +1,22 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_snapshot_instance",
+  "sn_generator_version": "1",
+  "sn_kind": "apps",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:71b838043c1dd419d4395ef131778778e6caaa7c5bba3560bdbeef8338c82f90",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "apps": {
+    "sys_app": [
+      {
+        "name": "HR App",
+        "scope": "x_hr",
+        "version": "2.1",
+        "active": "true"
+      }
+    ]
+  }
+}

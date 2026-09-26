@@ -1,0 +1,96 @@
+{
+  "artifactType": "workflow",
+  "table": "wf_workflow",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b",
+  "name": "Acme approval",
+  "key": {
+    "sys_id": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "workflow 'Acme approval' (wf_workflow); active; scope x_acme_app; 4 child record(s) in 3 table(s); unverified type. Legacy approval workflow.",
+  "when": null,
+  "fields": {
+    "name": "Acme approval",
+    "active": "true",
+    "description": "Legacy approval workflow."
+  },
+  "children": [
+    {
+      "table": "wf_workflow_version",
+      "parentField": "workflow",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b",
+          "workflow": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b",
+          "name": "Acme approval",
+          "published": "true",
+          "table": "sc_req_item"
+        }
+      ]
+    },
+    {
+      "table": "wf_activity",
+      "parentField": "workflow",
+      "verified": false,
+      "count": 2,
+      "items": [
+        {
+          "sys_id": "3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b",
+          "name": "Begin",
+          "order": "1",
+          "workflow": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
+        },
+        {
+          "sys_id": "4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b",
+          "name": "Approval - User",
+          "order": "2",
+          "workflow": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
+        }
+      ]
+    },
+    {
+      "table": "wf_transition",
+      "parentField": "from",
+      "parentTable": "wf_activity",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b5b",
+          "from": "3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b",
+          "to": "4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b"
+        }
+      ]
+    },
+    {
+      "table": "wf_condition",
+      "parentField": "activity",
+      "parentTable": "wf_activity",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "wf_stage",
+      "parentField": "workflow_version",
+      "parentTable": "wf_workflow_version",
+      "verified": false,
+      "count": 0,
+      "items": []
+    }
+  ],
+  "references": [],
+  "decoded": []
+}

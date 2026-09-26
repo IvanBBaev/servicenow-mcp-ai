@@ -6,6 +6,7 @@ import {
   assertPackageWriteAllowed,
 } from "../core/policy.js";
 import { ServiceNowError } from "../core/errors.js";
+import { reportProgress } from "../core/progress.js";
 
 /**
  * ServiceNow Batch API (`/api/now/v1/batch`): run several REST calls in a
@@ -223,6 +224,14 @@ export async function runBatch(
     return payload;
   });
 
+  // M-3: the Batch API is one round-trip, so progress is two coarse steps —
+  // validated and sent, then answered — counted in sub-requests.
+  const total = restRequests.length;
+  reportProgress({
+    progress: 0,
+    total,
+    message: `sending ${total} sub-request(s)`,
+  });
   const { data } = await snRequest<BatchApiResponse>({
     method: "POST",
     path: "/api/now/v1/batch",
@@ -244,6 +253,11 @@ export async function runBatch(
       error: u.error_message || u.error || "Request was not serviced.",
     });
   }
+  reportProgress({
+    progress: total,
+    total,
+    message: `${data.serviced_requests?.length ?? 0} serviced, ${data.unserviced_requests?.length ?? 0} not serviced`,
+  });
 
   return results;
 }

@@ -6,6 +6,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { registerAllTools, registerResources } from "../build/mcp/registry.js";
+import { currentRuntime } from "../build/core/runtime.js";
 import { clearSchemaCache } from "../build/core/cache.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
@@ -23,7 +24,7 @@ async function startServer() {
     name: "servicenow-mcp-test",
     version: "0.0.0",
   });
-  registerAllTools(server);
+  registerAllTools(server, currentRuntime());
   registerResources(server);
   const client = new Client({ name: "test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] =

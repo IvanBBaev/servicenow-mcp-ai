@@ -5,9 +5,19 @@ on:
     branches: [main, master]
   pull_request:
 
+# H-9: least privilege — nothing in this workflow writes to the repository.
+permissions:
+  contents: read
+
+# H-9: one run per ref; a newer push cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       matrix:
         os: [ubuntu-latest]
@@ -17,8 +27,8 @@ jobs:
           - os: macos-latest
             node: 22
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ matrix.node }}
           cache: npm
@@ -27,6 +37,27 @@ jobs:
       - run: npm run format:check
       - run: npm run build
       - run: npm test
+      # L9-04: tarball guard — no jira/, .map, test/ or docs/instance/ entries,
+      # a fixed top-level allow-list and a size ceiling. Runs once on ubuntu/Node 22.
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        run: npm run pack:check
+      # L9-07: only .env.example may ever be tracked — per-profile .env.<profile>
+      # files hold credentials and are git-ignored; a tracked one fails the build.
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        name: No tracked env files
+        run: |
+          tracked=$(git ls-files | grep -E '^\.env' | grep -vx '\.env\.example' || true)
+          if [ -n "$tracked" ]; then
+            echo "Tracked env file(s) — credentials must never be committed:" >&2
+            echo "$tracked" >&2
+            exit 1
+          fi
+      # L9-08: Prettier must be idempotent — a --write pass over the tree that
+      # already passed format:check changes nothing (proseWrap drift on Markdown
+      # was the historical offender).
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        name: Prettier idempotency
+        run: npx prettier --write . >/dev/null && git diff --exit-code --stat
       # Coverage gate — lines 94 / branches 82 / functions 97, a ratchet set
       # just below the real report (~95 / ~84 / ~99). Runs once on ubuntu/Node 22.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
@@ -34,7 +65,7 @@ jobs:
       # Upload the lcov report to Codecov (public repo). Non-blocking: a Codecov
       # outage must not fail CI. Runs once, on the same ubuntu/Node 22 leg.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -50,9 +81,10 @@ jobs:
   # ratchet stays ubuntu-only (it runs once, on the ubuntu/Node 22 leg).
   windows:
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -62,22 +94,58 @@ jobs:
       - run: npm run build
       - run: npm test
 
+  # E-6: the VS Code extension (extension/) has its own package and tsconfig and
+  # is not covered by the root lint/typecheck — typecheck it on its own lockfile
+  # so a broken extension cannot reach publish-vscode.yml unnoticed.
+  extension:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npx tsc -p . --noEmit
+
   # S2-3: the bin launcher must print a human message (not a SyntaxError)
   # under ancient Node and exit non-zero.
   launcher-node12:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       # No container: checkout runs under the runner's modern Node; setup-node
       # then installs the old runtime so only the launcher probe runs on it.
       # (A node:12 container cannot run the Node 20 that powers checkout@v4.)
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 12
+      # H-9: the expected major comes from package.json engines.node, so raising
+      # the floor cannot silently hollow out this probe. The launcher keeps its
+      # literal; test/version-sync.test.js pins the two to each other.
       - run: |
+          major=$(node -p "require('./package.json').engines.node.replace(/\D/g,'')")
+          test -n "$major" || exit 1
           set +e
           out=$(node bin/servicenow-mcp-ai.cjs 2>&1)
           code=$?
           echo "$out"
           test $code -ne 0 || exit 1
-          echo "$out" | grep -q "requires Node.js >= 20" || exit 1
+          echo "$out" | grep -q "requires Node.js >= $major" || exit 1
+
+  # H-9: lint the workflows themselves — expression and input typos, plus
+  # shellcheck over every run: block. Pinned image tag; bump it deliberately.
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      # actionlint 1.7.12 — https://github.com/rhysd/actionlint/releases
+      - run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:1.7.12 -color

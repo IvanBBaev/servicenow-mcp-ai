@@ -10,6 +10,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { registerAllTools, registerResources } from "../build/mcp/registry.js";
+import { currentRuntime } from "../build/core/runtime.js";
 import { setServer } from "../build/mcp/context.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
@@ -26,7 +27,7 @@ async function startServer() {
     name: "servicenow-mcp-test",
     version: "0.0.0",
   });
-  registerAllTools(server);
+  registerAllTools(server, currentRuntime());
   registerResources(server);
   const client = new Client({ name: "test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] =
@@ -55,18 +56,22 @@ const CORE_TOOLS = [
   "servicenow_delete_attachment",
   "servicenow_delete_record",
   "servicenow_describe_table",
+  "servicenow_disable_package",
   "servicenow_download_attachment",
+  "servicenow_enable_package",
   "servicenow_get_attachment",
   "servicenow_get_record",
   "servicenow_get_status",
   "servicenow_list_attachments",
   "servicenow_list_instances",
+  "servicenow_list_packages",
   "servicenow_list_tables",
   "servicenow_query_table",
   "servicenow_set_credentials",
   "servicenow_test_connection",
   "servicenow_update_record",
   "servicenow_upload_attachment",
+  "servicenow_upsert_record",
   "servicenow_use_instance",
 ];
 
@@ -331,36 +336,52 @@ test("test_connection reports ok/latency on success and structured failure (X-6)
 
 test("resources follow the package policy (K-7)", async () => {
   const resourceNames = async (client) => {
-    const direct = (await client.listResources()).resources.map((r) => r.name);
+    // M-4: template `list` callbacks add concrete schema / docs entries to
+    // resources/list; only the fixed resources count here.
+    const direct = (await client.listResources()).resources
+      .filter(
+        (r) => !/^servicenow:\/\/(schema|docs|[^/]+\/schema)\//.test(r.uri),
+      )
+      .map((r) => r.name);
     const templated = (
       await client.listResourceTemplates()
     ).resourceTemplates.map((r) => r.name);
     return [...direct, ...templated].sort();
   };
 
-  // table package only: no schema, no docs → only the always-on admin
-  // resources (connection status + the capability preflight).
+  // table package only: no schema, no docs → the always-on admin resources
+  // (connection status, the capability preflight, the tool reference) and the table package's
+  // encoded-query reference (S-8).
   await withEnv({ SN_TOOL_PACKAGES: "table" }, async () => {
     const { client, close } = await startServer();
     try {
-      assert.deepEqual(await resourceNames(client), ["capabilities", "status"]);
+      assert.deepEqual(await resourceNames(client), [
+        "capabilities",
+        "encoded-query",
+        "status",
+        "tools-reference",
+      ]);
     } finally {
       await close();
     }
   });
 
-  // all packages: capabilities + status + tables + schema + docs + the instance pair (MI-8).
+  // all packages: capabilities + status + tables + schema + docs + the instance
+  // pair (MI-8) + the artifact-type catalogue (P-5).
   await withEnv({ SN_TOOL_PACKAGES: "all" }, async () => {
     const { client, close } = await startServer();
     try {
       assert.deepEqual(await resourceNames(client), [
+        "artifact-types",
         "capabilities",
         "docs",
+        "encoded-query",
         "instances",
         "profile-schema",
         "schema",
         "status",
         "tables",
+        "tools-reference",
       ]);
     } finally {
       await close();
@@ -379,7 +400,7 @@ test("set_credentials asks for confirmation via elicitation; decline saves nothi
         name: "servicenow-mcp-test",
         version: "0.0.0",
       });
-      registerAllTools(server);
+      registerAllTools(server, currentRuntime());
       setServer(server);
       const client = new Client(
         { name: "test-client", version: "0.0.0" },
@@ -410,16 +431,19 @@ test("set_credentials asks for confirmation via elicitation; decline saves nothi
           path.join(os.tmpdir(), "servicenow-mcp-elicit-"),
         );
         try {
-          await withEnv({ SN_ENV_FILE: path.join(dir, ".env") }, async () => {
-            answer.action = "accept";
-            answer.content = { confirm: true };
-            const accepted = await client.callTool({
-              name: "servicenow_set_credentials",
-              arguments: { user: "bob" },
-            });
-            assert.ok(!accepted.isError, "accepted change must save");
-            assert.equal(JSON.parse(accepted.content[0].text).user, "bob");
-          });
+          await withEnv(
+            { SN_ENV_FILE: path.join(dir, ".env"), SN_DOCS_DIR: dir },
+            async () => {
+              answer.action = "accept";
+              answer.content = { confirm: true };
+              const accepted = await client.callTool({
+                name: "servicenow_set_credentials",
+                arguments: { user: "bob" },
+              });
+              assert.ok(!accepted.isError, "accepted change must save");
+              assert.equal(JSON.parse(accepted.content[0].text).user, "bob");
+            },
+          );
         } finally {
           await fs.rm(dir, { recursive: true, force: true });
           // saveCredentials mutated process.env (SN_USER=bob) — restore the
@@ -440,6 +464,9 @@ test("set_credentials rejects an invalid/blocked host without persisting (K-6)",
     {
       SN_TOOL_PACKAGES: undefined,
       SN_ENV_FILE: "/nonexistent/never-written.env",
+      // H-2: the opt-out makes sure the rejection below comes from the host
+      // guard, not from the fail-closed confirmation (this client cannot elicit).
+      SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE: "1",
     },
     async () => {
       const { client, close } = await startServer();

@@ -2,7 +2,7 @@
   "name": "servicenow-mcp-ai",
   "version": "2.0.1",
   "mcpName": "io.github.IvanBBaev/servicenow-mcp-ai",
-  "description": "ServiceNow MCP server: 67 tools in 18 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
+  "description": "ServiceNow MCP server: 93 tools in 26 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "license": "MIT",
   "author": "Ivan Baev <ivanbbaev@gmail.com>",
   "repository": {
@@ -21,6 +21,7 @@
   "files": [
     "build",
     "!build/**/*.map",
+    "!build/**/jira/**",
     "bin"
   ],
   "engines": {
@@ -34,21 +35,25 @@
     "test": "node --test test/*.test.js",
     "test:coverage": "node scripts/coverage-guard.mjs && c8 --check-coverage --lines 94 --branches 82 --functions 97 --reporter=text-summary --reporter=lcov node --test test/*.test.js",
     "lint": "eslint .",
-    "format": "prettier --write .",
+    "format": "prettier --write . && prettier --write .",
     "format:check": "prettier --check .",
     "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
     "docs:readme": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/readme-tools.mjs",
     "test:full": "npm run build && node --test test/*.test.js",
+    "sdk:drift": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/sdk-drift.mjs",
     "gen:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/gen-manifest.mjs",
     "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
-    "check": "npm run build && npm run lint && npm run format:check && npm run test:coverage && npm audit --omit=dev --audit-level=high",
+    "pack:check": "node scripts/pack-check.mjs",
+    "check": "npm run build && npm run lint && npm run format:check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
     "release:dry": "npm run check && npm publish --dry-run",
+    "version:sync": "node scripts/sync-version.mjs",
+    "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json docs/index.html",
     "prepublishOnly": "npm run check"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "dotenv": "^16.4.5",
-    "zod": "^3.23.8"
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

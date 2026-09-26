@@ -2,7 +2,7 @@
 
 Completed and verified work, moved out of the reviews and the plan. Active, not-yet-done tasks live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) and [TODO.md](TODO.md); the work chronology is in [WORKLOG.md](../WORKLOG.md).
 
-State: clean build · clean ESLint (type-checked) · `node:test` suite green — 173 tests, coverage 93.1% lines / 80.1% branches / 69.0% functions · `npm audit --omit=dev` 0 · GitHub Actions CI · git repository with a one-commit-per-task history · **the 2026-06-12 review is fully implemented (22/22)** · **Phase 6 complete** · **Phase 7 core done** · **two full-review passes (2026-06-13) clean** · **release-ready** (pending the owner push + `NPM_TOKEN`, R-2).
+State (2026-07-06): this file is the **historical completion log** — chronological, with commit refs; the current product state lives in [PRODUCT-STATE.md](PRODUCT-STATE.md). Snapshot: clean build · clean ESLint (type-checked) · 406/406 tests (coverage 95.41/84.94/98.58) · `npm audit --omit=dev` 0 · **v2.0.1 published** on npm + MCP Registry + VS Code Marketplace. **2026-09-03 → 23:** v3.0 execution started — H-1, H-2, E-9, H-10, S-1, H-8 and H-9 done (last sections; local gate green at 519/519, uncommitted); the SDK parity epic (P-1…P-29) is planned in [SDK-PARITY.md](SDK-PARITY.md); the tracker is [ROADMAP-V3.md](ROADMAP-V3.md). Per-section numbers below (test counts, coverage) are point-in-time values from when each section was written.
 
 ## Base functionality
 
@@ -418,3 +418,200 @@ deferred (trigger-gated) and GA-8/GA-9 stay owner actions — tracked in TODO.md
 
 Gate: `npm run check` green — build + ESLint + Prettier, **380 tests** (+17), coverage
 95.29% lines / 84.36% branches / 98.56% functions, `npm audit --omit=dev` 0 vulnerabilities.
+
+## v3.0 execution — H-1 (2026-09-03)
+
+The five-lens review of 2026-09-02 ([DEEP-REVIEW-2026-09.md](DEEP-REVIEW-2026-09.md)) found the gate **red** on its last step; the v3.0 tracker ([ROADMAP-V3.md](ROADMAP-V3.md)) sequences H-1 first because nothing else can be verified until the gate is green.
+
+- [x] **H-1 · Dependency floor + green audit.** `@modelcontextprotocol/sdk` `^1.12.0` → `^1.30.0` (installed 1.30.0) and `zod` `^3.23.8` → `^3.25.0` (the SDK's peer range; zod 4 stays with E-2 because it is breaking). A lock-only `npm audit fix --omit=dev` — no `overrides` — moved the transitive `fast-uri` 3.1.2 → 3.1.7, `ip-address` 10.2.0 → 10.7.0, `hono` 4.12.25 → 4.13.5, `@hono/node-server` 1.19.14 → 2.1.1, `qs` 6.15.2 → 6.16.0 and `body-parser` 2.2.2 → 2.3.0. No generated file (tool manifest, README tools table) changed. CHANGELOG `[Unreleased]` → Security. The procedure — including the `--omit=dev` dev-tree pruning gotcha — is now in [CONTRIBUTING.md](../CONTRIBUTING.md#dependencies-and-the-audit-gate). Two dev-only HIGH advisories (`brace-expansion`, `js-yaml`) sit outside the production gate and are folded into E-2 / Dependabot. Still open inside the item: cutting 2.1.0 (owner: version bump + tag) and the CI matrix run on the next push.
+
+Gate: `npm run check` green — build + ESLint + Prettier, **406 tests** (unchanged), coverage 95.41% lines / 84.94% branches / 98.58% functions, `npm audit --omit=dev --audit-level=high` 0 vulnerabilities. Uncommitted.
+
+## v3.0 execution — H-2 (2026-09-09)
+
+The second finding the v3.0 tracker ([ROADMAP-V3.md](ROADMAP-V3.md) §H-2) sequences: a verified credential-redirect defect in `servicenow_set_credentials` — an `instance`-only update moved a configured profile to a new host while the stored user/password rode along, and the X-2 confirmation silently fell open on clients without elicitation.
+
+- [x] **H-2 · Credential host binding.** `servicenow_set_credentials` now refuses to move a configured profile to a different host unless `user` and `password` arrive in the same call — `CREDENTIALS_INCOMPLETE` at the start of the error message (`fail()` carries no code field), evaluated after host validation, before the confirmation prompt and before any write, so nothing is persisted and no cache is touched. A first-time set and same-host re-spellings (`DEV00000` vs `dev00000.service-now.com`) stay allowed; a stored instance that no longer resolves counts as a change. The elicitation confirmation fails **closed**: no live server, a client without the `elicitation` capability, or a protocol error all refuse the change unless the operator sets `SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1` (new settings getter, README env row, `.env.example`); an explicit decline / cancel / accept-without-confirm is refused regardless. An accepted change still invalidates OAuth tokens, the schema cache and plugin availability. Tests: `test/admin-credentials.test.js` (8 tests over an in-memory MCP server/client pair and a scratch env file); the K-6 smoke test opts out so the SSRF guard is what rejects. Left open inside the item: the `SN_ALLOWED_HOSTS`-bypasses-`isBlockedHost` bullet (a documented opt-in pinned by `test/jira-host.test.js`) is deferred to H-6 as an open decision; re-requiring OAuth / API-key / bearer material on a host change follows with D-2.
+
+Gate (after H-2, before H-10/E-9): build + ESLint + Prettier clean, **414 tests** (+8), coverage 95.46% lines / 85.28% branches / 98.58% functions. Uncommitted.
+
+## v3.0 execution — E-9 (2026-09-10)
+
+Third item off the v3.0 tracker ([ROADMAP-V3.md](ROADMAP-V3.md) §E-9), run in parallel with H-10 because the two only meet at `settings.ts` / `status.ts`: the process had no controlled way to fail (an unhandled rejection was logged and the server ran on with possibly corrupt state), no single teardown for its module singletons, and an unbounded schema cache (GAP L6-03, L6-04, L2-08).
+
+- [x] **E-9 · Process lifecycle + bounded state.** New `src/core/lifecycle.ts`. `installCrashHandlers()` replaces the inline handlers in `index.ts`: an `unhandledRejection` or `uncaughtException` logs exactly one structured, secret-free `error` line (`pid`, `uptime`, `transport`, `errorName`, `error` capped at 2000 chars — never a stack or the raw reason object) and exits 1 after flushing stderr (bounded by 250 ms; only the first crash is handled). `dispose()` — idempotent, concurrent calls share one run, a failing step is logged and skipped — clears the schema cache and its counters, cached OAuth tokens, the mTLS dispatcher handle and HTTP telemetry, plus whatever upper layers register through `registerDisposer()` (`api/plugin.ts` registers its availability map); it runs on SIGINT/SIGTERM before `server.close()` and on `onsessionclosed` of the HTTP transport so nothing leaks across sessions. `closeHttpTransport()` stops the listener on shutdown, and `startHttp` now awaits `listen()` so a bind failure (EADDRINUSE, privileged port) rejects startup instead of raising a stray `'error'` event. `src/core/cache.ts` is a Map-ordered LRU bounded by `SN_SCHEMA_CACHE_MAX` (default 256; new settings getter, README env row, `.env.example`): a hit re-inserts at the recent end, expired entries are swept on every insert, the least-recently-used entry is evicted when full; `get_status` gains `schemaCache` (`size`, `max`, `hits`, `misses`, `evictions`, `expired`). Tests: `test/lifecycle.test.js` (8 — child-process crash probes through `test/fixtures/crash-probe.mjs`, dispose semantics, listener teardown) and `test/cache.test.js` (9 — the 257th insert evicts, recency refresh, TTL sweep, counters, status shape). Deferred inside the item: closing the undici Agent, rejecting queued waiters with `BUSY` and the breaker reset wire into `dispose()` when H-10 exposes the hooks; E-3 folds `dispose()` into the runtime container.
+
+Gate (after the E-9 port into the main tree, H-10 still in flight): build clean, **431 tests** (+17); the full gate (ESLint, Prettier, coverage, audit) ran green together with H-10 on 2026-09-23 (next section). Uncommitted.
+
+## v3.0 execution — H-10 (2026-09-23)
+
+Fourth item off the v3.0 tracker ([ROADMAP-V3.md](ROADMAP-V3.md) §H-10, GAP L1-01…L1-10): the HTTP edge failed silently in several ways — `SN_TLS_*` was ignored without a client certificate, a proxy could not be configured at all, OAuth token requests bypassed the mTLS dispatcher, retries had no total budget, the per-host queue was unbounded, an HTML error page came back as a multi-hundred-KB "detail", and the instance saw an anonymous `node` client.
+
+- [x] **H-10 · HTTP client resilience + identity.** New `src/core/dispatcher.ts`: one `getDispatcher(host)` builds the `undici` agent from the proxy (`SN_HTTPS_PROXY`, else `HTTPS_PROXY` / `HTTP_PROXY` with `NO_PROXY` matching) and the TLS options (`SN_TLS_CA[_FILE]`, `SN_TLS_REJECT_UNAUTHORIZED`, optional client cert/key pair — a lone half is a configuration error), applied **without** a client certificate too; agents are cached by the sha256 of their material + the active profile and closed (not just dropped) by `disposeDispatchers()` on `set_credentials` / `use_profile` and inside `dispose()`; `undici` stays optional with a clear install hint, `SN_TLS_REJECT_UNAUTHORIZED=false` logs one warning; `mtls.ts` is now a thin alias. New `src/core/identity.ts`: `User-Agent: servicenow-mcp-ai/<version> (node/<major>; <transport>; <client>)` — the client name comes from the MCP initialize handshake (`setClientInfoProvider`, registered in `mcp/context.ts`), `SN_USER_AGENT_SUFFIX` appends a printable, capped token. `src/core/http-util.ts` now exposes one `rawRequest` primitive: UA header, dispatcher, the bounded per-host queue (`SN_MAX_QUEUE` 64, `SN_QUEUE_TIMEOUT_MS` = timeout; `SlotBusyError` full / timeout / drained → code `BUSY`; `get_status` and `doctor` bypass it), a total deadline (`SN_DEADLINE_MS`, default max(120 s, 2 × timeout) → `DEADLINE_EXCEEDED`, composed with the caller's `AbortSignal` and a per-call `timeoutMs`), `SN_RETRY_AFTER_MAX_MS` (60 s), body shaping (JSON detail ≤ 2 KB; HTML → `UPSTREAM_HTML` + hint, tag-stripped, ≤ 512 chars) and the opt-in per-host circuit breaker (`SN_BREAKER_THRESHOLD` 0 = off, `SN_BREAKER_RESET_MS` 30 s → `CIRCUIT_OPEN`, half-open after the window, diagnostics spared). `snRequest` gains `signal`, `timeoutMs`, `bypassQueue` and re-authenticates once on 401 through the same path; the Jira twin (`jira/http.ts`) rides the same primitive with `clientCert: false` (parity test extended). `auth.ts` `requestToken` goes through `rawRequest` (`telemetryKey: "auth"`, retry only for replayable requests). `host.ts` `parseHostPort`: an explicit non-443 port or a bracketed IPv6 literal is accepted only when an `SN_ALLOWED_HOSTS` entry names it. `ServiceNowError` / `JiraError` carry `code` + `hint` (surfaced by `fail()` in `mcp/result.ts`); `get_status` reports `http` (`userAgent`, redacted `proxy` source + host, `tls` ca / clientCert / verify, `queue` per host). Eight new settings (`SN_HTTPS_PROXY`, `SN_USER_AGENT_SUFFIX`, `SN_DEADLINE_MS`, `SN_RETRY_AFTER_MAX_MS`, `SN_MAX_QUEUE`, `SN_QUEUE_TIMEOUT_MS`, `SN_BREAKER_THRESHOLD`, `SN_BREAKER_RESET_MS`) with README rows and `.env.example` entries; `dispose()` (E-9) now drains the queue, resets the breakers and closes the dispatchers. Tests: `test/http-resilience.test.js` (43 — the 8-combination dispatcher matrix and the proxy / `NO_PROXY` matrix on a fake `undici`, token requests under proxy and mTLS, a 300 KB HTML 502 → an error ≤ 1 KB, the 65th queued call → `BUSY`, queue timeout, drain, deadline / `Retry-After` cap / per-call timeout / caller abort, host:port + IPv6 policy, breaker open / half-open / off), `test/identity.test.js` (6) and one `dispose()` hook test in `test/lifecycle.test.js`. Not in the item: rate-limit header parsing into telemetry (second half of L1-07, 3.x); the acceptance matrices run on `withFetch` + the fake `undici` because the E-6 fetch double v2 does not exist yet.
+
+Gate (whole dirty tree — H-1 + H-2 + E-9 + H-10): build + ESLint + Prettier clean, **481 tests** (+50: 43 + 6 + 1), coverage 96.04% lines / 86.44% branches / 98.44% functions, `npm audit --omit=dev --audit-level=high` 0. Uncommitted.
+
+## v3.0 execution — S-1 (2026-09-23)
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §S-1 (DEEP-REVIEW C-2 / FT-2). Local, uncommitted.
+
+- [x] **Inherited + global business rules in the trace.** `traceTableEvent` resolves the table's
+      inheritance chain through `getTableChain` (child first) before querying `sys_script`, and the
+      query becomes `collectionIN<chain>^ORglobal=true^active=true^when=<phase>^action_<op>=true^ORDERBYorder`
+      (`^OR` binds to the clause right before it, so this is "(chain OR global) AND the rest"). Each
+      `ChainEntry` says where the rule lives: `table`, `inherited_from` (a parent table) or
+      `global`. A failing chain lookup traces the table alone and says so in `warnings`.
+- [x] **Operation-aware filters.** Flow triggers are dropped only when `trigger_type` names a
+      different record operation (`record_create` is not in an `update` trace; unknown types are
+      kept); legacy workflows are listed for insert/update only; notifications by `action_insert` /
+      `action_update` or when driven by an event; `query` lists no record-triggered work at all.
+- [x] **Table-flow diagram lanes.** `generateTableFlow` walks the same chain, renders the table's
+      own rules as direct nodes and then one `inherited from <parent>` lane per parent (chain order)
+      plus a `global` lane per phase; empty lanes are skipped; the result gains `tables`.
+- [x] **`getTableChain` cached** with the other schema reads (`cacheKey(["tableChain", table])`);
+      the `business_rule` script descriptor exposes `global`; both tool descriptions extended.
+- [x] **Gate:** build clean · ESLint 0 · Prettier clean · **486/486** (five new tests: incident
+      sees task + global rules in order; flow triggers / notifications filtered by operation; chain
+      lookup failure → warning; diagram lanes) · coverage 96.13 / 86.48 / 98.47 · `npm audit --omit=dev` 0.
+
+## v3.0 execution — H-9 (2026-09-23)
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §H-9 (DEEP-REVIEW CI/version hygiene; GAP L9-04, L9-06, L9-07, L9-08, L9-12). Local, uncommitted.
+
+- [x] **Workflows hardened.** Every action in the five workflows is pinned to a commit SHA with
+      the version in a trailing comment (`actions/checkout` / `actions/setup-node` 4.4.0,
+      `codecov/codecov-action` 5.5.5, `github/codeql-action` 3.38.1); top-level
+      `permissions: contents: read` everywhere, `id-token: write` only where a publish needs OIDC,
+      `security-events: write` only on the CodeQL job; `ci.yml` has `concurrency` with
+      cancel-in-progress, `timeout-minutes` on every job and an `actionlint` job (1.7.12).
+- [x] **New CI steps** on the ubuntu/Node 22 leg: `npm run pack:check`, "No tracked env files"
+      (only `.env.example` may be tracked) and "Prettier idempotency"; the Node 12 launcher probe
+      derives the expected major from `engines.node`.
+- [x] **Checksummed publisher.** `publish-mcp.yml` downloads `mcp-publisher` 1.8.1 by version and
+      verifies it with `sha256sum --check` against the release's `registry_<v>_checksums.txt`.
+- [x] **Tarball guard.** `scripts/pack-check.mjs` (`npm run pack:check`, in `npm run check`) fails
+      on any entry outside `LICENSE` / `README.md` / `package.json` / `bin/` / `build/`, on
+      `jira/`, `.map`, `test/`, `docs/instance/`, or above 600 KB unpacked; `files` gains
+      `!build/**/jira/**` so the dark Jira client never ships (78 files, 439.7 KB today).
+- [x] **One version.** `scripts/sync-version.mjs` (`npm run version:sync`, `--check`) plus the
+      `npm version` lifecycle hook keep `package-lock.json`, `server.json`,
+      `extension/package.json`, `extension/package-lock.json`, `.claude-plugin/plugin.json` and
+      `docs/index.html` at the `package.json` version; `test/version-sync.test.js` (8 tests) fails
+      the gate on skew and pins the launcher's Node literal to `engines.node`. Fixed
+      `.claude-plugin/plugin.json` 2.0.0 → 2.0.1.
+- [x] **Hygiene.** `.gitignore` `.env.*` + `!.env.example` + `.env.tmp-*`; `.prettierrc.json`
+      `proseWrap: preserve`; `npm run format` is two passes; CONTRIBUTING documents the
+      version-bump flow, the tarball guard and the Markdown formatting gotchas.
+- [x] **Gate:** build clean · ESLint 0 · Prettier clean · **494/494** · coverage
+      96.01 / 86.56 / 98.49 · `pack:check` OK · `sync-version --check` OK · actionlint 1.7.12 0 ·
+      `npm audit --omit=dev` 0.
+
+## v3.0 execution — H-8 (2026-09-23)
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §H-8 (DEEP-REVIEW C-1, C-3, C-4, C-9…C-12). Built on its own branch, then 3-way merged onto the H-10 / S-1 / H-9 tree (one conflict, in `src/api/diagrams.ts`: kept main's `${indent}` lane layout and H-8's `snString` rule name). Local, uncommitted.
+
+- [x] **Platform corner-case pins.** A 2xx HTML page (PDI hibernation, login/SSO) now raises `INSTANCE_HTML_RESPONSE` with a wake-up hint; `fetchAll` reads past ACL-shortened pages to `X-Total-Count` or an empty page under a `cap × 10` scan budget and reports `truncatedReason`/`filtered` with a cause-specific note; redaction, CSV and the diagram generators are pinned for `display_value=all` pairs; attachment UTF-8 names, 0-byte files, data URLs and the base64 limit boundary are pinned; namespace 404s distinguish plugin inactive / missing / active; drift and where-used reports carry domain-separation and cross-scope caveats. 25 new tests in `test/platform-corners.test.js` (506 on its branch). Plugin ids and the hibernation wording are unverified against a live instance; snapshot's `warnIfTruncated` still names the `SN_MAX_RECORDS` cap for a scan-limit stop. The where-used "inherited parent rules are not included" caveat now points to `servicenow_trace_table_event` and `servicenow_generate_table_flow`, which list inherited and global rules since S-1.
+- [x] **SDK parity plan.** [SDK-PARITY.md](SDK-PARITY.md) adds the post-3.0 SDK parity epic (P-1…P-29, owner gates O-5…O-9) to the tracker as rows 55–83; none of it joins the 3.0 cut. Docs only.
+- [x] **Gate (merged tree):** `npm run check` exit 0 — build + ESLint + Prettier + format idempotency, **519/519** · coverage 96.15% statements / lines, 87.06% branches, 98.52% functions · `pack:check` 78 files, 456.2 KB · `npm audit --omit=dev` 0. With it the 2.1.0 hardening batch (tracker items 1–5) is complete.
+
+## 2026-09-23 — H-5 journal v2 + deep redaction, H-6 outbound hardening
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §H-5, §H-6. Built in parallel on separate copies of the tree, then 3-way merged (conflicts in `src/api/docs.ts`, `src/core/settings.ts`, `src/tools/attachment.ts`, README, CHANGELOG, SECURITY — both sides kept; the docs store keeps one synchronous symlink check inside `resolveDocPath`). Local, uncommitted.
+
+- [x] **H-5 · Write journal v2.** `schema_version: 2`, ULID `id`, `result` (applied / failed / refused), best-effort `before` on update/delete, `client`, sha256 `prev` chain with a head file, rotation at `SN_JOURNAL_MAX_BYTES` (20 MiB), per-sub-request batch lines with `batch_id`, `local_write` and `config` (key names only) entries; `readWriteJournal` reports chain integrity. Deep redaction (`src/core/redaction.ts`) at the `ok()`/`fail()` boundary; CSV exports get a formula guard and BOM (`SN_CSV_FORMULA_GUARD`, `SN_CSV_BOM`). Tests: `test/journal-v2.test.js`.
+- [x] **H-6 · Outbound hardening.** Manual redirects (`REDIRECT_BLOCKED`), `SN_MAX_BODY_BYTES` (`RESPONSE_TOO_LARGE`), IPv6-aware host guard, TLS-off warning in logs and `get_status`, OAuth callback path/`state` check, `SN_MAX_UPLOAD_BYTES` / `SN_UPLOAD_MIME_ALLOW` / file-name sanitising, docs store device-name, `:` , symlink and `SN_DOCS_MAX_FILE_BYTES` guards, `send_email` recipient allow-list (`SN_EMAIL_ALLOWED_DOMAINS`, fail-closed default — O-4 candidate). Tests: `test/outbound-hardening.test.js`.
+- [x] **Gate (merged tree):** `npm run check` exit 0 — **568/568** · coverage 96.61% statements / lines, 88.52% branches, 98.68% functions · `pack:check` 79 files, 500.4 KB · `npm audit --omit=dev` 0.
+
+## 2026-09-23 — E-3 runtime container, S-2 journal-based revert, S-14 docs store v2
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §E-3, §S-2, §S-14. Built in parallel on separate copies of the tree, then 3-way merged (one conflict, in `src/core/errors.ts`: both sets of new error codes kept). Local, uncommitted.
+
+- [x] **E-3 · Runtime container.** `src/core/runtime.ts` — `createRuntime()`, `installRuntime()`, `runWithRuntime()` (AsyncLocalStorage), `currentRuntime()`, `defineRuntimePart()`; the schema cache, OAuth tokens, telemetry, per-host queue and breakers, dispatchers, profile store and plugin availability are runtime parts. Built once in bootstrap, passed to `registerAllTools`, which binds every tool call. `dispose()` clears in place, idempotent, concurrent calls share one run; `lifecycle.dispose()` delegates. The `_reset*` test hooks are deleted — tests use `freshRuntime()`; `test/runtime.test.js`.
+- [x] **S-2 · Journal-based revert.** Opt-in `revert` package (`src/api/revert.ts`, `src/tools/revert.ts`): `servicenow_list_writes` (profile / table / since / result / action / limit, revertible + reason per line) and `servicenow_revert_write` (plan/apply; update → `before` back, create → delete, delete → re-create; `STALE_RECORD` on `sys_mod_count` or field drift unless `force:true`; `NOT_REVERTIBLE` with the reason; journaled with `reverts:<id>`). Journal lines gain `tool` and `after_mod_count`; new error codes `NOT_REVERTIBLE`, `STALE_RECORD`. `test/revert.test.js` (15). 69 tools in 19 packages.
+- [x] **S-14 · Docs store v2 + generator depth.** `sn_*` frontmatter with a stable `sn_source_hash`, `unchanged` re-runs, `<!-- sn:manual -->` blocks, `DOC_GENERATED` (409) in both directions with 2.x upgrade, `index.json` manifest + grouped `index.md`, docs tools `profile` / `kind` / `generated` / `overwrite` / `stale` / search cap; `src/api/mermaid.ts` (node cap), ER `columns` / `max_columns` / `depth`, table-flow `operation`; C-4 pair fixtures. Defaults byte-identical (goldens), metadata-only fetch allow-list. New tests: `mermaid`, `docs-goldens`, `docs-store` (+ `mermaid-lint.js`).
+- [x] **Gate (merged tree):** `npm run check` exit 0 — **621/621** · coverage 96.95% statements / lines, 89.28% branches, 98.84% functions · `pack:check` 83 files, 566.8 KB · `npm audit --omit=dev` 0.
+
+## 2026-09-24 — M-3 cancellation + progress, S-3 security scan, S-8 Table API + upsert, P-1 artefact registry
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §M-3, §S-3, §S-8 and [SDK-PARITY.md](SDK-PARITY.md) §P-1. Built in parallel on separate copies of the tree, then 3-way merged (conflicts in CHANGELOG and `src/api/table.ts` — M-3's `signal` / `onProgress` and S-8's query parameters both kept; the `fetchAll` loop reports progress before S-8's filtered-page accounting). Local, uncommitted.
+
+- [x] **M-3 · Cancellation + progress.** `src/core/progress.ts` (`throwIfCancelled`, `reportProgress`, `trackProgress`, `fetchAllProgress`) and `src/mcp/progress.ts` (250 ms throttled sink); the call's `AbortSignal` rides the request context into `snRequest`, the per-host slot wait and the retry loop (no retry after abort); new error code `CANCELLED`; log lines carry the call id. `query_table`, snapshot, compare and batch report progress. Tests: `test/cancel-progress.test.js` (18).
+- [x] **S-3 · Security scan.** `src/api/security.ts`, folded into `servicenow_code_health`: rules `acl-open`, `acl-public-role`, `acl-roles-only`, `acl-elevated-privilege`, `admin-overlap-role`, `public-rest-resource`, `table-no-acl` (custom `u_` / `x_` tables); roles resolved through `sys_user_role_contains`; 50 000-row ACL ceiling with an explicit early-stop note; each extra table degrades to `available:false` instead of failing the scan. Tests: `test/security-scan.test.js` (13).
+- [x] **S-8 · Table API completeness + upsert.** `view`, `sysparm_query_category`, `no_count`, `query_no_domain`, `suppress_pagination_header`, `input_display_value`; keyset paging for `ORDERBY` queries without `^NQ`; new `servicenow_upsert_record` (natural-key upsert, `AMBIGUOUS_KEY` on >1 match, revertible) in the core profile; `servicenow://reference/encoded-query` resource. Tests: `test/table-s8.test.js` (16). 70 tools in 19 packages.
+- [x] **P-1 · Artefact registry.** `src/core/artifacts/registry.ts` (SDK baseline 4.12.2, APIs, decoder ids, artefact types); `SCRIPT_TYPES` and the capabilities artefact tables derive from it. Tests: `test/artifact-registry.test.js` (9).
+- [x] **Tarball ceiling** raised from 600 KB to 800 KB in `scripts/pack-check.mjs` (the 3.0 tree packs at ~638 KB) — owner to confirm.
+- [x] **Gate (merged tree):** `npm run check` exit 0 — **677/677** · coverage 97.33% statements / lines, 90.28% branches, 98.78% functions · `pack:check` 87 files, 637.6 KB · `npm audit --omit=dev` 0.
+
+## 2026-09-24 — S-4 script-intelligence widening, S-13 capability matrix, D-2 credentials model, P-3/P-4 SDK tracking
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §S-4, §S-13, §D-2 and [SDK-PARITY.md](SDK-PARITY.md) §P-3, §P-4. Built in parallel on separate copies of the tree, then 3-way merged (conflicts in CHANGELOG, `src/api/capabilities.ts`, `src/core/settings.ts`, `src/core/artifacts/registry.ts`, `src/tools/admin.ts` and `test/artifact-registry.test.js` — both sides kept everywhere). Local, uncommitted.
+
+- [x] **S-4 · Script-intelligence widening.** Registry fields `clientFields`, `markupFields`, `baseQuery` and 15 unverified script types; `scope` filter on script search / list and where-used; per-artefact `hits` (max 20) with `hitCount`; unverified types that fail to read land in `unreadable` instead of failing the sweep.
+- [x] **S-13 · Capability matrix.** `src/api/capability-matrix.ts`: one read-only, policy-routed probe per group, `groups` / `refresh` inputs on `servicenow_check_capabilities`, TTL cache (`SN_CAPABILITY_TTL_MS`, default 10 min) and plugin negative TTL (`SN_PLUGIN_NEGATIVE_TTL_MS`, default 60 s); matrix block in doctor. Tests: `test/capability-matrix.test.js`.
+- [x] **D-2 · Credentials model.** `credentialStatus` per auth method; `set_credentials` gains `auth`, `oauth_client_id`, `oauth_grant`, `request_secrets` (secrets only via elicitation); `SN_TOKEN_FILE` re-read on 401, new code `AUTH_EXPIRED`, token-expiry and env-file ACL warnings; per-profile auth in status and doctor. Tests: `test/credentials-model.test.js`.
+- [x] **P-3 · SDK-managed scope detection.** `src/core/artifacts/sdk-managed.ts` (`SN_SDK_MANAGED_SCOPES`, `SN_SDK_PROJECT_DIRS` scanning `now.config.json`, bounded); `sdkManaged` block in `get_status` and `check_capabilities`. Tests: `test/sdk-managed.test.js`.
+- [x] **P-4 · SDK release tracking.** `scripts/sdk-drift.mjs` (`npm run sdk:drift`) and the weekly `.github/workflows/sdk-drift.yml`; `SDK_NEXT_APIS = ["DatabaseView"]`. Tests: `test/sdk-drift.test.js` (fixture `test/fixtures/sdk-llms.txt`).
+- [x] **Gate (merged tree):** `npm run check` exit 0 — **752/752** · coverage 97.65% statements / lines, 91.08% branches, 98.76% functions · `pack:check` 89 files, 711.8 KB (limit 800 KB) · `npm audit --omit=dev` 0. 70 tools in 19 packages (no new tools).
+
+## 2026-09-24 — M-8 protocol fixes, S-9 structural where-used, E-5 observability, P-5 generic artifact reads
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §M-8, §S-9, §E-5 and [SDK-PARITY.md](SDK-PARITY.md) §P-5. Built in parallel on separate copies of the tree, then 3-way merged (conflicts in CHANGELOG, `.env.example`, README and `docs/index.html` env tables — both sides kept; P-5's tools then adapted to M-8's required annotation hints and bounded inputs). Local, uncommitted.
+
+- [x] **M-8 · Protocol fixes.** `src/mcp/log-bridge.ts` (`logging/setLevel` over HTTP, per-session rate limit `SN_LOG_NOTIFY_RATE`, suppressed-line summary); required annotation hints on every tool; `buildInputSchema`; bounded input builders in `src/mcp/define.ts`. Tests: `test/log-bridge.test.js`, `test/schema-bounds.test.js`.
+- [x] **S-9 · Structural where-used.** `src/api/references.ts` with 9 structural sources; `structural` section and input on `servicenow_where_used`. Tests: `test/references.test.js`.
+- [x] **E-5 · Observability.** `src/core/metrics.ts`, `src/core/log-file.ts`, `src/mcp/observability.ts`; `observability` block in `get_status`; `diagnostics_channel` events; `SN_LOG_FORMAT`, `SN_LOG_FILE`, `SN_LOG_FILE_MAX_BYTES`, `SN_METRICS`. Tests: `test/observability.test.js`.
+- [x] **P-5 · Generic artifact reads.** `src/api/artifacts.ts`, `src/tools/artifacts.ts` (opt-in `artifacts` package), `servicenow://artifact-types`. Tests: `test/artifacts.test.js`.
+- [x] **Gate (merged tree):** `npm run check` exit 0 — **817/817** · coverage 97.84% statements / lines, 91.08% branches, 98.78% functions · `pack:check` 96 files, 794.0 KB (limit 800 KB) · `npm audit --omit=dev` 0. 72 tools in 20 packages.
+
+## 2026-09-25 — M-4 completions, S-7 snapshot/compare v2, S-5 trace v2, P-6 explain_artifact
+
+Tracker: [ROADMAP-V3.md](ROADMAP-V3.md) §M-4, §S-7, §S-5 and [SDK-PARITY.md](SDK-PARITY.md) §P-6. Built in parallel on separate copies of the tree, then 3-way merged (CHANGELOG conflicts only — both sides kept). Local, uncommitted.
+
+- [x] **M-4 · Completions + reference resources + content boundary.** `src/mcp/boundary.ts`; `complete` / `list` callbacks in `src/mcp/resources.ts`; completable prompt arguments; `servicenow://reference/tools`. Tests: `test/completions.test.js`.
+- [x] **S-7 · Snapshot/compare v2.** `src/api/snapshot.ts` (sections, fan-out, resume), `src/api/compare.ts` (sys_id matching, `renamed`, record diffs), `src/api/unified-diff.ts`, `describe_table` details. Tests: `test/unified-diff.test.js`, `test/snapshot.test.js`, `test/compare.test.js`, `test/meta.test.js`.
+- [x] **S-5 · Trace v2.** Opt-in `lanes` in `src/api/flows.ts` / `src/api/diagrams.ts`. Tests: `test/trace-lanes.test.js`, new table-flow golden.
+- [x] **P-6 · explain_artifact.** `src/api/explain-artifact.ts`, `src/core/artifacts/decoders.ts`, `servicenow_explain_artifact`. Tests: `test/explain-artifact.test.js`, `test/fixtures/explain/`.
+- [ ] **Gate (merged tree):** tests **870/870** pass · coverage 97.95% statements / lines, 90.94% branches, 98.9% functions · build, lint, format pass · `npm audit --omit=dev` 0 · **`pack:check` fails: 868.7 KB unpacked, over the 800 KB ceiling (owner decision)**. 73 tools in 20 packages.
+
+## 2026-09-25 — P-7 core/server/classic-UI descriptors, P-9 portal/UIB/flow/workflow descriptors, S-6 update sets, S-11 file delivery
+
+- [x] **P-7 · Descriptors + explainers.** 31 CORE/SRV/CUI rows in `src/core/artifacts/registry.ts`, `available` probe in `src/api/artifacts.ts`, `src/api/explainers.ts` (state model, choice table, field effects). Tests: `test/explain-enrichers.test.js`.
+- [x] **P-9 · Shallow NX/UIB/SP/FLW/WF descriptors.** `scriptToolsOptIn`, `search_code({extended})`. Tests: `test/artifact-registry.test.js`, `test/scripts.test.js`.
+- [x] **S-6 · Update-set awareness.** Opt-in `updatesets` package (`src/api/updatesets.ts`, `src/tools/updatesets.ts`), `update_set` binding on table writes, `check_capabilities` access. Tests: `test/updatesets.test.js`.
+- [x] **S-11 · File-based delivery.** `format:"file"`, `src/mcp/file-result.ts`, `openDocStream`, `SN_OVERSIZE_TO_FILE`. Tests: `test/file-delivery.test.js`.
+- [ ] **Gate (merged tree):** tests **936/936** pass · coverage 98.13% statements / lines, 91.26% branches, 98.98% functions · build, lint, format pass · `npm audit --omit=dev` 0 · **`pack:check` fails: 984.5 KB unpacked, over the 800 KB ceiling** (owner decision). 76 tools in 21 packages.
+
+## 2026-09-26 — batch 12: M-5, D-1, S-16, P-11, P-17, D-8 (part)
+
+- [x] **M-5 · Dynamic packages + listChanged.** `src/mcp/packages.ts`; every policy-permitted tool is registered at startup and toggled with the SDK `enable()` / `disable()`; new always-on admin tools `servicenow_list_packages`, `servicenow_enable_package`, `servicenow_disable_package` (deny list re-checked, read-only packages stay read-only, session-scoped); package resources / prompts follow toggles; `resources.subscribe` + debounced `listChanged`; new `servicenow_instance_overview` prompt. Tests: `test/dynamic-packages.test.js`.
+- [x] **D-1 · `init` wizard + real CLI.** `src/cli.ts` (`parseArgs`; `init`, `doctor`, `login`, `drift`, `support-bundle`; unknown command / option exits 2), `src/server.ts` (`startServer`, no side effects at import), `src/api/support-bundle.ts`, `doctor --json` / `--profile`. Tests: `test/cli.test.js`, `test/support-bundle.test.js`, `test/cli-spawn.test.js`.
+- [x] **S-16 · Native discovery.** `servicenow_document_instance({depth: "overview" | "apps" | "artefacts"})` (cumulative) writes `<profile>/discovery/`. Tests: `test/document.test.js` + discovery goldens in `test/fixtures/docs/writers/`.
+- [x] **P-11 · Subflows, custom actions, decision tables.** `explain_flow` `kind:"action"`, call expansion (`depth` default 1, max 3, 20 callees, cycle guard), decision-table explainer, `decision_table` R + X in the registry. Tests: `test/explain-decision.test.js`, `test/explain-flow.test.js` + `test/fixtures/explain/action.mmd`.
+- [x] **P-17 · Artifact dependency graph.** `src/api/dependencies.ts`, `servicenow_artifact_dependencies` in the opt-in `artifacts` package (outbound + inbound edges, depth 1–3, 150-node cap, `unavailable` per failed source, Mermaid). Tests: `test/dependencies.test.js` + `test/fixtures/explain/dependencies.mmd`.
+- [ ] **D-8 part · Plugin skills.** `skills/{sn-discover,sn-triage,sn-impact,sn-drift,sn-safe-write}/SKILL.md`; the `PreToolUse` hook waits for H-3 (O-4). Tests: `test/plugin-skills.test.js`.
+- [ ] **Gate (merged tree):** tests **1269/1272** pass, 3 `todo`, 0 fail · coverage 98.43% statements / lines, 89.55% branches, 99.03% functions · build, lint, format pass · `npm audit --omit=dev` 0 · **`pack:check` fails: 1416.6 KB unpacked, over the 800 KB ceiling** (owner decision). 93 tools in 26 packages; `tools/list` measured 137,276 (all) / 34,426 (core), ratchets 138,000 / 35,000.
+
+## 2026-09-26 — batch 11: P-10, P-13, M-1, D-4, E-6 (part)
+
+- [x] **P-10 / P-13 · Flow and workflow explain.** `src/core/artifacts/flow-values.ts` (`detectFlowValues`), `src/api/explain-flow.ts`, `servicenow_explain_flow` in the `flows` package — Flow Designer step tree with decoded values, legacy workflow activity graph, opt-in runs and migration report. Tests: `test/explain-flow.test.js` + `test/fixtures/explain/{flow,workflow}.mmd`.
+- [x] **M-1 · Server instructions + configuration state.** `src/mcp/server-info.ts` (`instructions` ≤2 KB, `title` / `icon` / `websiteUrl`), `NOT_CONFIGURED` error code, `get_status` v2 (`server`, `policy`, `writes`, `profileDetails`). Tests: `test/server-info.test.js`.
+- [x] **D-4 · Install matrix + one-click links.** `scripts/install-links.mjs`, README "Install in your MCP client" and the docs-site install section. Tests: `test/install-links.test.js`.
+- [x] **E-6 part · Test architecture.** Fetch double v2 and fake clock in `test/helpers.js`, property suites (`property-http`, `property-policy`, `property-data`), `test/cli-spawn.test.js`, the cancel-progress flake removed, CI `extension` typecheck job. Three findings (F1–F3) kept as `todo` tests pending the owner. O-2 fixture corpus open.
+- [ ] **Gate (merged tree):** tests **1168/1171** pass, 3 `todo`, 0 fail · coverage 98.28% statements / lines, 89.43% branches, 98.94% functions · build, lint, format pass · `npm audit --omit=dev` 0 · **`pack:check` fails: 1298.7 KB unpacked, over the 800 KB ceiling** (owner decision). 89 tools in 26 packages.
+
+## 2026-09-26 — batch 10: S-15 (remainder), M-6, M-9, P-16
+
+- [x] **S-15 remainder · Instance document.** `documentInstance`, `servicenow_document_instance` (`docs`); kinds `catalog`, `integrations`, internal `instance`, `artifact_types`; `<profile>/README.md` + `artifact-types.md`, progress per document, partial on cancel. Tests: `test/document.test.js` + goldens `test/fixtures/docs/writers/{instance-README,catalog,integrations}.md`. `document_kind` open (owner).
+- [x] **M-6 · outputSchema + token budget.** 30 tools declare a passthrough `outputSchema` with `structuredContent` (never on errors); manifest v2 (`outputSchema`, `description_sha256`, `since`); descriptions ≤250 chars; `tools/list` byte budget ratchet. Tests: `test/output-schema.test.js`.
+- [x] **M-9 · Long-running ops as MCP tasks.** `src/mcp/tasks.ts` behind `SN_EXPERIMENTAL_TASKS=1`; `run_as_task` on snapshot / compare / ATF / code_health / query_table (file); a task-capable tool's output schema has every field optional so the handle validates (M-6 interplay). Tests: `test/tasks.test.js`.
+- [x] **P-16 · Service Portal tree.** `src/api/portal.ts`, `servicenow_explain_portal` in the new opt-in `ui` package. Tests: `test/explain-portal.test.js` + `test/fixtures/explain/portal.mmd`.
+- [ ] **Gate (merged tree):** tests **1074/1074** pass · coverage 98.29% statements / lines, 90.01% branches, 98.8% functions · build, lint, format pass · `npm audit --omit=dev` 0 · **`pack:check` fails: 1222.8 KB unpacked, over the 800 KB ceiling** (owner decision). 88 tools in 26 packages.
+
+## 2026-09-26 — batch 9: S-10a, S-10b, P-8, S-15 (part 1), E-7 (collector split)
+
+- [x] **S-10a · History, properties, directory, CMDB relations / IRE.** Opt-in `history`, `properties`, `directory` packages; `servicenow_list_ci_relations`, `servicenow_identify_reconcile`; `describeImportRun`; `atf_run({wait_seconds})`. Tests: `test/s10a.test.js`.
+- [x] **S-10b · Ops package.** `src/api/ops.ts`, `src/tools/ops.ts` — `servicenow_ops_health`, `servicenow_data_health`, prompt `servicenow_why_is_it_slow`. Tests: `test/ops.test.js`.
+- [x] **P-8 · Catalog / quality / AI / application descriptors.** Registry 121 types, `licensed?`, catalog explainers. Tests: `test/explain-catalog.test.js`.
+- [x] **S-15 part 1 · Document generators.** `src/api/document.ts`, `servicenow_document_table`, `servicenow_document_app`, prompt gating. Tests: `test/document.test.js` + goldens. `document_instance` open.
+- [x] **E-7 part · Collector split.** `src/api/collectors.ts`, unsafe lint rules, `snParams()`. Tests: `test/collectors.test.js`, `test/writer-goldens.test.js`.
+- [ ] **Gate (merged tree):** tests **1018/1018** pass · coverage 98.28% statements / lines, 90.96% branches, 98.78% functions · build, lint, format pass · `npm audit --omit=dev` 0 · **`pack:check` fails: 1136.2 KB unpacked, over the 800 KB ceiling** (owner decision). 86 tools in 25 packages.

@@ -5,7 +5,14 @@ import {
   knowledgeHighlights,
 } from "../api/knowledge.js";
 import { ok } from "../mcp/result.js";
-import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import {
+  defineTool,
+  encodedQuery,
+  fieldList,
+  shortText,
+  sysId,
+  type AnyToolSpec,
+} from "../mcp/define.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -14,14 +21,18 @@ export const specs: AnyToolSpec[] = [
     description:
       "Full-text search of knowledge articles (Knowledge API), with optional encoded query and paging.",
     package: "knowledge",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      search: z.string().optional().describe("Free-text search terms."),
-      query: z
-        .string()
+      search: shortText(1000).optional().describe("Free-text search terms."),
+      query: encodedQuery()
         .optional()
         .describe("Encoded query for additional filtering."),
-      fields: z.array(z.string()).optional().describe("Fields to return."),
+      fields: fieldList().optional().describe("Fields to return."),
       limit: z.number().int().positive().max(100).optional(),
       offset: z.number().int().nonnegative().optional(),
     },
@@ -36,9 +47,14 @@ export const specs: AnyToolSpec[] = [
     title: "Get knowledge article",
     description: "Get a knowledge article (content and metadata) by sys_id.",
     package: "knowledge",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      sys_id: z.string().describe("sys_id of the knowledge article."),
+      sys_id: sysId().describe("sys_id of the knowledge article."),
     },
     handler: async ({ sys_id }) =>
       ok({ result: await getKnowledgeArticle(sys_id) }),
@@ -50,7 +66,12 @@ export const specs: AnyToolSpec[] = [
     description:
       "List featured or most-viewed knowledge articles for the current user.",
     package: "knowledge",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
       mode: z
         .enum(["featured", "most_viewed"])

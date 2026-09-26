@@ -10,10 +10,12 @@ out/
 # VS Code extension package
 *.vsix
 
-# Credentials & environment
+# Credentials & environment (every .env variant, incl. per-profile .env.<profile>
+# and the .env.tmp-* files the credential updater writes; only the example is tracked)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+.env.tmp-*
 
 # Logs
 *.log
@@ -25,3 +27,6 @@ Thumbs.db
 
 # Coverage output (c8)
 coverage/
+
+# Local instance docs and the write journal (SN_DOCS_DIR default)
+docs/instance/

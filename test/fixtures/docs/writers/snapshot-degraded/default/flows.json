@@ -1,0 +1,23 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_snapshot_instance",
+  "sn_generator_version": "1",
+  "sn_kind": "flows",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:c3d658340f4faf89ac5a8ff3d1a2253e06f2f331350e85cc96367044370af379",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "table": "sys_hub_flow",
+  "records": [
+    {
+      "sys_id": "f1",
+      "name": "Onboard",
+      "internal_name": "onboard",
+      "type": "flow",
+      "active": "true",
+      "status": "published"
+    }
+  ]
+}

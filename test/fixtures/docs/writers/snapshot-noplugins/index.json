@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "generated_at": "<generatedAt>",
+  "files": [
+    {
+      "path": "default/index.md",
+      "kind": "snapshot",
+      "title": "Instance snapshot — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:f41c715192a5b6f10956f1886b7e004301667073b1c083d366d8bb18f5c5cb57",
+      "bytes": 925,
+      "headings": [
+        "Instance snapshot — profile `default`",
+        "Warnings",
+        "Notes"
+      ]
+    },
+    {
+      "path": "default/roles.json",
+      "kind": "roles",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8",
+      "bytes": 554,
+      "headings": []
+    },
+    {
+      "path": "default/roles.md",
+      "kind": "roles",
+      "title": "Roles — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8",
+      "bytes": 461,
+      "headings": [
+        "Roles — profile `default`"
+      ],
+      "companion": "default/roles.json"
+    },
+    {
+      "path": "default/snapshot.json",
+      "kind": "snapshot",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:804ac830b7bffe7aff63da26ae91de06c48196833c2d673be2a37ed13500caa3",
+      "bytes": 1096,
+      "headings": []
+    },
+    {
+      "path": "default/write-journal.md",
+      "kind": null,
+      "title": "Write journal — default",
+      "profile": null,
+      "generator": null,
+      "generated_at": null,
+      "source_hash": null,
+      "bytes": 613,
+      "headings": [
+        "Write journal — default"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "artifactType": "business_rule",
+  "table": "sys_script",
+  "verified": true,
+  "sys_id": "22222222222222222222222222222222",
+  "name": "Set assignment group",
+  "key": {
+    "sys_id": "22222222222222222222222222222222"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "business_rule 'Set assignment group' (sys_script); applies to incident; active; scope x_acme_app",
+  "when": {
+    "when": "before",
+    "order": "100",
+    "action_insert": "true",
+    "action_update": "true",
+    "action_delete": "false",
+    "condition": "current.assignment_group.nil()"
+  },
+  "fields": {
+    "name": "Set assignment group",
+    "collection": "incident",
+    "when": "before",
+    "order": "100",
+    "active": "true",
+    "condition": "current.assignment_group.nil()",
+    "script": "(function executeRule(current, previous) {\n  current.assignment_group = 'x';\n})(current, previous);",
+    "action_delete": "false",
+    "action_insert": "true",
+    "action_update": "true",
+    "advanced": "true"
+  },
+  "children": [],
+  "references": [],
+  "decoded": []
+}

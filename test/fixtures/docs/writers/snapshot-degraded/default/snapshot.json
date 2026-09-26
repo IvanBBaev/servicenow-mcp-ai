@@ -1,0 +1,122 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_snapshot_instance",
+  "sn_generator_version": "1",
+  "sn_kind": "snapshot",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:0ad045e2abd52a021ee295a6cdf2b9aef8199c286a03b3f578e699c08ddaf0cc",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "units": {
+    "tables": {
+      "files": {
+        "default/tables.md": "sha256:98eb075a3a84ceaedc6fd954700756132b259995a9a54e81ab57178229e02b27",
+        "default/tables.json": "sha256:98eb075a3a84ceaedc6fd954700756132b259995a9a54e81ab57178229e02b27"
+      },
+      "warnings": []
+    },
+    "schema:incident": {
+      "files": {
+        "default/schema/incident.md": "sha256:036acfe9d1c503849a381e9f29b409455d16d8a04693ebdaaa000824a4e186bf"
+      },
+      "warnings": []
+    },
+    "schema:../evil": {
+      "files": {},
+      "warnings": [
+        "schema: skipped invalid table name \"../evil\""
+      ]
+    },
+    "plugins": {
+      "files": {
+        "default/plugins.md": "sha256:bf000f59a0eeb0f260b39e4127141031f90d8df59a19704a91844250e2943404",
+        "default/plugins.json": "sha256:bf000f59a0eeb0f260b39e4127141031f90d8df59a19704a91844250e2943404"
+      },
+      "warnings": [
+        "plugins: sys_plugins hit the SN_MAX_RECORDS cap — the list is partial."
+      ]
+    },
+    "apps": {
+      "files": {
+        "default/apps.md": "sha256:71b838043c1dd419d4395ef131778778e6caaa7c5bba3560bdbeef8338c82f90",
+        "default/apps.json": "sha256:71b838043c1dd419d4395ef131778778e6caaa7c5bba3560bdbeef8338c82f90"
+      },
+      "warnings": [
+        "apps: sys_app hit the SN_MAX_RECORDS cap — the list is partial.",
+        "apps: sys_store_app unavailable — ServiceNow API error (403): no access to sys_store_app"
+      ]
+    },
+    "automation": {
+      "files": {
+        "default/automation.md": "sha256:0f133c00e67fb9511b25f3bf6b5a678676ed855f62608cf1871097f0f1f59fd9",
+        "default/automation.json": "sha256:20dc5debc86bac2fa1f665112e2f7ba621f53f2f8e72a758de8b35be2cf1c5e3"
+      },
+      "warnings": [
+        "automation: script_include unavailable — ServiceNow API error (403): stats denied",
+        "automation: acl unavailable — ServiceNow API error (403): no access to sys_security_acl"
+      ]
+    },
+    "properties": {
+      "files": {
+        "default/properties.md": "sha256:e0796a7e1f51953bd4d30abb85210a9435e1cc87d91a59bbda863ec2922013c1",
+        "default/properties.json": "sha256:e0796a7e1f51953bd4d30abb85210a9435e1cc87d91a59bbda863ec2922013c1"
+      },
+      "warnings": [
+        "properties: sys_properties hit the SN_MAX_RECORDS cap — the list is partial."
+      ]
+    },
+    "choices": {
+      "files": {
+        "default/choices.md": "sha256:c96b314c0dcb4ccdec371e97852f89f446e1ae5e7b26ed259c6a236026d88b68",
+        "default/choices.json": "sha256:c96b314c0dcb4ccdec371e97852f89f446e1ae5e7b26ed259c6a236026d88b68"
+      },
+      "warnings": [
+        "choices: sys_choice hit the SN_MAX_RECORDS cap — the list is partial."
+      ]
+    },
+    "acls": {
+      "files": {},
+      "warnings": [
+        "acls: sys_security_acl unavailable — ServiceNow API error (403): no access to sys_security_acl"
+      ]
+    },
+    "notifications": {
+      "files": {
+        "default/notifications.md": "sha256:444a646861ead0d11f8935e3b841a978ade070478d6da380e1f003e5d6e40b4b",
+        "default/notifications.json": "sha256:444a646861ead0d11f8935e3b841a978ade070478d6da380e1f003e5d6e40b4b"
+      },
+      "warnings": [
+        "notifications: sysevent_email_action hit the SN_MAX_RECORDS cap — the list is partial."
+      ]
+    },
+    "flows": {
+      "files": {
+        "default/flows.md": "sha256:c3d658340f4faf89ac5a8ff3d1a2253e06f2f331350e85cc96367044370af379",
+        "default/flows.json": "sha256:c3d658340f4faf89ac5a8ff3d1a2253e06f2f331350e85cc96367044370af379"
+      },
+      "warnings": [
+        "flows: sys_hub_flow hit the SN_MAX_RECORDS cap — the list is partial."
+      ]
+    },
+    "catalog": {
+      "files": {
+        "default/catalog.md": "sha256:5b7384d681b089bcfc901f9b0d19663b26b59d6a6008dbf44ee2cfa3190c3436",
+        "default/catalog.json": "sha256:5b7384d681b089bcfc901f9b0d19663b26b59d6a6008dbf44ee2cfa3190c3436"
+      },
+      "warnings": [
+        "catalog: sc_cat_item hit the SN_MAX_RECORDS cap — the list is partial."
+      ]
+    },
+    "roles": {
+      "files": {
+        "default/roles.md": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8",
+        "default/roles.json": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8"
+      },
+      "warnings": [
+        "roles: sys_user_role hit the SN_MAX_RECORDS cap — the list is partial."
+      ]
+    }
+  }
+}

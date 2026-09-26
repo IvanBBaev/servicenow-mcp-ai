@@ -1,4 +1,4 @@
-import { getRedactFields, redactPII } from "../core/settings.js";
+import { redactValue, redactionRules } from "../core/redaction.js";
 import type { SnRecord } from "../api/table.js";
 
 /**
@@ -7,27 +7,12 @@ import type { SnRecord } from "../api/table.js";
  * (`SN_REDACT_FIELDS`) are masked outright; with `SN_REDACT_PII`, string values
  * that match an email/phone/national-id pattern are masked too. This is the
  * honest backing for the "bring-your-own-model, nothing sensitive leaks" story.
+ *
+ * H-5: the rules live in core/redaction.ts and are deep — a
+ * `{ value, display_value, link }` field (H-8 C-4) or any nested object is
+ * walked, and a named field is masked at any depth. The same primitive runs at
+ * the ok()/fail() boundary for every tool result and on journal fields.
  */
-
-const REDACTED = "[redacted]";
-
-const PII_PATTERNS: RegExp[] = [
-  /[\w.+-]+@[\w-]+\.[\w.-]+/g, // email
-  /\b\+?\d[\d ()-]{7,}\d\b/g, // phone
-  /\b\d{9,}\b/g, // long national-id digit run
-];
-
-function redactString(value: string): { value: string; hits: number } {
-  let hits = 0;
-  let out = value;
-  for (const re of PII_PATTERNS) {
-    out = out.replace(re, () => {
-      hits++;
-      return REDACTED;
-    });
-  }
-  return { value: out, hits };
-}
 
 export interface RedactionResult {
   records: SnRecord[];
@@ -42,26 +27,8 @@ export interface RedactionResult {
  * nothing.
  */
 export function redactRecords(records: SnRecord[]): RedactionResult {
-  const fields = new Set(getRedactFields());
-  const pii = redactPII();
-  if (fields.size === 0 && !pii) return { records, redacted: 0 };
-
-  let redacted = 0;
-  const out = records.map((rec) => {
-    const copy: SnRecord = {};
-    for (const [key, value] of Object.entries(rec)) {
-      if (fields.has(key) && value != null && value !== "") {
-        copy[key] = REDACTED;
-        redacted++;
-      } else if (pii && typeof value === "string") {
-        const r = redactString(value);
-        copy[key] = r.value;
-        redacted += r.hits;
-      } else {
-        copy[key] = value;
-      }
-    }
-    return copy;
-  });
-  return { records: out, redacted };
+  const rules = redactionRules();
+  if (!rules) return { records, redacted: 0 };
+  const r = redactValue(records, rules);
+  return { records: r.value, redacted: r.redacted };
 }

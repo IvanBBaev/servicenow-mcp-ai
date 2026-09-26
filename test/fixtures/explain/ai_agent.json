@@ -1,0 +1,79 @@
+{
+  "artifactType": "ai_agent",
+  "table": "sn_aia_agent",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e",
+  "name": "Acme triage agent",
+  "key": {
+    "sys_id": "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "ai_agent 'Acme triage agent' (sn_aia_agent); active; scope x_acme_app; 2 child record(s) in 2 table(s); unverified type. Routes incidents.",
+  "when": null,
+  "fields": {
+    "name": "Acme triage agent",
+    "description": "Routes incidents.",
+    "active": "true"
+  },
+  "children": [
+    {
+      "table": "sn_aia_agent_config",
+      "parentField": "agent",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sn_aia_agent_tool_m2m",
+      "parentField": "agent",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e2e",
+          "agent": "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e",
+          "tool": "3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e"
+        }
+      ]
+    },
+    {
+      "table": "sn_aia_tool",
+      "parentField": "sys_id",
+      "parentTable": "sn_aia_agent_tool_m2m",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e",
+          "name": "Lookup incident",
+          "type": "script"
+        }
+      ]
+    },
+    {
+      "table": "sn_aia_trigger_configuration",
+      "parentField": "agent",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sn_aia_version",
+      "parentField": "agent",
+      "verified": false,
+      "count": 0,
+      "items": []
+    }
+  ],
+  "references": [],
+  "decoded": []
+}

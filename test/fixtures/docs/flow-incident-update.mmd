@@ -1,0 +1,45 @@
+flowchart TD
+  op[/"update on incident"/]
+  subgraph P_display["display business rules"]
+    direction TB
+    n0["Load form hints (10)"]
+  end
+  op --> P_display
+  subgraph P_before["before business rules"]
+    direction TB
+    n1["Incident defaults (100)"]
+    subgraph P_before_task["inherited from task"]
+      direction TB
+      n2["Task SLA (50)"]
+    end
+    n1 --> P_before_task
+  end
+  P_display --> P_before
+  db[("database write")]
+  P_before --> db
+  subgraph P_after["after business rules"]
+    direction TB
+    n3["Notify (200)"]
+    subgraph P_after_global["global"]
+      direction TB
+      n4["Global audit (150)"]
+    end
+    n3 --> P_after_global
+  end
+  db --> P_after
+  subgraph P_async["async business rules"]
+    direction TB
+    n5["Sync to CMDB (0)"]
+  end
+  P_after --> P_async
+  subgraph P_flow["flows"]
+    direction TB
+    n6["Incident SLA"]
+  end
+  P_async --> P_flow
+  subgraph P_notification["notifications"]
+    direction TB
+    n7["Incident assigned"]
+  end
+  P_flow --> P_notification
+  P_notification --> done([record saved])

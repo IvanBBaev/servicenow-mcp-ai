@@ -7,14 +7,21 @@ import {
   changeConflicts,
 } from "../api/change.js";
 import { ok } from "../mcp/result.js";
-import { defineTool, type AnyToolSpec } from "../mcp/define.js";
+import {
+  defineTool,
+  encodedQuery,
+  fieldList,
+  sysId,
+  type AnyToolSpec,
+} from "../mcp/define.js";
 import {
   shouldApply,
   planPreview,
   applyInput,
   resultSysId,
+  captureBefore,
 } from "../mcp/write-mode.js";
-import { appendWriteJournal } from "../core/write-journal.js";
+import { journaledWrite } from "../core/write-journal.js";
 
 const changeFields = z
   .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
@@ -29,10 +36,17 @@ export const specs: AnyToolSpec[] = [
     description:
       "List change requests through the Change Management API. Supports an encoded query, field selection and paging.",
     package: "change",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      query: z.string().optional().describe("Encoded query (sysparm_query)."),
-      fields: z.array(z.string()).optional().describe("Columns to return."),
+      query: encodedQuery()
+        .optional()
+        .describe("Encoded query (sysparm_query)."),
+      fields: fieldList().optional().describe("Columns to return."),
       limit: z.number().int().positive().max(1000).optional(),
       offset: z.number().int().nonnegative().optional(),
     },
@@ -45,9 +59,14 @@ export const specs: AnyToolSpec[] = [
     title: "Get change request",
     description: "Get a single change request by sys_id.",
     package: "change",
-    annotations: { readOnlyHint: true, openWorldHint: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
     input: {
-      sys_id: z.string().describe("sys_id of the change request."),
+      sys_id: sysId().describe("sys_id of the change request."),
     },
     handler: async ({ sys_id }) => ok({ result: await getChange(sys_id) }),
   }),
@@ -68,8 +87,7 @@ export const specs: AnyToolSpec[] = [
       type: z
         .enum(["normal", "standard", "emergency"])
         .describe("Change type."),
-      template_id: z
-        .string()
+      template_id: sysId()
         .optional()
         .describe("Standard change template sys_id (required for standard)."),
       fields: changeFields.optional(),
@@ -89,17 +107,20 @@ export const specs: AnyToolSpec[] = [
           after: proposed,
         });
       }
-      const result = await createChange({
-        type,
-        templateId: template_id,
-        fields,
-      });
-      appendWriteJournal({
-        action: "create",
-        table: "change_request",
-        sys_id: resultSysId(result),
-        fields: proposed,
-      });
+      const result = await journaledWrite(
+        {
+          action: "create",
+          table: "change_request",
+          fields: proposed,
+        },
+        () =>
+          createChange({
+            type,
+            templateId: template_id,
+            fields,
+          }),
+        (r) => ({ sys_id: resultSysId(r) }),
+      );
       return ok({ message: "Change created", result });
     },
   }),
@@ -116,7 +137,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      sys_id: z.string().describe("sys_id of the change request."),
+      sys_id: sysId().describe("sys_id of the change request."),
       fields: changeFields,
       apply: applyInput,
     },
@@ -131,13 +152,17 @@ export const specs: AnyToolSpec[] = [
           after: fields,
         });
       }
-      const result = await updateChange(sys_id, fields);
-      appendWriteJournal({
-        action: "update",
-        table: "change_request",
-        sys_id,
-        fields,
-      });
+      const before = await captureBefore(() => getChange(sys_id));
+      const result = await journaledWrite(
+        {
+          action: "update",
+          table: "change_request",
+          sys_id,
+          fields,
+          before,
+        },
+        () => updateChange(sys_id, fields),
+      );
       return ok({ message: "Change updated", result });
     },
   }),
@@ -155,7 +180,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      sys_id: z.string().describe("sys_id of the change request."),
+      sys_id: sysId().describe("sys_id of the change request."),
       calculate: z
         .boolean()
         .optional()

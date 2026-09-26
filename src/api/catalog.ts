@@ -1,6 +1,6 @@
 import { snRequest } from "../core/http.js";
 import { assertWriteAllowed } from "../core/policy.js";
-import { expectResult } from "./shared.js";
+import { expectResult, snParams } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 
 /**
@@ -45,12 +45,12 @@ export interface CatalogItemQuery {
 export async function listCatalogItems(
   opts: CatalogItemQuery = {},
 ): Promise<unknown> {
-  const params = new URLSearchParams();
-  if (opts.text) params.set("sysparm_text", opts.text);
-  if (opts.category) params.set("sysparm_category", opts.category);
-  if (opts.limit !== undefined) params.set("sysparm_limit", String(opts.limit));
-  if (opts.offset !== undefined)
-    params.set("sysparm_offset", String(opts.offset));
+  const params = snParams({
+    sysparm_text: opts.text,
+    sysparm_category: opts.category,
+    sysparm_limit: opts.limit,
+    sysparm_offset: opts.offset,
+  });
   return pluginCall(LABEL, async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",

@@ -1,0 +1,8 @@
+erDiagram
+  incident {
+    reference assigned_to FK "inherited from task"
+    reference caller_id FK "required"
+    string more_columns "… +4"
+  }
+  incident }o--|| sys_user : "assigned_to"
+  incident }o--|| sys_user : "caller_id"

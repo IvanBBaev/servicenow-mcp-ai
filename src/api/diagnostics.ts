@@ -9,6 +9,10 @@ export interface ConnectionProbe {
   latencyMs: number;
   user?: string;
   message?: string;
+  /** M-1: the error code (e.g. NOT_CONFIGURED) when the error carries one. */
+  code?: string;
+  /** M-1: the error's one-line fix, when it carries one. */
+  hint?: string;
 }
 
 /**
@@ -27,6 +31,9 @@ export async function testConnection(): Promise<ConnectionProbe> {
       method: "GET",
       path: "/api/now/table/sys_user",
       params,
+      // A diagnostic must answer while the per-host queue is stalled — that
+      // is exactly when someone runs it.
+      bypassQueue: true,
     });
     return {
       ok: true,
@@ -43,6 +50,8 @@ export async function testConnection(): Promise<ConnectionProbe> {
         status: error.status ?? null,
         latencyMs: Date.now() - started,
         message: error.message,
+        ...(error.code ? { code: error.code } : {}),
+        ...(error.hint ? { hint: error.hint } : {}),
       };
     }
     throw error;

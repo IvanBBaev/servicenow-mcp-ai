@@ -1,16 +1,6 @@
-import { JiraError } from "../errors.js";
-import { logger } from "../logging.js";
-import { getMaxRetries, getTimeoutMs } from "../settings.js";
-import {
-  backoffMs,
-  countError,
-  delay,
-  isIdempotent,
-  retryAfterMs,
-  shouldRetryStatus,
-  telemetryFor,
-  withSlot,
-} from "../http-util.js";
+import { JiraError, type ServiceNowErrorOptions } from "../errors.js";
+import { getDispatcher } from "../dispatcher.js";
+import { rawRequest, readBodyBytes, readJsonBody } from "../http-util.js";
 import { getJiraCredentials } from "./config.js";
 import { resolveJiraHost } from "./host.js";
 
@@ -30,6 +20,12 @@ export interface JiraRequestArgs {
   extraHeaders?: Record<string, string>;
   /** "json" (default) parses the body; "binary" returns base64 in `data`. */
   responseType?: "json" | "binary";
+  /** Caller cancellation: aborts the in-flight attempt and stops retrying. */
+  signal?: AbortSignal;
+  /** Per-attempt timeout override for this call (default SN_TIMEOUT_MS). */
+  timeoutMs?: number;
+  /** Skip the per-host request queue (diagnostics only). */
+  bypassQueue?: boolean;
 }
 
 export interface JiraResponse<T> {
@@ -64,13 +60,24 @@ function extractJiraErrorDetail(json: unknown): string | undefined {
   return undefined;
 }
 
+function makeJiraError(
+  message: string,
+  status?: number,
+  detail?: unknown,
+  options?: ServiceNowErrorOptions,
+): JiraError {
+  return new JiraError(message, status, detail, options);
+}
+
 /**
  * Perform an authenticated request against the configured Jira Cloud site.
  *
  * The Jira-flavoured twin of snRequest: the host is resolved and SSRF-checked
- * before any network call; transient failures retry with the same exponential
- * backoff. A non-idempotent write is never replayed on a transport error or on
- * a gateway/unavailable response (502/503/504), whose outcome is unknown, so a
+ * before any network call; everything below the URL (identity header, proxy
+ * dispatcher, bounded queue, timeout, deadline, retry matrix, error shaping,
+ * telemetry) is the shared rawRequest primitive, so the two clients cannot
+ * drift. A non-idempotent write is never replayed on a transport error or on a
+ * gateway/unavailable response (502/503/504), whose outcome is unknown, so a
  * create/transition is never duplicated. A 429 is the exception: it is rejected
  * before processing, so it is retried for every method (see shouldRetryStatus).
  */
@@ -83,6 +90,9 @@ export async function jiraRequest<T>({
   accept,
   extraHeaders,
   responseType = "json",
+  signal,
+  timeoutMs,
+  bypassQueue,
 }: JiraRequestArgs): Promise<JiraResponse<T>> {
   const { site, email, apiToken } = getJiraCredentials();
   if (!site) {
@@ -122,8 +132,6 @@ export async function jiraRequest<T>({
   const sep = path.includes("?") ? "&" : "?";
   const url = `${base}${path}${qs ? `${sep}${qs}` : ""}`;
   const safeUrl = `${base}${path}`;
-  const timeoutMs = getTimeoutMs();
-  const maxRetries = getMaxRetries();
 
   const headers: Record<string, string> = {
     Accept: accept ?? "application/json",
@@ -140,121 +148,48 @@ export async function jiraRequest<T>({
     headers["Content-Type"] = "application/json";
   }
 
-  const started = Date.now();
-  const telemetry = telemetryFor(host);
-  telemetry.requests += 1;
-  for (let attempt = 0; ; attempt++) {
-    let res: Response;
-    try {
-      res = await withSlot(host, () =>
-        fetch(url, {
-          method,
-          headers,
-          body: payload,
-          signal: AbortSignal.timeout(timeoutMs),
-        }),
-      );
-    } catch (cause) {
-      const err = cause instanceof Error ? cause : new Error(String(cause));
-      const timedOut = err.name === "TimeoutError" || err.name === "AbortError";
-      // Only retry transport errors for idempotent requests, to avoid
-      // duplicating non-idempotent writes whose outcome is unknown.
-      if (isIdempotent(method) && attempt < maxRetries) {
-        telemetry.retries += 1;
-        await delay(backoffMs(attempt + 1));
-        continue;
-      }
-      logger.warn("Jira request failed (transport)", {
-        method,
-        path,
-        timedOut,
-        ms: Date.now() - started,
-      });
-      countError(telemetry, "transport");
-      telemetry.totalMs += Date.now() - started;
-      if (timedOut) {
-        throw new JiraError(`Request to Jira timed out after ${timeoutMs}ms.`);
-      }
-      throw new JiraError(`Could not reach Jira at ${safeUrl}: ${err.message}`);
-    }
+  // Proxy and CA policy apply to Atlassian too; the ServiceNow client
+  // certificate identity does not.
+  const dispatcher = await getDispatcher(host, { clientCert: false });
 
-    if (
-      !res.ok &&
-      shouldRetryStatus(res.status, method) &&
-      attempt < maxRetries
-    ) {
-      telemetry.retries += 1;
-      const wait = retryAfterMs(res) ?? backoffMs(attempt + 1);
-      await res.text().catch(() => undefined); // release the socket
-      logger.debug("Retrying Jira request", {
-        method,
-        path,
-        status: res.status,
-        attempt: attempt + 1,
-        waitMs: wait,
-      });
-      await delay(wait);
-      continue;
-    }
+  const res = await rawRequest({
+    url,
+    safeUrl,
+    method,
+    host,
+    system: "Jira",
+    headers: () => headers,
+    body: payload,
+    dispatcher,
+    extractDetail: extractJiraErrorDetail,
+    makeError: makeJiraError,
+    signal,
+    timeoutMs,
+    bypassQueue,
+  });
 
-    if (!res.ok) {
-      const text = await res.text();
-      let json: unknown = {};
-      if (text) {
-        try {
-          json = JSON.parse(text);
-        } catch {
-          json = { raw: text };
-        }
-      }
-      const detail =
-        extractJiraErrorDetail(json) || res.statusText || text || "(no detail)";
-      logger.warn("Jira API error", {
-        method,
-        path,
-        status: res.status,
-        ms: Date.now() - started,
-      });
-      countError(telemetry, res.status);
-      telemetry.totalMs += Date.now() - started;
-      throw new JiraError(
-        `Jira API error (${res.status}): ${detail}`,
-        res.status,
-        json,
-      );
-    }
+  const responseContentType = res.headers.get("content-type") ?? undefined;
 
-    const responseContentType = res.headers.get("content-type") ?? undefined;
-    telemetry.totalMs += Date.now() - started;
-    logger.debug("Jira request ok", {
-      method,
-      path,
-      status: res.status,
-      ms: Date.now() - started,
+  if (responseType === "binary") {
+    const buf = await readBodyBytes(res, {
+      system: "Jira",
+      safeUrl,
+      makeError: makeJiraError,
     });
-
-    if (responseType === "binary") {
-      const buf = Buffer.from(await res.arrayBuffer());
-      return {
-        data: buf.toString("base64") as unknown as T,
-        status: res.status,
-        contentType: responseContentType,
-      };
-    }
-
-    const text = await res.text();
-    let json: unknown = {};
-    if (text) {
-      try {
-        json = JSON.parse(text);
-      } catch {
-        json = { raw: text };
-      }
-    }
     return {
-      data: json as T,
+      data: buf.toString("base64") as unknown as T,
       status: res.status,
       contentType: responseContentType,
     };
   }
+
+  return {
+    data: (await readJsonBody(res, {
+      system: "Jira",
+      safeUrl,
+      makeError: makeJiraError,
+    })) as T,
+    status: res.status,
+    contentType: responseContentType,
+  };
 }

@@ -1,0 +1,23 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_snapshot_instance",
+  "sn_generator_version": "1",
+  "sn_kind": "schema",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:b0ffc46ae3f5f10e14572dd55b670da3d40df6a7dbf498b10475df561faaf495",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "schema": {
+    "incident": [
+      {
+        "element": "number",
+        "label": "Number",
+        "type": "string",
+        "mandatory": false,
+        "sourceTable": "task"
+      }
+    ]
+  }
+}

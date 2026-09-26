@@ -3,6 +3,14 @@
 Date: 2026-06-11 · Goal: from 7 tools over the Table API → a complete ServiceNow MCP server covering everything usable on the REST surface.
 Decisions from the reviews: the `.env` file mode and instance switching are **not problems** (stay as they are); the scope is **maximal**.
 
+> **HISTORICAL — frozen as written (banner added 2026-07-06).** Everything specified here
+> shipped: Phases 1–8, the optional X-8 HTTP transport and the DX work are complete — see
+> [DONE.md](DONE.md) for the record and [PRODUCT-STATE.md](PRODUCT-STATE.md) for the current
+> state; Phase 9 / v2.0 was specified later in [ROADMAP-V2.md](ROADMAP-V2.md). Unchecked
+> checkboxes and the original estimates below (e.g. "~45–50 tools in ~12 packages" — the
+> shipped result is 67 tools in 18 packages) are left as written; this file is no longer
+> maintained.
+
 ---
 
 ## What ServiceNow offers (research result)

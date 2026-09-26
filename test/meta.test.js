@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { listTables, describeTable, getTableChain } from "../build/api/meta.js";
+import {
+  listTables,
+  describeTable,
+  describeTableDetails,
+  getTableChain,
+} from "../build/api/meta.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();
@@ -97,23 +102,62 @@ test("describeTable merges inherited columns and lets the child override", async
   });
 });
 
+test("describeTable reads display-value pairs (C-4)", async () => {
+  // A table name no other test uses, so the schema cache cannot interfere.
+  await withFetch(
+    (url) => {
+      const u = new URL(url);
+      if (u.pathname.includes("/table/sys_db_object")) {
+        return jsonResponse(200, { result: [{ name: "u_pair" }] });
+      }
+      return jsonResponse(200, {
+        result: [
+          {
+            name: { value: "u_pair", display_value: "Pair" },
+            element: { value: "u_code", display_value: "u_code" },
+            internal_type: { value: "string", display_value: "String" },
+            mandatory: { value: "true", display_value: "Yes" },
+            max_length: { value: "40", display_value: "40" },
+          },
+          {
+            name: "u_pair",
+            element: "u_note",
+            internal_type: "string",
+            mandatory: { value: "false", display_value: "No" },
+          },
+        ],
+      });
+    },
+    async () => {
+      const columns = await describeTable("u_pair");
+      const byName = Object.fromEntries(columns.map((c) => [c.element, c]));
+      assert.equal(byName.u_code.mandatory, true);
+      assert.equal(byName.u_code.maxLength, 40);
+      assert.equal(byName.u_note.mandatory, false);
+    },
+  );
+});
+
 test("schema reads are cached with TTL; 0 disables (O-3)", async () => {
   const handler = () =>
     jsonResponse(200, { result: [{ name: "x", label: "X" }] });
 
   // Default TTL (300s): the second identical read is served from the cache.
   await withFetch(handler, async (calls) => {
+    // One read = the page plus the end-of-data probe (no X-Total-Count here).
     await listTables("cache-probe-on");
+    const perRead = calls.length;
     await listTables("cache-probe-on");
-    assert.equal(calls.length, 1);
+    assert.equal(calls.length, perRead);
   });
 
   // TTL 0: caching off, every read hits the instance.
   await withEnv({ SN_SCHEMA_CACHE_TTL_SEC: "0" }, () =>
     withFetch(handler, async (calls) => {
       await listTables("cache-probe-off");
+      const perRead = calls.length;
       await listTables("cache-probe-off");
-      assert.equal(calls.length, 2);
+      assert.equal(calls.length, perRead * 2);
     }),
   );
 });
@@ -169,5 +213,111 @@ test("describeTable rejects a '^' in the table name before any request (DEV-6)",
       );
       assert.equal(calls.length, 0);
     },
+  );
+});
+
+/** S-7: a u_det -> u_base chain with choices on both levels and overrides. */
+function detailsHandler({ failOverrides = false } = {}) {
+  return (url) => {
+    const u = new URL(url);
+    const q = u.searchParams.get("sysparm_query") ?? "";
+    if (u.pathname.includes("/table/sys_db_object")) {
+      if (q.startsWith("name=u_det")) {
+        return jsonResponse(200, {
+          result: [{ name: "u_det", "super_class.name": "u_base" }],
+        });
+      }
+      return jsonResponse(200, { result: [{ name: "u_base" }] });
+    }
+    if (u.pathname.includes("/table/sys_choice")) {
+      assert.match(q, /^nameINu_det,u_base\^inactive=false\^language=en/);
+      return jsonResponse(200, {
+        result: [
+          { name: "u_base", element: "state", value: "9", label: "Base" },
+          { name: "u_det", element: "state", value: "1", label: "New" },
+          { name: "u_det", element: "state", value: "2", label: "Done" },
+          { name: "u_base", element: "gone", value: "x", label: "X" },
+        ],
+      });
+    }
+    if (u.pathname.includes("/table/sys_dictionary_override")) {
+      if (failOverrides) return jsonResponse(403, { error: { message: "no" } });
+      return jsonResponse(200, {
+        result: [
+          {
+            name: "u_det",
+            element: "state",
+            default_value_override: "true",
+            default_value: "1",
+            mandatory_override: "true",
+            mandatory: "true",
+            read_only_override: "false",
+            read_only: "true",
+          },
+        ],
+      });
+    }
+    if (u.pathname.includes("/table/sys_dictionary")) {
+      return jsonResponse(200, {
+        result: [
+          {
+            name: "u_base",
+            element: "state",
+            internal_type: "integer",
+            mandatory: "false",
+            default_value: "9",
+            read_only: "true",
+            unique: "false",
+            display: "false",
+            choice: "3",
+          },
+          {
+            name: "u_base",
+            element: "number",
+            internal_type: "string",
+            mandatory: "false",
+            unique: "true",
+            display: "true",
+            choice: "0",
+          },
+        ],
+      });
+    }
+    throw new Error(`unexpected request: ${url}`);
+  };
+}
+
+test("describeTableDetails adds choices (nearest table wins) and overrides (S-7)", async () => {
+  await withFetch(detailsHandler(), async () => {
+    const { columns, warnings } = await describeTableDetails("u_det");
+    assert.deepEqual(warnings, []);
+    const byName = Object.fromEntries(columns.map((c) => [c.element, c]));
+    assert.equal(byName.state.defaultValue, "9");
+    assert.equal(byName.state.readOnly, true);
+    assert.equal(byName.state.choice, "3");
+    assert.equal(byName.number.unique, true);
+    assert.equal(byName.number.display, true);
+    assert.equal(byName.number.choice, undefined);
+    assert.deepEqual(byName.state.choices, [
+      { value: "1", label: "New" },
+      { value: "2", label: "Done" },
+    ]);
+    assert.deepEqual(byName.state.overrides, [
+      { table: "u_det", defaultValue: "1", mandatory: true },
+    ]);
+    // describeTable itself stays lean.
+    const plain = await describeTable("u_det");
+    assert.equal(plain.find((c) => c.element === "state").choices, undefined);
+  });
+});
+
+test("describeTableDetails turns an unreadable table into a warning", async () => {
+  await withEnv({ SN_SCHEMA_CACHE_TTL_SEC: "0" }, () =>
+    withFetch(detailsHandler({ failOverrides: true }), async () => {
+      const { columns, warnings } = await describeTableDetails("u_det");
+      assert.equal(warnings.length, 1);
+      assert.match(warnings[0], /^sys_dictionary_override: unavailable/);
+      assert.ok(columns.find((c) => c.element === "state").choices);
+    }),
   );
 });

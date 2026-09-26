@@ -1,16 +1,20 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import { toJsonSchemaCompat } from "@modelcontextprotocol/sdk/server/zod-json-schema-compat.js";
 import {
   runSpec,
-  hasAutoInstanceParam,
+  buildInputSchema,
+  buildOutputSchema,
   type AnyToolSpec,
   type PackageSpec,
 } from "./define.js";
 import {
   registerAdminResources,
   registerSchemaResources,
+  registerTableResources,
   registerDocsResources,
   registerInstanceResources,
+  registerArtifactResources,
+  registerToolsReferenceResource,
 } from "./resources.js";
 import { specs as tableSpecs } from "../tools/table.js";
 import { specs as metaSpecs } from "../tools/meta.js";
@@ -29,6 +33,14 @@ import { specs as docsSpecs } from "../tools/docs.js";
 import { specs as instanceSpecs } from "../tools/instance.js";
 import { specs as emailSpecs } from "../tools/email.js";
 import { specs as atfSpecs } from "../tools/atf.js";
+import { specs as revertSpecs } from "../tools/revert.js";
+import { specs as artifactsSpecs } from "../tools/artifacts.js";
+import { specs as updatesetsSpecs } from "../tools/updatesets.js";
+import { specs as opsSpecs } from "../tools/ops.js";
+import { specs as historySpecs } from "../tools/history.js";
+import { specs as propertiesSpecs } from "../tools/properties.js";
+import { specs as directorySpecs } from "../tools/directory.js";
+import { specs as uiSpecs } from "../tools/ui.js";
 import { specs as adminSpecs } from "../tools/admin.js";
 import {
   getRequestedPackages,
@@ -36,6 +48,15 @@ import {
   getReadOnlyPackages,
 } from "../core/settings.js";
 import { logger } from "../core/logging.js";
+import { timeToolCall } from "../core/metrics.js";
+import { runWithRuntime, type Runtime } from "../core/runtime.js";
+import { runMaybeAsTask, withTaskInput, withTaskOutput } from "./tasks.js";
+import {
+  PackageSession,
+  bindPackageSession,
+  enableResourceSubscriptions,
+  packageSessionOf,
+} from "./packages.js";
 
 /**
  * The package manifest (A2-1): a package is ONE object — its tools plus its
@@ -44,7 +65,7 @@ import { logger } from "../core/logging.js";
  * Admin stays last so the generated README keeps its ordering.
  */
 export const PACKAGES: PackageSpec[] = [
-  { name: "table", tools: tableSpecs },
+  { name: "table", tools: tableSpecs, resources: registerTableResources },
   { name: "schema", tools: metaSpecs, resources: registerSchemaResources },
   { name: "aggregate", tools: aggregateSpecs },
   { name: "attachment", tools: attachmentSpecs },
@@ -65,6 +86,18 @@ export const PACKAGES: PackageSpec[] = [
   },
   { name: "email", tools: emailSpecs },
   { name: "atf", tools: atfSpecs },
+  { name: "revert", tools: revertSpecs },
+  {
+    name: "artifacts",
+    tools: artifactsSpecs,
+    resources: registerArtifactResources,
+  },
+  { name: "updatesets", tools: updatesetsSpecs },
+  { name: "ops", tools: opsSpecs },
+  { name: "history", tools: historySpecs },
+  { name: "properties", tools: propertiesSpecs },
+  { name: "directory", tools: directorySpecs },
+  { name: "ui", tools: uiSpecs },
   { name: "admin", tools: adminSpecs, resources: registerAdminResources },
 ];
 
@@ -172,6 +205,39 @@ export function describeAllTools(): ToolInfo[] {
   }));
 }
 
+/** A tool's registered JSON Schemas, exactly as tools/list publishes them. */
+export interface ToolSchemas {
+  name: string;
+  inputSchema: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+}
+
+/**
+ * M-6: the input (and output) JSON Schema of every tool, converted the way
+ * the SDK converts them for tools/list — pinned by the manifest v2 fixture.
+ * Kept apart from describeAllTools(), which also feeds the status payload.
+ */
+export function describeToolSchemas(): ToolSchemas[] {
+  return ALL_TOOLS.map((spec) => {
+    const output = buildOutputSchema(spec);
+    return {
+      name: spec.name,
+      inputSchema: toJsonSchemaCompat(buildInputSchema(spec), {
+        strictUnions: true,
+        pipeStrategy: "input",
+      }),
+      ...(output
+        ? {
+            outputSchema: toJsonSchemaCompat(output, {
+              strictUnions: true,
+              pipeStrategy: "output",
+            }),
+          }
+        : {}),
+    };
+  });
+}
+
 /** The package policy currently in effect (also shown in the status payload). */
 export function effectivePackages(): {
   enabled: string[];
@@ -190,59 +256,108 @@ export function effectivePackages(): {
 }
 
 /**
- * Register the always-on admin tools plus every manifest tool whose package is
- * enabled by SN_TOOL_PACKAGES, minus SN_PACKAGES_DENY; packages listed in
- * SN_PACKAGES_READONLY register only their read tools.
+ * The tool specs this process registers under the current package policy:
+ * `admin` always, else the enabled packages minus the write tools of a
+ * read-only package. Shared by `registerAllTools` and the M-1 server
+ * instructions, so the advertised count is the registered one.
  */
-export function registerAllTools(server: McpServer): void {
-  const { enabled, denied, readOnly } = effectivePackages();
+export function activeToolSpecs(log = false): AnyToolSpec[] {
+  const { enabled, readOnly } = effectivePackages();
   const enabledSet = new Set(enabled);
   const readOnlySet = new Set(readOnly);
-
-  for (const spec of ALL_TOOLS) {
-    if (spec.package !== "admin") {
-      if (!enabledSet.has(spec.package)) continue;
-      if (
-        readOnlySet.has(spec.package) &&
-        spec.annotations.readOnlyHint !== true
-      ) {
+  return ALL_TOOLS.filter((spec) => {
+    if (spec.package === "admin") return true;
+    if (!enabledSet.has(spec.package)) return false;
+    if (
+      readOnlySet.has(spec.package) &&
+      spec.annotations.readOnlyHint !== true
+    ) {
+      if (log) {
         logger.debug("Write tool skipped (package is read-only)", {
           tool: spec.name,
           package: spec.package,
         });
-        continue;
       }
+      return false;
     }
-    server.registerTool(
+    return true;
+  });
+}
+
+/**
+ * Whether the policy axes allow `spec` to exist in this process at all: admin
+ * always; otherwise its package is not denied, and a read-only package keeps
+ * only its read tools. M-5 registers exactly this set up front and toggles it.
+ */
+function policyPermits(
+  spec: AnyToolSpec,
+  denied: ReadonlySet<string>,
+  readOnly: ReadonlySet<string>,
+): boolean {
+  if (spec.package === "admin") return true;
+  if (denied.has(spec.package)) return false;
+  return !(
+    readOnly.has(spec.package) && spec.annotations.readOnlyHint !== true
+  );
+}
+
+/**
+ * Register the always-on admin tools plus every manifest tool the package
+ * policy permits (not in SN_PACKAGES_DENY; only read tools of a package in
+ * SN_PACKAGES_READONLY). Tools of packages SN_TOOL_PACKAGES does not enable
+ * are registered disabled (M-5), so tools/list is unchanged until a client
+ * calls servicenow_enable_package; the handles live in a PackageSession.
+ *
+ * Every tool call runs bound to `runtime` (E-3): the caches, queue, breakers,
+ * dispatchers and telemetry it touches are that runtime's, whatever the
+ * process-wide default is — the seam H-7 uses for per-session state.
+ */
+export function registerAllTools(server: McpServer, runtime: Runtime): void {
+  const { enabled, denied, readOnly } = effectivePackages();
+  const deniedSet = new Set(denied);
+  const readOnlySet = new Set(readOnly);
+  const session = new PackageSession(
+    server,
+    ALL_PACKAGES,
+    new Set(enabled),
+    deniedSet,
+    readOnlySet,
+  );
+  // Logs the read-only skips of the configured surface, as before M-5.
+  activeToolSpecs(true);
+
+  for (const spec of ALL_TOOLS) {
+    if (!policyPermits(spec, deniedSet, readOnlySet)) continue;
+    const handle = server.registerTool(
       spec.name,
       {
         title: spec.title,
         description: spec.description,
         annotations: spec.annotations,
-        // Strict object: an unknown argument (e.g. a typo like 'tabel') is a
-        // visible validation error instead of being stripped silently. Every
+        // M-8: a real strict z.object (no cast) — see buildInputSchema. Every
         // tool also gets the automatic `instance` (profile) parameter (MI-3),
         // unless its own schema already uses that name.
-        inputSchema: z
-          .object(
-            hasAutoInstanceParam(spec)
-              ? {
-                  ...spec.input,
-                  instance: z
-                    .string()
-                    .optional()
-                    .describe(
-                      "Connection profile to use for this call (default: the active profile). See servicenow_list_instances.",
-                    ),
-                }
-              : spec.input,
-          )
-          .strict() as unknown as typeof spec.input,
-        ...(spec.output ? { outputSchema: spec.output } : {}),
+        // M-9: `run_as_task` only when SN_EXPERIMENTAL_TASKS is on.
+        inputSchema: withTaskInput(spec, buildInputSchema(spec)),
+        // M-6: a passthrough z.object — see buildOutputSchema.
+        ...(spec.output
+          ? { outputSchema: withTaskOutput(spec, buildOutputSchema(spec)!) }
+          : {}),
       },
-      (args) => runSpec(spec, args),
+      // M-3: the whole SDK `extra` reaches runSpec — cancellation signal,
+      // progressToken + sendNotification, request and session ids.
+      // E-5: every call is timed into the runtime's per-tool statistics.
+      // M-9: `run_as_task:true` returns a task handle and runs in background.
+      (args, extra) =>
+        runWithRuntime(runtime, () =>
+          runMaybeAsTask(spec, args, extra, (a, e) =>
+            timeToolCall(spec.name, () => runSpec(spec, a, e)),
+          ),
+        ),
     );
+    session.addTool(spec.package, spec.name, handle);
   }
+  bindPackageSession(session, runtime);
 
   logger.info("Tools registered", {
     packages: enabled,
@@ -253,14 +368,28 @@ export function registerAllTools(server: McpServer): void {
 
 /**
  * Register package-scoped MCP resources declaratively from the manifest:
- * the admin (status) resource is always on; the rest follow the same
- * enabled/denied package policy as the tools.
+ * the admin (status) resource and the tool reference (M-4) are always on;
+ * the rest follow the same enabled/denied package policy as the tools. With
+ * a package session (M-5) they follow its live state instead, and the server
+ * declares resources.subscribe for servicenow://status updates.
  */
 export function registerResources(server: McpServer): void {
-  const enabledSet = new Set(effectivePackages().enabled);
+  const session = packageSessionOf(server);
+  const policy = effectivePackages();
+  const enabledSet = new Set(policy.enabled);
+  const deniedSet = new Set(policy.denied);
   for (const pkg of PACKAGES) {
     if (!pkg.resources) continue;
-    if (pkg.name !== "admin" && !enabledSet.has(pkg.name)) continue;
-    pkg.resources(server);
+    if (pkg.name === "admin") pkg.resources(server);
+    else if (session) {
+      if (!deniedSet.has(pkg.name))
+        session.addResources(pkg.name, pkg.resources);
+    } else if (enabledSet.has(pkg.name)) pkg.resources(server);
   }
+  if (session) enableResourceSubscriptions(server);
+  registerToolsReferenceResource(server, () => ({
+    tools: describeAllTools(),
+    ...effectivePackages(),
+    ...(session?.modified() ? { enabled: session.enabledPackages() } : {}),
+  }));
 }

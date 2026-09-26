@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "generated_at": "<generatedAt>",
+  "files": [
+    {
+      "path": "default/acls.json",
+      "kind": "acls",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:de51b8f876a5993d6466e032a18121551919b4efb4e3adbefb4e5a49a3ec30a9",
+      "bytes": 672,
+      "headings": []
+    },
+    {
+      "path": "default/acls.md",
+      "kind": "acls",
+      "title": "ACLs — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:de51b8f876a5993d6466e032a18121551919b4efb4e3adbefb4e5a49a3ec30a9",
+      "bytes": 570,
+      "headings": [
+        "ACLs — profile `default`"
+      ],
+      "companion": "default/acls.json"
+    },
+    {
+      "path": "default/apps.json",
+      "kind": "apps",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:fd83d3730d830cece6d0353b55196f13d18248a0540a4b67eb462f453c9499ea",
+      "bytes": 842,
+      "headings": []
+    },
+    {
+      "path": "default/apps.md",
+      "kind": "apps",
+      "title": "Applications — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:fd83d3730d830cece6d0353b55196f13d18248a0540a4b67eb462f453c9499ea",
+      "bytes": 631,
+      "headings": [
+        "Applications — profile `default`",
+        "sys_app (2)",
+        "sys_store_app (1)"
+      ],
+      "companion": "default/apps.json"
+    },
+    {
+      "path": "default/automation.json",
+      "kind": "automation",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:779e5a0ade428848d29759713a6d9cd5c828e4bafe72ffcf69770d8e2149c3d4",
+      "bytes": 3882,
+      "headings": []
+    },
+    {
+      "path": "default/automation.md",
+      "kind": "automation",
+      "title": "Script automation — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:49ccaff03375d8c6302303f791872ca8ca10d6d613243155374df5d43f7c24b6",
+      "bytes": 2055,
+      "headings": [
+        "Script automation — profile `default`"
+      ],
+      "companion": "default/automation.json"
+    },
+    {
+      "path": "default/catalog.json",
+      "kind": "catalog",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:5b7384d681b089bcfc901f9b0d19663b26b59d6a6008dbf44ee2cfa3190c3436",
+      "bytes": 582,
+      "headings": []
+    },
+    {
+      "path": "default/catalog.md",
+      "kind": "catalog",
+      "title": "Catalog items — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:5b7384d681b089bcfc901f9b0d19663b26b59d6a6008dbf44ee2cfa3190c3436",
+      "bytes": 495,
+      "headings": [
+        "Catalog items — profile `default`"
+      ],
+      "companion": "default/catalog.json"
+    },
+    {
+      "path": "default/choices.json",
+      "kind": "choices",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:c96b314c0dcb4ccdec371e97852f89f446e1ae5e7b26ed259c6a236026d88b68",
+      "bytes": 611,
+      "headings": []
+    },
+    {
+      "path": "default/choices.md",
+      "kind": "choices",
+      "title": "Choice lists — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:c96b314c0dcb4ccdec371e97852f89f446e1ae5e7b26ed259c6a236026d88b68",
+      "bytes": 519,
+      "headings": [
+        "Choice lists — profile `default`"
+      ],
+      "companion": "default/choices.json"
+    },
+    {
+      "path": "default/flows.json",
+      "kind": "flows",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:c3d658340f4faf89ac5a8ff3d1a2253e06f2f331350e85cc96367044370af379",
+      "bytes": 628,
+      "headings": []
+    },
+    {
+      "path": "default/flows.md",
+      "kind": "flows",
+      "title": "Flows — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:c3d658340f4faf89ac5a8ff3d1a2253e06f2f331350e85cc96367044370af379",
+      "bytes": 529,
+      "headings": [
+        "Flows — profile `default`"
+      ],
+      "companion": "default/flows.json"
+    },
+    {
+      "path": "default/index.md",
+      "kind": "snapshot",
+      "title": "Instance snapshot — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:c334e0572a2599b1c15cc5b4e3b8ff1b63631c2d70ed6dddcaf97fc5afdd114c",
+      "bytes": 690,
+      "headings": [
+        "Instance snapshot — profile `default`",
+        "Notes"
+      ]
+    },
+    {
+      "path": "default/notifications.json",
+      "kind": "notifications",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:444a646861ead0d11f8935e3b841a978ade070478d6da380e1f003e5d6e40b4b",
+      "bytes": 641,
+      "headings": []
+    },
+    {
+      "path": "default/notifications.md",
+      "kind": "notifications",
+      "title": "Notifications — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:444a646861ead0d11f8935e3b841a978ade070478d6da380e1f003e5d6e40b4b",
+      "bytes": 552,
+      "headings": [
+        "Notifications — profile `default`"
+      ],
+      "companion": "default/notifications.json"
+    },
+    {
+      "path": "default/plugins.json",
+      "kind": "plugins",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:1a2d2dca8ec4b160d86030ba1563436d84b24b4c3cf4b00155141de162439a13",
+      "bytes": 688,
+      "headings": []
+    },
+    {
+      "path": "default/plugins.md",
+      "kind": "plugins",
+      "title": "Plugins — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:1a2d2dca8ec4b160d86030ba1563436d84b24b4c3cf4b00155141de162439a13",
+      "bytes": 541,
+      "headings": [
+        "Plugins — profile `default`"
+      ],
+      "companion": "default/plugins.json"
+    },
+    {
+      "path": "default/properties.json",
+      "kind": "properties",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:024be71ad64214790cc1017866b83ce7cf9e686dcbbeea0e24103f91d8c09c6a",
+      "bytes": 808,
+      "headings": []
+    },
+    {
+      "path": "default/properties.md",
+      "kind": "properties",
+      "title": "System properties — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:024be71ad64214790cc1017866b83ce7cf9e686dcbbeea0e24103f91d8c09c6a",
+      "bytes": 569,
+      "headings": [
+        "System properties — profile `default`"
+      ],
+      "companion": "default/properties.json"
+    },
+    {
+      "path": "default/roles.json",
+      "kind": "roles",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8",
+      "bytes": 554,
+      "headings": []
+    },
+    {
+      "path": "default/roles.md",
+      "kind": "roles",
+      "title": "Roles — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:2c6036b15855bb9c6a8db404ba44b6c9d6e9936e8b53bad391587b79972601a8",
+      "bytes": 461,
+      "headings": [
+        "Roles — profile `default`"
+      ],
+      "companion": "default/roles.json"
+    },
+    {
+      "path": "default/schema.json",
+      "kind": "schema",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:238b26e468db2b2fa17d9f341ec7284a4fb59966202f78535f8dfc846e819675",
+      "bytes": 779,
+      "headings": []
+    },
+    {
+      "path": "default/schema/incident.md",
+      "kind": "schema",
+      "title": "Schema — `incident`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:0961930cdf99d96e11e8cdc7d6ddf551c1be594a1e95a0f428fb647a908cd725",
+      "bytes": 589,
+      "headings": [
+        "Schema — `incident`"
+      ]
+    },
+    {
+      "path": "default/snapshot.json",
+      "kind": "snapshot",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:9238ef4d8434afa4e226a58ceb7d1cef07bbbc6bc4f85b7e3f7dc2b3cda90f50",
+      "bytes": 3730,
+      "headings": []
+    },
+    {
+      "path": "default/tables.json",
+      "kind": "tables",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:bea7efc693a4edc395abe5bf3bc4c5dac70aa3fab72e221eab5b47a0e28e02d7",
+      "bytes": 583,
+      "headings": []
+    },
+    {
+      "path": "default/tables.md",
+      "kind": "tables",
+      "title": "Tables — profile `default`",
+      "profile": "default",
+      "generator": "servicenow_snapshot_instance",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:bea7efc693a4edc395abe5bf3bc4c5dac70aa3fab72e221eab5b47a0e28e02d7",
+      "bytes": 499,
+      "headings": [
+        "Tables — profile `default`"
+      ],
+      "companion": "default/tables.json"
+    },
+    {
+      "path": "default/write-journal.md",
+      "kind": null,
+      "title": "Write journal — default",
+      "profile": null,
+      "generator": null,
+      "generated_at": null,
+      "source_hash": null,
+      "bytes": 2653,
+      "headings": [
+        "Write journal — default"
+      ]
+    }
+  ]
+}

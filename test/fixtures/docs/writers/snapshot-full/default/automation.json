@@ -1,0 +1,158 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_snapshot_instance",
+  "sn_generator_version": "1",
+  "sn_kind": "automation",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:779e5a0ade428848d29759713a6d9cd5c828e4bafe72ffcf69770d8e2149c3d4",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "automation": {
+    "business_rule": {
+      "table": "sys_script",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "script_include": {
+      "table": "sys_script_include",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "client_script": {
+      "table": "sys_script_client",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "ui_policy": {
+      "table": "sys_ui_policy",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "ui_action": {
+      "table": "sys_ui_action",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "scheduled_job": {
+      "table": "sysauto_script",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "transform": {
+      "table": "sys_transform_script",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "rest_operation": {
+      "table": "sys_ws_operation",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "acl": {
+      "table": "sys_security_acl",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "script_action": {
+      "table": "sysevent_script_action",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "transform_map": {
+      "table": "sys_transform_map",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "transform_entry": {
+      "table": "sys_transform_entry",
+      "total": 7,
+      "active": null,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "fix_script": {
+      "table": "sys_script_fix",
+      "total": 7,
+      "active": null,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "email_script": {
+      "table": "sys_script_email",
+      "total": 7,
+      "active": null,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "processor": {
+      "table": "sys_processor",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "data_source": {
+      "table": "sys_data_source",
+      "total": 7,
+      "active": null,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "rest_message_fn": {
+      "table": "sys_rest_message_fn",
+      "total": 7,
+      "active": null,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "ui_script": {
+      "table": "sys_ui_script",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "ui_page": {
+      "table": "sys_ui_page",
+      "total": 7,
+      "active": null,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "ui_macro": {
+      "table": "sys_ui_macro",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "validation_script": {
+      "table": "sys_script_validator",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "sp_widget": {
+      "table": "sp_widget",
+      "total": 7,
+      "active": null,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "catalog_client_script": {
+      "table": "catalog_script_client",
+      "total": 7,
+      "active": 5,
+      "lastUpdated": "2026-06-01 10:00:00"
+    },
+    "dictionary_script": {
+      "table": "sys_dictionary",
+      "total": 0,
+      "active": 0,
+      "lastUpdated": ""
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "generated_at": "<generatedAt>",
+  "files": [
+    {
+      "path": "_compare/default-vs-prod.md",
+      "kind": "compare",
+      "title": "Instance comparison — `default` vs `prod`",
+      "profile": "default",
+      "generator": "servicenow_compare_instances",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:cb5eabb1c5f5e24c32fc3fed24d8b6b5f79bba807c8930f95fae9dec40214026",
+      "bytes": 2177,
+      "headings": [
+        "Instance comparison — `default` vs `prod`",
+        "Tables",
+        "Only in default (1)",
+        "Columns (common tables, differing properties)",
+        "Scripts",
+        "business_rule: Common BR",
+        "Records (properties, acls)",
+        "Plugins",
+        "Applications",
+        "Warnings",
+        "Caveats"
+      ]
+    },
+    {
+      "path": "default/write-journal.md",
+      "kind": null,
+      "title": "Write journal — default",
+      "profile": null,
+      "generator": null,
+      "generated_at": null,
+      "source_hash": null,
+      "bytes": 350,
+      "headings": [
+        "Write journal — default"
+      ]
+    }
+  ]
+}

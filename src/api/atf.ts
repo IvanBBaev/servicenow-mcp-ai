@@ -1,4 +1,7 @@
 import { snRequest } from "../core/http.js";
+import { delay } from "../core/http-util.js";
+import { reportProgress, throwIfCancelled } from "../core/progress.js";
+import { currentSignal } from "../core/request-context.js";
 import { assertWriteAllowed } from "../core/policy.js";
 import { expectResult, expectResultArray, snString } from "./shared.js";
 import { pluginCall } from "./plugin.js";
@@ -144,4 +147,66 @@ export async function getAtfResult(executionId: string): Promise<AtfRun> {
     });
     return toRun(expectResult(data, "CI/CD ATF"));
   });
+}
+
+/** CI/CD progress states that end a run: 2 Successful, 3 Failed, 4 Canceled. */
+const FINAL_STATUSES = new Set(["2", "3", "4"]);
+
+export interface AtfWait {
+  /** `finished` — the run reached a final state; `running` — the wait ran out. */
+  state: "finished" | "running";
+  /** The execution id to poll with servicenow_get_atf_result (when still running). */
+  tracker?: string;
+  polls: number;
+  waited_ms: number;
+}
+
+/**
+ * S-10 — poll a started ATF run until it finishes or `waitMs` runs out, under
+ * the tool call's cancellation signal (M-3) and reporting the run's percent
+ * complete as progress. Returns the latest run state plus `wait`; on timeout
+ * `wait.state` is `running` and `wait.tracker` is the execution id to keep
+ * polling with {@link getAtfResult}. A run without an execution id, or one
+ * already final, is returned as is.
+ */
+export async function waitForAtfRun(
+  run: AtfRun,
+  waitMs: number,
+  pollMs = 2000,
+): Promise<AtfRun & { wait: AtfWait }> {
+  const started = Date.now();
+  const id = run.executionId;
+  let latest = run;
+  let polls = 0;
+  const done = (state: AtfWait["state"]) => ({
+    ...latest,
+    wait: {
+      state,
+      ...(state === "running" && id ? { tracker: id } : {}),
+      polls,
+      waited_ms: Date.now() - started,
+    },
+  });
+  if (!id || FINAL_STATUSES.has(latest.status ?? "")) {
+    return done(
+      FINAL_STATUSES.has(latest.status ?? "") ? "finished" : "running",
+    );
+  }
+  const deadline = started + waitMs;
+  const signal = currentSignal();
+  for (;;) {
+    throwIfCancelled();
+    latest = await getAtfResult(id);
+    polls++;
+    reportProgress({
+      progress: latest.percentComplete ?? 0,
+      total: 100,
+      message:
+        latest.statusLabel ?? latest.statusMessage ?? "ATF run in progress",
+    });
+    if (FINAL_STATUSES.has(latest.status ?? "")) return done("finished");
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return done("running");
+    await delay(Math.min(pollMs, remaining), signal);
+  }
 }

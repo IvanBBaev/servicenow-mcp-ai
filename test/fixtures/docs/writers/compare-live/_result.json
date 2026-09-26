@@ -1,0 +1,52 @@
+{
+  "a": "default",
+  "b": "prod",
+  "report": "_compare/default-vs-prod.md",
+  "tablesOnlyInA": [
+    "u_dev_only"
+  ],
+  "tablesOnlyInB": [],
+  "columnDiffs": [
+    {
+      "table": "incident",
+      "column": "severity",
+      "property": "type",
+      "a": "integer",
+      "b": "string"
+    }
+  ],
+  "scriptDiffs": [
+    {
+      "type": "business_rule",
+      "name": "Common BR",
+      "status": "different_source",
+      "diff": "--- default/Common BR\n+++ prod/Common BR\n@@ -1,1 +1,1 @@\n-new();\n+old();"
+    }
+  ],
+  "pluginDiffs": [
+    "only in default: com.snc.dev Dev@2 [inactive]"
+  ],
+  "appDiffs": [
+    "only in prod: x_prod Prod App@1.0"
+  ],
+  "recordDiffs": [
+    {
+      "section": "properties",
+      "key": "glide.ui.title",
+      "status": "different",
+      "fields": [
+        "value"
+      ]
+    }
+  ],
+  "warnings": [
+    "scripts: acl unavailable on \"prod\" — ServiceNow API error (403): acl denied",
+    "acls: sys_security_acl unavailable on \"prod\" — ServiceNow API error (403): acl denied",
+    "apps: sys_store_app unavailable on \"prod\" — ServiceNow API error (403): store denied"
+  ],
+  "caveats": [
+    "Domain separation: on a domain-separated instance each profile sees only the records of its user's domain (and its visible parents). Domain-specific overrides of scripts and dictionary entries can therefore show up as — or hide — drift. Compare with users in the same domain (or global) for a like-for-like result.",
+    "Visibility: every read runs as the profile's user. ACLs, before-query rules and roles that differ between the two users make records appear 'only in' one side; use equivalent (ideally admin) read access on both instances.",
+    "Matching: scripts and records are matched by sys_id, then by name across all application scopes; two artefacts with the same name in different scopes (and different sys_ids) are compared as one."
+  ]
+}

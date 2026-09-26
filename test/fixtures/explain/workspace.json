@@ -1,0 +1,52 @@
+{
+  "artifactType": "workspace",
+  "table": "sys_ux_page_registry",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "55555555555555555555555555555555",
+  "name": "Acme Workspace",
+  "key": {
+    "path": "acme"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "workspace 'Acme Workspace' (sys_ux_page_registry); scope x_acme_app; unverified type",
+  "when": null,
+  "fields": {
+    "title": "Acme Workspace",
+    "path": "acme",
+    "admin_panel": "77777777777777777777777777777777",
+    "root_macroponent": "66666666666666666666666666666666"
+  },
+  "children": [
+    {
+      "table": "sys_ux_page_property",
+      "parentField": "page",
+      "verified": false,
+      "count": 0,
+      "items": []
+    }
+  ],
+  "references": [
+    {
+      "field": "root_macroponent",
+      "table": "sys_ux_macroponent",
+      "type": "uib_macroponent",
+      "sys_id": "66666666666666666666666666666666"
+    },
+    {
+      "field": "admin_panel",
+      "table": "sys_ux_app_config",
+      "type": "uib_app_config",
+      "sys_id": "77777777777777777777777777777777"
+    }
+  ],
+  "decoded": []
+}

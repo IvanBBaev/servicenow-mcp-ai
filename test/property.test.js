@@ -27,6 +27,40 @@ test("formatEnvValue: whatever it accepts, dotenv parses back identically", () =
   );
 });
 
+test("L2-11: formatEnvValue over an adversarial alphabet round-trips (and only refuses the unrepresentable)", () => {
+  // Backslash, all three quote characters, whitespace and the comment marker
+  // are exactly the characters the quoting rules hinge on.
+  const unit = fc.constantFrom(
+    "a",
+    "Z",
+    "1",
+    "\\",
+    '"',
+    "'",
+    "`",
+    " ",
+    "#",
+    "$",
+    "=",
+    "\t",
+  );
+  fc.assert(
+    fc.property(fc.string({ unit, maxLength: 24 }), (value) => {
+      let formatted;
+      try {
+        formatted = formatEnvValue(value);
+      } catch {
+        // Only a value needing quotes that holds ', ` and " (or ", with a
+        // backslash, when no other quote is free) is legitimately refused.
+        return value.includes("'") && value.includes("`");
+      }
+      const parsed = dotenv.parse(`KEY=${formatted}`).KEY ?? "";
+      return parsed === value;
+    }),
+    { numRuns: 2000 },
+  );
+});
+
 test("base64 round-trip: every buffer survives encode → strict decode", async () => {
   const { uploadAttachment } = await import("../build/api/attachment.js");
   const { baselineEnv, withFetch } = await import("./helpers.js");

@@ -1,0 +1,48 @@
+name: SDK drift
+
+# P-4: weekly ServiceNow SDK release tracking. Compares the registry baseline
+# (SDK_BASELINE) with the npm @servicenow/sdk dist-tags and diffs the SDK docs
+# index (llms.txt) against the registry's sdkApi values, then opens or updates
+# ONE tracking issue. Never part of `npm run check`; scripts/ does not ship.
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sdk-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      # The script needs only Node built-ins and the TypeScript registry
+      # source (loaded through scripts/ts-source-loader.mjs) — no npm ci.
+      - id: drift
+        run: node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/sdk-drift.mjs --out sdk-drift.md
+      - name: Open or update the tracking issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRIFT: ${{ steps.drift.outputs.drift }}
+        run: |
+          title="SDK drift tracking"
+          number=$(gh issue list --state open --search "\"$title\" in:title" --json number,title \
+            --jq "map(select(.title == \"$title\")) | .[0].number // empty")
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file sdk-drift.md
+            echo "Updated #$number (drift=$DRIFT)."
+          elif [ "$DRIFT" = "true" ]; then
+            gh issue create --title "$title" --body-file sdk-drift.md
+          else
+            echo "No drift and no open tracking issue; nothing to do."
+          fi

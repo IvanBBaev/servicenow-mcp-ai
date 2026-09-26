@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { ALL_TOOLS } from "../build/mcp/registry.js";
-import { runSpec } from "../build/mcp/define.js";
+import { runSpec, buildOutputSchema } from "../build/mcp/define.js";
 import { baselineEnv, withEnv, realFetch } from "./helpers.js";
 
 baselineEnv();
@@ -75,6 +75,12 @@ function mockFetch(url, init) {
     return body(200, {
       result: { serviced_requests: [], unserviced_requests: [] },
     });
+  // A single-record read (table/<name>/<sys_id>) answers with one object.
+  if (
+    (init?.method ?? "GET") === "GET" &&
+    /\/api\/now\/table\/[^/?]+\/[^/?]+/.test(u)
+  )
+    return body(200, { result: {} });
   if ((init?.method ?? "GET") === "GET") return body(200, { result: [] });
   return body(200, { result: {} });
 }
@@ -88,6 +94,7 @@ test("every manifest tool returns a well-formed ToolResult via runSpec", async (
         globalThis.fetch = mockFetch;
         try {
           assert.ok(ALL_TOOLS.length >= 60, "all packages are present");
+          let structured = 0;
           for (const spec of ALL_TOOLS) {
             const res = await runSpec(spec, argsFor(spec));
             assert.ok(
@@ -95,7 +102,23 @@ test("every manifest tool returns a well-formed ToolResult via runSpec", async (
                 typeof res.content[0]?.text === "string",
               `${spec.name} returned a valid ToolResult`,
             );
+            // M-6: a tool with an output shape answers a success with
+            // structuredContent that passes its (passthrough) outputSchema —
+            // the SDK rejects the call otherwise; an error never carries it.
+            if (res.isError) {
+              assert.equal(res.structuredContent, undefined, spec.name);
+            } else if (spec.output) {
+              const parsed = buildOutputSchema(spec).safeParse(
+                res.structuredContent,
+              );
+              assert.ok(
+                parsed.success,
+                `${spec.name} structuredContent matches its outputSchema`,
+              );
+              structured++;
+            }
           }
+          assert.ok(structured >= 20, "most output tools were exercised");
         } finally {
           globalThis.fetch = realFetch;
         }

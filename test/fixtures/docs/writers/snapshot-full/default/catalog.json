@@ -1,0 +1,21 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_snapshot_instance",
+  "sn_generator_version": "1",
+  "sn_kind": "catalog",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:5b7384d681b089bcfc901f9b0d19663b26b59d6a6008dbf44ee2cfa3190c3436",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "table": "sc_cat_item",
+  "records": [
+    {
+      "sys_id": "i1",
+      "name": "Laptop",
+      "sys_class_name": "sc_cat_item",
+      "active": "true"
+    }
+  ]
+}

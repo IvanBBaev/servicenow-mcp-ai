@@ -6,7 +6,12 @@ import {
   getScript,
   searchCode,
   tableLogic,
+  MAX_HITS_PER_ARTEFACT,
+  SCRIPT_TYPE_NAMES,
+  OPT_IN_SCRIPT_TYPE_NAMES,
 } from "../build/api/scripts.js";
+import { specs as scriptSpecs } from "../build/tools/scripts.js";
+import { z } from "zod";
 import { ServiceNowError } from "../build/core/errors.js";
 import { baselineEnv, withFetch, withEnv, jsonResponse } from "./helpers.js";
 
@@ -296,4 +301,434 @@ test("searchCode falls back to LIKE when Code Search is unavailable (FT-7)", asy
       },
     );
   });
+});
+
+// --- S-4: all hits, line context, scope, widened types -----------------------
+
+test("searchCode returns every hit with one line of context and a hitCount (S-4)", async () => {
+  await withFetch(
+    () =>
+      jsonResponse(200, {
+        result: [
+          {
+            sys_id: "br1",
+            name: "Multi",
+            collection: "incident",
+            script: [
+              "var a = 1;",
+              "gs.log('one');",
+              "",
+              "gs.log('two');",
+              "return a;",
+            ].join("\n"),
+          },
+        ],
+      }),
+    async () => {
+      const { matches } = await searchCode({
+        text: "gs.log",
+        type: "business_rule",
+      });
+      assert.equal(matches.length, 1);
+      const m = matches[0];
+      // The pre-S-4 fields still describe the first hit.
+      assert.equal(m.field, "script");
+      assert.equal(m.line, 2);
+      assert.equal(m.snippet, "gs.log('one');");
+      assert.equal(m.hitCount, 2);
+      assert.deepEqual(m.hits, [
+        {
+          field: "script",
+          line: 2,
+          text: "gs.log('one');",
+          before: "var a = 1;",
+        },
+        {
+          field: "script",
+          line: 4,
+          text: "gs.log('two');",
+          after: "return a;",
+        },
+      ]);
+    },
+  );
+});
+
+test("searchCode caps hits per artefact but keeps the full hitCount (S-4)", async () => {
+  const script = Array.from(
+    { length: 25 },
+    (_, i) => `x(${i}); // needle`,
+  ).join("\n");
+  await withFetch(
+    () =>
+      jsonResponse(200, {
+        result: [{ sys_id: "si1", name: "Loud", script }],
+      }),
+    async () => {
+      const { matches } = await searchCode({
+        text: "needle",
+        type: "script_include",
+      });
+      assert.equal(matches[0].hits.length, MAX_HITS_PER_ARTEFACT);
+      assert.equal(MAX_HITS_PER_ARTEFACT, 20);
+      assert.equal(matches[0].hitCount, 25);
+
+      const capped = await searchCode({
+        text: "needle",
+        type: "script_include",
+        maxHits: 0,
+      });
+      assert.equal(capped.matches[0].hits.length, 1, "clamped to at least 1");
+    },
+  );
+});
+
+test("searchCode collects hits across every script field of a widget (S-4)", async () => {
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/api\/now\/table\/sp_widget(\?|$)/);
+      assert.equal(
+        queryOf(url),
+        "scriptLIKEspUtil^ORclient_scriptLIKEspUtil^ORlinkLIKEspUtil^ORcssLIKEspUtil",
+      );
+      return jsonResponse(200, {
+        result: [
+          {
+            sys_id: "w1",
+            name: "Widget",
+            script: "data.x = $sp.getValue();",
+            client_script: "function() {\n  spUtil.update($scope);\n}",
+            link: "function link() { spUtil.addInfoMessage('x'); }",
+            css: ".a { color: red; }",
+          },
+        ],
+      });
+    },
+    async () => {
+      const { matches } = await searchCode({
+        text: "spUtil",
+        type: "sp_widget",
+      });
+      assert.equal(matches[0].field, "client_script");
+      assert.equal(matches[0].line, 2);
+      assert.deepEqual(
+        matches[0].hits.map((h) => h.field),
+        ["client_script", "link"],
+      );
+    },
+  );
+});
+
+test("searchCode ANDs a scope clause into the query and skips Code Search (S-4)", async () => {
+  await withEnv({ SN_CODESEARCH: "true" }, async () => {
+    await withFetch(
+      (url) => {
+        assert.doesNotMatch(url, /code_search/);
+        return jsonResponse(200, { result: [] });
+      },
+      async (calls) => {
+        await searchCode({
+          text: "needle",
+          type: "business_rule",
+          scope: "x_acme_app",
+        });
+        assert.equal(
+          queryOf(calls[0].url),
+          "sys_scope.scope=x_acme_app^scriptLIKEneedle",
+        );
+        const sysId = "0123456789abcdef0123456789abcdef";
+        await searchCode({
+          text: "needle",
+          type: "business_rule",
+          scope: sysId,
+        });
+        assert.equal(
+          queryOf(calls[1].url),
+          `sys_scope=${sysId}^scriptLIKEneedle`,
+        );
+      },
+    );
+  });
+  await assert.rejects(
+    searchCode({ text: "x", scope: "global^ORactive=true" }),
+    (err) => err instanceof ServiceNowError && /'\^'/.test(err.message),
+  );
+});
+
+test("searchCode narrows sys_dictionary with the registry base query (S-4)", async () => {
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/api\/now\/table\/sys_dictionary(\?|$)/);
+      assert.equal(
+        queryOf(url),
+        "virtual=true^ORdefault_valueSTARTSWITHjavascript:" +
+          "^calculationLIKEgs.getUser^ORdefault_valueLIKEgs.getUser",
+      );
+      return jsonResponse(200, {
+        result: [
+          {
+            sys_id: "d1",
+            element: "u_owner",
+            name: "incident",
+            default_value: "javascript:gs.getUserID()",
+          },
+        ],
+      });
+    },
+    async () => {
+      const { matches } = await searchCode({
+        text: "gs.getUser",
+        type: "dictionary_script",
+      });
+      assert.equal(matches[0].name, "u_owner");
+      assert.equal(matches[0].table, "incident");
+      assert.equal(matches[0].field, "default_value");
+    },
+  );
+});
+
+test("an all-types search skips an unreadable widened table, not a legacy one (S-4)", async () => {
+  await withFetch(
+    (url) => {
+      if (/\/table\/(sp_widget|sys_processor)\?/.test(url)) {
+        return jsonResponse(403, { error: { message: "denied" } });
+      }
+      if (/\/table\/sys_script\?/.test(url)) {
+        return jsonResponse(200, {
+          result: [{ sys_id: "br1", name: "BR", script: "needle()" }],
+        });
+      }
+      return jsonResponse(200, { result: [] });
+    },
+    async () => {
+      const r = await searchCode({ text: "needle" });
+      assert.equal(r.count, 1);
+      assert.deepEqual(r.unreadable, ["processor", "sp_widget"]);
+      // An explicit type still fails loudly.
+      await assert.rejects(
+        searchCode({ text: "needle", type: "sp_widget" }),
+        (err) => err instanceof ServiceNowError && err.status === 403,
+      );
+    },
+  );
+  await withFetch(
+    (url) =>
+      /\/table\/sys_script_include\?/.test(url)
+        ? jsonResponse(403, { error: { message: "denied" } })
+        : jsonResponse(200, { result: [] }),
+    async () => {
+      await assert.rejects(
+        searchCode({ text: "needle" }),
+        (err) => err instanceof ServiceNowError && err.status === 403,
+      );
+    },
+  );
+});
+
+test("a clean all-types search carries no unreadable key (S-4)", async () => {
+  await withFetch(
+    () => jsonResponse(200, { result: [] }),
+    async (calls) => {
+      const r = await searchCode({ text: "needle" });
+      assert.deepEqual(r, { count: 0, matches: [] });
+      // One query per script type: the nine originals plus the S-4 view.
+      assert.equal(calls.length, SCRIPT_TYPE_NAMES.length);
+    },
+  );
+});
+
+test("listScripts: scope and the registry active field; no active flag is a 400 (S-4)", async () => {
+  await withFetch(
+    () => jsonResponse(200, { result: [] }),
+    async (calls) => {
+      await listScripts({ type: "processor", active: true, scope: "global" });
+      assert.equal(
+        queryOf(calls[0].url),
+        "sys_scope.scope=global^active=true^ORDERBYname",
+      );
+      await listScripts({ type: "dictionary_script", table: "incident" });
+      assert.equal(
+        queryOf(calls[1].url),
+        "virtual=true^ORdefault_valueSTARTSWITHjavascript:^name=incident^ORDERBYelement",
+      );
+      await assert.rejects(
+        listScripts({ type: "fix_script", active: true }),
+        (err) =>
+          err instanceof ServiceNowError &&
+          err.status === 400 &&
+          /no active flag/.test(err.message),
+      );
+      assert.equal(calls.length, 2);
+    },
+  );
+});
+
+test("tableLogic passes a scope to every sub-query (S-4)", async () => {
+  await withFetch(
+    () => jsonResponse(200, { result: [] }),
+    async (calls) => {
+      await tableLogic("incident", { scope: "x_acme_app" });
+      assert.equal(calls.length, 5);
+      for (const c of calls) {
+        assert.match(queryOf(c.url), /^sys_scope\.scope=x_acme_app\^/);
+      }
+    },
+  );
+});
+
+// --- P-9: opt-in script types (UI Builder, portal providers / templates, …) --
+
+const tableOf = (url) => new URL(url).pathname.split("/").pop();
+
+test("P-9: search_code extended:true finds code in sp_widget.client_script and sys_ux_client_script.script", async () => {
+  await withFetch(
+    (url) => {
+      if (tableOf(url) === "sp_widget") {
+        assert.equal(
+          queryOf(url),
+          "scriptLIKEneedleFn^ORclient_scriptLIKEneedleFn^ORlinkLIKEneedleFn^ORcssLIKEneedleFn",
+        );
+        return jsonResponse(200, {
+          result: [
+            {
+              sys_id: "w1",
+              name: "Widget",
+              script: "data.x = 1;",
+              client_script: "api.controller = function() {\n  needleFn();\n};",
+              link: "",
+              css: "",
+            },
+          ],
+        });
+      }
+      if (tableOf(url) === "sys_ux_client_script") {
+        assert.equal(queryOf(url), "scriptLIKEneedleFn");
+        return jsonResponse(200, {
+          result: [
+            {
+              sys_id: "cs1",
+              name: "onLoad handler",
+              script: "function handler({api}) {\n  needleFn(api);\n}",
+            },
+          ],
+        });
+      }
+      return jsonResponse(200, { result: [] });
+    },
+    async (calls) => {
+      const r = await searchCode({ text: "needleFn", extended: true });
+      assert.equal(r.unreadable, undefined);
+      const byType = Object.fromEntries(r.matches.map((m) => [m.type, m]));
+      assert.equal(byType.sp_widget.field, "client_script");
+      assert.equal(byType.sp_widget.line, 2);
+      assert.equal(byType.uib_client_script.sys_id, "cs1");
+      assert.equal(byType.uib_client_script.field, "script");
+      assert.equal(byType.uib_client_script.line, 2);
+      // Default types first, then every opt-in type, one query each.
+      assert.deepEqual(
+        calls.map((c) => tableOf(c.url)).slice(SCRIPT_TYPE_NAMES.length),
+        [
+          "sys_ux_client_script",
+          "sys_ux_client_script_include",
+          "sys_ux_data_broker_transform",
+          "sys_ux_data_broker_scriptlet",
+          "sp_ng_template",
+          "sp_angular_provider",
+          "sp_theme",
+          "sp_css",
+          "sp_search_source",
+        ],
+      );
+      assert.equal(
+        calls.length,
+        SCRIPT_TYPE_NAMES.length + OPT_IN_SCRIPT_TYPE_NAMES.length,
+      );
+    },
+  );
+});
+
+test("P-9: the default sweep never reaches an opt-in table", async () => {
+  await withFetch(
+    () => jsonResponse(200, { result: [] }),
+    async (calls) => {
+      assert.deepEqual(await searchCode({ text: "needle" }), {
+        count: 0,
+        matches: [],
+      });
+      assert.deepEqual(await searchCode({ text: "needle", extended: false }), {
+        count: 0,
+        matches: [],
+      });
+      assert.equal(calls.length, 2 * SCRIPT_TYPE_NAMES.length);
+      for (const { url } of calls) {
+        assert.doesNotMatch(
+          tableOf(url),
+          /^(sys_ux_|sp_ng_template|sp_angular_provider|sp_theme|sp_css|sp_search_source)/,
+        );
+      }
+    },
+  );
+});
+
+test("P-9: an explicit opt-in type is searched, listed and read; extended is ignored with a type", async () => {
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/api\/now\/table\/sys_ux_client_script(\/|\?)/);
+      if (/\/sys_ux_client_script\/cs1/.test(url)) {
+        return jsonResponse(200, {
+          result: { sys_id: "cs1", name: "h", script: "x()" },
+        });
+      }
+      return jsonResponse(200, {
+        result: [{ sys_id: "cs1", name: "h", script: "needle()" }],
+      });
+    },
+    async (calls) => {
+      const r = await searchCode({
+        text: "needle",
+        type: "uib_client_script",
+        extended: true,
+      });
+      assert.equal(r.count, 1);
+      assert.equal(r.matches[0].type, "uib_client_script");
+      assert.equal(calls.length, 1);
+      const list = await listScripts({ type: "uib_client_script" });
+      assert.equal(list.scripts[0].sys_id, "cs1");
+      const got = await getScript("uib_client_script", "cs1");
+      assert.equal(got.table, "sys_ux_client_script");
+    },
+  );
+});
+
+test("P-9: an unreadable opt-in table is skipped in an extended sweep, loud when explicit", async () => {
+  await withFetch(
+    (url) =>
+      tableOf(url) === "sp_angular_provider"
+        ? jsonResponse(404, { error: { message: "Invalid table" } })
+        : jsonResponse(200, { result: [] }),
+    async () => {
+      const r = await searchCode({ text: "needle", extended: true });
+      assert.deepEqual(r.unreadable, ["sp_angular_provider"]);
+      await assert.rejects(
+        searchCode({ text: "needle", type: "sp_angular_provider" }),
+        (err) => err instanceof ServiceNowError && err.status === 404,
+      );
+    },
+  );
+});
+
+test("P-9: the tool schema accepts extended and the opt-in types; lint and where_used do not", async () => {
+  const search = scriptSpecs.find((s) => s.name === "servicenow_search_code");
+  const schema = z.object(search.input).strict();
+  assert.ok(schema.safeParse({ text: "x", extended: true }).success);
+  assert.ok(schema.safeParse({ text: "x", type: "uib_client_script" }).success);
+  assert.ok(!schema.safeParse({ text: "x", extended: "yes" }).success);
+  for (const name of ["servicenow_list_scripts", "servicenow_get_script"]) {
+    const spec = scriptSpecs.find((s) => s.name === name);
+    assert.ok(spec.input.type.safeParse("sp_angular_provider").success, name);
+  }
+  // Explicit-only: the opt-in types stay out of the default names list.
+  for (const name of OPT_IN_SCRIPT_TYPE_NAMES) {
+    assert.ok(!SCRIPT_TYPE_NAMES.includes(name), name);
+  }
 });

@@ -1,0 +1,88 @@
+{
+  "artifactType": "data_policy",
+  "table": "sys_data_policy2",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "11111111111111111111111111111111",
+  "name": "Resolved incidents need close fields",
+  "key": {
+    "sys_id": "11111111111111111111111111111111"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "data_policy 'Resolved incidents need close fields' (sys_data_policy2); applies to incident; active; scope x_acme_app; 3 child record(s) in 1 table(s); unverified type",
+  "when": {
+    "conditions": "state=6",
+    "reverse_if_false": "true"
+  },
+  "fields": {
+    "short_description": "Resolved incidents need close fields",
+    "model_table": "incident",
+    "apply_import_set": "true",
+    "apply_soap": "false",
+    "use_as_ui_policy": "true",
+    "active": "true",
+    "conditions": "state=6",
+    "reverse_if_false": "true"
+  },
+  "explanation": {
+    "kind": "field-effects",
+    "table": "incident",
+    "condition": "state=6",
+    "reverseIfFalse": true,
+    "effects": [
+      {
+        "field": "close_code",
+        "whenTrue": ["mandatory"],
+        "whenFalse": ["optional"]
+      },
+      {
+        "field": "number",
+        "whenTrue": ["read-only"],
+        "whenFalse": ["editable"]
+      }
+    ],
+    "lines": [
+      "When state=6 on incident: close_code mandatory; number read-only.",
+      "Otherwise (reverse if false): close_code optional; number editable.",
+      "Also applied to import sets, forms (as a UI policy)."
+    ]
+  },
+  "children": [
+    {
+      "table": "sys_data_policy_rule",
+      "parentField": "sys_data_policy",
+      "verified": false,
+      "count": 3,
+      "items": [
+        {
+          "sys_id": "22222222222222222222222222222222",
+          "field": "close_code",
+          "disabled": "ignore",
+          "mandatory": "true"
+        },
+        {
+          "sys_id": "33333333333333333333333333333333",
+          "field": "number",
+          "disabled": "true",
+          "mandatory": "ignore"
+        },
+        {
+          "sys_id": "44444444444444444444444444444444",
+          "field": "notes",
+          "disabled": "ignore",
+          "mandatory": "ignore"
+        }
+      ]
+    }
+  ],
+  "references": [],
+  "decoded": []
+}

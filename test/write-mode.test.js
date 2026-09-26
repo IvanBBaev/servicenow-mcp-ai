@@ -470,7 +470,8 @@ const applyCases = [
 for (const [name, args, method] of applyCases) {
   test(`${name} with apply:true performs the ${method} and journals (DF-2)`, async () => {
     const dir = mkdtempSync(join(tmpdir(), "snmcp-apply-"));
-    await withEnv({ SN_DOCS_DIR: dir }, () =>
+    // H-6: send_email recipients must be allow-listed (b.com covers a@b.com).
+    await withEnv({ SN_DOCS_DIR: dir, SN_EMAIL_ALLOWED_DOMAINS: "b.com" }, () =>
       withFetch(
         () => jsonResponse(200, { result: { sys_id: "x", number: "N1" } }),
         async (calls) => {

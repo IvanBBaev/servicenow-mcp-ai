@@ -115,8 +115,8 @@ test("codeHealth counts scripts and writes a report (FT-6)", async () => {
     await withEnv({ SN_DOCS_DIR: dir }, async () => {
       await withFetch(
         (url) => {
-          // DF-1: the security scan reads the ACL table.
-          if (url.includes("/api/now/table/sys_security_acl")) {
+          // DF-1 / S-3: the security scan reads the ACL and related tables.
+          if (url.includes("/api/now/table/")) {
             return jsonResponse(200, { result: [] });
           }
           // every script-type aggregate returns a count
@@ -141,7 +141,10 @@ test("codeHealth counts scripts and writes a report (FT-6)", async () => {
 test("securityScan flags eval and side-effects in ACL scripts (DF-1)", async () => {
   await withFetch(
     (url) => {
-      assert.match(url, /\/api\/now\/table\/sys_security_acl/);
+      // S-3: the related tables (roles, REST, pages, …) read as empty here.
+      if (!/\/api\/now\/table\/sys_security_acl\?/.test(url)) {
+        return jsonResponse(200, { result: [] });
+      }
       return jsonResponse(200, {
         result: [
           {
@@ -175,17 +178,19 @@ test("securityScan flags eval and side-effects in ACL scripts (DF-1)", async () 
 
 test("securityScan flags a roles-only ACL with no script or condition (DF-1)", async () => {
   await withFetch(
-    () =>
+    (url) =>
       jsonResponse(200, {
-        result: [
-          {
-            sys_id: "a3",
-            name: "incident.create",
-            operation: "create",
-            script: "",
-            condition: "",
-          },
-        ],
+        result: !/\/api\/now\/table\/sys_security_acl\?/.test(url)
+          ? []
+          : [
+              {
+                sys_id: "a3",
+                name: "incident.create",
+                operation: "create",
+                script: "",
+                condition: "",
+              },
+            ],
       }),
     async () => {
       const scan = await securityScan();
@@ -204,6 +209,56 @@ test("securityScan degrades to available:false when the ACL table is forbidden (
       assert.equal(scan.available, false);
       assert.match(scan.unavailableReason, /security_admin|admin/);
       assert.equal(scan.findings.length, 0);
+    },
+  );
+});
+
+test("lintScript takes client vs server per field and skips markup (S-4)", async () => {
+  const gr =
+    "var gr = new GlideRecord('incident');\ngr.addQuery('a', 1);\ngr.query();";
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/api\/now\/table\/sp_widget\/w1(\?|$)/);
+      return jsonResponse(200, {
+        result: {
+          name: "Widget",
+          script: gr,
+          client_script: gr,
+          link: "",
+          css: "eval('not js') { color: red }",
+        },
+      });
+    },
+    async () => {
+      const { results } = await lintScript("sp_widget", "w1");
+      // css is markup and link is empty: only the two JS fields are linted.
+      assert.deepEqual(
+        results.map((r) => r.field),
+        ["script", "client_script"],
+      );
+      const byField = Object.fromEntries(
+        results.map((r) => [r.field, rules(r.findings)]),
+      );
+      assert.ok(!byField.script.includes("gr-on-client"), "server field");
+      assert.ok(byField.client_script.includes("gr-on-client"), "client field");
+    },
+  );
+});
+
+test("lintScript keeps the pre-S-4 client scope for UI policies", async () => {
+  await withFetch(
+    () =>
+      jsonResponse(200, {
+        result: {
+          short_description: "Policy",
+          script_true: "var gr = new GlideRecord('incident');",
+          script_false: "",
+        },
+      }),
+    async () => {
+      const { results } = await lintScript("ui_policy", "p1");
+      assert.equal(results.length, 1);
+      assert.ok(rules(results[0].findings).includes("gr-on-client"));
     },
   );
 });

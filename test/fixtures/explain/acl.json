@@ -1,0 +1,45 @@
+{
+  "artifactType": "acl",
+  "table": "sys_security_acl",
+  "verified": true,
+  "sys_id": "11111111111111111111111111111111",
+  "name": "incident.close_notes",
+  "key": {
+    "sys_id": "11111111111111111111111111111111"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "acl 'incident.close_notes' (sys_security_acl); active; scope x_acme_app. Only ITIL users may write close notes.",
+  "when": {
+    "condition": "active=true",
+    "operation": "write"
+  },
+  "fields": {
+    "name": "incident.close_notes",
+    "operation": "write",
+    "type": "record",
+    "active": "true",
+    "admin_overrides": "true",
+    "script": "answer = gs.hasRole('itil');",
+    "condition": "active=true",
+    "description": "Only ITIL users may write close notes."
+  },
+  "children": [
+    {
+      "table": "sys_security_acl_role",
+      "parentField": "sys_security_acl",
+      "verified": false,
+      "count": 0,
+      "items": []
+    }
+  ],
+  "references": [],
+  "decoded": []
+}

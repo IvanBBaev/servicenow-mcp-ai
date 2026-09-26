@@ -1,0 +1,131 @@
+{
+  "artifactType": "flow",
+  "table": "sys_hub_flow",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+  "name": "Acme onboarding",
+  "key": {
+    "internal_name": "acme_onboarding"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "flow 'Acme onboarding' (sys_hub_flow); active; scope x_acme_app; 2 child record(s) in 2 table(s); 1/2 JSON field(s) decoded; unverified type",
+  "when": null,
+  "fields": {
+    "name": "Acme onboarding",
+    "internal_name": "acme_onboarding",
+    "active": "true",
+    "latest_snapshot": "2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a",
+    "status": "published"
+  },
+  "children": [
+    {
+      "table": "sys_hub_trigger_instance",
+      "parentField": "flow",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a",
+          "flow": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+          "trigger_type": "record_create"
+        }
+      ]
+    },
+    {
+      "table": "sys_hub_action_instance",
+      "parentField": "flow",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a",
+          "order": "1",
+          "flow": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+          "action_type": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a"
+        }
+      ]
+    },
+    {
+      "table": "sys_hub_flow_logic_instance_v2",
+      "parentField": "flow",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sys_hub_sub_flow_instance_v2",
+      "parentField": "flow",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sys_hub_flow_input",
+      "parentField": "model",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sys_hub_flow_output",
+      "parentField": "model",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sys_hub_flow_variable",
+      "parentField": "model",
+      "verified": false,
+      "count": 0,
+      "items": []
+    },
+    {
+      "table": "sys_hub_flow_stage",
+      "parentField": "flow",
+      "verified": false,
+      "count": 0,
+      "items": []
+    }
+  ],
+  "references": [
+    {
+      "field": "latest_snapshot",
+      "table": "sys_hub_flow_snapshot",
+      "sys_id": "2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a"
+    }
+  ],
+  "decoded": [
+    {
+      "source": "record",
+      "sys_id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+      "field": "label_cache",
+      "decoder": "json",
+      "decoded": true,
+      "value": [
+        {
+          "name": "Created",
+          "label": "Trigger ➛ Created"
+        }
+      ]
+    },
+    {
+      "source": "sys_hub_action_instance",
+      "sys_id": "4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a",
+      "field": "values",
+      "decoder": "flow-values",
+      "decoded": false,
+      "reason": "base64 + gzip payload did not inflate: unexpected end of file. 44 bytes returned raw.",
+      "raw": "H4sIAAAAAAAAA6tWSs7PS8tMLVKyUkpNzyjJTEsFAA=="
+    }
+  ]
+}

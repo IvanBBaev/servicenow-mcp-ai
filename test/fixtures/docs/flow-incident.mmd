@@ -1,0 +1,13 @@
+flowchart TD
+  op[/"insert / update on incident"/]
+  subgraph P_before["before business rules"]
+    direction TB
+    n0["Validate (100)"]
+  end
+  op --> P_before
+  subgraph P_after["after business rules"]
+    direction TB
+    n1["Notify (200)"]
+  end
+  P_before --> P_after
+  P_after --> done([record saved])

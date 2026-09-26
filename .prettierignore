@@ -7,6 +7,8 @@ docs/ai/
 docs/*.html
 docs/assets/
 coverage/
+# Writer goldens (E-7): byte-for-byte generator output, never reformatted
+test/fixtures/docs/writers/
 
 # Local-only AI-harness files (git-excluded; not part of the shared gate)
 CLAUDE.md

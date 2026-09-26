@@ -8,30 +8,32 @@ import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 baselineEnv();
 
 test("sendEmail posts joined recipients and record association", async () => {
-  await withFetch(
-    (url, init) => {
-      assert.match(url, /\/api\/now\/email$/);
-      const body = JSON.parse(init.body);
-      assert.equal(body.to, "a@x.com,b@x.com");
-      assert.equal(body.subject, "Hi");
-      assert.equal(body.text, "Body");
-      assert.equal(body.cc, "c@x.com");
-      assert.equal(body.table_name, "incident");
-      assert.equal(body.table_record_id, "rec1");
-      assert.equal(body.bcc, undefined);
-      return jsonResponse(200, { result: { id: "em1" } });
-    },
-    async () => {
-      const result = await sendEmail({
-        to: ["a@x.com", "b@x.com"],
-        subject: "Hi",
-        body: "Body",
-        cc: ["c@x.com"],
-        table: "incident",
-        sysId: "rec1",
-      });
-      assert.deepEqual(result, { id: "em1" });
-    },
+  await withEnv({ SN_EMAIL_ALLOWED_DOMAINS: "x.com" }, () =>
+    withFetch(
+      (url, init) => {
+        assert.match(url, /\/api\/now\/email$/);
+        const body = JSON.parse(init.body);
+        assert.equal(body.to, "a@x.com,b@x.com");
+        assert.equal(body.subject, "Hi");
+        assert.equal(body.text, "Body");
+        assert.equal(body.cc, "c@x.com");
+        assert.equal(body.table_name, "incident");
+        assert.equal(body.table_record_id, "rec1");
+        assert.equal(body.bcc, undefined);
+        return jsonResponse(200, { result: { id: "em1" } });
+      },
+      async () => {
+        const result = await sendEmail({
+          to: ["a@x.com", "b@x.com"],
+          subject: "Hi",
+          body: "Body",
+          cc: ["c@x.com"],
+          table: "incident",
+          sysId: "rec1",
+        });
+        assert.deepEqual(result, { id: "em1" });
+      },
+    ),
   );
 });
 

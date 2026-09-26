@@ -26,28 +26,45 @@ const DEFAULT_REDIRECT_URI = "http://localhost:53682/callback";
 export interface RedirectResult {
   code?: string;
   error?: string;
+  /**
+   * True when the request is not the authorization redirect (another path, or
+   * a state that is not ours). The listener answers it with 404/400 and keeps
+   * waiting, so a stray favicon fetch or a forged request cannot end or hijack
+   * the login (H-6 / SEC-17).
+   */
+  ignored?: boolean;
 }
 
 /**
- * Parse the OAuth redirect request (`req.url`) and validate the CSRF `state`.
- * Pure, so the success/error decision is unit-tested without a browser.
+ * Parse the OAuth redirect request (`req.url`) and validate the CSRF `state`
+ * and, when `expectedPath` is given, the callback path. Pure, so the
+ * success/error decision is unit-tested without a browser. The state is
+ * checked before an `error` parameter is honoured, so only the real
+ * authorization server's redirect can fail the login.
  */
 export function parseRedirect(
   requestUrl: string,
   expectedState: string,
+  expectedPath?: string,
 ): RedirectResult {
   let url: URL;
   try {
     url = new URL(requestUrl, "http://localhost");
   } catch {
-    return { error: "malformed redirect request" };
+    return { error: "malformed redirect request", ignored: true };
+  }
+  if (expectedPath !== undefined && url.pathname !== expectedPath) {
+    return { error: `unexpected path "${url.pathname}"`, ignored: true };
   }
   const p = url.searchParams;
+  if (p.get("state") !== expectedState) {
+    return {
+      error: "state mismatch (possible CSRF) — ignoring the redirect",
+      ignored: true,
+    };
+  }
   const err = p.get("error");
   if (err) return { error: p.get("error_description") || err };
-  if (p.get("state") !== expectedState) {
-    return { error: "state mismatch (possible CSRF) — ignoring the redirect" };
-  }
   const code = p.get("code");
   if (!code) return { error: "no authorization code in the redirect" };
   return { code };
@@ -133,7 +150,18 @@ export async function runOAuthLogin(
 
   const code = await new Promise<string>((resolve, reject) => {
     const server = createServer((req, res) => {
-      const result = parseRedirect(req.url ?? "/", state);
+      const result = parseRedirect(req.url ?? "/", state, redirect.pathname);
+      if (result.ignored) {
+        // Not the authorization redirect: answer and keep listening.
+        logger.debug("OAuth loopback listener ignored a request", {
+          reason: result.error,
+        });
+        res.writeHead(result.error?.startsWith("unexpected path") ? 404 : 400, {
+          "Content-Type": "text/plain; charset=utf-8",
+        });
+        res.end("Not the OAuth redirect for this login.");
+        return;
+      }
       const ok = !result.error;
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(

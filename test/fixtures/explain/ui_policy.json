@@ -1,0 +1,70 @@
+{
+  "artifactType": "ui_policy",
+  "table": "sys_ui_policy",
+  "verified": true,
+  "sys_id": "33333333333333333333333333333333",
+  "name": "Hide close notes",
+  "key": {
+    "sys_id": "33333333333333333333333333333333"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "ui_policy 'Hide close notes' (sys_ui_policy); applies to incident; active; scope x_acme_app; 1 child record(s) in 1 table(s)",
+  "when": {
+    "conditions": "state=1",
+    "on_load": "true",
+    "reverse_if_false": "true"
+  },
+  "fields": {
+    "short_description": "Hide close notes",
+    "table": "incident",
+    "active": "true",
+    "run_scripts": "false",
+    "conditions": "state=1",
+    "on_load": "true",
+    "reverse_if_false": "true"
+  },
+  "explanation": {
+    "kind": "field-effects",
+    "table": "incident",
+    "condition": "state=1",
+    "reverseIfFalse": true,
+    "effects": [
+      {
+        "field": "close_notes",
+        "whenTrue": ["hidden"],
+        "whenFalse": ["visible"]
+      }
+    ],
+    "lines": [
+      "When state=1 on incident: close_notes hidden.",
+      "Otherwise (reverse if false): close_notes visible."
+    ]
+  },
+  "children": [
+    {
+      "table": "sys_ui_policy_action",
+      "parentField": "ui_policy",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "44444444444444444444444444444444",
+          "field": "close_notes",
+          "ui_policy": "33333333333333333333333333333333",
+          "mandatory": "ignore",
+          "visible": "false"
+        }
+      ]
+    }
+  ],
+  "references": [],
+  "decoded": []
+}
