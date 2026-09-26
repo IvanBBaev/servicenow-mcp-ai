@@ -108,7 +108,12 @@ export type ServiceNowErrorCode =
    * H-11 (L3-03 / L5-04): a destructive apply on a prod profile in apply mode
    * from a client that cannot confirm it (no elicitation) — nothing was sent.
    */
-  | "CONFIRM_REQUIRED";
+  | "CONFIRM_REQUIRED"
+  /**
+   * P-22: SN_SDK_MANAGED_WRITES=deny and the record belongs to a scope whose
+   * source of truth is a ServiceNow SDK project (P-3) — nothing was sent.
+   */
+  | "SDK_MANAGED_SCOPE";
 
 /** The hint every CANCELLED error carries. */
 export const CANCELLED_HINT =
