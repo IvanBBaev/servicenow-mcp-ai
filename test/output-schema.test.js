@@ -56,6 +56,8 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * H-4 (change_conflicts apply + plan_token) measured 138,248 (all).
  * H-11 (servicenow_explain_policy, always-on admin; 94 tools) measured
  * 139,089 (all) and 35,473 (core): the budgets rise to 140,000 / 36,000.
+ * H-3 remainder (expected_mod_count on update/delete_record) measured
+ * 139,421 (all) and 35,805 (core): within the budget.
  * owner to restate (M-6 budget)
  */
 const TOOLS_LIST_BUDGET_ALL = 140_000;

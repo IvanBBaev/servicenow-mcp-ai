@@ -956,6 +956,11 @@
             "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
             "type": "boolean"
           },
+          "expected_mod_count": {
+            "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
+            "minimum": 0,
+            "type": "integer"
+          },
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
@@ -5347,6 +5352,11 @@
           "apply": {
             "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
             "type": "boolean"
+          },
+          "expected_mod_count": {
+            "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
+            "minimum": 0,
+            "type": "integer"
           },
           "fields": {
             "additionalProperties": {

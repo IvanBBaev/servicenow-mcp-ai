@@ -257,9 +257,11 @@ a CHANGELOG line. Breaking items add a row to the migration table in the CHANGEL
   failed prompt → `CONFIRM_DECLINED` (403), journaled `refused`. `PLAN_REQUIRED` (428) is not
   journaled (nothing was attempted). `test/plan-token.test.js` (16 tests, mutation-checked).
   `change_conflicts(calculate:true)` joined as the seventh tool with H-4 (2026-09-26).
-  **Open:** the 3.0 default (O-4 / B4); `STALE_RECORD` + `force` on delete (L2-05); prod profiles → `CONFIRM_REQUIRED` (needs
-  the H-11 environment marker, L5-04); email `body_preview` + `body_sha256` (L4-06);
-  `unknown_fields` (L2-06); the D-8 `PreToolUse` hook.
+  Also done 2026-09-26: `STALE_RECORD` on update / delete through `apply_with.expected_mod_count`
+  (no `force` flag — omitting the count is the override; L2-05), `unknown_fields` from the schema
+  cache (L2-06), the email `body_preview` / `body_sha256` (L4-06), prod `CONFIRM_REQUIRED` (with
+  H-11), and `expected_*` left out of the token hash. **Open:** the 3.0 default (O-4 / B4); the
+  D-8 `PreToolUse` hook.
 
 ### H-4 — Policy-axis bypass closure (M) — BREAKING (batch default)
 

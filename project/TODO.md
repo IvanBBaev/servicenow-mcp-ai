@@ -390,6 +390,13 @@
       plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
       139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
       on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [x] **H-3 remainder** — done 2026-09-26 (uncommitted): `expected_mod_count` → `STALE_RECORD` on
+      update / delete, `unknown_fields` from the schema cache, email `body_preview` (2 KB) +
+      `body_sha256`, `expected_*` outside the plan-token hash; 5 tests. Owner decisions: (a) no
+      `force` flag — omitting `expected_mod_count` applies unchecked; make the check automatic
+      when a `plan_token` is used? (b) `unknown_fields` only when the schema is cached — read it
+      on demand in plan mode instead (one dictionary read per table)? (c) the email preview cap
+      2,048 characters.
 - [x] **P-22 · SDK-managed write guard** — done 2026-09-26 (uncommitted): `SN_SDK_MANAGED_WRITES`
       (default `warn`), `sdkManaged` in plans and results, `SDK_MANAGED_SCOPE` under `deny`; 9 tests.
       Owner decisions: (a) O-6 authority order is still the P-3 default; (b) the guard skips batch

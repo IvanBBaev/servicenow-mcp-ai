@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { sendEmail, getEmail } from "../api/email.js";
 import { ok } from "../mcp/result.js";
@@ -15,6 +16,28 @@ import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
 import { journaledWrite } from "../core/write-journal.js";
 
 /** Email package: only enabled explicitly or via the `all` profile. */
+/**
+ * H-3 (L4-06): the body as the plan shows it — in full up to
+ * BODY_PREVIEW_CHARS, otherwise the first BODY_PREVIEW_CHARS as
+ * `body_preview`; always its length and sha256, so the reviewed body is
+ * identifiable without echoing a large one back into the context.
+ */
+export const BODY_PREVIEW_CHARS = 2048;
+
+function bodyPreview(body: string): Record<string, unknown> {
+  const facts = {
+    body_chars: body.length,
+    body_sha256: createHash("sha256").update(body, "utf8").digest("hex"),
+  };
+  return body.length <= BODY_PREVIEW_CHARS
+    ? { body, ...facts }
+    : {
+        body_preview: body.slice(0, BODY_PREVIEW_CHARS),
+        body_truncated: true,
+        ...facts,
+      };
+}
+
 export const specs: AnyToolSpec[] = [
   defineTool({
     name: "servicenow_send_email",
@@ -60,7 +83,7 @@ export const specs: AnyToolSpec[] = [
             subject,
             ...(cc ? { cc } : {}),
             ...(bcc ? { bcc } : {}),
-            body,
+            ...bodyPreview(body),
             ...(table && sys_id ? { record: `${table}/${sys_id}` } : {}),
           },
         });
