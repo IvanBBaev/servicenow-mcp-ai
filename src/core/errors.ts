@@ -79,7 +79,19 @@ export type ServiceNowErrorCode =
    * user/password, no API key, …) — nothing was sent. The hint names the
    * missing fields and the fix (servicenow_set_credentials or the env file).
    */
-  | "NOT_CONFIGURED";
+  | "NOT_CONFIGURED"
+  /**
+   * H-3: a destructive `apply:true` under SN_DESTRUCTIVE_CONFIRM=token|elicit
+   * without the `plan_token` of a matching, unexpired, unused plan preview —
+   * nothing was sent. The message says why the token did not match.
+   */
+  | "PLAN_REQUIRED"
+  /**
+   * H-3: SN_DESTRUCTIVE_CONFIRM=elicit asked the client to confirm a
+   * destructive apply and the user declined (or the prompt failed) — nothing
+   * was sent; the refusal is journaled.
+   */
+  | "CONFIRM_DECLINED";
 
 /** The hint every CANCELLED error carries. */
 export const CANCELLED_HINT =

@@ -530,6 +530,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    confirm: {
+      target: (args) => ({
+        action: "delete",
+        table: String(args.table),
+        sys_id: String(args.sys_id),
+      }),
+    },
     input: {
       table: tableName().describe("Table name, e.g. 'incident'."),
       sys_id: sysId().describe("The sys_id of the record to delete."),

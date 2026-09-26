@@ -51,9 +51,11 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * and 31,151 (core): the all budget rises to 134,000.
  * Batch 12 (M-5 list/enable/disable_package; 92 tools, 3 in the always-on admin package) measured 132,949 (all) and 34,426 (core).
  * The merged batch 12 tree (93 tools) measured 137,276 (all) and 34,426 (core).
+ * H-3 (the automatic plan_token argument on six destructive-apply tools)
+ * measured 137,894 (all) and 34,632 (core): the all budget rises to 139,000.
  * owner to restate (M-6 budget)
  */
-const TOOLS_LIST_BUDGET_ALL = 138_000;
+const TOOLS_LIST_BUDGET_ALL = 139_000;
 const TOOLS_LIST_BUDGET_CORE = 35_000;
 
 async function listTools(packages) {

@@ -10,6 +10,17 @@ import assert from "node:assert/strict";
 
 export const realFetch = globalThis.fetch;
 
+/** Proxy variables H-10's dispatcher reads (both spellings). */
+const PROXY_ENV = [
+  "SN_HTTPS_PROXY",
+  "HTTPS_PROXY",
+  "https_proxy",
+  "HTTP_PROXY",
+  "http_proxy",
+  "NO_PROXY",
+  "no_proxy",
+];
+
 /**
  * Reset the credential/policy env to the baseline most tests assume:
  * valid instance, Basic auth, no retries, no policy restrictions.
@@ -26,6 +37,9 @@ export function baselineEnv() {
   delete process.env.SN_TABLES_DENY;
   delete process.env.SN_READONLY;
   delete process.env.SN_ACTIVE_PROFILE;
+  // A proxy in the developer's shell (corporate / cloud dev environments) must
+  // not reach the mock-fetch tests: H-10 routes proxied hosts through undici.
+  for (const key of PROXY_ENV) delete process.env[key];
   // Credentials live in the config store; staging env vars alone is not enough.
   reloadCredentialsFromEnv();
 }

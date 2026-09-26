@@ -297,6 +297,11 @@
             "maxLength": 128,
             "type": "string"
           },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
           "requests": {
             "description": "The sub-requests to run together.",
             "items": {
@@ -911,6 +916,11 @@
             "description": "Profile name (default: active)",
             "maxLength": 128,
             "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": ["attachment_sys_id"],
@@ -940,6 +950,11 @@
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
             "type": "string"
           },
           "sys_id": {
@@ -4341,6 +4356,11 @@
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
           "quantity": {
             "description": "Quantity to order (default 1).",
             "exclusiveMinimum": 0,
@@ -4502,6 +4522,11 @@
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
             "type": "string"
           }
         },
@@ -4789,6 +4814,11 @@
           "instance": {
             "description": "Profile name (default: active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
             "type": "string"
           },
           "subject": {

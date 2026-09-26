@@ -2,6 +2,9 @@ import { z } from "zod";
 import { getWriteMode } from "../core/settings.js";
 import { ok, type ToolResult } from "./result.js";
 import type { WriteAction } from "../core/write-journal.js";
+import { activeProfile } from "../core/config.js";
+import { currentCall } from "../core/request-context.js";
+import { issuePlanToken } from "./plan-token.js";
 
 /** The shared plan-and-apply gate input every Table-style write tool exposes (DF-2). */
 export const applyInput = z
@@ -53,6 +56,24 @@ export function planPreview(
   },
   details: Record<string, unknown> = {},
 ): ToolResult {
+  // H-3: a destructive-apply tool's call under SN_DESTRUCTIVE_CONFIRM carries
+  // a plan binding (define.ts) — issue the token the apply must hand back.
+  const call = currentCall();
+  if (call?.plan) {
+    const { token, expiresAt } = issuePlanToken({
+      profile: call.profile ?? activeProfile(),
+      tool: call.tool,
+      argsHash: call.plan.argsHash,
+    });
+    return ok({
+      mode: "plan",
+      ...plan,
+      ...details,
+      plan_token: token,
+      plan_token_expires_at: expiresAt,
+      note: "No change was made (plan mode). To execute, re-run the same call with the same arguments plus apply:true and this plan_token (single use).",
+    });
+  }
   return ok({
     mode: "plan",
     ...plan,

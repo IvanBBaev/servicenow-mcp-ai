@@ -182,7 +182,7 @@
 - [x] **P-6 · explain_artifact** — done 2026-09-25 (uncommitted). Owner questions: opt-in package
       vs reader/developer; budget split 1/20 per value, 4/5 per result; `whenFields` descriptor field.
 - [ ] **Next up (2026-09-24):** **H-3** plan-token binding + elicitation (BREAKING parts wait for
-      O-4). H-11 and every BREAKING item wait for O-4. Five **high** findings gate 3.0.0: L1-03 and
+      O-4; the opt-in part landed 2026-09-26, see below). H-11 and every BREAKING item wait for O-4. Five **high** findings gate 3.0.0: L1-03 and
       L1-10 (done in H-10), L3-01 (H-11, BREAKING → O-4), L5-01 (M-6/E-6), L6-01 (D-2).
 - [ ] **Owner decisions from the 2026-09-25 instance-docs pass:** (a) raise the `pack:check`
       ceiling (1 MB) or trim before S-15; (b) accept a generic `servicenow_document_kind` tool
@@ -379,6 +379,22 @@
       whenever stdout is not a TTY (piped / CI). (g) `init` writes through `persistEnv`, so the E-6
       defects F1/F2 (a value ending in `\`, U+2028/U+2029) apply to wizard answers too. (h) The
       pack grew to 1328.6 KB unpacked (ceiling 800 KB, pending the owner).
+- [ ] **H-3 · Plan tokens + elicitation — partly done 2026-09-26 (uncommitted), non-breaking.**
+      `SN_DESTRUCTIVE_CONFIRM=off|token|elicit` (default `off`) + `SN_PLAN_TOKEN_TTL_SEC`; six
+      destructive-apply tools gain `plan_token`; `PLAN_REQUIRED` / `CONFIRM_DECLINED`; 16 tests.
+      Owner decisions: (a) the 3.0 default — `token` or `elicit` (B4, O-4)? (b) the token is an
+      opaque server-held id, not the HMAC the roadmap sketched (single use + `SN_REDACT_PII`
+      safety) — accept? (c) `PLAN_REQUIRED` is not journaled (only elicitation refusals are) —
+      journal injected applies too? (d) a mismatched token stays valid until it expires or is
+      used — consume on any failed attempt instead? (e) `revert_write` with `force:true` needs a
+      plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
+      139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
+      on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [x] **Test hermeticity** — done 2026-09-26 (uncommitted): with `HTTPS_PROXY` set in the shell
+      (corporate / cloud dev environments) 553 tests failed and `test/tasks.test.js` spun at 100 %
+      CPU — H-10's dispatcher asks for the optional `undici` package. `baselineEnv()` in
+      `test/helpers.js` now clears `SN_HTTPS_PROXY` / `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`
+      (both cases); the suite is green with a proxy in the environment.
 - [ ] **SDK parity epic** (P-1…P-29, owner gates O-5…O-9) — post-3.0 (3.x minors; only P-22's
       `deny` default is a 4.0 break); plan in [SDK-PARITY.md](SDK-PARITY.md), rows 55–83 of
       ROADMAP-V3 §"Sequencing".

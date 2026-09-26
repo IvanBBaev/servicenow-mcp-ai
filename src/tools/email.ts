@@ -28,6 +28,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    confirm: {
+      target: (args) => ({
+        action: "create",
+        table: "email",
+        fields: { to: args.to, subject: args.subject },
+      }),
+    },
     input: {
       to: recipients(50).describe("Recipient email addresses (1–50)."),
       subject: shortText(1000).describe("Email subject."),

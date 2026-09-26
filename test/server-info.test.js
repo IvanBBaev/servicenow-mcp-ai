@@ -327,6 +327,7 @@ test("get_status v2: server, policy, redaction, docs, limits, writes, profile so
       assert.equal(s.writeMode, "plan");
       assert.deepEqual(s.policy, {
         writeMode: "plan",
+        destructiveConfirm: "off",
         readOnly: false,
         summary: policySummary(),
       });
