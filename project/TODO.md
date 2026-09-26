@@ -390,6 +390,11 @@
       plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
       139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
       on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+- [ ] **P-21 · Application documentation detail — done 2026-09-26 (uncommitted) bar UIB
+      experiences (P-14).** `document_app({detail})`; 2 tests. Owner decisions: (a) `detail` is
+      opt-in — make it the default for `document_app` (and pass it from `document_instance`)?
+      (b) bounds 10 diagrams per type, 10 dependency roots, 50 lint rows per type; (c) the
+      dependency graph merges each root's outbound edges only (no inbound walk).
 - [ ] **P-20 · Snapshot / compare over the registry — done 2026-09-26 (uncommitted) bar flow
       snapshots.** `types` / `scope` on both tools; 8 tests. Owner decisions: (a) flows from
       `sys_hub_flow_snapshot` need the published/draft authority confirmed (O-5); (b) nested

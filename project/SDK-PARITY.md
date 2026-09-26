@@ -632,6 +632,12 @@ unless it says so.
   adding a second writer; `document_app` already collects through P-5's `listArtifacts` over
   `ARTIFACT_GROUPS` — INSTANCE-DOCS pass 2 ID-22; frontmatter + manifest from the S-14 store contract).
 - **Acceptance:** fixture scope produces a Markdown doc that `docs_read` returns and Mermaid blocks that parse.
+- **Done 2026-09-26 (local, uncommitted) bar UI Builder experiences (P-14).** `document_app({detail})`
+  (`collectAppDetail` / `renderAppDetail`, `src/api/document.ts`): diagrams per flow / subflow /
+  workflow / portal (10 per type), a merged outbound dependency graph (10 roots, depth 1), the P-18
+  lint sweep scoped to the app (50 per type); every piece degrades to a caveat. The test helper's
+  metadata allow-list now admits versioned `sys_hub_*_v2` tables (explain_flow reads
+  `sys_hub_trigger_instance_v2`). Mocked fixture only (O-5).
 
 ### P4 — Writes
 
