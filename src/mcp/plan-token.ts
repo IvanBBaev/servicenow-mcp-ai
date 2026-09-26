@@ -42,8 +42,20 @@ const plansPart = defineRuntimePart(
 
 const plans = (): Map<string, PlanRecord> => currentRuntime().get(plansPart);
 
-/** The arguments that do not change what a write does. */
-const UNBOUND_ARGS = new Set(["apply", "plan_token", "instance"]);
+/**
+ * The arguments that do not change what a write does: the apply switch, the
+ * token itself, the profile (bound separately) and the `expected_*`
+ * assertions a plan hands back for the apply (upsert's decision, the
+ * optimistic-concurrency mod count) — they only make the apply stricter.
+ */
+const UNBOUND_ARGS = new Set([
+  "apply",
+  "plan_token",
+  "instance",
+  "expected_action",
+  "expected_sys_id",
+  "expected_mod_count",
+]);
 
 /** JSON with sorted object keys, so equal arguments hash equally. */
 function canonical(value: unknown): string {
