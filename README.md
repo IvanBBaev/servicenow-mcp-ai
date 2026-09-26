@@ -1,6 +1,6 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-93-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-94-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -569,10 +569,17 @@ See [.env.example](.env.example) for a template.
 | `SN_READONLY`            |    no    | `false`         | When truthy, refuse every create/update/delete.                                                                                                                                                                                                                            |
 | `SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE` |    no    | `false`         | H-2: operator opt-out — lets `servicenow_set_credentials` proceed on MCP clients without elicitation support (no confirmation prompt, no live server). An explicit decline is still refused. Off by default.                                                               |
 | `SN_WRITE_MODE` | no | `plan` | `plan` (default) previews a write as a before/after diff without mutating; `apply` executes; passing `apply:true` forces a single call. |
-| `SN_DESTRUCTIVE_CONFIRM` | no | `off` | H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `change_conflicts` with `calculate:true`) in plan mode. `token`: the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments, else `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it. The 3.0 default is an owner decision (O-4). |
+| `SN_DESTRUCTIVE_CONFIRM` | no | `off` | H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `change_conflicts` with `calculate:true`) in plan mode. `token`: the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments, else `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it, except on a profile marked `prod` (`SN_ENV`), which is always at least `elicit` and is confirmed in apply mode too. The 3.0 default is an owner decision (O-4). |
 | `SN_PLAN_TOKEN_TTL_SEC` | no | `600` | H-3: lifetime of a `plan_token` in seconds (30–86400). Tokens live only in the server process and are used up by the apply. |
 | `SN_BATCH_UNMAPPED` | no | `allow` | H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `allow` checks it against the table and read-only axes only; `deny` refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch). A nested batch is always refused. The 3.0 default is an owner decision (O-4). |
 | `SN_BATCH_MAX_REQUESTS` | no | `1000` | H-4: most sub-requests one `servicenow_batch` call may carry (1–1000), checked before anything is sent. |
+| `SN_PROTECTED_TABLES_WRITE` | no | `allow` | H-11: `deny` refuses writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them) with `POLICY_DENIED`; an exact `SN_TABLES_ALLOW` entry re-enables one. Reads are unaffected. The 3.0 default is an owner decision (O-4). Per profile: `SN_PROFILE_<NAME>_PROTECTED_TABLES_WRITE`. |
+| `SN_IMPORT_SET_TABLES` | no | — | H-11: patterns (`*`, `?`) the import-set staging table must match (e.g. `u_*,imp_*`); unset = any table the table policy allows. |
+| `SN_MAX_WRITES_PER_SESSION` | no | — | H-11: most applied instance writes per session (the process on stdio, one MCP session over HTTP; a batch counts its write sub-requests). Past it, writes fail with `WRITE_CAP` before any request; `get_status.writes.caps` shows the usage. Unset = no cap. |
+| `SN_MAX_DELETES_PER_SESSION` | no | — | H-11: most applied deletes per session (`WRITE_CAP`). Unset = no cap. |
+| `SN_MAX_BATCH_WRITES` | no | — | H-11: most write (non-GET) sub-requests in one `servicenow_batch` (`WRITE_CAP`). Unset = no cap. |
+| `SN_ENV` | no | — | H-11: marks the default profile `prod`, `test` or `dev` (`SN_PROFILE_<NAME>_ENV` for others). A `prod` profile stays in plan mode even when apply is configured unless `SN_PROD_WRITES` (`SN_PROFILE_<NAME>_PROD_WRITES`) is `I_UNDERSTAND`; its destructive applies are always confirmed (at least `SN_DESTRUCTIVE_CONFIRM=elicit`, also in apply mode — `CONFIRM_REQUIRED` for a client without elicitation); results carry `_meta.environment`; `use_instance` warns. `SN_PROFILE_<NAME>_WRITE_MODE` sets the write mode per profile. |
+| `SN_PROD_WRITES` | no | — | H-11: `I_UNDERSTAND` lets a `prod` default profile run in apply mode. |
 | `SN_UPDATE_SET` | no | — | S-6: update set (sys_id or exact name) that applied Table-tool writes (create / update / upsert / delete) land in; a per-call `update_set` overrides it and `SN_PROFILE_<NAME>_UPDATE_SET` sets it per profile. The plan names the set; the user's current update set is switched for the write and restored after it. Data-row tables are written unchanged. |
 | `SN_EMAIL_ALLOWED_DOMAINS` | no | — | Recipient domains `servicenow_send_email` may address (to/cc/bcc; a domain covers its subdomains, `*` allows any). When unset, every recipient must be the email of a user in the instance's own `sys_user` table; anything else fails with `RECIPIENT_NOT_ALLOWED`. |
 | `SN_MAX_UPLOAD_BYTES` | no | `10485760` | Largest decoded attachment upload, checked on the base64 length before decoding (`PAYLOAD_TOO_LARGE`). |
@@ -621,24 +628,29 @@ See [.env.example](.env.example) for a template.
 
 ### Two-axis access policy
 
-Access is controlled on **two independent axes**, because a table restriction does
-not reach the plugin-backed APIs (Change, Catalog, Knowledge…). Guard both:
+Access is controlled on **two independent axes**: tables and tool packages.
 
 | Axis         | Enable / deny / read-only                                | Example                                                                       |
 | ------------ | -------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **Tables**   | `SN_TABLES_ALLOW` / `SN_TABLES_DENY` / `SN_READONLY`     | `SN_TABLES_DENY=change_request` blocks the **Table API** path only.           |
-| **Packages** | `SN_TOOL_PACKAGES` / `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` | `SN_PACKAGES_DENY=change` also blocks the Change Management **plugin API**. |
+| **Tables**   | `SN_TABLES_ALLOW` / `SN_TABLES_DENY` / `SN_READONLY`     | `SN_TABLES_DENY=change_request` blocks the Table API **and** (since H-4) the Change tools, which check their backing table. |
+| **Packages** | `SN_TOOL_PACKAGES` / `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` | `SN_PACKAGES_DENY=change` removes the Change Management tools and blocks the `sn_chg_rest` plugin API, also inside a batch. |
 
-So denying the `change_request` table still leaves the Change Management API
-(`sn_chg_rest`) able to read/write changes — the **package axis is why it exists**.
-See [Security notes](#security-notes) for the full model (including how the Batch
-API obeys both axes).
+Since H-4 the plugin-backed tools (Change, Catalog, Knowledge, Email, ATF) and
+attachments (through the parent record's table) obey the table axis too; the
+package axis still removes whole surfaces. See [Security notes](#security-notes)
+for the full model (including how the Batch API obeys both axes).
 
 **List syntax:** table lists (`SN_TABLES_ALLOW` / `SN_TABLES_DENY`) are
 comma-separated; package lists (`SN_TOOL_PACKAGES`, `SN_PACKAGES_DENY`,
 `SN_PACKAGES_READONLY`) accept commas **or** whitespace. Surrounding spaces are
 trimmed in both, and table matching is case-insensitive — so
-`SN_TABLES_DENY=Change_Request, sys_user` works.
+`SN_TABLES_DENY=Change_Request, sys_user` works. Since H-11 a table entry may be
+a pattern (`*` any run, `?` one character): `SN_TABLES_DENY=sys_*` blocks
+`sys_user` and leaves `incident` alone. The order is: an exact deny, an exact
+allow, a pattern deny, the protected tables (writes, with
+`SN_PROTECTED_TABLES_WRITE=deny`), then the allowlist's patterns. Ask
+`servicenow_explain_policy({table, action})` which rule decides, or read
+`servicenow://policy`.
 
 ## Run / debug
 
@@ -874,6 +886,7 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `admin` | `servicenow_set_credentials` | no | Save connection credentials to the env file for later requests (any subset; auth / oauth_client_id / oauth_… |
 | `admin` | `servicenow_list_instances` | yes | List the configured ServiceNow connection profiles (instances): name, host, user, auth method (and OAuth gr… |
 | `admin` | `servicenow_use_instance` | no | Switch the active ServiceNow connection profile (persisted to the env file) |
+| `admin` | `servicenow_explain_policy` | yes | Say whether a table may be read or written under the active policy and which rule decides (the guards' own … |
 | `admin` | `servicenow_get_status` | yes | Show instance, auth, missing credentials, per-profile write mode, policy, limits, TLS, queue, write counter… |
 | `admin` | `servicenow_test_connection` | yes | Verify that the configured credentials actually work: reads one sys_user record and reports ok/status/latency |
 | `admin` | `servicenow_check_capabilities` | yes | Preflight which sys_* tables the user can read and which capabilities (schema, script intelligence, ACL aud… |

@@ -1,7 +1,11 @@
 import { activeProfile } from "../core/config.js";
 import { ServiceNowError } from "../core/errors.js";
 import type { CallContext } from "../core/request-context.js";
-import { getDestructiveConfirm, getWriteMode } from "../core/settings.js";
+import {
+  getDestructiveConfirm,
+  getProfileEnv,
+  getWriteMode,
+} from "../core/settings.js";
 import { appendWriteJournal } from "../core/write-journal.js";
 import { getServer } from "./context.js";
 import type { AnyToolSpec } from "./define.js";
@@ -46,11 +50,18 @@ export async function confirmDestructiveApply(
   call: CallContext,
 ): Promise<ToolResult | null> {
   const confirm = spec.confirm;
-  if (!confirm || args.apply !== true) return null;
-  if (getWriteMode() === "apply") return null;
+  if (!confirm) return null;
+  // The gate runs in the call's profile context (define.ts), so these read
+  // that profile's write mode, confirmation mode and environment.
+  const applyMode = getWriteMode() === "apply";
+  if (!applyMode && args.apply !== true) return null; // a plan preview
+  const prod = getProfileEnv() === "prod";
+  // Apply mode is a trusted operator — except on a prod profile (H-11).
+  if (applyMode && !prod) return null;
   const mode = getDestructiveConfirm();
   if (mode === "off") return null;
   if (confirm.when && !confirm.when(args)) return null;
+  if (applyMode) return elicitOrRefuse(spec, confirm, args, call, true);
 
   const token = typeof args.plan_token === "string" ? args.plan_token : "";
   const check = consumePlanToken(token || undefined, {
@@ -71,8 +82,36 @@ export async function confirmDestructiveApply(
   call.plan = { argsHash: call.plan?.argsHash ?? planArgsHash(args), token };
 
   if (mode !== "elicit") return null;
+  return elicitOrRefuse(spec, confirm, args, call, false);
+}
+
+/**
+ * The elicitation step. A client without elicitation passes on the plan
+ * token alone — except on a prod profile in apply mode, where no plan token
+ * was involved, so nothing would confirm the write: CONFIRM_REQUIRED.
+ */
+async function elicitOrRefuse(
+  spec: AnyToolSpec,
+  confirm: NonNullable<AnyToolSpec["confirm"]>,
+  args: Record<string, unknown>,
+  call: CallContext,
+  prodApply: boolean,
+): Promise<ToolResult | null> {
   const server = getServer();
-  if (!server?.server.getClientCapabilities()?.elicitation) return null;
+  if (!server?.server.getClientCapabilities()?.elicitation) {
+    if (!prodApply) return null;
+    return fail(
+      new ServiceNowError(
+        `Destructive apply refused: profile "${call.profile ?? activeProfile()}" is marked prod and this client cannot confirm the change (no elicitation support). Nothing was changed.`,
+        428,
+        undefined,
+        {
+          code: "CONFIRM_REQUIRED",
+          hint: "Use a client with elicitation, or run the profile in plan mode (unset its WRITE_MODE) and apply with the preview's plan_token.",
+        },
+      ),
+    );
+  }
 
   const target = confirm.target(args);
   const what = `${target.action} on ${target.table}${target.sys_id ? `/${target.sys_id}` : ""}`;

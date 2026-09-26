@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getWriteMode } from "../core/settings.js";
+import { getWriteMode, writeModeHold } from "../core/settings.js";
 import { ok, type ToolResult } from "./result.js";
 import type { WriteAction } from "../core/write-journal.js";
 import { activeProfile } from "../core/config.js";
@@ -41,6 +41,12 @@ export function resultSysId(result: unknown): string | undefined {
   return undefined;
 }
 
+/** H-11: why a prod profile configured for apply is previewing instead. */
+function holdDetail(): { write_mode_hold?: string } {
+  const hold = writeModeHold();
+  return hold ? { write_mode_hold: hold } : {};
+}
+
 /**
  * A non-mutating before/after preview returned by a write tool in plan mode.
  * `details` carries tool-specific facts (S-2's revert adds the reverted entry
@@ -71,6 +77,7 @@ export function planPreview(
       ...details,
       plan_token: token,
       plan_token_expires_at: expiresAt,
+      ...holdDetail(),
       note: "No change was made (plan mode). To execute, re-run the same call with the same arguments plus apply:true and this plan_token (single use).",
     });
   }
@@ -78,6 +85,7 @@ export function planPreview(
     mode: "plan",
     ...plan,
     ...details,
+    ...holdDetail(),
     note: "No change was made (plan mode). Re-run the same call with apply:true to execute it, or set SN_WRITE_MODE=apply to execute by default.",
   });
 }

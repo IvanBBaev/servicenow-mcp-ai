@@ -1,3 +1,4 @@
+import { policyResourcePayload } from "./policy-view.js";
 import {
   McpServer,
   ResourceTemplate,
@@ -202,10 +203,26 @@ export function registerToolsReferenceResource(
   );
 }
 
-/** Always-on admin resources: connection status + the capability preflight. */
+/** H-11 (L3-04): the effective access policy of every profile (local). */
+export function registerPolicyResource(server: McpServer): void {
+  server.registerResource(
+    "policy",
+    "servicenow://policy",
+    {
+      title: "ServiceNow access policy",
+      description:
+        "Effective table rules (exact and pattern), protected tables, import-set tables, read-only and write mode per profile — the guards' own evaluator.",
+      mimeType: JSON_MIME,
+    },
+    (uri) => jsonContents(uri, policyResourcePayload()),
+  );
+}
+
+/** Always-on admin resources: status, the capability preflight, the policy. */
 export function registerAdminResources(server: McpServer): void {
   registerStatusResource(server);
   registerCapabilitiesResource(server);
+  registerPolicyResource(server);
 }
 
 /**

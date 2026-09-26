@@ -7,7 +7,12 @@ import {
 } from "../core/config.js";
 import { resolveHost } from "../core/host.js";
 import { isReadOnly } from "../core/policy.js";
-import { getDestructiveConfirm, getWriteMode } from "../core/settings.js";
+import {
+  getDestructiveConfirm,
+  getProfileEnv,
+  getWriteMode,
+  writeModeHold,
+} from "../core/settings.js";
 import {
   ALL_PACKAGES,
   activeToolSpecs,
@@ -75,14 +80,22 @@ function hostOf(instance: string): string {
 }
 
 function writesLine(): string {
+  // H-11: a profile's environment marker is stated up front.
+  const env = getProfileEnv();
+  return env ? `Environment: ${env}. ${writesState()}` : writesState();
+}
+
+function writesState(): string {
   if (isReadOnly()) {
     return "Writes: read-only (SN_READONLY) — every write tool is refused.";
   }
+  const hold = writeModeHold();
   if (getWriteMode() === "apply") {
     return "Writes: apply — write tools execute and are journalled locally.";
   }
-  const plan =
-    "Writes: plan — write tools return a preview only; pass apply:true (after the user agrees) to execute.";
+  const plan = hold
+    ? `Writes: plan — ${hold}`
+    : "Writes: plan — write tools return a preview only; pass apply:true (after the user agrees) to execute.";
   // H-3: say how a destructive apply is confirmed, so the model keeps the token.
   return getDestructiveConfirm() === "off"
     ? plan

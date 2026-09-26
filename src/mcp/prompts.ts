@@ -4,6 +4,8 @@ import type {
 } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { completable } from "@modelcontextprotocol/sdk/server/completable.js";
 import { z } from "zod";
+import { activeProfile } from "../core/config.js";
+import { getProfileEnv } from "../core/settings.js";
 import { inlineArg, untrusted } from "./boundary.js";
 import {
   completeProfile,
@@ -235,11 +237,24 @@ export function registerPrompts(
 }
 
 /**
+ * H-11 (L3-03): the caution line of the overview prompt, from the active
+ * profile's environment marker. Unmarked profiles are treated as production.
+ */
+export function environmentCaution(profile: string = activeProfile()): string {
+  const env = getProfileEnv(profile);
+  if (env === "prod") {
+    return `Warning: the active profile "${profile}" is marked PRODUCTION. Prefer read tools; every write needs a plan and the user's explicit confirmation.`;
+  }
+  if (env) {
+    return `The active profile "${profile}" is marked ${env}. Still plan before any write.`;
+  }
+  return "Caution: treat the active profile as a production instance unless the user says otherwise — it carries no environment marker (SN_ENV / SN_PROFILE_<NAME>_ENV). Prefer read tools and plan before any write.";
+}
+
+/**
  * S-13 / M-5: "what can I do here" — the capability matrix first, then the
  * status and the package surface, all admin tools, so the prompt is always
- * on. H-11 (per-profile environment marker) is not in yet: until it lands the
- * prompt treats the active profile as production unless the user says
- * otherwise.
+ * on. H-11: the caution line follows the profile's environment marker.
  */
 function registerInstanceOverview(server: McpServer): void {
   server.registerPrompt(
@@ -270,7 +285,7 @@ function registerInstanceOverview(server: McpServer): void {
               "",
               "Give an overview of this ServiceNow connection and what can be done with it. Use the servicenow_* tools and read every value from the instance.",
               "",
-              "Caution: treat the active profile as a production instance unless the user says otherwise — no environment marker is configured yet. Prefer read tools and plan before any write.",
+              environmentCaution(),
               "",
               "1. servicenow_check_capabilities: the capability matrix. Report which groups are available, read-only, plan-only or unavailable, and what that rules out (e.g. no script intelligence without sys_script read access).",
               "2. servicenow_get_status: active profile, instance, auth mode, write mode, table policy and the enabled / denied / read-only packages.",

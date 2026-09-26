@@ -34,6 +34,7 @@ const CORE_TOOLS = [
   "servicenow_disable_package",
   "servicenow_download_attachment",
   "servicenow_enable_package",
+  "servicenow_explain_policy",
   "servicenow_get_attachment",
   "servicenow_get_record",
   "servicenow_get_status",

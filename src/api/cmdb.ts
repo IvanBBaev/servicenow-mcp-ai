@@ -1,5 +1,9 @@
 import { snRequest } from "../core/http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import {
+  assertTableAllowed,
+  assertTableWriteAllowed,
+  assertWriteAllowed,
+} from "../core/policy.js";
 import { getCredentials } from "../core/config.js";
 import { cached } from "../core/cache.js";
 import { ServiceNowError } from "../core/errors.js";
@@ -61,7 +65,7 @@ export interface CmdbWrite {
 }
 
 export async function createCmdbInstance(args: CmdbWrite): Promise<unknown> {
-  assertTableAllowed(args.className);
+  assertTableWriteAllowed(args.className);
   assertWriteAllowed("create CI");
   const body: Record<string, unknown> = { attributes: args.attributes };
   if (args.source) body.source = args.source;
@@ -77,7 +81,7 @@ export async function updateCmdbInstance(
   sysId: string,
   args: CmdbWrite,
 ): Promise<unknown> {
-  assertTableAllowed(args.className);
+  assertTableWriteAllowed(args.className);
   assertWriteAllowed("update CI");
   const body: Record<string, unknown> = { attributes: args.attributes };
   if (args.source) body.source = args.source;
@@ -232,9 +236,11 @@ export interface IrePayload {
 const IRE = "/api/now/identifyreconcile";
 
 /** Policy for an IRE payload: every item class, and cmdb_rel_ci for relations. */
-function assertIreAllowed(payload: IrePayload): void {
-  for (const item of payload.items) assertTableAllowed(item.className);
-  if (payload.relations?.length) assertTableAllowed(REL_TABLE);
+function assertIreAllowed(payload: IrePayload, write = false): void {
+  // H-11: a reconcile writes the classes, so the protected list applies too.
+  const check = write ? assertTableWriteAllowed : assertTableAllowed;
+  for (const item of payload.items) check(item.className);
+  if (payload.relations?.length) check(REL_TABLE);
   for (const rel of payload.relations ?? []) {
     for (const index of [rel.parent, rel.child]) {
       if (index < 0 || index >= payload.items.length) {
@@ -285,7 +291,7 @@ export async function identifyCis(payload: IrePayload): Promise<unknown> {
  * inserts or updates the CIs and relationships of the payload. A write.
  */
 export async function identifyReconcile(payload: IrePayload): Promise<unknown> {
-  assertIreAllowed(payload);
+  assertIreAllowed(payload, true);
   assertWriteAllowed("identify and reconcile CIs");
   return ire(payload, IRE);
 }

@@ -125,7 +125,7 @@ Effort key (single maintainer): **S** ≤ 1 day · **M** 2–5 days · **L** 1�
 | 45  | **E-8** ARCH-14 / ARCH-10 resolution                    | E+O    | GO → shared request engine; NO-GO → delete the dark scaffold in the major.                                                                                                                                                                                                                                                               | M      | 🔴                                                                                                                                                                               |
 | 46  | **H-10** HTTP client resilience + identity              | H      | **Done 2026-09-23 (local).** One `getDispatcher(host)` for proxy (`SN_HTTPS_PROXY` → `HTTPS_PROXY`/`HTTP_PROXY` + `NO_PROXY`) and TLS without a client cert, identifying `User-Agent`, `SN_DEADLINE_MS`, bounded queue (`BUSY`), `UPSTREAM_HTML`, OAuth through `rawRequest`, host:port / IPv6 policy, opt-in breaker (GAP L1-01…L1-10). | M      | 🟢                                                                                                                                                                               |
 | 47  | **E-9** process lifecycle + bounded state               | E      | **Done 2026-09-10 (local).** Crash handlers exit 1 with one structured line, `dispose()` in `src/core/lifecycle.ts`, LRU schema cache `SN_SCHEMA_CACHE_MAX` (GAP L6-03, L6-04, L2-08); H-10's dispatcher / queue / breaker hooks were wired into `dispose()` on 2026-09-23.                                                              | S      | 🟢                                                                                                                                                                               |
-| 48  | **H-11** policy model v2                                | H      | 3.0 breaking cluster (B11), after H-4: patterns, protected tables, write caps, prod flag, `explain_policy` (GAP L3-01…L3-05).                                                                                                                                                                                                            | M      | 🔴                                                                                                                                                                               |
+| 48  | **H-11** policy model v2                                | H      | **Done 2026-09-26 (local) bar the BREAKING defaults.** Glob patterns, one evaluator + `explain_policy` + `servicenow://policy`, opt-in protected tables, import-set allowlist, write caps, prod marker. Open: policy file, O-4 defaults.                                                                                                 | M      | 🟡                                                                                                                                                                               |
 | 49  | **S-13** capability preflight v2                        | S      | **Done 2026-09-24 (local).** `src/api/capability-matrix.ts`: per-group read-only probes (`groups`, `refresh`), TTL cache (`SN_CAPABILITY_TTL_MS`), plugin negative TTL `SN_PLUGIN_NEGATIVE_TTL_MS`; matrix in doctor and the capabilities resource.                                                                                      | M      | 🟢                                                                                                                                                                               |
 | 50  | **D-9** security policy + community files               | D      | Ships with O-1: private vulnerability reporting, supported versions, templates (GAP L9-10, L9-11).                                                                                                                                                                                                                                       | S      | 🔴                                                                                                                                                                               |
 | 51  | **M-9** long-running ops as MCP tasks                   | M      | **Done 2026-09-26 (local, uncommitted).** `src/mcp/tasks.ts` behind `SN_EXPERIMENTAL_TASKS=1`: `run_as_task` on six long-running tools, task store (1 h TTL, redacted results), `tasks/cancel` aborts the request. Open: owner questions (TODO batch 10).                                                                                | M      | 🟢                                                                                                                                                                               |
@@ -521,6 +521,29 @@ a CHANGELOG line. Breaking items add a row to the migration table in the CHANGEL
 - **Acceptance:** with no policy in apply mode, `create_record` on `sys_user_has_role` fails
   `POLICY_DENIED`; `SN_DENY_TABLES=sys_*` blocks `sys_user` and allows `incident`; property test:
   a pattern without wildcards behaves as an exact match.
+- **Done 2026-09-26 (local, uncommitted) except the BREAKING default and the policy file.** The
+  variables are the existing `SN_TABLES_ALLOW` / `SN_TABLES_DENY` (the bullets above say
+  `SN_ALLOW_TABLES` / `SN_DENY_TABLES`, which the code never read). One evaluator
+  (`evaluateTable`, `src/core/policy.ts`) behind `assertTableAllowed`, the new
+  `assertTableWriteAllowed` (Table API create/update/delete — so upsert, revert and
+  `set_property` —, import sets, CMDB create/update/IRE, batch write sub-requests),
+  `servicenow_explain_policy` (always-on admin, 94 tools) and `servicenow://policy`
+  (`src/mcp/policy-view.ts`). Order: exact deny, exact allow, pattern deny, protected (writes),
+  allowlist patterns. `PROTECTED_TABLES` = the list above plus `sys_security_acl_role`;
+  `SN_PROTECTED_TABLES_WRITE` defaults to `allow` until O-4 (B11). `SN_IMPORT_SET_TABLES`
+  defaults to unrestricted (the `u_*,imp_*` default is O-4 too). Write caps default to no cap
+  (the GAP's 500 / 100 / 50 are O-4); a session is the runtime container; a batch counts its
+  write sub-requests; `WRITE_CAP` (429) is journaled with `cap_hit`. Environment marker: `SN_ENV`
+  for the default profile, `SN_PROFILE_<NAME>_ENV` otherwise; new per-profile
+  `SN_PROFILE_<NAME>_WRITE_MODE`; the ack is `SN_PROD_WRITES` / `SN_PROFILE_<NAME>_PROD_WRITES`;
+  a prod profile is `elicit` at least and is confirmed in apply mode too (`CONFIRM_REQUIRED` for a
+  client without elicitation). L3-05: the probes already degrade (`probeTable` → `policyDenied`,
+  the matrix → `unknown`, the plugin probe → undefined) — pinned by a test; `SN_PROBE_TABLES`
+  is not added (the policy's read set is the default the GAP proposed). `settings.ts` resolves
+  the active profile through the new dependency-free `src/core/profile.ts` (a `settings →
+config → runtime` cycle broke module init). `test/policy-h11.test.js` (17 tests,
+  mutation-checked). **Open:** `SN_TABLE_POLICY_FILE`; the 3.0 defaults (O-4); attachments are not
+  treated as writes to the parent's (protected) table.
 
 ### M-1 — Server instructions + configuration state (S)
 

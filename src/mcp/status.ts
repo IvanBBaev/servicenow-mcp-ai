@@ -14,6 +14,8 @@ import {
 } from "../core/auth.js";
 import {
   getWriteMode,
+  getProfileEnv,
+  writeModeHold,
   getDestructiveConfirm,
   getTransport,
   getHttpHost,
@@ -35,7 +37,7 @@ import {
   getRetryAfterMaxMs,
 } from "../core/settings.js";
 import { currentRequestProfile } from "../core/request-context.js";
-import { getWriteCounters } from "../core/write-journal.js";
+import { getWriteCaps, getWriteCounters } from "../core/write-journal.js";
 import {
   isReadOnly,
   getAllowedTables,
@@ -234,7 +236,7 @@ export function buildStatusPayload() {
     },
     docs: docsStatus(),
     limits: limitsPayload(),
-    writes: getWriteCounters(),
+    writes: { ...getWriteCounters(), caps: getWriteCaps() },
     profileSource: profileSource(),
     // Per-profile auth mode / write mode / missing keys (`profiles` stays the
     // name list until the O-4 breaking window).
@@ -264,7 +266,10 @@ export function profilesPayload() {
       auth: status.mode,
       ...(status.grant ? { grant: status.grant } : {}),
       refreshToken: refreshTokenState(name),
-      writeMode: readOnly ? "read-only" : getWriteMode(),
+      writeMode: readOnly ? "read-only" : getWriteMode(name),
+      // H-11 (L3-03): the environment marker and why apply mode is held.
+      ...(getProfileEnv(name) ? { env: getProfileEnv(name) } : {}),
+      ...(writeModeHold(name) ? { writeModeHold: writeModeHold(name) } : {}),
       ...(status.missing.length ? { missing: status.missing } : {}),
     };
   });

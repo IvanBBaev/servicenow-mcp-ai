@@ -1,7 +1,7 @@
 {
   "name": "servicenow-mcp-ai",
   "displayName": "ServiceNow MCP",
-  "description": "Drive ServiceNow from VS Code Copilot Chat — 93 tools over the full REST surface, with plan-and-apply write safety, capability preflight and an ACL security scan.",
+  "description": "Drive ServiceNow from VS Code Copilot Chat — 94 tools over the full REST surface, with plan-and-apply write safety, capability preflight and an ACL security scan.",
   "version": "2.0.1",
   "publisher": "ivanbbaev",
   "license": "MIT",
