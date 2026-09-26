@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import dotenv from "dotenv";
-import { currentRequestProfile } from "./request-context.js";
+import { activeProfile, PROFILE_RE } from "./profile.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
@@ -68,7 +68,6 @@ export function loadEnv(): void {
  * SN_ACTIVE_PROFILE picks which one tools use when no explicit profile is
  * given.
  */
-const PROFILE_RE = /^[a-z0-9_]+$/;
 
 /** Throw on a malformed profile name (lowercase letters, digits, underscores). */
 export function assertValidProfileName(profile: string): void {
@@ -99,16 +98,7 @@ export function envKeysFor(profile: string): {
   };
 }
 
-/**
- * The profile for the current call: an explicit per-request profile (MI-3
- * AsyncLocalStorage context) wins over SN_ACTIVE_PROFILE.
- */
-export function activeProfile(): string {
-  const fromRequest = currentRequestProfile();
-  if (fromRequest) return fromRequest;
-  const raw = process.env.SN_ACTIVE_PROFILE?.trim().toLowerCase();
-  return raw && PROFILE_RE.test(raw) ? raw : "default";
-}
+export { activeProfile };
 
 /** Profiles visible in the environment (default first, then alphabetical). */
 export function listProfiles(): string[] {

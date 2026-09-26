@@ -28,6 +28,18 @@ const formatInput = z
  * next. Reads go through the regular api/ layers, output lands under
  * SN_DOCS_DIR/<profile>/.
  */
+/** P-20: registry artefact types for snapshot / compare. */
+const artifactTypesInput = z
+  .array(shortText(80))
+  .min(1)
+  .max(200)
+  .optional()
+  .describe("Registry types (with children) or ['all']; default none.");
+
+const artifactScopeInput = shortText(128)
+  .optional()
+  .describe("Scope for types.");
+
 export const specs: AnyToolSpec[] = [
   defineTool({
     name: "servicenow_snapshot_instance",
@@ -61,6 +73,8 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Continue an interrupted snapshot: skip the sections whose files still carry the recorded source hash (default false).",
         ),
+      types: artifactTypesInput,
+      scope: artifactScopeInput,
       format: formatInput,
     },
     logFields: (args) => ({
@@ -68,9 +82,9 @@ export const specs: AnyToolSpec[] = [
       sections: args.sections?.length,
       resume: args.resume === true,
     }),
-    handler: async ({ tables, sections, resume, format }) =>
+    handler: async ({ tables, sections, resume, types, scope, format }) =>
       deliverJson(
-        await snapshotInstance({ tables, sections, resume }),
+        await snapshotInstance({ tables, sections, resume, types, scope }),
         "snapshot",
         format,
       ),
@@ -105,6 +119,8 @@ export const specs: AnyToolSpec[] = [
         .describe(
           `Also compare these snapshot record sections, matched by sys_id then name: ${Object.keys(RECORD_SECTIONS).join(", ")}. Default none.`,
         ),
+      types: artifactTypesInput,
+      scope: artifactScopeInput,
       format: formatInput,
     },
     logFields: (args) => ({
@@ -113,12 +129,22 @@ export const specs: AnyToolSpec[] = [
       fromSnapshot: args.from_snapshot === true,
       sections: args.sections?.length,
     }),
-    handler: async ({ a, b, from_snapshot, sections, format }) => {
+    handler: async ({
+      a,
+      b,
+      from_snapshot,
+      sections,
+      types,
+      scope,
+      format,
+    }) => {
       const result = await compareInstances({
         a,
         b,
         fromSnapshot: from_snapshot,
         sections,
+        types,
+        scope,
       });
       return deliverJson(result, `compare-${result.a}-vs-${result.b}`, format);
     },

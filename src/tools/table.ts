@@ -1,3 +1,5 @@
+import { unknownFields } from "../api/meta.js";
+import { sdkGuard, type SdkGuardTarget } from "../mcp/sdk-guard.js";
 import { z } from "zod";
 import {
   queryTable,
@@ -137,6 +139,21 @@ async function queryToFile(
     ...delivery,
   });
 }
+
+/**
+ * H-3 (L2-05): optimistic concurrency for update / delete. The plan hands
+ * back `apply_with.expected_mod_count` (the record's sys_mod_count when it
+ * was previewed); an apply that passes it is refused with STALE_RECORD if
+ * the record changed since. Omitting it applies without the check.
+ */
+const expectedModCountInput = z
+  .number()
+  .int()
+  .min(0)
+  .optional()
+  .describe(
+    "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
+  );
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -319,9 +336,14 @@ export const specs: AnyToolSpec[] = [
       if (!shouldApply(apply)) {
         return planPreview(
           { action: "create", table, after: fields },
-          bindingPlanDetail(binding),
+          {
+            ...unknownFieldsDetail(table, fields),
+            ...bindingPlanDetail(binding),
+            ...(await sdkGuard({ table, fields }, "plan")),
+          },
         );
       }
+      const sdk = await sdkGuard({ table, fields }, "apply");
       const { result: record, report } = await applyInUpdateSet(
         binding,
         (extra) =>
@@ -334,7 +356,7 @@ export const specs: AnyToolSpec[] = [
             }),
           ),
       );
-      return ok({ message: "Record created", record, ...report });
+      return ok({ message: "Record created", record, ...report, ...sdk });
     },
   }),
 
@@ -358,6 +380,7 @@ export const specs: AnyToolSpec[] = [
       ),
       inputDisplayValue: inputDisplayValueInput,
       update_set: updateSetInput,
+      expected_mod_count: expectedModCountInput,
       apply: applyInput,
     },
     logFields: (args) => ({ table: args.table }),
@@ -367,19 +390,29 @@ export const specs: AnyToolSpec[] = [
       fields,
       inputDisplayValue,
       update_set,
+      expected_mod_count,
       apply,
     }) => {
       const binding = await planUpdateSetBinding(table, update_set);
       if (!shouldApply(apply)) {
-        const before = await getRecord(table, sys_id, Object.keys(fields));
+        const read = await getRecord(table, sys_id, withModCount(fields));
+        const { before, applyWith } = splitModCount(read, fields);
         return planPreview(
           { action: "update", table, sys_id, before, after: fields },
-          bindingPlanDetail(binding),
+          {
+            ...applyWith,
+            ...unknownFieldsDetail(table, fields),
+            ...bindingPlanDetail(binding),
+            ...(await sdkGuard({ table, sys_id, fields }, "plan")),
+          },
         );
       }
-      const before = await captureBefore(() =>
-        getRecord(table, sys_id, Object.keys(fields)),
+      const sdk = await sdkGuard({ table, sys_id, fields }, "apply");
+      const read = await captureBefore(() =>
+        getRecord(table, sys_id, withModCount(fields)),
       );
+      assertModCount(table, sys_id, read, expected_mod_count);
+      const { before } = splitModCount(read, fields);
       const { result: record, report } = await applyInUpdateSet(
         binding,
         (extra) =>
@@ -389,7 +422,7 @@ export const specs: AnyToolSpec[] = [
             (r) => ({ after_mod_count: resultModCount(r) }),
           ),
       );
-      return ok({ message: "Record updated", record, ...report });
+      return ok({ message: "Record updated", record, ...report, ...sdk });
     },
   }),
 
@@ -469,6 +502,7 @@ export const specs: AnyToolSpec[] = [
           },
           {
             key,
+            ...unknownFieldsDetail(table, payload),
             apply_with: {
               expected_action: decision.action,
               ...(decision.action === "update"
@@ -476,10 +510,15 @@ export const specs: AnyToolSpec[] = [
                 : {}),
             },
             ...bindingPlanDetail(binding),
+            ...(await sdkGuard(upsertTarget(table, decision, payload), "plan")),
           },
         );
       }
       assertUpsertUnchanged(decision, expected_action, expected_sys_id);
+      const sdk = await sdkGuard(
+        upsertTarget(table, decision, payload),
+        "apply",
+      );
       if (decision.action === "create") {
         const { result: record, report } = await applyInUpdateSet(
           binding,
@@ -498,6 +537,7 @@ export const specs: AnyToolSpec[] = [
           action: "create",
           record,
           ...report,
+          ...sdk,
         });
       }
       const { sys_id, before } = decision;
@@ -515,6 +555,7 @@ export const specs: AnyToolSpec[] = [
         action: "update",
         record,
         ...report,
+        ...sdk,
       });
     },
   }),
@@ -530,33 +571,124 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    confirm: {
+      target: (args) => ({
+        action: "delete",
+        table: String(args.table),
+        sys_id: String(args.sys_id),
+      }),
+    },
     input: {
       table: tableName().describe("Table name, e.g. 'incident'."),
       sys_id: sysId().describe("The sys_id of the record to delete."),
       update_set: updateSetInput,
+      expected_mod_count: expectedModCountInput,
       apply: applyInput,
     },
     logFields: (args) => ({ table: args.table }),
-    handler: async ({ table, sys_id, update_set, apply }) => {
+    handler: async ({
+      table,
+      sys_id,
+      update_set,
+      expected_mod_count,
+      apply,
+    }) => {
       const binding = await planUpdateSetBinding(table, update_set);
       if (!shouldApply(apply)) {
         const before = await getRecord(table, sys_id);
         return planPreview(
           { action: "delete", table, sys_id, before },
-          bindingPlanDetail(binding),
+          {
+            ...modCountApplyWith(before),
+            ...bindingPlanDetail(binding),
+            ...(await sdkGuard({ table, sys_id, record: before }, "plan")),
+          },
         );
       }
+      const sdk = await sdkGuard({ table, sys_id }, "apply");
       const before = await captureBefore(() => getRecord(table, sys_id));
+      assertModCount(table, sys_id, before, expected_mod_count);
       const { result, report } = await applyInUpdateSet(binding, (extra) =>
         journaledWrite(
           { action: "delete", table, sys_id, before, ...extra },
           () => deleteRecord(table, sys_id),
         ),
       );
-      return ok({ message: "Record deleted", ...result, ...report });
+      return ok({ message: "Record deleted", ...result, ...report, ...sdk });
     },
   }),
 ];
+
+/** The fields to read for an update plan: the written ones plus sys_mod_count. */
+function withModCount(fields: Record<string, unknown>): string[] {
+  return [...new Set([...Object.keys(fields), "sys_mod_count"])];
+}
+
+/** `{apply_with: {expected_mod_count}}` from a record, when it has one. */
+function modCountApplyWith(record: unknown): {
+  apply_with?: { expected_mod_count: number };
+} {
+  const n = resultModCount(record);
+  return n === undefined ? {} : { apply_with: { expected_mod_count: n } };
+}
+
+/**
+ * Split an update read into the `before` shown and journaled (the written
+ * fields only, as before H-3) and the plan's apply_with.
+ */
+function splitModCount(
+  read: unknown,
+  fields: Record<string, unknown>,
+): { before: unknown; applyWith: ReturnType<typeof modCountApplyWith> } {
+  if (!read || typeof read !== "object") return { before: read, applyWith: {} };
+  const applyWith = modCountApplyWith(read);
+  if ("sys_mod_count" in fields) return { before: read, applyWith };
+  const { sys_mod_count: _drop, ...before } = read as Record<string, unknown>;
+  void _drop;
+  return { before, applyWith };
+}
+
+function assertModCount(
+  table: string,
+  sysId: string,
+  current: unknown,
+  expected: number | undefined,
+): void {
+  if (expected === undefined) return;
+  const now = resultModCount(current);
+  if (now === expected) return;
+  throw new ServiceNowError(
+    now === undefined
+      ? `Cannot verify that ${table}/${sysId} is unchanged since the plan (its sys_mod_count could not be read).`
+      : `${table}/${sysId} changed since the plan (sys_mod_count ${expected} → ${now}).`,
+    409,
+    { expected_mod_count: expected, sys_mod_count: now ?? null },
+    {
+      code: "STALE_RECORD",
+      hint: "Re-run without apply to review the current record, then apply that plan (or omit expected_mod_count to skip the check).",
+    },
+  );
+}
+
+/** H-3 (L2-06): `{unknown_fields}` when the cached schema flags any. */
+function unknownFieldsDetail(
+  table: string,
+  fields: Record<string, unknown>,
+): { unknown_fields?: string[] } {
+  const unknown = unknownFields(table, fields);
+  return unknown?.length ? { unknown_fields: unknown } : {};
+}
+
+/** P-22: what an upsert writes, for the SDK-managed guard. */
+function upsertTarget(
+  table: string,
+  decision: UpsertDecision,
+  payload: Record<string, unknown>,
+): SdkGuardTarget {
+  return decision.action === "update"
+    ? { table, sys_id: decision.sys_id, fields: payload }
+    : { table, fields: payload };
+}
 
 /**
  * S-8 (L2-14): refuse an upsert apply whose create-or-update decision moved

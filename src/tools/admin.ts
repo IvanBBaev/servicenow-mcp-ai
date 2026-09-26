@@ -16,8 +16,12 @@ import {
   type ServiceNowCredentials,
 } from "../core/config.js";
 import { appendWriteJournal } from "../core/write-journal.js";
+import { logger } from "../core/logging.js";
 import { isReadOnly } from "../core/policy.js";
-import { allowUnconfirmedCredentialChange } from "../core/settings.js";
+import {
+  allowUnconfirmedCredentialChange,
+  getProfileEnv,
+} from "../core/settings.js";
 import { invalidateTokens } from "../core/auth.js";
 import { disposeDispatchers } from "../core/dispatcher.js";
 import { clearSchemaCache } from "../core/cache.js";
@@ -34,7 +38,13 @@ import { testConnection } from "../api/diagnostics.js";
 import { checkCapabilities, MATRIX_GROUPS } from "../api/capabilities.js";
 import { clearCapabilityCache } from "../api/capability-matrix.js";
 import { ok, okStructured, fail } from "../mcp/result.js";
-import { defineTool, shortText, type AnyToolSpec } from "../mcp/define.js";
+import {
+  defineTool,
+  shortText,
+  tableName,
+  type AnyToolSpec,
+} from "../mcp/define.js";
+import { explainTable, policyPayload } from "../mcp/policy-view.js";
 
 /**
  * Machine-readable token for the H-2 refusal. fail() carries no code field,
@@ -505,17 +515,51 @@ export const specs: AnyToolSpec[] = [
         clearCapabilityCache();
         // M-5: servicenow://status (and profile-scoped content) changed.
         void notifyProfileChanged(getServer());
+        // H-11 (L3-03): switching to a production profile is called out.
+        const env = getProfileEnv();
+        if (env === "prod") {
+          logger.warn("switched to a production profile", {
+            profile: activeProfile(),
+          });
+        }
         return ok({
           message: "Profile switched",
           activeProfile: activeProfile(),
           instance: switched.instance || "(not set)",
           user: switched.user || "(not set)",
           readOnly: isReadOnly(),
+          ...(env ? { environment: env } : {}),
+          ...(env === "prod"
+            ? {
+                warning:
+                  "This profile is marked PRODUCTION: writes stay in plan mode unless acknowledged, and destructive applies need confirmation.",
+              }
+            : {}),
         });
       } catch (error) {
         return fail(error);
       }
     },
+  }),
+
+  defineTool({
+    name: "servicenow_explain_policy",
+    title: "Explain ServiceNow access policy",
+    description:
+      "Say whether a table may be read or written under the active policy and which rule decides (the guards' own evaluator), or, without a table, return the effective policy. Local; no instance call.",
+    package: "admin",
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    input: {
+      table: tableName().optional().describe("Table to check."),
+      action: z.enum(["read", "write"]).optional().describe("Default read."),
+    },
+    handler: ({ table, action }) =>
+      ok(table ? explainTable(table, action ?? "read") : policyPayload()),
   }),
 
   defineTool({

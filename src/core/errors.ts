@@ -79,7 +79,41 @@ export type ServiceNowErrorCode =
    * user/password, no API key, …) — nothing was sent. The hint names the
    * missing fields and the fix (servicenow_set_credentials or the env file).
    */
-  | "NOT_CONFIGURED";
+  | "NOT_CONFIGURED"
+  /**
+   * H-3: a destructive `apply:true` under SN_DESTRUCTIVE_CONFIRM=token|elicit
+   * without the `plan_token` of a matching, unexpired, unused plan preview —
+   * nothing was sent. The message says why the token did not match.
+   */
+  | "PLAN_REQUIRED"
+  /**
+   * H-3: SN_DESTRUCTIVE_CONFIRM=elicit asked the client to confirm a
+   * destructive apply and the user declined (or the prompt failed) — nothing
+   * was sent; the refusal is journaled.
+   */
+  | "CONFIRM_DECLINED"
+  /**
+   * H-11: the table policy refused the call (SN_TABLES_ALLOW / SN_TABLES_DENY,
+   * a protected table under SN_PROTECTED_TABLES_WRITE=deny, or
+   * SN_IMPORT_SET_TABLES). servicenow_explain_policy names the rule.
+   */
+  | "POLICY_DENIED"
+  /**
+   * H-11 (L3-02): a session or batch write cap (SN_MAX_WRITES_PER_SESSION,
+   * SN_MAX_DELETES_PER_SESSION, SN_MAX_BATCH_WRITES) would be exceeded —
+   * nothing was sent.
+   */
+  | "WRITE_CAP"
+  /**
+   * H-11 (L3-03 / L5-04): a destructive apply on a prod profile in apply mode
+   * from a client that cannot confirm it (no elicitation) — nothing was sent.
+   */
+  | "CONFIRM_REQUIRED"
+  /**
+   * P-22: SN_SDK_MANAGED_WRITES=deny and the record belongs to a scope whose
+   * source of truth is a ServiceNow SDK project (P-3) — nothing was sent.
+   */
+  | "SDK_MANAGED_SCOPE";
 
 /** The hint every CANCELLED error carries. */
 export const CANCELLED_HINT =

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { logger } from "../core/logging.js";
 import { activeProfile, listProfiles } from "../core/config.js";
+import { getDestructiveConfirm, getProfileEnv } from "../core/settings.js";
 import {
   runWithProfile,
   runWithClient,
@@ -12,6 +13,9 @@ import {
 } from "../core/request-context.js";
 import { createProgressSink, type ProgressNotification } from "./progress.js";
 import { fail, type ToolResult } from "./result.js";
+import { planArgsHash } from "./plan-token.js";
+import { confirmDestructiveApply } from "./confirm.js";
+import type { JournalInput } from "../core/write-journal.js";
 import { EMAIL_ADDRESS_RE } from "../api/shared.js";
 
 /**
@@ -52,6 +56,16 @@ export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
    * result never carries structuredContent.
    */
   output?: z.ZodRawShape;
+  /**
+   * H-3: marks the tool's `apply:true` as destructive. The registry adds a
+   * `plan_token` argument; under SN_DESTRUCTIVE_CONFIRM=token|elicit (plan
+   * mode only) the plan preview issues a token and an apply without the
+   * token of a matching preview is refused (PLAN_REQUIRED); `elicit` also
+   * asks the client. With the setting `off` the argument is ignored.
+   * `when` narrows it to some calls (a batch that writes); `target` names
+   * the record for the confirmation prompt and a refusal's journal line.
+   */
+  confirm?: ConfirmSpec;
   /** Fields for the log line; never secrets or raw encoded queries. */
   logFields?: (
     args: z.objectOutputType<S, z.ZodTypeAny>,
@@ -59,6 +73,14 @@ export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
   handler: (
     args: z.objectOutputType<S, z.ZodTypeAny>,
   ) => ToolResult | Promise<ToolResult>;
+}
+
+/** H-3: see ToolSpec.confirm. */
+export interface ConfirmSpec {
+  when?: (args: Record<string, unknown>) => boolean;
+  target: (
+    args: Record<string, unknown>,
+  ) => Pick<JournalInput, "action" | "table"> & Partial<JournalInput>;
 }
 
 /** Type-erased spec, so manifests of differently-shaped tools can be listed. */
@@ -168,19 +190,34 @@ async function runSpecInner(
   }
 
   call.profile = profile || activeProfile();
+  // H-3: a destructive-apply tool's call knows its plan binding, so its plan
+  // preview can issue a plan_token for exactly these arguments.
+  if (spec.confirm && getDestructiveConfirm(call.profile) !== "off") {
+    call.plan = { argsHash: planArgsHash(args) };
+  }
   const fields = spec.logFields?.(args) ?? {};
   const start = Date.now();
   logger.debug(`tool ${spec.name} start`, fields);
   try {
+    // H-3: the gate runs in the call's profile context, so a refusal is
+    // journaled under the profile the write targeted.
+    const invoke = async (): Promise<ToolResult> =>
+      (await confirmDestructiveApply(spec, args, call)) ??
+      (await spec.handler(args));
     const result = profile
-      ? await runWithProfile(profile, () => spec.handler(args))
-      : await spec.handler(args);
+      ? await runWithProfile(profile, invoke)
+      : await invoke();
     logger.info(`tool ${spec.name} done`, {
       ...fields,
       ms: Date.now() - start,
       isError: result.isError ?? false,
     });
-    return spec.output ? withStructuredContent(spec, result) : result;
+    // H-11 (L3-03): a result from a profile marked with an environment says so.
+    const env = getProfileEnv(call.profile);
+    const marked = env
+      ? { ...result, _meta: { ...result._meta, environment: env } }
+      : result;
+    return spec.output ? withStructuredContent(spec, marked) : marked;
   } catch (error) {
     const cancelled = call.signal?.aborted === true;
     logger.warn(`tool ${spec.name} ${cancelled ? "cancelled" : "error"}`, {
@@ -336,6 +373,14 @@ export const instanceParam = shortText(128)
   .describe("Profile name (default: active)");
 
 /**
+ * H-3: the automatic `plan_token` parameter of a destructive-apply tool. Its
+ * description stays short — tools/list is budgeted (M-6).
+ */
+export const planTokenParam = shortText(64)
+  .optional()
+  .describe("Token from the plan preview (apply:true)");
+
+/**
  * The registered input schema of a spec: its own shape plus the automatic
  * `instance` parameter (unless the spec already uses the name), as a strict
  * object — an unknown argument (e.g. a typo like 'tabel') is a visible
@@ -344,7 +389,9 @@ export const instanceParam = shortText(128)
 export function buildInputSchema(spec: AnyToolSpec) {
   const shape: z.ZodRawShape = hasAutoInstanceParam(spec)
     ? { ...spec.input, instance: instanceParam }
-    : spec.input;
+    : { ...spec.input };
+  if (spec.confirm && !("plan_token" in shape))
+    shape.plan_token = planTokenParam;
   return z.object(shape).strict();
 }
 

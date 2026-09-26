@@ -1,3 +1,4 @@
+import { sdkGuard, type SdkGuardTarget } from "../mcp/sdk-guard.js";
 import { z } from "zod";
 import {
   REVERT_TOOL,
@@ -82,6 +83,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    confirm: {
+      target: (args) => ({
+        action: "execute",
+        table: "write_journal",
+        reverts: String(args.entry_id),
+      }),
+    },
     input: {
       entry_id: shortText(128)
         .min(1)
@@ -112,11 +120,31 @@ export const specs: AnyToolSpec[] = [
             reverts: entry_id,
             drift: plan.drift,
             would_refuse: plan.drift.status !== "clean" && force !== true,
+            ...(await sdkGuard(revertTarget(plan), "plan")),
           },
         );
       }
+      const sdk = await sdkGuard(revertTarget(plan), "apply");
       const outcome = await applyRevert(plan, force === true);
-      return ok({ message: "Write reverted", ...outcome });
+      return ok({ message: "Write reverted", ...outcome, ...sdk });
     },
   }),
 ];
+
+/** P-22: the record a revert writes (a re-create names its scope in `restore`). */
+function revertTarget(plan: {
+  table: string;
+  sys_id?: string;
+  inverse: string;
+  current?: unknown;
+  restore?: Record<string, unknown>;
+}): SdkGuardTarget {
+  return {
+    table: plan.table,
+    ...(plan.inverse !== "create" && plan.sys_id
+      ? { sys_id: plan.sys_id }
+      : {}),
+    ...(plan.current ? { record: plan.current } : {}),
+    ...(plan.restore ? { fields: plan.restore } : {}),
+  };
+}

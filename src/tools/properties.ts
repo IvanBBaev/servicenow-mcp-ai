@@ -1,3 +1,4 @@
+import { sdkGuard } from "../mcp/sdk-guard.js";
 import { z } from "zod";
 import {
   PROPERTIES_TABLE,
@@ -111,9 +112,17 @@ export const specs: AnyToolSpec[] = [
             ...(!secret && snString(property.value) === value
               ? { unchanged: true }
               : {}),
+            ...(await sdkGuard(
+              { table: PROPERTIES_TABLE, sys_id: sysId, record: property },
+              "plan",
+            )),
           },
         );
       }
+      const sdk = await sdkGuard(
+        { table: PROPERTIES_TABLE, sys_id: sysId, record: property },
+        "apply",
+      );
       const record = await journaledWrite(
         {
           action: "update",
@@ -129,6 +138,7 @@ export const specs: AnyToolSpec[] = [
         message: `Property "${name}" updated`,
         property: secret ? { ...record, value: REDACTED } : record,
         note: "Some properties are cached by the instance and take effect only after a cache flush or a node restart.",
+        ...sdk,
       });
     },
   }),

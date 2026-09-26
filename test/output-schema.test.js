@@ -51,10 +51,23 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * and 31,151 (core): the all budget rises to 134,000.
  * Batch 12 (M-5 list/enable/disable_package; 92 tools, 3 in the always-on admin package) measured 132,949 (all) and 34,426 (core).
  * The merged batch 12 tree (93 tools) measured 137,276 (all) and 34,426 (core).
+ * H-3 (the automatic plan_token argument on six destructive-apply tools)
+ * measured 137,894 (all) and 34,632 (core): the all budget rises to 139,000.
+ * H-4 (change_conflicts apply + plan_token) measured 138,248 (all).
+ * H-11 (servicenow_explain_policy, always-on admin; 94 tools) measured
+ * 139,089 (all) and 35,473 (core): the budgets rise to 140,000 / 36,000.
+ * H-3 remainder (expected_mod_count on update/delete_record) measured
+ * 139,421 (all) and 35,805 (core): within the budget.
+ * P-18 (code_health extended/limit, where_used extended, lint_script opt-in
+ * types) measured 139,658 (all) and 35,805 (core): within the budget.
+ * P-20 (types/scope on snapshot_instance and compare_instances, both in the
+ * opt-in instance package) measured 140,142 (all) and 35,805 (core): the all
+ * budget rises to 141,000.
+ * P-21 (document_app detail) measured 140,292 (all): within the budget.
  * owner to restate (M-6 budget)
  */
-const TOOLS_LIST_BUDGET_ALL = 138_000;
-const TOOLS_LIST_BUDGET_CORE = 35_000;
+const TOOLS_LIST_BUDGET_ALL = 141_000;
+const TOOLS_LIST_BUDGET_CORE = 36_000;
 
 async function listTools(packages) {
   return withEnv({ SN_TOOL_PACKAGES: packages }, async () => {

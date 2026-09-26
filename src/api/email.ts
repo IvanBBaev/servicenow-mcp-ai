@@ -1,5 +1,5 @@
 import { snRequest } from "../core/http.js";
-import { assertWriteAllowed } from "../core/policy.js";
+import { assertWriteAllowed, assertTableAllowed } from "../core/policy.js";
 import { ServiceNowError } from "../core/errors.js";
 import { getEmailAllowedDomains } from "../core/settings.js";
 import { logger } from "../core/logging.js";
@@ -111,6 +111,9 @@ export async function assertRecipientsAllowed(
 }
 
 export async function sendEmail(args: SendEmailArgs): Promise<unknown> {
+  // H-4: an email is a sys_email row, optionally tied to a record's table.
+  assertTableAllowed("sys_email");
+  if (args.table) assertTableAllowed(args.table);
   assertWriteAllowed("send email");
   await assertRecipientsAllowed([
     ...args.to,
@@ -136,6 +139,7 @@ export async function sendEmail(args: SendEmailArgs): Promise<unknown> {
 }
 
 export async function getEmail(sysId: string): Promise<unknown> {
+  assertTableAllowed("sys_email"); // H-4: the backing table
   return pluginCall("Email", async () => {
     const { data } = await snRequest<{ result: unknown }>({
       method: "GET",

@@ -1,5 +1,9 @@
 import { snRequest } from "../core/http.js";
-import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
+import {
+  assertTableAllowed,
+  assertTableWriteAllowed,
+  assertWriteAllowed,
+} from "../core/policy.js";
 import {
   getMaxRecords,
   includeReferenceLinks,
@@ -393,7 +397,7 @@ export async function createRecord(
   fields: SnRecord,
   options: WriteOptions = {},
 ): Promise<SnRecord> {
-  assertTableAllowed(table);
+  assertTableWriteAllowed(table); // H-11: read rules + protected tables
   assertWriteAllowed("create");
   const { data } = await snRequest<{ result: SnRecord }>({
     method: "POST",
@@ -411,7 +415,7 @@ export async function updateRecord(
   fields: SnRecord,
   options: WriteOptions = {},
 ): Promise<SnRecord> {
-  assertTableAllowed(table);
+  assertTableWriteAllowed(table); // H-11: read rules + protected tables
   assertWriteAllowed("update");
   const { data } = await snRequest<{ result: SnRecord }>({
     method: "PATCH",
@@ -427,7 +431,7 @@ export async function deleteRecord(
   table: string,
   sysId: string,
 ): Promise<{ deleted: true; table: string; sys_id: string }> {
-  assertTableAllowed(table);
+  assertTableWriteAllowed(table); // H-11: read rules + protected tables
   assertWriteAllowed("delete");
   await snRequest<unknown>({
     method: "DELETE",

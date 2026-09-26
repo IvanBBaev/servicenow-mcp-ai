@@ -2,7 +2,7 @@ import { snRequest } from "../core/http.js";
 import { delay } from "../core/http-util.js";
 import { reportProgress, throwIfCancelled } from "../core/progress.js";
 import { currentSignal } from "../core/request-context.js";
-import { assertWriteAllowed } from "../core/policy.js";
+import { assertWriteAllowed, assertTableAllowed } from "../core/policy.js";
 import { expectResult, expectResultArray, snString } from "./shared.js";
 import { pluginCall } from "./plugin.js";
 import type { SnRecord } from "./table.js";
@@ -34,6 +34,7 @@ export interface AtfTestSummary extends SnRecord {
 export async function listAtfTests(
   opts: AtfQuery = {},
 ): Promise<AtfTestSummary[]> {
+  assertTableAllowed("sys_atf_test"); // H-4: the backing table
   const clauses: string[] = [];
   if (opts.active !== undefined) clauses.push(`active=${opts.active}`);
   if (opts.query?.trim()) clauses.push(opts.query.trim());
@@ -56,6 +57,7 @@ export async function listAtfTests(
 export async function listAtfSuites(
   opts: AtfQuery = {},
 ): Promise<AtfTestSummary[]> {
+  assertTableAllowed("sys_atf_test_suite"); // H-4: the backing table
   const clauses: string[] = [];
   if (opts.active !== undefined) clauses.push(`active=${opts.active}`);
   if (opts.query?.trim()) clauses.push(opts.query.trim());
@@ -108,6 +110,7 @@ function toRun(result: CicdResult): AtfRun {
  * poll with {@link getAtfResult}. A write (executes on the instance).
  */
 export async function runAtfSuite(suiteSysId: string): Promise<AtfRun> {
+  assertTableAllowed("sys_atf_test_suite"); // H-4: the backing table
   assertWriteAllowed("run ATF suite");
   return pluginCall(LABEL, async () => {
     const params = new URLSearchParams({ sys_id: suiteSysId });
@@ -126,6 +129,7 @@ export async function runAtfSuite(suiteSysId: string): Promise<AtfRun> {
  * that contains the test instead. A write (executes on the instance).
  */
 export async function runAtfTest(testSysId: string): Promise<AtfRun> {
+  assertTableAllowed("sys_atf_test"); // H-4: the backing table
   assertWriteAllowed("run ATF test");
   return pluginCall(LABEL, async () => {
     const params = new URLSearchParams({ test_sys_id: testSysId });
