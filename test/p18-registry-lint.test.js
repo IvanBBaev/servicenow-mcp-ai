@@ -17,7 +17,7 @@ import {
   freshRuntime,
   jsonResponse,
   withEnv,
-  withFetch,
+  withMetadataFetch,
 } from "./helpers.js";
 
 baselineEnv();
@@ -130,7 +130,7 @@ async function scenario(env, fn, rows = ROWS, statuses) {
   freshRuntime();
   try {
     return await withEnv({ SN_DOCS_DIR: docs, ...env }, () =>
-      withFetch(instance(rows, statuses), (calls) => fn(calls)),
+      withMetadataFetch(instance(rows, statuses), (calls) => fn(calls)),
     );
   } finally {
     rmSync(docs, { recursive: true, force: true });

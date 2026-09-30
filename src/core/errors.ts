@@ -113,7 +113,42 @@ export type ServiceNowErrorCode =
    * P-22: SN_SDK_MANAGED_WRITES=deny and the record belongs to a scope whose
    * source of truth is a ServiceNow SDK project (P-3) — nothing was sent.
    */
-  | "SDK_MANAGED_SCOPE";
+  | "SDK_MANAGED_SCOPE"
+  /**
+   * P-23: servicenow_upsert_artifact refuses the artefact type (a flow,
+   * playbook or workflow graph, or a baseQuery-filtered view of a table).
+   */
+  | "NOT_WRITABLE_TYPE"
+  /** P-23: the child table is not a writable child of the artefact type. */
+  | "CHILD_NOT_WRITABLE"
+  /**
+   * P-24: a nested child names no parent, a parent that is not an earlier
+   * child, or one whose table is not the descriptor's parent table.
+   */
+  | "CHILD_PARENT_INVALID"
+  /**
+   * P-24: an instance-wide unique field (sp_widget.id, sp_page.id,
+   * sp_portal.url_suffix, …) already exists elsewhere or twice in the plan.
+   */
+  | "DUPLICATE_UNIQUE_FIELD"
+  /** P-24: an SDK pre-flight rule refuses a value (catalog variable name). */
+  | "PREFLIGHT_INVALID"
+  /**
+   * P-25: a flow accepts only {active} on an existing flow — unverified until
+   * O-5 confirms master_snapshot stays unchanged.
+   */
+  | "FLOW_ACTIVE_ONLY"
+  /** P-23: a field outside the type's write allow-list (the registry). */
+  | "FIELD_NOT_ALLOWED"
+  /** P-23: two children of one call share a key. */
+  | "DUPLICATE_CHILD_KEY"
+  /** P-23: more children on one table than the diff reads. */
+  | "TOO_MANY_CHILDREN"
+  /**
+   * P-23: the plan writes a JSON field the registry marks `writable:false`
+   * (§5(c)) — the plan is returned, the apply refused; nothing was sent.
+   */
+  | "PLAN_ONLY_FIELD";
 
 /** The hint every CANCELLED error carries. */
 export const CANCELLED_HINT =

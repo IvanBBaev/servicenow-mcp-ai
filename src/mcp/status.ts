@@ -36,7 +36,11 @@ import {
   getDeadlineMs,
   getRetryAfterMaxMs,
 } from "../core/settings.js";
-import { currentRequestProfile } from "../core/request-context.js";
+import {
+  currentRequestProfile,
+  currentSession,
+} from "../core/request-context.js";
+import { rawSetting } from "../core/settings-manifest.js";
 import { getWriteCaps, getWriteCounters } from "../core/write-journal.js";
 import {
   isReadOnly,
@@ -57,6 +61,7 @@ import { userAgent, SERVER_VERSION } from "../core/identity.js";
 import { resolveHost } from "../core/host.js";
 import { sdkManagedStatus } from "../core/artifacts/sdk-managed.js";
 import { observabilityPayload } from "./observability.js";
+import { httpSessionInfo } from "./http-sessions.js";
 
 /**
  * The outbound HTTP policy as the operator should see it (H-10): the exact
@@ -108,6 +113,8 @@ export function serverStatusPayload() {
             host: getHttpHost(),
             port: getHttpPort(),
             tokenSet: Boolean(getHttpToken()),
+            // H-7: the calling session and how many are open.
+            ...httpSessionInfo(),
           },
         }
       : {}),
@@ -142,16 +149,19 @@ function docsStatus() {
 
 /**
  * M-1 / L3-02 — where the active profile comes from: a per-call `instance`
- * argument, SN_ACTIVE_PROFILE (process env or the env file), or the default.
- * The env file is named by path and existence only, never read back.
+ * argument, the HTTP session's own `use_instance` switch (H-7),
+ * SN_ACTIVE_PROFILE (process env or the env file), or the default. The env
+ * file is named by path and existence only, never read back.
  */
 function profileSource() {
   const envFile = getEnvPath();
   const source = currentRequestProfile()
     ? "request"
-    : process.env.SN_ACTIVE_PROFILE?.trim()
-      ? "SN_ACTIVE_PROFILE"
-      : "default";
+    : currentSession()?.profile
+      ? "session"
+      : rawSetting("SN_ACTIVE_PROFILE")?.trim()
+        ? "SN_ACTIVE_PROFILE"
+        : "default";
   return {
     active: activeProfile(),
     source,

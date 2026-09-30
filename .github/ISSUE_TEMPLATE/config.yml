@@ -1,0 +1,12 @@
+# Issue chooser: blank issues are disabled so every report goes through a form.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/IvanBBaev/servicenow-mcp-ai/security/advisories/new
+    about: Report privately through a GitHub security advisory — never in a public issue. See SECURITY.md.
+  - name: Setup and usage questions
+    url: https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/SUPPORT.md
+    about: Where to look first, how to run doctor --json and support-bundle, and what not to paste.
+  - name: ServiceNow platform issues
+    url: https://support.servicenow.com/
+    about: Problems with the ServiceNow platform itself (not this server) belong with ServiceNow.

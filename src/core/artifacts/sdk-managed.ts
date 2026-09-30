@@ -161,6 +161,7 @@ const scanCachePart = defineRuntimePart(
   "sdkProjectScan",
   () => new Map<string, CachedScan>(),
   (cache) => cache.clear(),
+  { scope: "process" },
 );
 
 const str = (v: unknown): string | null =>

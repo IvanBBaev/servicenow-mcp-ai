@@ -5,7 +5,7 @@ Related documents: [PRODUCT-STATE.md](PRODUCT-STATE.md) (state), [IMPLEMENTATION
 
 ## 1. What servicenow-mcp is
 
-A TypeScript **stdio MCP server** for ServiceNow: an LLM client (Claude, VS Code Chat, Inspector…) gets 93 tools in 26 packages over the ServiceNow REST surface — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, Email, CMDB/IRE, script intelligence, flow tracing, local code checking, ATF runs, Mermaid generators and local self-documentation, a journal-based revert of local writes, generic reads of any registered artifact type (with its child records), record history (audit + journal), system properties and user / group / role lookups. One process, no runtime dependencies beyond `@modelcontextprotocol/sdk`, `zod` and `dotenv`; all I/O is JSON over stdio (logs go to stderr only).
+A TypeScript **stdio MCP server** for ServiceNow: an LLM client (Claude, VS Code Chat, Inspector…) gets 97 tools in 26 packages over the ServiceNow REST surface — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, Email, CMDB/IRE, script intelligence, flow tracing, local code checking, ATF runs, Mermaid generators and local self-documentation, a journal-based revert of local writes, generic reads of any registered artifact type (with its child records) and a plan-first upsert of scalar and parent/child artifact types (`servicenow_upsert_artifact`), Fluent (`.now.ts`) source generation for scalar artifact types (`servicenow_generate_fluent`), record history (audit + journal), system properties and user / group / role lookups. One process, no runtime dependencies beyond `@modelcontextprotocol/sdk`, `zod` and `dotenv`; all I/O is JSON over stdio (logs go to stderr only).
 
 The principles that hold the design together:
 
@@ -224,3 +224,36 @@ Phases 6–9 and the DX/GA sweeps are shipped (full record in [DONE.md](DONE.md)
 - **ARCH-10 Option E:** a shared hook-parameterised HTTP engine for the ServiceNow and Jira clients — only if ARCH-14 lands as "build"; do not unify speculatively. The parity test (`test/http-twin-parity.test.js`) is the shipped drift guard (Option L).
 - **GA-9 (owner-gated):** a nightly e2e smoke suite against a live PDI — the only remaining test-architecture gap (the suite is 100% mock-fetch today).
 - **Doc-drift automation:** generate the prose numbers (test count, coverage, tool count) the way the README tools table is generated, guarded by a sync test.
+
+## HTTP transport sessions (H-7)
+
+`SN_TRANSPORT=http` serves one `StreamableHTTPServerTransport` and one
+`McpServer` per MCP session (`src/mcp/http-sessions.ts`). The server is built by
+`buildMcpServer(runtime)` (`src/server.ts`) on a **session runtime** created with
+`createRuntime({ parent })`: runtime parts declared `scope: "process"` (the
+schema cache, OAuth tokens and bearer files, the request queue and breakers,
+dispatchers, telemetry and metrics, the profile store, update-set locks, the
+SDK project scan) resolve to the parent and are shared; every other part
+(package session, plan tokens, tasks, write counters and caps, plugin
+availability, capability matrix) is per session and disposed with it. Each
+request runs inside `runInSession` (`src/core/request-context.ts`), which
+carries the session id, its McpServer, its log bridge and the profile chosen
+with `use_instance`; `activeProfile()` resolves request profile → session
+profile → `SN_ACTIVE_PROFILE` → `default`. Shared caches are therefore keyed by
+profile and host (`schemaCacheScope()`, the OAuth token key, the CMDB metadata
+key). stdio keeps one server on the process runtime.
+
+### Design note: OAuth for the HTTP endpoint (not implemented)
+
+The HTTP endpoint is guarded by a static bearer token today. A later
+opt-in mode (an `oauth` value of a new HTTP auth setting) would make the
+server an OAuth 2.1 resource server as the MCP authorization spec describes:
+serve `/.well-known/oauth-protected-resource` naming an external
+authorization server, validate JWT access tokens (issuer, audience = this
+server's resource URL, expiry, signature from the issuer's JWKS, cached),
+answer 401 with `WWW-Authenticate: Bearer resource_metadata=…`, and map a
+scope claim onto the policy model (read-only vs write). The token identifies
+the MCP client user only; ServiceNow calls keep using the configured profile
+credentials — per-user delegation to ServiceNow (token exchange) is a separate
+decision. Not started; it needs an owner decision on the authorization server
+and the claim-to-policy mapping.

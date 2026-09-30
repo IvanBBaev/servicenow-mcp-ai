@@ -46,7 +46,6 @@
       "sys_id": "88888888888888888888888888888888",
       "field": "composition",
       "decoder": "uib-composition",
-      "via": "json",
       "decoded": true,
       "value": [
         {

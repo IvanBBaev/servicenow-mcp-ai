@@ -1,12 +1,21 @@
 import { queryTable, type SnRecord } from "./table.js";
-import { getCredentials } from "../core/config.js";
+import { getCredentials, activeProfile } from "../core/config.js";
 import { cached, peekSchemaCache } from "../core/cache.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { ServiceNowError } from "../core/errors.js";
 
-/** Cache key prefix carrying the instance, so profiles never cross-pollute. */
+/**
+ * The schema-cache scope of a profile: its instance plus the profile name
+ * (H-7). The cache is shared by every HTTP session, and two profiles on one
+ * instance can authenticate as users with different read ACLs — a dictionary
+ * read cached for one must never answer (or complete) for the other.
+ */
+export const schemaCacheScope = (profile: string = activeProfile()): string =>
+  `${getCredentials(profile).instance}#${profile}`;
+
+/** Cache key prefix carrying the instance and profile; see schemaCacheScope. */
 const cacheKey = (parts: string[]): string =>
-  [getCredentials().instance, ...parts].join("|");
+  [schemaCacheScope(), ...parts].join("|");
 
 /**
  * Metadata helpers built on top of the Table API: they read ServiceNow's own
@@ -70,16 +79,14 @@ export const SEED_TABLES = [
 ] as const;
 
 /**
- * Table names the schema cache already knows for `instance` (default: the
- * active profile's) — described tables, their inheritance chains and
- * reference targets, and cached `listTables` results. Never calls the
- * instance, so completions and resource lists stay free and offline.
+ * Table names the schema cache already knows for `profile` (default: the
+ * active one) — described tables, their inheritance chains and reference
+ * targets, and cached `listTables` results. Never calls the instance, so
+ * completions and resource lists stay free and offline.
  */
-export function cachedTableNames(
-  instance: string = getCredentials().instance,
-): string[] {
+export function cachedTableNames(profile: string = activeProfile()): string[] {
   const names = new Set<string>();
-  for (const [key, value] of peekSchemaCache(`${instance}|`)) {
+  for (const [key, value] of peekSchemaCache(`${schemaCacheScope(profile)}|`)) {
     const [, kind, table] = key.split("|");
     if (kind === "describeTable" && table) {
       names.add(table);

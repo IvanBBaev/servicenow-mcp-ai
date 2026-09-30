@@ -10,7 +10,12 @@ import {
   matchBySysId,
 } from "../build/api/compare.js";
 import { clearSchemaCache } from "../build/core/cache.js";
-import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+import {
+  baselineEnv,
+  withEnv,
+  withMetadataFetch,
+  jsonResponse,
+} from "./helpers.js";
 
 // Each test file runs in its own process, so a per-file temp docs dir is safe.
 const DOCS_DIR = path.join(
@@ -136,7 +141,7 @@ test("compareInstances diffs tables, columns, scripts, plugins and apps", async 
   baselineEnv();
   clearSchemaCache();
   const result = await withEnv(PROFILE_ENV, () =>
-    withFetch(twoInstanceFetch, () =>
+    withMetadataFetch(twoInstanceFetch, () =>
       compareInstances({ a: "default", b: "prod" }),
     ),
   );
@@ -219,7 +224,7 @@ test("from_snapshot uses stored JSON for tables and falls back live with a warni
   );
 
   const result = await withEnv(PROFILE_ENV, () =>
-    withFetch(twoInstanceFetch, () =>
+    withMetadataFetch(twoInstanceFetch, () =>
       compareInstances({ a: "default", b: "prod", fromSnapshot: true }),
     ),
   );
@@ -279,7 +284,7 @@ test("compareInstances warns when sys_dictionary hits the SN_MAX_RECORDS cap (QA
   baselineEnv();
   clearSchemaCache();
   const result = await withEnv({ ...PROFILE_ENV, SN_MAX_RECORDS: "1" }, () =>
-    withFetch(cappedDictionaryFetch, () =>
+    withMetadataFetch(cappedDictionaryFetch, () =>
       compareInstances({ a: "default", b: "prod" }),
     ),
   );
@@ -343,7 +348,9 @@ test("compare matches scripts by sys_id and shows a unified diff (S-7)", async (
   baselineEnv();
   clearSchemaCache();
   const result = await withEnv(PROFILE_ENV, () =>
-    withFetch(s7Fetch, () => compareInstances({ a: "default", b: "prod" })),
+    withMetadataFetch(s7Fetch, () =>
+      compareInstances({ a: "default", b: "prod" }),
+    ),
   );
   const renamed = result.scriptDiffs.find((d) => d.status === "renamed");
   assert.equal(renamed.name, "NewUtil");
@@ -367,7 +374,7 @@ test("compare diffs record sections live and from the snapshot (S-7)", async () 
   baselineEnv();
   clearSchemaCache();
   const live = await withEnv(PROFILE_ENV, () =>
-    withFetch(s7Fetch, () =>
+    withMetadataFetch(s7Fetch, () =>
       compareInstances({ a: "default", b: "prod", sections: ["properties"] }),
     ),
   );
@@ -401,7 +408,7 @@ test("compare diffs record sections live and from the snapshot (S-7)", async () 
   );
   clearSchemaCache();
   const snap = await withEnv(PROFILE_ENV, () =>
-    withFetch(
+    withMetadataFetch(
       (url) =>
         new URL(url).pathname.endsWith("/sys_user_role")
           ? jsonResponse(200, {
@@ -438,7 +445,7 @@ test("an unreadable record section becomes a warning (S-7)", async () => {
   baselineEnv();
   clearSchemaCache();
   const result = await withEnv(PROFILE_ENV, () =>
-    withFetch(s7Fetch, () =>
+    withMetadataFetch(s7Fetch, () =>
       compareInstances({ a: "default", b: "prod", sections: ["acls"] }),
     ),
   );
@@ -471,5 +478,21 @@ test("matchBySysId pairs by sys_id first, then by key", () => {
   assert.deepEqual(
     onlyB.map((i) => i.name),
     ["w"],
+  );
+});
+
+test("ID-27: a record-data read during a compare fails the metadata guard", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  await assert.rejects(
+    withEnv(PROFILE_ENV, () =>
+      withMetadataFetch(twoInstanceFetch, async () => {
+        await compareInstances({ a: "default", b: "prod" });
+        await globalThis
+          .fetch("https://dev00000.service-now.com/api/now/table/incident")
+          .catch(() => undefined);
+      }),
+    ),
+    /non-metadata table: incident/,
   );
 });

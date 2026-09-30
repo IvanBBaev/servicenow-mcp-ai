@@ -309,6 +309,7 @@ const dispatchersPart = defineRuntimePart(
   "dispatchers",
   (): DispatcherState => ({ agents: new Map(), warnedVerifyOff: false }),
   (state) => closeAgents(state.agents),
+  { scope: "process" },
 );
 
 const dispatchers = (): DispatcherState =>

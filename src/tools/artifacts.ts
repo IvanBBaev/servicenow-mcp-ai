@@ -1,20 +1,36 @@
 import { z } from "zod";
 import { listArtifacts, getArtifact, LIST_LIMIT } from "../api/artifacts.js";
 import { explainArtifact } from "../api/explain-artifact.js";
+import { FLUENT_LIMIT, generateFluent } from "../api/fluent.js";
 import {
   artifactDependencies,
   dependencyMermaid,
   DEPENDENCY_DEPTH,
   DEPENDENCY_LIMIT,
 } from "../api/dependencies.js";
-import { okStructured } from "../mcp/result.js";
+import { ok, okStructured } from "../mcp/result.js";
 import {
   defineTool,
   encodedQuery,
   shortText,
   sysId,
+  tableName,
   type AnyToolSpec,
 } from "../mcp/define.js";
+import {
+  applyArtifactPlan,
+  assertNotPlanOnly,
+  planArtifactUpsert,
+  planWrites,
+  type ArtifactPlan,
+  type PlannedRecord,
+} from "../api/upsert-artifact.js";
+import { getArtifactType } from "../core/artifacts/registry.js";
+import { assertTableWriteAllowed, assertWriteAllowed } from "../core/policy.js";
+import { applyInput, planPreview, shouldApply } from "../mcp/write-mode.js";
+import { sdkGuard } from "../mcp/sdk-guard.js";
+import { bindingPlanDetail, planUpdateSetBinding } from "../api/updatesets.js";
+import { assertUpsertUnchanged, updateSetInput } from "./table.js";
 
 // A plain string, not an enum: the registry has dozens of types and an enum
 // would cost tokens in every tools/list (SDK-PARITY §5(d)). The resource lists
@@ -44,6 +60,52 @@ const artifactRefInput = {
       "The type's natural key (keyFields in servicenow://artifact-types): a plain value for a single key field, e.g. a portal page id, or an object with every key field. Pass this or 'sys_id', not both.",
     ),
 };
+
+/** Flat Table API values (the same shape the Table write tools take). */
+const fieldsSchema = z.record(
+  z.union([z.string(), z.number(), z.boolean(), z.null()]),
+);
+
+/** P-22 per record of an artefact plan; a deny throws before any write. */
+async function guardPlan(plan: ArtifactPlan, phase: "plan" | "apply") {
+  const managed: Record<string, unknown>[] = [];
+  const warnings = new Set<string>();
+  for (const r of [plan.parent, ...plan.children]) {
+    if (r.action === "noop") continue;
+    const g = await sdkGuard(
+      r.action === "update"
+        ? { table: r.table, sys_id: r.sys_id, fields: r.write }
+        : { table: r.table, fields: r.write },
+      phase,
+    );
+    if (g?.sdkManaged) {
+      managed.push({
+        table: r.table,
+        ...(r.index !== undefined ? { child: r.index } : {}),
+        ...(r.sys_id ? { sys_id: r.sys_id } : {}),
+        ...g.sdkManaged,
+      });
+    }
+    if (g?.sdkScopeWarning) warnings.add(g.sdkScopeWarning);
+  }
+  return {
+    ...(managed.length ? { sdkManaged: managed } : {}),
+    ...(warnings.size ? { sdkScopeWarning: [...warnings] } : {}),
+  };
+}
+
+function childPlan(r: PlannedRecord): Record<string, unknown> {
+  return {
+    child: r.index,
+    ...(r.parent !== undefined ? { parent: r.parent } : {}),
+    table: r.table,
+    action: r.action,
+    ...(r.sys_id ? { sys_id: r.sys_id } : {}),
+    key: r.key,
+    ...(r.before ? { before: r.before } : {}),
+    ...(r.action !== "noop" ? { after: r.write } : {}),
+  };
+}
 
 const scopeOutput = z.object({
   sys_id: z.string().nullable(),
@@ -355,6 +417,244 @@ export const specs: AnyToolSpec[] = [
         ...summary,
         ...(truncated > 0 ? { mermaidTruncated: truncated } : {}),
         mermaid,
+      });
+    },
+  }),
+  defineTool({
+    name: "servicenow_generate_fluent",
+    title: "Generate Fluent",
+    description:
+      "Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope. Secrets become placeholders; types without an emitter use Record() and are listed in unsupported. SDK target not type-checked.",
+    package: "artifacts",
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    input: {
+      ...artifactRefInput,
+      scope: shortText()
+        .optional()
+        .describe(
+          "Instead of sys_id/key: every artifact of the type in this scope.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(FLUENT_LIMIT.max)
+        .optional()
+        .describe(`Scope mode cap (default ${FLUENT_LIMIT.default}).`),
+      format: z
+        .enum(["inline", "file"])
+        .optional()
+        .describe(
+          "'inline' (default) or 'file' (<SN_DOCS_DIR>/<profile>/fluent/<scope>/).",
+        ),
+      overwrite: z.boolean().optional().describe("Replace hand-edited files."),
+    },
+    output: {
+      artifactType: z.string(),
+      sdkApi: z.string(),
+      emitter: z.enum(["dedicated", "record"]),
+      count: z.number(),
+      keys: z.array(z.object({ key: z.string() }).passthrough()),
+      unsupported: z.array(
+        z.object({ kind: z.string(), reason: z.string() }).passthrough(),
+      ),
+      files: z.array(z.object({ path: z.string() }).passthrough()),
+    },
+    logFields: (args) => ({
+      artifactType: args.artifactType,
+      scope: args.scope,
+      format: args.format,
+    }),
+    handler: async (args) => okStructured(await generateFluent(args)),
+  }),
+
+  defineTool({
+    name: "servicenow_upsert_artifact",
+    title: "Upsert artifact",
+    description:
+      "Create or update a registry artifact and its children (UI policy actions, portal page layout, catalog variables) as one journaled, revertible plan, parent first, with SDK pre-flight. Flows: {active} only (unverified, O-5).",
+    package: "artifacts",
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    // H-3: one token covers the whole plan (parent and children).
+    confirm: {
+      target: (args) => ({
+        action: "update",
+        table:
+          getArtifactType(
+            typeof args.artifactType === "string" ? args.artifactType : "",
+          )?.table ?? "artifact",
+      }),
+    },
+    input: {
+      artifactType: artifactTypeInput,
+      key: artifactRefInput.key
+        .unwrap()
+        .describe(
+          "The primary record's key: a plain value for a single key field, or an object of field/value pairs (every key field; a sys_id-keyed type takes any identifying fields, e.g. {table, short_description}). Written on create.",
+        ),
+      fields: fieldsSchema.describe(
+        "Primary-record fields to write (the type's descriptor fields; sys_scope on create only).",
+      ),
+      children: z
+        .array(
+          z.object({
+            table: tableName()
+              .optional()
+              .describe(
+                "Child table; defaults to the type's only child table.",
+              ),
+            key: z
+              .record(keyValue)
+              .optional()
+              .describe(
+                "Identifies the child under the parent; defaults to its name field (e.g. {field: 'state'}).",
+              ),
+            fields: fieldsSchema.describe(
+              "Child fields to write; the link to the parent is set by the tool.",
+            ),
+            parent: z
+              .number()
+              .int()
+              .min(0)
+              .max(199)
+              .optional()
+              .describe(
+                "Index of the earlier child this one hangs off (sp_row under sp_container); omit for the primary.",
+              ),
+          }),
+        )
+        .max(200)
+        .optional()
+        .describe("Child records, applied in this order after the parent."),
+      expected_action: z
+        .enum(["create", "update"])
+        .optional()
+        .describe(
+          "From the plan's apply_with; a changed decision gives STALE_RECORD.",
+        ),
+      expected_sys_id: sysId()
+        .optional()
+        .describe("From the plan's apply_with (parent sys_id)."),
+      update_set: updateSetInput,
+      apply: applyInput,
+    },
+    logFields: (args) => ({
+      artifactType: args.artifactType,
+      children: args.children?.length ?? 0,
+    }),
+    handler: async ({
+      artifactType,
+      key,
+      fields,
+      children,
+      expected_action,
+      expected_sys_id,
+      update_set,
+      apply,
+    }) => {
+      const plan = await planArtifactUpsert({
+        artifactType,
+        key,
+        fields,
+        children,
+      });
+      const { parent } = plan;
+      const writes = planWrites(plan);
+      const binding = writes
+        ? await planUpdateSetBinding(parent.table, update_set)
+        : undefined;
+      const parentAction = parent.action === "create" ? "create" : "update";
+      if (!shouldApply(apply)) {
+        const count = { create: 0, update: 0, noop: 0 };
+        for (const r of [parent, ...plan.children]) count[r.action] += 1;
+        const guard = await guardPlan(plan, "plan");
+        const refused =
+          plan.planOnly.length > 0 ||
+          plan.deniedTables.length > 0 ||
+          (guard.sdkManaged ?? []).some((g) => g.would_refuse === true);
+        return planPreview(
+          {
+            action: parentAction,
+            table: parent.table,
+            ...(parent.sys_id ? { sys_id: parent.sys_id } : {}),
+            ...(parent.before ? { before: parent.before } : {}),
+            after: parent.write,
+          },
+          {
+            artifactType: plan.type.type,
+            ...(plan.type.verified ? {} : { verified: false }),
+            key: parent.key,
+            parent_action: parent.action,
+            ...(plan.children.length
+              ? { children: plan.children.map(childPlan) }
+              : {}),
+            count,
+            ...(writes ? {} : { no_changes: true }),
+            apply_with: {
+              expected_action: parentAction,
+              ...(parent.sys_id ? { expected_sys_id: parent.sys_id } : {}),
+            },
+            ...(plan.planOnly.length
+              ? {
+                  plan_only: {
+                    fields: plan.planOnly,
+                    note: "These fields are plan-only (writable:false in the registry): the apply is refused with PLAN_ONLY_FIELD.",
+                  },
+                }
+              : {}),
+            ...(plan.deniedTables.length
+              ? { policy_denied: plan.deniedTables }
+              : {}),
+            ...(refused ? { would_refuse: true } : {}),
+            ...(plan.unknownFields.length
+              ? { unknown_fields: plan.unknownFields }
+              : {}),
+            ...(plan.warnings.length ? { warnings: plan.warnings } : {}),
+            ...bindingPlanDetail(binding),
+            ...guard,
+          },
+        );
+      }
+      assertUpsertUnchanged(
+        parent.action === "create"
+          ? { action: "create" }
+          : { action: "update", sys_id: parent.sys_id as string, before: {} },
+        expected_action,
+        expected_sys_id,
+      );
+      assertNotPlanOnly(plan);
+      // H-11 and P-22 for every table and record before the first write, so
+      // a refusal never leaves a half-written artefact.
+      if (writes) assertWriteAllowed("update");
+      for (const r of [parent, ...plan.children]) {
+        if (r.action !== "noop") assertTableWriteAllowed(r.table);
+      }
+      const guard = await guardPlan(plan, "apply");
+      const applied = await applyArtifactPlan(plan, binding);
+      const [head, ...rest] = applied.records;
+      return ok({
+        message: writes
+          ? `Artifact ${parent.action === "create" ? "created" : "updated"}: ${writes} record${writes === 1 ? "" : "s"} written`
+          : "No changes: every record already matches",
+        artifactType: plan.type.type,
+        action: head?.action,
+        table: parent.table,
+        sys_id: head?.sys_id,
+        ...(rest.length ? { children: rest } : {}),
+        ...(writes ? { artifact_write: applied.artifact_write } : {}),
+        ...(plan.warnings.length ? { warnings: plan.warnings } : {}),
+        ...(applied.report ?? {}),
+        ...guard,
       });
     },
   }),

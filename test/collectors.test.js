@@ -17,7 +17,7 @@ import {
   baselineEnv,
   freshRuntime,
   withEnv,
-  withFetch,
+  withMetadataFetch,
   jsonResponse,
 } from "./helpers.js";
 
@@ -43,7 +43,7 @@ const PLUGIN = {
 };
 
 test("collectTables returns sys_db_object rows; a failed read is unreadable", async () => {
-  await withFetch(
+  await withMetadataFetch(
     () =>
       jsonResponse(200, {
         result: [
@@ -59,7 +59,7 @@ test("collectTables returns sys_db_object rows; a failed read is unreadable", as
     },
   );
   freshRuntime();
-  await withFetch(denied, async () => {
+  await withMetadataFetch(denied, async () => {
     const r = await collectTables({});
     assert.deepEqual(r.data, []);
     assert.deepEqual(r.unreadable, ["sys_db_object"]);
@@ -68,7 +68,7 @@ test("collectTables returns sys_db_object rows; a failed read is unreadable", as
 });
 
 test("collectSchema lists a table's columns; a failed read is unreadable", async () => {
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       if (tableOf(url) === "sys_db_object") {
         return jsonResponse(200, { result: [{ name: "incident" }] });
@@ -95,7 +95,7 @@ test("collectSchema lists a table's columns; a failed read is unreadable", async
     },
   );
   freshRuntime();
-  await withFetch(denied, async () => {
+  await withMetadataFetch(denied, async () => {
     const r = await collectSchema({}, "incident");
     assert.deepEqual(r.data, []);
     assert.deepEqual(r.unreadable, ["incident"]);
@@ -105,7 +105,7 @@ test("collectSchema lists a table's columns; a failed read is unreadable", async
 
 test("collectPlugins falls back to sys_plugins; unreadable only when all fail", async () => {
   assert.deepEqual([...PLUGIN_SOURCES], ["v_plugin", "sys_plugins"]);
-  await withFetch(
+  await withMetadataFetch(
     (url) =>
       tableOf(url) === "v_plugin"
         ? denied()
@@ -120,13 +120,13 @@ test("collectPlugins falls back to sys_plugins; unreadable only when all fail", 
       assert.ok(r.errors.v_plugin, "the failed primary source keeps its error");
     },
   );
-  await withFetch(denied, async () => {
+  await withMetadataFetch(denied, async () => {
     const r = await collectPlugins();
     assert.equal(r.data, undefined);
     assert.deepEqual(r.unreadable, ["v_plugin", "sys_plugins"]);
   });
   // A narrowed source list (compare reads v_plugin only).
-  await withFetch(denied, async (calls) => {
+  await withMetadataFetch(denied, async (calls) => {
     const r = await collectPlugins({}, ["v_plugin"]);
     assert.deepEqual(r.unreadable, ["v_plugin"]);
     assert.equal(calls.length, 1);
@@ -135,7 +135,7 @@ test("collectPlugins falls back to sys_plugins; unreadable only when all fail", 
 
 test("collectPlugins flags a capped read as truncated", async () => {
   await withEnv({ SN_MAX_RECORDS: "1" }, () =>
-    withFetch(
+    withMetadataFetch(
       () => jsonResponse(200, { result: [PLUGIN] }),
       async () => {
         const r = await collectPlugins();
@@ -148,7 +148,7 @@ test("collectPlugins flags a capped read as truncated", async () => {
 
 test("collectApps reads both tables, reports progress, leaves out an unreadable one", async () => {
   const seen = [];
-  await withFetch(
+  await withMetadataFetch(
     (url) =>
       tableOf(url) === "sys_store_app"
         ? denied()
@@ -177,7 +177,7 @@ test("collectAutomation aggregates the given types; a failed type is null", asyn
     script_include: SCRIPT_TYPES.script_include,
   };
   const seen = [];
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       const u = new URL(url);
       if (u.pathname.endsWith("/sys_script_include")) return denied();
@@ -223,7 +223,7 @@ test("collectAutomation aggregates the given types; a failed type is null", asyn
 });
 
 test("collectRecordSection redacts secrets, hashes ACL scripts, flags truncation", async () => {
-  await withFetch(
+  await withMetadataFetch(
     () =>
       jsonResponse(200, {
         result: [
@@ -247,7 +247,7 @@ test("collectRecordSection redacts secrets, hashes ACL scripts, flags truncation
     },
   );
   await withEnv({ SN_MAX_RECORDS: "1" }, () =>
-    withFetch(
+    withMetadataFetch(
       () =>
         jsonResponse(200, {
           result: [
@@ -263,7 +263,7 @@ test("collectRecordSection redacts secrets, hashes ACL scripts, flags truncation
       },
     ),
   );
-  await withFetch(denied, async () => {
+  await withMetadataFetch(denied, async () => {
     const r = await collectRecordSection({}, "roles");
     assert.deepEqual(r.data, []);
     assert.deepEqual(r.unreadable, ["sys_user_role"]);
@@ -272,7 +272,7 @@ test("collectRecordSection redacts secrets, hashes ACL scripts, flags truncation
 
 test("every collector throws CANCELLED on an aborted signal", async () => {
   const signal = AbortSignal.abort();
-  await withFetch(
+  await withMetadataFetch(
     () => jsonResponse(200, { result: [] }),
     async (calls) => {
       for (const run of [
@@ -292,7 +292,7 @@ test("every collector throws CANCELLED on an aborted signal", async () => {
 
 test("a signal aborted mid-run stops the collector and keeps the call context", async () => {
   const controller = new AbortController();
-  await withFetch(
+  await withMetadataFetch(
     () => {
       controller.abort();
       return jsonResponse(200, { result: [] });

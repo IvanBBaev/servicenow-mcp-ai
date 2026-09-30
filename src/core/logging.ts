@@ -21,6 +21,7 @@
  */
 import { logContext } from "./request-context.js";
 import { formatLogLine, redactLogFields, writeLogFile } from "./log-file.js";
+import { readEnum } from "./settings-manifest.js";
 
 export type LogLevel = "error" | "warn" | "info" | "debug";
 
@@ -32,10 +33,8 @@ const LEVELS: Record<LogLevel, number> = {
 };
 
 function configuredLevel(): LogLevel {
-  const raw = (process.env.SN_LOG_LEVEL ?? process.env.LOG_LEVEL ?? "info")
-    .trim()
-    .toLowerCase();
-  return raw in LEVELS ? (raw as LogLevel) : "info";
+  // E-4: SN_LOG_LEVEL, then the legacy LOG_LEVEL alias, through the manifest.
+  return readEnum<LogLevel>("SN_LOG_LEVEL") ?? "info";
 }
 
 /** Optional secondary sink (e.g. the MCP logging capability). */

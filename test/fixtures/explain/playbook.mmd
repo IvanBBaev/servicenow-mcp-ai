@@ -1,0 +1,22 @@
+flowchart TD
+  pb["Playbook: Laptop Onboarding"]
+  pb --> t1[/"Trigger: Record Created · sn_hr_core_case"/]
+  pb --> t2[/"Trigger: Manual start"/]
+  subgraph lane_6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a["1 Intake"]
+    direction TB
+    act_7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a["1.1 Collect Details · Form"]
+    act_7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b["1.2 Approve Request · approval"]
+    act_7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a --> act_7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b7b
+  end
+  pb -.-> lane_6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a6a
+  subgraph lane_6b6b6b6b6b6b6b6b6b6b6b6b6b6b6b6b["2 Fulfil"]
+    direction TB
+    act_7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c["2.1 Ship Laptop"]
+    act_7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d["2.2 wait_delivery · 2 timer(s)"]
+    act_7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c7c --> act_7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d7d
+  end
+  pb -.-> lane_6b6b6b6b6b6b6b6b6b6b6b6b6b6b6b6b
+  subgraph lane_6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c["3 Close"]
+    direction TB
+  end
+  pb -.-> lane_6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c6c

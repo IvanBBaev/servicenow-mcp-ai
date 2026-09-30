@@ -64,9 +64,19 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * opt-in instance package) measured 140,142 (all) and 35,805 (core): the all
  * budget rises to 141,000.
  * P-21 (document_app detail) measured 140,292 (all): within the budget.
+ * P-23 (servicenow_upsert_artifact in the opt-in artifacts package; 95
+ * tools) measured 143,644 (all) and 35,805 (core): the all budget
+ * rises to 144,000.
+ * P-24/P-25 (children[].parent for nested artefact children, flow toggle
+ * wording) and P-14 / P-15 (servicenow_explain_ui_experience in the opt-in ui
+ * package, P-19 UIB / P-21 UIB describe text) together measured about 146,000
+ * (all): the all budget rises to 146,500.
+ * P-26 (servicenow_generate_fluent in the opt-in artifacts package; 97
+ * tools) measured 148,384 (all) and 35,805 (core): the all budget rises to
+ * 148,500.
  * owner to restate (M-6 budget)
  */
-const TOOLS_LIST_BUDGET_ALL = 141_000;
+const TOOLS_LIST_BUDGET_ALL = 149_000;
 const TOOLS_LIST_BUDGET_CORE = 36_000;
 
 async function listTools(packages) {

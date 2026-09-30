@@ -1,6 +1,7 @@
 import { ServiceNowError } from "./errors.js";
 import { activeProfile } from "./config.js";
 import { getDeniedPackages, getReadOnlyPackages } from "./settings.js";
+import { rawSetting, readBool, readEnum } from "./settings-manifest.js";
 
 /**
  * Discoverability hint appended to every policy-denial message so a model or
@@ -29,11 +30,8 @@ function policyValue(
   suffix: string,
   profile: string = activeProfile(),
 ): string | undefined {
-  if (profile !== "default") {
-    const scoped = process.env[`SN_PROFILE_${profile.toUpperCase()}_${suffix}`];
-    if (scoped !== undefined) return scoped;
-  }
-  return process.env[`SN_${suffix}`];
+  // E-4: the policy keys are declared with the `override` profile scope.
+  return rawSetting(`SN_${suffix}`, { profile });
 }
 
 function list(suffix: string, profile?: string): string[] {
@@ -52,8 +50,7 @@ export function getDeniedTables(profile?: string): string[] {
 }
 
 export function isReadOnly(profile?: string): boolean {
-  const raw = (policyValue("READONLY", profile) ?? "").trim().toLowerCase();
-  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+  return readBool("SN_READONLY", { profile: profile ?? activeProfile() });
 }
 
 // --- H-11: table policy v2 -------------------------------------------------
@@ -151,11 +148,11 @@ function firstMatch(
 
 /** H-11: `SN_PROTECTED_TABLES_WRITE` — `allow` (default until 3.0) or `deny`. */
 export function protectedTablesWrite(profile?: string): "allow" | "deny" {
-  return (policyValue("PROTECTED_TABLES_WRITE", profile) ?? "")
-    .trim()
-    .toLowerCase() === "deny"
-    ? "deny"
-    : "allow";
+  return (
+    readEnum<"allow" | "deny">("SN_PROTECTED_TABLES_WRITE", {
+      profile: profile ?? activeProfile(),
+    }) ?? "allow"
+  );
 }
 
 /** H-11: the protected-list entry a table falls under, if any. */

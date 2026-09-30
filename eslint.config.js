@@ -7,7 +7,17 @@ export default tseslint.config(
   // docs/ holds the hand-authored GitHub Pages site (browser JS/CSS/HTML) and
   // the runtime self-documentation store — neither is part of the Node/TS
   // project, so they stay out of the project lint (the site has its own concerns).
-  { ignores: ["build/", "node_modules/", "docs/", "extension/"] },
+  // D-7: the VS Code extension's sources are linted here too (see the
+  // extension/src block below); only its build output and deps are ignored.
+  {
+    ignores: [
+      "build/",
+      "node_modules/",
+      "docs/",
+      "extension/out/",
+      "extension/node_modules/",
+    ],
+  },
   js.configs.recommended,
   // Type-checked rules need a TS program; scope them to src/ so plain-JS
   // config and test files stay on the syntax-only ruleset.
@@ -83,6 +93,15 @@ export default tseslint.config(
         },
       ],
     },
+  },
+  // D-7: the VS Code extension has its own tsconfig and its `@types/vscode`
+  // lives in extension/node_modules (not installed by the root CI job), so it
+  // gets the syntax-only ruleset; its typecheck and the type-aware lint
+  // (extension/eslint.config.mjs, `npm run lint` in extension/) run in the CI
+  // extension job.
+  {
+    files: ["extension/src/**/*.ts"],
+    extends: [...tseslint.configs.recommended],
   },
   {
     files: ["**/*.js", "**/*.mjs"],

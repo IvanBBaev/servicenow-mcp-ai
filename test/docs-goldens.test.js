@@ -8,6 +8,7 @@ import { generateErDiagram, generateTableFlow } from "../build/api/diagrams.js";
 import { traceTableEvent } from "../build/api/flows.js";
 import { whereUsed } from "../build/api/whereused.js";
 import { clearSchemaCache } from "../build/core/cache.js";
+import { ARTIFACT_TYPES } from "../build/core/artifacts/registry.js";
 import {
   assertMetadataUrl,
   baselineEnv,
@@ -390,4 +391,54 @@ test("the allow-list guard rejects record-data reads", () => {
     /non-table request/,
   );
   assertMetadataUrl("https://x/api/now/stats/sys_script");
+});
+
+test("ID-27: the allow-list covers every registry table and the S-3 / S-15 tables", () => {
+  const registry = ARTIFACT_TYPES.flatMap((t) => [
+    t.table,
+    ...t.children.map((c) => c.table),
+  ]);
+  assert.ok(registry.length >= ARTIFACT_TYPES.length);
+  const named = [
+    "sys_security_acl_role",
+    "sys_user_role",
+    "sys_user_role_contains",
+    "sys_ui_page",
+    "sys_public",
+    "sys_ws_definition",
+    "sys_ws_operation",
+    "sys_rest_message",
+    "sys_properties",
+    "sysevent_email_action",
+    "sys_choice",
+    "sc_catalog",
+    "sc_category",
+    "sc_cat_item",
+    "item_option_new",
+  ];
+  for (const table of [...registry, ...named])
+    assertMetadataUrl(`https://x/api/now/table/${table}?sysparm_limit=1`);
+});
+
+test("ID-27: a swallowed guard violation still fails withMetadataFetch", async () => {
+  await assert.rejects(
+    withMetadataFetch(
+      () => jsonResponse(200, { result: [] }),
+      async () => {
+        // A collector that degrades on a fetch error would hide the throw.
+        await globalThis
+          .fetch("https://x/api/now/table/incident")
+          .catch(() => undefined);
+        return "degraded";
+      },
+    ),
+    /non-metadata table: incident/,
+  );
+  assert.equal(
+    await withMetadataFetch(
+      () => jsonResponse(200, { result: [] }),
+      () => "ok",
+    ),
+    "ok",
+  );
 });

@@ -121,6 +121,12 @@ export const specs: AnyToolSpec[] = [
         ),
       types: artifactTypesInput,
       scope: artifactScopeInput,
+      mermaid: z
+        .boolean()
+        .optional()
+        .describe(
+          "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid text (live). Default false.",
+        ),
       format: formatInput,
     },
     logFields: (args) => ({
@@ -136,6 +142,7 @@ export const specs: AnyToolSpec[] = [
       sections,
       types,
       scope,
+      mermaid,
       format,
     }) => {
       const result = await compareInstances({
@@ -145,6 +152,7 @@ export const specs: AnyToolSpec[] = [
         sections,
         types,
         scope,
+        mermaid,
       });
       return deliverJson(result, `compare-${result.a}-vs-${result.b}`, format);
     },

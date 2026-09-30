@@ -340,7 +340,7 @@ function freePort() {
   });
 }
 
-test("HTTP transport: a session DELETE runs dispose(); closeHttpTransport stops the listener", async () => {
+test("HTTP transport: a session DELETE disposes the session runtime, not the shared caches; closeHttpTransport stops the listener", async () => {
   const port = await freePort();
   await withEnv(
     {
@@ -351,8 +351,18 @@ test("HTTP transport: a session DELETE runs dispose(); closeHttpTransport stops 
       SN_LOG_LEVEL: "error",
     },
     async () => {
-      const server = new McpServer({ name: "lifecycle-test", version: "0" });
-      assert.equal(await connectTransport(server), "http");
+      // H-7: one server per session, built on the session's own runtime.
+      let sessionDisposed = 0;
+      const servers = [];
+      const factory = (runtime) => {
+        runtime.onDispose(() => {
+          sessionDisposed += 1;
+        });
+        const s = new McpServer({ name: "lifecycle-test", version: "0" });
+        servers.push(s);
+        return s;
+      };
+      assert.equal(await connectTransport(factory), "http");
       const url = `http://127.0.0.1:${port}/`;
       try {
         let loads = 0;
@@ -388,10 +398,15 @@ test("HTTP transport: a session DELETE runs dispose(); closeHttpTransport stops 
         });
         assert.equal(del.status, 200);
 
+        assert.equal(sessionDisposed, 1, "session close disposed its runtime");
         await cached("lifecycle:http", async () => ++loads);
-        assert.equal(loads, 2, "session close disposed the schema cache");
+        assert.equal(
+          loads,
+          1,
+          "the process-scoped schema cache survives a session close",
+        );
       } finally {
-        await server.close().catch(() => undefined);
+        for (const s of servers) await s.close().catch(() => undefined);
         await closeHttpTransport();
         await closeHttpTransport(); // no-op once nothing is listening
       }

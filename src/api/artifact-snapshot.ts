@@ -51,6 +51,14 @@ export interface ArtifactRow {
   fields: Record<string, unknown>;
   /** Direct children per child table, ordered by key. */
   children: Record<string, ArtifactChildRow[]>;
+  /**
+   * Flows only: `"published"` when the children were read under the
+   * published snapshot (`master_snapshot`) rather than the draft; absent
+   * otherwise. Not part of the hash. Unverified authority (O-5).
+   */
+  source?: "published";
+  /** With `source`: the sys_hub_flow_snapshot sys_id the children came from. */
+  snapshot?: string;
 }
 
 export interface ArtifactTypeSnapshot {
@@ -139,17 +147,53 @@ function keyOf(
 /** Values safe inside an encoded `IN` list (no `^` / `,`). */
 const IN_SAFE = /^[^,^]+$/;
 
+/** A sys_id (the published-snapshot pointer must be one). */
+const SYS_ID = /^[0-9a-f]{32}$/;
+
+/** Table whose records carry published flow snapshots (flow, subflow). */
+const FLOW_TABLE = "sys_hub_flow";
+
+/**
+ * P-20: the published-snapshot caveat. The flow's child rows are read under
+ * `master_snapshot` (the sys_hub_flow_snapshot record Flow Designer publishes)
+ * — the same keying `servicenow_explain_flow` uses for `draftDiffers`.
+ */
+export const PUBLISHED_FLOW_WARNING =
+  "read from the published snapshot (sys_hub_flow_snapshot via master_snapshot); which of the published snapshot and the draft is authoritative, and the snapshot child-row keying, are unverified (O-5).";
+
+type Parent = { sys_id: string; fields: Record<string, unknown> };
+
+/** Children of one table grouped under one parent link value. */
+type ChildGroups = (link: string, parent: Parent) => ArtifactChildRow[];
+
+/**
+ * The published snapshot of a flow parent: its `master_snapshot`, when that
+ * is a sys_id other than the flow's own. Undefined for every other table.
+ */
+function publishedSnapshot(t: ArtifactType, p: Parent): string | undefined {
+  if (t.table !== FLOW_TABLE) return undefined;
+  const id = snString(p.fields.master_snapshot);
+  return SYS_ID.test(id) && id !== p.sys_id ? id : undefined;
+}
+
 async function readChildren(
   t: ArtifactType,
   child: ArtifactChild,
-  parents: { sys_id: string; fields: Record<string, unknown> }[],
+  parents: Parent[],
   warnings: string[],
-): Promise<Map<string, ArtifactChildRow[]>> {
-  const byParent = new Map<string, ArtifactChildRow[]>();
+  extraLinks: readonly string[] = [],
+): Promise<ChildGroups> {
   const parentKey = child.parentKey ?? "sys_id";
-  const link = (p: { sys_id: string; fields: Record<string, unknown> }) =>
+  const link = (p: Parent) =>
     parentKey === "sys_id" ? p.sys_id : snString(p.fields[parentKey]);
-  const values = [...new Set(parents.map(link).filter((v) => IN_SAFE.test(v)))];
+  const values = [
+    ...new Set(
+      [
+        ...parents.map(link),
+        ...(parentKey === "sys_id" ? extraLinks : []),
+      ].filter((v) => IN_SAFE.test(v)),
+    ),
+  ];
   const rows: SnRecord[] = [];
   for (let i = 0; i < values.length; i += CHILD_CHUNK) {
     const chunk = values.slice(i, i + CHILD_CHUNK);
@@ -166,8 +210,7 @@ async function readChildren(
     }
     rows.push(...res.records);
   }
-  for (const p of parents) {
-    const pv = link(p);
+  return (pv, p) => {
     const mine = rows.filter(
       (r) =>
         snString(r[child.parentField]) === pv &&
@@ -175,7 +218,7 @@ async function readChildren(
           (m) => snString(r[m.field]) === snString(p.fields[m.parentKey]),
         ),
     );
-    const out = mine
+    return mine
       .map((r) => {
         const fields = normalizeRow(r, {
           jsonFields: child.jsonFields,
@@ -194,9 +237,7 @@ async function readChildren(
         (a, b) =>
           a.key.localeCompare(b.key) || a.sys_id.localeCompare(b.sys_id),
       );
-    byParent.set(p.sys_id, out);
-  }
-  return byParent;
+  };
 }
 
 /**
@@ -229,7 +270,14 @@ export async function collectArtifactType(
     }),
   }));
 
-  const children: Record<string, Map<string, ArtifactChildRow[]>> = {};
+  // Flows: also read the children keyed by the published snapshot.
+  const snapshots = new Map<string, string>();
+  for (const p of parents) {
+    const id = publishedSnapshot(t, p);
+    if (id) snapshots.set(p.sys_id, id);
+  }
+
+  const children: Record<string, ChildGroups> = {};
   for (const child of t.children) {
     if (child.parentTable && child.parentTable !== t.table) {
       warnings.push(
@@ -238,7 +286,9 @@ export async function collectArtifactType(
       continue;
     }
     try {
-      children[child.table] = await readChildren(t, child, parents, warnings);
+      children[child.table] = await readChildren(t, child, parents, warnings, [
+        ...snapshots.values(),
+      ]);
     } catch (e) {
       if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
       warnings.push(
@@ -247,10 +297,32 @@ export async function collectArtifactType(
     }
   }
 
+  let published = 0;
+  let draftFallback = 0;
   const records: ArtifactRow[] = parents.map((p) => {
-    const kids: Record<string, ArtifactChildRow[]> = {};
-    for (const [table, map] of Object.entries(children)) {
-      kids[table] = map.get(p.sys_id) ?? [];
+    const draft = (): Record<string, ArtifactChildRow[]> =>
+      Object.fromEntries(
+        Object.entries(children).map(([table, group]) => [
+          table,
+          group(p.sys_id, p),
+        ]),
+      );
+    let kids = draft();
+    const snapshot = snapshots.get(p.sys_id);
+    let source: Pick<ArtifactRow, "source" | "snapshot"> = {};
+    if (snapshot) {
+      const fromSnapshot = Object.fromEntries(
+        Object.entries(children).map(([table, group]) => [
+          table,
+          group(snapshot, p),
+        ]),
+      );
+      // Only a snapshot that has rows is taken; otherwise the draft stands.
+      if (Object.values(fromSnapshot).some((rows) => rows.length > 0)) {
+        kids = fromSnapshot;
+        source = { source: "published", snapshot };
+        published++;
+      } else draftFallback++;
     }
     const { sys_id: _drop, ...body } = p.fields;
     void _drop;
@@ -268,8 +340,19 @@ export async function collectArtifactType(
       ),
       fields: body,
       children: kids,
+      ...source,
     };
   });
+  if (published > 0) {
+    warnings.push(
+      `${t.type}: ${published} record(s) ${PUBLISHED_FLOW_WARNING}`,
+    );
+  }
+  if (draftFallback > 0) {
+    warnings.push(
+      `${t.type}: ${draftFallback} record(s) have a master_snapshot with no child rows under it; the draft definition was read (snapshot keying unverified, O-5).`,
+    );
+  }
   return {
     type: t.type,
     table: t.table,
@@ -328,6 +411,20 @@ function pairUp<T extends { sys_id: string; key: string }>(
     } else onlyA.push(l);
   }
   return { pairs, onlyA, onlyB: [...restB] };
+}
+
+/**
+ * The matched record pairs of one type whose hashes differ (the `different`
+ * rows of {@link diffArtifactType}), ordered by key — for detail views such
+ * as the Mermaid diff of compare_instances.
+ */
+export function changedArtifactPairs(
+  a: ArtifactTypeSnapshot,
+  b: ArtifactTypeSnapshot,
+): [ArtifactRow, ArtifactRow][] {
+  return pairUp(a.records, b.records)
+    .pairs.filter(([l, r]) => l.hash !== r.hash)
+    .sort(([x], [y]) => x.key.localeCompare(y.key));
 }
 
 /**

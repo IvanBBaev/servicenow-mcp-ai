@@ -216,6 +216,14 @@ export interface ArtifactChild {
   scriptFields?: string[];
   jsonFields?: JsonField[];
   refFields?: RefField[];
+  /**
+   * Further fields `servicenow_upsert_artifact` may write on this child (P-23),
+   * besides the ones named above (`nameField`, `orderField`, script, JSON and
+   * reference fields). Never `parentField` — the tool sets that link itself.
+   */
+  writeFields?: string[];
+  /** Instance-wide unique fields checked before a write (P-24), see {@link UniqueRule}. */
+  unique?: UniqueRule[];
   /** Overrides the parent's `verified` for this child table. */
   verified?: boolean;
 }
@@ -293,6 +301,36 @@ export interface ArtifactType {
    * Absent: a generic trigger list (`when`, `order`, `condition`, …) applies.
    */
   whenFields?: string[];
+  /**
+   * Further fields `servicenow_upsert_artifact` may write (P-23), besides the
+   * ones the descriptor already names (name, key, scope, active, script, JSON,
+   * reference, applies-to, meta and when fields).
+   */
+  writeFields?: string[];
+  /**
+   * P-24 SDK pre-flight: field sets that must be unique across the instance
+   * (`sp_widget.id`, `sp_portal.url_suffix`, …). `servicenow_upsert_artifact`
+   * refuses a plan whose written value is already held by another record.
+   */
+  unique?: UniqueRule[];
+  /**
+   * P-24 SDK pre-flight (unverified, O-5): fields whose value the ServiceNow
+   * SDK expects to start with the application scope name (`x_acme_…`) when
+   * the record is created in a non-global scope. `servicenow_upsert_artifact`
+   * reports a mismatch as a plan warning, not a refusal.
+   */
+  scopePrefixFields?: string[];
+}
+
+/**
+ * One uniqueness rule (P-24): the written values of `fields` may not already
+ * be held by another record of `table` (default: the descriptor's table; an
+ * extending table such as `sp_header_footer` checks its base `sp_widget`).
+ * Empty values are not checked.
+ */
+export interface UniqueRule {
+  fields: string[];
+  table?: string;
 }
 
 /** Defaults shared by most descriptors (every artefact extends sys_metadata). */
@@ -371,7 +409,23 @@ const VARIABLE_CHOICES: ArtifactChild[] = [
     parentTable: "item_option_new",
     orderField: "order",
     nameField: "text",
+    // P-24 (U, O-5).
+    writeFields: ["value"],
   },
+];
+
+/**
+ * P-24 (CAT-1 … CAT-3, U until O-5): the variable fields servicenow_upsert_artifact
+ * may write besides `name` and `order`. `name` must be a valid variable name.
+ */
+const VARIABLE_WRITE_FIELDS = [
+  "question_text",
+  "type",
+  "mandatory",
+  "default_value",
+  "help_text",
+  "active",
+  "reference",
 ];
 
 /**
@@ -390,6 +444,8 @@ function catalogLogic(
       parentField: scriptField,
       nameField: "name",
       scriptFields: ["script"],
+      // P-24 (U, O-5).
+      writeFields: ["type", "ui_type", "active"],
       ...via,
     },
     {
@@ -398,6 +454,12 @@ function catalogLogic(
       orderField: "order",
       nameField: "short_description",
       scriptFields: ["script_true", "script_false"],
+      writeFields: [
+        "active",
+        "catalog_conditions",
+        "on_load",
+        "reverse_if_false",
+      ],
       ...via,
     },
   ];
@@ -408,6 +470,8 @@ const CATALOG_POLICY_ACTIONS: ArtifactChild = {
   parentField: "ui_policy",
   parentTable: "catalog_ui_policy",
   nameField: "catalog_variable",
+  // P-24 (U, O-5).
+  writeFields: ["visible", "mandatory", "disabled"],
 };
 
 /**
@@ -424,6 +488,7 @@ const CATALOG_ITEM_CHILDREN: ArtifactChild[] = [
     parentField: "cat_item",
     orderField: "order",
     nameField: "name",
+    writeFields: VARIABLE_WRITE_FIELDS,
   },
   {
     table: "io_set_item",
@@ -565,6 +630,18 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         table: "sys_ui_policy_action",
         parentField: "ui_policy",
         nameField: "field",
+        // P-23: the action flags upsert_artifact may write (unverified, O-5).
+        writeFields: [
+          "table",
+          "visible",
+          "mandatory",
+          "disabled",
+          "cleared",
+          "value",
+          "value_action",
+          "field_message",
+          "field_message_type",
+        ],
         verified: false,
       },
     ],
@@ -577,6 +654,18 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     scriptTools: true,
     appliesToField: "table",
     metaFields: ["table", "active", "run_scripts"],
+    writeFields: [
+      "conditions",
+      "description",
+      "global",
+      "inherit",
+      "on_load",
+      "order",
+      "reverse_if_false",
+      "ui_type",
+      "view",
+      "isolate_script",
+    ],
   },
   {
     ...BASE,
@@ -906,8 +995,20 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     sdkSince: "4.0",
     table: "sp_widget",
     children: [
-      { table: "sp_ng_template", parentField: "sp_widget", nameField: "id" },
-      { table: "m2m_sp_widget_dependency", parentField: "sp_widget" },
+      {
+        table: "sp_ng_template",
+        parentField: "sp_widget",
+        nameField: "id",
+        // P-24: the Angular template body; ids are unique instance-wide.
+        writeFields: ["template"],
+        unique: [{ fields: ["id"] }],
+      },
+      {
+        table: "m2m_sp_widget_dependency",
+        parentField: "sp_widget",
+        // P-24 (U): the dependency the widget loads.
+        writeFields: ["sp_dependency"],
+      },
       {
         table: "m2m_sp_ng_pro_sp_widget",
         parentField: "sp_widget",
@@ -935,6 +1036,17 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     verified: false,
     scriptTools: true,
     metaFields: ["id", "data_table"],
+    // P-24 (U, O-5): SP-2 fields upsert_artifact may write, SDK pre-flight.
+    writeFields: [
+      "template",
+      "controller_as",
+      "description",
+      "public",
+      "roles",
+      "has_preview",
+    ],
+    unique: [{ fields: ["id"] }],
+    scopePrefixFields: ["id"],
   },
   // Service Catalog
   {
@@ -1516,6 +1628,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         table: "sys_data_policy_rule",
         parentField: "sys_data_policy",
         nameField: "field",
+        writeFields: ["table", "mandatory", "disabled"],
       },
     ],
     nameField: "short_description",
@@ -1532,6 +1645,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
       "active",
     ],
     whenFields: ["conditions", "reverse_if_false", "inherit"],
+    writeFields: ["description"],
   },
   {
     ...BASE,
@@ -2159,6 +2273,9 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
+    // P-24 (U, O-5).
+    writeFields: ["quick_start_config", "default", "logo", "icon"],
+    unique: [{ fields: ["url_suffix"] }],
   },
   {
     ...BASE,
@@ -2168,19 +2285,35 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     sdkSince: "4.5",
     table: "sp_page",
     // Layout: page → containers → rows → columns → widget instances.
+    // P-24: upsert_artifact writes the whole tree as one plan; each nested
+    // child names its parent child by position (`parent`). The layout field
+    // names beyond the links, `order` and `widget_parameters` are (U), O-5.
     children: [
-      { table: "sp_container", parentField: "sp_page", orderField: "order" },
+      {
+        table: "sp_container",
+        parentField: "sp_page",
+        orderField: "order",
+        writeFields: [
+          "name",
+          "width",
+          "background_color",
+          "background_image",
+          "class_name",
+        ],
+      },
       {
         table: "sp_row",
         parentField: "sp_container",
         parentTable: "sp_container",
         orderField: "order",
+        writeFields: ["class_name"],
       },
       {
         table: "sp_column",
         parentField: "sp_row",
         parentTable: "sp_row",
         orderField: "order",
+        writeFields: ["size", "class_name"],
       },
       {
         table: "sp_instance",
@@ -2193,6 +2326,16 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         refFields: [
           { field: "sp_widget", table: "sp_widget", type: "sp_widget" },
         ],
+        writeFields: [
+          "title",
+          "class_name",
+          "css",
+          "color",
+          "size",
+          "roles",
+          "short_description",
+          "active",
+        ],
       },
     ],
     nameField: "title",
@@ -2200,6 +2343,9 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
+    writeFields: ["public", "roles", "draft", "short_description", "internal"],
+    unique: [{ fields: ["id"] }],
+    scopePrefixFields: ["id"],
   },
   {
     ...BASE,
@@ -2218,6 +2364,8 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     verified: false,
     scriptToolsOptIn: true,
     metaFields: ["sp_widget"],
+    unique: [{ fields: ["id"] }],
+    scopePrefixFields: ["id"],
   },
   {
     ...BASE,
@@ -2256,6 +2404,9 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
+    // P-24 (U, O-5): SP-3 fields; `module` is the Angular module name.
+    writeFields: ["module", "include_on_page_load"],
+    unique: [{ fields: ["name"] }, { fields: ["module"] }],
   },
   {
     ...BASE,
@@ -2273,6 +2424,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     verified: false,
     scriptToolsOptIn: true,
     metaFields: ["type"],
+    unique: [{ fields: ["name"] }],
   },
   {
     ...BASE,
@@ -2288,6 +2440,8 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     ],
     tiers: READ_TIER,
     verified: false,
+    // P-24 (U, O-5).
+    writeFields: ["source", "url"],
   },
   {
     ...BASE,
@@ -2301,6 +2455,8 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     refFields: [{ field: "sp_css", table: "sp_css", type: "sp_css" }],
     tiers: READ_TIER,
     verified: false,
+    // P-24 (U, O-5).
+    writeFields: ["source", "url"],
   },
   {
     ...BASE,
@@ -2314,11 +2470,14 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         table: "m2m_sp_theme_js_include",
         parentField: "sp_theme",
         orderField: "order",
+        // P-24 (U, O-5).
+        writeFields: ["sp_js_include"],
       },
       {
         table: "m2m_sp_theme_css_include",
         parentField: "sp_theme",
         orderField: "order",
+        writeFields: ["sp_css_include"],
       },
     ],
     nameField: "name",
@@ -2348,6 +2507,8 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         orderField: "order",
         nameField: "label",
         refFields: [{ field: "sp_page", table: "sp_page", type: "sp_page" }],
+        // P-24 (U, O-5).
+        writeFields: ["type", "url", "condition"],
       },
     ],
     nameField: "title",
@@ -2369,6 +2530,18 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
+    // P-24 (U, O-5): the widget fields it inherits; ids are unique across
+    // sp_widget and every table extending it.
+    writeFields: [
+      "template",
+      "css",
+      "script",
+      "client_script",
+      "link",
+      "controller_as",
+    ],
+    unique: [{ fields: ["id"], table: "sp_widget" }],
+    scopePrefixFields: ["id"],
   },
   {
     ...BASE,
@@ -2386,6 +2559,8 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     ],
     tiers: READ_TIER,
     verified: false,
+    // P-24 (U, O-5).
+    writeFields: ["portals", "roles", "order"],
   },
   // Portal tables the SDK does not model (SP-11).
   {
@@ -2709,6 +2884,8 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     tiers: SEED_TIERS,
     verified: false,
     metaFields: ["sys_class_name", "category", "sc_catalogs", "order"],
+    // P-24 (CAT-1, U until O-5).
+    writeFields: ["short_description", "description"],
   },
   {
     ...BASE,
@@ -2726,6 +2903,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     verified: false,
     appliesToField: "table_name",
     metaFields: ["table_name", "category", "sc_catalogs", "order"],
+    writeFields: ["short_description", "description"],
   },
   {
     ...BASE,
@@ -2740,6 +2918,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         parentField: "variable_set",
         orderField: "order",
         nameField: "name",
+        writeFields: VARIABLE_WRITE_FIELDS,
       },
       ...VARIABLE_CHOICES,
       ...catalogLogic("variable_set", "variable_set"),
@@ -2759,6 +2938,8 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     tiers: SEED_TIERS,
     verified: false,
     metaFields: ["internal_name", "type", "order"],
+    // P-24 (CAT-2, U until O-5).
+    writeFields: ["description"],
   },
   {
     ...BASE,
@@ -2774,6 +2955,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         parentField: "question",
         orderField: "order",
         nameField: "text",
+        writeFields: ["value"],
       },
     ],
     nameField: "name",
@@ -2797,6 +2979,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
       "cat_item",
       "variable_set",
     ],
+    writeFields: ["default_value", "help_text", "reference"],
   },
   {
     ...BASE,
@@ -2810,6 +2993,7 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
         table: "catalog_ui_policy_action",
         parentField: "ui_policy",
         nameField: "catalog_variable",
+        writeFields: ["visible", "mandatory", "disabled"],
       },
     ],
     nameField: "short_description",
@@ -3132,8 +3316,9 @@ export function getArtifactType(type: string): ArtifactType | undefined {
  * with both flags, client / markup fields that are not script fields,
  * children without a parent field or with a parent table
  * that is neither the primary table nor an earlier child, an empty value link
- * (`parentKey` / `alsoMatch`) or an `alsoMatch` on a nested child, and
- * references to unregistered types.
+ * (`parentKey` / `alsoMatch`) or an `alsoMatch` on a nested child, empty
+ * or system-field P-24 unique / scope-prefix rules, and references to
+ * unregistered types.
  */
 export function validateArtifactTypes(
   types: readonly ArtifactType[] = ARTIFACT_TYPES,
@@ -3152,6 +3337,16 @@ export function validateArtifactTypes(
     for (const r of refs ?? []) {
       if (r.type !== undefined && !ids.has(r.type)) {
         problems.push(`${where}: ${r.field} references unknown type ${r.type}`);
+      }
+    }
+  };
+  const checkUnique = (where: string, rules: UniqueRule[] | undefined) => {
+    for (const r of rules ?? []) {
+      if (
+        !r.fields.length ||
+        r.fields.some((f) => !f || f.startsWith("sys_"))
+      ) {
+        problems.push(`${where}: a unique rule needs non-system fields`);
       }
     }
   };
@@ -3196,6 +3391,17 @@ export function validateArtifactTypes(
     }
     checkJson(where, t.jsonFields);
     checkRefs(where, t.refFields);
+    for (const f of t.writeFields ?? []) {
+      if (f.startsWith("sys_")) {
+        problems.push(`${where}: writeFields may not name system field ${f}`);
+      }
+    }
+    checkUnique(where, t.unique);
+    for (const f of t.scopePrefixFields ?? []) {
+      if (!f || f.startsWith("sys_")) {
+        problems.push(`${where}: scopePrefixFields may not name ${f || "''"}`);
+      }
+    }
     const tables = new Set([t.table]);
     for (const c of t.children) {
       const cw = `${where} > ${c.table}`;
@@ -3214,6 +3420,12 @@ export function validateArtifactTypes(
       if (c.alsoMatch?.length && (c.parentTable ?? t.table) !== t.table) {
         problems.push(`${cw}: alsoMatch needs the primary table as parent`);
       }
+      for (const f of c.writeFields ?? []) {
+        if (f.startsWith("sys_") || f === c.parentField) {
+          problems.push(`${cw}: writeFields may not name ${f}`);
+        }
+      }
+      checkUnique(cw, c.unique);
       tables.add(c.table);
       checkJson(cw, c.jsonFields);
       checkRefs(cw, c.refFields);

@@ -16,12 +16,21 @@ import {
 } from "./collectors.js";
 import { unifiedDiff } from "./unified-diff.js";
 import {
+  changedArtifactPairs,
   collectArtifactType,
   diffArtifactType,
   resolveArtifactTypes,
   type ArtifactDiff,
+  type ArtifactRow,
   type ArtifactTypeSnapshot,
 } from "./artifact-snapshot.js";
+import {
+  MERMAID_DIFFS_MAX,
+  hasMermaid,
+  mermaidDiff,
+  renderArtifactMermaid,
+  type MermaidDiff,
+} from "./artifact-mermaid.js";
 import { snString, mdTable } from "./shared.js";
 import { listProfiles } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
@@ -58,6 +67,12 @@ export interface CompareOptions {
   types?: string[];
   /** P-20: limit the artefact types to one application scope. */
   scope?: string;
+  /**
+   * P-20: with `types`, render the changed records of the diagram types
+   * (flows, workflows, portals, …) live on both sides and diff the Mermaid
+   * sources as text. Default false; never counted as drift.
+   */
+  mermaid?: boolean;
 }
 
 interface ColumnDiff {
@@ -101,6 +116,8 @@ export interface CompareResult {
   recordDiffs?: RecordDiff[];
   /** Only with `types` (P-20). */
   artifactDiffs?: ArtifactDiff[];
+  /** Only with `types` and `mermaid` (P-20); detail, not drift. */
+  mermaidDiffs?: MermaidDiff[];
   warnings: string[];
   /**
    * Standing limits of the comparison (H-8 C-11): domain separation and ACL
@@ -410,6 +427,46 @@ async function artifactsFor(
   }
 }
 
+type MermaidPair = readonly [string, ArtifactRow, ArtifactRow];
+
+/**
+ * P-20: render the changed diagram records on both sides (each in its
+ * profile's context) and diff the Mermaid sources, up to MERMAID_DIFFS_MAX
+ * records; the rest and any render failure are named in `warnings`.
+ */
+async function diffMermaid(
+  a: string,
+  b: string,
+  pairs: MermaidPair[],
+  warnings: string[],
+): Promise<MermaidDiff[]> {
+  const out: MermaidDiff[] = [];
+  for (const [type, x, y] of pairs.slice(0, MERMAID_DIFFS_MAX)) {
+    try {
+      const ra = await runWithProfile(a, () => renderArtifactMermaid(type, x));
+      const rb = await runWithProfile(b, () => renderArtifactMermaid(type, y));
+      const d = mermaidDiff(
+        type,
+        x.key,
+        { label: `${a}/${type}/${x.key}.mmd`, ...ra },
+        { label: `${b}/${type}/${y.key}.mmd`, ...rb },
+      );
+      if (d) out.push(d);
+    } catch (e) {
+      rethrowCancel(e);
+      warnings.push(
+        `mermaid ${type} ${x.key}: not rendered — ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+  if (pairs.length > MERMAID_DIFFS_MAX) {
+    warnings.push(
+      `mermaid: ${pairs.length - MERMAID_DIFFS_MAX} more changed diagram record(s) not diffed (cap ${MERMAID_DIFFS_MAX}).`,
+    );
+  }
+  return out;
+}
+
 /** Plugin/app identity sets ("id name@version [inactive]") per side. */
 async function inventoryFor(
   profile: string,
@@ -611,6 +668,8 @@ export async function compareInstances(
 
   // -- registry artefacts (P-20) ----------------------------------------------
   const artifactDiffs: ArtifactDiff[] = [];
+  const withMermaid = opts.mermaid === true && types.length > 0;
+  const mermaidPairs: MermaidPair[] = [];
   for (const type of types) {
     const sideA = await step(`artifact ${type}: ${a}`, () =>
       artifactsFor(a, type, typeScope, fromSnapshot, warnings),
@@ -618,8 +677,20 @@ export async function compareInstances(
     const sideB = await step(`artifact ${type}: ${b}`, () =>
       artifactsFor(b, type, typeScope, fromSnapshot, warnings),
     );
-    if (sideA && sideB) artifactDiffs.push(...diffArtifactType(sideA, sideB));
+    if (sideA && sideB) {
+      artifactDiffs.push(...diffArtifactType(sideA, sideB));
+      if (withMermaid && hasMermaid(type)) {
+        mermaidPairs.push(
+          ...changedArtifactPairs(sideA, sideB).map(
+            ([x, y]) => [type, x, y] as const,
+          ),
+        );
+      }
+    }
   }
+  const mermaidDiffs = withMermaid
+    ? await diffMermaid(a, b, mermaidPairs, warnings)
+    : [];
 
   // -- plugins / apps -------------------------------------------------------
   const [invA, invB] = [
@@ -732,6 +803,30 @@ export async function compareInstances(
                   "",
                 ]
               : ["No differences.", ""]),
+            ...(withMermaid
+              ? [
+                  "### Mermaid diffs",
+                  "",
+                  `Diagrams of the changed records rendered live on both sides (at most ${MERMAID_DIFFS_MAX}); detail only, not counted as drift.`,
+                  "",
+                  ...(mermaidDiffs.length > 0
+                    ? mermaidDiffs.flatMap((d) => [
+                        `#### ${d.type}: ${d.key}`,
+                        "",
+                        ...(d.nodesTruncated
+                          ? [
+                              `Diagram capped by SN_DIAGRAM_MAX_NODES (${d.nodesTruncated.a} / ${d.nodesTruncated.b} node(s) dropped).`,
+                              "",
+                            ]
+                          : []),
+                        "```diff",
+                        d.diff.replace(/```/g, "` ` `"),
+                        "```",
+                        "",
+                      ])
+                    : ["No diagram differences.", ""]),
+                ]
+              : []),
           ]
         : []),
       "## Plugins",
@@ -771,6 +866,7 @@ export async function compareInstances(
         appDiffs,
         ...(sections.length > 0 ? { sections, recordDiffs } : {}),
         ...(types.length > 0 ? { types, scope: typeScope, artifactDiffs } : {}),
+        ...(withMermaid ? { mermaidDiffs } : {}),
         warnings,
       },
       legacy: /^# Instance comparison — /,
@@ -790,6 +886,7 @@ export async function compareInstances(
     appDiffs,
     ...(sections.length > 0 ? { recordDiffs } : {}),
     ...(types.length > 0 ? { artifactDiffs } : {}),
+    ...(withMermaid ? { mermaidDiffs } : {}),
     warnings,
     caveats: [...COMPARE_CAVEATS],
   };

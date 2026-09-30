@@ -9,7 +9,10 @@ import {
   type ScopeRef,
 } from "../core/artifacts/sdk-managed.js";
 import { getRecord } from "../api/table.js";
+import { getTableChain } from "../api/meta.js";
+import { readUserPreference } from "../api/updatesets.js";
 import { assertTableWriteAllowed } from "../core/policy.js";
+import { currentCall, type CallContext } from "../core/request-context.js";
 
 /**
  * P-22 — the SDK-managed write guard. A record whose scope is SDK-managed
@@ -23,6 +26,14 @@ import { assertTableWriteAllowed } from "../core/policy.js";
  * - `allow`: nothing.
  * It costs nothing unless detection is configured, and reads only the
  * record's `sys_scope` (a table without the field is never SDK-managed).
+ *
+ * A create that names no `sys_scope` lands in the session user's current
+ * application: for a table that extends `sys_metadata` the guard reads the
+ * user's `apps.current_app` preference (no row = `global`, never
+ * SDK-managed). The preference name and its sys_id value are unverified on a
+ * live instance (O-5). When the scope cannot be read the guard degrades: the
+ * result carries `sdkScopeWarning` and the write is judged unscoped — it
+ * never fails the call.
  */
 
 /** The Fluent alternative the plan names. */
@@ -70,11 +81,78 @@ function configured(): boolean {
   );
 }
 
+/** The user preference that holds the session's current application. */
+export const CURRENT_APP_PREFERENCE = "apps.current_app";
+
+type CurrentScope =
+  | { ref: ScopeRef | null; source: "current_application" | "default" }
+  | { warning: string };
+
+/** One current-scope read per tool call, however many records it writes. */
+const currentScopeByCall = new WeakMap<CallContext, Promise<CurrentScope>>();
+
+function isCancel(e: unknown): boolean {
+  return e instanceof ServiceNowError && e.code === "CANCELLED";
+}
+
+async function readCurrentScope(): Promise<CurrentScope> {
+  try {
+    const row = await readUserPreference(CURRENT_APP_PREFERENCE);
+    const ref = scopeRefOf(row?.value);
+    return ref
+      ? { ref, source: "current_application" }
+      : { ref: null, source: "default" };
+  } catch (e) {
+    if (isCancel(e)) throw e;
+    return {
+      warning: `Could not read the session's current application (${CURRENT_APP_PREFERENCE}: ${
+        e instanceof Error ? e.message : String(e)
+      }); the SDK-managed check judged the create without a scope.`,
+    };
+  }
+}
+
+function currentScope(): Promise<CurrentScope> {
+  const call = currentCall();
+  if (!call) return readCurrentScope();
+  let pending = currentScopeByCall.get(call);
+  if (!pending) {
+    pending = readCurrentScope();
+    currentScopeByCall.set(call, pending);
+  }
+  return pending;
+}
+
+/**
+ * The scope a create without `sys_scope` lands in: only tables under
+ * `sys_metadata` carry one. Undefined = nothing to judge.
+ */
+async function createScope(
+  table: string,
+): Promise<{ ref?: ScopeRef; warning?: string }> {
+  let chain: string[];
+  try {
+    chain = await getTableChain(table);
+  } catch (e) {
+    if (isCancel(e)) throw e;
+    return {
+      warning: `Could not read the hierarchy of ${table} to resolve the scope of the create; the SDK-managed check judged it without a scope.`,
+    };
+  }
+  if (!chain.includes("sys_metadata")) return {};
+  const current = await currentScope();
+  if ("warning" in current) return { warning: current.warning };
+  return current.ref ? { ref: current.ref } : {};
+}
+
 /**
  * The scopes a write touches: the one named in the written values (a create,
- * or an update that moves the record) and the record's current one.
+ * or an update that moves the record) and the record's current one; for a
+ * create that names none, the session's current application.
  */
-async function scopesOf(target: SdkGuardTarget): Promise<ScopeRef[]> {
+async function scopesOf(
+  target: SdkGuardTarget,
+): Promise<{ refs: ScopeRef[]; warning?: string; currentApp?: ScopeRef }> {
   const refs: ScopeRef[] = [];
   const fromFields = scopeRefOf(target.fields?.sys_scope);
   if (fromFields) refs.push(fromFields);
@@ -92,8 +170,15 @@ async function scopesOf(target: SdkGuardTarget): Promise<ScopeRef[]> {
       // The write itself reports a missing record or an ACL; the guard has
       // no scope to judge.
     }
+  } else if (!fromFields) {
+    const created = await createScope(target.table);
+    if (created.ref) {
+      refs.push(created.ref);
+      return { refs, currentApp: created.ref };
+    }
+    if (created.warning) return { refs, warning: created.warning };
   }
-  return refs;
+  return { refs };
 }
 
 /**
@@ -104,20 +189,25 @@ async function scopesOf(target: SdkGuardTarget): Promise<ScopeRef[]> {
 export async function sdkGuard(
   target: SdkGuardTarget,
   phase: "plan" | "apply",
-): Promise<{ sdkManaged: Record<string, unknown> } | undefined> {
+): Promise<
+  { sdkManaged?: Record<string, unknown>; sdkScopeWarning?: string } | undefined
+> {
   if (!configured()) return undefined;
   // The table policy (H-11) decides first; the guard never judges a write
   // the policy would refuse anyway.
   if (phase === "apply") assertTableWriteAllowed(target.table);
   let result;
-  for (const ref of await scopesOf(target)) {
+  let fromCurrentApp = false;
+  const { refs, warning, currentApp } = await scopesOf(target);
+  for (const ref of refs) {
     const r = await detectSdkManaged(ref, { lookup: true });
     if (r.managed === "yes") {
       result = r;
+      fromCurrentApp = ref === currentApp;
       break;
     }
   }
-  if (!result) return undefined;
+  if (!result) return warning ? { sdkScopeWarning: warning } : undefined;
   const mode = getSdkManagedWrites();
   const scope = result.scope ?? result.sysId ?? "?";
   const message = `Table ${target.table} record${target.sys_id ? ` ${target.sys_id}` : ""} belongs to scope ${scope}, which is SDK-managed.`;
@@ -126,6 +216,7 @@ export async function sdkGuard(
     sys_scope: result.sysId,
     mode,
     message,
+    ...(fromCurrentApp ? { scope_source: "current_application" } : {}),
     alternative: SDK_ALTERNATIVE,
     evidence: result.evidence
       .filter((e) => e.matched)

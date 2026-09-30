@@ -2,7 +2,7 @@
 
 This is a **Model Context Protocol (MCP) server** written in **TypeScript** that
 lets an MCP client operate a **ServiceNow** instance across its full REST
-surface: 94 tools in 26 packages (Table, Aggregate, Attachment, Import Set,
+surface: 97 tools in 26 packages (Table, Aggregate, Attachment, Import Set,
 Batch, CMDB/IRE, Catalog, Change, Knowledge, Email, Flows, Codecheck, ATF…),
 plus script intelligence, multi-instance profiles and plan-and-apply write
 safety.

@@ -9,7 +9,7 @@ import {
   baselineEnv,
   freshRuntime,
   withEnv,
-  withFetch,
+  withMetadataFetch,
   jsonResponse,
 } from "./helpers.js";
 
@@ -158,7 +158,7 @@ const byRule = (scan, rule) => scan.findings.filter((f) => f.rule === rule);
 
 test("securityScan lists every S-3 finding kind on the fixture instance", async () => {
   freshRuntime();
-  await withFetch(router(fixture()), async () => {
+  await withMetadataFetch(router(fixture()), async () => {
     const scan = await securityScan();
     assert.equal(scan.available, true);
     assert.equal(scan.aclCount, 6);
@@ -248,7 +248,7 @@ test("codeHealth reports the new finding kinds and a per-check table (S-3 accept
   const dir = mkdtempSync(join(tmpdir(), "sn-sec-"));
   try {
     await withEnv({ SN_DOCS_DIR: dir }, () =>
-      withFetch(router(fixture()), async () => {
+      withMetadataFetch(router(fixture()), async () => {
         const health = await codeHealth();
         const kinds = new Set(health.security.findings.map((f) => f.rule));
         for (const rule of [
@@ -280,23 +280,29 @@ test("securityScan pages past one page and reports truncated at SN_MAX_RECORDS",
     condition: "x=1",
   }));
   await withEnv({ SN_MAX_RECORDS: "3" }, () =>
-    withFetch(router({ ...fixture(), sys_security_acl: acls }), async () => {
-      const scan = await securityScan();
-      assert.equal(scan.aclCount, 3);
-      assert.equal(scan.truncated, true);
-      assert.equal(scan.truncatedReason, "cap");
-      // A partial ACL read cannot prove a missing ACL.
-      assert.equal(scan.checks.tables_without_acl.available, false);
-      assert.match(scan.checks.tables_without_acl.unavailableReason, /partial/);
-      assert.equal(scan.checks.public_rest_resources.available, true);
-      assert.equal(byRule(scan, "table-no-acl").length, 0);
-    }),
+    withMetadataFetch(
+      router({ ...fixture(), sys_security_acl: acls }),
+      async () => {
+        const scan = await securityScan();
+        assert.equal(scan.aclCount, 3);
+        assert.equal(scan.truncated, true);
+        assert.equal(scan.truncatedReason, "cap");
+        // A partial ACL read cannot prove a missing ACL.
+        assert.equal(scan.checks.tables_without_acl.available, false);
+        assert.match(
+          scan.checks.tables_without_acl.unavailableReason,
+          /partial/,
+        );
+        assert.equal(scan.checks.public_rest_resources.available, true);
+        assert.equal(byRule(scan, "table-no-acl").length, 0);
+      },
+    ),
   );
 });
 
 test("securityScan applies its own ceiling and marks every clipped read", async () => {
   freshRuntime();
-  await withFetch(router(fixture()), async () => {
+  await withMetadataFetch(router(fixture()), async () => {
     const scan = await securityScan(2);
     assert.equal(scan.aclCount, 2);
     assert.equal(scan.truncated, true);
@@ -312,7 +318,7 @@ test("securityScan applies its own ceiling and marks every clipped read", async 
 
 test("securityScan reports rows withheld from the ACL read as filtered", async () => {
   freshRuntime();
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       if (/\/sys_security_acl\?/.test(url)) {
         // The instance counts 3 rows but returns 1 (row-level ACLs).
@@ -335,7 +341,7 @@ test("securityScan reports rows withheld from the ACL read as filtered", async (
 
 test("each S-3 check degrades to available:false on its own (403/404/500)", async () => {
   freshRuntime();
-  await withFetch(
+  await withMetadataFetch(
     router({
       ...fixture(),
       sys_security_acl_role: 403,
@@ -370,7 +376,7 @@ test("each S-3 check degrades to available:false on its own (403/404/500)", asyn
 
 test("elevated roles fall back to security_admin; unreadable sys_ui_page leaves a note", async () => {
   freshRuntime();
-  await withFetch(
+  await withMetadataFetch(
     router({ ...fixture(), sys_user_role: 403, sys_ui_page: 403 }),
     async () => {
       const scan = await securityScan();
@@ -390,7 +396,7 @@ test("elevated roles fall back to security_admin; unreadable sys_ui_page leaves 
 test("elevated ACL without inheritance data is info; no wildcard hint without '*' ACLs", async () => {
   freshRuntime();
   const f = fixture();
-  await withFetch(
+  await withMetadataFetch(
     router({
       ...f,
       sys_security_acl: f.sys_security_acl.filter((a) => a.name !== "*"),
@@ -410,7 +416,7 @@ test("elevated ACL without inheritance data is info; no wildcard hint without '*
 test("a policy-denied table degrades its check, not the scan (SN_TABLES_DENY)", async () => {
   freshRuntime();
   await withEnv({ SN_TABLES_DENY: "sys_ws_operation,sys_db_object" }, () =>
-    withFetch(router(fixture()), async (calls) => {
+    withMetadataFetch(router(fixture()), async (calls) => {
       const scan = await securityScan();
       assert.equal(scan.available, true);
       assert.match(
@@ -425,30 +431,33 @@ test("a policy-denied table degrades its check, not the scan (SN_TABLES_DENY)", 
 
 test("an unreadable ACL table still runs the checks that do not need it", async () => {
   freshRuntime();
-  await withFetch(router({ ...fixture(), sys_security_acl: 404 }), async () => {
-    const scan = await securityScan();
-    assert.equal(scan.available, false);
-    assert.match(scan.unavailableReason, /security_admin/);
-    assert.equal(scan.aclCount, 0);
-    assert.equal(scan.checks.acl_roles.available, false);
-    assert.equal(scan.checks.tables_without_acl.available, false);
-    assert.equal(scan.checks.elevated_privilege_acls.available, false);
-    assert.equal(scan.checks.public_rest_resources.available, true);
-    assert.ok(byRule(scan, "public-rest-resource").length > 0);
-    assert.ok(byRule(scan, "admin-overlap-role").length > 0);
-  });
+  await withMetadataFetch(
+    router({ ...fixture(), sys_security_acl: 404 }),
+    async () => {
+      const scan = await securityScan();
+      assert.equal(scan.available, false);
+      assert.match(scan.unavailableReason, /security_admin/);
+      assert.equal(scan.aclCount, 0);
+      assert.equal(scan.checks.acl_roles.available, false);
+      assert.equal(scan.checks.tables_without_acl.available, false);
+      assert.equal(scan.checks.elevated_privilege_acls.available, false);
+      assert.equal(scan.checks.public_rest_resources.available, true);
+      assert.ok(byRule(scan, "public-rest-resource").length > 0);
+      assert.ok(byRule(scan, "admin-overlap-role").length > 0);
+    },
+  );
 });
 
 test("a non-access ACL read failure still propagates (codeHealth warns)", async () => {
   freshRuntime();
-  await withFetch(router({ sys_security_acl: 500 }), async () => {
+  await withMetadataFetch(router({ sys_security_acl: 500 }), async () => {
     await assert.rejects(() => securityScan());
   });
 });
 
 test("public pages with no candidate names skip the sys_ui_page lookup", async () => {
   freshRuntime();
-  await withFetch(
+  await withMetadataFetch(
     router({ ...fixture(), sys_public: [{ sys_id: "p", page: "a,b.do" }] }),
     async (calls) => {
       const scan = await securityScan();
@@ -463,7 +472,7 @@ test("the report lists unavailable checks and a partial ACL read", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sn-sec-"));
   try {
     await withEnv({ SN_DOCS_DIR: dir, SN_MAX_RECORDS: "2" }, () =>
-      withFetch(router({ ...fixture(), sys_public: 403 }), async () => {
+      withMetadataFetch(router({ ...fixture(), sys_public: 403 }), async () => {
         const health = await codeHealth();
         const md = readFileSync(join(dir, health.reportFile), "utf8");
         assert.match(md, /_Partial:_ the ACL read stopped early \(cap\)/);
@@ -474,4 +483,17 @@ test("the report lists unavailable checks and a partial ACL read", async () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("ID-27: a record-data read during the security scan fails the metadata guard", async () => {
+  freshRuntime();
+  await assert.rejects(
+    withMetadataFetch(router(fixture()), async () => {
+      await securityScan();
+      await globalThis
+        .fetch("https://dev00000.service-now.com/api/now/table/incident")
+        .catch(() => undefined);
+    }),
+    /non-metadata table: incident/,
+  );
 });

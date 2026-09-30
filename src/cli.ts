@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 import {
   assertValidProfileName,
   authEnvKey,
+  envFileChoice,
   envKeysFor,
   getCredentials,
   getEnvPath,
@@ -17,6 +18,10 @@ import { resolveHost } from "./core/host.js";
 import { SERVER_VERSION } from "./core/identity.js";
 import { runWithProfile } from "./core/request-context.js";
 import { createRuntime, installRuntime } from "./core/runtime.js";
+import {
+  applySettingsAtStartup,
+  validateSettings,
+} from "./core/settings-manifest.js";
 import type { DoctorReport } from "./api/doctor.js";
 
 /**
@@ -238,9 +243,16 @@ export async function doctorPayload(
 ): Promise<Record<string, unknown>> {
   const { doctorChecks } = await import("./api/doctor.js");
   const { buildStatusPayload } = await import("./mcp/status.js");
-  const envFile = getEnvPath();
+  const envFile = envFileChoice();
+  // E-4: settings the manifest rejects (the value in force is the default).
+  const { issues } = validateSettings(process.env);
   return {
-    envFile: { path: envFile, exists: existsSync(envFile) },
+    envFile: {
+      path: envFile.path,
+      exists: existsSync(envFile.path),
+      source: envFile.source,
+    },
+    ...(issues.length ? { settingsIssues: issues } : {}),
     status: report.status,
     summary: report.summary,
     checks: doctorChecks(report),
@@ -265,10 +277,12 @@ async function cmdDoctor(
         const payload = await doctorPayload(report);
         io.stdout.write(JSON.stringify(payload, null, 2) + "\n");
       } else {
-        const envFile = getEnvPath();
+        const envFile = envFileChoice();
+        const { issues } = validateSettings(process.env);
         let text =
-          envFileLine(envFile, existsSync(envFile)) +
+          envFileLine(envFile.path, existsSync(envFile.path), envFile.source) +
           "\n" +
+          issues.map((i) => `settings ${i.level}: ${i.message}\n`).join("") +
           formatDoctorReport(report).trimEnd() +
           "\n";
         const ascii = shouldUseAscii({
@@ -720,7 +734,18 @@ export async function main(argv: string[] = process.argv.slice(2)) {
   // request queue, breakers, dispatchers, telemetry and the profile store.
   const runtime = createRuntime();
   installRuntime(runtime);
-  loadEnv();
+  try {
+    loadEnv();
+    // E-4: validate every declared setting once; SN_STRICT_SETTINGS=1 turns
+    // an invalid value into this startup error instead of a warning.
+    applySettingsAtStartup(process.env);
+  } catch (error) {
+    // D-5: a configuration error (a <KEY> / <KEY>_FILE conflict, an
+    // unreadable secret file, a strict-settings failure) is a one-line
+    // message, not a stack trace.
+    process.stderr.write(`servicenow-mcp-ai: ${errorText(error)}\n`);
+    process.exit(1);
+  }
 
   const result = await runCli(argv);
   if (result !== "serve") {

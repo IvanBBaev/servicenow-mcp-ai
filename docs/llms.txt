@@ -1,0 +1,24 @@
+# servicenow-mcp-ai
+
+> A Model Context Protocol (MCP) server that lets an MCP client (VS Code, Claude Desktop, Claude Code, Cursor and others) work with a ServiceNow instance over its REST APIs. It covers Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Service Catalog, Change, Knowledge, Email, Flows, Codecheck and ATF. On top of those it adds script intelligence, artefact explainers and documentation generators, multi-instance profiles, plan-and-apply write safety with a local journal, and a two-axis policy model. It is an independent community project and is not affiliated with ServiceNow, Inc.
+
+Install it with `npx -y servicenow-mcp-ai`. Run `npx servicenow-mcp-ai init` for a guided setup and `npx servicenow-mcp-ai doctor` for diagnostics. Tools come in packages that you select with `SN_TOOL_PACKAGES`. Writes are governed by `SN_WRITE_MODE` and the policy settings. Every environment setting is documented in the README's "Environment variables" section, which is generated from the settings manifest.
+
+## Docs
+
+- [README](https://github.com/IvanBBaev/servicenow-mcp-ai#readme): install, client setup, the tool reference per package, and the environment variable reference
+- [.env.example](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/.env.example): every setting with its default, grouped by section
+- [SECURITY.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/SECURITY.md): the credential handling, policy and write-safety model
+- [CHANGELOG.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/CHANGELOG.md): release notes
+- [Architecture](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/ARCHITECTURE.md): the layers, ports and adapters, and the request pipeline
+
+## Distribution
+
+- [npm package](https://www.npmjs.com/package/servicenow-mcp-ai): `servicenow-mcp-ai`
+- [MCP registry entry](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/server.json): `io.github.IvanBBaev/servicenow-mcp-ai`
+- [Landing page](https://ivanbbaev.github.io/servicenow-mcp-ai/)
+
+## Optional
+
+- [CONTRIBUTING.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/CONTRIBUTING.md): the build, the test and quality gates, and the release process
+- [Product state](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/PRODUCT-STATE.md): what is shipped and what is planned

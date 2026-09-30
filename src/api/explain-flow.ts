@@ -32,6 +32,15 @@
  * that still reference it, running contexts). Without a sys_id the migration
  * report covers the whole instance.
  *
+ * `kind:"playbook"` (P-12) reads a Process Automation Designer playbook:
+ * sys_pd_process_definition → sys_pd_lane (by `order`) → sys_pd_activity per
+ * lane (by `order`, labelled with its sys_pd_activity_definition), the
+ * sys_pd_trigger_instance triggers, sys_pd_process_input / _output, the
+ * sys_pd_timer_attributes timers of its activities, the sys_pd_process_variant
+ * variants, and opt-in sys_pd_context runs with their sys_pd_activity_context
+ * states. The sys_pd_* family is licensed (gate O-9): an instance without it
+ * gives a not-available result (`available:false`), never an error.
+ *
  * Bounds: `CHILD_LIMIT` rows per read, IN lists chunked, `EXPLAIN_FLOW_RUNS`
  * runs, `RUN_ERRORS` log rows per run, `TREE_DEPTH_MAX` nesting levels,
  * `INPUTS_PER_STEP` decoded inputs per step, `RAW_PREVIEW` characters of an
@@ -89,10 +98,21 @@ const WORKFLOW_CAVEAT =
 const ACTION_CAVEAT =
   "Action tables are verified:false: sys_hub_action_type_definition, sys_hub_action_input / sys_hub_action_output (keyed by model) and sys_hub_step_instance (keyed by action; label, step_type) come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
 
+const PLAYBOOK_CAVEAT =
+  "Playbook tables are verified:false: the sys_pd_* table and field names (lane / activity keying, trigger, timer and variant columns, sys_pd_context fields) come from the SDK inventory and have not been confirmed on a live instance (gates O-5, O-9).";
+
+const PLAYBOOK_UNAVAILABLE =
+  "Process Automation Designer (sys_pd_*) is not available on this instance: the playbook tables are absent or not readable. The family is licensed (gate O-9); install / license Process Automation Designer to explain playbooks.";
+
 const LOG_LEVEL_CAVEAT =
   "sys_flow_log level values are unverified: rows whose level is 'error' (or 2) are reported as errors.";
 
-export type ExplainFlowKind = "flow" | "subflow" | "action" | "workflow";
+export type ExplainFlowKind =
+  | "flow"
+  | "subflow"
+  | "action"
+  | "workflow"
+  | "playbook";
 
 export interface ExplainFlowOptions {
   sys_id?: string;
@@ -224,6 +244,8 @@ export interface Run {
   table?: string;
   record?: string;
   errors?: FlowLogError[];
+  /** Playbook runs: sys_pd_activity_context rows per state. */
+  activityStates?: Record<string, number>;
 }
 
 export interface Published {
@@ -272,6 +294,55 @@ export interface MigrationReport {
   note: string;
 }
 
+/** A playbook activity (sys_pd_activity) inside its lane. */
+export interface PdActivity {
+  /** Position: "<lane>.<activity>", e.g. "2.1". */
+  number: string;
+  sys_id: string;
+  name: string;
+  order: number;
+  /** The sys_pd_activity_definition it instantiates. */
+  definition?: Ref;
+  condition?: string;
+  /** Timers (sys_pd_timer_attributes) attached to this activity. */
+  timers?: PdTimer[];
+}
+
+/** A playbook lane (sys_pd_lane) with its activities in order. */
+export interface PdLane {
+  number: string;
+  sys_id: string;
+  name: string;
+  order: number;
+  condition?: string;
+  activities: PdActivity[];
+}
+
+export interface PdTrigger {
+  sys_id: string;
+  name?: string;
+  definition?: Ref;
+  type?: string;
+  table?: string;
+  condition?: string;
+}
+
+export interface PdTimer {
+  sys_id: string;
+  activity?: string;
+  name?: string;
+  type?: string;
+  duration?: string;
+}
+
+export interface PdVariant {
+  sys_id: string;
+  name: string;
+  active?: boolean;
+  condition?: string;
+  order?: number;
+}
+
 export interface ExplainFlowCounts {
   steps: number;
   actions: number;
@@ -286,6 +357,11 @@ export interface ExplainFlowCounts {
   runs: number;
   /** Distinct callees expanded. */
   callees: number;
+  /** Playbook only. */
+  lanes?: number;
+  triggers?: number;
+  timers?: number;
+  variants?: number;
 }
 
 export interface ExplainFlowResult {
@@ -336,6 +412,19 @@ export interface ExplainFlowResult {
   } | null;
   activities?: WfActivity[];
   transitions?: WfTransition[];
+  /** Playbook header (kind:"playbook"). */
+  playbook?: {
+    sys_id: string;
+    name?: string;
+    internal_name?: string;
+    table?: string;
+    status?: string;
+    active?: boolean;
+    description?: string;
+  };
+  lanes?: PdLane[];
+  triggers?: PdTrigger[];
+  variants?: PdVariant[];
   stages?: Stage[];
   runs?: Run[];
   migration?: MigrationReport;
@@ -489,7 +578,9 @@ async function readRoot(
             ? "Pass a wf_workflow sys_id with kind:'workflow' (servicenow_list_flows kind:'workflow' lists them)."
             : table === "sys_hub_action_type_definition"
               ? "Pass a sys_hub_action_type_definition sys_id with kind:'action' (a flow's action steps carry it as ref)."
-              : "Pass a sys_hub_flow sys_id (servicenow_list_flows lists them); use kind:'workflow' for a legacy workflow.",
+              : table === "sys_pd_process_definition"
+                ? "Pass a sys_pd_process_definition sys_id with kind:'playbook'."
+                : "Pass a sys_hub_flow sys_id (servicenow_list_flows lists them); use kind:'workflow' for a legacy workflow.",
       },
     );
   }
@@ -1728,11 +1819,323 @@ async function explainActionDefinition(
   return result;
 }
 
+// --- playbooks (P-12) ------------------------------------------------------------
+
+const PD_FIELDS = [
+  "sys_id",
+  "label",
+  "name",
+  "table",
+  "status",
+  "active",
+  "description",
+];
+
+const LANE_FIELDS = [
+  "sys_id",
+  "process_definition",
+  "label",
+  "name",
+  "order",
+  "condition",
+];
+
+const PD_ACTIVITY_FIELDS = [
+  "sys_id",
+  "lane",
+  "label",
+  "name",
+  "order",
+  "activity_definition",
+  "condition",
+];
+
+const PD_TRIGGER_FIELDS = [
+  "sys_id",
+  "process_definition",
+  "name",
+  "trigger_definition",
+  "trigger_definition.name",
+  "trigger_type",
+  "table",
+  "condition",
+];
+
+const TIMER_FIELDS = ["sys_id", "activity", "name", "type", "duration"];
+
+const VARIANT_FIELDS = [
+  "sys_id",
+  "process_definition",
+  "label",
+  "name",
+  "active",
+  "condition",
+  "order",
+];
+
+const PD_VAR_FIELDS = [...VAR_FIELDS, "name"];
+
+/** `label`, else `name`, else the sys_id. */
+const labelOf = (row: SnRecord): string =>
+  opt(row, "label") ?? opt(row, "name") ?? str(row, "sys_id");
+
+async function readPlaybookRuns(
+  ctx: Ctx,
+  pdId: string,
+  limit: number,
+): Promise<Run[]> {
+  const rows = await read(
+    ctx,
+    "sys_pd_context",
+    `process_definition=${pdId}^ORDERBYDESCsys_created_on`,
+    ["sys_id", "name", "state", "sys_created_on", "ended", "table", "document"],
+    limit,
+  );
+  const runs = rows.map(
+    (r): Run => ({
+      sys_id: str(r, "sys_id"),
+      ...(opt(r, "name") ? { name: str(r, "name") } : {}),
+      ...(opt(r, "state") ? { state: str(r, "state") } : {}),
+      ...(opt(r, "sys_created_on")
+        ? { started: str(r, "sys_created_on") }
+        : {}),
+      ...(opt(r, "ended") ? { ended: str(r, "ended") } : {}),
+      ...(opt(r, "table") ? { table: str(r, "table") } : {}),
+      ...(opt(r, "document") ? { record: str(r, "document") } : {}),
+    }),
+  );
+  if (!runs.length) return runs;
+  const acts = await readIn(
+    ctx,
+    "sys_pd_activity_context",
+    "context",
+    runs.map((r) => r.sys_id),
+    ["sys_id", "context", "state"],
+  );
+  const byRun = new Map(runs.map((r) => [r.sys_id, r]));
+  for (const a of acts) {
+    const run = byRun.get(str(a, "context"));
+    if (!run) continue;
+    const state = opt(a, "state") ?? "unknown";
+    const states = (run.activityStates ??= {});
+    states[state] = (states[state] ?? 0) + 1;
+  }
+  return runs;
+}
+
+async function explainPlaybook(
+  ctx: Ctx,
+  result: ExplainFlowResult,
+  sysId: string,
+  runs: number,
+): Promise<ExplainFlowResult> {
+  const root = await readRoot(
+    ctx,
+    "sys_pd_process_definition",
+    sysId,
+    PD_FIELDS,
+  );
+  if ("unreadable" in root) {
+    // An absent (unlicensed) family answers 400 "invalid table" or is
+    // missing from sys_db_object: say so plainly (O-9).
+    const out = await degrade(result, root.unreadable);
+    if (out.available === false || root.unreadable.status === 400) {
+      out.available = false;
+      ctx.caveats.push(PLAYBOOK_UNAVAILABLE);
+    }
+    return out;
+  }
+  const row = root.row;
+  const name = labelOf(row);
+  result.name = name;
+  result.playbook = {
+    sys_id: sysId,
+    name,
+    ...(opt(row, "label") && opt(row, "name")
+      ? { internal_name: str(row, "name") }
+      : {}),
+    ...(opt(row, "table") ? { table: str(row, "table") } : {}),
+    ...(opt(row, "status") ? { status: str(row, "status") } : {}),
+    ...(bool(row, "active") !== undefined
+      ? { active: bool(row, "active") }
+      : {}),
+    ...(opt(row, "description")
+      ? { description: str(row, "description") }
+      : {}),
+  };
+
+  const laneRows = (
+    await read(
+      ctx,
+      "sys_pd_lane",
+      `process_definition=${sysId}^ORDERBYorder`,
+      LANE_FIELDS,
+    )
+  ).sort((a, b) => num(a, "order") - num(b, "order"));
+  const activityRows = laneRows.length
+    ? await readIn(
+        ctx,
+        "sys_pd_activity",
+        "lane",
+        laneRows.map((l) => str(l, "sys_id")),
+        PD_ACTIVITY_FIELDS,
+        "^ORDERBYorder",
+      )
+    : [];
+  const defIds = activityRows
+    .map((a) => str(a, "activity_definition"))
+    .filter(Boolean);
+  const defs = new Map(
+    (defIds.length
+      ? await readIn(ctx, "sys_pd_activity_definition", "sys_id", defIds, [
+          "sys_id",
+          "label",
+          "name",
+        ])
+      : []
+    ).map((d) => [str(d, "sys_id"), labelOf(d)]),
+  );
+  const activityIds = activityRows.map((a) => str(a, "sys_id"));
+  const timers = (
+    activityIds.length
+      ? await readIn(
+          ctx,
+          "sys_pd_timer_attributes",
+          "activity",
+          activityIds,
+          TIMER_FIELDS,
+        )
+      : []
+  ).map(
+    (t): PdTimer => ({
+      sys_id: str(t, "sys_id"),
+      activity: str(t, "activity"),
+      ...(opt(t, "name") ? { name: str(t, "name") } : {}),
+      ...(opt(t, "type") ? { type: str(t, "type") } : {}),
+      ...(opt(t, "duration") ? { duration: str(t, "duration") } : {}),
+    }),
+  );
+  // Read by `activity IN (...)`, so every timer belongs to one activity.
+  const timersOf = new Map<string, PdTimer[]>();
+  for (const t of timers) {
+    const list = timersOf.get(t.activity!) ?? [];
+    list.push(t);
+    timersOf.set(t.activity!, list);
+  }
+
+  const byLane = new Map<string, SnRecord[]>();
+  for (const a of activityRows) {
+    const list = byLane.get(str(a, "lane")) ?? [];
+    list.push(a);
+    byLane.set(str(a, "lane"), list);
+  }
+  result.lanes = laneRows.map((l, i): PdLane => {
+    const number = `${i + 1}`;
+    const acts = (byLane.get(str(l, "sys_id")) ?? []).sort(
+      (a, b) =>
+        num(a, "order") - num(b, "order") ||
+        labelOf(a).localeCompare(labelOf(b)),
+    );
+    return {
+      number,
+      sys_id: str(l, "sys_id"),
+      name: labelOf(l),
+      order: num(l, "order"),
+      ...(opt(l, "condition") ? { condition: str(l, "condition") } : {}),
+      activities: acts.map((a, j): PdActivity => {
+        const defId = str(a, "activity_definition");
+        const defName = defs.get(defId);
+        const own = timersOf.get(str(a, "sys_id"));
+        return {
+          number: `${number}.${j + 1}`,
+          sys_id: str(a, "sys_id"),
+          name: labelOf(a),
+          order: num(a, "order"),
+          ...(defId
+            ? {
+                definition: defName
+                  ? { sys_id: defId, name: defName }
+                  : { sys_id: defId },
+              }
+            : {}),
+          ...(opt(a, "condition") ? { condition: str(a, "condition") } : {}),
+          ...(own ? { timers: own } : {}),
+        };
+      }),
+    };
+  });
+
+  result.triggers = (
+    await read(
+      ctx,
+      "sys_pd_trigger_instance",
+      `process_definition=${sysId}`,
+      PD_TRIGGER_FIELDS,
+    )
+  ).map(
+    (t): PdTrigger => ({
+      sys_id: str(t, "sys_id"),
+      ...(opt(t, "name") ? { name: str(t, "name") } : {}),
+      ...(ref(t, "trigger_definition")
+        ? { definition: ref(t, "trigger_definition") }
+        : {}),
+      ...(opt(t, "trigger_type") ? { type: str(t, "trigger_type") } : {}),
+      ...(opt(t, "table") ? { table: str(t, "table") } : {}),
+      ...(opt(t, "condition") ? { condition: str(t, "condition") } : {}),
+    }),
+  );
+  result.inputs = await readVariables(
+    ctx,
+    "sys_pd_process_input",
+    sysId,
+    PD_VAR_FIELDS,
+  );
+  result.outputs = await readVariables(
+    ctx,
+    "sys_pd_process_output",
+    sysId,
+    PD_VAR_FIELDS,
+  );
+  result.variants = (
+    await read(
+      ctx,
+      "sys_pd_process_variant",
+      `process_definition=${sysId}^ORDERBYorder`,
+      VARIANT_FIELDS,
+    )
+  ).map(
+    (v): PdVariant => ({
+      sys_id: str(v, "sys_id"),
+      name: labelOf(v),
+      ...(bool(v, "active") !== undefined ? { active: bool(v, "active") } : {}),
+      ...(opt(v, "condition") ? { condition: str(v, "condition") } : {}),
+      ...(optNum(v, "order") !== undefined
+        ? { order: optNum(v, "order") }
+        : {}),
+    }),
+  );
+  if (runs > 0) result.runs = await readPlaybookRuns(ctx, sysId, runs);
+
+  result.counts = {
+    ...result.counts,
+    activities: activityRows.length,
+    inputs: result.inputs.length,
+    outputs: result.outputs.length,
+    runs: result.runs?.length ?? 0,
+    lanes: result.lanes.length,
+    triggers: result.triggers.length,
+    timers: timers.length,
+    variants: result.variants.length,
+  };
+  return result;
+}
+
 // --- entry point ---------------------------------------------------------------
 
 /**
- * Explain a Flow Designer flow / subflow as a step tree, or a legacy
- * workflow as an activity graph (with an optional migration report).
+ * Explain a Flow Designer flow / subflow as a step tree, a custom action, a
+ * legacy workflow as an activity graph (with an optional migration report)
+ * or a playbook as lanes of activities.
  */
 export async function explainFlow(
   opts: ExplainFlowOptions,
@@ -1741,7 +2144,7 @@ export async function explainFlow(
   const sysId = opts.sys_id?.trim() || undefined;
   if (sysId === undefined && !(kind === "workflow" && opts.migration)) {
     throw new ServiceNowError(
-      "Pass 'sys_id' (a sys_hub_flow, sys_hub_action_type_definition or wf_workflow sys_id). Only kind:'workflow' with migration:true runs without one (the instance-wide migration report).",
+      "Pass 'sys_id' (a sys_hub_flow, sys_hub_action_type_definition, wf_workflow or sys_pd_process_definition sys_id). Only kind:'workflow' with migration:true runs without one (the instance-wide migration report).",
       400,
     );
   }
@@ -1757,7 +2160,13 @@ export async function explainFlow(
     EXPLAIN_FLOW_DEPTH.max,
   );
   const ctx: Ctx = {
-    caveats: [kind === "workflow" ? WORKFLOW_CAVEAT : FLOW_CAVEAT],
+    caveats: [
+      kind === "workflow"
+        ? WORKFLOW_CAVEAT
+        : kind === "playbook"
+          ? PLAYBOOK_CAVEAT
+          : FLOW_CAVEAT,
+    ],
     unreadable: [],
     missing: {},
     progress: trackProgress(),
@@ -1783,6 +2192,9 @@ export async function explainFlow(
     caveats: ctx.caveats,
     unreadable: ctx.unreadable,
   };
+  if (kind === "playbook" && opts.depth !== undefined) {
+    ctx.caveats.push("depth applies to flows / subflows only; it was ignored.");
+  }
   if (kind !== "workflow" && opts.migration) {
     ctx.caveats.push(
       "migration applies to kind:'workflow' only; it was ignored.",
@@ -1798,7 +2210,9 @@ export async function explainFlow(
       ? await explainWorkflow(ctx, result, sysId, runs, !!opts.migration)
       : kind === "action"
         ? await explainActionDefinition(ctx, result, sysId!)
-        : await explainFlowDefinition(ctx, result, sysId!, kind, runs, depth);
+        : kind === "playbook"
+          ? await explainPlaybook(ctx, result, sysId!, runs)
+          : await explainFlowDefinition(ctx, result, sysId!, kind, runs, depth);
   if (Object.keys(ctx.missing).length) out.missingFields = ctx.missing;
   return out;
 }
@@ -1816,7 +2230,53 @@ const HEADER: Record<Exclude<ExplainFlowKind, "workflow">, string> = {
   flow: "Flow",
   subflow: "Subflow",
   action: "Action",
+  playbook: "Playbook",
 };
+
+const pdTriggerText = (t: PdTrigger): string =>
+  `Trigger: ${t.name ?? t.definition?.name ?? t.type ?? t.definition?.sys_id ?? t.sys_id}${t.table ? ` · ${t.table}` : ""}`;
+
+const timerText = (t: PdTimer): string =>
+  `timer ${t.name ?? t.type ?? t.sys_id}${t.duration ? ` (${t.duration})` : ""}`;
+
+/**
+ * A playbook as Mermaid: the header, its triggers, and one subgraph per lane
+ * holding that lane's activities chained by `order`. Lanes start from the
+ * header with dotted edges — lane conditions and parallelism are not modelled
+ * (unverified, O-5).
+ */
+function playbookMermaid(
+  doc: MermaidDoc,
+  result: ExplainFlowResult,
+): { mermaid: string; truncated: number } {
+  doc.node(
+    "pb",
+    label(`Playbook: ${result.playbook?.name ?? result.sys_id ?? ""}`, 100),
+    "rect",
+    { pinned: true },
+  );
+  (result.triggers ?? []).forEach((t, i) => {
+    doc.edgeTo("pb", `t${i + 1}`, label(pdTriggerText(t), 100), {
+      shape: "input",
+      pinned: true,
+    });
+  });
+  for (const lane of result.lanes ?? []) {
+    const lid = `lane_${ident(lane.sys_id)}`;
+    doc.open(lid, label(`${lane.number} ${lane.name}`, 80), "TB");
+    let prev: string | undefined;
+    for (const a of lane.activities) {
+      const aid = `act_${ident(a.sys_id)}`;
+      const text = `${a.number} ${a.name}${a.definition?.name ? ` · ${a.definition.name}` : ""}${a.timers?.length ? ` · ${a.timers.length} timer(s)` : ""}`;
+      if (!doc.node(aid, label(text, 100))) continue;
+      if (prev) doc.edge(prev, aid);
+      prev = aid;
+    }
+    doc.close();
+    doc.edge("pb", lid, "-.->");
+  }
+  return { mermaid: doc.render(), truncated: doc.truncated };
+}
 
 const calleeText = (c: Callee): string =>
   `${c.kind === "action" ? "Action" : "Subflow"}: ${c.name ?? c.sys_id}`;
@@ -1838,6 +2298,7 @@ export function flowMermaid(result: ExplainFlowResult): {
   truncated: number;
 } {
   const doc = new MermaidDoc("flowchart TD");
+  if (result.kind === "playbook") return playbookMermaid(doc, result);
   if (result.kind === "workflow") {
     const emitted = new Set<string>();
     const nodeId = (id: string): string => `a_${ident(id)}`;
@@ -2003,6 +2464,77 @@ function migrationLines(m: MigrationReport | undefined): string[] {
   return out;
 }
 
+/** The playbook part of the Markdown report (header to runs). */
+function playbookLines(result: ExplainFlowResult): string[] {
+  const p = result.playbook;
+  const c = result.counts;
+  const out = [`# Playbook ${p?.name ?? result.sys_id}`, ""];
+  if (!p) {
+    out.push(
+      result.available === false
+        ? "_Process Automation Designer is not available on this instance._"
+        : "_The playbook could not be read._",
+    );
+    return out;
+  }
+  out.push(
+    `${c.lanes ?? 0} lane(s), ${c.activities} activity(ies), ${c.triggers ?? 0} trigger(s), ${c.timers ?? 0} timer(s), ${c.variants ?? 0} variant(s). verified:false.`,
+    "",
+  );
+  if (p.internal_name) out.push(`- Internal name: ${p.internal_name}`);
+  if (p.table) out.push(`- Table: ${p.table}`);
+  if (p.status) out.push(`- Status: ${p.status}`);
+  if (p.active !== undefined) out.push(`- Active: ${p.active}`);
+  if (p.description) out.push(`- Description: ${fmt(p.description)}`);
+  if (result.triggers?.length) {
+    out.push("", "## Triggers", "");
+    for (const t of result.triggers) {
+      out.push(
+        `- ${pdTriggerText(t)}${t.condition ? ` · condition: ${fmt(t.condition)}` : ""}`,
+      );
+    }
+  }
+  out.push("", "## Lanes", "");
+  if (!result.lanes?.length) out.push("_No lanes found._");
+  for (const lane of result.lanes ?? []) {
+    out.push(
+      `- **${lane.number} ${lane.name}**${lane.condition ? ` · condition: ${fmt(lane.condition)}` : ""}`,
+    );
+    if (!lane.activities.length) out.push("  - _No activities._");
+    for (const a of lane.activities) {
+      out.push(
+        `  - ${a.number} ${a.name}${a.definition ? ` _(${a.definition.name ?? a.definition.sys_id})_` : ""}${a.condition ? ` · condition: ${fmt(a.condition)}` : ""}`,
+      );
+      for (const t of a.timers ?? []) out.push(`    - ${timerText(t)}`);
+    }
+  }
+  out.push(
+    ...variablesTable("Inputs", result.inputs),
+    ...variablesTable("Outputs", result.outputs),
+  );
+  if (result.variants?.length) {
+    out.push("", "## Variants", "");
+    for (const v of result.variants) {
+      out.push(
+        `- ${v.name}${v.active === false ? " (inactive)" : ""}${v.condition ? ` · condition: ${fmt(v.condition)}` : ""}`,
+      );
+    }
+  }
+  const runs = runLines(result.runs);
+  for (const r of result.runs ?? []) {
+    const states = Object.entries(r.activityStates ?? {});
+    if (!states.length) continue;
+    const at = runs.findIndex((l) => l.endsWith(`(${r.sys_id})`));
+    runs.splice(
+      at + 1,
+      0,
+      `  - activities: ${states.map(([s, n]) => `${s} ${n}`).join(", ")}`,
+    );
+  }
+  out.push(...runs);
+  return out;
+}
+
 /** A readable report: header, trigger, steps / activities, diagram, caveats. */
 export function flowMarkdown(
   result: ExplainFlowResult,
@@ -2050,6 +2582,8 @@ export function flowMarkdown(
       }
     }
     out.push(...runLines(result.runs), ...migrationLines(result.migration));
+  } else if (result.kind === "playbook") {
+    out.push(...playbookLines(result));
   } else {
     const f = result.flow;
     const a = result.action;

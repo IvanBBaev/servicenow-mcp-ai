@@ -20,7 +20,7 @@ import {
   freshRuntime,
   jsonResponse,
   withEnv,
-  withFetch,
+  withMetadataFetch,
 } from "./helpers.js";
 
 baselineEnv();
@@ -113,7 +113,7 @@ async function scenario(env, fn, data) {
         SN_PROFILE_B_PASSWORD: "p",
         ...env,
       },
-      () => withFetch(instance(data), (calls) => fn(calls, docs)),
+      () => withMetadataFetch(instance(data), (calls) => fn(calls, docs)),
     );
   } finally {
     rmSync(docs, { recursive: true, force: true });

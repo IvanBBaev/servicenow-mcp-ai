@@ -9,6 +9,7 @@ import {
 import { queryTable } from "./table.js";
 import { aggregate } from "./aggregate.js";
 import { docsWriteRaw } from "./docs.js";
+import { analyseDomains, type DomainAnalysis } from "./domain-analysers.js";
 import { snString } from "./shared.js";
 import { activeProfile } from "../core/config.js";
 import { ServiceNowError } from "../core/errors.js";
@@ -515,6 +516,8 @@ export interface CodeHealth {
   lint?: TableLint;
   /** P-18: the registry-wide sweep (`extended`). */
   artifacts?: ArtifactLint;
+  /** P-19: flow / portal / UI Builder / legacy-workflow rules (`domains`). */
+  domains?: DomainAnalysis;
   security?: SecurityScan;
   warnings: string[];
 }
@@ -526,7 +529,7 @@ export interface CodeHealth {
  */
 export async function codeHealth(
   scope?: string,
-  opts: { extended?: boolean; limit?: number } = {},
+  opts: { extended?: boolean; domains?: boolean; limit?: number } = {},
 ): Promise<CodeHealth> {
   const profile = activeProfile();
   const generatedAt = new Date().toISOString();
@@ -703,6 +706,50 @@ export async function codeHealth(
     for (const w of artifacts.warnings) warnings.push(`artifact lint: ${w}`);
   }
 
+  let domains: DomainAnalysis | undefined;
+  if (opts.domains) {
+    try {
+      domains = await analyseDomains({ limit: opts.limit });
+    } catch (e) {
+      warnings.push(
+        `domain analysers: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
+  }
+  if (domains) {
+    const cell = (v: string) => v.replaceAll("|", "\\|").replaceAll("\n", " ");
+    md.push(
+      "## Domain analysers (flows, portal, UI Builder, legacy workflows)",
+      "",
+      `${domains.findingCount} findings (error ${domains.bySeverity.error} · warn ${domains.bySeverity.warn} · info ${domains.bySeverity.info}); up to ${domains.limit} candidates per rule.`,
+      "",
+      "| Rule | Available | Scanned | Findings |",
+      "| --- | --- | --- | --- |",
+      ...Object.entries(domains.rules).map(
+        ([rule, r]) =>
+          `| ${rule} | ${r.available ? "yes" : `no — ${cell(r.unavailableReason ?? "")}`} | ${r.scanned}${r.truncated ? "+" : ""} | ${r.findings} |`,
+      ),
+      "",
+    );
+    const top = domains.findings.slice(0, 30);
+    if (top.length > 0) {
+      md.push(
+        "| Severity | Rule | Artefact | Message |",
+        "| --- | --- | --- | --- |",
+      );
+      for (const f of top) {
+        md.push(
+          `| ${f.severity} | ${f.rule} | ${f.ref.artifactType} ${cell(f.ref.name ?? f.ref.sys_id)} | ${cell(f.message)} |`,
+        );
+      }
+      md.push("");
+    }
+    if (domains.caveats.length > 0) {
+      md.push(...domains.caveats.map((c) => `- ${c}`), "");
+    }
+    for (const w of domains.warnings) warnings.push(`domain analysers: ${w}`);
+  }
+
   let reportFile: string | undefined;
   try {
     reportFile = `${profile}/code-health.md`;
@@ -718,6 +765,7 @@ export async function codeHealth(
         lint,
         security,
         ...(artifacts ? { artifacts } : {}),
+        ...(domains ? { domains } : {}),
         warnings,
       },
       legacy: /^# Code health — /,
@@ -735,6 +783,7 @@ export async function codeHealth(
     scriptCounts,
     lint,
     ...(artifacts ? { artifacts } : {}),
+    ...(domains ? { domains } : {}),
     security,
     warnings,
   };

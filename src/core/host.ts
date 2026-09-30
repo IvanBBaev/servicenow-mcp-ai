@@ -1,5 +1,6 @@
 import { isIPv6 } from "node:net";
 import { ServiceNowError } from "./errors.js";
+import { isDeclaredSetting, rawSetting } from "./settings-manifest.js";
 
 /** True for an IPv4 dotted quad in a loopback/private/link-local range. */
 function isBlockedIPv4(h: string): boolean {
@@ -80,7 +81,10 @@ export interface HostPolicy {
 
 /** Optional comma-separated allowlist of permitted hosts from `envVar`. */
 function getAllowedHosts(envVar: string): string[] {
-  return (process.env[envVar] ?? "")
+  const raw = isDeclaredSetting(envVar)
+    ? rawSetting(envVar)
+    : process.env[envVar];
+  return (raw ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);

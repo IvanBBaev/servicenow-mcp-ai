@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.IvanBBaev/servicenow-mcp-ai",
-  "description": "ServiceNow MCP server — 94 tools over the full REST surface, every auth method, flows, diagrams.",
+  "description": "ServiceNow MCP server — 97 tools over the full REST surface, every auth method, flows, diagrams.",
   "repository": {
     "url": "https://github.com/IvanBBaev/servicenow-mcp-ai",
     "source": "github"
@@ -23,12 +23,6 @@
           "format": "string"
         },
         {
-          "name": "SN_AUTH",
-          "description": "Auth mode: basic | oauth | apikey | token | none. Auto-detected from the keys present if omitted.",
-          "isRequired": false,
-          "format": "string"
-        },
-        {
           "name": "SN_USER",
           "description": "Username for basic auth or the OAuth password grant.",
           "isRequired": false,
@@ -39,6 +33,12 @@
           "description": "Password for basic auth or the OAuth password grant.",
           "isRequired": false,
           "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "SN_AUTH",
+          "description": "Auth mode: basic | oauth | apikey | token | none. Auto-detected from the keys present if omitted.",
+          "isRequired": false,
           "format": "string"
         },
         {

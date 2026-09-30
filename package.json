@@ -2,7 +2,7 @@
   "name": "servicenow-mcp-ai",
   "version": "2.0.1",
   "mcpName": "io.github.IvanBBaev/servicenow-mcp-ai",
-  "description": "ServiceNow MCP server: 94 tools in 26 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
+  "description": "ServiceNow MCP server: 97 tools in 26 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "license": "MIT",
   "author": "Ivan Baev <ivanbbaev@gmail.com>",
   "repository": {
@@ -27,6 +27,10 @@
   "engines": {
     "node": ">=20"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "node -e \"require('fs').rmSync('build',{recursive:true,force:true})\" && tsc && node -e \"try{require('fs').chmodSync('build/index.js',0o755)}catch{}\"",
     "watch": "tsc --watch",
@@ -39,12 +43,14 @@
     "format:check": "prettier --check .",
     "inspector": "npx @modelcontextprotocol/inspector node build/index.js",
     "docs:readme": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/readme-tools.mjs",
+    "docs:env": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/env-docs.mjs",
+    "docs:sync": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/docs-sync.mjs",
     "test:full": "npm run build && node --test test/*.test.js",
     "sdk:drift": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/sdk-drift.mjs",
     "gen:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/gen-manifest.mjs",
     "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
     "pack:check": "node scripts/pack-check.mjs",
-    "check": "npm run build && npm run lint && npm run format:check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
+    "check": "npm run build && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
     "release:dry": "npm run check && npm publish --dry-run",
     "version:sync": "node scripts/sync-version.mjs",
     "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json docs/index.html",

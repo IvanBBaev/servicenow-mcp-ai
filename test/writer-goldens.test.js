@@ -14,11 +14,12 @@ import { fileURLToPath } from "node:url";
 
 import { snapshotInstance } from "../build/api/snapshot.js";
 import { compareInstances } from "../build/api/compare.js";
+import { codeHealth } from "../build/api/codecheck.js";
 import {
   baselineEnv,
   freshRuntime,
   withEnv,
-  withFetch,
+  withMetadataFetch,
   jsonResponse,
 } from "./helpers.js";
 
@@ -288,7 +289,7 @@ function degradedFetch(url) {
 
 test("snapshot writer golden: full run", async () => {
   await fresh();
-  const r = await withFetch(instanceFetch, () =>
+  const r = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident"] }),
   );
   await assertTree("snapshot-full", r);
@@ -297,7 +298,7 @@ test("snapshot writer golden: full run", async () => {
 test("snapshot writer golden: degraded run (unreadable, capped, invalid)", async () => {
   await fresh();
   const r = await withEnv({ SN_MAX_RECORDS: "1" }, () =>
-    withFetch(degradedFetch, () =>
+    withMetadataFetch(degradedFetch, () =>
       snapshotInstance({ tables: ["incident", "../evil"] }),
     ),
   );
@@ -306,7 +307,7 @@ test("snapshot writer golden: degraded run (unreadable, capped, invalid)", async
 
 test("snapshot writer golden: both plugin sources unreadable", async () => {
   await fresh();
-  const r = await withFetch(
+  const r = await withMetadataFetch(
     (url) =>
       /\/table\/(v_plugin|sys_plugins|sys_app)$/.test(new URL(url).pathname)
         ? jsonResponse(403, { error: { message: "denied" } })
@@ -406,7 +407,7 @@ function twoInstanceFetch(url) {
 test("compare writer golden: live, with record sections", async () => {
   await fresh();
   const r = await withEnv(PROFILE_ENV, () =>
-    withFetch(twoInstanceFetch, () =>
+    withMetadataFetch(twoInstanceFetch, () =>
       compareInstances({
         a: "default",
         b: "prod",
@@ -420,7 +421,7 @@ test("compare writer golden: live, with record sections", async () => {
 test("compare writer golden: capped, prod plugins unreadable", async () => {
   await fresh();
   const r = await withEnv({ ...PROFILE_ENV, SN_MAX_RECORDS: "1" }, () =>
-    withFetch(
+    withMetadataFetch(
       (url) =>
         new URL(url).hostname === PROD_HOST && url.includes("/table/v_plugin")
           ? jsonResponse(403, { error: { message: "plugins denied" } })
@@ -434,12 +435,12 @@ test("compare writer golden: capped, prod plugins unreadable", async () => {
 test("compare writer golden: from snapshot", async () => {
   await fresh();
   const r = await withEnv(PROFILE_ENV, async () => {
-    await withFetch(instanceFetch, () => snapshotInstance());
+    await withMetadataFetch(instanceFetch, () => snapshotInstance());
     await fs.rm(path.join(DOCS_DIR, "_compare"), {
       recursive: true,
       force: true,
     });
-    return withFetch(twoInstanceFetch, () =>
+    return withMetadataFetch(twoInstanceFetch, () =>
       compareInstances({
         a: "default",
         b: "prod",
@@ -456,6 +457,16 @@ test("compare writer golden: from snapshot", async () => {
   await assertTree("compare-snapshot", r);
 });
 
+// --- code health -----------------------------------------------------------
+
+test("code-health writer golden: instance-wide report", async () => {
+  await fresh();
+  // Script counts from the stats mock; the security scan reads the fixture
+  // ACLs and roles, the other S-3 sources answer 404 (checks unavailable).
+  const r = await withMetadataFetch(instanceFetch, () => codeHealth());
+  await assertTree("code-health", r);
+});
+
 test("writer goldens have no stray scenario folders", () => {
   if (process.env.UPDATE_GOLDEN === "1") return;
   // Scenario folders only: the S-15 document goldens sit here as flat files.
@@ -463,6 +474,7 @@ test("writer goldens have no stray scenario folders", () => {
     .filter((e) => e.isDirectory())
     .map((e) => e.name);
   assert.deepEqual(folders.sort(), [
+    "code-health",
     "compare-degraded",
     "compare-live",
     "compare-snapshot",

@@ -322,7 +322,7 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe(
-          "Also a Mermaid diagram per flow/subflow/workflow/portal, a dependency graph and a lint summary (bounded).",
+          "Also a Mermaid diagram per flow/subflow/workflow/portal/UI Builder experience, a dependency graph and a lint summary (bounded).",
         ),
     },
     logFields: (args) => ({

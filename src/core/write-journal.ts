@@ -97,6 +97,12 @@ export interface JournalEntry {
   client?: string;
   /** Links the per-sub-request lines of one batch to its envelope line (L2-03). */
   batch_id?: string;
+  /**
+   * P-23: links the per-record lines of one `servicenow_upsert_artifact` apply
+   * (parent first, then the children in order). Unlike `batch_id`, each line
+   * stays revertible on its own.
+   */
+  artifact_write?: string;
   /** HTTP method of a batch sub-request. */
   method?: string;
   /** sha256 of a batch sub-request body as sent. */

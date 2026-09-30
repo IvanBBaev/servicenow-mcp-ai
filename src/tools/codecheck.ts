@@ -116,11 +116,17 @@ export const specs: AnyToolSpec[] = [
         .max(ARTIFACT_LINT_LIMIT_MAX)
         .optional()
         .describe(
-          `Records per type for extended (default ${ARTIFACT_LINT_LIMIT}).`,
+          `Records per type for extended, candidates per rule for domains (default ${ARTIFACT_LINT_LIMIT}).`,
+        ),
+      domains: z
+        .boolean()
+        .optional()
+        .describe(
+          "Also run the flow, Service Portal, UI Builder and legacy-workflow analysers (run-as-System on protected tables, unused subflows/actions, unguarded integration steps, long waits, public data widgets, orphans, route-map loops, UIB routes without a screen, screens without audience, brokers without ACL, workflows to migrate).",
         ),
     },
     logFields: (args) => ({ scope: args.scope ?? "instance" }),
-    handler: ({ scope, extended, limit }) =>
-      codeHealth(scope, { extended, limit }).then(ok),
+    handler: ({ scope, extended, domains, limit }) =>
+      codeHealth(scope, { extended, domains, limit }).then(ok),
   }),
 ];

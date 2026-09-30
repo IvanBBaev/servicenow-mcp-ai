@@ -33,6 +33,21 @@ export interface RuntimePart<T> {
   readonly create: () => T;
   /** Clear the part in place on `dispose()`; omitted = survives dispose. */
   readonly dispose?: (state: T) => void | Promise<void>;
+  /**
+   * H-7 — `"process"` state is shared by every HTTP session: a session
+   * runtime (`createRuntime({ parent })`) delegates it to its parent, so the
+   * connection pools, breakers, token and schema caches stay one per process
+   * (keyed by profile + host). `"session"` (the default) is private to each
+   * runtime: package toggles, plan tokens, tasks, write counters.
+   */
+  readonly scope: RuntimeScope;
+}
+
+export type RuntimeScope = "process" | "session";
+
+export interface RuntimePartOptions {
+  /** See `RuntimePart.scope`; defaults to `"session"`. */
+  scope?: RuntimeScope;
 }
 
 /** Every part defined so far, in definition order (= dispose order). */
@@ -46,8 +61,14 @@ export function defineRuntimePart<T>(
   name: string,
   create: () => T,
   dispose?: (state: T) => void | Promise<void>,
+  options: RuntimePartOptions = {},
 ): RuntimePart<T> {
-  const part: RuntimePart<T> = { name, create, dispose };
+  const part: RuntimePart<T> = {
+    name,
+    create,
+    dispose,
+    scope: options.scope ?? "session",
+  };
   parts.push(part as RuntimePart<unknown>);
   return part;
 }
@@ -68,6 +89,17 @@ export interface Runtime {
    * runtime stays usable afterwards — the next access starts from empty state.
    */
   dispose(): Promise<void>;
+  /** The runtime process-scoped parts are delegated to, when this is a child. */
+  readonly parent?: Runtime;
+}
+
+export interface CreateRuntimeOptions {
+  /**
+   * H-7 — build a session runtime: process-scoped parts resolve through
+   * `parent`, and this runtime's `dispose()` clears only its own
+   * (session-scoped) parts, never the shared ones.
+   */
+  parent?: Runtime;
 }
 
 class RuntimeImpl implements Runtime {
@@ -75,7 +107,10 @@ class RuntimeImpl implements Runtime {
   private readonly disposers = new Set<Disposer>();
   private inFlight: Promise<void> | null = null;
 
+  constructor(readonly parent?: Runtime) {}
+
   get<T>(part: RuntimePart<T>): T {
+    if (this.parent && part.scope === "process") return this.parent.get(part);
     const key = part as RuntimePart<unknown>;
     if (!this.state.has(key)) this.state.set(key, part.create());
     return this.state.get(key) as T;
@@ -121,8 +156,8 @@ class RuntimeImpl implements Runtime {
 }
 
 /** Build an empty runtime. Nothing is allocated until a part is first used. */
-export function createRuntime(): Runtime {
-  return new RuntimeImpl();
+export function createRuntime(options: CreateRuntimeOptions = {}): Runtime {
+  return new RuntimeImpl(options.parent);
 }
 
 let installed: Runtime | null = null;

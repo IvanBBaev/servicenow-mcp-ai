@@ -1,0 +1,83 @@
+# D-5 — Smithery configuration (https://smithery.ai/docs/build/project-config).
+# Smithery builds the Dockerfile in this directory and starts the server over
+# stdio with the environment produced by commandFunction. Every config key maps
+# to one documented environment variable (see the README configuration table);
+# test/container.test.js pins the mapping.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - instance
+    properties:
+      instance:
+        type: string
+        description: "ServiceNow instance host, e.g. dev12345.service-now.com (SN_INSTANCE)."
+      user:
+        type: string
+        description: "ServiceNow user for Basic auth (SN_USER)."
+      password:
+        type: string
+        description: "ServiceNow password for Basic auth (SN_PASSWORD)."
+      authMethod:
+        type: string
+        enum: [basic, oauth, apikey, token, none]
+        description: "Auth method; auto-detected when omitted (SN_AUTH)."
+      apiKey:
+        type: string
+        description: "Inbound API key, sent as x-sn-apikey (SN_API_KEY)."
+      bearerToken:
+        type: string
+        description: "Pre-obtained bearer token (SN_BEARER_TOKEN)."
+      oauthClientId:
+        type: string
+        description: "OAuth client id (SN_OAUTH_CLIENT_ID)."
+      oauthClientSecret:
+        type: string
+        description: "OAuth client secret (SN_OAUTH_CLIENT_SECRET)."
+      oauthGrant:
+        type: string
+        enum: [password, client_credentials, refresh_token, jwt_bearer]
+        description: "OAuth grant (SN_OAUTH_GRANT)."
+      toolPackages:
+        type: string
+        default: core
+        description: "Tool packages or presets to enable, e.g. core, reader, developer, all (SN_TOOL_PACKAGES)."
+      readonly:
+        type: boolean
+        default: false
+        description: "Refuse every create/update/delete (SN_READONLY)."
+      writeMode:
+        type: string
+        enum: [plan, apply]
+        default: plan
+        description: "plan previews writes as a diff; apply executes them (SN_WRITE_MODE)."
+  commandFunction: |-
+    (config) => {
+      const map = {
+        instance: 'SN_INSTANCE',
+        user: 'SN_USER',
+        password: 'SN_PASSWORD',
+        authMethod: 'SN_AUTH',
+        apiKey: 'SN_API_KEY',
+        bearerToken: 'SN_BEARER_TOKEN',
+        oauthClientId: 'SN_OAUTH_CLIENT_ID',
+        oauthClientSecret: 'SN_OAUTH_CLIENT_SECRET',
+        oauthGrant: 'SN_OAUTH_GRANT',
+        toolPackages: 'SN_TOOL_PACKAGES',
+        readonly: 'SN_READONLY',
+        writeMode: 'SN_WRITE_MODE',
+      };
+      const env = { SN_TRANSPORT: 'stdio' };
+      for (const [key, name] of Object.entries(map)) {
+        const value = config[key];
+        if (value !== undefined && value !== null && value !== '') env[name] = String(value);
+      }
+      return { command: 'node', args: ['/app/bin/servicenow-mcp-ai.cjs'], env };
+    }
+  exampleConfig:
+    instance: dev12345.service-now.com
+    user: admin
+    password: change-me
+    toolPackages: core
+    readonly: true

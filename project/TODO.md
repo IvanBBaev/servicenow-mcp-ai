@@ -454,6 +454,52 @@
       CPU — H-10's dispatcher asks for the optional `undici` package. `baselineEnv()` in
       `test/helpers.js` now clears `SN_HTTPS_PROXY` / `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`
       (both cases); the suite is green with a proxy in the environment.
+- [ ] **Owner decisions from batch 16 (2026-09-30, uncommitted).**
+  - O-7 (now also gating P-27 / P-28): the SDK dev dependency + 4.12.2 target; the P-29 oracle
+    would verify the `Flow` / `Subflow` / `Action` / `PlaybookDefinition` and portal / workspace /
+    catalog property names, which are taken from SDK-PARITY and are unverified.
+  - P-27: `wfa.dataPill` without a type argument; step-output pills emitted as text; the subflow
+    call shape. O-5 / O-9: verify generated flows on a PDI.
+  - P-28: the passthrough camelCase fields of `Dashboard` / `UxListMenuConfig` / `Applicability`;
+    standalone `io_set_item` rows emitted as `Record()`; UIB stays `Record()` (no Fluent API).
+- [ ] **Owner decisions from batch 15 (2026-09-30, uncommitted).**
+  - O-7: may `@servicenow/sdk` be a dev dependency (type-check oracle for P-26), and is 4.12.2 the
+    target SDK for generated Fluent? Until then P-26 output is only proven to parse.
+  - P-20: keep reading the published flow snapshot by default? (A flow whose `master_snapshot` has
+    child rows hashes differently from snapshots stored before batch 15 — one-time drift against old
+    `from_snapshot` files.) Are the Mermaid diff caps (10 records, 120 lines) right? O-5: confirm
+    snapshot child rows are keyed by the snapshot sys_id.
+  - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` now 149,000).
+  - E-6: the O-2 PDI fixture corpus + live smoke job; L9-03 layout (still deferred).
+- [ ] **Owner decisions from batch 14 (2026-09-30, uncommitted).**
+  - E-4: flip `SN_STRICT_SETTINGS` on by default in 3.0? B5: drop the implicit `.env` fallback?
+  - H-7: B6 `SN_HTTP_REQUIRE_TOKEN` default on; B12 `use_instance` `persist` over stdio; a default
+    `SN_HTTP_ALLOWED_HOSTS` for non-loopback binds; the OAuth (MCP authorization) design.
+  - P-24: `SCOPE_PREFIX` warn vs refuse; cross-scope duplicate semantics; the `sp_dependency.module` field.
+  - O-5 verification on a PDI: P-24 fields, flow `master_snapshot` behaviour (P-25), the `sys_ux_*`
+    (P-14 / P-15) and `sys_pd_*` (P-12) tables.
+  - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` raised to 146,500 in
+    `test/output-schema.test.js`).
+  - P-19: severity of `uib-data-broker-no-acl`. P-21: UIB depth beyond page-map diagrams.
+  - D-6: publish the extension only after 3.0.0; delete the stale registry entries; the Open VSX
+    namespace and `OVSX_PAT` secret; the `exports` map (B10).
+- [ ] **Owner decisions from batch 13 (2026-09-28, uncommitted).**
+      **D-5:** (a) publish the image (GHCR / Docker Hub) and pin base images by digest? (b) list on
+      Smithery / Glama? (c) a public `/healthz` so `HEALTHCHECK` can use HTTP instead of TCP? (d)
+      warn on world-readable secret files (Docker secrets are 0444)? (e) `removeComments` would cut
+      our JS 1,430 → 1,166 KB — still over 800; raise the ceiling or bundle? The SDK tree is ~93 %
+      of the install. **D-7:** (f) marketplace publish; (g) keep the HTTP transport option? (h)
+      extension unit tests run only in CI. **D-9:** (i) enable private vulnerability reporting;
+      (j) confirm the 3 / 7 / 30-day targets and "< 2.0 unsupported"; (k) the fallback e-mail in
+      SECURITY.md; (l) create labels `breaking`, `security`, `changed`, `ci`, `internal`,
+      `skip-changelog`; (m) the roadmap's "O-1 checklist" names ARCH-14 go/no-go — no such
+      checklist exists. **P-19:** (n) field names verified on mocks only (O-5); (o) make the
+      long-wait threshold configurable? **P-23:** (p) the strict `writeFields` allow-list (none
+      yet for business rules / script includes); (q) `apps.current_app` unverified (O-5), and a
+      child create takes the current app's scope, not its parent's; (r) add `prune_children`,
+      whole-artefact revert, child staleness? (s) a plan token on a tool with
+      `destructiveHint:false`; (t) `tools/list` `all` budget 144,000 (measured 143,644).
+      **All:** (u) pack 1596.2 KB unpacked vs the 800 KB ceiling.
 - [ ] **SDK parity epic** (P-1…P-29, owner gates O-5…O-9) — post-3.0 (3.x minors; only P-22's
       `deny` default is a 4.0 break); plan in [SDK-PARITY.md](SDK-PARITY.md), rows 55–83 of
       ROADMAP-V3 §"Sequencing".

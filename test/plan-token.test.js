@@ -404,7 +404,7 @@ test("token: SN_REDACT_PII cannot mangle the token (letters only)", async () => 
   );
 });
 
-test("schema: exactly the seven destructive-apply tools gain plan_token", () => {
+test("schema: exactly the eight plan-token tools gain plan_token", () => {
   const withToken = ALL_TOOLS.filter(
     (s) => "plan_token" in buildInputSchema(s).shape,
   ).map((s) => s.name);
@@ -416,6 +416,8 @@ test("schema: exactly the seven destructive-apply tools gain plan_token", () => 
     "servicenow_order_catalog_item",
     "servicenow_revert_write",
     "servicenow_send_email",
+    // P-23: one token covers the whole artefact plan (parent and children).
+    "servicenow_upsert_artifact",
   ]);
   for (const name of withToken) {
     assert.ok("apply" in spec(name).input, `${name} has apply`);

@@ -3,6 +3,17 @@
 A personal project, but the bar is the same as for a team one: every change
 lands with its tests, behind the full gate, with the docs in sync.
 
+Before you start:
+
+- Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+- Questions, setup problems and what a good bug report contains
+  (`doctor --json`, `support-bundle`) are covered in [SUPPORT.md](SUPPORT.md).
+- **Security vulnerabilities are reported privately**, never in an issue or a
+  pull request — see [SECURITY.md](SECURITY.md).
+- Pull requests follow the checklist in the
+  [pull request template](.github/pull_request_template.md); every path is
+  owned by the maintainer ([CODEOWNERS](.github/CODEOWNERS)).
+
 ## Dev setup
 
 ```bash

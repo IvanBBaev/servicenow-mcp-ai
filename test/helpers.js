@@ -149,6 +149,9 @@ export const METADATA_TABLES = [
   /^item_option_new$/,
   // S-15 document_instance: in-progress update sets (names, not updates).
   /^sys_update_set$/,
+  // S-9 structural where-used: list / form layouts and report definitions.
+  /^sys_ui_(list|list_element|section|element)$/,
+  /^sys_report$/,
 ];
 
 /** Primary and child tables of every registered artefact type. */
@@ -168,12 +171,35 @@ export function assertMetadataUrl(url) {
   );
 }
 
-/** withFetch plus the metadata-only allow-list. */
-export const withMetadataFetch = (handler, fn) =>
-  withFetch((url, ...rest) => {
-    assertMetadataUrl(url);
-    return handler(url, ...rest);
-  }, fn);
+/**
+ * withFetch plus the metadata-only allow-list. A rejected URL throws inside
+ * the fetch double, but collectors turn fetch errors into `unreadable`
+ * sections, so the violation is also recorded and re-thrown once `fn`
+ * settles — a generator that reads record data fails the test even when it
+ * degrades gracefully.
+ */
+export async function withMetadataFetch(handler, fn) {
+  const violations = [];
+  let outcome;
+  try {
+    outcome = {
+      value: await withFetch((url, ...rest) => {
+        try {
+          assertMetadataUrl(url);
+        } catch (err) {
+          violations.push(err);
+          throw err;
+        }
+        return handler(url, ...rest);
+      }, fn),
+    };
+  } catch (err) {
+    outcome = { error: err };
+  }
+  if (violations.length > 0) throw violations[0];
+  if ("error" in outcome) throw outcome.error;
+  return outcome.value;
+}
 
 // --- E-6 / L9-01: fetch double v2 and a fake clock ------------------------
 //

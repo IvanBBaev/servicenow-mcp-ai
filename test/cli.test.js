@@ -184,7 +184,7 @@ test("doctor: env-file first line, exit code of the verdict", async () => {
     const io = fakeIO({ stdoutTTY: true });
     assert.equal(await runCli(["doctor"], io, deps(report(status))), code);
     const [first] = io.stdout.text.split("\n");
-    assert.equal(first, `env file: ${envFile} (missing)`);
+    assert.equal(first, `env file: ${envFile} (missing, from SN_ENV_FILE)`);
   }
 });
 
@@ -217,7 +217,11 @@ test("doctor --json: one JSON document with checks and the status payload", asyn
   );
   assert.equal(code, 1);
   const payload = JSON.parse(io.stdout.text);
-  assert.deepEqual(payload.envFile, { path: envFile, exists: false });
+  assert.deepEqual(payload.envFile, {
+    path: envFile,
+    exists: false,
+    source: "SN_ENV_FILE",
+  });
   assert.equal(payload.status, "degraded");
   assert.deepEqual(
     payload.checks.map((c) => [c.name, c.ok]),
@@ -312,7 +316,10 @@ test("init (basic): writes the env file 0600, never prints the password, runs do
     io.stdout.text,
     /Wrote SN_AUTH, SN_INSTANCE, SN_PASSWORD, SN_USER/,
   );
-  assert.match(io.stdout.text, new RegExp(`env file: .*\\(exists\\)`));
+  assert.match(
+    io.stdout.text,
+    new RegExp(`env file: .*\\(exists, from SN_ENV_FILE\\)`),
+  );
 });
 
 test("init: the exit code is the doctor's; --skip-doctor exits 0", async () => {

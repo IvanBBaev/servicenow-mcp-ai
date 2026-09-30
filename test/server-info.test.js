@@ -418,6 +418,8 @@ test("get_status v2: the HTTP transport shows host/port and only whether a token
         host: "127.0.0.1",
         port: 3999,
         tokenSet: true,
+        // H-7: no transport running here, no calling session.
+        sessions: 0,
       });
       assert.doesNotMatch(
         JSON.stringify(buildStatusPayload()),
