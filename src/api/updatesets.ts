@@ -719,6 +719,7 @@ const lockPart = defineRuntimePart(
   "updateSetLocks",
   () => new Map<string, Promise<void>>(),
   (map) => map.clear(),
+  { scope: "process" },
 );
 
 async function withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
@@ -744,6 +745,17 @@ interface PrefState {
   /** Existing row (sys_id + value) or undefined when the row was created. */
   existing?: { sys_id: string; value: string };
   created?: string;
+}
+
+/**
+ * P-22: read one of the session user's preferences (`sys_user_preference`,
+ * matched by user name, or by `gs.getUserID()` when the name is unusable).
+ * Undefined when the user has no row for it.
+ */
+export async function readUserPreference(
+  name: string,
+): Promise<SnRecord | undefined> {
+  return readPref(name);
 }
 
 async function readPref(name: string): Promise<SnRecord | undefined> {

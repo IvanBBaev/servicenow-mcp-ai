@@ -1,0 +1,39 @@
+# Categories for GitHub's auto-generated release notes, following the
+# CHANGELOG headings. A pull request lands in the first category whose label
+# it carries; unlabelled pull requests fall into "Other changes".
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: Breaking changes
+      labels:
+        - breaking
+    - title: Security
+      labels:
+        - security
+    - title: Added
+      labels:
+        - enhancement
+    - title: Changed
+      labels:
+        - changed
+    - title: Fixed
+      labels:
+        - bug
+    - title: Docs
+      labels:
+        - documentation
+    - title: CI
+      labels:
+        - ci
+        - github_actions
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Internal
+      labels:
+        - internal
+    - title: Other changes
+      labels:
+        - "*"

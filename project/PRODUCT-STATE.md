@@ -7,16 +7,16 @@ Related documents: [ARCHITECTURE.md](ARCHITECTURE.md) (how it is built), [DONE.m
 
 ## 1. TL;DR — what works today
 
-A full ServiceNow MCP server: **93 tools in 26 packages**, 7 MCP resources (package-gated), 5 prompts. Covers all core ServiceNow REST APIs (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE) and the plugin APIs (Catalog, Change, Knowledge, Email) with capability detection. **v2.0 — trust + depth + reach:** plan-and-apply write safety (`SN_WRITE_MODE`, default plan) plus a local audit journal across all 13 write tools; a capability preflight (`check_capabilities` + degrade); an ACL security scan folded into `code_health`; a where-used / impact graph; client-side field redaction (PII); a token-guarded Streamable HTTP transport (`SN_TRANSPORT=http`); CSV export; and a `drift` CI gate. Reads and analyses the instance's script automation (business rules, script includes, client scripts…), traces what a table operation would run, lints scripts against a local rule set and runs ATF tests via the CI/CD API, generates Mermaid diagrams and maintains a local Markdown self-documentation store. Two-axis policy model (tables + packages), named connection profiles with per-call routing, **every ServiceNow auth method** (Basic, OAuth 2.1 Authorization Code + PKCE, client_credentials, refresh_token, JWT bearer, API key, bearer token, mutual TLS), retry/backoff, SSRF guard, structured errors.
+A full ServiceNow MCP server: **97 tools in 26 packages**, 7 MCP resources (package-gated), 5 prompts. Covers all core ServiceNow REST APIs (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE) and the plugin APIs (Catalog, Change, Knowledge, Email) with capability detection. **v2.0 — trust + depth + reach:** plan-and-apply write safety (`SN_WRITE_MODE`, default plan) plus a local audit journal across all 13 write tools; a capability preflight (`check_capabilities` + degrade); an ACL security scan folded into `code_health`; a where-used / impact graph; client-side field redaction (PII); a token-guarded Streamable HTTP transport (`SN_TRANSPORT=http`); CSV export; and a `drift` CI gate. Reads and analyses the instance's script automation (business rules, script includes, client scripts…), traces what a table operation would run, lints scripts against a local rule set and runs ATF tests via the CI/CD API, generates Mermaid diagrams and maintains a local Markdown self-documentation store. Two-axis policy model (tables + packages), named connection profiles with per-call routing, **every ServiceNow auth method** (Basic, OAuth 2.1 Authorization Code + PKCE, client_credentials, refresh_token, JWT bearer, API key, bearer token, mutual TLS), retry/backoff, SSRF guard, structured errors.
 
 ```mermaid
-pie title 93 tools by package
+pie title 97 tools by package
     "table (CRUD)" : 6
     "attachment" : 5
     "catalog" : 5
     "change" : 5
     "cmdb" : 7
-    "admin" : 9
+    "admin" : 10
     "atf" : 5
     "scripts" : 5
     "flows" : 5
@@ -30,13 +30,13 @@ pie title 93 tools by package
     "aggregate" : 1
     "batch" : 1
     "revert" : 2
-    "artifacts" : 4
+    "artifacts" : 6
     "updatesets" : 3
     "ops" : 2
     "history" : 1
     "properties" : 2
     "directory" : 1
-    "ui" : 1
+    "ui" : 2
 ```
 
 ## 2. ServiceNow API surface coverage

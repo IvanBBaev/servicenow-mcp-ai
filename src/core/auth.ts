@@ -5,7 +5,6 @@ import {
   activeProfile,
   profileAuthEnv,
   authModeFor,
-  authEnvKey,
   persistEnv,
   envFileAclWarning,
   credentialStatus,
@@ -14,6 +13,7 @@ import {
 import { getDispatcher } from "./dispatcher.js";
 import { rawRequest, readJsonBody } from "./http-util.js";
 import { logger } from "./logging.js";
+import { readString, settingSource } from "./settings-manifest.js";
 import { signJwtRS256 } from "./jwt.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
 
@@ -96,6 +96,7 @@ const bearerFilePart = defineRuntimePart(
   "bearer-token-files",
   () => new Map<string, string>(),
   (files) => files.clear(),
+  { scope: "process" },
 );
 
 function readTokenFile(path: string): string {
@@ -326,6 +327,7 @@ const tokensPart = defineRuntimePart(
   "tokens",
   () => new Map<string, CachedToken>(),
   (tokens) => tokens.clear(),
+  { scope: "process" },
 );
 
 const tokenCache = (): Map<string, CachedToken> =>
@@ -336,15 +338,14 @@ const tokenCache = (): Map<string, CachedToken> =>
 const rotatedInMemoryPart = defineRuntimePart(
   "refresh-rotated-in-memory",
   () => new Set<string>(),
+  undefined,
+  { scope: "process" },
 );
 
 /** The env key the active profile's refresh token was read from. */
 function refreshTokenKey(profile: string): string {
-  const scoped = authEnvKey("OAUTH_REFRESH_TOKEN", profile);
-  const value = process.env[scoped];
-  return profile !== "default" && value !== undefined && value.trim() !== ""
-    ? scoped
-    : "SN_OAUTH_REFRESH_TOKEN";
+  // E-4: `fallback` scope — the profile key when non-empty, else the global.
+  return settingSource("SN_OAUTH_REFRESH_TOKEN", { profile });
 }
 
 /**
@@ -413,10 +414,7 @@ export function credentialWarnings(
   }
   if (
     authModeFor(profile) === "none" &&
-    !(
-      process.env.SN_TLS_CLIENT_CERT?.trim() ||
-      process.env.SN_TLS_CLIENT_CERT_FILE?.trim()
-    )
+    !(readString("SN_TLS_CLIENT_CERT") || readString("SN_TLS_CLIENT_CERT_FILE"))
   ) {
     warnings.push(
       "Auth mode is none but no client certificate is configured (SN_TLS_CLIENT_CERT[_FILE]) — requests are sent unauthenticated.",
@@ -579,7 +577,9 @@ class OAuthProvider implements AuthProvider {
 
   private async getToken(host: string): Promise<string> {
     const cfg = readOAuthConfig();
-    const key = `${host}|${cfg.clientId}|${cfg.grantType}|${cfg.username ?? ""}`;
+    // H-7: the profile is part of the key — the token cache is shared by
+    // every HTTP session, and two profiles may use one client on one host.
+    const key = `${host}|${activeProfile()}|${cfg.clientId}|${cfg.grantType}|${cfg.username ?? ""}`;
     const cached = tokenCache().get(key);
     if (cached && cached.expiresAt > Date.now() + TOKEN_SKEW_MS) {
       return cached.token;

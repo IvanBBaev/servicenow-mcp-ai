@@ -11,7 +11,12 @@ import {
   codeHealth,
   securityScan,
 } from "../build/api/codecheck.js";
-import { baselineEnv, withFetch, withEnv, jsonResponse } from "./helpers.js";
+import {
+  baselineEnv,
+  withMetadataFetch,
+  withEnv,
+  jsonResponse,
+} from "./helpers.js";
 
 baselineEnv();
 
@@ -66,7 +71,7 @@ test("lintSource returns nothing for clean code (FT-5)", () => {
 });
 
 test("lintScript fetches a business rule and lints its script field (FT-5)", async () => {
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       assert.match(url, /\/api\/now\/table\/sys_script\/br1(\?|$)/);
       return jsonResponse(200, {
@@ -83,7 +88,7 @@ test("lintScript fetches a business rule and lints its script field (FT-5)", asy
 });
 
 test("lintTable lints active scripts of a table via table_logic (FT-5)", async () => {
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       const m = /\/api\/now\/table\/([^/?]+)(?:\/([^/?]+))?/.exec(url);
       const table = m?.[1];
@@ -113,7 +118,7 @@ test("codeHealth counts scripts and writes a report (FT-6)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "sn-health-"));
   try {
     await withEnv({ SN_DOCS_DIR: dir }, async () => {
-      await withFetch(
+      await withMetadataFetch(
         (url) => {
           // DF-1 / S-3: the security scan reads the ACL and related tables.
           if (url.includes("/api/now/table/")) {
@@ -139,7 +144,7 @@ test("codeHealth counts scripts and writes a report (FT-6)", async () => {
 });
 
 test("securityScan flags eval and side-effects in ACL scripts (DF-1)", async () => {
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       // S-3: the related tables (roles, REST, pages, …) read as empty here.
       if (!/\/api\/now\/table\/sys_security_acl\?/.test(url)) {
@@ -177,7 +182,7 @@ test("securityScan flags eval and side-effects in ACL scripts (DF-1)", async () 
 });
 
 test("securityScan flags a roles-only ACL with no script or condition (DF-1)", async () => {
-  await withFetch(
+  await withMetadataFetch(
     (url) =>
       jsonResponse(200, {
         result: !/\/api\/now\/table\/sys_security_acl\?/.test(url)
@@ -202,7 +207,7 @@ test("securityScan flags a roles-only ACL with no script or condition (DF-1)", a
 });
 
 test("securityScan degrades to available:false when the ACL table is forbidden (DF-1/DF-0)", async () => {
-  await withFetch(
+  await withMetadataFetch(
     () => jsonResponse(403, { error: { message: "no access" } }),
     async () => {
       const scan = await securityScan();
@@ -216,7 +221,7 @@ test("securityScan degrades to available:false when the ACL table is forbidden (
 test("lintScript takes client vs server per field and skips markup (S-4)", async () => {
   const gr =
     "var gr = new GlideRecord('incident');\ngr.addQuery('a', 1);\ngr.query();";
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       assert.match(url, /\/api\/now\/table\/sp_widget\/w1(\?|$)/);
       return jsonResponse(200, {
@@ -246,7 +251,7 @@ test("lintScript takes client vs server per field and skips markup (S-4)", async
 });
 
 test("lintScript keeps the pre-S-4 client scope for UI policies", async () => {
-  await withFetch(
+  await withMetadataFetch(
     () =>
       jsonResponse(200, {
         result: {
@@ -261,4 +266,29 @@ test("lintScript keeps the pre-S-4 client scope for UI policies", async () => {
       assert.ok(rules(results[0].findings).includes("gr-on-client"));
     },
   );
+});
+
+test("ID-27: a record-data read during code health fails the metadata guard", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "sn-health-guard-"));
+  try {
+    await withEnv({ SN_DOCS_DIR: dir }, () =>
+      assert.rejects(
+        withMetadataFetch(
+          (url) =>
+            url.includes("/api/now/table/")
+              ? jsonResponse(200, { result: [] })
+              : jsonResponse(200, { result: { stats: { count: "1" } } }),
+          async () => {
+            await codeHealth();
+            await globalThis
+              .fetch("https://dev00000.service-now.com/api/now/table/incident")
+              .catch(() => undefined);
+          },
+        ),
+        /non-metadata table: incident/,
+      ),
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

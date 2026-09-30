@@ -4,7 +4,7 @@ import {
   assertTableWriteAllowed,
   assertWriteAllowed,
 } from "../core/policy.js";
-import { getCredentials } from "../core/config.js";
+import { getCredentials, activeProfile } from "../core/config.js";
 import { cached } from "../core/cache.js";
 import { ServiceNowError } from "../core/errors.js";
 import { assertNoCaret, expectResult, snParams, snString } from "./shared.js";
@@ -96,7 +96,7 @@ export async function updateCmdbInstance(
 export async function getCmdbMeta(className: string): Promise<unknown> {
   assertTableAllowed(className);
   return cached(
-    `${getCredentials().instance}|cmdbMeta|${className}`,
+    `${getCredentials().instance}#${activeProfile()}|cmdbMeta|${className}`,
     async () => {
       const { data } = await snRequest<{ result: unknown }>({
         method: "GET",

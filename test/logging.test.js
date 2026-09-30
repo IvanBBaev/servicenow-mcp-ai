@@ -75,8 +75,15 @@ test("an unknown level falls back to info; entries are structured JSON", async (
       logger.debug("hidden");
     }),
   );
-  assert.equal(entries.length, 1);
-  assert.equal(entries[0].message, "hello");
-  assert.equal(entries[0].table, "incident");
-  assert.ok(entries[0].ts, "timestamp present");
+  // E-4: the invalid level itself is reported once as a manifest warning.
+  const lines = entries.filter((e) => e.level !== "warn");
+  assert.ok(
+    entries
+      .filter((e) => e.level === "warn")
+      .every((e) => /SN_LOG_LEVEL/.test(e.message)),
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0].message, "hello");
+  assert.equal(lines[0].table, "incident");
+  assert.ok(lines[0].ts, "timestamp present");
 });

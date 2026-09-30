@@ -629,6 +629,38 @@ test("app doc detail: diagrams per flow and portal, a dependency graph and a lin
   );
 });
 
+test("app doc detail: a UI Builder experience gets its page map (P-14); a denied ui package is a caveat", async () => {
+  const EXP_ID = "e".repeat(32);
+  const tables = {
+    ...appDetailTables(),
+    sys_ux_page_registry: [
+      {
+        sys_id: EXP_ID,
+        title: "Acme workspace",
+        path: "acme",
+        "sys_scope.scope": "x_acme",
+      },
+    ],
+  };
+  await withMetadataFetch(router(tables), async () => {
+    const r = await documentApp("x_acme", { write: false, detail: true });
+    const md = r.markdown;
+    assert.match(md, /### `workspace` Acme workspace/);
+    const block = md.slice(md.indexOf("### `workspace`"));
+    assert.match(block, /```mermaid\nflowchart TD/);
+    assert.doesNotMatch(md, /workspace Acme workspace: not drawn/);
+  });
+  await withEnv({ SN_PACKAGES_DENY: "ui" }, () =>
+    withMetadataFetch(router(tables), async () => {
+      const r = await documentApp("x_acme", { write: false, detail: true });
+      assert.match(
+        r.markdown,
+        /Diagrams of workspace: the ui package is denied/,
+      );
+    }),
+  );
+});
+
 test("app doc detail: off by default; denied packages become caveats", async () => {
   await withMetadataFetch(router(appDetailTables()), async () => {
     const plain = await documentApp("x_acme", { write: false });

@@ -41,6 +41,7 @@ const schemaCachePart = defineRuntimePart(
     cache.store.clear();
     zero(cache.counters);
   },
+  { scope: "process" },
 );
 
 const state = (): SchemaCache => currentRuntime().get(schemaCachePart);

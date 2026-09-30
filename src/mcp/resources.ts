@@ -18,7 +18,7 @@ import {
 } from "../api/docs.js";
 import { checkCapabilities } from "../api/capabilities.js";
 import { artifactTypeCatalog } from "../api/artifacts.js";
-import { activeProfile, getCredentials, listProfiles } from "../core/config.js";
+import { activeProfile, listProfiles } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
 import { untrusted } from "./boundary.js";
@@ -65,11 +65,8 @@ function byPrefix(values: Iterable<string>, prefix = ""): string[] {
  */
 export function completeTable(value: string, profile?: string): string[] {
   const p = profile?.trim().toLowerCase();
-  const instance =
-    p && listProfiles().includes(p)
-      ? getCredentials(p).instance
-      : getCredentials().instance;
-  return byPrefix([...cachedTableNames(instance), ...SEED_TABLES], value);
+  const scoped = p && listProfiles().includes(p) ? p : undefined;
+  return byPrefix([...cachedTableNames(scoped), ...SEED_TABLES], value);
 }
 
 /** Profile-name completion from the configured profiles. */
@@ -397,8 +394,7 @@ export function registerInstanceResources(server: McpServer): void {
       list: () => {
         const resources = [];
         for (const profile of listProfiles()) {
-          const instance = getCredentials(profile).instance;
-          for (const table of cachedTableNames(instance)) {
+          for (const table of cachedTableNames(profile)) {
             if (resources.length >= LIST_CAP) break;
             resources.push({
               uri: `servicenow://${profile}/schema/${table}`,

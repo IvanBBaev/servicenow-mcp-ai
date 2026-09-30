@@ -1,10 +1,13 @@
 name: Publish VS Code Extension
 
-# Publish the VS Code extension (extension/) to the Visual Studio Marketplace.
+# Publish the VS Code extension (extension/) to the Visual Studio Marketplace
+# and (D-6) to Open VSX, so Cursor / Windsurf / VSCodium users can install it.
 # Runs on a version tag (alongside the npm "Publish" workflow) and on demand via
-# workflow_dispatch (for the first publish or a re-run). Authentication uses the
-# VSCE_PAT repo secret (Azure DevOps PAT, scope Marketplace > Manage); the token
-# never touches a laptop or the logs.
+# workflow_dispatch (for the first publish or a re-run). The .vsix is packaged
+# once and the same file goes to both registries. Authentication uses the
+# VSCE_PAT repo secret (Azure DevOps PAT, scope Marketplace > Manage) and the
+# OVSX_PAT repo secret (an open-vsx.org access token; the Open VSX step is
+# skipped while it is not set); the tokens never touch a laptop or the logs.
 on:
   push:
     tags: ["v*"]
@@ -13,9 +16,17 @@ on:
 permissions:
   contents: read
 
+env:
+  # Pinned so a new ovsx release cannot run with the token unreviewed.
+  OVSX_VERSION: 0.10.6
+
 jobs:
   publish-vscode:
     runs-on: ubuntu-latest
+    env:
+      # Read into the environment so a step can be skipped when it is unset
+      # (secrets cannot be tested in an `if:` directly).
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
     defaults:
       run:
         working-directory: extension
@@ -38,7 +49,12 @@ jobs:
             exit 1
           fi
       - run: npm run compile
+      - name: Package the extension
+        run: npx vsce package --no-dependencies -o servicenow-mcp-ai.vsix
       - name: Publish to the Marketplace
-        run: npx vsce publish --no-dependencies -p "$VSCE_PAT"
+        run: npx vsce publish --no-dependencies --packagePath servicenow-mcp-ai.vsix -p "$VSCE_PAT"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Publish to Open VSX
+        if: ${{ env.OVSX_PAT != '' }}
+        run: npx --yes "ovsx@${OVSX_VERSION}" publish servicenow-mcp-ai.vsix -p "$OVSX_PAT"

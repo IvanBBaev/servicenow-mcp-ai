@@ -13,6 +13,7 @@ import {
 } from "../core/settings.js";
 import { explainFlow, flowMermaid } from "./explain-flow.js";
 import { explainPortal, portalMermaid } from "./portal.js";
+import { explainUiExperience, uiExperienceMermaid } from "./ui-experience.js";
 import {
   artifactDependencies,
   dependencyMermaid,
@@ -111,8 +112,9 @@ export interface CollectOptions {
   /** document_instance: the run the README and artifact-types kinds describe. */
   instance?: InstanceRunContext;
   /**
-   * document_app (P-21): also a Mermaid diagram per flow, subflow, workflow
-   * and portal, a dependency graph and a lint summary (default false).
+   * document_app (P-21): also a Mermaid diagram per flow, subflow, workflow,
+   * portal and UI Builder experience, a dependency graph and a lint summary
+   * (default false).
    */
   detail?: boolean;
 }
@@ -688,6 +690,13 @@ const APP_DIAGRAM_TYPES: {
     type: "sp_portal",
     pkg: "ui",
     load: async (id) => portalMermaid(await explainPortal({ portal: id })),
+  },
+  {
+    // P-14: a UI Builder experience (sys_ux_page_registry) — its page map.
+    type: "workspace",
+    pkg: "ui",
+    load: async (id) =>
+      uiExperienceMermaid(await explainUiExperience({ sys_id: id })),
   },
 ];
 

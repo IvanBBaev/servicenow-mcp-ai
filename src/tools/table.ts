@@ -57,7 +57,7 @@ const inputDisplayValueInput = z
   );
 
 /** S-6: the update set an applied customization write is recorded in. */
-const updateSetInput = shortText(100)
+export const updateSetInput = shortText(100)
   .min(1)
   .optional()
   .describe(
@@ -695,7 +695,7 @@ function upsertTarget(
  * since the plan the caller reviewed (a record appeared, vanished or the key
  * now names another one) — the same STALE_RECORD contract as revert's drift.
  */
-function assertUpsertUnchanged(
+export function assertUpsertUnchanged(
   decision: UpsertDecision,
   expectedAction?: "create" | "update",
   expectedSysId?: string,

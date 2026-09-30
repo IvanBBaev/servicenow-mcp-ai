@@ -1004,6 +1004,18 @@ export async function docsWrite(
 }
 
 /**
+ * Read a file of the docs store verbatim (no frontmatter parsing), with the
+ * same confinement as docsWriteRaw; undefined when it does not exist. The
+ * Fluent emitter (P-26) uses it to spot hand-edited generated sources.
+ */
+export async function docsReadRaw(
+  relPath: string,
+  extensions = [".md"],
+): Promise<string | undefined> {
+  return readIfExists(resolveDocPath(relPath, extensions));
+}
+
+/**
  * Same confinement and index upkeep as docsWrite, but with a caller-chosen
  * extension whitelist — the instance snapshot (MI-6) writes .json companions
  * next to its Markdown. Not exposed as a tool; tools keep the .md-only rule.

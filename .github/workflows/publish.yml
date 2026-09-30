@@ -2,7 +2,9 @@ name: Publish
 
 # Publish to npm from CI on a version tag (never from a laptop). The same
 # `npm run check` gate runs here, and `prepublishOnly` runs it again as a
-# backstop, so a red build cannot reach the registry.
+# backstop, so a red build cannot reach the registry. After a successful
+# publish, D-6: a GitHub Release for the tag whose notes are that version's
+# CHANGELOG section (scripts/release-notes.mjs).
 on:
   push:
     tags: ["v*"]
@@ -31,3 +33,26 @@ jobs:
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release for the tag
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Release notes from the CHANGELOG section
+        run: node scripts/release-notes.mjs "${GITHUB_REF_NAME#v}" > release-notes.md
+      - name: Create or update the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --verify-tag \
+              --title "$GITHUB_REF_NAME" --notes-file release-notes.md
+          fi

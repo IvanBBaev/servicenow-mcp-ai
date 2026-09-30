@@ -513,7 +513,7 @@ test("list_artifacts: base query first, missing fields, active refusal, degrade 
   });
 });
 
-test("the artifacts package is opt-in and holds exactly the four tools", () => {
+test("the artifacts package is opt-in and holds exactly the six tools", () => {
   const pkg = PACKAGES.find((p) => p.name === "artifacts");
   assert.ok(pkg);
   assert.deepEqual(
@@ -523,10 +523,18 @@ test("the artifacts package is opt-in and holds exactly the four tools", () => {
       "servicenow_get_artifact",
       "servicenow_explain_artifact",
       "servicenow_artifact_dependencies",
+      "servicenow_generate_fluent",
+      "servicenow_upsert_artifact",
     ],
   );
   for (const t of pkg.tools) {
     assert.equal(t.package, "artifacts");
+    if (t.name === "servicenow_upsert_artifact") {
+      // P-23: the one write tool; plan-first, no outputSchema.
+      assert.equal(t.annotations.readOnlyHint, false);
+      assert.equal(t.annotations.destructiveHint, false);
+      continue;
+    }
     assert.equal(t.annotations.readOnlyHint, true);
     assert.ok(t.output, `${t.name} declares an outputSchema`);
   }

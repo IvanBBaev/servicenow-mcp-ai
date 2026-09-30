@@ -313,7 +313,7 @@ test("doctor: the first line names the env file; piped stdout is ASCII", async (
   assert.equal(result.code, 2, result.stderr);
   assert.equal(
     result.stdout.split("\n")[0],
-    `env file: ${env.SN_ENV_FILE} (missing)`,
+    `env file: ${env.SN_ENV_FILE} (missing, from SN_ENV_FILE)`,
   );
   assert.match(result.stdout, /^[\t\n\r\x20-\x7e]*$/, "non-TTY -> ASCII");
   assert.match(result.stdout, /\[x\] Credentials/);
@@ -325,7 +325,11 @@ test("doctor --json: parseable JSON on stdout, same exit code", async () => {
   assert.equal(result.code, 2, result.stderr);
   const payload = JSON.parse(result.stdout);
   assert.equal(payload.status, "not_configured");
-  assert.deepEqual(payload.envFile, { path: env.SN_ENV_FILE, exists: false });
+  assert.deepEqual(payload.envFile, {
+    path: env.SN_ENV_FILE,
+    exists: false,
+    source: "SN_ENV_FILE",
+  });
   assert.deepEqual(
     payload.checks.map((c) => [c.name, c.ok]),
     [["credentials", false]],

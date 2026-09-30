@@ -15,6 +15,7 @@ import {
   type Task,
 } from "@modelcontextprotocol/sdk/types.js";
 import { logger } from "../core/logging.js";
+import { readBool } from "../core/settings-manifest.js";
 import { redactValue } from "../core/redaction.js";
 import {
   currentRuntime,
@@ -79,8 +80,7 @@ export const TASK_TOOLS: ReadonlySet<string> = new Set([
 
 /** True when SN_EXPERIMENTAL_TASKS is `1` / `true` (read at call time). */
 export function tasksEnabled(): boolean {
-  const raw = process.env.SN_EXPERIMENTAL_TASKS?.trim().toLowerCase();
-  return raw === "1" || raw === "true";
+  return readBool("SN_EXPERIMENTAL_TASKS");
 }
 
 /** True when `spec` takes `run_as_task` in the current configuration. */

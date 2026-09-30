@@ -57,6 +57,7 @@ const telemetryPart = defineRuntimePart(
   "telemetry",
   () => new Map<string, Telemetry>(),
   (perHost) => perHost.clear(),
+  { scope: "process" },
 );
 
 export function telemetryFor(host: string): Telemetry {
@@ -121,6 +122,7 @@ const slotsPart = defineRuntimePart(
   (slots) => {
     drainSlots(slots);
   },
+  { scope: "process" },
 );
 
 /** Thrown by withSlot when the caller cannot get a slot in time. */
@@ -294,6 +296,7 @@ const breakersPart = defineRuntimePart(
   "breakers",
   () => new Map<string, Breaker>(),
   (state) => state.clear(),
+  { scope: "process" },
 );
 
 const breakers = (): Map<string, Breaker> => currentRuntime().get(breakersPart);

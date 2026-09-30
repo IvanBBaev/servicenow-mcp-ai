@@ -5,9 +5,19 @@ import {
   portalMermaid,
   PORTAL_DEPTH,
 } from "../api/portal.js";
+import {
+  explainUiExperience,
+  uiExperienceMarkdown,
+  uiExperienceMermaid,
+} from "../api/ui-experience.js";
 import { deliverDiagram, deliverJson } from "../mcp/file-result.js";
 import { ok } from "../mcp/result.js";
-import { defineTool, shortText, type AnyToolSpec } from "../mcp/define.js";
+import {
+  defineTool,
+  shortText,
+  sysId,
+  type AnyToolSpec,
+} from "../mcp/define.js";
 
 /**
  * P-16 — opt-in `ui` package (SDK-PARITY §5(d)): read-only explainers of UI
@@ -91,6 +101,69 @@ export const specs: AnyToolSpec[] = [
           caveats: result.caveats,
           ...signal,
           markdown: portalMarkdown(result, mermaid),
+        });
+      }
+      return deliverJson({ ...result, ...signal, mermaid }, name, "file");
+    },
+  }),
+
+  defineTool({
+    name: "servicenow_explain_ui_experience",
+    title: "Explain a UI Builder experience",
+    description:
+      "Explain a UI Builder experience/workspace (path or sys_id) as a page map: routes → screens → macroponents (components, data, state, events, client scripts) → data brokers and ACLs; plus landing, dashboards, lists, form actions. Metadata only.",
+    package: "ui",
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    output: {
+      verified: z.boolean(),
+      counts: z.record(z.string(), z.number()).optional(),
+    },
+    input: {
+      sys_id: sysId()
+        .optional()
+        .describe("sys_ux_page_registry sys_id (or 'path')."),
+      path: shortText(200)
+        .optional()
+        .describe("Experience path, e.g. 'now/sow' (or 'sys_id')."),
+      format: z
+        .enum(["json", "markdown", "mermaid", "file"])
+        .optional()
+        .describe(
+          "json (default), markdown (report + diagram), mermaid (page map only) or file (full JSON to exports/).",
+        ),
+    },
+    logFields: (args) => ({
+      sys_id: args.sys_id,
+      path: args.path,
+      format: args.format,
+    }),
+    handler: async ({ sys_id, path, format }) => {
+      const result = await explainUiExperience({ sys_id, path });
+      const name = `ui-experience-${path ?? sys_id}`;
+      if (format === "json" || format === undefined) {
+        return deliverJson(result, name, "json");
+      }
+      const { mermaid, truncated } = uiExperienceMermaid(result);
+      const signal = truncated > 0 ? { mermaidTruncated: truncated } : {};
+      const summary = {
+        ...(result.experience ? { sys_id: result.experience.sys_id } : {}),
+        counts: result.counts,
+        verified: result.verified,
+        caveats: result.caveats,
+        ...signal,
+      };
+      if (format === "mermaid") {
+        return deliverDiagram({ ...summary, mermaid }, name, "inline");
+      }
+      if (format === "markdown") {
+        return ok({
+          ...summary,
+          markdown: uiExperienceMarkdown(result, mermaid),
         });
       }
       return deliverJson({ ...result, ...signal, mermaid }, name, "file");

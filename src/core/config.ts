@@ -14,6 +14,9 @@ import { homedir } from "node:os";
 import dotenv from "dotenv";
 import { activeProfile, PROFILE_RE } from "./profile.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
+import { resolveSecretFiles, secretFileSourceFor } from "./secret-files.js";
+import { logger } from "./logging.js";
+import { profileEnvKey, rawSetting, readString } from "./settings-manifest.js";
 
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 
@@ -22,8 +25,7 @@ const projectEnvPath = join(moduleDir, "..", ".env");
 
 /** XDG user-config location, used for global/npx installs. */
 function xdgEnvPath(): string {
-  const base =
-    process.env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
+  const base = readString("XDG_CONFIG_HOME") ?? join(homedir(), ".config");
   return join(base, "servicenow-mcp-ai", ".env");
 }
 
@@ -36,13 +38,34 @@ function xdgEnvPath(): string {
  *      than into a (possibly read-only or transient) node_modules directory.
  */
 export function getEnvPath(): string {
-  const explicit = process.env.SN_ENV_FILE?.trim();
-  if (explicit) return explicit;
-  const xdg = xdgEnvPath();
-  if (existsSync(xdg)) return xdg;
-  if (existsSync(projectEnvPath)) return projectEnvPath;
-  return xdg;
+  return envFileChoice().path;
 }
+
+/** Why an env file was chosen (E-4: printed by `doctor`). */
+export type EnvFileSource = "SN_ENV_FILE" | "xdg" | "project" | "xdg-default";
+
+/**
+ * The env file {@link getEnvPath} resolves to, and which rule picked it:
+ * `SN_ENV_FILE`, an existing XDG file (`xdg`), the deprecated project-root
+ * `.env` fallback (`project`), or the XDG path nothing exists at yet
+ * (`xdg-default`).
+ */
+export function envFileChoice(): { path: string; source: EnvFileSource } {
+  const explicit = readString("SN_ENV_FILE");
+  if (explicit) return { path: explicit, source: "SN_ENV_FILE" };
+  const xdg = xdgEnvPath();
+  if (existsSync(xdg)) return { path: xdg, source: "xdg" };
+  if (existsSync(projectEnvPath)) {
+    return { path: projectEnvPath, source: "project" };
+  }
+  return { path: xdg, source: "xdg-default" };
+}
+
+/** E-4 / B5: the project-root .env fallback is deprecated (removed in 3.0). */
+export const PROJECT_ENV_DEPRECATION =
+  "Reading the project-root .env next to the installed package is deprecated and will be removed in 3.0 — move it to ~/.config/servicenow-mcp-ai/.env or point SN_ENV_FILE at it.";
+
+let projectEnvWarned = false;
 
 export interface ServiceNowCredentials {
   instance: string;
@@ -52,12 +75,20 @@ export interface ServiceNowCredentials {
 
 /** Load the env file into process.env. Safe to call when the file is missing. */
 export function loadEnv(): void {
-  const path = getEnvPath();
+  const { path, source } = envFileChoice();
+  if (source === "project" && !projectEnvWarned) {
+    projectEnvWarned = true;
+    logger.warn(PROJECT_ENV_DEPRECATION, { envFile: path });
+  }
   if (existsSync(path)) {
     // override:false so values already in the environment (e.g. supplied by the
     // MCP client) take precedence over the file — environment-first config.
     dotenv.config({ path, override: false });
   }
+  // D-5 / L2-12: <KEY>_FILE secret sources (container secrets). Runs after the
+  // env file so a _FILE setting may live there too; throws on a <KEY> /
+  // <KEY>_FILE conflict or an unreadable file.
+  resolveSecretFiles();
   reloadCredentialsFromEnv();
 }
 
@@ -90,11 +121,10 @@ export function envKeysFor(profile: string): {
       password: "SN_PASSWORD",
     };
   }
-  const upper = profile.toUpperCase();
   return {
-    instance: `SN_PROFILE_${upper}_INSTANCE`,
-    user: `SN_PROFILE_${upper}_USER`,
-    password: `SN_PROFILE_${upper}_PASSWORD`,
+    instance: profileEnvKey("SN_INSTANCE", profile),
+    user: profileEnvKey("SN_USER", profile),
+    password: profileEnvKey("SN_PASSWORD", profile),
   };
 }
 
@@ -125,9 +155,14 @@ export function listProfiles(): string[] {
  * E-3: the store is held by the runtime container (a fresh runtime re-reads
  * the environment); it survives dispose() — credentials are not session state.
  */
-const profileStorePart = defineRuntimePart("profiles", () => ({
-  snapshots: new Map<string, ServiceNowCredentials>(),
-}));
+const profileStorePart = defineRuntimePart(
+  "profiles",
+  () => ({
+    snapshots: new Map<string, ServiceNowCredentials>(),
+  }),
+  undefined,
+  { scope: "process" },
+);
 
 const profileStore = () => currentRuntime().get(profileStorePart);
 
@@ -192,18 +227,13 @@ export function profileAuthEnv(
 ): string | undefined {
   const staged = pending[suffix];
   if (staged !== undefined) return staged;
-  if (profile !== "default") {
-    const scoped = process.env[`SN_PROFILE_${profile.toUpperCase()}_${suffix}`];
-    if (scoped !== undefined && scoped.trim() !== "") return scoped;
-  }
-  return process.env[`SN_${suffix}`];
+  // E-4: every auth key is declared with the `fallback` profile scope.
+  return rawSetting(`SN_${suffix}`, { profile });
 }
 
 /** The env key a profile's auth setting is written to. */
 export function authEnvKey(suffix: string, profile: string): string {
-  return profile === "default"
-    ? `SN_${suffix}`
-    : `SN_PROFILE_${profile.toUpperCase()}_${suffix}`;
+  return profileEnvKey(`SN_${suffix}`, profile);
 }
 
 const AUTH_MODES: readonly AuthMode[] = [
@@ -360,11 +390,11 @@ export function saveCredentials(
 }
 
 /**
- * Switch the active profile (persisted to the env file). The caller is
- * responsible for clearing identity-scoped caches (tokens, schema, plugin
- * availability) — the admin tool does that.
+ * Validate a profile name for a switch: well-formed and known. Returns the
+ * normalised name. H-7: an HTTP session switch uses this alone (nothing is
+ * written); `useProfile` adds the persisted switch on top.
  */
-export function useProfile(name: string): ServiceNowCredentials {
+export function resolveProfileName(name: string): string {
   const profile = name.trim().toLowerCase();
   assertValidProfileName(profile);
   const known = listProfiles();
@@ -373,7 +403,23 @@ export function useProfile(name: string): ServiceNowCredentials {
       `Unknown profile "${profile}". Available: ${known.join(", ") || "(none)"}.`,
     );
   }
-  updateEnvFile({ SN_ACTIVE_PROFILE: profile });
+  return profile;
+}
+
+/**
+ * Switch the process-wide active profile — persisted to the env file unless
+ * `persist: false` (then it lasts until the process exits). The caller is
+ * responsible for clearing identity-scoped caches (tokens, schema, plugin
+ * availability) — the admin tool does that.
+ */
+export function useProfile(
+  name: string,
+  options: { persist?: boolean } = {},
+): ServiceNowCredentials {
+  const profile = resolveProfileName(name);
+  if (options.persist !== false) {
+    updateEnvFile({ SN_ACTIVE_PROFILE: profile });
+  }
   process.env.SN_ACTIVE_PROFILE = profile;
   profileStore().snapshots = new Map();
   return getCredentials(profile);
@@ -444,6 +490,17 @@ export function persistEnv(updates: Record<string, string>): void {
  * the file (comments, ordering, unrelated keys) intact.
  */
 function updateEnvFile(updates: Record<string, string>): void {
+  // D-5: a secret supplied through <KEY>_FILE must be changed in that file —
+  // writing <KEY> to the env file would make the next start fail on the
+  // <KEY> / <KEY>_FILE conflict.
+  for (const key of Object.keys(updates)) {
+    const fileKey = secretFileSourceFor(key);
+    if (fileKey) {
+      throw new Error(
+        `${key} is loaded from ${fileKey} — update that file instead of saving ${key}`,
+      );
+    }
+  }
   const path = getEnvPath();
   const raw = existsSync(path) ? readFileSync(path, "utf8") : "";
   // L2-11: keep the file's line ending — a CRLF file stays CRLF.

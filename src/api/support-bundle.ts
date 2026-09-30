@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { getEnvPath } from "../core/config.js";
 import { SERVER_VERSION } from "../core/identity.js";
 import { getLogFile } from "../core/settings.js";
+import { isSecretKey } from "../core/settings-manifest.js";
 
 /**
  * D-1 / L7-03 — `servicenow-mcp-ai support-bundle`: everything a bug report
@@ -30,9 +31,12 @@ const MIN_SCRUB_CHARS = 4;
 const SECRET_NAME_RE =
   /(PASSWORD|PASSWD|SECRET|TOKEN|API_KEY|APIKEY|JWT_KEY|PRIVATE|PASSPHRASE|COOKIE|CREDENTIAL|_KEY$|_PFX$)/;
 
-/** True when an env key names a secret. */
+/**
+ * True when an env key names a secret: the settings manifest declares it
+ * secret (E-4), or its name looks like credential material.
+ */
 export function isSecretSetting(name: string): boolean {
-  return SECRET_NAME_RE.test(name.toUpperCase());
+  return isSecretKey(name) || SECRET_NAME_RE.test(name.toUpperCase());
 }
 
 /** The SN_* settings of `env`, sorted, with secret values masked. */

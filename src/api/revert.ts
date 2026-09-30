@@ -46,6 +46,9 @@ const REVERTIBLE_TOOLS: Record<string, string> = {
   servicenow_update_change: "change",
   servicenow_update_ci: "cmdb",
   servicenow_set_property: "properties",
+  // P-23: one line per record of an artefact apply (parent, then children),
+  // each reverted on its own.
+  servicenow_upsert_artifact: "artifacts",
   [REVERT_TOOL]: "revert",
 };
 
@@ -508,6 +511,8 @@ export interface WriteSummary {
   tool?: string;
   reverts?: string;
   batch_id?: string;
+  /** P-23: the artefact apply this line belongs to. */
+  artifact_write?: string;
   fields?: string[];
   has_before: boolean;
   /**
@@ -594,6 +599,7 @@ function summarise(
     ...(e.tool ? { tool: e.tool } : {}),
     ...(e.reverts ? { reverts: e.reverts } : {}),
     ...(e.batch_id ? { batch_id: e.batch_id } : {}),
+    ...(e.artifact_write ? { artifact_write: e.artifact_write } : {}),
     ...(e.fields ? { fields: Object.keys(e.fields) } : {}),
     has_before: e.before !== undefined,
     revertible: reason === undefined,

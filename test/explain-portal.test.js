@@ -359,7 +359,7 @@ test("explain_portal lives in the opt-in ui package", () => {
   const ui = PACKAGES.find((p) => p.name === "ui");
   assert.deepEqual(
     ui.tools.map((t) => t.name),
-    ["servicenow_explain_portal"],
+    ["servicenow_explain_portal", "servicenow_explain_ui_experience"],
   );
   for (const profile of ["core", "reader", "developer"]) {
     assert.equal(resolveEnabledPackages([profile]).has("ui"), false, profile);

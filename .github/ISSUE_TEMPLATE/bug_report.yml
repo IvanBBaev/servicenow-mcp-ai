@@ -1,0 +1,105 @@
+name: Bug report
+description: Something in the server, the CLI, the VS Code extension or the plugin skills does not work as documented.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. This issue is **public**:
+        remove passwords, tokens, API keys, OAuth secrets and personal data
+        before you submit — see [SUPPORT.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/SUPPORT.md#what-not-to-paste).
+        A **security vulnerability** must be reported privately instead — see
+        [SECURITY.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `npx servicenow-mcp-ai --version` (or the VS Code extension / plugin version).
+      placeholder: "2.x.y"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is it installed?
+      options:
+        - npx / npm package
+        - VS Code extension
+        - Claude Code plugin
+        - From source (git clone)
+        - Other (say below)
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP client
+      options:
+        - VS Code (GitHub Copilot)
+        - Claude Code
+        - Claude Desktop
+        - Cursor
+        - Windsurf
+        - MCP Inspector
+        - Other (say below)
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options:
+        - stdio (default)
+        - Streamable HTTP (SN_TRANSPORT=http)
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Node.js version and operating system
+      placeholder: "Node 22.12.0 on macOS 15"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: The tool or command, the arguments (no secrets), the result or error code you got, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set SN_... = ...
+        2. Call servicenow_... with { ... }
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `servicenow-mcp-ai doctor --json`
+      description: |
+        Run `npx servicenow-mcp-ai doctor --json` (add `--profile <name>` for a named profile) and paste the output.
+        It contains your instance host, user name and local paths — replace them with placeholders if they are sensitive.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: Structured log lines from stderr or `SN_LOG_FILE`, if any. A `servicenow-mcp-ai support-bundle` file can be attached here when asked for — review it first.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I removed secrets and personal data from everything above.
+          required: true

@@ -32,6 +32,7 @@ const toolStatsPart = defineRuntimePart(
   "toolStats",
   () => new Map<string, ToolSeries>(),
   (stats) => stats.clear(),
+  { scope: "process" },
 );
 
 /** One tool's figures as `get_status` reports them. */
@@ -130,6 +131,7 @@ const rateLimitPart = defineRuntimePart(
   "rateLimit",
   () => new Map<string, RateLimitInfo>(),
   (map) => map.clear(),
+  { scope: "process" },
 );
 
 function headerNumber(headers: Headers, name: string): number | undefined {

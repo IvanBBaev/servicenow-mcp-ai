@@ -109,10 +109,26 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: extension/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            extension/package-lock.json
       - run: npm ci
+      # E-6: extension/eslint.config.mjs resolves its lint toolchain
+      # (typescript-eslint, @eslint/js, globals, eslint-config-prettier) from the
+      # root node_modules, so the extension package carries no lint deps. No
+      # lifecycle scripts are needed for linting.
+      - name: Install root lint toolchain
+        working-directory: .
+        run: npm ci --ignore-scripts
       - name: Typecheck
         run: npx tsc -p . --noEmit
+      # Type-aware lint of extension/src (the root build job still runs the
+      # syntax-only ruleset over the same files).
+      - name: Lint
+        run: npm run lint
+      # D-7: compile and run the pure-logic unit tests (node:test).
+      - name: Unit tests
+        run: npm test
 
   # S2-3: the bin launcher must print a human message (not a SyntaxError)
   # under ancient Node and exit non-zero.

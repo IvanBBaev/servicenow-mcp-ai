@@ -294,3 +294,180 @@ test("ordering: a protected-table write (readable, not writable) is POLICY_DENIE
     },
   );
 });
+
+/** Like `scenario`, with `route(url, init)` answering first (null = fall through). */
+async function scenarioWith(env, route, fn, opts) {
+  const docs = mkdtempSync(path.join(tmpdir(), "p22-"));
+  freshRuntime();
+  const base = instance(opts);
+  try {
+    return await withEnv(
+      { SN_DOCS_DIR: docs, SN_SDK_MANAGED_SCOPES: "x_acme_sdk", ...env },
+      () =>
+        withFetch(
+          (url, init) => route(new URL(url), init) ?? base(url, init),
+          (calls) => fn(calls),
+        ),
+    );
+  } finally {
+    rmSync(docs, { recursive: true, force: true });
+  }
+}
+
+const batchWrite = {
+  requests: [
+    {
+      id: "si",
+      method: "PATCH",
+      url: `/api/now/table/sys_script_include/${REC}`,
+      body: { script: "// x" },
+    },
+    {
+      id: "inc",
+      method: "PATCH",
+      url: `/api/now/table/incident/${REC}`,
+      body: { state: "2" },
+    },
+    { method: "GET", url: "/api/now/table/sys_script_include?sysparm_limit=1" },
+  ],
+};
+
+test("batch: write sub-requests to a managed scope are flagged in the plan and refused in deny before the batch is sent", async () => {
+  await scenario({ SN_SDK_MANAGED_WRITES: "deny" }, async (calls) => {
+    const plan = out(await call("servicenow_batch", batchWrite));
+    assert.equal(plan.mode, "plan");
+    assert.equal(plan.would_refuse, true);
+    const [si, inc, get] = plan.after.requests;
+    assert.equal(si.sdkManaged?.scope, "x_acme_sdk");
+    assert.equal(si.sdkManaged.would_refuse, true);
+    assert.equal(inc.sdkManaged, undefined);
+    assert.equal(get.sdkManaged, undefined);
+    const res = out(
+      await call("servicenow_batch", { ...batchWrite, apply: true }),
+    );
+    assert.equal(res.error?.code, "SDK_MANAGED_SCOPE", JSON.stringify(res));
+    assert.equal(mutating(calls).length, 0);
+  });
+});
+
+test("batch: warn mode applies the batch and reports sdkManaged per sub-request", async () => {
+  await scenario({}, async (calls) => {
+    const res = await call("servicenow_batch", { ...batchWrite, apply: true });
+    assert.equal(res.isError, undefined, res.content[0].text);
+    const body = out(res);
+    assert.deepEqual(
+      body.sdkManaged.map((g) => g.request),
+      ["si"],
+    );
+    assert.equal(body.sdkManaged[0].scope, "x_acme_sdk");
+    assert.equal(mutating(calls).length, 1, "one batch envelope");
+  });
+});
+
+/** sys_script_include extends sys_metadata. */
+const metadataChain = (u) =>
+  u.pathname === "/api/now/table/sys_db_object"
+    ? jsonResponse(200, {
+        result: [
+          {
+            "super_class.name": /name=sys_script_include/.test(
+              u.searchParams.get("sysparm_query") ?? "",
+            )
+              ? "sys_metadata"
+              : "",
+          },
+        ],
+      })
+    : null;
+
+const createNoScope = {
+  table: "sys_script_include",
+  fields: { name: "U", script: "// x" },
+};
+
+test("create without sys_scope: the session's current application decides (apps.current_app)", async () => {
+  const route = (u) =>
+    metadataChain(u) ??
+    (u.pathname === "/api/now/table/sys_user_preference"
+      ? jsonResponse(200, {
+          result: /name=apps\.current_app/.test(
+            u.searchParams.get("sysparm_query") ?? "",
+          )
+            ? [{ sys_id: REC, value: SDK_SCOPE_ID, user: REC }]
+            : [],
+        })
+      : null);
+  await scenarioWith(
+    { SN_SDK_MANAGED_WRITES: "deny" },
+    route,
+    async (calls) => {
+      const plan = out(await call("servicenow_create_record", createNoScope));
+      assert.equal(plan.sdkManaged?.would_refuse, true, JSON.stringify(plan));
+      assert.equal(plan.sdkManaged.scope, "x_acme_sdk");
+      assert.equal(plan.sdkManaged.scope_source, "current_application");
+      const res = out(
+        await call("servicenow_create_record", {
+          ...createNoScope,
+          apply: true,
+        }),
+      );
+      assert.equal(res.error?.code, "SDK_MANAGED_SCOPE");
+      assert.equal(mutating(calls).length, 0);
+    },
+  );
+});
+
+test("create without sys_scope: no preference row is global (not flagged); a failed read warns and never crashes", async () => {
+  const empty = (u) =>
+    metadataChain(u) ??
+    (u.pathname === "/api/now/table/sys_user_preference"
+      ? jsonResponse(200, { result: [] })
+      : null);
+  await scenarioWith(
+    { SN_SDK_MANAGED_WRITES: "deny" },
+    empty,
+    async (calls) => {
+      const res = await call("servicenow_create_record", {
+        ...createNoScope,
+        apply: true,
+      });
+      assert.equal(res.isError, undefined, res.content[0].text);
+      assert.equal(out(res).sdkManaged, undefined);
+      assert.equal(mutating(calls).length, 1);
+    },
+  );
+  const failing = (u) =>
+    metadataChain(u) ??
+    (u.pathname === "/api/now/table/sys_user_preference"
+      ? jsonResponse(403, { error: { message: "ACL" } })
+      : null);
+  await scenarioWith({ SN_SDK_MANAGED_WRITES: "deny" }, failing, async () => {
+    const plan = out(await call("servicenow_create_record", createNoScope));
+    assert.equal(plan.mode, "plan");
+    assert.equal(plan.sdkManaged, undefined);
+    assert.match(plan.sdkScopeWarning, /apps\.current_app/);
+    const res = await call("servicenow_create_record", {
+      ...createNoScope,
+      apply: true,
+    });
+    assert.equal(res.isError, undefined, res.content[0].text);
+    assert.match(out(res).sdkScopeWarning, /apps\.current_app/);
+  });
+});
+
+test("with no detection configured a create reads no preference and no hierarchy", async () => {
+  await scenarioWith(
+    { SN_SDK_MANAGED_SCOPES: undefined, SN_SDK_PROJECT_DIRS: "" },
+    () => null,
+    async (calls) => {
+      await call("servicenow_create_record", createNoScope);
+      assert.ok(
+        calls.every(
+          (c) =>
+            !c.url.includes("sys_user_preference") &&
+            !c.url.includes("sys_db_object"),
+        ),
+      );
+    },
+  );
+});

@@ -473,6 +473,10 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
+          "domains": {
+            "description": "Also run the flow, Service Portal, UI Builder and legacy-workflow analysers (run-as-System on protected tables, unused subflows/actions, unguarded integration steps, long waits, public data widgets, orphans, route-map loops, UIB routes without a screen, screens without audience, brokers without ACL, workflows to migrate).",
+            "type": "boolean"
+          },
           "extended": {
             "description": "Also count the opt-in types and lint every registry script type instance-wide (newest `limit` per type).",
             "type": "boolean"
@@ -483,7 +487,7 @@
             "type": "string"
           },
           "limit": {
-            "description": "Records per type for extended (default 50).",
+            "description": "Records per type for extended, candidates per rule for domains (default 50).",
             "maximum": 200,
             "minimum": 1,
             "type": "integer"
@@ -549,6 +553,10 @@
             "description": "Profile name (default: active)",
             "maxLength": 128,
             "type": "string"
+          },
+          "mermaid": {
+            "description": "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid text (live). Default false.",
+            "type": "boolean"
           },
           "scope": {
             "description": "Scope for types.",
@@ -1288,7 +1296,7 @@
         "additionalProperties": false,
         "properties": {
           "detail": {
-            "description": "Also a Mermaid diagram per flow/subflow/workflow/portal, a dependency graph and a lint summary (bounded).",
+            "description": "Also a Mermaid diagram per flow/subflow/workflow/portal/UI Builder experience, a dependency graph and a lint summary (bounded).",
             "type": "boolean"
           },
           "instance": {
@@ -1698,7 +1706,7 @@
       "package": "flows",
       "title": "Explain a flow or workflow",
       "since": "2.0.1",
-      "description_sha256": "3a5919b92514f1a2baa15764f7a58195c617b70924971d01648422d6a7e8f1d6",
+      "description_sha256": "1c2b35b01e26bdf6a54143edb886f3b8037428f497be224f5bb8137acb2de5c3",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1726,8 +1734,8 @@
             "type": "string"
           },
           "kind": {
-            "description": "'flow' (default), 'subflow', 'action' (custom action) or 'workflow' (legacy).",
-            "enum": ["flow", "subflow", "action", "workflow"],
+            "description": "'flow' (default), 'subflow', 'action' (custom action), 'workflow' (legacy) or 'playbook' (PAD).",
+            "enum": ["flow", "subflow", "action", "workflow", "playbook"],
             "type": "string"
           },
           "migration": {
@@ -1735,13 +1743,13 @@
             "type": "boolean"
           },
           "runs": {
-            "description": "Latest runs to include (sys_flow_context + sys_flow_log errors, or wf_context). Default 0.",
+            "description": "Latest runs to include (sys_flow_context + sys_flow_log errors, wf_context or sys_pd_context). Default 0.",
             "maximum": 20,
             "minimum": 0,
             "type": "integer"
           },
           "sys_id": {
-            "description": "sys_hub_flow sys_id (flow/subflow), sys_hub_action_type_definition sys_id (action) or wf_workflow sys_id (workflow). Required unless kind:'workflow' with migration:true (instance-wide report).",
+            "description": "sys_hub_flow (flow/subflow), sys_hub_action_type_definition (action), wf_workflow (workflow) or sys_pd_process_definition (playbook) sys_id. Required unless kind:'workflow' with migration:true.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -1844,6 +1852,60 @@
       }
     },
     {
+      "name": "servicenow_explain_ui_experience",
+      "package": "ui",
+      "title": "Explain a UI Builder experience",
+      "since": "2.0.1",
+      "description_sha256": "774fbea98cda096d1a2ce11f356950491734d94823297bc879c4be416e9354ff",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "description": "json (default), markdown (report + diagram), mermaid (page map only) or file (full JSON to exports/).",
+            "enum": ["json", "markdown", "mermaid", "file"],
+            "type": "string"
+          },
+          "instance": {
+            "description": "Profile name (default: active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "path": {
+            "description": "Experience path, e.g. 'now/sow' (or 'sys_id').",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "sys_id": {
+            "description": "sys_ux_page_registry sys_id (or 'path').",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": true,
+        "properties": {
+          "counts": {
+            "additionalProperties": { "type": "number" },
+            "type": "object"
+          },
+          "verified": { "type": "boolean" }
+        },
+        "required": ["verified"],
+        "type": "object"
+      }
+    },
+    {
       "name": "servicenow_generate_er_diagram",
       "package": "docs",
       "title": "Generate ER diagram",
@@ -1897,6 +1959,130 @@
           }
         },
         "required": ["tables"],
+        "type": "object"
+      }
+    },
+    {
+      "name": "servicenow_generate_fluent",
+      "package": "artifacts",
+      "title": "Generate Fluent",
+      "since": "2.0.1",
+      "description_sha256": "ffaf59b9901a63d5ef314585b8deaef2e53c7e7e1f1db3d3879b534cd29beda6",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "artifactType": {
+            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "format": {
+            "description": "'inline' (default) or 'file' (<SN_DOCS_DIR>/<profile>/fluent/<scope>/).",
+            "enum": ["inline", "file"],
+            "type": "string"
+          },
+          "instance": {
+            "description": "Profile name (default: active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  { "maxLength": 255, "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              },
+              {
+                "additionalProperties": { "$ref": "#/properties/key/anyOf/0" },
+                "type": "object"
+              }
+            ],
+            "description": "The type's natural key (keyFields in servicenow://artifact-types): a plain value for a single key field, e.g. a portal page id, or an object with every key field. Pass this or 'sys_id', not both."
+          },
+          "limit": {
+            "description": "Scope mode cap (default 25).",
+            "maximum": 200,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "overwrite": {
+            "description": "Replace hand-edited files.",
+            "type": "boolean"
+          },
+          "scope": {
+            "description": "Instead of sys_id/key: every artifact of the type in this scope.",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "sys_id": {
+            "description": "sys_id of the record. Pass this or 'key', not both.",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "type": "string"
+          }
+        },
+        "required": ["artifactType"],
+        "type": "object"
+      },
+      "outputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": true,
+        "properties": {
+          "artifactType": { "type": "string" },
+          "count": { "type": "number" },
+          "emitter": { "enum": ["dedicated", "record"], "type": "string" },
+          "files": {
+            "items": {
+              "additionalProperties": true,
+              "properties": { "path": { "type": "string" } },
+              "required": ["path"],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "keys": {
+            "items": {
+              "additionalProperties": true,
+              "properties": { "key": { "type": "string" } },
+              "required": ["key"],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "sdkApi": { "type": "string" },
+          "unsupported": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "kind": { "type": "string" },
+                "reason": { "type": "string" }
+              },
+              "required": ["kind", "reason"],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "artifactType",
+          "sdkApi",
+          "emitter",
+          "count",
+          "keys",
+          "unsupported",
+          "files"
+        ],
         "type": "object"
       }
     },
@@ -5501,6 +5687,125 @@
       }
     },
     {
+      "name": "servicenow_upsert_artifact",
+      "package": "artifacts",
+      "title": "Upsert artifact",
+      "since": "2.0.1",
+      "description_sha256": "88db1b536217939d774b117d6eaa9c7a20f6fbe0a41e2fa4fe404ed4d435cd7d",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "apply": {
+            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "type": "boolean"
+          },
+          "artifactType": {
+            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "children": {
+            "description": "Child records, applied in this order after the parent.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "fields": {
+                  "additionalProperties": {
+                    "$ref": "#/properties/fields/additionalProperties"
+                  },
+                  "description": "Child fields to write; the link to the parent is set by the tool.",
+                  "type": "object"
+                },
+                "key": {
+                  "additionalProperties": {
+                    "$ref": "#/properties/key/anyOf/0"
+                  },
+                  "description": "Identifies the child under the parent; defaults to its name field (e.g. {field: 'state'}).",
+                  "type": "object"
+                },
+                "parent": {
+                  "description": "Index of the earlier child this one hangs off (sp_row under sp_container); omit for the primary.",
+                  "maximum": 199,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "table": {
+                  "description": "Child table; defaults to the type's only child table.",
+                  "maxLength": 80,
+                  "pattern": "^[A-Za-z0-9_]{1,80}$",
+                  "type": "string"
+                }
+              },
+              "required": ["fields"],
+              "type": "object"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "expected_action": {
+            "description": "From the plan's apply_with; a changed decision gives STALE_RECORD.",
+            "enum": ["create", "update"],
+            "type": "string"
+          },
+          "expected_sys_id": {
+            "description": "From the plan's apply_with (parent sys_id).",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "type": "string"
+          },
+          "fields": {
+            "additionalProperties": {
+              "type": ["string", "number", "boolean", "null"]
+            },
+            "description": "Primary-record fields to write (the type's descriptor fields; sys_scope on create only).",
+            "type": "object"
+          },
+          "instance": {
+            "description": "Profile name (default: active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  { "maxLength": 255, "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" }
+                ]
+              },
+              {
+                "additionalProperties": { "$ref": "#/properties/key/anyOf/0" },
+                "type": "object"
+              }
+            ],
+            "description": "The primary record's key: a plain value for a single key field, or an object of field/value pairs (every key field; a sys_id-keyed type takes any identifying fields, e.g. {table, short_description}). Written on create."
+          },
+          "plan_token": {
+            "description": "Token from the plan preview (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "update_set": {
+            "description": "Record an applied change in this update set (sys_id or exact name; must be 'in progress'). The user's current update set is switched for the write and restored afterwards. Defaults to SN_UPDATE_SET; omit both to leave the current update set alone. Data-row tables are not captured by update sets and are written without switching.",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": ["artifactType", "key", "fields"],
+        "type": "object"
+      }
+    },
+    {
       "name": "servicenow_upsert_record",
       "package": "table",
       "title": "Upsert ServiceNow record",
@@ -5574,7 +5879,7 @@
       "package": "admin",
       "title": "Switch connection profile",
       "since": "2.0.1",
-      "description_sha256": "55fcebb46b0e198b9ee8f4cc46ca7dd4e2e2c3e4a162574d27583372586a9128",
+      "description_sha256": "bbcac5393ab887a72704f88a0154a0fcf635f7acde82554ad5fe8257765f0ee4",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5594,6 +5899,10 @@
             "description": "Profile to activate, e.g. 'default' or 'dev'.",
             "maxLength": 128,
             "type": "string"
+          },
+          "persist": {
+            "description": "Write the env file (journaled). Default: stdio yes, HTTP no.",
+            "type": "boolean"
           }
         },
         "required": ["name"],

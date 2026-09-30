@@ -8,7 +8,12 @@ import { snapshotInstance } from "../build/api/snapshot.js";
 import { clearSchemaCache } from "../build/core/cache.js";
 import { runSpec } from "../build/mcp/define.js";
 import { specs as instanceSpecs } from "../build/tools/instance.js";
-import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+import {
+  baselineEnv,
+  withEnv,
+  withMetadataFetch,
+  jsonResponse,
+} from "./helpers.js";
 
 // Each test file runs in its own process, so a per-file temp docs dir is safe.
 const DOCS_DIR = path.join(
@@ -169,7 +174,7 @@ const RECORD_ROWS = {
 test("snapshotInstance writes the documented file set", async () => {
   baselineEnv();
   clearSchemaCache();
-  const result = await withFetch(instanceFetch, () =>
+  const result = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident"] }),
   );
 
@@ -237,7 +242,7 @@ test("snapshotInstance writes the documented file set", async () => {
 test("snapshotInstance is idempotent and skips unsafe table names", async () => {
   baselineEnv();
   clearSchemaCache();
-  const rerun = await withFetch(instanceFetch, () =>
+  const rerun = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident", "../evil", "Bad Name"] }),
   );
 
@@ -275,7 +280,9 @@ test("snapshot falls back to sys_plugins and reports failing sections", async ()
     return instanceFetch(url);
   };
 
-  const result = await withFetch(failingFetch, () => snapshotInstance());
+  const result = await withMetadataFetch(failingFetch, () =>
+    snapshotInstance(),
+  );
 
   const plugins = JSON.parse(
     await fs.readFile(path.join(DOCS_DIR, "default", "plugins.json"), "utf8"),
@@ -317,7 +324,7 @@ test("snapshot skips the plugins section and warns when BOTH sources fail (QA-6)
     return instanceFetch(url);
   };
 
-  const result = await withFetch(bothFail, () => snapshotInstance());
+  const result = await withMetadataFetch(bothFail, () => snapshotInstance());
 
   assert.ok(
     result.warnings.some((w) => /^plugins: unavailable/.test(w)),
@@ -337,7 +344,7 @@ test("snapshot skips the plugins section and warns when BOTH sources fail (QA-6)
 test("a snapshot re-run is unchanged and keeps manual notes (S-14)", async () => {
   baselineEnv();
   clearSchemaCache();
-  const first = await withFetch(instanceFetch, () =>
+  const first = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident"] }),
   );
   const indexPath = path.join(DOCS_DIR, "default", "index.md");
@@ -363,7 +370,7 @@ test("a snapshot re-run is unchanged and keeps manual notes (S-14)", async () =>
   );
 
   clearSchemaCache();
-  const second = await withFetch(instanceFetch, () =>
+  const second = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident"] }),
   );
   assert.deepEqual(second.files, first.files);
@@ -376,7 +383,7 @@ test("a snapshot re-run is unchanged and keeps manual notes (S-14)", async () =>
 
   // A changed section regenerates, and the notes still survive.
   clearSchemaCache();
-  const third = await withFetch(instanceFetch, () =>
+  const third = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident", "Bad Name"] }),
   );
   assert.equal(third.changes["default/index.md"], "updated");
@@ -391,7 +398,7 @@ test("a snapshot does not overwrite a hand-written file in its way", async () =>
   clearSchemaCache();
   const hand = path.join(DOCS_DIR, "default", "apps.md");
   await fs.writeFile(hand, "# My own app notes\n");
-  const r = await withFetch(instanceFetch, () =>
+  const r = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident"] }),
   );
   assert.equal(await fs.readFile(hand, "utf8"), "# My own app notes\n");
@@ -405,7 +412,7 @@ test("snapshot automation follows the registry: base query, active field (S-4)",
   baselineEnv();
   clearSchemaCache();
   const statsUrls = new Map();
-  await withFetch(
+  await withMetadataFetch(
     (url) => {
       const u = new URL(url);
       if (u.pathname.includes("/api/now/stats/")) {
@@ -450,7 +457,7 @@ test("record sections are written redacted, and `sections` narrows the run (S-7)
   baselineEnv();
   clearSchemaCache();
   const paths = [];
-  const result = await withFetch(
+  const result = await withMetadataFetch(
     (url) => {
       paths.push(new URL(url).pathname);
       return instanceFetch(url);
@@ -493,7 +500,7 @@ test("the snapshot fans out to at most four reads at a time (S-7)", async () => 
   let inflight = 0;
   let peak = 0;
   await withEnv({ SN_MAX_CONCURRENT: "10" }, () =>
-    withFetch(
+    withMetadataFetch(
       async (url) => {
         inflight++;
         peak = Math.max(peak, inflight);
@@ -517,7 +524,7 @@ test("a cancelled snapshot leaves a partial index; resume skips finished units (
   );
   const controller = new AbortController();
   await withEnv({ SN_MAX_CONCURRENT: "1" }, () =>
-    withFetch(
+    withMetadataFetch(
       (url) => {
         if (new URL(url).pathname.endsWith("/sys_security_acl")) {
           controller.abort();
@@ -555,7 +562,7 @@ test("a cancelled snapshot leaves a partial index; resume skips finished units (
   // Resume: finished units are not read again.
   clearSchemaCache();
   const paths = [];
-  const resumed = await withFetch(
+  const resumed = await withMetadataFetch(
     (url) => {
       paths.push(new URL(url).pathname);
       return instanceFetch(url);
@@ -574,7 +581,7 @@ test("a cancelled snapshot leaves a partial index; resume skips finished units (
 
   // A complete run is not resumable: everything is read again.
   clearSchemaCache();
-  const again = await withFetch(instanceFetch, () =>
+  const again = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ tables: ["incident"], resume: true }),
   );
   assert.deepEqual(again.resumed, []);
@@ -588,7 +595,7 @@ test("resume re-runs a unit whose file changed on disk (S-7)", async () => {
     (s) => s.name === "servicenow_snapshot_instance",
   );
   await withEnv({ SN_MAX_CONCURRENT: "1" }, () =>
-    withFetch(
+    withMetadataFetch(
       (url) => {
         if (new URL(url).pathname.endsWith("/sys_user_role")) {
           controller.abort();
@@ -612,9 +619,25 @@ test("resume re-runs a unit whose file changed on disk (S-7)", async () => {
       "sn_source_hash: sha256:x",
     ),
   );
-  const r = await withFetch(instanceFetch, () =>
+  const r = await withMetadataFetch(instanceFetch, () =>
     snapshotInstance({ sections: ["plugins", "roles"], resume: true }),
   );
   assert.deepEqual(r.resumed, []);
   assert.equal(r.changes["default/plugins.md"], "updated");
+});
+
+test("ID-27: a record-data read during a snapshot fails the metadata guard", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  // A collector that reads `incident` rows and swallows the error must still
+  // fail: the guard records the violation and re-throws after the run.
+  await assert.rejects(
+    withMetadataFetch(instanceFetch, async () => {
+      await snapshotInstance({ tables: ["incident"] });
+      await globalThis
+        .fetch("https://dev00000.service-now.com/api/now/table/incident")
+        .catch(() => undefined);
+    }),
+    /non-metadata table: incident/,
+  );
 });

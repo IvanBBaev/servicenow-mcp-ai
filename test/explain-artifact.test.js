@@ -458,7 +458,7 @@ test("golden shapes: when, references, decoded outcomes", async () => {
   });
   const by = Object.fromEntries(uib.decoded.map((d) => [d.field, d]));
   assert.equal(by.composition.decoded, true);
-  assert.equal(by.composition.via, "json");
+  assert.equal(by.composition.via, undefined, "uib-composition ships (P-14)");
   assert.equal(by.data.decoded, false);
   assert.equal(by.data.raw, "{not json");
   assert.deepEqual(by.props.value, { title: "Home" });
@@ -524,23 +524,25 @@ test("json decoder is tolerant and never throws", () => {
 
 test("decodeField: fallback to json, pluggable decoders, throwing decoder", () => {
   assert.equal(getDecoder("json"), jsonDecoder);
-  // flow-values ships with P-10; uib-composition (P-14) still falls back.
+  // flow-values ships with P-10 and uib-composition with P-14; an id with no
+  // implementation (a future domain) falls back to json.
   assert.equal(getDecoder("flow-values").id, "flow-values");
   assert.deepEqual(decodeField("flow-values", "[1]"), {
     decoded: true,
     value: [1],
     decoder: "flow-values",
   });
-  assert.equal(getDecoder("uib-composition"), undefined);
-  assert.deepEqual(decodeField("uib-composition", "[1]"), {
+  assert.equal(getDecoder("uib-composition").id, "uib-composition");
+  assert.equal(getDecoder("future-domain"), undefined);
+  assert.deepEqual(decodeField("future-domain", "[1]"), {
     decoded: true,
     value: [1],
-    decoder: "uib-composition",
+    decoder: "future-domain",
     via: "json",
   });
   assert.match(
-    decodeField("uib-composition", "{x").reason,
-    /'uib-composition' decoder is not available yet/,
+    decodeField("future-domain", "{x").reason,
+    /'future-domain' decoder is not available yet/,
   );
   assert.deepEqual(decodeField("json", "nope"), {
     decoded: false,
@@ -548,6 +550,7 @@ test("decodeField: fallback to json, pluggable decoders, throwing decoder", () =
     decoder: "json",
   });
 
+  const shipped = getDecoder("uib-composition");
   const restore = registerDecoder({
     id: "uib-composition",
     decode: (raw) => ({ decoded: true, value: { length: raw.length } }),
@@ -561,7 +564,13 @@ test("decodeField: fallback to json, pluggable decoders, throwing decoder", () =
   } finally {
     restore();
   }
-  assert.equal(getDecoder("uib-composition"), undefined);
+  assert.equal(getDecoder("uib-composition"), shipped);
+  const restoreNew = registerDecoder({
+    id: "future-domain",
+    decode: () => ({ decoded: true, value: 1 }),
+  });
+  restoreNew();
+  assert.equal(getDecoder("future-domain"), undefined);
 
   const restoreThrow = registerDecoder({
     id: "json",

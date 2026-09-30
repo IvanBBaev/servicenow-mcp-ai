@@ -9,6 +9,7 @@ import {
 import { ok } from "../mcp/result.js";
 import { defineTool, shortText, type AnyToolSpec } from "../mcp/define.js";
 import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { sdkGuard } from "../mcp/sdk-guard.js";
 import {
   appendWriteJournal,
   journaledWrite,
@@ -54,13 +55,51 @@ const METHOD_ACTION: Record<BatchSubRequest["method"], WriteAction> = {
  * journal the path itself as the target.
  */
 function batchTarget(url: string): { table: string; sys_id?: string } {
+  return tableApiTarget(url) ?? { table: url.split(/[?#]/)[0] ?? url };
+}
+
+/** The Table API target of a sub-request path; null for other surfaces. */
+function tableApiTarget(
+  url: string,
+): { table: string; sys_id?: string } | null {
   const m =
     /^\/api\/now\/(?:v\d+\/)?table\/([^/?#]+)(?:\/([^/?#]+))?\/?(?:[?#].*)?$/i.exec(
       url,
     );
-  if (!m) return { table: url.split(/[?#]/)[0] ?? url };
+  if (!m) return null;
   const table = decodeURIComponent(m[1] ?? "");
   return m[2] ? { table, sys_id: decodeURIComponent(m[2]) } : { table };
+}
+
+/**
+ * P-22: the SDK-managed guard for every write sub-request that targets the
+ * Table API, keyed by the sub-request's position (1-based, like its default
+ * id). In `deny` mode an apply throws SDK_MANAGED_SCOPE before the batch is
+ * sent, so no sub-request runs. Empty when nothing is SDK-managed.
+ */
+async function guardSubRequests(
+  requests: BatchSubRequest[],
+  phase: "plan" | "apply",
+): Promise<Map<number, Record<string, unknown>>> {
+  const found = new Map<number, Record<string, unknown>>();
+  for (const [index, req] of requests.entries()) {
+    if (req.method === "GET") continue;
+    const target = tableApiTarget(req.url);
+    if (!target) continue;
+    const body =
+      req.body && typeof req.body === "object" && !Array.isArray(req.body)
+        ? (req.body as Record<string, unknown>)
+        : undefined;
+    const guard = await sdkGuard(
+      {
+        ...target,
+        ...(body && req.method !== "DELETE" ? { fields: body } : {}),
+      },
+      phase,
+    );
+    if (guard) found.set(index, guard);
+  }
+  return found;
 }
 
 /** The sys_id a created record came back with, if the body is a Table API reply. */
@@ -157,30 +196,53 @@ export const specs: AnyToolSpec[] = [
       // A read-only batch (all GET) needs no plan gate; a batch that writes does.
       const hasWrites = requests.some((r) => r.method !== "GET");
       if (hasWrites && !shouldApply(apply)) {
-        return planPreview({
-          action: "execute",
-          table: "batch",
-          // H-4: the preview shows what each sub-request would send (bodies
-          // pass the result redaction like any output) and what it targets.
-          after: {
-            requests: requests.map((r) => {
-              const tables = tablesForSubRequest(r);
-              const pkg = packageForUrl(r.url);
-              return {
-                method: r.method,
-                url: r.url,
-                ...(r.body !== undefined ? { body: r.body } : {}),
-                ...(tables.length ? { tables } : {}),
-                package: pkg ?? null,
-              };
-            }),
+        const guards = await guardSubRequests(requests, "plan");
+        const refused = [...guards.values()].some(
+          (g) =>
+            (g.sdkManaged as Record<string, unknown> | undefined)
+              ?.would_refuse === true,
+        );
+        return planPreview(
+          {
+            action: "execute",
+            table: "batch",
+            // H-4: the preview shows what each sub-request would send (bodies
+            // pass the result redaction like any output) and what it targets.
+            after: {
+              requests: requests.map((r, index) => {
+                const tables = tablesForSubRequest(r);
+                const pkg = packageForUrl(r.url);
+                return {
+                  method: r.method,
+                  url: r.url,
+                  ...(r.body !== undefined ? { body: r.body } : {}),
+                  ...(tables.length ? { tables } : {}),
+                  package: pkg ?? null,
+                  ...guards.get(index),
+                };
+              }),
+            },
           },
-        });
+          refused ? { would_refuse: true } : {},
+        );
       }
       if (!hasWrites) {
         const results = await runBatch(requests);
         return ok({ count: results.length, results });
       }
+      // P-22: judged before the batch is sent — a deny stops every sub-request.
+      const guards = await guardSubRequests(requests, "apply");
+      const sdk = guards.size
+        ? {
+            sdkManaged: [...guards].map(([index, g]) => ({
+              request: requests[index]?.id ?? String(index + 1),
+              ...(g.sdkManaged as Record<string, unknown> | undefined),
+              ...(g.sdkScopeWarning
+                ? { sdkScopeWarning: g.sdkScopeWarning }
+                : {}),
+            })),
+          }
+        : {};
       const batchId = ulid();
       const results = await journaledWrite(
         {
@@ -198,7 +260,7 @@ export const specs: AnyToolSpec[] = [
         },
       );
       journalSubRequests(batchId, requests, results);
-      return ok({ count: results.length, results });
+      return ok({ count: results.length, results, ...sdk });
     },
   }),
 ];

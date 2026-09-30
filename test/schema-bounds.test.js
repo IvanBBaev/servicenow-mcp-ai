@@ -29,6 +29,11 @@ const INTENTIONALLY_UNBOUNDED = new Map([
   ["servicenow_update_record.fields{}", "field values (instance-sized)"],
   ["servicenow_upsert_record.fields{}", "field values (instance-sized)"],
   ["servicenow_upsert_record.key{}", "field values (instance-sized)"],
+  ["servicenow_upsert_artifact.fields{}", "field values (instance-sized)"],
+  [
+    "servicenow_upsert_artifact.children[].fields{}",
+    "field values (instance-sized; at most 200 children)",
+  ],
   ["servicenow_insert_import_set_row.fields{}", "field values"],
   ["servicenow_create_change.fields{}", "field values"],
   ["servicenow_update_change.fields{}", "field values"],

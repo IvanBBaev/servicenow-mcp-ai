@@ -3,6 +3,7 @@ import {
   saveCredentials,
   getCredentials,
   useProfile,
+  resolveProfileName,
   activeProfile,
   assertValidProfileName,
   envKeysFor,
@@ -16,6 +17,7 @@ import {
   type ServiceNowCredentials,
 } from "../core/config.js";
 import { appendWriteJournal } from "../core/write-journal.js";
+import { currentSession } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
 import { isReadOnly } from "../core/policy.js";
 import {
@@ -484,7 +486,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_use_instance",
     title: "Switch connection profile",
     description:
-      "Switch the active ServiceNow connection profile (persisted to the env file). All identity-scoped caches (OAuth tokens, schema, plugin availability) are cleared.",
+      "Switch the connection profile (over HTTP: this session only unless persist).",
     package: "admin",
     annotations: {
       readOnlyHint: false,
@@ -496,23 +498,48 @@ export const specs: AnyToolSpec[] = [
       name: shortText(128).describe(
         "Profile to activate, e.g. 'default' or 'dev'.",
       ),
+      persist: z
+        .boolean()
+        .optional()
+        .describe(
+          "Write the env file (journaled). Default: stdio yes, HTTP no.",
+        ),
     },
-    logFields: (args) => ({ name: args.name }),
-    handler: ({ name }) => {
+    logFields: (args) => ({ name: args.name, persist: args.persist }),
+    handler: ({ name, persist }) => {
       try {
-        const switched = useProfile(name);
-        appendWriteJournal({
-          action: "config",
-          table: "config",
-          target: `env:${activeProfile()}`,
-          keys: ["SN_ACTIVE_PROFILE"],
-        });
-        // Nothing cached under the previous identity may survive the switch.
-        invalidateTokens();
-        disposeDispatchers();
-        clearSchemaCache();
-        clearPluginAvailability();
-        clearCapabilityCache();
+        // H-7: over HTTP the switch belongs to the calling session — other
+        // sessions keep their profile and nothing is written unless asked.
+        const session = currentSession();
+        const persisted = persist ?? !session;
+        let switched: ServiceNowCredentials;
+        if (session) {
+          const profile = resolveProfileName(name);
+          if (persisted) useProfile(profile);
+          session.profile = profile;
+          switched = getCredentials(profile);
+          // The token, schema and connection caches are shared by every
+          // session and keyed by profile + host, so they stay; the session's
+          // own availability caches are per identity and are dropped.
+          clearPluginAvailability();
+          clearCapabilityCache();
+        } else {
+          switched = useProfile(name, { persist: persisted });
+          // Nothing cached under the previous identity may survive the switch.
+          invalidateTokens();
+          disposeDispatchers();
+          clearSchemaCache();
+          clearPluginAvailability();
+          clearCapabilityCache();
+        }
+        if (persisted) {
+          appendWriteJournal({
+            action: "config",
+            table: "config",
+            target: `env:${activeProfile()}`,
+            keys: ["SN_ACTIVE_PROFILE"],
+          });
+        }
         // M-5: servicenow://status (and profile-scoped content) changed.
         void notifyProfileChanged(getServer());
         // H-11 (L3-03): switching to a production profile is called out.
@@ -524,6 +551,8 @@ export const specs: AnyToolSpec[] = [
         }
         return ok({
           message: "Profile switched",
+          scope: session ? "session" : "process",
+          persisted,
           activeProfile: activeProfile(),
           instance: switched.instance || "(not set)",
           user: switched.user || "(not set)",

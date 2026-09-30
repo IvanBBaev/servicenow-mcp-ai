@@ -1,0 +1,97 @@
+{
+  "scope": "instance",
+  "profile": "default",
+  "generatedAt": "<generatedAt>",
+  "reportFile": "default/code-health.md",
+  "scriptCounts": {
+    "business_rule": 5,
+    "script_include": 5,
+    "client_script": 5,
+    "ui_policy": 5,
+    "ui_action": 5,
+    "scheduled_job": 5,
+    "transform": 5,
+    "rest_operation": 5,
+    "acl": 5,
+    "script_action": 5,
+    "transform_map": 5,
+    "transform_entry": 5,
+    "fix_script": 5,
+    "email_script": 5,
+    "processor": 5,
+    "data_source": 5,
+    "rest_message_fn": 5,
+    "ui_script": 5,
+    "ui_page": 5,
+    "ui_macro": 5,
+    "validation_script": 5,
+    "sp_widget": 5,
+    "catalog_client_script": 5,
+    "dictionary_script": 0
+  },
+  "security": {
+    "available": true,
+    "aclCount": 1,
+    "findings": [
+      {
+        "sys_id": "",
+        "name": "task",
+        "operation": "",
+        "kind": "table",
+        "table": "task",
+        "rule": "table-no-acl",
+        "severity": "warn",
+        "hint": "Custom table with no record ACL of its own or on a parent table — add table ACLs."
+      }
+    ],
+    "bySeverity": {
+      "error": 0,
+      "warn": 1,
+      "info": 0
+    },
+    "checks": {
+      "acl_roles": {
+        "available": false,
+        "unavailableReason": "sys_security_acl_role does not exist on this instance or is not exposed (HTTP 404).",
+        "scanned": 0,
+        "findings": 0
+      },
+      "role_inheritance": {
+        "available": false,
+        "unavailableReason": "sys_user_role_contains does not exist on this instance or is not exposed (HTTP 404).",
+        "scanned": 0,
+        "findings": 0
+      },
+      "public_rest_resources": {
+        "available": false,
+        "unavailableReason": "sys_ws_operation does not exist on this instance or is not exposed (HTTP 404).",
+        "scanned": 0,
+        "findings": 0
+      },
+      "public_ui_pages": {
+        "available": false,
+        "unavailableReason": "sys_public does not exist on this instance or is not exposed (HTTP 404).",
+        "scanned": 0,
+        "findings": 0
+      },
+      "tables_without_acl": {
+        "available": true,
+        "scanned": 2,
+        "findings": 1
+      },
+      "admin_overlap_roles": {
+        "available": false,
+        "unavailableReason": "sys_user_role_contains does not exist on this instance or is not exposed (HTTP 404).",
+        "scanned": 0,
+        "findings": 0
+      },
+      "elevated_privilege_acls": {
+        "available": false,
+        "unavailableReason": "sys_security_acl_role does not exist on this instance or is not exposed (HTTP 404).",
+        "scanned": 0,
+        "findings": 0
+      }
+    }
+  },
+  "warnings": []
+}

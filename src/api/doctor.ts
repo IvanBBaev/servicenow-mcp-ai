@@ -299,9 +299,25 @@ export function doctorChecks(report: DoctorReport): DoctorCheck[] {
   return checks;
 }
 
-/** The first line of every doctor output: which env file was chosen. */
-export function envFileLine(path: string, exists: boolean): string {
-  return `env file: ${path} (${exists ? "exists" : "missing"})`;
+/** E-4: why an env file was chosen, as shown by `doctor`. */
+const ENV_FILE_SOURCE_TEXT: Record<string, string> = {
+  SN_ENV_FILE: "from SN_ENV_FILE",
+  xdg: "XDG config",
+  project: "project-root .env fallback, deprecated — removed in 3.0",
+  "xdg-default": "XDG config default",
+};
+
+/**
+ * The first line of every doctor output: which env file was chosen and, when
+ * `source` is given (E-4), which resolution rule picked it.
+ */
+export function envFileLine(
+  path: string,
+  exists: boolean,
+  source?: string,
+): string {
+  const why = source ? `, ${ENV_FILE_SOURCE_TEXT[source] ?? source}` : "";
+  return `env file: ${path} (${exists ? "exists" : "missing"}${why})`;
 }
 
 /**

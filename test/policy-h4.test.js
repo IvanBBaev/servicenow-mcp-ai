@@ -572,6 +572,12 @@ const WRITE_ARGS = {
   servicenow_run_atf_suite: { suite_sys_id: SYS_ID },
   servicenow_revert_write: { entry_id: "01J0000000000000000000000" },
   servicenow_set_property: { name: "glide.x", value: "1" },
+  servicenow_upsert_artifact: {
+    artifactType: "ui_policy",
+    key: { short_description: "x", table: "incident" },
+    fields: { conditions: "active=true" },
+    children: [{ fields: { field: "priority", visible: "false" } }],
+  },
 };
 
 /** The table each tool's write lands in, for the table-deny sweep. */
@@ -595,6 +601,7 @@ const WRITE_TABLE = {
   servicenow_run_atf_test: "sys_atf_test",
   servicenow_run_atf_suite: "sys_atf_test_suite",
   servicenow_set_property: "sys_properties",
+  servicenow_upsert_artifact: "sys_ui_policy",
   // revert_write takes its table from the journal entry (test/revert.test.js).
 };
 

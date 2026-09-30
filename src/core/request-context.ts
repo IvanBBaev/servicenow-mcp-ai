@@ -96,6 +96,36 @@ export function runWithCall<T>(context: CallContext, fn: () => T): T {
   return callAls.run(context, fn);
 }
 
+/**
+ * H-7 — the HTTP session a request belongs to. The transport opens it around
+ * every request it hands to a session (tool calls, resources, prompts,
+ * notifications alike), so the session's active profile (`use_instance` in
+ * HTTP mode), its MCP server (elicitation, list-changed notifications) and
+ * its log bridge resolve per session without threading anything. A stdio
+ * process never opens one.
+ */
+export interface SessionScope {
+  /** The MCP session id (`mcp-session-id`); empty until initialize completes. */
+  id: string;
+  /** The profile `use_instance` selected for this session only. */
+  profile?: string;
+  /** The session's McpServer (typed loosely: core/ cannot import mcp/). */
+  server?: unknown;
+  /** The session's MCP log sink (a per-session log bridge). */
+  logSink?: unknown;
+}
+
+const sessionAls = new AsyncLocalStorage<SessionScope>();
+
+export function runInSession<T>(scope: SessionScope, fn: () => T): T {
+  return sessionAls.run(scope, fn);
+}
+
+/** The HTTP session of the current request, when there is one. */
+export function currentSession(): SessionScope | undefined {
+  return sessionAls.getStore();
+}
+
 /** The context of the tool call in progress, when there is one. */
 export function currentCall(): CallContext | undefined {
   return callAls.getStore();

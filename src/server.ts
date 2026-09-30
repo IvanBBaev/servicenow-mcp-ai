@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { connectTransport, closeHttpTransport } from "./mcp/transport.js";
 import { installCrashHandlers } from "./core/lifecycle.js";
 import { hasCredentials } from "./core/config.js";
+import { getTransport } from "./core/settings.js";
 import {
   effectivePackages,
   registerAllTools,
@@ -22,19 +23,11 @@ import {
 } from "./mcp/server-info.js";
 
 /**
- * D-1 — the MCP server bootstrap, extracted from the entry point so that
- * importing it has no side effects: nothing is created, registered or
- * connected until `startServer()` is called (by the CLI when no subcommand is
- * given). The caller has already installed `runtime` and loaded the env file.
- *
- * stdout stays the protocol channel: every log line goes to stderr.
+ * Build one fully registered McpServer on `runtime`: tools (with the
+ * runtime's package session), resources and prompts. stdio builds one; the
+ * HTTP transport builds one per session (H-7).
  */
-export async function startServer(runtime: Runtime): Promise<void> {
-  // Crash safety (E-9): an unhandled rejection or uncaught exception logs one
-  // structured error line (pid, uptime, transport, error) and exits 1 after
-  // flushing stderr — a possibly corrupt process must not keep serving.
-  installCrashHandlers();
-
+export function buildMcpServer(runtime: Runtime): McpServer {
   // M-1: title / website / icon, and `instructions` generated from the live
   // registry and configuration (packages, write mode, credentials, how to fix).
   const server = new McpServer(
@@ -50,18 +43,43 @@ export async function startServer(runtime: Runtime): Promise<void> {
       runtime,
     ),
   );
-
   registerAllTools(server, runtime);
   registerResources(server);
   registerPrompts(server, effectivePackages().enabled);
-  setServer(server);
+  return server;
+}
 
-  // DF-6: stdio (default) or Streamable HTTP, chosen by SN_TRANSPORT.
-  const transportKind = await connectTransport(server);
-  // Mirror stderr logs to the client over the MCP logging capability (X-4).
-  // M-8: per-session levels (logging/setLevel works over HTTP too) and a
-  // notification rate limit (SN_LOG_NOTIFY_RATE) — see log-bridge.ts.
-  setLogSink(createLogBridge(server.server));
+/**
+ * D-1 — the MCP server bootstrap, extracted from the entry point so that
+ * importing it has no side effects: nothing is created, registered or
+ * connected until `startServer()` is called (by the CLI when no subcommand is
+ * given). The caller has already installed `runtime` and loaded the env file.
+ *
+ * stdout stays the protocol channel: every log line goes to stderr.
+ */
+export async function startServer(runtime: Runtime): Promise<void> {
+  // Crash safety (E-9): an unhandled rejection or uncaught exception logs one
+  // structured error line (pid, uptime, transport, error) and exits 1 after
+  // flushing stderr — a possibly corrupt process must not keep serving.
+  installCrashHandlers();
+
+  const http = getTransport() === "http";
+  let server: McpServer | undefined;
+  if (http) {
+    // H-7: one McpServer per HTTP session, each on its own session runtime
+    // (a child of `runtime`); the transport installs the per-session log sink.
+    await connectTransport((sessionRuntime) => buildMcpServer(sessionRuntime));
+  } else {
+    server = buildMcpServer(runtime);
+    setServer(server);
+    // DF-6: stdio (default) — one client, one server.
+    await connectTransport(server);
+    // Mirror stderr logs to the client over the MCP logging capability (X-4).
+    // M-8: per-session levels and a notification rate limit
+    // (SN_LOG_NOTIFY_RATE) — see log-bridge.ts.
+    setLogSink(createLogBridge(server.server));
+  }
+  const transportKind = http ? "http" : "stdio";
   // Logs always go to stderr (never stdout — that is the stdio protocol channel).
   logger.info(`servicenow-mcp-ai server running on ${transportKind}`, {
     version: SERVER_VERSION,
@@ -80,11 +98,12 @@ export async function startServer(runtime: Runtime): Promise<void> {
     shuttingDown = true;
     logger.info("Shutting down", { signal });
     try {
-      // E-9: release the runtime's state (caches, tokens, dispatcher pools)
-      // before the protocol goes down, then stop the HTTP listener if any.
-      await runtime.dispose();
-      await server.close();
+      // E-9: stop the protocol, then release the runtime's state (caches,
+      // tokens, dispatcher pools).
+      // H-7: HTTP drains in-flight calls and closes every session first.
       await closeHttpTransport();
+      await server?.close();
+      await runtime.dispose();
     } catch {
       // ignore errors raised while closing during shutdown
     }

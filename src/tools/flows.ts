@@ -173,7 +173,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_explain_flow",
     title: "Explain a flow or workflow",
     description:
-      "Explain a flow/subflow (trigger, step tree with decoded inputs and pills, subflow/action calls expanded, draft vs published), a custom action (inputs, outputs, steps) or a legacy workflow (activity graph, migration report). Opt-in runs.",
+      "Explain a flow/subflow (trigger, step tree, decoded inputs and pills, calls expanded), a custom action (inputs, outputs, steps), a legacy workflow (activity graph, migration report) or a playbook (lanes). Opt-in runs.",
     package: "flows",
     annotations: {
       readOnlyHint: true,
@@ -190,13 +190,13 @@ export const specs: AnyToolSpec[] = [
       sys_id: sysId()
         .optional()
         .describe(
-          "sys_hub_flow sys_id (flow/subflow), sys_hub_action_type_definition sys_id (action) or wf_workflow sys_id (workflow). Required unless kind:'workflow' with migration:true (instance-wide report).",
+          "sys_hub_flow (flow/subflow), sys_hub_action_type_definition (action), wf_workflow (workflow) or sys_pd_process_definition (playbook) sys_id. Required unless kind:'workflow' with migration:true.",
         ),
       kind: z
-        .enum(["flow", "subflow", "action", "workflow"])
+        .enum(["flow", "subflow", "action", "workflow", "playbook"])
         .optional()
         .describe(
-          "'flow' (default), 'subflow', 'action' (custom action) or 'workflow' (legacy).",
+          "'flow' (default), 'subflow', 'action' (custom action), 'workflow' (legacy) or 'playbook' (PAD).",
         ),
       runs: z
         .number()
@@ -205,7 +205,7 @@ export const specs: AnyToolSpec[] = [
         .max(EXPLAIN_FLOW_RUNS.max)
         .optional()
         .describe(
-          "Latest runs to include (sys_flow_context + sys_flow_log errors, or wf_context). Default 0.",
+          "Latest runs to include (sys_flow_context + sys_flow_log errors, wf_context or sys_pd_context). Default 0.",
         ),
       depth: z
         .number()

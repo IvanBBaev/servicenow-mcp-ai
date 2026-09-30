@@ -515,11 +515,16 @@ unless it says so.
 
 #### P-12 — Playbooks (M)
 
-- [ ] `explain_flow` `kind:"playbook"`: `sys_pd_process_definition` → `sys_pd_lane` → `sys_pd_activity`
+- [x] `explain_flow` `kind:"playbook"`: `sys_pd_process_definition` → `sys_pd_lane` → `sys_pd_activity`
       (with `sys_pd_activity_definition`), triggers, inputs/outputs, timers; variants listed
       (`sys_pd_process_variant`); runtime from `sys_pd_context`.
 - **Depends on:** P-10 (shared tree/Mermaid renderer), O-9.
 - **Acceptance:** fixture playbook renders lanes as Mermaid subgraphs.
+
+- **Done 2026-09-30 (local, uncommitted).** `explainPlaybook` in `src/api/explain-flow.ts`, `servicenow_explain_flow({kind:"playbook"})`:
+  lanes as Mermaid subgraphs, activities with their definitions, triggers, inputs / outputs, timers,
+  variants, opt-in `runs` from `sys_pd_context`; `available:false` when the `sys_pd_*` tables are absent;
+  `verified:false` until O-5. Tests: `test/explain-playbook.test.js`.
 
 #### P-13 — Legacy workflow graph + migration report (M)
 
@@ -533,23 +538,31 @@ unless it says so.
 
 #### P-14 — UI Builder experience tree (L)
 
-- [ ] `explain_ui_experience({sys_id | path})`: `sys_ux_page_registry` → `sys_ux_app_config` →
+- [x] `explain_ui_experience({sys_id | path})`: `sys_ux_page_registry` → `sys_ux_app_config` →
       `sys_ux_app_route` → `sys_ux_screen` (variants with applicability and order) → `sys_ux_macroponent`.
-- [ ] Decoder `uib-composition`: component tree from `composition`, data resources from `data`,
+- [x] Decoder `uib-composition`: component tree from `composition`, data resources from `data`,
       client state from `state_properties`, event wiring from `internal_event_mappings`; schemaless, pinned
       by fixtures.
-- [ ] Client scripts (`sys_ux_client_script`), data brokers (`sys_ux_data_broker_*`) and their ACLs of
+- [x] Client scripts (`sys_ux_client_script`), data brokers (`sys_ux_data_broker_*`) and their ACLs of
       type `ux_data_broker`; Mermaid page map.
 - **Depends on:** P-6, P-9, O-5.
 - **Acceptance:** a fixture workspace lists every route with its variants and each variant's component
   tree; unknown composition shapes return raw with `decoded:false`.
 
+- **Done 2026-09-30 (local, uncommitted).** `servicenow_explain_ui_experience` in the `ui` package
+  (`src/api/ui-experience.ts`), decoder `src/core/artifacts/uib-composition.ts` (unknown shapes return raw
+  with `decoded:false`), client scripts, data brokers with their `ux_data_broker` ACLs, Mermaid page map.
+  Tables unverified (O-5). Tests: `test/explain-ui-experience.test.js`.
+
 #### P-15 — Workspace, dashboard, list menu, applicability (S)
 
-- [ ] Explainers for NX-1…4 and UIB-10 inside `explain_ui_experience` (workspace landing dashboard tabs
+- [x] Explainers for NX-1…4 and UIB-10 inside `explain_ui_experience` (workspace landing dashboard tabs
       and widgets, list categories and lists, applicability roles, form action layouts).
 - **Depends on:** P-14.
 - **Acceptance:** a Fluent-built fixture workspace explains the objects its `Workspace()` generated.
+
+- **Done 2026-09-30 (local, uncommitted).** NX-1…4 and UIB-10 join the `explain_ui_experience` tree
+  (dashboard tabs / widgets, list categories and lists, applicability roles, form action layouts).
 
 #### P-16 — Service Portal tree (M)
 
@@ -600,33 +613,56 @@ unless it says so.
 
 #### P-19 — Domain analysers (M)
 
-- [ ] Flows: `run_as` system touching H-11 protected tables, drafts differing from snapshot, unused
+- [x] Flows: `run_as` system touching H-11 protected tables, drafts differing from snapshot, unused
       subflows/actions, no error handling around integration steps, long waits.
-- [ ] UIB: routes without a screen, screens without applicability, data brokers without a `ux_data_broker`
+- [x] UIB: routes without a screen, screens without applicability, data brokers without a `ux_data_broker`
       ACL. Portal: public widgets reading data, orphaned widgets/pages, route-map loops.
-- [ ] Legacy: workflows referenced by catalog items or SLAs (from P-13).
+- [x] Legacy: workflows referenced by catalog items or SLAs (from P-13).
 - **Depends on:** P-10, P-13, P-14, P-16, P-18.
 - **Acceptance:** each rule has a positive and a negative fixture; results appear in `code_health`.
 
+- **Done 2026-09-28 (local, uncommitted) — flows, portal and legacy workflows; bar UIB.**
+  `src/api/domain-analysers.ts` (`analyseDomains`) behind the opt-in `servicenow_code_health({domains:true})`
+  (default unchanged): `flow-run-as-system-protected`, `flow-draft-differs`, `flow-unused-subflow`,
+  `flow-unused-action`, `flow-integration-no-error-handling`, `flow-long-wait` (> 86,400 s),
+  `portal-public-data-widget`, `portal-orphan-widget`, `portal-orphan-page`, `portal-route-map-loop`,
+  `workflow-migration-candidate`. Newest `limit` candidates per rule (50 / 200), child reads ≤ 500
+  rows, `truncated` and `available:false` per rule, caveats for unverified fields (O-5). UI Builder
+  rules wait for P-14 / O-5; the flow-level error handler and FlowAPI script callers are not read.
+  `test/p19-domain-analysers.test.js` (19 tests, mutation-checked).
+- **UIB rules added 2026-09-30:** `uib-route-no-screen`, `uib-screen-no-applicability`,
+  `uib-data-broker-no-acl` (severity is an owner call).
+
 #### P-20 — Snapshot/compare over the registry (L)
 
-- [ ] `snapshot_instance({types?, scope?})` snapshots every registry type with children, decoded JSON
+- [x] `snapshot_instance({types?, scope?})` snapshots every registry type with children, decoded JSON
       normalised (stable key order, volatile fields dropped), flows from the published snapshot.
-- [ ] `compare_instances` matches by `sys_id`, then natural key; child-aware diff; Mermaid graphs
+- [x] `compare_instances` matches by `sys_id`, then natural key; child-aware diff; Mermaid graphs
       diffed as text.
 - **Depends on:** S-7 (this extends its snapshot list to the whole registry), P-7…P-10.
 - **Acceptance:** snapshot of the same instance twice gives an empty diff; `drift` exit codes unchanged.
-- **Done 2026-09-26 (local, uncommitted), bar flows from the published snapshot.**
-  `src/api/artifact-snapshot.ts` (`collectArtifactType`, `normalizeRow`, `diffArtifactType`);
-  `types` / `scope` on both tools (opt-in, so defaults and the `drift` CLI are unchanged). Direct
-  children only — a child that hangs off another child (`parentTable`, e.g. the portal layout
-  tree) is named in a warning; `alsoMatch` composite links are honoured. Not done: reading flows
-  from `sys_hub_flow_snapshot` (the published/draft authority is unverified, O-5) and Mermaid
-  graphs diffed as text. `test/p20-artifact-snapshot.test.js` (8 tests, mutation-checked).
+- **Done 2026-09-26 (local, uncommitted); remainder done 2026-09-30 (local, uncommitted).**
+  `src/api/artifact-snapshot.ts` (`collectArtifactType`, `normalizeRow`, `diffArtifactType`,
+  `changedArtifactPairs`); `types` / `scope` on both tools (opt-in, so defaults and the `drift` CLI
+  are unchanged). Direct children only — a child that hangs off another child (`parentTable`, e.g.
+  the portal layout tree) is named in a warning; `alsoMatch` composite links are honoured.
+  `test/p20-artifact-snapshot.test.js` (8 tests, mutation-checked).
+  Remainder: flows (`sys_hub_flow`) whose `master_snapshot` names another record with child rows
+  are read from that published snapshot (children keyed by the snapshot sys_id, as
+  `explain_flow` reads published steps); the record carries `source: "published"` and `snapshot`
+  (neither is hashed) and the result warns that the published/draft authority and the keying are
+  unverified (O-5). No `master_snapshot`, or a snapshot without child rows (warned), keeps the
+  draft read, so outputs are unchanged when no snapshot exists. `compare_instances({types,
+mermaid: true})` renders each changed record of `flow`, `subflow`, `flow_action`, `workflow`,
+  `playbook`, `sp_portal`, `sp_page` and `workspace` on both sides with the existing explainers
+  and returns `mermaidDiffs` (unified diffs of the Mermaid sources, `src/api/artifact-mermaid.ts`):
+  opt-in, live even with `from_snapshot`, at most 10 records (`MERMAID_DIFFS_MAX`) and 120 lines
+  each (`MERMAID_DIFF_LINES`), never counted as drift. `test/p20-mermaid-published.test.js`
+  (9 tests, mutation-checked).
 
 #### P-21 — Application documentation generator (M)
 
-- [ ] `docs_write`-backed report per scope: inventory by type, dependency graph, one Mermaid diagram per
+- [x] `docs_write`-backed report per scope: inventory by type, dependency graph, one Mermaid diagram per
       flow / experience / portal / workflow, lint summary.
 - **Depends on:** P-17, P-10, P-14, P-16, S-14, S-15 (extends `document_app` / `DOC_KINDS` rather than
   adding a second writer; `document_app` already collects through P-5's `listArtifacts` over
@@ -639,11 +675,14 @@ unless it says so.
   metadata allow-list now admits versioned `sys_hub_*_v2` tables (explain_flow reads
   `sys_hub_trigger_instance_v2`). Mocked fixture only (O-5).
 
+- **UIB experiences added 2026-09-30:** `document_app({detail})` draws a workspace page map per
+  experience (P-14); deeper UIB prose is an owner call.
+
 ### P4 — Writes
 
 #### P-22 — SDK-managed write guard (S) — BREAKING only when the default flips to `deny`
 
-- [ ] `SN_SDK_MANAGED_WRITES = deny | warn | allow` evaluated for every write tool (generic and
+- [x] `SN_SDK_MANAGED_WRITES = deny | warn | allow` evaluated for every write tool (generic and
       artefact-aware) after the H-11 table policy; plan preview carries `sdkManaged` and the Fluent
       alternative. Default `warn` in 3.x.
 - [ ] `deny` default proposed for 4.0 → new breaking-register row at that time.
@@ -659,24 +698,45 @@ unless it says so.
   attachment writes (data, not scoped metadata), and a create without `sys_scope` (the user's
   current application scope is not resolved). `test/sdk-guard.test.js` (9 tests, mutation-checked).
 
+- **Remainder done 2026-09-28 (local, uncommitted).** Table API write sub-requests in
+  `servicenow_batch` are guarded (a `deny` stops the whole batch before it is sent; `warn` returns
+  `sdkManaged[]`). A create without `sys_scope` takes the scope from the session's
+  `apps.current_app` preference (`sys_metadata` tables only; a failed read adds `sdkScopeWarning`,
+  never an error; nothing is read while detection is off). +5 tests in `test/sdk-guard.test.js`.
+
 #### P-23 — `upsert_artifact` plan/apply (L)
 
-- [ ] `upsert_artifact({artifactType, key, fields, children?})`: action decided at plan time (S-8
+- [x] `upsert_artifact({artifactType, key, fields, children?})`: action decided at plan time (S-8
       upsert semantics), field allow-list from the descriptor, `jsonFields.writable:false` → plan-only,
       child records diffed and applied in order, journal `before` per record (H-5), one plan token (H-3).
-- [ ] Classes of §5(c): scalar and parent/child types only; flows, playbooks, legacy workflow excluded.
+- [x] Classes of §5(c): scalar and parent/child types only; flows, playbooks, legacy workflow excluded.
 - **Depends on:** H-3, H-5, H-11, S-2, S-8, P-22, P-7.
 - **Acceptance:** create → update → S-2 revert of a UI policy with two actions restores both actions;
   a `sys_ux_macroponent.composition` change returns a plan and refuses `apply`.
 
+- **Done 2026-09-28 (local, uncommitted).** `servicenow_upsert_artifact` in the opt-in
+  `artifacts` package (`src/api/upsert-artifact.ts`): create / update / noop per record as in S-8,
+  parent first then ordered children; fields limited to the descriptor's `writeFields`; a
+  `writable:false` JSON field makes it plan-only (`PLAN_ONLY_FIELD`); flow and workflow types refused
+  (`NOT_WRITABLE_TYPE`); every record journaled with `before` and linked by `artifact_write`, so S-2
+  reverts each line; one plan token; H-11 policy and the P-22 guard per table; stale-parent check,
+  duplicate child keys refused, 200 child writes max. Deferred: `prune_children`, whole-artefact
+  revert, child staleness, `writeFields` for business rules and script includes.
+  `test/upsert-artifact.test.js` (10 tests, mutation-checked).
+
 #### P-24 — Portal and catalog structural writes (M)
 
-- [ ] `upsert_artifact` for SP-1…10 and CAT-1…6 with SDK pre-flight parity (uniqueness of
+- [x] `upsert_artifact` for SP-1…10 and CAT-1…6 with SDK pre-flight parity (uniqueness of
       `sp_widget.id`, `sp_page.id`, `url_suffix`, `sp_dependency` name/module, `sp_ng_template` id; scope
       prefix) and layout-tree writes (`sp_container` → `sp_instance`).
 - **Depends on:** P-23, P-16, P-8.
 - **Acceptance:** a duplicate `sp_widget.id` is rejected at plan time; a page layout round-trips
   through get → upsert → get unchanged.
+
+- **Done 2026-09-30 (local, uncommitted).** `upsert_artifact` for SP-1…10 and CAT-1…6: `children[].parent`
+  layout-tree writes, uniqueness pre-flight from registry `unique` rules (`DUPLICATE_UNIQUE_FIELD`),
+  `SCOPE_PREFIX` warning, `PREFLIGHT_INVALID` / `CHILD_PARENT_INVALID`. Fields unverified until O-5.
+  Tests: `test/upsert-artifact.test.js`.
 
 #### P-25 — Flow activation toggle (S)
 
@@ -686,40 +746,89 @@ unless it says so.
 - **Acceptance:** deactivate → activate on the fixture flow leaves `master_snapshot` unchanged and the
   flow triggers again.
 
+- **Partly done 2026-09-30 (local, uncommitted).** Flow upsert accepts `{active}` only
+  (`FLOW_ACTIVE_ONLY`, `UNVERIFIED` warning); the `master_snapshot` behaviour waits for O-5.
+
 ### P5 — Fluent generation and round-trip
 
 #### P-26 — Fluent emitter core (L)
 
-- [ ] `generate_fluent({artifactType, sys_id | scope})` emits `.now.ts` for every registry type with an
+- [x] `generate_fluent({artifactType, sys_id | scope})` emits `.now.ts` for every registry type with an
       `sdkApi`: `Now.ID['<key>']` keys plus a `keys.ts` fragment, `Now.include('./…')` sidecar files for
       script/html/css bodies, `Now.ref(table, id)` for references, `Record()` for types without an API.
-- [ ] Output under `<SN_DOCS_DIR>/<profile>/fluent/<scope>/` (through `docsWriteRaw`, an S-14 manifest
+- [x] Output under `<SN_DOCS_DIR>/<profile>/fluent/<scope>/` (through `docsWriteRaw`, an S-14 manifest
       kind with the frontmatter contract) or inline; header comment names the target SDK version (§2);
       secrets replaced by placeholders.
 - **Depends on:** P-7, P-8, O-7.
 - **Acceptance:** generated files for the scalar fixture types type-check against the pinned SDK types
   (only if O-7 allows the dev dependency; otherwise a recorded `now-sdk build` result is the oracle).
 
+- **Done 2026-09-30 (local, uncommitted), bar the type-check oracle.** `servicenow_generate_fluent`
+  in the opt-in `artifacts` package (`src/api/fluent.ts`, `src/api/fluent-render.ts`): dedicated
+  emitters for business rules, script includes, client scripts, UI policies, UI actions, scheduled
+  jobs, script actions, ACLs, UI pages, properties and roles; every other type falls back to
+  `Record()` and is listed in `unsupported[]` (P-27 for flows / playbooks, P-28 for portal / UIB /
+  workspace / catalog); unmapped fields and unreadable children are reported, not dropped. Secrets
+  become placeholders; output is deterministic; `format:"file"` writes through `docsWriteRaw` with a
+  `kind:"fluent"` companion and a hand-edit guard. The target SDK is an **assumption pending O-7**:
+  headers name `@servicenow/sdk` 4.12.2 (`SDK_BASELINE`), and the acceptance oracle (type-check against
+  pinned SDK types, or a recorded `now-sdk build`) is still open — tests only prove the output parses
+  as TypeScript. The `G` tier is not claimed in the registry until that oracle exists (P-29).
+  `test/fluent.test.js` (23 tests, goldens, mutation-checked).
+
 #### P-27 — Flow, subflow, action and playbook emitters (L)
 
-- [ ] From the P-10…P-12 trees: `Flow()` / `Subflow()` / `Action()` with `trigger.*`, `action.core.*`,
+- [x] From the P-10…P-12 trees: `Flow()` / `Subflow()` / `Action()` with `trigger.*`, `action.core.*`,
       `wfa.*` logic (if/elseIf/else, forEach, tryCatch, doInParallel, stages), `wfa.dataPill()`;
       `PlaybookDefinition()` with `ActivityDefinitions.Core.*`.
-- [ ] Unsupported constructs (spoke actions outside `action.core`, nested doInParallel, playbook
+- [x] Unsupported constructs (spoke actions outside `action.core`, nested doInParallel, playbook
       Questionnaire activities, variants) produce an explicit `unsupported[]` list and a `Record()` fallback
       — never silent loss.
 - **Depends on:** P-10, P-11, P-12, P-26.
 - **Acceptance:** the fixture flow regenerates to Fluent whose build output matches the instance step
   tree (via P-29).
 
+- **Done 2026-09-30 (local, uncommitted), bar the P-29 oracle (O-7).** `src/api/fluent-flow.ts`,
+  hooked into `servicenow_generate_fluent` (`emitter: "flow"`): the flow-group types are emitted from
+  their `explain_flow` tree — `Flow()` / `Subflow()` / `Action()` with `trigger.*`, `action.core.*`,
+  `wfa.flowLogic.*`, `wfa.subflow` and `wfa.dataPill()`, and `PlaybookDefinition()` with
+  `ActivityDefinitions.Core.*`. Every construct without a mapping (spoke / custom actions, nested
+  doInParallel, Questionnaire activities, variants, unknown logic or definitions, undecodable values,
+  rows outside the tree) is an `unsupported[]` entry plus a `Record()` fallback; a degraded tree falls
+  back to the P-26 `Record()` form. The API names are the SDK-PARITY names, marked `verified:false`;
+  goldens (`test/fixtures/fluent/{flow,subflow,action,playbook}_emitter.golden.txt`) only prove the
+  output is deterministic and parses as TypeScript. The build-output comparison is P-29 (O-7).
+
 #### P-28 — Portal, workspace and catalog emitters (M)
 
-- [ ] `ServicePortal`, `SPPage` (layout tree), `SPWidget` (+ `Now.include` for template/css/scripts),
+- [x] `ServicePortal`, `SPPage` (layout tree), `SPWidget` (+ `Now.include` for template/css/scripts),
       `SPTheme`, `SPMenu`, `SPHeaderFooter`, `SPPageRouteMap`; `Workspace`, `Dashboard`,
       `UxListMenuConfig`, `Applicability`; `CatalogItem` with variables, variable sets, client scripts, UI
       policies. UIB internals stay `Record()` (the SDK has no API).
 - **Depends on:** P-26, P-15, P-16, P-8.
 - **Acceptance:** fixture portal page and catalog item regenerate and pass P-29.
+
+- **Done 2026-09-30 (local, uncommitted), bar the P-29 oracle (O-7).** Emitters in
+  `src/api/fluent-ui.ts`, dispatched from `src/api/fluent.ts` (`UI_EMITTERS`): `ServicePortal`,
+  `SPPage` with its container / row / column / instance tree, `SPWidget` and `SPHeaderFooter`
+  (template, CSS, client / server script and link as `Now.include` sidecars; Angular templates inline,
+  dependencies and providers as `Now.ref` lists), `SPTheme` (JS / CSS includes), `SPMenu` (items),
+  `SPPageRouteMap`, `SPWidgetDependency`, `SPAngularProvider`, `JsInclude`, `CssInclude`; `Workspace`
+  (page properties; the root macroponent and app config are referenced by `Now.ref` and reported as
+  UIB `Record()` exports), `Dashboard` (tabs, widgets, permissions), `UxListMenuConfig` (categories,
+  lists), `Applicability`; `CatalogItem` / `CatalogItemRecordProducer` with typed `<Kind>Variable`
+  calls (choices included), variable-set includes, categories and user criteria, followed by the
+  `VariableSet`, `CatalogClientScript` and `CatalogUiPolicy` (with actions) calls the item uses; the
+  standalone set, client script and UI policy types have the same emitters. UIB internals and
+  standalone Angular templates stay `Record()` with an `unsupported[]` entry. Rows that do not fit the
+  tree (orphans, unknown variable type codes, m2m rows without a target) are emitted as `Record()` rows
+  and reported; unmapped fields are reported — never silent loss. Secrets become placeholders and the
+  output is deterministic, as in P-26. Property names follow this document and are **not verified**
+  (`verified: false`, a `warnings[]` entry and a header note per file); the `Dashboard` /
+  `UxListMenuConfig` / `Applicability` nested structures (U) use camelCase field names. The acceptance
+  oracle (P-29, owner gate O-7) is still open — tests prove the output parses as TypeScript.
+  `test/fluent-ui.test.js` (26 tests, goldens `test/fixtures/fluent/ui_*.golden.txt`,
+  mutation-checked).
 
 #### P-29 — Round-trip verification harness (M)
 

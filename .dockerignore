@@ -1,0 +1,11 @@
+# D-5: the build stage needs only package*.json, tsconfig.json, src/, bin/,
+# README.md and LICENSE. Keep secrets, build output and tooling out of the
+# build context.
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!src/**
+!bin/**
+!README.md
+!LICENSE

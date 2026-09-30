@@ -1,11 +1,22 @@
 /**
- * Numeric runtime settings, all overridable through environment variables.
+ * Runtime settings, all overridable through environment variables.
  * Kept in one place so the HTTP client, auth provider and tool layer read the
- * same values without duplicating parsing/validation logic.
+ * same values without duplicating parsing/validation logic. Since E-4 every
+ * getter reads through the declarative manifest (settings-manifest.ts): the
+ * manifest owns the parsing, the profile scoping and the "invalid value"
+ * warning; these getters keep their names, defaults and return types.
  */
 
 import path from "node:path";
 import { activeProfile } from "./profile.js";
+import {
+  readBool,
+  readEnum,
+  readInt,
+  readString,
+  rawSetting,
+  settingSource,
+} from "./settings-manifest.js";
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_RETRIES = 2;
@@ -15,10 +26,9 @@ export const DEFAULT_MAX_RESULT_CHARS = 100_000;
 /** ServiceNow caps a single Table API page at 1000 rows. */
 export const MAX_PAGE_SIZE = 1000;
 
-/** Read a positive integer env var, falling back to `fallback` when unset/invalid. */
-function positiveInt(envVar: string, fallback: number): number {
-  const raw = Number(process.env[envVar]);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : fallback;
+/** Read a numeric setting, falling back to `fallback` when unset/invalid. */
+function positiveInt(key: string, fallback: number): number {
+  return readInt(key) ?? fallback;
 }
 
 /**
@@ -32,10 +42,7 @@ export function getTimeoutMs(): number {
 
 /** Retries for transient failures (SN_MAX_RETRIES, all REST clients). Zero is allowed. */
 export function getMaxRetries(): number {
-  const raw = Number(process.env.SN_MAX_RETRIES);
-  return Number.isFinite(raw) && raw >= 0
-    ? Math.floor(raw)
-    : DEFAULT_MAX_RETRIES;
+  return positiveInt("SN_MAX_RETRIES", DEFAULT_MAX_RETRIES);
 }
 
 /** Hard cap on records returned by a fetchAll query (SN_MAX_RECORDS). */
@@ -54,7 +61,7 @@ export function getMaxResultChars(): number {
  * SN_INCLUDE_REF_LINKS=true to opt back in.
  */
 export function includeReferenceLinks(): boolean {
-  return process.env.SN_INCLUDE_REF_LINKS?.trim().toLowerCase() === "true";
+  return readBool("SN_INCLUDE_REF_LINKS");
 }
 
 /**
@@ -62,7 +69,7 @@ export function includeReferenceLinks(): boolean {
  * tokens of a large payload). Set SN_RESULT_PRETTY=true for readable output.
  */
 export function resultPretty(): boolean {
-  return process.env.SN_RESULT_PRETTY?.trim().toLowerCase() === "true";
+  return readBool("SN_RESULT_PRETTY");
 }
 
 export const DEFAULT_MAX_CONCURRENT = 4;
@@ -79,12 +86,9 @@ export const DEFAULT_SCHEMA_CACHE_TTL_SEC = 300;
  * seconds; 0 disables caching). Invalid values fall back to the default.
  */
 export function getSchemaCacheTtlMs(): number {
-  const raw = Number(process.env.SN_SCHEMA_CACHE_TTL_SEC);
-  const sec =
-    Number.isFinite(raw) && raw >= 0
-      ? Math.floor(raw)
-      : DEFAULT_SCHEMA_CACHE_TTL_SEC;
-  return sec * 1000;
+  return (
+    positiveInt("SN_SCHEMA_CACHE_TTL_SEC", DEFAULT_SCHEMA_CACHE_TTL_SEC) * 1000
+  );
 }
 
 /**
@@ -94,7 +98,7 @@ export function getSchemaCacheTtlMs(): number {
  * failure. Off by default — the LIKE path is the proven behaviour.
  */
 export function useCodeSearch(): boolean {
-  return process.env.SN_CODESEARCH?.trim().toLowerCase() === "true";
+  return readBool("SN_CODESEARCH");
 }
 
 /** Default tool package profile when SN_TOOL_PACKAGES is unset. */
@@ -117,7 +121,7 @@ function parseNameList(raw: string | undefined): string[] {
  * packages and ignores unknown entries.
  */
 export function getRequestedPackages(): string[] {
-  const names = parseNameList(process.env.SN_TOOL_PACKAGES);
+  const names = parseNameList(rawSetting("SN_TOOL_PACKAGES"));
   return names.length > 0 ? names : [DEFAULT_TOOL_PACKAGES];
 }
 
@@ -128,7 +132,7 @@ export function getRequestedPackages(): string[] {
  * table policy cannot see (catalog, change, knowledge…).
  */
 export function getDeniedPackages(): string[] {
-  return parseNameList(process.env.SN_PACKAGES_DENY);
+  return parseNameList(rawSetting("SN_PACKAGES_DENY"));
 }
 
 /**
@@ -137,7 +141,7 @@ export function getDeniedPackages(): string[] {
  * list. Complements the global SN_READONLY, per package.
  */
 export function getReadOnlyPackages(): string[] {
-  return parseNameList(process.env.SN_PACKAGES_READONLY);
+  return parseNameList(rawSetting("SN_PACKAGES_READONLY"));
 }
 
 /**
@@ -146,7 +150,7 @@ export function getReadOnlyPackages(): string[] {
  * directory. Relative SN_DOCS_DIR values are resolved against the cwd.
  */
 export function getDocsDir(): string {
-  const raw = process.env.SN_DOCS_DIR?.trim();
+  const raw = readString("SN_DOCS_DIR");
   return raw ? path.resolve(raw) : path.resolve(process.cwd(), "docs/instance");
 }
 
@@ -160,17 +164,10 @@ export function getDocsDir(): string {
  */
 export type ProfileEnv = "prod" | "test" | "dev";
 
-function profileKey(profile: string, suffix: string, globalKey: string) {
-  return profile === "default"
-    ? process.env[globalKey]
-    : process.env[`SN_PROFILE_${profile.toUpperCase()}_${suffix}`];
-}
-
 export function getProfileEnv(
   profile: string = activeProfile(),
 ): ProfileEnv | undefined {
-  const v = profileKey(profile, "ENV", "SN_ENV")?.trim().toLowerCase();
-  return v === "prod" || v === "test" || v === "dev" ? v : undefined;
+  return readEnum<ProfileEnv>("SN_ENV", { profile });
 }
 
 /** The acknowledgement a prod profile needs before apply mode takes effect. */
@@ -181,13 +178,7 @@ export const PROD_WRITES_ACK = "I_UNDERSTAND";
  * (H-11), falling back to `SN_WRITE_MODE`.
  */
 function configuredWriteMode(profile: string): "plan" | "apply" {
-  const scoped =
-    profile === "default"
-      ? undefined
-      : process.env[`SN_PROFILE_${profile.toUpperCase()}_WRITE_MODE`];
-  return (scoped ?? process.env.SN_WRITE_MODE)?.trim().toLowerCase() === "apply"
-    ? "apply"
-    : "plan";
+  return readEnum<"plan" | "apply">("SN_WRITE_MODE", { profile }) ?? "plan";
 }
 
 /**
@@ -199,12 +190,9 @@ export function writeModeHold(
 ): string | undefined {
   if (configuredWriteMode(profile) !== "apply") return undefined;
   if (getProfileEnv(profile) !== "prod") return undefined;
-  const ack = profileKey(profile, "PROD_WRITES", "SN_PROD_WRITES")?.trim();
+  const ack = readEnum("SN_PROD_WRITES", { profile });
   if (ack === PROD_WRITES_ACK) return undefined;
-  const key =
-    profile === "default"
-      ? "SN_PROD_WRITES"
-      : `SN_PROFILE_${profile.toUpperCase()}_PROD_WRITES`;
+  const key = settingSource("SN_PROD_WRITES", { profile });
   return `Profile "${profile}" is marked prod, so it stays in plan mode although apply is configured; set ${key}=${PROD_WRITES_ACK} to allow apply mode.`;
 }
 
@@ -242,14 +230,14 @@ export function getDestructiveConfirm(
   profile: string = activeProfile(),
 ): "off" | "token" | "elicit" {
   if (getProfileEnv(profile) === "prod") return "elicit";
-  const v = process.env.SN_DESTRUCTIVE_CONFIRM?.trim().toLowerCase();
-  return v === "token" || v === "elicit" ? v : "off";
+  return (
+    readEnum<"off" | "token" | "elicit">("SN_DESTRUCTIVE_CONFIRM") ?? "off"
+  );
 }
 
 /** H-3 — lifetime of a plan token (`SN_PLAN_TOKEN_TTL_SEC`, default 600, 30–86400). */
 export function getPlanTokenTtlSec(): number {
-  const n = Number(process.env.SN_PLAN_TOKEN_TTL_SEC);
-  return Number.isInteger(n) && n >= 30 && n <= 86_400 ? n : 600;
+  return positiveInt("SN_PLAN_TOKEN_TTL_SEC", 600);
 }
 
 /**
@@ -259,15 +247,12 @@ export function getPlanTokenTtlSec(): number {
  * slip past SN_PACKAGES_DENY / SN_PACKAGES_READONLY inside a batch.
  */
 export function getBatchUnmapped(): "allow" | "deny" {
-  return process.env.SN_BATCH_UNMAPPED?.trim().toLowerCase() === "deny"
-    ? "deny"
-    : "allow";
+  return readEnum<"allow" | "deny">("SN_BATCH_UNMAPPED") ?? "allow";
 }
 
 /** H-4 — most sub-requests one batch may carry (`SN_BATCH_MAX_REQUESTS`, 1–1000, default 1000). */
 export function getBatchMaxRequests(): number {
-  const n = Number(process.env.SN_BATCH_MAX_REQUESTS);
-  return Number.isInteger(n) && n >= 1 && n <= 1000 ? n : 1000;
+  return positiveInt("SN_BATCH_MAX_REQUESTS", 1000);
 }
 
 /**
@@ -276,8 +261,7 @@ export function getBatchMaxRequests(): number {
  * (the pre-H-11 behaviour; the 3.0 defaults are an owner decision, O-4).
  */
 function capSetting(name: string): number {
-  const n = Number(process.env[name]);
-  return Number.isInteger(n) && n > 0 ? n : 0;
+  return positiveInt(name, 0);
 }
 
 /** Applied instance writes per session (`SN_MAX_WRITES_PER_SESSION`; a batch counts its write sub-requests). */
@@ -301,12 +285,7 @@ export function getMaxBatchWrites(): number {
  * SN_PROFILE_<NAME>_UPDATE_SET). Unset = no binding, the pre-S-6 behaviour.
  */
 export function getUpdateSetSetting(profile = "default"): string | undefined {
-  const scoped =
-    profile !== "default"
-      ? process.env[`SN_PROFILE_${profile.toUpperCase()}_UPDATE_SET`]
-      : undefined;
-  const raw = (scoped?.trim() || process.env.SN_UPDATE_SET)?.trim();
-  return raw || undefined;
+  return readString("SN_UPDATE_SET", { profile });
 }
 
 /**
@@ -314,7 +293,7 @@ export function getUpdateSetSetting(profile = "default"): string | undefined {
  * the model (`SN_REDACT_FIELDS`, comma/space-separated). Opt-in: empty = off.
  */
 export function getRedactFields(): string[] {
-  return (process.env.SN_REDACT_FIELDS ?? "")
+  return (rawSetting("SN_REDACT_FIELDS") ?? "")
     .split(/[,\s]+/)
     .map((s) => s.trim())
     .filter(Boolean);
@@ -325,7 +304,7 @@ export function getRedactFields(): string[] {
  * email, a phone number or a long national-ID digit run, anywhere in a record.
  */
 export function redactPII(): boolean {
-  return /^(1|true|yes|on)$/i.test(process.env.SN_REDACT_PII?.trim() ?? "");
+  return readBool("SN_REDACT_PII");
 }
 
 /**
@@ -336,9 +315,7 @@ export function redactPII(): boolean {
  * lets such a change proceed; an explicit decline is refused regardless.
  */
 export function allowUnconfirmedCredentialChange(): boolean {
-  return /^(1|true|yes|on)$/i.test(
-    process.env.SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE?.trim() ?? "",
-  );
+  return readBool("SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE");
 }
 
 /**
@@ -347,15 +324,12 @@ export function allowUnconfirmedCredentialChange(): boolean {
  * clients can consume it. Securing the endpoint is the operator's job.
  */
 export function getTransport(): "stdio" | "http" {
-  return process.env.SN_TRANSPORT?.trim().toLowerCase() === "http"
-    ? "http"
-    : "stdio";
+  return readEnum<"stdio" | "http">("SN_TRANSPORT") ?? "stdio";
 }
 
 /** DF-6 — TCP port for the HTTP transport (`SN_PORT`, default 3000). */
 export function getHttpPort(): number {
-  const n = Number(process.env.SN_PORT);
-  return Number.isInteger(n) && n > 0 && n < 65536 ? n : 3000;
+  return positiveInt("SN_PORT", 3000);
 }
 
 /**
@@ -364,7 +338,7 @@ export function getHttpPort(): number {
  * operator opts in (e.g. `0.0.0.0`).
  */
 export function getHttpHost(): string {
-  return process.env.SN_HTTP_HOST?.trim() || "127.0.0.1";
+  return readString("SN_HTTP_HOST") ?? "127.0.0.1";
 }
 
 /**
@@ -373,7 +347,80 @@ export function getHttpHost(): string {
  * safe behind loopback or an external gateway).
  */
 export function getHttpToken(): string | undefined {
-  return process.env.SN_HTTP_TOKEN?.trim() || undefined;
+  return readString("SN_HTTP_TOKEN");
+}
+
+// ---------------------------------------------------------------------------
+// H-7 — HTTP transport v2 (sessions, DNS-rebinding protection, keep-alive)
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_HTTP_SESSION_TTL_SEC = 1800;
+export const DEFAULT_HTTP_KEEPALIVE_MS = 25_000;
+export const DEFAULT_HTTP_MAX_SESSIONS = 64;
+
+/** A non-negative integer env var (0 is meaningful), else `fallback`. */
+function nonNegativeInt(envVar: string, fallback: number): number {
+  const raw = process.env[envVar]?.trim();
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
+}
+
+/**
+ * Idle TTL of an HTTP session in seconds (`SN_HTTP_SESSION_TTL_SEC`, default
+ * 1800). A session with no request for that long is closed and its runtime
+ * disposed; `0` keeps sessions until the client sends DELETE.
+ */
+export function getHttpSessionTtlSec(): number {
+  return nonNegativeInt(
+    "SN_HTTP_SESSION_TTL_SEC",
+    DEFAULT_HTTP_SESSION_TTL_SEC,
+  );
+}
+
+/**
+ * Interval of the SSE keep-alive comment on an open stream
+ * (`SN_HTTP_KEEPALIVE_MS`, default 25000) — below the usual 30–60 s idle
+ * timeout of proxies and load balancers. `0` disables it.
+ */
+export function getHttpKeepAliveMs(): number {
+  return nonNegativeInt("SN_HTTP_KEEPALIVE_MS", DEFAULT_HTTP_KEEPALIVE_MS);
+}
+
+/** Cap on concurrent HTTP sessions (`SN_HTTP_MAX_SESSIONS`, default 64). */
+export function getHttpMaxSessions(): number {
+  return positiveInt("SN_HTTP_MAX_SESSIONS", DEFAULT_HTTP_MAX_SESSIONS);
+}
+
+/**
+ * The `Host` header values the HTTP transport accepts (`SN_HTTP_ALLOWED_HOSTS`,
+ * comma/space separated, case-insensitive; an entry without a port matches
+ * any port). Empty = the transport's default (loopback names on a loopback
+ * bind, no check otherwise).
+ */
+export function getHttpAllowedHosts(): string[] {
+  return parseNameList(process.env.SN_HTTP_ALLOWED_HOSTS);
+}
+
+/**
+ * The browser `Origin` values the HTTP transport accepts
+ * (`SN_HTTP_ALLOWED_ORIGINS`, e.g. `https://app.example.com`; `*` = any).
+ * Empty = loopback origins only. A request without an Origin header (a
+ * non-browser client) is never refused by this check.
+ */
+export function getHttpAllowedOrigins(): string[] {
+  return parseNameList(process.env.SN_HTTP_ALLOWED_ORIGINS);
+}
+
+/**
+ * Refuse to start the HTTP transport on a non-loopback bind without
+ * `SN_HTTP_TOKEN` (`SN_HTTP_REQUIRE_TOKEN=1`). Off by default in 2.x — the
+ * server only warns; planned to become the default in 3.0 (O-4, B6).
+ */
+export function httpRequireToken(): boolean {
+  return /^(1|true|yes|on)$/i.test(
+    process.env.SN_HTTP_REQUIRE_TOKEN?.trim() ?? "",
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -438,7 +485,7 @@ export function getQueueTimeoutMs(): number {
 
 /** Free-form suffix appended to the User-Agent header (`SN_USER_AGENT_SUFFIX`). */
 export function getUserAgentSuffix(): string | undefined {
-  return process.env.SN_USER_AGENT_SUFFIX?.trim() || undefined;
+  return readString("SN_USER_AGENT_SUFFIX");
 }
 
 export const DEFAULT_BREAKER_THRESHOLD = 0;
@@ -449,10 +496,7 @@ export const DEFAULT_BREAKER_THRESHOLD = 0;
  * default `0` keeps the breaker disabled.
  */
 export function getBreakerThreshold(): number {
-  const raw = Number(process.env.SN_BREAKER_THRESHOLD);
-  return Number.isFinite(raw) && raw >= 0
-    ? Math.floor(raw)
-    : DEFAULT_BREAKER_THRESHOLD;
+  return positiveInt("SN_BREAKER_THRESHOLD", DEFAULT_BREAKER_THRESHOLD);
 }
 
 export const DEFAULT_BREAKER_RESET_MS = 30_000;
@@ -485,14 +529,12 @@ export function getJournalMaxBytes(): number {
  * `'` so a spreadsheet never evaluates them. `0`/`false`/`no`/`off` opts out.
  */
 export function csvFormulaGuard(): boolean {
-  return !/^(0|false|no|off)$/i.test(
-    process.env.SN_CSV_FORMULA_GUARD?.trim() ?? "",
-  );
+  return readBool("SN_CSV_FORMULA_GUARD");
 }
 
 /** `SN_CSV_BOM` (default on): prepend a UTF-8 BOM to CSV exports. */
 export function csvBom(): boolean {
-  return !/^(0|false|no|off)$/i.test(process.env.SN_CSV_BOM?.trim() ?? "");
+  return readBool("SN_CSV_BOM");
 }
 
 /**
@@ -502,9 +544,7 @@ export function csvBom(): boolean {
  * returned in full with a `note` naming the overflow and `format:"file"`.
  */
 export function oversizeToFile(): boolean {
-  return /^(1|true|yes|on)$/i.test(
-    process.env.SN_OVERSIZE_TO_FILE?.trim() ?? "",
-  );
+  return readBool("SN_OVERSIZE_TO_FILE");
 }
 
 // --- H-6: outbound hardening ------------------------------------------------
@@ -537,7 +577,7 @@ export function getMaxUploadBytes(): number {
  * (`text/plain`) or a type wildcard (`image/*`). Empty = any type.
  */
 export function getUploadMimeAllow(): string[] {
-  return parseNameList(process.env.SN_UPLOAD_MIME_ALLOW);
+  return parseNameList(rawSetting("SN_UPLOAD_MIME_ALLOW"));
 }
 
 export const DEFAULT_DOCS_MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -592,8 +632,6 @@ export const DEFAULT_LOG_NOTIFY_RATE = 20;
  * the limit off.
  */
 export function getLogNotifyRate(): number {
-  const raw = process.env.SN_LOG_NOTIFY_RATE?.trim();
-  if (raw === "0") return 0;
   return positiveInt("SN_LOG_NOTIFY_RATE", DEFAULT_LOG_NOTIFY_RATE);
 }
 
@@ -605,7 +643,7 @@ export function getLogNotifyRate(): number {
  * belong to a user in the instance's own directory (`sys_user.email`).
  */
 export function getEmailAllowedDomains(): string[] {
-  return parseNameList(process.env.SN_EMAIL_ALLOWED_DOMAINS).map((d) =>
+  return parseNameList(rawSetting("SN_EMAIL_ALLOWED_DOMAINS")).map((d) =>
     d.replace(/^@|^\*\.|^\./, ""),
   );
 }
@@ -651,12 +689,11 @@ export function getPluginNegativeTtlMs(): number {
  * (the proposed 4.0 default); `allow` skips the check.
  */
 export function getSdkManagedWrites(): "allow" | "warn" | "deny" {
-  const v = process.env.SN_SDK_MANAGED_WRITES?.trim().toLowerCase();
-  return v === "allow" || v === "deny" ? v : "warn";
+  return readEnum<"allow" | "warn" | "deny">("SN_SDK_MANAGED_WRITES") ?? "warn";
 }
 
 export function getSdkManagedScopes(): string[] {
-  return parseNameList(process.env.SN_SDK_MANAGED_SCOPES);
+  return parseNameList(rawSetting("SN_SDK_MANAGED_SCOPES"));
 }
 
 /**
@@ -666,7 +703,7 @@ export function getSdkManagedScopes(): string[] {
  * Relative entries resolve against the working directory; empty = no scan.
  */
 export function getSdkProjectDirs(): string[] {
-  const raw = process.env.SN_SDK_PROJECT_DIRS?.trim();
+  const raw = readString("SN_SDK_PROJECT_DIRS");
   if (!raw) return [];
   const dirs = raw
     .split(new RegExp(`[,${path.delimiter === ";" ? ";" : ":"}]`))
@@ -685,9 +722,7 @@ export function getSdkProjectDirs(): string[] {
  * panel). Anything else falls back to `json`.
  */
 export function getLogFormat(): "json" | "text" {
-  return process.env.SN_LOG_FORMAT?.trim().toLowerCase() === "text"
-    ? "text"
-    : "json";
+  return readEnum<"json" | "text">("SN_LOG_FORMAT") ?? "json";
 }
 
 /**
@@ -696,7 +731,7 @@ export function getLogFormat(): "json" | "text" {
  * resolve against the working directory; unset = no file sink.
  */
 export function getLogFile(): string | undefined {
-  const raw = process.env.SN_LOG_FILE?.trim();
+  const raw = readString("SN_LOG_FILE");
   return raw ? path.resolve(raw) : undefined;
 }
 
@@ -720,5 +755,5 @@ export function getLogFileMaxBytes(): number {
  * the scrape must carry the same bearer token as every other request.
  */
 export function metricsEnabled(): boolean {
-  return /^(1|true|yes|on)$/i.test(process.env.SN_METRICS?.trim() ?? "");
+  return readBool("SN_METRICS");
 }
