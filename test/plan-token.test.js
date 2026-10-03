@@ -1,8 +1,9 @@
 // H-3 — plan-token binding + elicitation on destructive apply. Under
 // SN_DESTRUCTIVE_CONFIRM=token|elicit (plan mode) a destructive apply:true must
 // carry the single-use plan_token of a matching plan preview; `elicit` also
-// asks a client that supports elicitation. `off` (the default) and
-// SN_WRITE_MODE=apply keep the pre-H-3 behaviour.
+// asks a client that supports elicitation. `token` is the 3.0 default (B4);
+// `off` (the explicit opt-out) and SN_WRITE_MODE=apply keep the pre-H-3
+// behaviour.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, existsSync, rmSync } from "node:fs";
@@ -88,7 +89,7 @@ test("settings: SN_DESTRUCTIVE_CONFIRM and SN_PLAN_TOKEN_TTL_SEC parse with safe
   await withEnv(
     { SN_DESTRUCTIVE_CONFIRM: undefined, SN_PLAN_TOKEN_TTL_SEC: undefined },
     () => {
-      assert.equal(getDestructiveConfirm(), "off");
+      assert.equal(getDestructiveConfirm(), "token", "3.0 default (B4)");
       assert.equal(getPlanTokenTtlSec(), 600);
     },
   );
@@ -96,8 +97,9 @@ test("settings: SN_DESTRUCTIVE_CONFIRM and SN_PLAN_TOKEN_TTL_SEC parse with safe
     ["token", "token"],
     [" ELICIT ", "elicit"],
     ["off", "off"],
-    ["yes", "off"],
-    ["", "off"],
+    [" OFF ", "off"],
+    ["yes", "token"],
+    ["", "token"],
   ]) {
     await withEnv({ SN_DESTRUCTIVE_CONFIRM: raw }, () =>
       assert.equal(getDestructiveConfirm(), want, raw),
@@ -116,8 +118,28 @@ test("settings: SN_DESTRUCTIVE_CONFIRM and SN_PLAN_TOKEN_TTL_SEC parse with safe
   }
 });
 
-test("off (default): the preview carries no plan_token and apply:true runs without one", async () => {
+test("default (B4): an apply:true without a plan_token is refused with nothing changed", async () => {
   await scenario({ SN_DESTRUCTIVE_CONFIRM: undefined }, async (calls) => {
+    const plan = out(await call("servicenow_delete_record", deleteArgs));
+    assert.match(plan.plan_token, /^pt[a-z]{28}$/);
+    const refused = out(
+      await call("servicenow_delete_record", { ...deleteArgs, apply: true }),
+    );
+    assert.equal(refused.code, "PLAN_REQUIRED");
+    assert.equal(refused.status, 428);
+    assert.equal(mutations(calls).length, 0);
+    const applied = await call("servicenow_delete_record", {
+      ...deleteArgs,
+      apply: true,
+      plan_token: plan.plan_token,
+    });
+    assert.equal(applied.isError, undefined, applied.content[0].text);
+    assert.equal(mutations(calls).length, 1);
+  });
+});
+
+test("off (explicit opt-out): the preview carries no plan_token and apply:true runs without one", async () => {
+  await scenario({ SN_DESTRUCTIVE_CONFIRM: "off" }, async (calls) => {
     const plan = out(await call("servicenow_delete_record", deleteArgs));
     assert.equal(plan.mode, "plan");
     assert.equal(plan.plan_token, undefined);
@@ -159,9 +181,9 @@ test("token: plan → apply with the token deletes once; the token is journaled 
         plan_token: plan.plan_token,
       }),
     );
-    assert.equal(replay.error.code, "PLAN_REQUIRED");
-    assert.equal(replay.error.status, 428);
-    assert.match(replay.error.message, /unknown or already used/);
+    assert.equal(replay.code, "PLAN_REQUIRED");
+    assert.equal(replay.status, 428);
+    assert.match(replay.error, /unknown or already used/);
     assert.equal(mutations(calls).length, 1, "no second DELETE");
   });
 });
@@ -170,10 +192,7 @@ test("token: an apply without a plan cannot reach the instance (acceptance)", as
   await scenario({ SN_DESTRUCTIVE_CONFIRM: "token" }, async (calls, docs) => {
     const cases = [
       ["servicenow_delete_record", { ...deleteArgs, apply: true }],
-      [
-        "servicenow_delete_attachment",
-        { attachment_sys_id: SYS_ID, apply: true },
-      ],
+      ["servicenow_delete_attachment", { sys_id: SYS_ID, apply: true }],
       [
         "servicenow_batch",
         {
@@ -187,7 +206,7 @@ test("token: an apply without a plan cannot reach the instance (acceptance)", as
         "servicenow_send_email",
         { to: ["a@example.com"], subject: "s", body: "b", apply: true },
       ],
-      ["servicenow_order_catalog_item", { item_sys_id: SYS_ID, apply: true }],
+      ["servicenow_order_catalog_item", { sys_id: SYS_ID, apply: true }],
       [
         "servicenow_revert_write",
         { entry_id: "01J0000000000000000000000", apply: true },
@@ -205,8 +224,8 @@ test("token: an apply without a plan cannot reach the instance (acceptance)", as
       const res = await call(name, args);
       assert.equal(res.isError, true, name);
       const body = out(res);
-      assert.equal(body.error.code, "PLAN_REQUIRED", name);
-      assert.match(body.error.hint, /without apply/);
+      assert.equal(body.code, "PLAN_REQUIRED", name);
+      assert.match(body.hint, /without apply/);
     }
     assert.equal(calls.length, 0, "not even a read reached the instance");
     assert.deepEqual(journal(docs), [], "a refused token is not journaled");
@@ -227,17 +246,17 @@ test("token: changed arguments, another tool or an expired token are refused; a 
         plan_token,
       }),
     );
-    assert.equal(moved.error.code, "PLAN_REQUIRED");
-    assert.match(moved.error.message, /arguments differ/);
+    assert.equal(moved.code, "PLAN_REQUIRED");
+    assert.match(moved.error, /arguments differ/);
 
     const otherTool = out(
       await call("servicenow_delete_attachment", {
-        attachment_sys_id: SYS_ID,
+        sys_id: SYS_ID,
         apply: true,
         plan_token,
       }),
     );
-    assert.match(otherTool.error.message, /another tool/);
+    assert.match(otherTool.error, /another tool/);
     assert.equal(mutations(calls).length, 0);
 
     // Still valid for the planned call after the mismatches.
@@ -260,7 +279,7 @@ test("token: changed arguments, another tool or an expired token are refused; a 
           plan_token: second.plan_token,
         }),
       );
-      assert.match(late.error.message, /expired/);
+      assert.match(late.error, /expired/);
     } finally {
       Date.now = realNow;
     }
@@ -369,7 +388,7 @@ test("token: a GET-only batch needs no plan; a writing batch does", async () => 
         const refused = out(
           await call("servicenow_batch", { ...write, apply: true }),
         );
-        assert.equal(refused.error.code, "PLAN_REQUIRED");
+        assert.equal(refused.code, "PLAN_REQUIRED");
         assert.equal(calls.length, 1);
         const applied = await call("servicenow_batch", {
           ...write,
@@ -410,7 +429,7 @@ test("schema: exactly the eight plan-token tools gain plan_token", () => {
   ).map((s) => s.name);
   assert.deepEqual(withToken.sort(), [
     "servicenow_batch",
-    "servicenow_change_conflicts",
+    "servicenow_check_change_conflicts",
     "servicenow_delete_attachment",
     "servicenow_delete_record",
     "servicenow_order_catalog_item",
@@ -425,8 +444,11 @@ test("schema: exactly the eight plan-token tools gain plan_token", () => {
 });
 
 test("instructions: the plan_token line appears only when the check is on", async () => {
-  await withEnv({ SN_DESTRUCTIVE_CONFIRM: undefined }, () =>
+  await withEnv({ SN_DESTRUCTIVE_CONFIRM: "off" }, () =>
     assert.doesNotMatch(buildServerInstructions("0.0.0"), /plan_token/),
+  );
+  await withEnv({ SN_DESTRUCTIVE_CONFIRM: undefined }, () =>
+    assert.match(buildServerInstructions("0.0.0"), /plan_token/),
   );
   await withEnv({ SN_DESTRUCTIVE_CONFIRM: "elicit" }, () =>
     assert.match(buildServerInstructions("0.0.0"), /plan_token/),
@@ -483,8 +505,8 @@ test("elicit: a declined prompt refuses the delete and journals `refused`", asyn
     }));
     try {
       const res = out(await planThenApply());
-      assert.equal(res.error.code, "CONFIRM_DECLINED");
-      assert.equal(res.error.status, 403);
+      assert.equal(res.code, "CONFIRM_DECLINED");
+      assert.equal(res.status, 403);
       assert.equal(mutations(calls).length, 0);
       assert.equal(s.prompts.length, 1);
       assert.match(s.prompts[0], /delete on incident\/a{32}/);
@@ -506,7 +528,7 @@ test("elicit: accepting with confirm:false is still a refusal; confirm:true dele
     let answer = { action: "accept", content: { confirm: false } };
     const s = await connectedServer({ elicitation: {} }, () => answer);
     try {
-      assert.equal(out(await planThenApply()).error.code, "CONFIRM_DECLINED");
+      assert.equal(out(await planThenApply()).code, "CONFIRM_DECLINED");
       answer = { action: "accept", content: { confirm: true } };
       const res = await planThenApply();
       assert.equal(res.isError, undefined, res.content[0].text);
@@ -524,8 +546,8 @@ test("elicit: a failing prompt fails closed; a client without elicitation relies
     });
     try {
       const res = out(await planThenApply());
-      assert.equal(res.error.code, "CONFIRM_DECLINED");
-      assert.match(res.error.message, /prompt failed/);
+      assert.equal(res.code, "CONFIRM_DECLINED");
+      assert.match(res.error, /prompt failed/);
     } finally {
       await broken.close();
     }
@@ -536,7 +558,7 @@ test("elicit: a failing prompt fails closed; a client without elicitation relies
       const noToken = out(
         await call("servicenow_delete_record", { ...deleteArgs, apply: true }),
       );
-      assert.equal(noToken.error.code, "PLAN_REQUIRED");
+      assert.equal(noToken.code, "PLAN_REQUIRED");
       const res = await planThenApply();
       assert.equal(res.isError, undefined, res.content[0].text);
       assert.equal(mutations(calls).length, 1);
@@ -563,7 +585,7 @@ test("profiles: a plan for one profile cannot be applied on another; lines land 
         plan_token,
       }),
     );
-    assert.match(elsewhere.error.message, /another profile/);
+    assert.match(elsewhere.error, /another profile/);
 
     let answer = { action: "decline" };
     const s = await connectedServer({ elicitation: {} }, () => answer);
@@ -575,7 +597,7 @@ test("profiles: a plan for one profile cannot be applied on another; lines land 
           plan_token,
         }),
       );
-      assert.equal(declined.error.code, "CONFIRM_DECLINED");
+      assert.equal(declined.code, "CONFIRM_DECLINED");
       assert.match(s.prompts[0], /profile "prod"/);
 
       answer = { action: "accept", content: { confirm: true } };

@@ -23,7 +23,7 @@ import { appendWriteJournal, sha256Hex } from "../core/write-journal.js";
  * `sn_instance`, `sn_generated_at`, `sn_source_hash`) — a JSON companion
  * carries the same fields at its top level. Text between
  * `<!-- sn:manual:start -->` and `<!-- sn:manual:end -->` survives
- * regeneration byte for byte. `docs_write` refuses to replace a generated
+ * regeneration byte for byte. `write_doc` refuses to replace a generated
  * file (and a generator refuses a hand-written one) without `overwrite`
  * (DOC_GENERATED). Every write rebuilds `index.json` (the manifest) and the
  * `index.md` rendered from it.
@@ -443,7 +443,7 @@ function scoped(relPath: string, profile?: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Document inspection (docs_list, manifest)
+// Document inspection (list_docs, manifest)
 // ---------------------------------------------------------------------------
 
 interface DocInfo {
@@ -520,7 +520,7 @@ function jsonHeadFields(head: string): DocFields | undefined {
   return Object.keys(fields).length > 0 ? fields : undefined;
 }
 
-/** One row of docs_list. */
+/** One row of list_docs. */
 export interface DocEntry {
   path: string;
   bytes: number;
@@ -1197,7 +1197,7 @@ export interface DocStream {
  * a sibling `.part` file that is renamed into place on close (a failed or
  * cancelled export leaves nothing at `path`); the close is journalled as a
  * `local_write` with the byte count and sha256, like every docs write. Not
- * size-capped (SN_DOCS_MAX_FILE_BYTES governs `docs_write`), not indexed (the
+ * size-capped (SN_DOCS_MAX_FILE_BYTES governs `write_doc`), not indexed (the
  * index covers Markdown only), and not exposed as a tool.
  */
 export async function openDocStream(

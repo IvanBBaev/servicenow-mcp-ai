@@ -17,7 +17,7 @@ Before you start:
 ## Dev setup
 
 ```bash
-nvm use            # Node from .nvmrc (22); engines enforce >= 20 (engine-strict)
+nvm use            # Node from .nvmrc (22); engines enforce >= 22.12 (engine-strict)
 npm install
 npm run build
 ```
@@ -30,13 +30,14 @@ see the [README](README.md#configure-credentials) for the resolution order.
 ```bash
 npm run check      # the full gate: build, lint, format check, tests with
                    # coverage thresholds (lines 94 / branches 82 / functions 97),
-                   # tarball guard (pack:check), prod audit
+                   # Fluent action table check, tarball guard
+                   # (pack:check), prod audit
 npm run verify     # the same minus coverage/audit — the fast inner loop
 npm test           # unit tests only (node:test; needs a prior build)
 ```
 
-CI runs the same chain on Linux (Node 20/22/24) and macOS (Node 22), plus a
-Windows visibility job, a Node 12 launcher probe and an `actionlint` job. `prepublishOnly` runs
+CI runs the same chain on Linux (Node 22/24/26) and macOS (Node 22), plus a
+Windows job (Node 22), a Node 22.12.0 engines-floor job (build + tests), a Node 12 launcher probe and an `actionlint` job. `prepublishOnly` runs
 `npm run check`, so a publish cannot bypass the gates.
 
 Coverage thresholds are a **ratchet**: they sit just under the measured
@@ -47,6 +48,16 @@ artifact registry: npm dist-tags versus `SDK_BASELINE`, and the SDK docs index
 versus the registry's `sdkApi` values. It needs the network, so it is **not**
 part of `npm run check`; the weekly `sdk-drift` workflow runs it and keeps one
 "SDK drift tracking" issue up to date.
+
+`npm run fluent:verify` (P-29) is the Fluent round-trip oracle. It type-checks
+every golden in `test/fixtures/fluent/` against the pinned `@servicenow/sdk`
+dev dependency (exactly 4.12.2, owner gate O-7) and builds the goldens offline
+with `now-sdk build`. Flags: `--no-build` (type check only), `--json`, `--keep`.
+`test/fluent-sdk-oracle.test.js` runs it, so it is part of `npm test`; without
+the SDK (`npm ci --omit=dev`) it is skipped. After an SDK bump, regenerate the
+flow emitter's `action.core` input table with `npm run fluent:actions`.
+`npm run check` runs `fluent:actions -- --check`, which fails while that table
+is stale.
 
 ## Dependencies and the audit gate
 
@@ -80,6 +91,11 @@ the SDK's peer range (`^3.25 || ^4.0` — the zod 4 move is a breaking item,
 - The README tools section is **generated** — edit the tool definitions, then
   run `npm run docs:readme`. A drift test fails CI when it is stale; the same
   applies to the tool/package counts in the `package.json` description.
+- Tool names follow `servicenow_<verb>_<noun>` (M-7); add a new tool's name to
+  `TOOLS` in `src/mcp/naming.ts` and reference tools through it (prompts, cross-tool
+  hints). Renaming a shipped tool or parameter is breaking: add the old name to
+  `TOOL_RENAMES` (served under `SN_LEGACY_TOOL_NAMES=1`) or the spec's
+  `legacyParams`, and run `npm run docs:readme` for the generated old→new table.
 - The `core` profile contract lives in
   [test/fixtures/tools-manifest.json](test/fixtures/tools-manifest.json);
   regenerate with `npm run gen:manifest` only when the change is deliberate.

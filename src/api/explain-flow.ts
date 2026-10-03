@@ -216,6 +216,8 @@ export interface FlowVariable {
   element: string;
   label?: string;
   type?: string;
+  /** Referenced table of a `reference` variable. */
+  reference?: string;
   mandatory?: boolean;
   default?: string;
 }
@@ -817,6 +819,7 @@ const VAR_FIELDS = [
   "element",
   "label",
   "internal_type",
+  "reference",
   "mandatory",
   "default_value",
   "order",
@@ -969,6 +972,7 @@ function variable(row: SnRecord): FlowVariable {
     element: str(row, "element") || str(row, "name"),
     ...(opt(row, "label") ? { label: str(row, "label") } : {}),
     ...(opt(row, "internal_type") ? { type: str(row, "internal_type") } : {}),
+    ...(opt(row, "reference") ? { reference: str(row, "reference") } : {}),
     ...(bool(row, "mandatory") !== undefined
       ? { mandatory: bool(row, "mandatory") }
       : {}),

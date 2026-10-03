@@ -18,7 +18,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { register } from "node:module";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 export const README_BEGIN = "<!-- GENERATED:ENV:BEGIN (npm run docs:env) -->";
 export const README_END = "<!-- GENERATED:ENV:END -->";
@@ -211,11 +210,11 @@ export function syncEnvDocs({ root, settings, sections, check = false }) {
 
 const invokedDirectly =
   process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  path.resolve(process.argv[1]) === import.meta.filename;
 
 if (invokedDirectly) {
   const check = process.argv.includes("--check");
-  const root = fileURLToPath(new URL("..", import.meta.url));
+  const root = path.join(import.meta.dirname, "..");
   try {
     register("./ts-source-loader.mjs", import.meta.url);
     const { SETTINGS, SETTING_SECTIONS } =

@@ -41,7 +41,7 @@ test("create_record in plan mode previews without mutating (DF-2)", async () => 
     async (calls) => {
       const res = await tool("servicenow_create_record").handler({
         table: "incident",
-        fields: { short_description: "x" },
+        values: { short_description: "x" },
       });
       const o = out(res);
       assert.equal(o.mode, "plan");
@@ -64,7 +64,7 @@ test("update_record plan mode fetches 'before' and previews, no PATCH (DF-2)", a
         await tool("servicenow_update_record").handler({
           table: "incident",
           sys_id: "s1",
-          fields: { state: "2" },
+          values: { state: "2" },
         }),
       );
       assert.equal(o.mode, "plan");
@@ -105,7 +105,7 @@ test("apply:true executes the write and appends to the audit journal (DF-2)", as
         const o = out(
           await tool("servicenow_create_record").handler({
             table: "incident",
-            fields: { short_description: "x" },
+            values: { short_description: "x" },
             apply: true,
           }),
         );
@@ -136,7 +136,7 @@ test("SN_WRITE_MODE=apply executes without an explicit apply flag (DF-2)", async
       async (calls) => {
         await tool("servicenow_create_record").handler({
           table: "incident",
-          fields: { a: "b" },
+          values: { a: "b" },
         });
         assert.equal(calls.length, 1); // it actually executed
       },
@@ -158,7 +158,7 @@ test("create_change plan mode previews against change_request, no POST (DF-2)", 
       const o = out(
         await tool("servicenow_create_change").handler({
           type: "normal",
-          fields: { short_description: "Patch" },
+          values: { short_description: "Patch" },
         }),
       );
       assert.equal(o.mode, "plan");
@@ -180,9 +180,9 @@ test("update_ci plan mode previews against the CMDB class, no write (DF-2)", asy
     async () => {
       const o = out(
         await tool("servicenow_update_ci").handler({
-          class_name: "cmdb_ci_server",
+          table: "cmdb_ci_server",
           sys_id: "ci1",
-          attributes: { name: "new" },
+          values: { name: "new" },
         }),
       );
       assert.equal(o.mode, "plan");
@@ -203,8 +203,8 @@ test("insert_import_set_row plan mode previews the staging insert (DF-2)", async
     async (calls) => {
       const o = out(
         await tool("servicenow_insert_import_set_row").handler({
-          staging_table: "u_imp_incident",
-          fields: { u_short_desc: "x" },
+          table: "u_imp_incident",
+          values: { u_short_desc: "x" },
         }),
       );
       assert.equal(o.mode, "plan");
@@ -226,7 +226,7 @@ test("create_change apply executes and journals an unwrapped sys_id (DF-2)", asy
         const o = out(
           await tool("servicenow_create_change").handler({
             type: "normal",
-            fields: { short_description: "x" },
+            values: { short_description: "x" },
             apply: true,
           }),
         );
@@ -281,7 +281,7 @@ test("order_catalog_item plan mode previews an sc_request, no order (DF-2)", asy
     async (calls) => {
       const o = out(
         await tool("servicenow_order_catalog_item").handler({
-          item_sys_id: "item1",
+          sys_id: "item1",
           quantity: 2,
         }),
       );
@@ -333,7 +333,7 @@ test("delete_attachment plan mode fetches before, no DELETE (DF-2)", async () =>
     async () => {
       const o = out(
         await tool("servicenow_delete_attachment").handler({
-          attachment_sys_id: "att1",
+          sys_id: "att1",
         }),
       );
       assert.equal(o.mode, "plan");
@@ -355,7 +355,7 @@ test("run_atf_test plan mode previews the run, no execution (DF-2)", async () =>
     },
     async (calls) => {
       const o = out(
-        await tool("servicenow_run_atf_test").handler({ test_sys_id: "t1" }),
+        await tool("servicenow_run_atf_test").handler({ sys_id: "t1" }),
       );
       assert.equal(o.mode, "plan");
       assert.equal(o.action, "execute");
@@ -408,7 +408,7 @@ test("batch with writes is plan-gated; a read-only batch runs directly (DF-2)", 
 const applyCases = [
   [
     "servicenow_update_record",
-    { table: "incident", sys_id: "s1", fields: { a: "b" }, apply: true },
+    { table: "incident", sys_id: "s1", values: { a: "b" }, apply: true },
     "PATCH",
   ],
   [
@@ -418,30 +418,30 @@ const applyCases = [
   ],
   [
     "servicenow_update_change",
-    { sys_id: "c1", fields: { a: "b" }, apply: true },
+    { sys_id: "c1", values: { a: "b" }, apply: true },
     "PATCH",
   ],
   [
     "servicenow_create_ci",
-    { class_name: "cmdb_ci", attributes: { a: "b" }, apply: true },
+    { table: "cmdb_ci", values: { a: "b" }, apply: true },
     "POST",
   ],
   [
     "servicenow_update_ci",
     {
-      class_name: "cmdb_ci",
+      table: "cmdb_ci",
       sys_id: "ci1",
-      attributes: { a: "b" },
+      values: { a: "b" },
       apply: true,
     },
     "PATCH",
   ],
   [
     "servicenow_insert_import_set_row",
-    { staging_table: "u_imp", fields: { a: "b" }, apply: true },
+    { table: "u_imp", values: { a: "b" }, apply: true },
     "POST",
   ],
-  ["servicenow_order_catalog_item", { item_sys_id: "i1", apply: true }, "POST"],
+  ["servicenow_order_catalog_item", { sys_id: "i1", apply: true }, "POST"],
   [
     "servicenow_send_email",
     { to: ["a@b.com"], subject: "s", body: "b", apply: true },
@@ -458,13 +458,9 @@ const applyCases = [
     },
     "POST",
   ],
-  [
-    "servicenow_delete_attachment",
-    { attachment_sys_id: "a1", apply: true },
-    "DELETE",
-  ],
-  ["servicenow_run_atf_test", { test_sys_id: "t1", apply: true }, "POST"],
-  ["servicenow_run_atf_suite", { suite_sys_id: "su1", apply: true }, "POST"],
+  ["servicenow_delete_attachment", { sys_id: "a1", apply: true }, "DELETE"],
+  ["servicenow_run_atf_test", { sys_id: "t1", apply: true }, "POST"],
+  ["servicenow_run_atf_suite", { sys_id: "su1", apply: true }, "POST"],
 ];
 
 for (const [name, args, method] of applyCases) {

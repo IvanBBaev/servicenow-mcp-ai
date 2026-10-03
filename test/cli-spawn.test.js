@@ -16,9 +16,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = join(import.meta.dirname, "..");
 const launcher = join(root, "bin", "servicenow-mcp-ai.cjs");
 const entry = join(root, "build", "index.js");
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -254,28 +253,45 @@ test("drift with unknown profiles: exits 2 (error), not 0 or 1", async () => {
   assert.match(result.stderr, /Drift gate failed/);
 });
 
+const oldNode = join(import.meta.dirname, "fixtures", "old-node.cjs");
+
 test("bin launcher: the Node version guard refuses an old runtime with exit 1", async () => {
   // Fake an old runtime by preloading a module that overrides process.versions.node;
   // the launcher reads it before importing the ESM graph.
-  const result = await run([
-    "--require",
-    fileURLToPath(new URL("./fixtures/old-node.cjs", import.meta.url)),
-    launcher,
-  ]);
+  const result = await run(["--require", oldNode, launcher]);
   assert.equal(result.code, 1);
-  assert.match(result.stderr, /requires Node\.js >= 20, but this is 18\.0\.0/);
+  assert.match(
+    result.stderr,
+    /requires Node\.js >= 22\.12, but this is 18\.0\.0/,
+  );
   assert.equal(result.stdout, "");
 });
 
-test("build/index.js: its own Node guard refuses an old runtime before the server boots", async () => {
-  const result = await run([
-    "--require",
-    fileURLToPath(new URL("./fixtures/old-node.cjs", import.meta.url)),
-    entry,
-  ]);
+test("bin launcher: E-1 — the floor is the minor, 22.11 is refused", async () => {
+  const result = await run(["--require", oldNode, launcher], {
+    env: cleanEnv({ FAKE_NODE_VERSION: "22.11.0" }),
+  });
   assert.equal(result.code, 1);
-  assert.match(result.stderr, /requires Node\.js >= 20, but this is 18\.0\.0/);
-  assert.equal(result.stdout, "");
+  assert.match(
+    result.stderr,
+    /requires Node\.js >= 22\.12, but this is 22\.11\.0/,
+  );
+});
+
+test("build/index.js: its own Node guard refuses an old runtime before the server boots", async () => {
+  for (const version of ["18.0.0", "22.11.0"]) {
+    const result = await run(["--require", oldNode, entry], {
+      env: cleanEnv({ FAKE_NODE_VERSION: version }),
+    });
+    assert.equal(result.code, 1);
+    assert.match(
+      result.stderr,
+      new RegExp(
+        `requires Node\\.js >= 22\\.12, but this is ${version.replaceAll(".", "\\.")}`,
+      ),
+    );
+    assert.equal(result.stdout, "");
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -434,7 +450,7 @@ test("support-bundle: one JSON file, its path on stdout, no seeded secret inside
   assert.equal(bundle.settings.SN_PASSWORD, "***");
   assert.equal(bundle.envFile.path, envFile);
   assert.ok(bundle.doctor.status, "the doctor JSON is embedded");
-  assert.equal(bundle.manifest.manifestVersion, 2);
+  assert.equal(bundle.manifest.manifestVersion, 3);
   assert.ok(bundle.npm && typeof bundle.npm === "object");
   assert.equal(bundle.logTail.lines.length, 1);
 });

@@ -69,7 +69,7 @@ import { httpSessionInfo } from "./http-sessions.js";
  * credentials), the TLS posture and the per-host queue occupancy.
  */
 export function httpStatusPayload(instance: string) {
-  let host = "";
+  let host: string;
   try {
     host = instance ? resolveHost(instance) : "";
   } catch {

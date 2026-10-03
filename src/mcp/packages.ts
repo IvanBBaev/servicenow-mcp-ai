@@ -10,6 +10,7 @@ import {
   UnsubscribeRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { getDeniedPackages } from "../core/settings.js";
+import { IntegrationError } from "../core/errors.js";
 import { logger } from "../core/logging.js";
 import { defineRuntimePart, currentRuntime } from "../core/runtime.js";
 
@@ -65,13 +66,12 @@ export type PackageErrorCode =
   | "PACKAGE_DENIED"
   | "PACKAGE_ALWAYS_ON";
 
-/** A refused toggle. The code leads the message, as fail() has no code field. */
-export class PackageError extends Error {
-  constructor(
-    readonly code: PackageErrorCode,
-    detail: string,
-  ) {
-    super(`${code}: ${detail}`);
+/** A refused toggle; `code` rides on the M-2 error contract. */
+export class PackageError extends IntegrationError {
+  declare readonly code: PackageErrorCode;
+
+  constructor(code: PackageErrorCode, message: string, hint?: string) {
+    super(message, undefined, undefined, { code, hint });
     this.name = "PackageError";
   }
 }
@@ -123,6 +123,8 @@ export class PackageSession {
     string,
     Array<{ name: string; handle: RegisteredTool }>
   >();
+  /** M-7: legacy tool-name aliases — toggled with their package, never counted. */
+  private readonly aliases = new Map<string, RegisteredTool[]>();
   private readonly registrars = new Map<string, ResourceRegistrar>();
   private readonly resources = new Map<string, ResourceHandle[]>();
   private readonly prompts: Array<{
@@ -148,6 +150,18 @@ export class PackageSession {
     const list = this.tools.get(pkg) ?? [];
     list.push({ name, handle });
     this.tools.set(pkg, list);
+    if (!this.enabled.has(pkg) && handle.enabled) handle.disable();
+  }
+
+  /**
+   * M-7: track a legacy alias of one of `pkg`'s tools. It is enabled and
+   * disabled with the package but is not one of its tools (list / change).
+   */
+  addAlias(pkg: string, handle: RegisteredTool): void {
+    if (pkg === "admin") return;
+    const list = this.aliases.get(pkg) ?? [];
+    list.push(handle);
+    this.aliases.set(pkg, list);
     if (!this.enabled.has(pkg) && handle.enabled) handle.disable();
   }
 
@@ -198,13 +212,17 @@ export class PackageSession {
     if (this.isDenied(name)) {
       throw new PackageError(
         "PACKAGE_DENIED",
-        `package '${name}' is denied by SN_PACKAGES_DENY and cannot be enabled.`,
+        `Package '${name}' is denied by SN_PACKAGES_DENY and cannot be enabled.`,
+        `Remove '${name}' from SN_PACKAGES_DENY and restart the server.`,
       );
     }
     const changed = !this.enabled.has(name);
     if (changed) {
       this.enabled.add(name);
       for (const { handle } of this.tools.get(name) ?? []) {
+        if (!handle.enabled) handle.enable();
+      }
+      for (const handle of this.aliases.get(name) ?? []) {
         if (!handle.enabled) handle.enable();
       }
       this.registerResources(name);
@@ -220,6 +238,9 @@ export class PackageSession {
     if (changed) {
       this.enabled.delete(name);
       for (const { handle } of this.tools.get(name) ?? []) {
+        if (handle.enabled) handle.disable();
+      }
+      for (const handle of this.aliases.get(name) ?? []) {
         if (handle.enabled) handle.disable();
       }
       this.removeResources(name);
@@ -249,7 +270,7 @@ export class PackageSession {
     if (name === "admin") {
       throw new PackageError(
         "PACKAGE_ALWAYS_ON",
-        "the admin tools are always on and cannot be toggled.",
+        "The admin tools are always on and cannot be toggled.",
       );
     }
     if (!this.known.includes(name)) {

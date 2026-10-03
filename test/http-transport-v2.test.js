@@ -12,7 +12,7 @@ import { createServer } from "node:net";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -56,6 +56,10 @@ import {
   withEnv,
   withFetch,
 } from "./helpers.js";
+
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
 
 baselineEnv();
 
@@ -399,7 +403,7 @@ test("e2e: use_instance persist:true over HTTP writes the env file and journals 
           );
           assert.equal(switched.scope, "session");
           assert.equal(switched.persisted, true);
-          const saved = dotenv.parse(readFileSync(envFile, "utf8"));
+          const saved = parseEnv(readFileSync(envFile, "utf8"));
           assert.equal(saved.SN_ACTIVE_PROFILE, "dev");
           const { entries } = readWriteJournal({ action: "config" });
           assert.ok(

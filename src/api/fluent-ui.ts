@@ -18,14 +18,14 @@
  *   criteria, followed by the `VariableSet`, `CatalogClientScript` and
  *   `CatalogUiPolicy` calls the item's form uses.
  *
- * Property names follow SDK-PARITY and the SDK baseline's API as far as it is
- * known; none is verified against the SDK (`verified: false`) until owner gate
- * O-7 and the P-29 round-trip oracle. The P-26 rules hold: every set field is
+ * Property names are type-checked against the pinned @servicenow/sdk 4.12.2 and
+ * the goldens built with `now-sdk build` (P-29, `npm run fluent:verify`, owner
+ * gate O-7); instance behaviour is not verified (O-5). The P-26 rules hold: every set field is
  * either emitted or reported in `unsupported[]` (never lost silently), child
  * rows that do not fit the tree are emitted as `Record()` rows, secrets become
  * the credential placeholder, and the output is deterministic.
  */
-import type { ArtifactType, RefField } from "../core/artifacts/registry.js";
+import type { ArtifactType } from "../core/artifacts/registry.js";
 import type { ArtifactChildResult } from "./artifacts.js";
 import { snString } from "./shared.js";
 import type { SnRecord } from "./table.js";
@@ -50,6 +50,7 @@ import {
   recordCall,
   recordData,
   refExpr,
+  SECRET_PLACEHOLDER,
   secretProp,
   setFields,
   sidecar,
@@ -59,15 +60,15 @@ import {
   type FluentSource,
 } from "./fluent.js";
 
-/** The `warnings[]` entry of a `servicenow_generate_fluent` run over a P-28 type. */
-export const UI_UNVERIFIED_WARNING =
-  "The portal / workspace / catalog emitter (P-28) uses property names from project/SDK-PARITY.md that are not verified against the SDK (verified: false) until owner gate O-7 and the P-29 round-trip oracle.";
+/** The `warnings[]` entry (and header note) of a `servicenow_generate_fluent` run over a P-28 type. */
+export const UI_VERIFIED_NOTE =
+  "The portal / workspace / catalog shapes (P-28) are type-checked against @servicenow/sdk 4.12.2 (npm run fluent:verify); instance behaviour (P-29 / O-5) is not verified: review before deploying.";
 
-const UI_NOTE =
-  "P-28: property names follow project/SDK-PARITY.md and are not verified against the SDK (verified: false) until O-7 / P-29.";
+const NO_ID_NOTE =
+  "Nested structures the SDK gives no $id (variables, choices, includes, variable-set links, UI policy actions) are matched by their natural key on install; their sys_ids are not kept.";
 
-const PASSTHROUGH_NOTE =
-  "Property names of the unverified (U) structures below are derived from the field names (snake_case to camelCase).";
+const PAGE_ID_NOTE =
+  "SPPage takes no $id: now-sdk build gives the page a new sys_id, so on the source instance the install can add a second page with the same id (pageId); check before deploying (O-5).";
 
 const M2M_NOTE =
   "Many-to-many rows are emitted as references; the rows' own sys_ids are not kept.";
@@ -79,6 +80,13 @@ const M2M_NOTE =
 type UiConv =
   | Conv
   | "json"
+  | "tristate"
+  | "derived"
+  | "widgetOptions"
+  /** A variable reference: every `IO:` prefix removed (`IO:<sys_id>` → `<sys_id>`). */
+  | "io"
+  /** A choice map whose `omit` values (the platform's "no action") emit nothing. */
+  | { readonly map: Record<string, string>; readonly omit: readonly string[] }
   | { readonly ref: string }
   | { readonly refList: string };
 
@@ -86,6 +94,8 @@ interface UiProp {
   prop: string;
   field: string;
   as?: UiConv;
+  /** The property applies only when this holds for the row; otherwise the field is consumed silently. */
+  when?: (rec: SnRecord) => boolean;
 }
 
 const p = (field: string, prop = field): UiProp => ({ prop, field });
@@ -119,6 +129,18 @@ const ref = (field: string, prop: string, table: string): UiProp => ({
   field,
   as: { ref: table },
 });
+/** A true / false / ignore field: a boolean, or nothing for `ignore`. */
+const tri = (field: string, prop = field): UiProp => ({
+  prop,
+  field,
+  as: "tristate",
+});
+/** A field the SDK derives from other properties: consumed, never emitted. */
+const derived = (field: string): UiProp => ({
+  prop: "",
+  field,
+  as: "derived",
+});
 const refList = (field: string, prop: string, table: string): UiProp => ({
   prop,
   field,
@@ -130,21 +152,39 @@ const WIDGET: UiProp[] = [
   p("id"),
   p("name"),
   p("description"),
-  p("category"),
+  {
+    prop: "category",
+    field: "category",
+    as: {
+      map: {
+        standard: "standard",
+        other: "otherApplications",
+        custom: "custom",
+        sample: "sample",
+        kb: "knowledgeBase",
+        sp_platform: "servicePortal",
+        sc: "serviceCatalog",
+      },
+    },
+  },
   p("data_table", "dataTable"),
   p("controller_as", "controllerAs"),
   b("public"),
   list("roles"),
   b("has_preview", "hasPreview"),
-  json("option_schema", "optionSchema"),
+  { prop: "optionSchema", field: "option_schema", as: "widgetOptions" },
   json("demo_data", "demoData"),
-  p("field_list", "fieldList"),
+  list("field_list", "fields"),
   s("template", "htmlTemplate"),
   s("css", "customCss"),
   s("client_script", "clientScript"),
   s("script", "serverScript"),
-  s("link", "link"),
+  s("link", "linkScript"),
+  b("internal"),
+  b("servicenow"),
 ];
+/** `sp_header_footer` only: the static header / footer flag. */
+const HEADER_FOOTER: UiProp[] = [...WIDGET, b("static")];
 const WIDGET_SHAPE = {
   clientFields: ["client_script", "link"],
   markupFields: ["template", "css"],
@@ -160,7 +200,12 @@ const PAGE: UiProp[] = [
   b("draft"),
   b("internal"),
   p("category"),
-  s("css", "customCss"),
+  s("css", "css"),
+  b("omit_watcher", "omitWatcher"),
+  b("use_seo_script", "useSeoScript"),
+  s("seo_script", "seoScript"),
+  p("dynamic_title_structure", "dynamicTitleStructure"),
+  p("human_readable_url_structure", "humanReadableUrlStructure"),
 ];
 const CONTAINER: UiProp[] = [
   p("name"),
@@ -170,24 +215,35 @@ const CONTAINER: UiProp[] = [
   p("background_style", "backgroundStyle"),
   p("class_name", "cssClass"),
   b("bootstrap_alt", "bootstrapAlt"),
+  p("title"),
+  b("subheader"),
+  p("container_class_name", "parentClass"),
+  p("semantic_tag", "semanticTag"),
   n("order"),
 ];
-const ROW: UiProp[] = [p("class_name", "cssClass"), n("order")];
+const ROW: UiProp[] = [
+  p("class_name", "cssClass"),
+  p("semantic_tag", "semanticTag"),
+  n("order"),
+];
 const COLUMN: UiProp[] = [
   n("size"),
   n("size_sm", "sizeSm"),
   n("size_xs", "sizeXs"),
   n("size_lg", "sizeLg"),
   p("class_name", "cssClass"),
+  p("semantic_tag", "semanticTag"),
   n("order"),
 ];
 const INSTANCE: UiProp[] = [
   ref("sp_widget", "widget", "sp_widget"),
-  p("id", "instanceId"),
-  json("widget_parameters", "widgetParameters"),
+  p("id"),
+  // A page instance takes the raw parameter string (SPMenu takes JSON).
+  p("widget_parameters", "widgetParameters"),
   p("title"),
+  p("url"),
   p("class_name", "cssClass"),
-  s("css", "customCss"),
+  s("css", "css"),
   p("color"),
   p("size"),
   p("glyph"),
@@ -195,6 +251,14 @@ const INSTANCE: UiProp[] = [
   p("short_description", "shortDescription"),
   b("active"),
   n("order"),
+  b("async_load", "asyncLoad"),
+  p("async_load_trigger", "asyncLoadTrigger"),
+  p("async_load_device_type", "asyncLoadDeviceType"),
+  b("preserve_placeholder_size", "preservePlaceholderSize"),
+  b("advanced_placeholder_dimensions", "advancedPlaceholderDimensions"),
+  p("placeholder_dimensions", "placeholderDimensions"),
+  s("placeholder_dimensions_script", "placeholderConfigurationScript"),
+  s("placeholder_template", "placeholderTemplate"),
 ];
 
 const PORTAL: UiProp[] = [
@@ -205,25 +269,53 @@ const PORTAL: UiProp[] = [
   ref("notfound_page", "notFoundPage", "sp_page"),
   ref("theme", "theme", "sp_theme"),
   ref("sp_rectangle_menu", "mainMenu", "sp_instance_menu"),
-  b("default"),
+  b("default", "defaultPortal"),
   p("logo"),
   p("icon"),
-  json("quick_start_config", "quickStartConfig"),
+  p("quick_start_config", "quickStartConfig"),
   b("hide_portal_name", "hidePortalName"),
   s("css_variables", "cssVariables"),
+  p("logo_alt_text", "logoAltText"),
+  ref("dark_theme", "darkTheme", "sp_theme"),
+  ref("sc_category_page", "categoryHomePage", "sp_page"),
+  ref("sc_catalog_page", "catalogHomePage", "sp_page"),
+  ref("kb_knowledge_page", "knowledgeHomePage", "sp_page"),
+  ref(
+    "search_results_configuration",
+    "searchResultsConfiguration",
+    "sys_search_results_config",
+  ),
+  ref("search_application", "searchApplication", "sys_search_context_config"),
+  ref("chat_queue", "chatQueue", "chat_queue"),
+  ref("text_index_group", "textIndexGroup", "ts_index_group"),
+  b("enable_ais", "enableAiSearch"),
+  b(
+    "enable_certificate_based_authentication",
+    "enableCertificateBasedAuthentication",
+  ),
+  b("enable_web_embeddables", "enableWebEmbeddables"),
+  b("enable_favorites", "enableFavorites"),
+  b("inactive"),
+  b("rtl_enabled", "supportRightToLeftLanguages"),
+  ref("alternate_portal", "alternatePortal", "sp_portal"),
 ];
 
 const THEME: UiProp[] = [
   p("name"),
-  s("css_variables", "cssVariables"),
+  s("css_variables", "customCss"),
   ref("header", "header", "sp_header_footer"),
   ref("footer", "footer", "sp_header_footer"),
   p("logo"),
   p("icon"),
   p("logo_alt_text", "logoAltText"),
-  b("navbarfixed", "navbarFixed"),
-  b("footerfixed", "footerFixed"),
+  b("navbar_fixed", "fixedHeader"),
+  b("footer_fixed", "fixedFooter"),
   b("turn_off_scss_compilation", "turnOffScssCompilation"),
+  ref(
+    "matching_now_experience_theme",
+    "matchingNextExperienceTheme",
+    "sys_ux_theme",
+  ),
 ];
 const THEME_JS: UiProp[] = [
   ref("sp_js_include", "include", "sp_js_include"),
@@ -244,6 +336,7 @@ const MENU: UiProp[] = [
   list("roles"),
   p("short_description", "shortDescription"),
   n("order"),
+  p("column"),
 ];
 const MENU_ITEM: UiProp[] = [
   p("label"),
@@ -258,8 +351,16 @@ const MENU_ITEM: UiProp[] = [
   p("glyph"),
   p("color"),
   p("hint"),
+  p("short_description", "shortDescription"),
   b("active"),
   list("roles"),
+  ref("sc_category", "scCategory", "sc_category"),
+  ref("sc_cat_item", "catItem", "sc_cat_item"),
+  ref("kb_topic", "kbTopic", "kb_topic"),
+  ref("kb_article", "kbArticle", "kb_knowledge"),
+  ref("kb_category", "kbCategory", "kb_category"),
+  p("display_date", "displayDate"),
+  s("record_script", "script"),
 ];
 
 const ROUTE_MAP: UiProp[] = [
@@ -284,66 +385,246 @@ const ANGULAR_PROVIDER: UiProp[] = [
 ];
 const JS_INCLUDE: UiProp[] = [
   p("display_name", "name"),
-  p("source"),
+  derived("source"),
   p("url"),
-  ref("sys_ui_script", "uiScript", "sys_ui_script"),
+  ref("sys_ui_script", "sysUiScript", "sys_ui_script"),
 ];
 const CSS_INCLUDE: UiProp[] = [
   p("name"),
-  p("source"),
+  derived("source"),
   p("url"),
   ref("sp_css", "spCss", "sp_css"),
+  p("rtl_css_file_url", "rtlCssUrl"),
   b("lazy_load", "lazyLoad"),
 ];
 
-const WORKSPACE: UiProp[] = [
-  p("title"),
-  p("path"),
-  b("active"),
-  ref("root_macroponent", "rootMacroponent", "sys_ux_macroponent"),
-  ref("admin_panel", "appConfig", "sys_ux_app_config"),
-  p("admin_panel_table", "appConfigTable"),
-  ref("parent_app", "parentApp", "sys_ux_page_registry"),
-];
-const PAGE_PROPERTY: UiProp[] = [
+const WORKSPACE: UiProp[] = [p("title"), p("path"), b("active"), n("order")];
+const DASHBOARD: UiProp[] = [
   p("name"),
-  json("value", "value"),
-  p("type"),
   p("description"),
+  b("active"),
+  b("certified"),
+];
+const DASH_TAB: UiProp[] = [p("name"), b("active"), derived("order")];
+const DASH_WIDGET: UiProp[] = [
+  p("component"),
+  json("component_props", "componentProps"),
+  n("h", "height"),
+  n("w", "width"),
+  derived("x"),
+  derived("y"),
+];
+const DASH_PERMISSION: UiProp[] = [
+  ref("user", "user", "sys_user"),
+  ref("group", "group", "sys_user_group"),
+  ref("role", "role", "sys_user_role"),
+  b("can_read", "canRead"),
+  b("can_write", "canWrite"),
+  b("can_share", "canShare"),
+  b("owner"),
+];
+const LIST_MENU: UiProp[] = [p("name"), p("description"), b("active")];
+const LIST_CATEGORY: UiProp[] = [
+  p("title"),
+  p("description"),
+  b("active"),
+  n("order"),
+];
+/** `sys_ux_list` hide_* toggles, all booleans named like the field. */
+const UX_LIST_HIDE = [
+  "cell_filter",
+  "checkbox_hover",
+  "column_filtering",
+  "column_grouping",
+  "column_resizing",
+  "column_sorting",
+  "drag_and_drop",
+  "empty_state_image",
+  "first_page",
+  "header",
+  "highlight_content",
+  "highlighted_values",
+  "inline_editing",
+  "last_page",
+  "last_refreshed_text",
+  "links",
+  "list_actions",
+  "menu_button",
+  "next_page",
+  "option_to_save_as",
+  "pages",
+  "pagination",
+  "panel_advanced",
+  "panel_button",
+  "panel_condition_delete",
+  "panel_footer",
+  "panel_restore",
+  "personalization",
+  "previous_page",
+  "quick_edit",
+  "range",
+  "record_count_badge",
+  "reference_links",
+  "refresh_button",
+  "row_count",
+  "row_selector",
+  "rows_per_page_selector",
+  "select_all",
+  "sharing_button",
+  "title",
+];
+const UX_LIST: UiProp[] = [
+  p("title"),
+  p("table"),
+  p("view"),
+  p("columns"),
+  p("condition"),
+  p("fixed_query", "fixedQuery"),
+  p("groups"),
+  p("roles"),
+  p("group_by_column", "groupByColumn"),
+  b("active"),
+  n("order"),
+  b("enable_infinite_scroll", "enableInfiniteScroll"),
+  ...UX_LIST_HIDE.map((x) => b(`hide_${x}`, camel(`hide_${x}`))),
+  p("highlight_content_color", "highlightContentColor"),
+  p("highlight_content_pattern", "highlightContentPattern"),
+  p("list_attributes", "listAttributes"),
+  p("live_updates", "liveUpdates"),
+  n("max_characters", "maxCharacters"),
+  b("word_wrap", "wordWrap"),
+  b("override_word_wrap_user_pref", "overrideWordWrapUserPref"),
+];
+const APPLICABILITY: UiProp[] = [
+  p("name"),
+  p("description"),
+  b("active"),
+  list("roles"),
+  p("role_names", "roleNames"),
 ];
 
-const CATALOG_ITEM: UiProp[] = [
+// Catalog specs follow the SDK 4.12.2 record → Fluent transforms
+// (sdk-build-plugins service-catalog) and the sdk-core types.
+
+/** Fields of `CatalogItemBaseConfig`, `M2MRelationships`, `PortalSettings` and `AvailabilityConfig`: both item APIs. */
+const CATALOG_BASE: UiProp[] = [
   p("name"),
   p("short_description", "shortDescription"),
   p("description"),
   b("active"),
   n("order"),
-  ref("category", "category", "sc_category"),
-  refList("sc_catalogs", "catalogs", "sc_catalog"),
-  ref("workflow", "workflow", "wf_workflow"),
-  ref("flow_designer_flow", "flow", "sys_hub_flow"),
-  p("picture"),
+  {
+    prop: "availability",
+    field: "availability",
+    as: {
+      map: {
+        on_desktop: "desktopOnly",
+        on_mobile: "mobileOnly",
+        on_both: "both",
+      },
+    },
+  },
+  b("checked_out", "checkedOut"),
+  list("meta"),
+  ref("model", "model", "cmdb_model"),
+  ref("owner", "owner", "sys_user"),
+  list("roles"),
+  b("show_variable_help_on_load", "showVariableHelpOnLoad"),
+  b("start_closed", "startClosed"),
+  p("state"),
+  n("version"),
+  ref("view", "view", "sys_ui_view"),
   p("icon"),
-  p("meta"),
-  p("price"),
-  p("recurring_price", "recurringPrice"),
+  p("image"),
+  b("no_search", "noSearch"),
+  p("picture"),
+  p("mobile_picture", "mobilePicture"),
+  {
+    prop: "mobilePictureType",
+    field: "mobile_picture_type",
+    as: {
+      map: {
+        use_desktop_picture: "desktopPicture",
+        use_mobile_picture: "mobilePicture",
+        use_no_picture: "noPicture",
+      },
+    },
+  },
+  refList("sc_catalogs", "catalogs", "sc_catalog"),
+  // `categories` (the m2m rows, else this field) is built by catalogItem().
+  derived("category"),
+  b("no_cart_v2", "hideAddToCart"),
+  b("no_wishlist_v2", "hideAddToWishList"),
+  b("no_delivery_time_v2", "hideDeliveryTime"),
+  b("no_quantity_v2", "hideQuantitySelector"),
+  b("no_save_as_draft", "hideSaveAsDraft"),
+  b("hide_sp", "hideSP"),
+  b("mandatory_attachment", "mandatoryAttachment"),
+  b("no_attachment_v2", "hideAttachment"),
+  b("make_item_non_conversational", "makeItemNonConversational"),
+  b("visible_bundle", "visibleBundle"),
+  b("visible_guide", "visibleGuide"),
+  b("visible_standalone", "visibleStandalone"),
+];
+/** `CatalogItem` only: fulfilment, pricing, legacy cart, portal settings, delivery and access. */
+const CATALOG_ITEM: UiProp[] = [
+  ...CATALOG_BASE,
+  {
+    prop: "fulfillmentAutomationLevel",
+    field: "fulfillment_automation_level",
+    as: {
+      map: {
+        unspecified: "unspecified",
+        manual: "manual",
+        semi_automated: "semiAutomated",
+        fully_automated: "fullyAutomated",
+      },
+    },
+  },
+  ref("group", "fulfillmentGroup", "sys_user_group"),
+  ref("delivery_plan", "executionPlan", "sc_cat_item_delivery_plan"),
+  ref("flow_designer_flow", "flow", "sys_hub_flow"),
+  ref("workflow", "workflow", "wf_workflow"),
+  n("cost"),
+  p("display_price_property", "displayPriceProperty"),
+  b("ignore_price", "ignorePrice"),
+  b("mobile_hide_price", "mobileHidePrice"),
+  b("omit_price", "omitPrice"),
+  b("billable"),
   p("recurring_frequency", "recurringFrequency"),
-  b("no_quantity", "noQuantity"),
   b("no_cart", "noCart"),
+  b("no_order", "noOrder"),
   b("no_order_now", "noOrderNow"),
   b("no_proceed_checkout", "noProceedCheckout"),
-  b("no_search", "noSearch"),
-  b("mandatory_attachment", "mandatoryAttachment"),
-  b("hide_attachment", "hideAttachment"),
+  b("no_quantity", "noQuantity"),
   p("request_method", "requestMethod"),
+  ref("custom_cart", "customCart", "sys_ui_macro"),
+  b("use_sc_layout", "useScLayout"),
+  s("delivery_plan_script", "deliveryPlanScript"),
+  s("entitlement_script", "entitlementScript"),
   p("access_type", "accessType"),
-  list("roles"),
+  ref("location", "location", "cmn_location"),
+  ref("vendor", "vendor", "core_company"),
 ];
 const RECORD_PRODUCER: UiProp[] = [
+  ...CATALOG_BASE,
   p("table_name", "table"),
   s("script", "script"),
-  s("postinsert_script", "postInsertScript"),
-  p("redirect_url", "redirectUrl"),
+  s("post_insert_script", "postInsertScript"),
+  s("save_script", "saveScript"),
+  p("save_options", "saveOptions"),
+  b("allow_edit", "allowEdit"),
+  b("can_cancel", "canCancel"),
+  {
+    prop: "redirectUrl",
+    field: "redirect_url",
+    as: {
+      map: {
+        generated_record: "generatedRecord",
+        catalog_home: "catalogHomePage",
+      },
+    },
+  },
 ];
 const IO_SET: UiProp[] = [
   ref("variable_set", "variableSet", "item_option_new_set"),
@@ -352,11 +633,18 @@ const IO_SET: UiProp[] = [
 const VARIABLE_SET: UiProp[] = [
   p("title"),
   p("internal_name", "internalName"),
+  p("name"),
   p("description"),
-  p("type"),
+  {
+    prop: "type",
+    field: "type",
+    as: { map: { one_to_one: "singleRow", one_to_many: "multiRow" } },
+  },
   n("order"),
   p("layout"),
   b("display_title", "displayTitle"),
+  p("set_attributes", "setAttributes"),
+  n("version"),
   list("read_roles", "readRoles"),
   list("write_roles", "writeRoles"),
   list("create_roles", "createRoles"),
@@ -370,14 +658,14 @@ const VARIABLE_API: Readonly<Record<string, string>> = {
   "4": "NumericScale",
   "5": "SelectBox",
   "6": "SingleLineText",
-  "7": "CheckBox",
+  "7": "Checkbox",
   "8": "Reference",
   "9": "Date",
   "10": "DateTime",
   "11": "Label",
   "12": "Break",
   "14": "Custom",
-  "15": "UiPage",
+  "15": "UIPage",
   "16": "WideSingleLineText",
   "17": "CustomWithLabel",
   "18": "LookupSelectBox",
@@ -396,72 +684,221 @@ const VARIABLE_API: Readonly<Record<string, string>> = {
   "32": "RichTextLabel",
   "33": "Attachment",
 };
-const VARIABLE: UiProp[] = [
-  p("question_text", "question"),
+
+/** The properties every variable kind has (`Break`, `ContainerEnd` and `ContainerSplit` have only these). */
+const VAR_CORE: UiProp[] = [
   n("order"),
-  b("mandatory"),
   b("active"),
-  b("read_only", "readOnly"),
-  p("default_value", "defaultValue"),
-  p("help_text", "helpText"),
-  b("show_help", "showHelp"),
+  b("disable_initial_slot_fill", "disableInitialSlotFill"),
+];
+const VAR_QUESTION = p("question_text", "question");
+/** `BaseVariableConfig` apart from `question` and the core. */
+const VAR_BASE: UiProp[] = [
+  p("conversational_label", "conversationalLabel"),
   p("tooltip"),
-  p("instructions"),
   p("example_text", "exampleText"),
-  p("reference", "referenceTable"),
-  p("reference_qual", "referenceQualifier"),
-  p("list_table", "listTable"),
-  p("lookup_table", "lookupTable"),
-  p("lookup_value", "lookupValue"),
-  p("lookup_label", "lookupLabel"),
-  p("choice_table", "choiceTable"),
-  p("choice_field", "choiceField"),
-  b("include_none", "includeNone"),
-  n("scale_min", "scaleMin"),
-  n("scale_max", "scaleMax"),
+  b("show_help", "showHelp"),
+  p("help_tag", "helpTag"),
+  p("help_text", "helpText"),
+  p("instructions"),
+  n("variable_width", "width"),
   p("attributes"),
-  b("visible_summary", "visibleSummary"),
-  b("visible_guide", "visibleGuide"),
-  b("visible_standalone", "visibleStandalone"),
+  p("default_value", "defaultValue"),
   list("read_roles", "readRoles"),
   list("write_roles", "writeRoles"),
   list("create_roles", "createRoles"),
+  b("visible_bundle", "visibleBundle"),
+  b("visible_guide", "visibleGuide"),
+  b("visible_standalone", "visibleStandalone"),
+  b("visible_summary", "visibleSummary"),
+  b("not_available_conversation", "removeFromConversationalInterfaces"),
   b("map_to_field", "mapToField"),
-  p("field"),
+  { ...p("field"), when: (r) => snString(r.map_to_field) === "true" },
+  b("show_help_on_load", "alwaysExpand"),
+  p("description"),
+  b("global"),
+  ref("delivery_plan", "deliveryPlan", "sc_cat_item_delivery_plan"),
+  {
+    prop: "visibility",
+    field: "visibility",
+    as: { map: { "1": "Always", "2": "Bundle", "3": "Standalone" } },
+  },
+  p("category"),
+  b("pricing_implications", "pricingImplications"),
+  b("use_dynamic_default", "useDynamicDefault"),
+  b("unique"),
+  s("read_script", "readScript"),
+  s("post_insert_script", "postInsertScript"),
+  p("dynamic_value_dot_walk_path", "dotWalkPath"),
+  p("dynamic_value_field", "dependentQuestion"),
 ];
+/** `VariableConfig`: the interactive kinds. */
+const VAR_INTERACTIVE: UiProp[] = [
+  b("mandatory"),
+  b("read_only", "readOnly"),
+  b("hidden"),
+];
+const qualifier = (mode: string) => (r: SnRecord) =>
+  snString(r.use_reference_qualifier) === mode;
+const VAR_QUALIFIER: UiProp[] = [
+  p("use_reference_qualifier", "useReferenceQualifier"),
+  {
+    ...p("reference_qual_condition", "referenceQualCondition"),
+    when: qualifier("simple"),
+  },
+  { ...p("dynamic_ref_qual", "dynamicRefQual"), when: qualifier("dynamic") },
+  { ...p("reference_qual", "referenceQual"), when: qualifier("advanced") },
+];
+const fromChoices = (r: SnRecord) => snString(r.lookup_source) === "choices";
+const fromTable = (r: SnRecord) => !fromChoices(r);
+const VAR_LOOKUP: UiProp[] = [
+  p("choice_direction", "choiceDirection"),
+  b("include_none", "includeNone"),
+  b("lookup_unique", "uniqueValuesOnly"),
+  p("reference_qual", "referenceQual"),
+  { ...p("lookup_source", "lookupSource"), when: fromChoices },
+  { ...p("choice_table", "choiceTable"), when: fromChoices },
+  { ...p("choice_field", "choiceField"), when: fromChoices },
+  {
+    ...p("lookup_dependent_question", "choicesDependOn"),
+    when: fromChoices,
+  },
+  { ...p("lookup_table", "lookupFromTable"), when: fromTable },
+  { ...p("lookup_value", "lookupValueField"), when: fromTable },
+  { ...list("lookup_label", "lookupLabelFields"), when: fromTable },
+  { ...p("lookup_price", "lookupPriceField"), when: fromTable },
+  { ...p("rec_lookup_price", "lookupRecurringPriceField"), when: fromTable },
+];
+const VAR_CUSTOM: UiProp[] = [
+  ref("macro", "macro", "sys_ui_macro"),
+  ref("summary_macro", "summaryMacro", "sys_ui_macro"),
+  ref("sp_widget", "widget", "sp_widget"),
+  ref("macroponent", "macroponent", "sys_ux_macroponent"),
+  ref("topic_block", "topicBlock", "sys_cs_topic"),
+];
+const VAR_SINGLE_LINE: UiProp[] = [p("validate_regex", "validateRegex")];
+
+/** Each kind's own properties on top of the base (and, unless listed in VAR_NOT_INTERACTIVE, the interactive ones). */
+const VARIABLE_EXTRA: Readonly<Record<string, readonly UiProp[]>> = {
+  Reference: [
+    p("reference", "referenceTable"),
+    list("delete_roles", "deleteRoles"),
+    ...VAR_QUALIFIER,
+  ],
+  RequestedFor: [
+    b("enable_also_request_for", "enableAlsoRequestFor"),
+    list("roles_to_use_also_request_for", "rolesToUseAlsoRequestFor"),
+    ...VAR_QUALIFIER,
+  ],
+  LookupSelectBox: VAR_LOOKUP,
+  LookupMultipleChoice: VAR_LOOKUP,
+  ListCollector: [
+    p("list_table", "listTable"),
+    p("reference_qual", "referenceQual"),
+  ],
+  SelectBox: [
+    p("choice_table", "choiceTable"),
+    p("choice_field", "choiceField"),
+    b("include_none", "includeNone"),
+    b("lookup_unique", "uniqueValuesOnly"),
+  ],
+  MultipleChoice: [
+    p("choice_direction", "choiceDirection"),
+    b("include_none", "includeNone"),
+    b("do_not_select_first", "doNotSelectFirstChoice"),
+  ],
+  NumericScale: [
+    n("scale_min", "scaleMin"),
+    n("scale_max", "scaleMax"),
+    b("do_not_select_first", "doNotSelectFirstChoice"),
+  ],
+  Custom: VAR_CUSTOM,
+  CustomWithLabel: VAR_CUSTOM,
+  Masked: [
+    b("mask_use_confirmation", "useConfirmation"),
+    b("mask_use_encryption", "useEncryption"),
+  ],
+  Html: [p("default_html_value", "defaultHTML")],
+  RichTextLabel: [p("rich_text", "richText")],
+  SingleLineText: VAR_SINGLE_LINE,
+  WideSingleLineText: VAR_SINGLE_LINE,
+  YesNo: [b("include_none", "includeNone")],
+  UIPage: [ref("ui_page", "uiPage", "sys_ui_page")],
+  Checkbox: [
+    b("mandatory", "selectionRequired"),
+    b("read_only", "readOnly"),
+    b("hidden"),
+  ],
+  ContainerStart: [p("layout"), b("display_title", "displayTitle")],
+};
+/** Kinds typed as `BaseVariableConfig` (no mandatory / readOnly / hidden). */
+const VAR_NOT_INTERACTIVE = new Set([
+  "Custom",
+  "CustomWithLabel",
+  "RichTextLabel",
+  "UIPage",
+  "Checkbox",
+  "ContainerStart",
+  "Label",
+]);
+const VAR_MINIMAL = new Set(["Break", "ContainerEnd", "ContainerSplit"]);
+/** Kinds whose type omits or relaxes `question`. */
+const VAR_NO_QUESTION = new Set(["RichTextLabel", ...VAR_MINIMAL]);
+
+/** The properties of one variable kind. */
+function variableSpecs(kind: string): UiProp[] {
+  if (VAR_MINIMAL.has(kind)) return VAR_CORE;
+  return [
+    ...(VAR_NO_QUESTION.has(kind) ? [] : [VAR_QUESTION]),
+    ...VAR_CORE,
+    ...VAR_BASE,
+    ...(VAR_NOT_INTERACTIVE.has(kind) ? [] : VAR_INTERACTIVE),
+    ...(VARIABLE_EXTRA[kind] ?? []),
+  ];
+}
+/** Every field some variable kind maps: a field another kind does not have is dropped silently, as the SDK does. */
+const VARIABLE_FIELDS: readonly string[] = [
+  ...new Set(
+    [
+      VAR_QUESTION,
+      ...VAR_CORE,
+      ...VAR_BASE,
+      ...VAR_INTERACTIVE,
+      ...Object.values(VARIABLE_EXTRA).flat(),
+    ].map((x) => x.field),
+  ),
+];
+/** Kinds with a `choices` object. */
+const VAR_CHOICES = new Set(["MultipleChoice", "SelectBox"]);
 const CHOICE: UiProp[] = [
-  p("value"),
   p("text", "label"),
   n("order", "sequence"),
   b("inactive"),
-  p("price"),
-  p("recurring_price", "recurringPrice"),
-  p("dependent_value", "dependentValue"),
 ];
 const CATALOG_APPLIES: UiProp[] = [
-  b("applies_catalog", "appliesCatalog"),
-  b("applies_req_item", "appliesReqItem"),
-  b("applies_sc_task", "appliesScTask"),
-  b("applies_target_record", "appliesTargetRecord"),
+  b("applies_catalog", "appliesOnCatalogItemView"),
+  b("applies_req_item", "appliesOnRequestedItems"),
+  b("applies_sc_task", "appliesOnCatalogTasks"),
+  b("applies_target_record", "appliesOnTargetRecord"),
 ];
+const UI_TYPE: UiConv = {
+  map: { "0": "desktop", "1": "mobileOrServicePortal", "10": "all" },
+};
 const CLIENT_SCRIPT: UiProp[] = [
   p("name"),
   p("applies_to", "appliesTo"),
   ref("cat_item", "catalogItem", "sc_cat_item"),
   ref("variable_set", "variableSet", "item_option_new_set"),
   p("type"),
-  p("cat_variable", "variableName"),
-  {
-    prop: "uiType",
-    field: "ui_type",
-    as: {
-      map: { "0": "desktop", "1": "mobile_or_service_portal", "10": "all" },
-    },
-  },
+  { prop: "variableName", field: "cat_variable", as: "io" },
+  { prop: "uiType", field: "ui_type", as: UI_TYPE },
   b("active"),
+  b("global"),
   b("isolate_script", "isolateScript"),
   ...CATALOG_APPLIES,
   b("va_supported", "vaSupported"),
+  p("published_ref", "publishedRef"),
+  n("order"),
   s("script", "script"),
 ];
 const UI_POLICY: UiProp[] = [
@@ -470,30 +907,46 @@ const UI_POLICY: UiProp[] = [
   p("applies_to", "appliesTo"),
   ref("catalog_item", "catalogItem", "sc_cat_item"),
   ref("variable_set", "variableSet", "item_option_new_set"),
-  p("catalog_conditions", "catalogCondition"),
+  { prop: "catalogCondition", field: "catalog_conditions", as: "io" },
   n("order"),
   b("active"),
+  b("global"),
   b("on_load", "onLoad"),
   b("reverse_if_false", "reverseIfFalse"),
   b("run_scripts", "runScripts"),
-  p("run_scripts_in_ui_type", "runScriptsInUiType"),
+  { prop: "runScriptsInUiType", field: "ui_type", as: UI_TYPE },
   b("isolate_script", "isolateScript"),
   ...CATALOG_APPLIES,
-  s("script_true", "scriptTrue"),
-  s("script_false", "scriptFalse"),
+  b("va_supported", "vaSupported"),
+  s("script_true", "executeIfTrue"),
+  s("script_false", "executeIfFalse"),
 ];
 const UI_POLICY_SHAPE = { clientFields: ["script_true", "script_false"] };
 const UI_POLICY_ACTION: UiProp[] = [
-  p("catalog_variable", "variableName"),
-  p("visible"),
-  p("mandatory"),
-  p("disabled", "readOnly"),
-  p("cleared"),
+  { prop: "variableName", field: "catalog_variable", as: "io" },
+  tri("visible"),
+  tri("mandatory"),
+  tri("disabled", "readOnly"),
+  tri("cleared"),
   n("order"),
   p("value"),
-  p("value_action", "valueAction"),
-  p("field_message", "fieldMessage"),
-  p("field_message_type", "fieldMessageType"),
+  {
+    prop: "valueAction",
+    field: "value_action",
+    as: {
+      map: { clear_value: "clearValue", set_value: "setValue" },
+      omit: ["ignore"],
+    },
+  },
+  p("field_message", "variableMessage"),
+  {
+    prop: "variableMessageType",
+    field: "field_message_type",
+    as: {
+      map: { info: "info", warning: "warning", error: "error" },
+      omit: ["none"],
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -529,15 +982,55 @@ function jsonExpr(v: unknown): Expr {
 }
 
 /** A JSON field: the parsed value, or the raw string when it does not parse. */
-function jsonValue(value: string): Expr {
+function jsonValue(run: EmitRun, value: string): Expr {
   try {
-    return jsonExpr(JSON.parse(value));
+    return jsonExpr(redactJson(run, JSON.parse(value)));
   } catch {
     return lit(value);
   }
 }
 
-/** snake_case → camelCase for the (U) passthrough structures. */
+/** A parsed JSON value with every credential-like key's value replaced by the placeholder. */
+function redactJson(run: EmitRun, v: unknown): unknown {
+  if (Array.isArray(v)) return v.map((x) => redactJson(run, x));
+  if (!v || typeof v !== "object") return v;
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(v)) {
+    const leaf = x === null || typeof x !== "object";
+    if (leaf && isSecret(k, String(x ?? ""), [], [], run.rules)) {
+      run.secrets++;
+      out[k] = SECRET_PLACEHOLDER;
+    } else out[k] = redactJson(run, x);
+  }
+  return out;
+}
+
+/**
+ * A widget `option_schema`: the SDK's `WidgetOption[]` takes camelCase keys
+ * (`default_value` → `defaultValue`) and requires `label` and `section`.
+ */
+function widgetOptions(value: string): { expr?: Expr; problem?: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return { problem: "option_schema is not JSON" };
+  }
+  if (!Array.isArray(parsed)) return { expr: jsonExpr(parsed) };
+  const options = parsed.map((o: unknown) => {
+    if (!o || typeof o !== "object" || Array.isArray(o)) return o;
+    const src = o as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(src)) out[camel(k)] = src[k];
+    out.label ??= out.name;
+    out.section ??= "other";
+    out.type ??= "string";
+    return out;
+  });
+  return { expr: jsonExpr(options) };
+}
+
+/** snake_case → camelCase. */
 function camel(field: string): string {
   return field.replace(/_([a-z0-9])/g, (_m, c: string) => c.toUpperCase());
 }
@@ -550,21 +1043,24 @@ function args(
   rec: SnRecord,
   key: string,
   skip: readonly string[],
+  withId = true,
 ): { props: Prop[]; unmapped: string[]; problems: [string, string][] } {
-  const props: Prop[] = [
-    { key: "$id", value: code(`Now.ID[${tsString(key)}]`) },
-  ];
+  const props: Prop[] = withId
+    ? [{ key: "$id", value: code(`Now.ID[${tsString(key)}]`) }]
+    : [];
   const consumed = new Set<string>([...skip, shape.scopeField ?? "sys_scope"]);
   const problems: [string, string][] = [];
   for (const spec of specs) {
     consumed.add(spec.field);
     const value = snString(rec[spec.field]);
     if (value === "") continue;
+    if (spec.when && !spec.when(rec)) continue;
     if (isSecret(spec.field, value, shape.secretFields, [], run.rules)) {
       props.push(secretProp(run, spec.prop));
       continue;
     }
     const as = spec.as;
+    if (as === "derived") continue;
     let expr: Expr | undefined;
     let problem: string | undefined;
     if (as === "script") {
@@ -576,7 +1072,15 @@ function args(
         sidecarSuffix(spec.field, shape),
       );
     } else if (as === "json") {
-      expr = jsonValue(value);
+      expr = jsonValue(run, value);
+    } else if (as === "widgetOptions") {
+      ({ expr, problem } = widgetOptions(value));
+    } else if (as === "io") {
+      expr = lit(value.replace(/IO:/g, ""));
+    } else if (typeof as === "object" && "omit" in as) {
+      if (!as.omit.includes(value)) ({ expr, problem } = convert(value, as));
+    } else if (as === "tristate") {
+      if (value !== "ignore") ({ expr, problem } = convert(value, "boolean"));
     } else if (typeof as === "object" && "ref" in as) {
       expr = refExpr(as.ref, value);
     } else if (typeof as === "object" && "refList" in as) {
@@ -629,6 +1133,11 @@ export class UiTree {
 
   note(text: string): void {
     if (!this.notes.includes(text)) this.notes.push(text);
+  }
+
+  /** Mark a row consumed by a derived property (not emitted on its own). */
+  place(row: SnRecord): void {
+    this.placed.add(row);
   }
 
   isPlaced(row: SnRecord): boolean {
@@ -701,11 +1210,12 @@ export class UiTree {
     return { table, secretFields: this.t.secretFields, ...extra };
   }
 
-  /** The artefact's own call arguments. */
+  /** The artefact's own call arguments (`withId` false: the API has no `$id`). */
   topProps(
     specs: readonly UiProp[],
     api: string,
     extra?: Partial<Shape>,
+    withId = true,
   ): Prop[] {
     const out = args(
       this.run,
@@ -714,6 +1224,7 @@ export class UiTree {
       this.rec,
       this.key,
       [],
+      withId,
     );
     this.report(this.t.table, this.key, this.rec, api, out);
     return out.props;
@@ -728,17 +1239,25 @@ export class UiTree {
     );
   }
 
-  /** A nested child object's properties (the row is placed). */
+  /**
+   * A nested child object's properties (the row is placed). `withId` false:
+   * the SDK structure has no `$id` (the row's sys_id is not kept and no key
+   * is registered).
+   */
   childProps(
     table: string,
     row: SnRecord,
     specs: readonly UiProp[],
     api: string,
     skip: readonly string[],
-    opts: { owner?: string; shape?: Partial<Shape> } = {},
+    opts: { owner?: string; shape?: Partial<Shape>; withId?: boolean } = {},
   ): Prop[] {
     this.placed.add(row);
-    const key = this.childKey(table, row, opts.owner);
+    const withId = opts.withId ?? true;
+    const key = withId
+      ? this.childKey(table, row, opts.owner)
+      : `${opts.owner ?? this.key}__${fluentSlug(table)}_${id8(row)}`;
+    if (!withId) this.note(NO_ID_NOTE);
     const out = args(
       this.run,
       this.shape(table, opts.shape),
@@ -746,6 +1265,7 @@ export class UiTree {
       row,
       key,
       skip,
+      withId,
     );
     this.report(table, key, row, api, out, `${table} ${id8(row)}`);
     return out.props;
@@ -770,45 +1290,6 @@ export class UiTree {
     const out = args(this.run, this.shape(table, shape), specs, row, key, []);
     this.report(table, key, row, api, out, `${table} ${id8(row)}`);
     return { key, props: out.props };
-  }
-
-  /**
-   * A (U) structure with no documented property names: every set field as a
-   * camelCase property (references as `Now.ref`, `order` as a number,
-   * true / false as booleans). Nothing is dropped.
-   */
-  passthrough(
-    table: string,
-    row: SnRecord,
-    skip: readonly string[],
-    refs: readonly RefField[],
-    top = false,
-  ): Prop[] {
-    this.note(PASSTHROUGH_NOTE);
-    if (!top) this.placed.add(row);
-    const key = top ? this.key : this.childKey(table, row);
-    const props: Prop[] = [
-      { key: "$id", value: code(`Now.ID[${tsString(key)}]`) },
-    ];
-    const secretFields = this.t.secretFields;
-    for (const field of setFields(row, new Set([...skip, this.t.scopeField]))) {
-      const value = snString(row[field]);
-      const prop = camel(field);
-      if (isSecret(field, value, secretFields, [], this.run.rules)) {
-        props.push(secretProp(this.run, prop));
-        continue;
-      }
-      const r = refs.find((x) => x.field === field);
-      let expr: Expr;
-      if (r) expr = refExpr(r.table, value);
-      else if (value === "true" || value === "false") {
-        expr = lit(value === "true");
-      } else if (field === "order") {
-        expr = convert(value, "number").expr ?? lit(value);
-      } else expr = lit(value);
-      props.push({ key: prop, value: expr });
-    }
-    return props;
   }
 
   /** m2m rows as a reference list; extra m2m fields are reported. */
@@ -963,9 +1444,9 @@ const simple =
   (tree) =>
     tree.call(api, tree.topProps(specs, api, shape));
 
-function widget(api: string): Build {
+function widget(api: string, specs: readonly UiProp[] = WIDGET): Build {
   return (tree) => {
-    const props = tree.topProps(WIDGET, api, WIDGET_SHAPE);
+    const props = tree.topProps(specs, api, WIDGET_SHAPE);
     const templates = tree
       .rows("sp_ng_template", "sp_widget", tree.sysId)
       .map((r) =>
@@ -1012,7 +1493,9 @@ function widget(api: string): Build {
 const page: Build = (tree) => {
   const api = "SPPage";
   const id = (r: SnRecord) => snString(r.sys_id);
-  const props = tree.topProps(PAGE, api, { markupFields: ["css"] });
+  // SPPage has no $id: the SDK mints the page's sys_id (P-29 oracle).
+  tree.note(PAGE_ID_NOTE);
+  const props = tree.topProps(PAGE, api, { markupFields: ["css"] }, false);
   const containers = tree
     .rows("sp_container", "sp_page", tree.sysId)
     .map((c) => {
@@ -1059,11 +1542,13 @@ function includes(
   return (tree) => {
     const props = tree.topProps(specs, api, shape);
     for (const [table, parentField, prop, rowSpecs] of m2m) {
-      const items = tree
-        .rows(table, parentField, tree.sysId)
-        .map((r) =>
-          obj(tree.childProps(table, r, rowSpecs, api, [parentField])),
-        );
+      const items = tree.rows(table, parentField, tree.sysId).map((r) =>
+        obj(
+          tree.childProps(table, r, rowSpecs, api, [parentField], {
+            withId: false,
+          }),
+        ),
+      );
       withList(props, prop, items);
     }
     tree.call(api, props);
@@ -1085,19 +1570,52 @@ const menu: Build = (tree) => {
   tree.call(api, withList(props, "items", items));
 };
 
+/** The `chrome_tab` page property's new-tab tables (`newTabMenu[].routeInfo.fields.table`). */
+function chromeTabTables(value: string): string[] | undefined {
+  try {
+    const menu = (JSON.parse(value) as { newTabMenu?: unknown }).newTabMenu;
+    if (!Array.isArray(menu)) return undefined;
+    const tables = menu
+      .map(
+        (m) =>
+          (m as { routeInfo?: { fields?: { table?: unknown } } })?.routeInfo
+            ?.fields?.table,
+      )
+      .filter((t): t is string => typeof t === "string" && t !== "");
+    return [...new Set(tables)];
+  } catch {
+    return undefined;
+  }
+}
+
 const workspace: Build = (tree) => {
   const api = "Workspace";
   const props = tree.topProps(WORKSPACE, api);
-  const properties = tree
-    .rows("sys_ux_page_property", "page", tree.sysId)
-    .map((r) =>
-      obj(
-        tree.childProps("sys_ux_page_property", r, PAGE_PROPERTY, api, [
-          "page",
-        ]),
-      ),
-    );
-  withList(props, "properties", properties);
+  // Only two page properties have a Workspace form: listConfigId (listConfig)
+  // and chrome_tab (tables). The others stay Record() rows (finish()).
+  for (const r of tree.rows("sys_ux_page_property", "page", tree.sysId)) {
+    const name = snString(r.name);
+    const value = snString(r.value);
+    if (name === "listConfigId" && value) {
+      props.push({
+        key: "listConfig",
+        value: refExpr("sys_ux_list_menu_config", value),
+      });
+      tree.place(r);
+    } else if (name === "chrome_tab") {
+      const tables = chromeTabTables(value);
+      if (!tables) continue;
+      if (tables.length) {
+        props.push({ key: "tables", value: arr(tables.map((t) => lit(t))) });
+      }
+      tree.place(r);
+    }
+  }
+  // The type marks `tables` optional, but now-sdk build reads it as an array
+  // (WorkspacePlugin: "Failed to cast UndefinedShape to ArrayShape").
+  if (!props.some((x) => x.key === "tables")) {
+    props.push({ key: "tables", value: arr([]) });
+  }
   for (const r of tree.t.refFields) {
     const value = snString(tree.rec[r.field]);
     if (!value) continue;
@@ -1114,64 +1632,97 @@ const workspace: Build = (tree) => {
   tree.call(api, props);
 };
 
+/**
+ * A dashboard widget: `x` / `y` become `position`; `componentProps`, `height`
+ * and `width` are required (the SDK reads the `h` / `w` columns; a row that
+ * carries `height` / `width` instead is accepted too).
+ */
+function dashboardWidget(tree: UiTree, row: SnRecord, api: string): Expr {
+  const props = tree.childProps("par_dashboard_widget", row, DASH_WIDGET, api, [
+    "tab",
+    "height",
+    "width",
+  ]);
+  if (!props.some((x) => x.key === "componentProps")) {
+    props.push({ key: "componentProps", value: obj([]) });
+  }
+  const coord = (f: string, fallback = "0"): Expr =>
+    convert(snString(row[f]) || fallback, "number").expr ??
+    lit(Number(fallback));
+  for (const key of ["height", "width"] as const) {
+    if (!props.some((x) => x.key === key)) {
+      props.push({ key, value: coord(key, "1") });
+    }
+  }
+  props.push({
+    key: "position",
+    value: obj([
+      { key: "x", value: coord("x") },
+      { key: "y", value: coord("y") },
+    ]),
+  });
+  return obj(props);
+}
+
 const dashboard: Build = (tree) => {
-  const props = tree.passthrough(tree.t.table, tree.rec, [], [], true);
+  const api = "Dashboard";
+  const props = tree.topProps(DASHBOARD, api);
   const tabs = tree
     .rows("par_dashboard_tab", "dashboard", tree.sysId)
     .map((tab) => {
-      const tp = tree.passthrough("par_dashboard_tab", tab, ["dashboard"], []);
+      const tp = tree.childProps("par_dashboard_tab", tab, DASH_TAB, api, [
+        "dashboard",
+      ]);
       const widgets = tree
         .rows("par_dashboard_widget", "tab", snString(tab.sys_id))
-        .map((w) =>
-          obj(tree.passthrough("par_dashboard_widget", w, ["tab"], [])),
-        );
-      return obj(withList(tp, "widgets", widgets));
+        .map((w) => dashboardWidget(tree, w, api));
+      // `widgets` is required on a tab.
+      tp.push({ key: "widgets", value: arr(widgets) });
+      return obj(tp);
     });
   withList(props, "tabs", tabs);
   const permissions = tree
     .rows("par_dashboard_permission", "dashboard", tree.sysId)
     .map((r) =>
-      obj(tree.passthrough("par_dashboard_permission", r, ["dashboard"], [])),
+      obj(
+        tree.childProps("par_dashboard_permission", r, DASH_PERMISSION, api, [
+          "dashboard",
+        ]),
+      ),
     );
   withList(props, "permissions", permissions);
-  tree.call("Dashboard", props);
+  tree.call(api, props);
 };
 
 const listMenu: Build = (tree) => {
-  const props = tree.passthrough(tree.t.table, tree.rec, [], [], true);
+  const api = "UxListMenuConfig";
+  const props = tree.topProps(LIST_MENU, api);
   const categories = tree
     .rows("sys_ux_list_category", "configuration", tree.sysId)
     .map((cat) => {
-      const cp = tree.passthrough(
+      const cp = tree.childProps(
         "sys_ux_list_category",
         cat,
+        LIST_CATEGORY,
+        api,
         ["configuration"],
-        [],
       );
       const lists = tree
         .rows("sys_ux_list", "category", snString(cat.sys_id))
-        .map((l) => obj(tree.passthrough("sys_ux_list", l, ["category"], [])));
-      return obj(withList(cp, "lists", lists));
+        .map((l) =>
+          obj(tree.childProps("sys_ux_list", l, UX_LIST, api, ["category"])),
+        );
+      // `lists` is required on a category.
+      cp.push({ key: "lists", value: arr(lists) });
+      return obj(cp);
     });
-  tree.call("UxListMenuConfig", withList(props, "categories", categories));
+  tree.call(api, withList(props, "categories", categories));
 };
 
-const applicability: Build = (tree) => {
-  const props = tree.passthrough(tree.t.table, tree.rec, [], [], true);
-  const lists = tree
-    .rows("sys_ux_applicability_m2m_list", "applicability", tree.sysId)
-    .map((r) =>
-      obj(
-        tree.passthrough(
-          "sys_ux_applicability_m2m_list",
-          r,
-          ["applicability"],
-          [],
-        ),
-      ),
-    );
-  tree.call("Applicability", withList(props, "lists", lists));
-};
+// The applicability's list links (sys_ux_applicability_m2m_list) belong to the
+// list (UxList.applicabilities), not to the Applicability: finish() emits them
+// as Record() rows.
+const applicability: Build = simple("Applicability", APPLICABILITY);
 
 // -- Catalog ----------------------------------------------------------------
 
@@ -1218,29 +1769,56 @@ function variables(
       });
     }
     const variableApi = `${kind}Variable`;
+    const specs = variableSpecs(kind);
+    const own = new Set(specs.map((x) => x.field));
     const props = tree.childProps(
       "item_option_new",
       row,
-      VARIABLE,
+      specs,
       variableApi,
-      [parentField, "type", "name"],
-      { owner },
+      [
+        parentField,
+        "type",
+        "name",
+        // The lookup / reference mode a `when` reads; other kinds' fields.
+        "lookup_source",
+        ...VARIABLE_FIELDS.filter((f) => !own.has(f)),
+      ],
+      { owner, withId: false },
     );
-    const choices = tree
-      .rows("question_choice", "question", sysId)
-      .map((c) =>
-        obj(
+    if (
+      !VAR_NO_QUESTION.has(kind) &&
+      !props.some((x) => x.key === "question")
+    ) {
+      props.unshift({ key: "question", value: lit("") });
+    }
+    // `choices` is an object keyed by the choice value (choice kinds only).
+    const choices: Prop[] = [];
+    for (const c of tree.rows("question_choice", "question", sysId)) {
+      if (!VAR_CHOICES.has(kind)) {
+        tree.later("question_choice", "question", c);
+        continue;
+      }
+      const value = snString(c.value);
+      if (!value || choices.some((x) => x.key === value)) {
+        tree.later("question_choice", "question", c);
+        continue;
+      }
+      choices.push({
+        key: value,
+        value: obj(
           tree.childProps(
             "question_choice",
             c,
             CHOICE,
             variableApi,
-            ["question"],
-            { owner },
+            ["question", "value"],
+            { owner, withId: false },
           ),
         ),
-      );
-    withList(props, "choices", choices);
+      });
+    }
+    if (choices.length) props.push({ key: "choices", value: obj(choices) });
     out.push({ key: name, value: tree.nested(variableApi, props) });
   }
   void api;
@@ -1278,7 +1856,7 @@ function policyActions(tree: UiTree, policyId: string, owner: string): Expr[] {
           UI_POLICY_ACTION,
           "CatalogUiPolicy",
           ["ui_policy"],
-          { owner },
+          { owner, withId: false },
         ),
       ),
     );
@@ -1322,30 +1900,51 @@ function variableSet(tree: UiTree, row: SnRecord, top: boolean): void {
   policies(tree, "variable_set", setId);
 }
 
-function catalogItem(api: string, extra: readonly UiProp[] = []): Build {
+function catalogItem(api: string, specs: readonly UiProp[]): Build {
   return (tree) => {
-    const props = tree.topProps([...CATALOG_ITEM, ...extra], api);
+    const props = tree.topProps(specs, api);
+    // PortalSettings: `hideAttachment` must be false (or absent) when
+    // `mandatoryAttachment` is true; the platform ignores it then.
+    const mandatory = props.find((x) => x.key === "mandatoryAttachment");
+    if (mandatory && render(mandatory.value) === "true") {
+      const i = props.findIndex((x) => x.key === "hideAttachment");
+      if (i >= 0) props.splice(i, 1);
+    }
     const vars = variables(tree, "cat_item", tree.sysId, tree.key, api);
     if (vars.length) props.push({ key: "variables", value: obj(vars) });
     const sets = tree.rows("io_set_item", "sc_cat_item", tree.sysId);
     withList(
       props,
       "variableSets",
-      sets.map((r) =>
-        obj(tree.childProps("io_set_item", r, IO_SET, api, ["sc_cat_item"])),
-      ),
+      sets.map((r) => {
+        const link = tree.childProps(
+          "io_set_item",
+          r,
+          IO_SET,
+          api,
+          ["sc_cat_item"],
+          { withId: false },
+        );
+        // `order` is required on a variable-set link (the SDK defaults it to 0).
+        if (!link.some((x) => x.key === "order")) {
+          link.push({ key: "order", value: lit(0) });
+        }
+        return obj(link);
+      }),
     );
-    withList(
-      props,
-      "categories",
-      tree.refs(
-        "sc_cat_item_category",
-        "sc_cat_item",
-        "sc_category",
-        "sc_category",
-        api,
-      ),
+    const categories = tree.refs(
+      "sc_cat_item_category",
+      "sc_cat_item",
+      "sc_category",
+      "sc_category",
+      api,
     );
+    // No m2m rows: the item's own `category` field, as the SDK reads it.
+    const category = snString(tree.rec.category);
+    if (!categories.length && category) {
+      categories.push(refExpr("sc_category", category));
+    }
+    withList(props, "categories", categories);
     withList(
       props,
       "availableFor",
@@ -1396,7 +1995,10 @@ export const UI_EMITTERS: Readonly<Record<string, UiEmitter>> = {
   },
   sp_page: { api: "SPPage", build: page },
   sp_widget: { api: "SPWidget", build: widget("SPWidget") },
-  sp_header_footer: { api: "SPHeaderFooter", build: widget("SPHeaderFooter") },
+  sp_header_footer: {
+    api: "SPHeaderFooter",
+    build: widget("SPHeaderFooter", HEADER_FOOTER),
+  },
   sp_theme: {
     api: "SPTheme",
     build: includes("SPTheme", THEME, undefined, [
@@ -1436,7 +2038,10 @@ export const UI_EMITTERS: Readonly<Record<string, UiEmitter>> = {
   ux_list_menu_config: { api: "UxListMenuConfig", build: listMenu },
   ux_applicability: { api: "Applicability", build: applicability },
   // Service Catalog
-  catalog_item: { api: "CatalogItem", build: catalogItem("CatalogItem") },
+  catalog_item: {
+    api: "CatalogItem",
+    build: catalogItem("CatalogItem", CATALOG_ITEM),
+  },
   record_producer: {
     api: "CatalogItemRecordProducer",
     build: catalogItem("CatalogItemRecordProducer", RECORD_PRODUCER),
@@ -1482,7 +2087,7 @@ export function emitUi(
     t.table,
   );
   const tree = new UiTree(run, t, key, rec, src.children ?? []);
-  tree.note(UI_NOTE);
+  tree.note(UI_VERIFIED_NOTE);
   e.build(tree);
   tree.finish(e.api);
 

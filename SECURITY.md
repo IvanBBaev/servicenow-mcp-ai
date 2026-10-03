@@ -112,9 +112,10 @@ open items — is in
 ## Security rails at a glance
 
 - **Plan mode** — writes preview as a before/after diff and do not mutate
-  unless `apply: true` is passed or `SN_WRITE_MODE=apply` is set;
-  `SN_DESTRUCTIVE_CONFIRM` adds a single-use `plan_token` and / or a client
-  confirmation for destructive writes
+  unless `apply: true` is passed or `SN_WRITE_MODE=apply` is set; a
+  destructive apply needs the single-use `plan_token` of its preview by
+  default (`SN_DESTRUCTIVE_CONFIRM=token`, 3.0), optionally with a client
+  confirmation (`elicit`)
   ([README → Environment variables](README.md#environment-variables)).
 - **Write journal** — every applied write is recorded locally in a hash-chained
   `write-journal.jsonl` (redacted, rotated at `SN_JOURNAL_MAX_BYTES`) and can
@@ -206,6 +207,19 @@ Earlier single-user builds accepted two risks; for the public release the
 conservative defaults win, and both are now enforced in code (with tests):
 
 - **Env-file mode `0600`** instead of the default `0644` (`config.ts`).
+- **3.0 write-safety defaults** (O-4, breaking B4 / B8 / B11): a destructive
+  `apply:true` needs the preview's `plan_token` (`SN_DESTRUCTIVE_CONFIRM=token`;
+  `off` opts out); a batch sub-request to a REST path no tool package owns is
+  refused (`SN_BATCH_UNMAPPED=deny`; `allow` opts out) and a batch holds at
+  most 50 sub-requests (`SN_BATCH_MAX_REQUESTS`); writes to the protected
+  system tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts,
+  LDAP, certificates, data sources, REST messages) are refused
+  (`SN_PROTECTED_TABLES_WRITE=deny`; `allow` or an exact `SN_TABLES_ALLOW`
+  entry opts out); import-set staging tables must match `u_*,imp_*`
+  (`SN_IMPORT_SET_TABLES=*` opts out); and the write caps are on — 100 deletes
+  per session, 50 write sub-requests per batch, 500 writes per HTTP session
+  (`0` lifts a cap). The Claude Code plugin also ships a `PreToolUse` hook
+  that refuses a token-less destructive apply at the client.
 - **Host must be `*.service-now.com`** unless `SN_ALLOWED_HOSTS` is set
   (`host.ts`). Set `SN_ALLOWED_HOSTS` to opt in a custom or sovereign-cloud
   domain; the SSRF guard and X-2 elicitation confirmation still apply on top.
@@ -262,8 +276,11 @@ conservative defaults win, and both are now enforced in code (with tests):
   no `--force`); the procedure is in
   [CONTRIBUTING.md](CONTRIBUTING.md#dependencies-and-the-audit-gate).
 - The runtime dependency set is deliberately three packages —
-  `@modelcontextprotocol/sdk`, `zod`, `dotenv` — with the SDK floor tracking
-  the release the suite was last verified against (`^1.30.0`).
+  `@modelcontextprotocol/sdk`, `zod` and `acorn` (the S-12 script parser, no
+  dependencies of its own; it only parses script text read from the instance
+  and never evaluates it; the env file is read by Node's own
+  `process.loadEnvFile` since E-2) — with the SDK floor tracking the release
+  the suite was last verified against (`^1.31.0`).
 - Dependabot (weekly: npm root, `extension/`, GitHub Actions) and CodeQL run on
   the repository; npm publishes are made from CI on a version tag with
   `--provenance`.

@@ -7,10 +7,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { extractReleaseNotes } from "../scripts/release-notes.mjs";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = path.join(import.meta.dirname, "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 const json = (rel) => JSON.parse(read(rel));
 

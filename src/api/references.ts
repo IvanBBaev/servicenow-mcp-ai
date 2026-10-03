@@ -10,7 +10,7 @@ import { throwIfCancelled } from "../core/progress.js";
  * dictionary entries, list and form layouts, catalog variables, flow action
  * inputs and report conditions.
  *
- * Two layers, so P-17 (`artifact_dependencies`) can reuse the first one:
+ * Two layers, so P-17 (`get_artifact_dependencies`) can reuse the first one:
  *
  * - a pure layer — {@link REFERENCE_SOURCES}, {@link extractReferences},
  *   {@link encodedQueryFields}, {@link scriptIdentifiers},

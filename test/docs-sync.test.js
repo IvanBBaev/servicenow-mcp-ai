@@ -12,12 +12,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { SITES, countTools, syncCounts } from "../scripts/docs-sync.mjs";
 import { describeAllTools } from "../build/mcp/registry.js";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = path.join(import.meta.dirname, "..");
 
 test("every site quotes the live tool and package counts", () => {
   const counts = countTools(describeAllTools());

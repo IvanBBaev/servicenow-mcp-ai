@@ -8,7 +8,6 @@ import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   isSecretFileKey,
   readSecretFile,
@@ -25,7 +24,7 @@ import { authEnv } from "../build/core/auth.js";
 import { getHttpToken } from "../build/core/settings.js";
 import { baselineEnv, withEnv } from "./helpers.js";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = join(import.meta.dirname, "..");
 const dir = mkdtempSync(join(tmpdir(), "sn-secret-files-"));
 test.after(() => rmSync(dir, { recursive: true, force: true }));
 

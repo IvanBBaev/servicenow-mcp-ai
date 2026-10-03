@@ -206,6 +206,8 @@ async function assertAttachmentScope(
     throw new ServiceNowError(
       `Sub-request ${index + 1} lists attachments without naming a table (table_name) while SN_TABLES_ALLOW / SN_TABLES_DENY is set — its rows could come from a denied table. Use servicenow_list_attachments, or add table_name=<table> to sysparm_query.`,
       403,
+      undefined,
+      { code: "POLICY_DENIED" },
     );
   }
 }
@@ -275,7 +277,12 @@ export async function runBatch(
   requests: BatchSubRequest[],
 ): Promise<BatchResult[]> {
   if (!Array.isArray(requests) || requests.length === 0) {
-    throw new ServiceNowError("A batch needs at least one sub-request.");
+    throw new ServiceNowError(
+      "A batch needs at least one sub-request.",
+      undefined,
+      undefined,
+      { code: "INVALID_INPUT" },
+    );
   }
 
   // H-4 (L2-03): the size cap is checked before any sub-request is built.
@@ -307,6 +314,9 @@ export async function runBatch(
     if (!req.url || !req.url.startsWith("/api/")) {
       throw new ServiceNowError(
         `Sub-request ${index + 1} must target a REST API path starting with "/api/".`,
+        undefined,
+        undefined,
+        { code: "INVALID_INPUT" },
       );
     }
     // Reject path-traversal/empty-segment tricks before matching, so the path
@@ -319,6 +329,8 @@ export async function runBatch(
       throw new ServiceNowError(
         `Sub-request ${index + 1} targets the Batch API itself; a nested batch would hide its sub-requests from the access policy.`,
         403,
+        undefined,
+        { code: "POLICY_DENIED" },
       );
     }
     if (req.method !== "GET") assertWriteAllowed(`batch ${req.method}`);
@@ -329,8 +341,13 @@ export async function runBatch(
     const pkg = packageForUrl(req.url);
     if (!pkg && getBatchUnmapped() === "deny") {
       throw new ServiceNowError(
-        `Sub-request ${index + 1} targets "${pathOf(req.url)}", which no tool package owns, and SN_BATCH_UNMAPPED=deny refuses unmapped REST paths in a batch.`,
+        `Sub-request ${index + 1} targets "${pathOf(req.url)}", which no tool package owns, and SN_BATCH_UNMAPPED=deny (the default) refuses unmapped REST paths in a batch.`,
         403,
+        undefined,
+        {
+          code: "POLICY_DENIED",
+          hint: "Call the API through its own tool, or set SN_BATCH_UNMAPPED=allow to let unmapped paths through the table and read-only checks.",
+        },
       );
     }
     if (pkg) {

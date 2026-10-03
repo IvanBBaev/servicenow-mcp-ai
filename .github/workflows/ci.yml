@@ -21,7 +21,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node: [20, 22, 24]
+        # E-1: Node >= 22.12 (engines.node); 26 is the current line.
+        node: [22, 24, 26]
         include:
           # One macOS leg (the development platform) on the .nvmrc Node.
           - os: macos-latest
@@ -36,7 +37,10 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run build
-      - run: npm test
+      # E-1: c8 12 runs on every supported Node (the Node >= 25 coverage guard
+      # is gone), so the coverage ratchet — lines 94 / branches 82 /
+      # functions 97, set just below the real report — gates every leg.
+      - run: npm run test:coverage
       # L9-04: tarball guard — no jira/, .map, test/ or docs/instance/ entries,
       # a fixed top-level allow-list and a size ceiling. Runs once on ubuntu/Node 22.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
@@ -58,10 +62,6 @@ jobs:
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         name: Prettier idempotency
         run: npx prettier --write . >/dev/null && git diff --exit-code --stat
-      # Coverage gate — lines 94 / branches 82 / functions 97, a ratchet set
-      # just below the real report (~95 / ~84 / ~99). Runs once on ubuntu/Node 22.
-      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
-        run: npm run test:coverage
       # Upload the lcov report to Codecov (public repo). Non-blocking: a Codecov
       # outage must not fail CI. Runs once, on the same ubuntu/Node 22 leg.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
@@ -73,6 +73,22 @@ jobs:
       # Production-dependency audit: fail on high+ advisories.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         run: npm audit --omit=dev --audit-level=high
+
+  # E-1: the engines floor itself. The dev toolchain (ESLint 10) needs
+  # >= 22.13, so this leg installs without engine-strict and runs only what a
+  # user's runtime runs: the build and the test suite on exactly 22.12.0.
+  floor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - run: npm ci --engine-strict=false
+      - run: npm run build
+      - run: npm test
 
   # Q2-3: Windows run (win32 path/line-ending safety). LF is enforced via
   # .gitattributes so the generated-docs drift tests stay byte-identical to
@@ -143,18 +159,19 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 12
-      # H-9: the expected major comes from package.json engines.node, so raising
-      # the floor cannot silently hollow out this probe. The launcher keeps its
-      # literal; test/version-sync.test.js pins the two to each other.
+      # H-9: the expected floor (E-1: MAJOR.MINOR) comes from package.json
+      # engines.node, so raising the floor cannot silently hollow out this
+      # probe. The launcher keeps its literal; test/version-sync.test.js pins
+      # the two to each other.
       - run: |
-          major=$(node -p "require('./package.json').engines.node.replace(/\D/g,'')")
-          test -n "$major" || exit 1
+          floor=$(node -p "require('./package.json').engines.node.replace(/[^0-9.]/g,'')")
+          test -n "$floor" || exit 1
           set +e
           out=$(node bin/servicenow-mcp-ai.cjs 2>&1)
           code=$?
           echo "$out"
           test $code -ne 0 || exit 1
-          echo "$out" | grep -q "requires Node.js >= $major" || exit 1
+          echo "$out" | grep -qF "requires Node.js >= $floor" || exit 1
 
   # H-9: lint the workflows themselves — expression and input typos, plus
   # shellcheck over every run: block. Pinned image tag; bump it deliberately.

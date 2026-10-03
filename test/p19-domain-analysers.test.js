@@ -1,6 +1,6 @@
 // P-19 — domain analysers: the flow, Service Portal, UI Builder and
 // legacy-workflow rules
-// behind code_health's opt-in `domains` switch. Every rule has a positive and
+// behind check_code_health's opt-in `domains` switch. Every rule has a positive and
 // a negative fixture; the instance double answers `fieldIN…` queries by
 // filtering its rows, so the reads are exercised as they are sent.
 import test from "node:test";
@@ -475,9 +475,9 @@ const ids = (d, rule) =>
 
 // --- tests -----------------------------------------------------------------------
 
-test("code_health: domains is opt-in — the default reads no flow / portal table", async () => {
+test("check_code_health: domains is opt-in — the default reads no flow / portal table", async () => {
   await scenario(ALL, async (calls) => {
-    const r = out(await call("servicenow_code_health", {}));
+    const r = out(await call("servicenow_check_code_health", {}));
     assert.equal(r.domains, undefined);
     const touched = calls.map((c) => new URL(c.url).pathname);
     assert.ok(
@@ -486,10 +486,10 @@ test("code_health: domains is opt-in — the default reads no flow / portal tabl
   });
 });
 
-test("code_health domains: result, report section and bounded candidate reads (acceptance)", async () => {
+test("check_code_health domains: result, report section and bounded candidate reads (acceptance)", async () => {
   await scenario(ALL, async (calls, docs) => {
     const r = out(
-      await call("servicenow_code_health", { domains: true, limit: 10 }),
+      await call("servicenow_check_code_health", { domains: true, limit: 10 }),
     );
     const d = r.domains;
     assert.ok(d, JSON.stringify(r).slice(0, 400));

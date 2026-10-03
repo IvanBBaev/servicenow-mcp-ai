@@ -275,9 +275,12 @@ test("M-5: prompts follow their package requirement", async () => {
 test("M-5: admin and unknown names are refused", async () => {
   await session({ SN_TOOL_PACKAGES: "core" }, async ({ call }) => {
     const admin = await call("servicenow_disable_package", { name: "admin" });
-    assert.match(text(admin), /PACKAGE_ALWAYS_ON/);
+    assert.equal(JSON.parse(text(admin)).code, "PACKAGE_ALWAYS_ON");
     const unknown = await call("servicenow_enable_package", { name: "nope" });
-    assert.match(text(unknown), /UNKNOWN_PACKAGE: 'nope'.*codecheck/);
+    const body = JSON.parse(text(unknown));
+    assert.equal(body.code, "UNKNOWN_PACKAGE");
+    assert.equal(body.source, "server");
+    assert.match(body.error, /^'nope' is not a package\. Known: .*codecheck/);
   });
 });
 

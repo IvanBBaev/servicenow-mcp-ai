@@ -25,7 +25,6 @@
 // is an error rather than a silent miss.
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const setTopLevel = (json, version) => {
   json.version = version;
@@ -111,11 +110,11 @@ export function syncVersion({ root, check = false }) {
 
 const invokedDirectly =
   process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  path.resolve(process.argv[1]) === import.meta.filename;
 
 if (invokedDirectly) {
   const check = process.argv.includes("--check");
-  const root = fileURLToPath(new URL("..", import.meta.url));
+  const root = path.join(import.meta.dirname, "..");
   try {
     const { version, drift } = syncVersion({ root, check });
     if (drift.length === 0) {

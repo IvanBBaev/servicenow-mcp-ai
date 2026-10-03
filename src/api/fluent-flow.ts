@@ -8,12 +8,15 @@
  *
  * - `Flow({…}, wfa.trigger(trigger.*, …), (params) => { … })`, `Subflow({…},
  *   (params) => { … })` and `Action({…}, (params) => { … })` with
- *   `wfa.action(action.core.*, …)` steps, `wfa.flowLogic.*` logic (if /
- *   elseIf / else, forEach, tryCatch, doInParallel, doUntil and the leaf
- *   blocks), `wfa.subflow(…)` calls, inputs / outputs / flow variables as
- *   column constructors, stages, and `wfa.dataPill(…)` for data pills;
- * - `PlaybookDefinition({…})` with lanes, activities
- *   (`ActivityDefinitions.Core.*`), timers, triggers and inputs / outputs.
+ *   `wfa.action(action.core.*, …)` / `wfa.actionStep(actionStep.*, …)` steps
+ *   (typed when the inputs match the SDK definition, else the untyped sys_id
+ *   form), `wfa.flowLogic.*` logic (if / elseIf / else, forEach, tryCatch,
+ *   doInParallel, doTheFollowing + until and the leaf blocks), `wfa.subflow(…)`
+ *   calls, inputs / outputs / flow variables as column constructors,
+ *   `FlowStage()` stages, and typed `wfa.dataPill(…, type)` for data pills;
+ * - `PlaybookDefinition(config, { triggers }, { lanes })` with
+ *   `wfa.playbook.lane(…)` / `wfa.playbook.activity(ActivityDefinitions.Core.*,
+ *   …)` and `wfa.playbook.trigger(PlaybookTriggerTypes.*, …)`.
  *
  * Every construct it cannot express — spoke / custom actions outside
  * `action.core`, nested doInParallel, playbook Questionnaire activities,
@@ -22,9 +25,9 @@
  * `unsupported[]` entry and a `Record()` fallback for that node or row, placed
  * after the main call: never silent loss.
  *
- * The SDK signatures are an assumption: the names follow SDK-PARITY and the
- * SDK baseline (4.12.2, owner gate O-7), nothing is type-checked against the
- * SDK, and the output says `verified:false` (the P-29 oracle waits for O-7).
+ * P-29: the output is type-checked against the pinned @servicenow/sdk 4.12.2
+ * (`npm run fluent:verify`, owner gate O-7); the action.core / actionStep input
+ * tables come from `scripts/gen-fluent-actions.mjs`.
  * Output is deterministic: the tree is already ordered (order, then name) and
  * nothing here depends on time or locale. Secrets are replaced through the
  * P-26 hooks.
@@ -47,6 +50,7 @@ import type { FluentSource, FluentUnsupported } from "./fluent.js";
 import {
   arr,
   code,
+  call,
   lit,
   obj,
   oneLine,
@@ -56,6 +60,11 @@ import {
   type Expr,
   type Prop,
 } from "./fluent-render.js";
+import {
+  SDK_ACTION_STEPS,
+  SDK_CORE_ACTIONS,
+  type CoreActionSpec,
+} from "./fluent-sdk-actions.js";
 import { snString } from "./shared.js";
 import type { SnRecord } from "./table.js";
 
@@ -69,7 +78,7 @@ export const FLOW_TREE_KINDS: Readonly<Record<string, ExplainFlowKind>> = {
 
 /** The warning every P-27 run carries. */
 export const FLOW_VERIFIED_NOTE =
-  "The Flow / Subflow / Action / PlaybookDefinition emitter is verified:false: trigger.*, action.core.*, wfa.*, ActivityDefinitions.Core.* and the column shapes follow the SDK-PARITY names, not checked SDK signatures (the P-29 oracle waits for owner gate O-7).";
+  "The Flow / Subflow / Action / PlaybookDefinition shapes are type-checked against @servicenow/sdk 4.12.2 (npm run fluent:verify); instance behaviour (P-29 / O-5) is not verified: review before deploying.";
 
 /**
  * What the flow emitter needs from the P-26 core (`fluent.ts`): passed in so
@@ -78,6 +87,8 @@ export const FLOW_VERIFIED_NOTE =
 export interface FlowEmitHooks {
   /** A unique `Now.ID` key, registered in the run's keys fragment. */
   key(base: string, sysId: string, table: string): string;
+  /** Point a registered key at another table (the one the SDK writes). */
+  retable(key: string, table: string): void;
   unsupported(entry: FluentUnsupported): void;
   /** Is this field / value a secret (descriptor, name pattern, redaction rules)? */
   isSecret(field: string, value: string): boolean;
@@ -94,32 +105,59 @@ export interface FlowEmitHooks {
   file(path: string, content: string): void;
 }
 
+const ACTION_INSTANCE_V2 = "sys_hub_action_instance_v2";
+
 /** Lower-case letters and digits only: the lookup form of a display name. */
 const norm = (s: string | undefined): string =>
   (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-/** Core actions (`action.core.*`), by normalised action / step name. */
-const CORE_ACTIONS: Readonly<Record<string, string>> = {
-  askforapproval: "askForApproval",
-  copyattachment: "copyAttachment",
-  createcatalogtask: "createCatalogTask",
-  createorupdaterecord: "createOrUpdateRecord",
-  createrecord: "createRecord",
-  createtask: "createTask",
-  deleteattachment: "deleteAttachment",
-  deleterecord: "deleteRecord",
-  fireevent: "fireEvent",
-  getattachmentsonrecord: "getAttachmentsOnRecord",
-  getcatalogvariables: "getCatalogVariables",
-  log: "log",
-  lookuprecord: "lookUpRecord",
-  lookuprecords: "lookUpRecords",
-  sendemail: "sendEmail",
-  sendnotification: "sendNotification",
-  sendsms: "sendSms",
-  updatemultiplerecords: "updateMultipleRecords",
-  updaterecord: "updateRecord",
-  waitforcondition: "waitForCondition",
+/** `{ normalised name or export name: [export name, spec] }` of an SDK table. */
+function specIndex(
+  table: Readonly<Record<string, CoreActionSpec>>,
+): ReadonlyMap<string, readonly [string, CoreActionSpec]> {
+  const m = new Map<string, readonly [string, CoreActionSpec]>();
+  for (const [exp, spec] of Object.entries(table)) {
+    m.set(norm(spec.name), [exp, spec]);
+    if (!m.has(norm(exp))) m.set(norm(exp), [exp, spec]);
+  }
+  return m;
+}
+
+/** Core actions (`action.core.*`) and action steps (`actionStep.*`). */
+const CORE_ACTIONS = specIndex(SDK_CORE_ACTIONS);
+const CORE_STEPS = specIndex(SDK_ACTION_STEPS);
+
+/** `wfa.dataPill()` FlowDataType by SDK input column kind (default `string`). */
+const PILL_TYPES: Readonly<Record<string, string>> = {
+  ApprovalRules: "approval_rules",
+  Boolean: "boolean",
+  Choice: "choice",
+  Conditions: "conditions",
+  DateTime: "glide_date_time",
+  DocumentId: "document_id",
+  Duration: "glide_duration",
+  FieldName: "field_name",
+  Html: "html",
+  Integer: "integer",
+  Records: "records",
+  Reference: "reference",
+  ScheduleDateTime: "schedule_date_time",
+  SlushBucket: "slushbucket",
+  String: "string",
+  TableName: "table_name",
+  TemplateValue: "template_value",
+};
+
+/** `wfa.dataPill()` FlowDataType by flow variable `internal_type`. */
+const VARIABLE_PILL_TYPES: Readonly<Record<string, string>> = {
+  boolean: "boolean",
+  choice: "choice",
+  decimal: "decimal",
+  glide_date: "date",
+  glide_date_time: "glide_date_time",
+  integer: "integer",
+  reference: "reference",
+  string: "string",
 };
 
 type LogicRole =
@@ -188,15 +226,19 @@ const COLUMNS: Readonly<Record<string, string>> = {
 
 /** Core playbook activity definitions (`ActivityDefinitions.Core.*`). */
 const ACTIVITIES: Readonly<Record<string, string>> = {
-  action: "action",
-  approval: "approval",
-  attachment: "attachment",
-  form: "form",
-  instruction: "instruction",
-  recordform: "form",
-  runaction: "action",
-  runsubflow: "subflow",
-  subflow: "subflow",
+  instruction: "Instruction",
+  form: "RecordForm",
+  recordform: "RecordForm",
+};
+
+/** Playbook record triggers (`PlaybookTriggerTypes.*`), by normalised type / definition name. */
+const PB_TRIGGERS: Readonly<Record<string, string>> = {
+  recordcreate: "RecordCreate",
+  created: "RecordCreate",
+  recordupdate: "RecordUpdate",
+  updated: "RecordUpdate",
+  recordcreateorupdate: "RecordCreateOrUpdate",
+  createdorupdated: "RecordCreateOrUpdate",
 };
 
 /** Root fields each kind represents (emitted, or reported as instance state). */
@@ -249,6 +291,19 @@ const STEP_REF_FIELD: Readonly<Record<FlowStep["kind"], string>> = {
 
 const PAD = "    ";
 const pad = (depth: number): string => PAD.repeat(depth);
+
+/**
+ * The name of a callback parameter: `_`-prefixed when the body never reads it,
+ * so a project built with noUnusedParameters (now-sdk build) accepts it.
+ */
+const usedParam = (param: string, body: string): string =>
+  !param || new RegExp(`\\b${param}\\b`).test(body) ? param : `_${param}`;
+
+/** `(params) => ({…})`, the parameter named per {@link usedParam}. */
+const arrowObj = (e: Expr, depth: number): Expr => {
+  const text = render(e, depth);
+  return code(`(${usedParam("params", text)}) => (${text})`);
+};
 
 /** `wfa.dataPill(…)` path for a pill, or undefined when its root is unknown. */
 function pillPath(pill: string): string | undefined {
@@ -303,6 +358,52 @@ function asText(v: unknown): string {
 
 const PILL_RE = /\{\{\s*([^{}]+?)\s*\}\}/g;
 
+/** Logic inputs a `wfa.flowLogic` call consumes itself (not reported as dropped). */
+const LOGIC_CONSUMED: readonly string[] = [
+  "condition",
+  "items",
+  "duration",
+  "duration_type",
+  "label",
+];
+
+/** `obj` with `key` set (replaced when present). */
+function withProp(e: Expr, key: string, value: Expr): Expr {
+  if (e.k !== "obj") return e;
+  return obj([...e.props.filter((p) => p.key !== key), { key, value }]);
+}
+
+/**
+ * `Duration({…})` for a glide_duration value (`1970-01-DD hh:mm:ss`);
+ * undefined when the text is not of that form.
+ */
+function durationExpr(text: string): Expr | undefined {
+  const m = /^1970-01-(\d\d) (\d\d):(\d\d):(\d\d)$/.exec(text.trim());
+  if (!m) return undefined;
+  const parts: Prop[] = [];
+  const add = (key: string, n: number) => {
+    if (n > 0) parts.push({ key, value: lit(n) });
+  };
+  add("days", Number(m[1]) - 1);
+  add("hours", Number(m[2]));
+  add("minutes", Number(m[3]));
+  add("seconds", Number(m[4]));
+  if (!parts.length) return undefined;
+  return call("Duration", obj(parts));
+}
+
+/** A column default coerced to its column's value type. */
+function typedDefault(col: string, v: string): string | number | boolean {
+  if (col === "BooleanColumn" && (v === "true" || v === "false")) {
+    return v === "true";
+  }
+  if (col === "IntegerColumn" && /^-?\d+$/.test(v)) return Number(v);
+  return v;
+}
+
+/** Is `s` exactly one `{{…}}` data pill? */
+const isWholePill = (s: string): boolean => /^\{\{[^{}]+\}\}$/.test(s.trim());
+
 /** Mutable state of one flow / playbook file. */
 class FlowEmit {
   /** `@servicenow/sdk/automation` imports. */
@@ -315,6 +416,8 @@ class FlowEmit {
   /** Raw child rows by sys_id, and the ones the tree represented. */
   readonly rows = new Map<string, { table: string; row: SnRecord }>();
   readonly seen = new Set<string>();
+  /** Open If / For Each / Do the following / Do in parallel blocks: the SDK accepts endFlow only inside one. */
+  private endFlowScopes = 0;
   /** The table of each node key, for the `unsupported[]` entries of its values. */
   private readonly keyTables = new Map<string, string>();
   readonly rootId: string;
@@ -400,7 +503,26 @@ class FlowEmit {
     return { key: name, value: this.value(v, name, nodeKey, sysId) };
   }
 
-  stringValue(s: string, nodeKey: string, sysId: string): Expr {
+  /** The `wfa.dataPill()` type of a pill path: a known variable / input's, else `fallback`. */
+  pillType(path: string, fallback: string): string {
+    const m = /^params\.(flowVariables|inputs)\.([A-Za-z_$][\w$]*)$/.exec(path);
+    if (!m) return fallback;
+    const list =
+      m[1] === "flowVariables" ? this.tree.variables : this.tree.inputs;
+    const v = list?.find((x) => x.element === m[2]);
+    return (v?.type && VARIABLE_PILL_TYPES[v.type]) || fallback;
+  }
+
+  /**
+   * A string with data pills: a whole pill is `wfa.dataPill(path, type)`,
+   * embedded pills become a template literal.
+   */
+  stringValue(
+    s: string,
+    nodeKey: string,
+    sysId: string,
+    type = "string",
+  ): Expr {
     const pills = [...s.matchAll(PILL_RE)];
     if (!pills.length) return lit(s);
     const whole = pills.length === 1 && pills[0]?.[0] === s;
@@ -412,8 +534,9 @@ class FlowEmit {
       out += templateText(s.slice(last, m.index));
       if (path) {
         this.automation.add("wfa");
-        if (whole) return code(`wfa.dataPill(${path})`);
-        out += `\${wfa.dataPill(${path})}`;
+        const pill = `wfa.dataPill(${path}, ${tsString(this.pillType(path, whole ? type : "string"))})`;
+        if (whole) return code(pill);
+        out += `\${${pill}}`;
       } else {
         this.h.unsupported({
           kind: "field",
@@ -430,27 +553,73 @@ class FlowEmit {
     return code(`\`${out}\``);
   }
 
+  /** The raw `[name, value]` inputs of decoded step values; undefined = not decodable. */
+  rawInputs(
+    values: DecodedValues | undefined,
+  ): Array<[string, unknown]> | undefined {
+    if (!values || values.format === "empty") return [];
+    if (!values.decoded || values.inputsOmitted) return undefined;
+    if (values.inputs) {
+      return values.inputs.map((i: StepInput) => [i.name, i.value ?? ""]);
+    }
+    const v = values.value;
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      return Object.entries(v as Record<string, unknown>);
+    }
+    if (v === undefined || v === null || v === "") return [];
+    return [["values", v]];
+  }
+
   /** The input properties of decoded step values; undefined = not decodable. */
   inputs(
     values: DecodedValues | undefined,
     nodeKey: string,
     sysId: string,
   ): Prop[] | undefined {
-    if (!values || values.format === "empty") return [];
-    if (!values.decoded || values.inputsOmitted) return undefined;
-    if (values.inputs) {
-      return values.inputs.map((i: StepInput) =>
-        this.prop(i.name, i.value ?? "", nodeKey, sysId),
-      );
+    return this.rawInputs(values)?.map(([k, v]) =>
+      this.prop(k, v, nodeKey, sysId),
+    );
+  }
+
+  /** A typed action input, coerced to its SDK column kind. */
+  typedProp(
+    name: string,
+    kind: string,
+    v: unknown,
+    nodeKey: string,
+    sysId: string,
+  ): Prop {
+    if (this.h.isSecret(name, asText(v))) return this.h.secretProp(name);
+    if (typeof v !== "string") {
+      return { key: name, value: this.value(v, name, nodeKey, sysId) };
     }
-    const v = values.value;
-    if (v && typeof v === "object" && !Array.isArray(v)) {
-      return Object.entries(v as Record<string, unknown>).map(([k, x]) =>
-        this.prop(k, x, nodeKey, sysId),
-      );
+    const t = v.trim();
+    let value: Expr;
+    if (kind === "Boolean" && (t === "true" || t === "false")) {
+      value = lit(t === "true");
+    } else if (kind === "Integer" && /^-?\d+$/.test(t)) {
+      value = lit(Number(t));
+    } else if (kind === "TemplateValue" && !isWholePill(v)) {
+      value = this.templateValue(v, nodeKey, sysId) ?? lit(v);
+    } else {
+      value = this.stringValue(v, nodeKey, sysId, PILL_TYPES[kind] ?? "string");
     }
-    if (v === undefined || v === null || v === "") return [];
-    return [this.prop("values", v, nodeKey, sysId)];
+    return { key: name, value };
+  }
+
+  /** `a=b^c=d` as `TemplateValue({ a: …, c: … })`; undefined when not of that form. */
+  templateValue(s: string, nodeKey: string, sysId: string): Expr | undefined {
+    const props: Prop[] = [];
+    for (const part of s.split("^")) {
+      if (part === "" || part === "EQ") continue;
+      const eq = part.indexOf("=");
+      if (eq <= 0) return undefined;
+      const field = part.slice(0, eq);
+      if (!/^[a-z_][a-z0-9_]*$/i.test(field)) return undefined;
+      props.push(this.prop(field, part.slice(eq + 1), nodeKey, sysId));
+    }
+    if (!props.length) return undefined;
+    return call("TemplateValue", obj(props));
   }
 
   // --- fallbacks ---------------------------------------------------------------
@@ -595,13 +764,12 @@ class FlowEmit {
 
   /**
    * `{ name: XColumn({…}) }` for inputs / outputs / variables; unknown types
-   * fall back. `depth` is the indent depth of the column entries themselves.
+   * fall back.
    */
   columns(
     list: FlowVariable[] | undefined,
     table: string,
     what: string,
-    depth: number,
   ): Expr | undefined {
     if (!list?.length) return undefined;
     const props: Prop[] = [];
@@ -628,8 +796,34 @@ class FlowEmit {
         );
         continue;
       }
+      const refTable =
+        col === "ReferenceColumn"
+          ? v.reference || asText(this.rows.get(v.sys_id)?.row.reference)
+          : "";
+      if (col === "ReferenceColumn" && !refTable) {
+        const reason = `${what} '${v.element}': reference column without a reference table; emitted as Record().`;
+        this.h.unsupported({
+          kind: "field",
+          table,
+          key: k,
+          sys_id: v.sys_id,
+          field: v.element,
+          reason,
+        });
+        this.fallbackRow(
+          table,
+          v.sys_id,
+          k,
+          () => this.synthFlat("model", { ...v }),
+          reason,
+        );
+        continue;
+      }
       this.core.add(col);
       const args: Prop[] = [];
+      if (refTable) {
+        args.push({ key: "referenceTable", value: lit(refTable) });
+      }
       if (v.label) args.push({ key: "label", value: lit(v.label) });
       if (v.mandatory !== undefined) {
         args.push({ key: "mandatory", value: lit(v.mandatory) });
@@ -638,29 +832,47 @@ class FlowEmit {
         args.push(
           this.h.isSecret(v.element, v.default)
             ? this.h.secretProp("default")
-            : { key: "default", value: lit(v.default) },
+            : { key: "default", value: lit(typedDefault(col, v.default)) },
         );
       }
       props.push({
         key: v.element,
-        value: code(`${col}(${render(obj(args), depth)})`),
+        value: call(col, obj(args)),
       });
     }
     return props.length ? obj(props) : undefined;
   }
 
+  /** `{ key: FlowStage({…}) }` for the flow's stages. */
   stages(list: Stage[] | undefined): Expr | undefined {
     if (!list?.length) return undefined;
-    return arr(
+    this.automation.add("FlowStage");
+    return obj(
       list.map((s) => {
         this.seen.add(s.sys_id);
-        const k = this.nodeKey("stage", s.sys_id, "sys_hub_flow_stage");
-        return obj([
-          this.idProp(k),
-          { key: "label", value: lit(s.label) },
-          ...(s.value ? [{ key: "value", value: lit(s.value) }] : []),
-          ...(s.duration ? [{ key: "duration", value: lit(s.duration) }] : []),
-        ]);
+        this.nodeKey("stage", s.sys_id, "sys_hub_flow_stage");
+        const value = s.value || s.label;
+        const d = s.duration ? durationExpr(s.duration) : undefined;
+        if (s.duration && !d) {
+          this.h.unsupported({
+            kind: "field",
+            table: "sys_hub_flow_stage",
+            sys_id: s.sys_id,
+            field: "duration",
+            reason: `Stage '${s.label}': duration '${s.duration}' is not an explicit duration; not emitted.`,
+          });
+        }
+        return {
+          key: value,
+          value: call(
+            "FlowStage",
+            obj([
+              { key: "label", value: lit(s.label) },
+              { key: "value", value: lit(value) },
+              ...(d ? [{ key: "duration", value: d }] : []),
+            ]),
+          ),
+        };
       }),
     );
   }
@@ -694,21 +906,22 @@ class FlowEmit {
   }
 
   action(s: FlowStep, lines: string[], depth: number): void {
-    const core = CORE_ACTIONS[norm(s.ref?.name ?? s.name)];
+    const name = s.ref?.name ?? s.name;
+    const hit = (s.kind === "step" ? CORE_STEPS : CORE_ACTIONS).get(norm(name));
     const k = this.nodeKey(s.kind, s.sys_id, s.source);
-    if (!core) {
+    if (!hit) {
       return this.fallbackStep(
         s,
         s.kind === "step"
-          ? `action step type '${s.ref?.name ?? s.name}' has no action.core mapping`
-          : `'${s.ref?.name ?? s.name}' is a spoke or custom action outside action.core`,
+          ? `action step type '${name}' has no actionStep mapping`
+          : `'${name}' is a spoke or custom action outside action.core`,
         lines,
         depth,
         k,
       );
     }
-    const inputs = this.inputs(s.values, k, s.sys_id);
-    if (!inputs) {
+    const raw = this.rawInputs(s.values);
+    if (!raw) {
       return this.fallbackStep(s, this.undecoded(s.values), lines, depth, k);
     }
     if (s.children.length) {
@@ -720,10 +933,60 @@ class FlowEmit {
         k,
       );
     }
+    const [exp, spec] = hit;
+    // now-sdk build resolves an action step by its built-in definition sys_id;
+    // a step whose definition is a copy under the same name has no Fluent form.
+    const defId = s.ref?.sys_id.toLowerCase();
+    if (s.kind === "step" && defId && defId !== spec.sysId) {
+      return this.fallbackStep(
+        s,
+        `step definition ${defId} is not the built-in '${spec.name}' (${spec.sysId})`,
+        lines,
+        depth,
+        k,
+      );
+    }
+    // now-sdk build writes wfa.action as sys_hub_action_instance_v2; a key on
+    // the legacy table would make it mint a new sys_id (P-29 oracle).
+    if (s.kind !== "step") this.h.retable(k, ACTION_INSTANCE_V2);
+    const fn = s.kind === "step" ? "actionStep" : "action";
+    const ref = s.kind === "step" ? `actionStep.${exp}` : `action.core.${exp}`;
+    const unknown = raw
+      .map(([n]) => n)
+      .filter((n) => !spec.inputs[n] || spec.inputs[n]?.hidden);
+    const missing = Object.entries(spec.inputs)
+      .filter(
+        ([n, i]) => i.mandatory && !i.hidden && !raw.some(([r]) => r === n),
+      )
+      .map(([n]) => n);
     this.automation.add("wfa");
-    this.automation.add("action");
+    const cfg = render(obj([this.idProp(k)]), depth);
+    if (!unknown.length && !missing.length) {
+      this.automation.add(fn);
+      const props = raw.map(([n, v]) =>
+        this.typedProp(n, spec.inputs[n]?.kind ?? "String", v, k, s.sys_id),
+      );
+      lines.push(
+        `${pad(depth)}wfa.${fn}(${ref}, ${cfg}, ${render(obj(props), depth)})`,
+      );
+      return;
+    }
+    const why = [
+      ...(unknown.length
+        ? [`input(s) ${unknown.join(", ")} not in ${ref}`]
+        : []),
+      ...(missing.length ? [`mandatory ${missing.join(", ")} not set`] : []),
+    ].join("; ");
+    const props = raw.map(([n, v]) => this.prop(n, v, k, s.sys_id));
+    // The untyped forms: an action by its definition sys_id, a step by its
+    // built-in name (now-sdk build resolves only those for actionStep).
+    const target =
+      s.kind === "step"
+        ? spec.name
+        : (s.ref?.sys_id ?? spec.sysId).toLowerCase();
     lines.push(
-      `${pad(depth)}wfa.action(action.core.${core}, ${render(obj([this.idProp(k)]), depth)}, ${render(obj(inputs), depth)})`,
+      `${pad(depth)}// ${ref} by ${s.kind === "step" ? "name" : "sys_id"} (untyped inputs): ${oneLine(why)}`,
+      `${pad(depth)}wfa.${fn}(${tsString(target)}, ${cfg}, ${render(obj(props), depth)})`,
     );
   }
 
@@ -752,15 +1015,39 @@ class FlowEmit {
     }
     this.automation.add("wfa");
     lines.push(
-      `${pad(depth)}// TODO: replace Now.ref with the imported Subflow() '${oneLine(s.ref.name ?? s.ref.sys_id)}'`,
-      `${pad(depth)}wfa.subflow(Now.ref('sys_hub_flow', ${tsString(s.ref.sys_id.toLowerCase())}), ${render(obj([this.idProp(k)]), depth)}, ${render(obj(inputs), depth)})`,
+      `${pad(depth)}// TODO: pass the imported Subflow() '${oneLine(s.ref.name ?? s.ref.sys_id)}' instead of its sys_id for typed inputs`,
+      `${pad(depth)}wfa.subflow(${tsString(s.ref.sys_id.toLowerCase())}, ${render(obj([this.idProp(k)]), depth)}, ${render(obj(inputs), depth)})`,
     );
   }
 
-  /** The config object of a logic block: `$id` plus its decoded inputs. */
-  logicConfig(s: FlowStep, k: string): Expr | undefined {
-    const inputs = this.inputs(s.values, k, s.sys_id);
-    return inputs ? obj([this.idProp(k), ...inputs]) : undefined;
+  /**
+   * The config of a logic block: `$id` plus the decoded inputs named in
+   * `keep`; any other input is reported. Undefined when not decodable.
+   */
+  logicConfig(
+    s: FlowStep,
+    k: string,
+    keep: readonly string[] = [],
+  ): { cfg: Expr; raw: Map<string, unknown> } | undefined {
+    const raw = this.rawInputs(s.values);
+    if (!raw) return undefined;
+    const props: Prop[] = [this.idProp(k)];
+    const all = new Map(raw);
+    for (const [n, v] of raw) {
+      if (keep.includes(n)) {
+        props.push(this.prop(n, v, k, s.sys_id));
+      } else if (!LOGIC_CONSUMED.includes(n) && asText(v) !== "") {
+        this.h.unsupported({
+          kind: "field",
+          table: s.source,
+          key: k,
+          sys_id: s.sys_id,
+          field: n,
+          reason: `Logic input '${n}' has no wfa.flowLogic config property; not emitted.`,
+        });
+      }
+    }
+    return { cfg: obj(props), raw: all };
   }
 
   /** A block body: `() => {…}` (or with a parameter). */
@@ -769,11 +1056,29 @@ class FlowEmit {
     depth: number,
     inParallel: boolean,
     param = "",
+    tail: string[] = [],
+    endFlowScope = true,
   ): string {
-    const body = this.steps(children, depth + 1, inParallel);
+    if (endFlowScope) this.endFlowScopes++;
+    let body: string[];
+    try {
+      body = [
+        ...this.steps(children, depth + 1, inParallel),
+        ...tail.map((t) => `${pad(depth + 1)}${t}`),
+      ];
+    } finally {
+      if (endFlowScope) this.endFlowScopes--;
+    }
+    const arg = usedParam(param, body.join("\n"));
     return body.length
-      ? `(${param}) => {\n${body.join("\n")}\n${pad(depth)}}`
-      : `(${param}) => {}`;
+      ? `(${arg}) => {\n${body.join("\n")}\n${pad(depth)}}`
+      : `(${arg}) => {}`;
+  }
+
+  /** A condition value of a logic input (pills kept), or undefined when empty. */
+  condition(v: unknown, k: string, sysId: string): Expr | undefined {
+    const t = asText(v);
+    return t ? this.stringValue(t, k, sysId) : undefined;
   }
 
   /** One logic step (and the siblings it chains); returns the last index consumed. */
@@ -796,30 +1101,54 @@ class FlowEmit {
         `logic '${s.ref?.name ?? s.name}' has no wfa.flowLogic mapping`,
       );
     }
-    const cfg = this.logicConfig(s, k);
-    if (!cfg) return unsupported(this.undecoded(s.values));
+    const keep =
+      spec.role === "if" || spec.role === "elseIf"
+        ? ["label"]
+        : spec.role === "doUntil"
+          ? ["label"]
+          : [];
+    const lc = this.logicConfig(s, k, keep);
+    if (!lc) return unsupported(this.undecoded(s.values));
+    const { raw } = lc;
+    let cfg = lc.cfg;
     const p = pad(depth);
     this.automation.add("wfa");
     switch (spec.role) {
       case "if": {
-        let out = `${p}wfa.flowLogic.if(${render(cfg, depth)}, ${this.block(s.children, depth, inParallel)})`;
+        const cond = this.condition(raw.get("condition"), k, s.sys_id);
+        if (!cond) return unsupported("an If without a condition");
+        cfg = withProp(cfg, "condition", cond);
+        lines.push(
+          `${p}wfa.flowLogic.if(${render(cfg, depth)}, ${this.block(s.children, depth, inParallel)})`,
+        );
         let j = i + 1;
         for (; j < list.length; j++) {
           const n = list[j]!;
           const role = LOGIC[norm(n.ref?.name ?? n.name)]?.role;
           if (role !== "elseIf" && role !== "else") break;
           const nk = this.nodeKey("logic", n.sys_id, n.source);
-          const ncfg = this.logicConfig(n, nk);
-          if (!ncfg) break;
+          const nl = this.logicConfig(
+            n,
+            nk,
+            role === "elseIf" ? ["label"] : [],
+          );
+          if (!nl) break;
+          let ncfg = nl.cfg;
+          if (role === "elseIf") {
+            const nc = this.condition(nl.raw.get("condition"), nk, n.sys_id);
+            if (!nc) break;
+            ncfg = withProp(ncfg, "condition", nc);
+          }
           this.seen.add(n.sys_id);
-          if (n.comment) out += ` // ${oneLine(n.comment)}`;
-          out += `.${role}(${render(ncfg, depth)}, ${this.block(n.children, depth, inParallel)})`;
+          if (n.comment) lines.push(`${p}// ${oneLine(n.comment)}`);
+          lines.push(
+            `${p}wfa.flowLogic.${role}(${render(ncfg, depth)}, ${this.block(n.children, depth, inParallel)})`,
+          );
           if (role === "else") {
             j++;
             break;
           }
         }
-        lines.push(out);
         return j - 1;
       }
       case "elseIf":
@@ -831,30 +1160,45 @@ class FlowEmit {
         return unsupported(
           "a parallel path outside 'Do the following in parallel'",
         );
-      case "forEach":
+      case "forEach": {
+        const items = asText(raw.get("items"));
+        if (!items) return unsupported("a For Each without items");
+        const itemsExpr = this.stringValue(items, k, s.sys_id, "records");
         lines.push(
-          `${p}wfa.flowLogic.forEach(${render(cfg, depth)}, ${this.block(s.children, depth, inParallel, "item")})`,
+          `${p}wfa.flowLogic.forEach(${render(itemsExpr, depth)}, ${render(cfg, depth)}, ${this.block(s.children, depth, inParallel, "item")})`,
         );
         return i;
-      case "doUntil":
+      }
+      case "doUntil": {
+        const cond = this.condition(raw.get("condition"), k, s.sys_id);
+        if (!cond)
+          return unsupported("a Do the following until without a condition");
         lines.push(
-          `${p}wfa.flowLogic.doUntil(${render(cfg, depth)}, ${this.block(s.children, depth, inParallel)})`,
+          `${p}wfa.flowLogic.doTheFollowing(${render(cfg, depth)}, ${this.block(s.children, depth, inParallel, "", [`wfa.flowLogic.until(${render(cond, depth + 1)})`])})`,
         );
         return i;
+      }
       case "try": {
         const next = list[i + 1];
         const hasCatch =
           next !== undefined &&
           LOGIC[norm(next.ref?.name ?? next.name)]?.role === "catch";
-        let catchPart = "";
+        let catchBlock = "() => {}";
         if (hasCatch) {
           this.seen.add(next.sys_id);
           // The Catch block's own key is registered so its sys_id is traceable.
           this.nodeKey("logic", next.sys_id, next.source);
-          catchPart = `\n${p}${PAD}catch: ${this.block(next.children, depth + 1, inParallel)},`;
+          catchBlock = this.block(
+            next.children,
+            depth + 1,
+            inParallel,
+            "",
+            [],
+            false,
+          );
         }
         lines.push(
-          `${p}wfa.flowLogic.tryCatch(${render(cfg, depth)}, {\n${p}${PAD}try: ${this.block(s.children, depth + 1, inParallel)},${catchPart}\n${p}})`,
+          `${p}wfa.flowLogic.tryCatch(${render(cfg, depth)}, {\n${p}${PAD}try: ${this.block(s.children, depth + 1, inParallel, "", [], false)},\n${p}${PAD}catch: ${catchBlock},\n${p}})`,
         );
         return hasCatch ? i + 1 : i;
       }
@@ -878,12 +1222,45 @@ class FlowEmit {
         );
         return i;
       }
-      case "leaf":
+      case "leaf": {
         if (s.children.length) {
           return unsupported(`'${s.name}' with nested steps`);
         }
+        if (spec.call === "endFlow" && !this.endFlowScopes) {
+          return unsupported(
+            "End Flow outside an If / For Each / Do the following / Do in parallel block (the SDK rejects wfa.flowLogic.endFlow there)",
+          );
+        }
+        if (spec.call === "waitForADuration") {
+          const d = durationExpr(asText(raw.get("duration")));
+          if (!d)
+            return unsupported(
+              "a wait duration that is not an explicit duration",
+            );
+          cfg = withProp(
+            withProp(cfg, "durationType", lit("explicit_duration")),
+            "duration",
+            d,
+          );
+        } else if (
+          spec.call === "setFlowVariables" ||
+          spec.call === "assignSubflowOutputs"
+        ) {
+          const target =
+            spec.call === "setFlowVariables"
+              ? "params.flowVariables"
+              : "params.outputs";
+          const values = [...raw]
+            .filter(([n]) => !LOGIC_CONSUMED.includes(n))
+            .map(([n, v]) => this.prop(n, v, k, s.sys_id));
+          lines.push(
+            `${p}wfa.flowLogic.${spec.call}(${render(obj([this.idProp(k)]), depth)}, ${target}, ${render(obj(values), depth)})`,
+          );
+          return i;
+        }
         lines.push(`${p}wfa.flowLogic.${spec.call}(${render(cfg, depth)})`);
         return i;
+      }
     }
   }
 
@@ -957,6 +1334,9 @@ class FlowEmit {
       this.idProp(this.key),
       { key: "name", value: lit(head?.name ?? this.src.name ?? "") },
     ];
+    if (head?.internal_name) {
+      props.push({ key: "internalName", value: lit(head.internal_name) });
+    }
     if (head?.description) {
       props.push({ key: "description", value: lit(head.description) });
     }
@@ -987,10 +1367,15 @@ class FlowEmit {
         ? ["sys_hub_action_input", "sys_hub_action_output"]
         : ["sys_hub_flow_input", "sys_hub_flow_output"];
     if (kind !== "flow") {
-      const ins = this.columns(tr.inputs, ioTables[0], "input", 3);
+      const ins = this.columns(tr.inputs, ioTables[0], "input");
       if (ins) props.push({ key: "inputs", value: ins });
-      const outs = this.columns(tr.outputs, ioTables[1], "output", 3);
+      const outs = this.columns(tr.outputs, ioTables[1], "output");
       if (outs) props.push({ key: "outputs", value: outs });
+      // Action() requires both, even when empty.
+      if (kind === "action") {
+        if (!ins) props.push({ key: "inputs", value: obj([]) });
+        if (!outs) props.push({ key: "outputs", value: obj([]) });
+      }
     } else {
       for (const [list, table, what] of [
         [tr.inputs, ioTables[0], "input"],
@@ -1023,14 +1408,12 @@ class FlowEmit {
         tr.variables,
         "sys_hub_flow_variable",
         "variable",
-        3,
       );
       if (vars) props.push({ key: "flowVariables", value: vars });
       const st = this.stages(tr.stages);
       if (st) props.push({ key: "stages", value: st });
     }
     const state = [
-      head?.internal_name ? `internal_name ${head.internal_name}` : "",
       tr.flow?.status ? `status ${tr.flow.status}` : "",
       head?.active !== undefined ? `active ${head.active}` : "",
     ].filter(Boolean);
@@ -1041,19 +1424,21 @@ class FlowEmit {
     const args = [`${PAD}${render(obj(props), 1)},`];
     if (kind === "flow") args.push(`${PAD}${this.trigger(tr.trigger)},`);
     const body = this.steps(tr.steps ?? [], 2, false);
+    const params = usedParam("params", body.join("\n"));
     args.push(
       body.length
-        ? `${PAD}(params) => {\n${body.join("\n")}\n${PAD}},`
-        : `${PAD}(params) => {},`,
+        ? `${PAD}(${params}) => {\n${body.join("\n")}\n${PAD}},`
+        : `${PAD}(${params}) => {},`,
     );
     return `${api}(\n${args.join("\n")}\n)`;
   }
 
-  /** PlaybookDefinition. */
+  /** PlaybookDefinition(config, { triggers }, { lanes }). */
   playbook(): string {
     const tr = this.tree;
     const head = tr.playbook;
     this.automation.add("PlaybookDefinition");
+    this.automation.add("wfa");
     const props: Prop[] = [
       this.idProp(this.key),
       { key: "label", value: lit(head?.name ?? this.src.name ?? "") },
@@ -1061,63 +1446,97 @@ class FlowEmit {
     if (head?.internal_name) {
       props.push({ key: "name", value: lit(head.internal_name) });
     }
-    if (head?.table) props.push({ key: "table", value: lit(head.table) });
+    if (head?.table) props.push({ key: "parentTable", value: lit(head.table) });
     if (head?.description) {
       props.push({ key: "description", value: lit(head.description) });
     }
-    const ins = this.columns(tr.inputs, "sys_pd_process_input", "input", 2);
+    const ins = this.columns(tr.inputs, "sys_pd_process_input", "input");
     if (ins) props.push({ key: "inputs", value: ins });
-    const outs = this.columns(tr.outputs, "sys_pd_process_output", "output", 2);
+    const outs = this.columns(tr.outputs, "sys_pd_process_output", "output");
     if (outs) props.push({ key: "outputs", value: outs });
-    if (tr.triggers?.length) {
-      props.push({
-        key: "triggers",
-        value: arr(
-          tr.triggers.map((g) => {
-            this.seen.add(g.sys_id);
-            const k = this.nodeKey(
-              "trigger",
-              g.sys_id,
-              "sys_pd_trigger_instance",
-            );
-            const p: Prop[] = [this.idProp(k)];
-            if (g.name) p.push({ key: "name", value: lit(g.name) });
-            if (g.type) p.push({ key: "type", value: lit(g.type) });
-            if (g.definition) {
-              p.push({
-                key: "definition",
-                value: code(
-                  `Now.ref('sys_pd_trigger_definition', ${tsString(g.definition.sys_id.toLowerCase())})`,
-                ),
-                ...(g.definition.name ? { comment: g.definition.name } : {}),
-              });
-            }
-            if (g.table) p.push({ key: "table", value: lit(g.table) });
-            if (g.condition)
-              p.push({ key: "condition", value: lit(g.condition) });
-            return obj(p);
-          }),
+    const triggers: Expr[] = [];
+    for (const g of tr.triggers ?? []) {
+      this.seen.add(g.sys_id);
+      const k = this.nodeKey("trigger", g.sys_id, "sys_pd_trigger_instance");
+      const type =
+        PB_TRIGGERS[norm(g.type)] ?? PB_TRIGGERS[norm(g.definition?.name)];
+      if (!type || !g.table) {
+        const reason = `Playbook trigger '${g.name ?? g.definition?.name ?? g.sys_id}': ${type ? "no table" : `type '${g.type ?? g.definition?.name ?? "none"}' has no PlaybookTriggerTypes record trigger`}; emitted as Record().`;
+        this.h.unsupported({
+          kind: "api",
+          table: "sys_pd_trigger_instance",
+          key: k,
+          sys_id: g.sys_id,
+          reason,
+        });
+        this.fallbackRow(
+          "sys_pd_trigger_instance",
+          g.sys_id,
+          k,
+          () =>
+            this.synthFlat("process_definition", {
+              name: g.name,
+              type: g.type,
+              table: g.table,
+              condition: g.condition,
+              trigger_definition: g.definition?.sys_id,
+            }),
+          reason,
+        );
+        continue;
+      }
+      this.automation.add("PlaybookTriggerTypes");
+      const cfg: Prop[] = [this.idProp(k)];
+      if (g.name) cfg.push({ key: "label", value: lit(g.name) });
+      const inputs: Prop[] = [{ key: "table", value: lit(g.table) }];
+      if (g.condition) {
+        inputs.push({ key: "condition", value: lit(g.condition) });
+      }
+      triggers.push(
+        code(
+          `wfa.playbook.trigger(PlaybookTriggerTypes.${type}, ${render(obj(cfg), 3)}, ${render(obj(inputs), 3)})`,
         ),
-      });
+      );
     }
-    const lanes = (tr.lanes ?? []).map((lane) => {
+    const lanes: Prop[] = (tr.lanes ?? []).map((lane) => {
       this.seen.add(lane.sys_id);
       const lk = this.nodeKey("lane", lane.sys_id, "sys_pd_lane");
-      const acts: Expr[] = [];
+      const acts: Prop[] = [];
       for (const a of lane.activities) {
         const e = this.activity(a, lane.sys_id);
         if (e) acts.push(e);
       }
-      return obj([
+      const config: Prop[] = [
         this.idProp(lk),
         { key: "label", value: lit(lane.name) },
-        ...(lane.condition
-          ? [{ key: "condition", value: lit(lane.condition) }]
-          : []),
-        { key: "activities", value: arr(acts) },
-      ]);
+        { key: "order", value: lit(lane.order) },
+        { key: "startRule", value: code("wfa.playbook.run.Immediately()") },
+        { key: "restartRule", value: lit("RUN_ALWAYS") },
+      ];
+      if (lane.condition) {
+        config.push({ key: "conditionToRun", value: lit(lane.condition) });
+      }
+      return {
+        key: lk,
+        value: code(
+          `wfa.playbook.lane(${render(
+            obj([
+              { key: "config", value: obj(config) },
+              {
+                key: "activities",
+                value: arrowObj(obj(acts), 4),
+              },
+            ]),
+            3,
+          )})`,
+        ),
+      };
     });
-    props.push({ key: "lanes", value: arr(lanes) });
+    if (lanes.length) {
+      this.notes.push(
+        "Lane / activity startRule and restartRule are not in the explain_flow tree: emitted as Run.Immediately() / RUN_ALWAYS — review them.",
+      );
+    }
     for (const v of tr.variants ?? []) {
       const k = this.nodeKey("variant", v.sys_id, "sys_pd_process_variant");
       const reason = `Playbook variant '${v.name}' has no PlaybookDefinition property; emitted as Record().`;
@@ -1149,11 +1568,18 @@ class FlowEmit {
     if (state.length) {
       this.notes.push(`Instance state (not emitted): ${state.join(", ")}.`);
     }
-    return `PlaybookDefinition(${render(obj(props))})`;
+    const dependent = obj([{ key: "triggers", value: arr(triggers) }]);
+    const body = obj([
+      {
+        key: "lanes",
+        value: arrowObj(obj(lanes), 2),
+      },
+    ]);
+    return `PlaybookDefinition(\n${PAD}${render(obj(props), 1)},\n${PAD}${render(dependent, 1)},\n${PAD}${render(body, 1)},\n)`;
   }
 
-  /** One playbook activity, or undefined when it falls back to `Record()`. */
-  activity(a: PdActivity, laneId: string): Expr | undefined {
+  /** One playbook activity (`key: wfa.playbook.activity(…)`), or undefined on fallback. */
+  activity(a: PdActivity, laneId: string): Prop | undefined {
     this.seen.add(a.sys_id);
     const k = this.nodeKey("activity", a.sys_id, "sys_pd_activity");
     const defName = norm(a.definition?.name);
@@ -1197,35 +1623,41 @@ class FlowEmit {
     const p: Prop[] = [
       this.idProp(k),
       { key: "label", value: lit(a.name) },
-      {
-        key: "activityDefinition",
-        value: code(`ActivityDefinitions.Core.${core}`),
-      },
+      { key: "order", value: lit(a.order) },
+      { key: "startRule", value: code("wfa.playbook.run.Immediately()") },
+      { key: "restartRule", value: lit("RUN_ALWAYS") },
     ];
-    if (a.condition) p.push({ key: "condition", value: lit(a.condition) });
-    if (a.timers?.length) {
+    if (a.condition) p.push({ key: "conditionToRun", value: lit(a.condition) });
+    let delayed = false;
+    for (const tm of a.timers ?? []) {
+      const d = delayed ? undefined : durationExpr(tm.duration ?? "");
+      if (!d) {
+        this.timerFallback(
+          tm,
+          a.sys_id,
+          delayed
+            ? "only one startWithDelay per activity"
+            : `duration '${tm.duration ?? ""}' is not an explicit duration`,
+        );
+        continue;
+      }
+      delayed = true;
+      this.seen.add(tm.sys_id);
+      this.nodeKey("timer", tm.sys_id, "sys_pd_timer_attributes");
       p.push({
-        key: "timers",
-        value: arr(
-          a.timers.map((tm) => {
-            const tk = this.nodeKey(
-              "timer",
-              tm.sys_id,
-              "sys_pd_timer_attributes",
-            );
-            return obj([
-              this.idProp(tk),
-              ...(tm.name ? [{ key: "name", value: lit(tm.name) }] : []),
-              ...(tm.type ? [{ key: "type", value: lit(tm.type) }] : []),
-              ...(tm.duration
-                ? [{ key: "duration", value: lit(tm.duration) }]
-                : []),
-            ]);
-          }),
-        ),
+        key: "startWithDelay",
+        value: obj([
+          { key: "type", value: lit("explicit") },
+          { key: "duration", value: d },
+        ]),
       });
     }
-    return obj(p);
+    return {
+      key: k,
+      value: code(
+        `wfa.playbook.activity(ActivityDefinitions.Core.${core}, ${render(obj(p), 5)})`,
+      ),
+    };
   }
 
   timerFallback(tm: PdTimer, activityId: string, reason: string): void {
@@ -1235,7 +1667,7 @@ class FlowEmit {
       table: "sys_pd_timer_attributes",
       key: k,
       sys_id: tm.sys_id,
-      reason: `Timer of an unsupported activity (${reason})`,
+      reason: `Timer not emitted as startWithDelay (${reason}); emitted as Record().`,
     });
     this.fallbackRow(
       "sys_pd_timer_attributes",

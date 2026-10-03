@@ -14,7 +14,7 @@ import ts from "typescript";
 import { emitFluent, SECRET_PLACEHOLDER } from "../build/api/fluent.js";
 import {
   UI_EMITTERS,
-  UI_UNVERIFIED_WARNING,
+  UI_VERIFIED_NOTE,
   uiFallbackReason,
 } from "../build/api/fluent-ui.js";
 import {
@@ -279,8 +279,8 @@ const CASES = {
           sys_id: sid("22"),
           tab: sid("21"),
           component: "sn-chart",
-          height: "4",
-          width: "6",
+          h: "4",
+          w: "6",
         },
       ]),
       child("par_dashboard_permission", "dashboard", [
@@ -674,10 +674,16 @@ test("the SPPage layout tree nests containers, rows, columns and instances in or
       at(`sp_column_${sid("b5").slice(0, 8)}`),
   );
   assert.match(text, /widget: Now\.ref\('sp_widget', 'a1/);
-  assert.match(text, /widgetParameters: \{\n\s+title: 'Hello',\n\s+limit: 5,/);
+  assert.match(text, /widgetParameters: '\{"title":"Hello","limit":5\}',/);
   // The orphan row is not lost: Record() plus an unsupported[] entry.
   const b = emitCase("ui_sp_page");
   assert.match(text, /\/\/ child of sp_page_acme_home: sp_row\nRecord\(/);
+  // SPPage takes no $id: its key is not declared (it would build as a DELETE).
+  assert.ok(!b.keys.some((k) => k.table === "sp_page"));
+  assert.match(
+    text,
+    /SPPage takes no \$id: now-sdk build gives the page a new sys_id/,
+  );
   assert.deepEqual(
     b.unsupported.map((u) => [u.kind, u.table]),
     [["child", "sp_row"]],
@@ -720,7 +726,7 @@ test("CatalogItem: typed variables, choices, sets, logic and every leftover repo
   assert.match(text, /model_2: SingleLineTextVariable\(\{/);
   assert.match(text, /location: MultipleChoiceVariable\(\{/);
   // Choices in order-field order.
-  assert.ok(text.indexOf("value: 'air'") < text.indexOf("value: 'pro'"));
+  assert.ok(text.indexOf("air: {") < text.indexOf("pro: {"));
   // Call order: item, its script, its policy, then the set.
   const order = [
     "CatalogItem({",
@@ -746,30 +752,37 @@ test("CatalogItem: typed variables, choices, sets, logic and every leftover repo
   assert.deepEqual(
     b.unsupported.map((u) => [u.kind, u.table, u.field ?? ""]),
     [
+      ["field", "sc_cat_item", "price"],
       ["field", "item_option_new", "name"],
       ["api", "item_option_new", ""],
       ["child", "catalog_ui_policy", ""],
       ["child", "sc_cat_item_user_criteria_mtom", ""],
     ],
   );
-  assert.match(b.unsupported[0].reason, /Duplicate variable name 'model'/);
-  assert.match(b.unsupported[1].reason, /Variable type '99'/);
-  assert.match(b.unsupported[2].reason, /redacted/);
-  assert.match(b.unsupported[3].reason, /Only the first 1 child rows/);
+  // The SDK's CatalogItem has no price property (only the price flags).
+  assert.match(b.unsupported[0].reason, /No CatalogItem property .* price/);
+  assert.match(b.unsupported[1].reason, /Duplicate variable name 'model'/);
+  assert.match(b.unsupported[2].reason, /Variable type '99'/);
+  assert.match(b.unsupported[3].reason, /redacted/);
+  assert.match(b.unsupported[4].reason, /Only the first 1 child rows/);
 });
 
 test("a workspace references its UI Builder internals and reports them", () => {
   const b = emitCase("ui_workspace");
   const text = mainOf(b);
-  assert.match(text, /rootMacroponent: Now\.ref\('sys_ux_macroponent', '11/);
+  // The SDK's Workspace has no root macroponent / admin panel property.
+  assert.doesNotMatch(text, /rootMacroponent/);
   assert.deepEqual(
-    b.unsupported.map((u) => [u.kind, u.table]),
+    b.unsupported.map((u) => [u.kind, u.table, u.field ?? ""]),
     [
-      ["api", "sys_ux_macroponent"],
-      ["api", "sys_ux_app_config"],
+      ["field", "sys_ux_page_registry", "admin_panel"],
+      ["field", "sys_ux_page_registry", "root_macroponent"],
+      ["api", "sys_ux_macroponent", ""],
+      ["api", "sys_ux_app_config", ""],
+      ["child", "sys_ux_page_property", ""],
     ],
   );
-  assert.match(b.unsupported[0].reason, /uib_macroponent/);
+  assert.match(b.unsupported[2].reason, /uib_macroponent/);
 });
 
 test("UI Builder and Angular-template types stay Record() with an unsupported[] entry", () => {
@@ -841,8 +854,20 @@ test("secrets become the credential placeholder in P-28 output", () => {
     [
       {
         scope: SCOPE,
-        record: { sys_id: sid("20"), name: "D", client_secret: "shh" },
-        children: [],
+        record: { sys_id: sid("20"), name: "D" },
+        children: [
+          child("par_dashboard_tab", "dashboard", [
+            { sys_id: sid("21"), dashboard: sid("20"), name: "T" },
+          ]),
+          child("par_dashboard_widget", "tab", [
+            {
+              sys_id: sid("22"),
+              tab: sid("21"),
+              component: "sn-chart",
+              component_props: '{"client_secret":"shh"}',
+            },
+          ]),
+        ],
       },
     ],
     "dashboard",
@@ -856,7 +881,7 @@ test("secrets become the credential placeholder in P-28 output", () => {
 const tool = ALL_TOOLS.find((s) => s.name === "servicenow_generate_fluent");
 const rows = (result) => jsonResponse(200, { result });
 
-test("generate_fluent over a P-28 type: dedicated emitter and the unverified warning", async () => {
+test("generate_fluent over a P-28 type: dedicated emitter and the verified-shape note", async () => {
   freshRuntime();
   const rec = {
     sys_id: sid("80"),
@@ -883,7 +908,7 @@ test("generate_fluent over a P-28 type: dedicated emitter and the unverified war
       const body = res.structuredContent;
       assert.equal(body.emitter, "dedicated");
       assert.equal(body.sdkApi, "SPAngularProvider");
-      assert.ok(body.warnings.includes(UI_UNVERIFIED_WARNING));
+      assert.ok(body.warnings.includes(UI_VERIFIED_NOTE));
       const main = body.files.find((f) => f.path.endsWith(".now.ts"));
       assert.match(main.content, /^SPAngularProvider\(\{/m);
       assert.match(

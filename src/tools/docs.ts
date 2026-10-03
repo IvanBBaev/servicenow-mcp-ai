@@ -68,7 +68,7 @@ function deliverDocument(result: DocumentResult, name: string) {
 
 export const specs: AnyToolSpec[] = [
   defineTool({
-    name: "servicenow_docs_list",
+    name: "servicenow_list_docs",
     title: "List instance docs",
     description:
       "List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR), " +
@@ -86,7 +86,7 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_docs_read",
+    name: "servicenow_read_doc",
     title: "Read instance doc",
     description:
       "Read one Markdown document or generated .json companion from the local " +
@@ -109,7 +109,7 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_docs_search",
+    name: "servicenow_search_docs",
     title: "Search instance docs",
     description:
       "Search the local instance documentation for a substring; returns a snippet and the " +
@@ -149,7 +149,7 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_docs_write",
+    name: "servicenow_write_doc",
     title: "Write instance doc",
     description:
       "Create or overwrite a Markdown document in the local docs folder and refresh index.md. A generated document (sn_generated) is refused with DOC_GENERATED unless overwrite:true; annotate one inside <!-- sn:manual:start --> … <!-- sn:manual:end -->.",
@@ -211,7 +211,7 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Columns per entity before the rest fold into '+N' (40)."),
       depth: z
-        .union([z.literal(0), z.literal(1), z.literal(2)])
+        .literal([0, 1, 2])
         .optional()
         .describe(
           "Follow references this many levels, adding each target table (0).",

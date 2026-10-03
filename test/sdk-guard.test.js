@@ -21,6 +21,10 @@ import {
 } from "./helpers.js";
 
 baselineEnv();
+// These tests drive destructive apply:true calls directly; the H-3 plan-token
+// gate (the 3.0 default SN_DESTRUCTIVE_CONFIRM=token, B4) is covered in
+// plan-token.test.js, so this file opts out explicitly.
+process.env.SN_DESTRUCTIVE_CONFIRM = "off";
 
 const call = (name, args) =>
   runSpec(
@@ -101,7 +105,7 @@ async function scenario(env, fn, opts) {
 const update = {
   table: "sys_script_include",
   sys_id: REC,
-  fields: { script: "// x" },
+  values: { script: "// x" },
 };
 
 test("settings: SN_SDK_MANAGED_WRITES defaults to warn", async () => {
@@ -161,7 +165,7 @@ test("deny: the plan says would_refuse; every guarded write tool refuses the app
       "servicenow_create_record",
       {
         table: "sys_script_include",
-        fields: { name: "U", sys_scope: SDK_SCOPE_ID },
+        values: { name: "U", sys_scope: SDK_SCOPE_ID },
       },
     ],
     [
@@ -169,13 +173,18 @@ test("deny: the plan says would_refuse; every guarded write tool refuses the app
       {
         table: "sys_script_include",
         key: { name: "Util" },
-        fields: { script: "x" },
+        values: { script: "x" },
       },
     ],
     ["servicenow_set_property", { name: "x_acme_sdk.flag", value: "b" }],
   ];
   for (const [name, args] of cases) {
-    await scenario({ SN_SDK_MANAGED_WRITES: "deny" }, async (calls) => {
+    // set_property writes sys_properties, a protected table (write-denied by
+    // default since 3.0, B11); opt out so the guard itself is what refuses.
+    const env = { SN_SDK_MANAGED_WRITES: "deny" };
+    if (name === "servicenow_set_property")
+      env.SN_PROTECTED_TABLES_WRITE = "allow";
+    await scenario(env, async (calls) => {
       const plan = out(await call(name, args));
       assert.equal(plan.mode, "plan", name);
       assert.equal(
@@ -187,12 +196,12 @@ test("deny: the plan says would_refuse; every guarded write tool refuses the app
       if (plan.apply_with) applyArgs = { ...applyArgs, ...plan.apply_with };
       const res = out(await call(name, applyArgs));
       assert.equal(
-        res.error?.code,
+        res?.code,
         "SDK_MANAGED_SCOPE",
         `${name}: ${JSON.stringify(res)}`,
       );
-      assert.equal(res.error.status, 409);
-      assert.match(res.error.hint, /now-sdk install/);
+      assert.equal(res.status, 409);
+      assert.match(res.hint, /now-sdk install/);
       assert.equal(mutating(calls).length, 0, name);
     });
   }
@@ -238,7 +247,7 @@ test("records outside a managed scope, and tables without sys_scope, are not fla
     const r = await call("servicenow_update_record", {
       table: "incident",
       sys_id: REC,
-      fields: { state: "2" },
+      values: { state: "2" },
       apply: true,
     });
     assert.equal(r.isError, undefined, r.content[0].text);
@@ -254,11 +263,11 @@ test("an update that moves a record into a managed scope is caught by the writte
         await call("servicenow_update_record", {
           table: "sys_script_include",
           sys_id: REC,
-          fields: { sys_scope: SDK_SCOPE_ID },
+          values: { sys_scope: SDK_SCOPE_ID },
           apply: true,
         }),
       );
-      assert.equal(res.error.code, "SDK_MANAGED_SCOPE");
+      assert.equal(res.code, "SDK_MANAGED_SCOPE");
       assert.equal(mutating(calls).length, 0);
     },
     { recordScope: PLAIN_SCOPE_ID },
@@ -272,7 +281,7 @@ test("the table policy decides first: a denied write is POLICY_DENIED, not SDK_M
       const res = out(
         await call("servicenow_update_record", { ...update, apply: true }),
       );
-      assert.equal(res.error.code, "POLICY_DENIED");
+      assert.equal(res.code, "POLICY_DENIED");
       assert.equal(calls.length, 0);
     },
   );
@@ -289,7 +298,7 @@ test("ordering: a protected-table write (readable, not writable) is POLICY_DENIE
           apply: true,
         }),
       );
-      assert.equal(res.error.code, "POLICY_DENIED");
+      assert.equal(res.code, "POLICY_DENIED");
       assert.equal(mutating(calls).length, 0);
     },
   );
@@ -345,7 +354,7 @@ test("batch: write sub-requests to a managed scope are flagged in the plan and r
     const res = out(
       await call("servicenow_batch", { ...batchWrite, apply: true }),
     );
-    assert.equal(res.error?.code, "SDK_MANAGED_SCOPE", JSON.stringify(res));
+    assert.equal(res?.code, "SDK_MANAGED_SCOPE", JSON.stringify(res));
     assert.equal(mutating(calls).length, 0);
   });
 });
@@ -382,7 +391,7 @@ const metadataChain = (u) =>
 
 const createNoScope = {
   table: "sys_script_include",
-  fields: { name: "U", script: "// x" },
+  values: { name: "U", script: "// x" },
 };
 
 test("create without sys_scope: the session's current application decides (apps.current_app)", async () => {
@@ -411,7 +420,7 @@ test("create without sys_scope: the session's current application decides (apps.
           apply: true,
         }),
       );
-      assert.equal(res.error?.code, "SDK_MANAGED_SCOPE");
+      assert.equal(res?.code, "SDK_MANAGED_SCOPE");
       assert.equal(mutating(calls).length, 0);
     },
   );

@@ -49,6 +49,9 @@ export default tseslint.config(
   {
     languageOptions: {
       globals: { ...globals.node },
+      // E-2: typescript-eslint refuses to guess between this tsconfig root
+      // and the repository root's, even for syntax-only files.
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
     },
   },
   prettier,

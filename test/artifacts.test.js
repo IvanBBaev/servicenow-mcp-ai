@@ -208,8 +208,8 @@ test("get_artifact: ambiguous and unmatched keys, and bad identifiers", async ()
             key: "dup",
           }),
         );
-        assert.equal(dup.error.status, 409);
-        assert.equal(dup.error.code, "AMBIGUOUS_KEY");
+        assert.equal(dup.status, 409);
+        assert.equal(dup.code, "AMBIGUOUS_KEY");
 
         const none = out(
           await call("servicenow_get_artifact", {
@@ -217,7 +217,7 @@ test("get_artifact: ambiguous and unmatched keys, and bad identifiers", async ()
             key: { id: "nope" },
           }),
         );
-        assert.equal(none.error.status, 404);
+        assert.equal(none.status, 404);
 
         const both = out(
           await call("servicenow_get_artifact", {
@@ -226,7 +226,7 @@ test("get_artifact: ambiguous and unmatched keys, and bad identifiers", async ()
             sys_id: "1".repeat(32),
           }),
         );
-        assert.match(both.error.message, /exactly one/);
+        assert.match(both.error, /exactly one/);
 
         const missingKey = out(
           await call("servicenow_get_artifact", {
@@ -234,7 +234,7 @@ test("get_artifact: ambiguous and unmatched keys, and bad identifiers", async ()
             key: { title: "Home" },
           }),
         );
-        assert.match(missingKey.error.message, /missing: id/);
+        assert.match(missingKey.error, /missing: id/);
 
         const badId = out(
           await call("servicenow_get_artifact", {
@@ -242,7 +242,7 @@ test("get_artifact: ambiguous and unmatched keys, and bad identifiers", async ()
             sys_id: "not-an-id",
           }),
         );
-        assert.equal(badId.error.status, 400);
+        assert.equal(badId.status, 400);
 
         const unknown = out(
           await call("servicenow_get_artifact", {
@@ -250,7 +250,7 @@ test("get_artifact: ambiguous and unmatched keys, and bad identifiers", async ()
             sys_id: "1".repeat(32),
           }),
         );
-        assert.match(unknown.error.message, /Valid types: business_rule/);
+        assert.match(unknown.error, /Valid types: business_rule/);
       },
     );
   });
@@ -347,7 +347,7 @@ test("get_artifact: child rows past CHILD_LIMIT are truncated; policy on the pri
             sys_id: POLICY_ID,
           }),
         );
-        assert.equal(body.error.status, 403);
+        assert.equal(body.status, 403);
       },
     );
   });
@@ -375,7 +375,7 @@ test("get_artifact: an unverified type degrades on 400, a verified one fails", a
             sys_id: POLICY_ID,
           }),
         );
-        assert.equal(verified.error.status, 400);
+        assert.equal(verified.status, 400);
       },
     );
     await withFetch(
@@ -387,7 +387,7 @@ test("get_artifact: an unverified type degrades on 400, a verified one fails", a
             sys_id: "1".repeat(32),
           }),
         );
-        assert.equal(body.error.status, 404);
+        assert.equal(body.status, 404);
       },
     );
   });
@@ -479,7 +479,7 @@ test("list_artifacts: base query first, missing fields, active refusal, degrade 
         active: true,
       }),
     );
-    assert.match(noActive.error.message, /no active flag/);
+    assert.match(noActive.error, /no active flag/);
 
     await withFetch(
       () => jsonResponse(403, { error: { message: "ACL" } }),
@@ -496,7 +496,7 @@ test("list_artifacts: base query first, missing fields, active refusal, degrade 
             artifactType: "business_rule",
           }),
         );
-        assert.equal(verified.error.status, 403);
+        assert.equal(verified.status, 403);
       },
     );
   });
@@ -507,7 +507,7 @@ test("list_artifacts: base query first, missing fields, active refusal, degrade 
         const denied = out(
           await call("servicenow_list_artifacts", { artifactType: "flow" }),
         );
-        assert.equal(denied.error.status, 403);
+        assert.equal(denied.status, 403);
       },
     );
   });
@@ -522,7 +522,7 @@ test("the artifacts package is opt-in and holds exactly the six tools", () => {
       "servicenow_list_artifacts",
       "servicenow_get_artifact",
       "servicenow_explain_artifact",
-      "servicenow_artifact_dependencies",
+      "servicenow_get_artifact_dependencies",
       "servicenow_generate_fluent",
       "servicenow_upsert_artifact",
     ],

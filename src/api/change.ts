@@ -70,6 +70,9 @@ export async function createChange(args: CreateChangeArgs): Promise<unknown> {
     if (!args.templateId) {
       throw new ServiceNowError(
         "A standard change requires templateId (the standard change template sys_id).",
+        undefined,
+        undefined,
+        { code: "INVALID_INPUT" },
       );
     }
     path = `${BASE}/standard/${encodeURIComponent(args.templateId)}`;

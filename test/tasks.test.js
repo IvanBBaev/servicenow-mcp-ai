@@ -273,7 +273,7 @@ test("runMaybeAsTask: strips run_as_task and runs inline when not a task", async
     seen.push(args);
     return { content: [{ type: "text", text: "{}" }] };
   };
-  const health = spec("servicenow_code_health");
+  const health = spec("servicenow_check_code_health");
   await withEnv(OFF, async () => {
     await runMaybeAsTask(health, { scope: "x" }, {}, run);
     await runMaybeAsTask(health, { scope: "x", run_as_task: true }, {}, run);
@@ -315,7 +315,7 @@ test("runMaybeAsTask: a thrown run is stored as failed, a late store is swallowe
         store.storeTaskResult(id, status, result),
     };
     const res = await runMaybeAsTask(
-      spec("servicenow_code_health"),
+      spec("servicenow_check_code_health"),
       { run_as_task: true },
       { taskStore: requestStore },
       async () => {
@@ -338,7 +338,7 @@ test("runMaybeAsTask: a thrown run is stored as failed, a late store is swallowe
       },
     };
     await runMaybeAsTask(
-      spec("servicenow_code_health"),
+      spec("servicenow_check_code_health"),
       { run_as_task: true },
       { taskStore: broken, requestId: 7, sessionId: "s" },
       async () => ({ content: [{ type: "text", text: "{}" }] }),
@@ -401,7 +401,7 @@ test("flag off: no run_as_task in tools/list, no tasks capability", async () => 
       assert.equal(client.getServerCapabilities().tasks, undefined);
       // The argument is rejected by the strict schema, not silently accepted.
       const res = await client.callTool({
-        name: "servicenow_code_health",
+        name: "servicenow_check_code_health",
         arguments: { run_as_task: true },
       });
       assert.equal(res.isError, true);
@@ -421,7 +421,9 @@ test("flag on: run_as_task only on the task tools, capability declared", async (
         .map((t) => t.name)
         .sort();
       assert.deepEqual(withFlag, [...TASK_TOOLS].sort());
-      const health = tools.find((t) => t.name === "servicenow_code_health");
+      const health = tools.find(
+        (t) => t.name === "servicenow_check_code_health",
+      );
       assert.equal(
         health.inputSchema.additionalProperties,
         false,
@@ -530,7 +532,7 @@ test("e2e: tasks/cancel aborts the in-flight ServiceNow request", async () => {
         const { client, store, close } = await startServer();
         try {
           const handle = await client.callTool({
-            name: "servicenow_code_health",
+            name: "servicenow_check_code_health",
             arguments: { run_as_task: true },
           });
           const taskId = taskIdOf(handle);

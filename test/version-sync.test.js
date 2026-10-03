@@ -20,10 +20,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { FOLLOWERS, syncVersion } from "../scripts/sync-version.mjs";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = path.join(import.meta.dirname, "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
 const json = (rel) => JSON.parse(read(rel));
 
@@ -86,14 +85,38 @@ test("version-sync: marketplace.json carries no version of its own", () => {
 
 test("launcher: the Node guard in bin/servicenow-mcp-ai.cjs pins engines.node", () => {
   const enginesNode = json("package.json").engines.node;
-  const major = enginesNode.replace(/\D/g, "");
-  assert.match(major, /^\d+$/, `engines.node "${enginesNode}" has no major`);
+  // E-1: the floor is a major.minor (">=22.12").
+  const floor = enginesNode.match(/^>=(\d+)\.(\d+)$/);
+  assert.ok(floor, `engines.node "${enginesNode}" is not ">=MAJOR.MINOR"`);
+  const [, major, minor] = floor;
 
   const launcher = read("bin/servicenow-mcp-ai.cjs");
-  const guard = launcher.match(/if \(major < (\d+)\)/);
-  const message = launcher.match(/requires Node\.js >= (\d+)/);
-  assert.equal(guard?.[1], major, "launcher guard major != engines.node");
-  assert.equal(message?.[1], major, "launcher message major != engines.node");
+  const guard = launcher.match(
+    /if \(major < (\d+) \|\| \(major === (\d+) && minor < (\d+)\)\)/,
+  );
+  const message = launcher.match(/requires Node\.js >= (\d+\.\d+)/);
+  assert.deepEqual(
+    guard?.slice(1),
+    [major, major, minor],
+    "launcher guard != engines.node",
+  );
+  assert.equal(
+    message?.[1],
+    `${major}.${minor}`,
+    "launcher message != engines.node",
+  );
+
+  const entry = read("src/index.ts");
+  assert.ok(
+    entry.includes(
+      `nodeMajor < ${major} || (nodeMajor === ${major} && nodeMinor < ${minor})`,
+    ),
+    "src/index.ts guard != engines.node",
+  );
+  assert.ok(
+    entry.includes(`requires Node.js >= ${major}.${minor}`),
+    "src/index.ts message != engines.node",
+  );
 });
 
 // --- scripts/sync-version.mjs against a fixture tree ---------------------

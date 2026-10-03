@@ -27,6 +27,10 @@ import {
 } from "./helpers.js";
 
 baselineEnv();
+// These tests drive destructive apply:true calls directly; the H-3 plan-token
+// gate (the 3.0 default SN_DESTRUCTIVE_CONFIRM=token, B4) is covered in
+// plan-token.test.js, so this file opts out explicitly.
+process.env.SN_DESTRUCTIVE_CONFIRM = "off";
 
 const call = (name, args) => {
   const spec = ALL_TOOLS.find((s) => s.name === name);
@@ -148,10 +152,10 @@ const POLICY_KEY = { short_description: "Lock priority", table: "incident" };
 const policyArgs = (visible, mandatory) => ({
   artifactType: "ui_policy",
   key: POLICY_KEY,
-  fields: { conditions: "active=true", on_load: "true" },
+  values: { conditions: "active=true", on_load: "true" },
   children: [
-    { fields: { field: "priority", visible, mandatory: "true" } },
-    { fields: { field: "urgency", visible: "true", mandatory } },
+    { values: { field: "priority", visible, mandatory: "true" } },
+    { values: { field: "urgency", visible: "true", mandatory } },
   ],
 });
 
@@ -195,7 +199,7 @@ test("acceptance: create -> update -> S-2 revert of a UI policy with two actions
     // 2. Update: both actions (and the parent) change; one plan, one apply.
     const updated = await planAndApply({
       ...policyArgs("false", "true"),
-      fields: { conditions: "active=false", on_load: "true" },
+      values: { conditions: "active=false", on_load: "true" },
     });
     assert.equal(updated.plan.parent_action, "update");
     assert.deepEqual(updated.plan.count, { create: 0, update: 3, noop: 0 });
@@ -251,7 +255,7 @@ test("a new child of an existing parent is a create linked to the parent; unname
     await planAndApply(policyArgs("true", "false"));
     const r = await planAndApply({
       ...policyArgs("true", "false"),
-      children: [{ fields: { field: "impact", visible: "false" } }],
+      children: [{ values: { field: "impact", visible: "false" } }],
     });
     assert.deepEqual(r.plan.count, { create: 1, update: 0, noop: 1 });
     const actions = [...inst.rows("sys_ui_policy_action").values()];
@@ -274,7 +278,7 @@ test("a sys_ux_macroponent.composition change returns a plan and refuses the app
       const args = {
         artifactType: "uib_macroponent",
         key: MAC,
-        fields: { composition: '[{"id":"x"}]' },
+        values: { composition: '[{"id":"x"}]' },
       };
       const plan = out(await call("servicenow_upsert_artifact", args));
       assert.equal(plan.mode, "plan");
@@ -290,8 +294,8 @@ test("a sys_ux_macroponent.composition change returns a plan and refuses the app
           apply: true,
         }),
       );
-      assert.equal(res.error?.code, "PLAN_ONLY_FIELD", JSON.stringify(res));
-      assert.equal(res.error.status, 409);
+      assert.equal(res?.code, "PLAN_ONLY_FIELD", JSON.stringify(res));
+      assert.equal(res.status, 409);
       assert.equal(mutating(calls).length, 0);
       assert.equal(inst.rows("sys_ux_macroponent").get(MAC).composition, "[]");
     },
@@ -316,7 +320,7 @@ test("policy deny on a child table refuses the whole apply before any write", as
           apply: true,
         }),
       );
-      assert.equal(res.error?.code, "POLICY_DENIED", JSON.stringify(res));
+      assert.equal(res?.code, "POLICY_DENIED", JSON.stringify(res));
       assert.equal(mutating(calls).length, 0);
     },
   );
@@ -331,7 +335,7 @@ test("SDK guard deny: a create into an SDK-managed scope is refused with no muta
     async (calls) => {
       const args = {
         ...policyArgs("true", "false"),
-        fields: { conditions: "active=true", sys_scope: SDK_SCOPE_ID },
+        values: { conditions: "active=true", sys_scope: SDK_SCOPE_ID },
       };
       const plan = out(await call("servicenow_upsert_artifact", args));
       assert.equal(plan.mode, "plan");
@@ -345,7 +349,7 @@ test("SDK guard deny: a create into an SDK-managed scope is refused with no muta
           apply: true,
         }),
       );
-      assert.equal(res.error?.code, "SDK_MANAGED_SCOPE", JSON.stringify(res));
+      assert.equal(res?.code, "SDK_MANAGED_SCOPE", JSON.stringify(res));
       assert.equal(mutating(calls).length, 0);
     },
   );
@@ -358,13 +362,13 @@ test("plan token: the token binds the whole plan; changed children are PLAN_REQU
     assert.match(plan.plan_token, /^pt[a-z]{28}$/);
     const changed = {
       ...args,
-      children: [{ fields: { field: "priority", visible: "false" } }],
+      children: [{ values: { field: "priority", visible: "false" } }],
       ...plan.apply_with,
       plan_token: plan.plan_token,
       apply: true,
     };
     const res = out(await call("servicenow_upsert_artifact", changed));
-    assert.equal(res.error?.code, "PLAN_REQUIRED", JSON.stringify(res));
+    assert.equal(res?.code, "PLAN_REQUIRED", JSON.stringify(res));
     assert.equal(mutating(calls).length, 0);
     // The matching token applies.
     const good = await call("servicenow_upsert_artifact", {
@@ -410,37 +414,37 @@ test("refusals: flow fields other than active, sys_* and parent-link fields, dup
       await call("servicenow_upsert_artifact", {
         artifactType: "flow",
         key: { name: "X" },
-        fields: { description: "x" },
+        values: { description: "x" },
       }),
     );
-    assert.equal(flow.error?.code, "FLOW_ACTIVE_ONLY", JSON.stringify(flow));
+    assert.equal(flow?.code, "FLOW_ACTIVE_ONLY", JSON.stringify(flow));
 
     const sys = out(
       await call("servicenow_upsert_artifact", {
         ...policyArgs("true", "false"),
-        fields: { sys_created_by: "x" },
+        values: { sys_created_by: "x" },
       }),
     );
-    assert.equal(sys.error?.code, "FIELD_NOT_ALLOWED", JSON.stringify(sys));
+    assert.equal(sys?.code, "FIELD_NOT_ALLOWED", JSON.stringify(sys));
 
     const link = out(
       await call("servicenow_upsert_artifact", {
         ...policyArgs("true", "false"),
-        children: [{ fields: { field: "a", ui_policy: "f".repeat(32) } }],
+        children: [{ values: { field: "a", ui_policy: "f".repeat(32) } }],
       }),
     );
-    assert.equal(link.error?.code, "FIELD_NOT_ALLOWED", JSON.stringify(link));
+    assert.equal(link?.code, "FIELD_NOT_ALLOWED", JSON.stringify(link));
 
     const dup = out(
       await call("servicenow_upsert_artifact", {
         ...policyArgs("true", "false"),
         children: [
-          { fields: { field: "a", visible: "true" } },
-          { fields: { field: "a", visible: "false" } },
+          { values: { field: "a", visible: "true" } },
+          { values: { field: "a", visible: "false" } },
         ],
       }),
     );
-    assert.equal(dup.error?.code, "DUPLICATE_CHILD_KEY", JSON.stringify(dup));
+    assert.equal(dup?.code, "DUPLICATE_CHILD_KEY", JSON.stringify(dup));
     assert.equal(calls.length, 0);
   });
 });
@@ -531,14 +535,14 @@ function upsertFromGet(got) {
     return {
       table: c.table,
       key: { sys_id: rec.sys_id },
-      fields: pick(rec, childWriteFields(c)),
+      values: pick(rec, childWriteFields(c)),
       ...(parent >= 0 ? { parent } : {}),
     };
   });
   return {
     artifactType: got.artifactType,
     key: got.key,
-    fields: pick(got.record, parentWriteFields(t), t.keyFields),
+    values: pick(got.record, parentWriteFields(t), t.keyFields),
     children,
   };
 }
@@ -609,26 +613,26 @@ test("P-24: a nested layout update is journaled per record and reverts through S
     const r = await planAndApply({
       artifactType: "sp_page",
       key: "x_acme_home",
-      fields: {},
+      values: {},
       children: [
-        { table: "sp_container", key: { sys_id: CONT }, fields: {} },
-        { table: "sp_row", parent: 0, key: { sys_id: ROW }, fields: {} },
+        { table: "sp_container", key: { sys_id: CONT }, values: {} },
+        { table: "sp_row", parent: 0, key: { sys_id: ROW }, values: {} },
         {
           table: "sp_column",
           parent: 1,
           key: { sys_id: COL },
-          fields: { size: "6" },
+          values: { size: "6" },
         },
         {
           table: "sp_instance",
           parent: 2,
           key: { sys_id: INST },
-          fields: { title: "Hi there" },
+          values: { title: "Hi there" },
         },
         {
           table: "sp_instance",
           parent: 2,
-          fields: { order: "2", sp_widget: WIDGET, title: "Second" },
+          values: { order: "2", sp_widget: WIDGET, title: "Second" },
         },
       ],
     });
@@ -662,25 +666,25 @@ test("P-24: nested children must name an earlier child of the right table", asyn
         await call("servicenow_upsert_artifact", {
           artifactType: "sp_page",
           key: "x_acme_home",
-          fields: {},
+          values: {},
           children,
         }),
       );
-    const noParent = await run([{ table: "sp_row", fields: { order: "1" } }]);
-    assert.equal(noParent.error?.code, "CHILD_PARENT_INVALID");
+    const noParent = await run([{ table: "sp_row", values: { order: "1" } }]);
+    assert.equal(noParent?.code, "CHILD_PARENT_INVALID");
     const later = await run([
-      { table: "sp_container", parent: 1, fields: { order: "1" } },
-      { table: "sp_container", fields: { order: "2" } },
+      { table: "sp_container", parent: 1, values: { order: "1" } },
+      { table: "sp_container", values: { order: "2" } },
     ]);
-    assert.equal(later.error?.code, "CHILD_PARENT_INVALID");
+    assert.equal(later?.code, "CHILD_PARENT_INVALID");
     const wrong = await run([
-      { table: "sp_container", fields: { order: "1" } },
-      { table: "sp_column", parent: 0, fields: { order: "1" } },
+      { table: "sp_container", values: { order: "1" } },
+      { table: "sp_column", parent: 0, values: { order: "1" } },
     ]);
-    assert.equal(wrong.error?.code, "CHILD_PARENT_INVALID");
-    assert.match(wrong.error.message, /sp_row/);
+    assert.equal(wrong?.code, "CHILD_PARENT_INVALID");
+    assert.match(wrong.error, /sp_row/);
     const badId = await run([
-      { table: "sp_container", key: { sys_id: "nope" }, fields: {} },
+      { table: "sp_container", key: { sys_id: "nope" }, values: {} },
     ]);
     assert.ok(badId.error, JSON.stringify(badId));
     assert.equal(mutating(calls).length, 0);
@@ -719,61 +723,57 @@ test("P-24 acceptance: a duplicate sp_widget.id is rejected at plan time", async
         await call("servicenow_upsert_artifact", {
           artifactType: "sp_widget",
           key: "x_acme_hello",
-          fields: { name: "Mine", sys_scope: MINE },
+          values: { name: "Mine", sys_scope: MINE },
         }),
       );
-      assert.equal(scoped.error?.code, "DUPLICATE_UNIQUE_FIELD");
-      assert.equal(scoped.error.status, 409);
+      assert.equal(scoped?.code, "DUPLICATE_UNIQUE_FIELD");
+      assert.equal(scoped.status, 409);
 
       // A header / footer extends sp_widget: its id collides with a widget's.
       const hf = out(
         await call("servicenow_upsert_artifact", {
           artifactType: "sp_header_footer",
           key: "x_acme_hello",
-          fields: { name: "Header" },
+          values: { name: "Header" },
         }),
       );
-      assert.equal(
-        hf.error?.code,
-        "DUPLICATE_UNIQUE_FIELD",
-        JSON.stringify(hf),
-      );
-      assert.match(hf.error.message, /sp_widget id='x_acme_hello'/);
+      assert.equal(hf?.code, "DUPLICATE_UNIQUE_FIELD", JSON.stringify(hf));
+      assert.match(hf.error, /sp_widget id='x_acme_hello'/);
 
       // A new widget's template id is owned by another widget.
       const tpl = out(
         await call("servicenow_upsert_artifact", {
           artifactType: "sp_widget",
           key: "x_acme_new",
-          fields: { name: "New" },
-          children: [{ table: "sp_ng_template", fields: { id: "x_acme_tpl" } }],
+          values: { name: "New" },
+          children: [{ table: "sp_ng_template", values: { id: "x_acme_tpl" } }],
         }),
       );
-      assert.equal(tpl.error?.code, "DUPLICATE_UNIQUE_FIELD");
-      assert.match(tpl.error.message, /children\[0\]/);
+      assert.equal(tpl?.code, "DUPLICATE_UNIQUE_FIELD");
+      assert.match(tpl.error, /children\[0\]/);
 
       // Two records of one plan claiming the same id.
       const twice = out(
         await call("servicenow_upsert_artifact", {
           artifactType: "sp_widget",
           key: "x_acme_tpl2",
-          fields: { name: "Twice" },
+          values: { name: "Twice" },
           children: [
             {
               table: "sp_ng_template",
               key: { id: "x_acme_t" },
-              fields: { template: "a" },
+              values: { template: "a" },
             },
             {
               table: "sp_ng_template",
               key: { id: "x_acme_t", template: "b" },
-              fields: {},
+              values: {},
             },
           ],
         }),
       );
-      assert.equal(twice.error?.code, "DUPLICATE_UNIQUE_FIELD");
-      assert.match(twice.error.message, /claimed by both/);
+      assert.equal(twice?.code, "DUPLICATE_UNIQUE_FIELD");
+      assert.match(twice.error, /claimed by both/);
       assert.equal(mutating(calls).length, 0);
     },
   );
@@ -787,7 +787,7 @@ test("P-24: a widget create in a scope warns when the id lacks the scope prefix"
       const r = await planAndApply({
         artifactType: "sp_widget",
         key: "hello",
-        fields: { name: "Hello", sys_scope: MINE, template: "<div></div>" },
+        values: { name: "Hello", sys_scope: MINE, template: "<div></div>" },
       });
       assert.deepEqual(
         r.plan.warnings.map((w) => [w.code, w.field]),
@@ -801,7 +801,7 @@ test("P-24: a widget create in a scope warns when the id lacks the scope prefix"
         await call("servicenow_upsert_artifact", {
           artifactType: "sp_widget",
           key: "x_acme_ok",
-          fields: { name: "Ok", sys_scope: MINE },
+          values: { name: "Ok", sys_scope: MINE },
         }),
       );
       assert.equal(good.mode, "plan");
@@ -816,11 +816,11 @@ test("P-24: a catalog item with a variable, its choice, a UI policy with an acti
     const r = await planAndApply({
       artifactType: "catalog_item",
       key: { name: "Laptop" },
-      fields: { short_description: "Request a laptop" },
+      values: { short_description: "Request a laptop" },
       children: [
         {
           table: "item_option_new",
-          fields: {
+          values: {
             name: "model",
             question_text: "Model",
             type: "5",
@@ -830,18 +830,18 @@ test("P-24: a catalog item with a variable, its choice, a UI policy with an acti
         {
           table: "question_choice",
           parent: 0,
-          fields: { text: "Pro", value: "pro", order: "1" },
+          values: { text: "Pro", value: "pro", order: "1" },
         },
         {
           table: "catalog_ui_policy",
-          fields: { short_description: "Show model", on_load: "true" },
+          values: { short_description: "Show model", on_load: "true" },
         },
         {
           table: "catalog_ui_policy_action",
           parent: 2,
-          fields: { catalog_variable: "model", visible: "true" },
+          values: { catalog_variable: "model", visible: "true" },
         },
-        { table: "sc_cat_item_category", fields: { sc_category: CATEGORY } },
+        { table: "sc_cat_item_category", values: { sc_category: CATEGORY } },
       ],
     });
     assert.equal(r.res.isError, undefined, r.res.content[0].text);
@@ -865,10 +865,10 @@ test("P-24: a catalog item with a variable, its choice, a UI policy with an acti
       await call("servicenow_upsert_artifact", {
         artifactType: "catalog_item",
         key: { name: "Laptop" },
-        fields: { short_description: "Request a laptop" },
+        values: { short_description: "Request a laptop" },
         children: [
-          { table: "item_option_new", fields: { name: "model", type: "5" } },
-          { table: "question_choice", parent: 0, fields: { text: "Pro" } },
+          { table: "item_option_new", values: { name: "model", type: "5" } },
+          { table: "question_choice", parent: 0, values: { text: "Pro" } },
         ],
       }),
     );
@@ -882,17 +882,17 @@ test("P-24: an invalid catalog variable name is PREFLIGHT_INVALID before any req
       {
         artifactType: "catalog_item",
         key: { name: "Laptop" },
-        fields: {},
-        children: [{ table: "item_option_new", fields: { name: "1model" } }],
+        values: {},
+        children: [{ table: "item_option_new", values: { name: "1model" } }],
       },
       {
         artifactType: "catalog_variable",
         key: { name: "has space" },
-        fields: {},
+        values: {},
       },
     ]) {
       const res = out(await call("servicenow_upsert_artifact", args));
-      assert.equal(res.error?.code, "PREFLIGHT_INVALID", JSON.stringify(res));
+      assert.equal(res?.code, "PREFLIGHT_INVALID", JSON.stringify(res));
     }
     assert.equal(calls.length, 0);
   });
@@ -917,7 +917,7 @@ test("P-25: a flow's active flag toggles through plan -> apply, flagged unverifi
     const r = await planAndApply({
       artifactType: "flow",
       key: "x_acme_onboard",
-      fields: { active: "true" },
+      values: { active: "true" },
     });
     assert.equal(r.plan.parent_action, "update");
     assert.equal(r.plan.warnings[0].code, "UNVERIFIED");
@@ -944,15 +944,15 @@ test("P-25: a flow's active flag toggles through plan -> apply, flagged unverifi
 test("P-25: anything but {active} on an existing flow is FLOW_ACTIVE_ONLY", async () => {
   await scenario({}, flowSeed(), async (calls) => {
     const refused = [
-      { fields: { name: "Renamed" } },
-      { fields: { active: "true", description: "x" } },
-      { fields: {} },
-      { fields: { active: "maybe" } },
+      { values: { name: "Renamed" } },
+      { values: { active: "true", description: "x" } },
+      { values: {} },
+      { values: { active: "maybe" } },
       {
-        fields: { active: "true" },
-        children: [{ table: "sys_hub_action_instance", fields: {} }],
+        values: { active: "true" },
+        children: [{ table: "sys_hub_action_instance", values: {} }],
       },
-      { key: "x_acme_missing", fields: { active: "true" } },
+      { key: "x_acme_missing", values: { active: "true" } },
     ];
     for (const extra of refused) {
       const res = out(
@@ -962,7 +962,7 @@ test("P-25: anything but {active} on an existing flow is FLOW_ACTIVE_ONLY", asyn
           ...extra,
         }),
       );
-      assert.equal(res.error?.code, "FLOW_ACTIVE_ONLY", JSON.stringify(extra));
+      assert.equal(res?.code, "FLOW_ACTIVE_ONLY", JSON.stringify(extra));
     }
     assert.equal(mutating(calls).length, 0);
   });

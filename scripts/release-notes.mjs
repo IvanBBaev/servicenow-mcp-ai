@@ -9,7 +9,6 @@
 // section exits 1 — a tag must never ship with empty notes.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -37,11 +36,11 @@ export function extractReleaseNotes(changelog, version) {
 
 const invokedDirectly =
   process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  path.resolve(process.argv[1]) === import.meta.filename;
 
 if (invokedDirectly) {
   const version = process.argv[2];
-  const file = fileURLToPath(new URL("../CHANGELOG.md", import.meta.url));
+  const file = path.join(import.meta.dirname, "../CHANGELOG.md");
   const notes = version
     ? extractReleaseNotes(readFileSync(file, "utf8"), version)
     : undefined;

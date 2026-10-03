@@ -99,17 +99,18 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    legacyParams: { test_sys_id: "sys_id" },
     input: {
-      test_sys_id: sysId().describe("sys_id of the ATF test (sys_atf_test)."),
+      sys_id: sysId().describe("sys_id of the ATF test (sys_atf_test)."),
       wait_seconds: waitSeconds,
       apply: applyInput,
     },
-    handler: async ({ test_sys_id, wait_seconds, apply }) => {
+    handler: async ({ sys_id, wait_seconds, apply }) => {
       if (!shouldApply(apply)) {
         return planPreview({
           action: "execute",
           table: "sys_atf_test",
-          sys_id: test_sys_id,
+          sys_id,
           after: { run: "ATF test" },
         });
       }
@@ -117,9 +118,9 @@ export const specs: AnyToolSpec[] = [
         {
           action: "execute",
           table: "sys_atf_test",
-          sys_id: test_sys_id,
+          sys_id,
         },
-        () => runAtfTest(test_sys_id),
+        () => runAtfTest(sys_id),
       );
       return ok(await maybeWait(result, wait_seconds));
     },
@@ -138,19 +139,20 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    legacyParams: { suite_sys_id: "sys_id" },
     input: {
-      suite_sys_id: sysId().describe(
+      sys_id: sysId().describe(
         "sys_id of the ATF test suite (sys_atf_test_suite).",
       ),
       wait_seconds: waitSeconds,
       apply: applyInput,
     },
-    handler: async ({ suite_sys_id, wait_seconds, apply }) => {
+    handler: async ({ sys_id, wait_seconds, apply }) => {
       if (!shouldApply(apply)) {
         return planPreview({
           action: "execute",
           table: "sys_atf_test_suite",
-          sys_id: suite_sys_id,
+          sys_id,
           after: { run: "ATF suite" },
         });
       }
@@ -158,9 +160,9 @@ export const specs: AnyToolSpec[] = [
         {
           action: "execute",
           table: "sys_atf_test_suite",
-          sys_id: suite_sys_id,
+          sys_id,
         },
-        () => runAtfSuite(suite_sys_id),
+        () => runAtfSuite(sys_id),
       );
       return ok(await maybeWait(result, wait_seconds));
     },

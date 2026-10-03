@@ -4,10 +4,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const root = join(import.meta.dirname, "..");
 const manifest = JSON.parse(
   readFileSync(join(root, "test/fixtures/tools-manifest.json"), "utf8"),
 );
@@ -106,7 +105,8 @@ test("plugin.json stays consistent with package.json", () => {
   assert.equal(plugin.name, pkg.name);
   assert.equal(plugin.version, pkg.version);
   assert.deepEqual(plugin.mcpServers.servicenow.args, ["-y", pkg.name]);
-  // The blocking PreToolUse hook waits for H-3 (owner gate O-4): no hooks yet.
-  assert.equal(existsSync(join(root, "hooks/hooks.json")), false);
+  // D-8: the PreToolUse hook ships at the default location, hooks/hooks.json
+  // (auto-discovered from the plugin root; test/plugin-hook.test.js covers it).
+  assert.equal(existsSync(join(root, "hooks/hooks.json")), true);
   assert.equal(plugin.hooks, undefined);
 });

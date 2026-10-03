@@ -7,10 +7,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { ALL_PACKAGES } from "../build/mcp/registry.js";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = path.join(import.meta.dirname, "..");
 const ext = path.join(root, "extension");
 const manifest = JSON.parse(
   readFileSync(path.join(ext, "package.json"), "utf8"),

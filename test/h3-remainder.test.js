@@ -21,6 +21,10 @@ import {
 } from "./helpers.js";
 
 baselineEnv();
+// These tests drive destructive apply:true calls directly; the H-3 plan-token
+// gate (the 3.0 default SN_DESTRUCTIVE_CONFIRM=token, B4) is covered in
+// plan-token.test.js, so this file opts out explicitly.
+process.env.SN_DESTRUCTIVE_CONFIRM = "off";
 
 const call = (name, args) =>
   runSpec(
@@ -88,7 +92,7 @@ async function scenario(env, fn) {
   }
 }
 
-const upd = { table: "incident", sys_id: REC, fields: { state: "2" } };
+const upd = { table: "incident", sys_id: REC, values: { state: "2" } };
 const del = { table: "incident", sys_id: REC };
 
 test("L2-05: the update plan hands back expected_mod_count; before still shows only the written fields", async () => {
@@ -111,9 +115,9 @@ test("L2-05: a changed record refuses update / delete with STALE_RECORD; unchang
       const stale = out(
         await call(name, { ...args, ...plan.apply_with, apply: true }),
       );
-      assert.equal(stale.error.code, "STALE_RECORD", name);
-      assert.equal(stale.error.status, 409);
-      assert.match(stale.error.message, /3 → 4/);
+      assert.equal(stale.code, "STALE_RECORD", name);
+      assert.equal(stale.status, 409);
+      assert.match(stale.error, /3 → 4/);
       assert.equal(mutating(calls).length, 0, name);
 
       const fresh = out(await call(name, args));
@@ -161,28 +165,34 @@ test("L2-06: unknown_fields comes from the schema cache only", async () => {
       "caller_id.name": "x",
     };
     const cold = out(
-      await call("servicenow_create_record", { table: "incident", fields }),
+      await call("servicenow_create_record", {
+        table: "incident",
+        values: fields,
+      }),
     );
     assert.equal(cold.unknown_fields, undefined, "no cached schema, no claim");
     assert.equal(calls.length, 0, "nothing read to find out");
 
     await call("servicenow_describe_table", { table: "incident" });
     const warm = out(
-      await call("servicenow_create_record", { table: "incident", fields }),
+      await call("servicenow_create_record", {
+        table: "incident",
+        values: fields,
+      }),
     );
     assert.deepEqual(warm.unknown_fields, ["short_desription"]);
     const upd2 = out(
       await call("servicenow_update_record", {
         table: "incident",
         sys_id: REC,
-        fields: { stat: "2" },
+        values: { stat: "2" },
       }),
     );
     assert.deepEqual(upd2.unknown_fields, ["stat"]);
     const clean = out(
       await call("servicenow_create_record", {
         table: "incident",
-        fields: { state: "2" },
+        values: { state: "2" },
       }),
     );
     assert.equal(clean.unknown_fields, undefined);

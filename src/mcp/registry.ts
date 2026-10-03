@@ -8,6 +8,12 @@ import {
   type PackageSpec,
 } from "./define.js";
 import {
+  legacyToolNames,
+  TOOL_OVERLAPS,
+  TOOL_RENAMES,
+  type ToolRename,
+} from "./naming.js";
+import {
   registerAdminResources,
   registerSchemaResources,
   registerTableResources,
@@ -222,10 +228,13 @@ export function describeToolSchemas(): ToolSchemas[] {
     const output = buildOutputSchema(spec);
     return {
       name: spec.name,
-      inputSchema: toJsonSchemaCompat(buildInputSchema(spec), {
-        strictUnions: true,
-        pipeStrategy: "input",
-      }),
+      inputSchema: toJsonSchemaCompat(
+        buildInputSchema(spec, { legacy: false }),
+        {
+          strictUnions: true,
+          pipeStrategy: "input",
+        },
+      ),
       ...(output
         ? {
             outputSchema: toJsonSchemaCompat(output, {
@@ -236,6 +245,43 @@ export function describeToolSchemas(): ToolSchemas[] {
         : {}),
     };
   });
+}
+
+/** M-7: one tool's naming metadata for the manifest. */
+export interface ToolNamingInfo {
+  name: string;
+  /** v2 parameter names accepted only under SN_LEGACY_TOOL_NAMES=1 (old -> new). */
+  legacyParams?: Record<string, string>;
+  /** Deprecated parameter aliases accepted always (old -> new). */
+  deprecatedParams?: Record<string, string>;
+  /** Why the tool is kept although it overlaps another (TE-4). */
+  overlap?: string;
+}
+
+/**
+ * M-7: the naming contract — every v2 -> v3 tool rename and, per tool, its
+ * parameter aliases and overlap reason. Feeds manifest v4.
+ */
+export function describeNaming(): {
+  renames: ToolRename[];
+  tools: ToolNamingInfo[];
+} {
+  return {
+    renames: TOOL_RENAMES.map((r) => ({ ...r })),
+    tools: ALL_TOOLS.map((spec) => {
+      const overlap = TOOL_OVERLAPS[spec.name];
+      return {
+        name: spec.name,
+        ...(spec.legacyParams
+          ? { legacyParams: { ...spec.legacyParams } }
+          : {}),
+        ...(spec.deprecatedParams
+          ? { deprecatedParams: { ...spec.deprecatedParams } }
+          : {}),
+        ...(overlap ? { overlap } : {}),
+      };
+    }),
+  };
 }
 
 /** The package policy currently in effect (also shown in the status payload). */
@@ -326,19 +372,26 @@ export function registerAllTools(server: McpServer, runtime: Runtime): void {
   // Logs the read-only skips of the configured surface, as before M-5.
   activeToolSpecs(true);
 
-  for (const spec of ALL_TOOLS) {
-    if (!policyPermits(spec, deniedSet, readOnlySet)) continue;
-    const handle = server.registerTool(
-      spec.name,
+  const legacy = legacyToolNames();
+  const register = (
+    spec: AnyToolSpec,
+    name: string,
+    title: string,
+    description: string,
+    onCall?: () => void,
+  ) =>
+    server.registerTool(
+      name,
       {
-        title: spec.title,
-        description: spec.description,
+        title,
+        description,
         annotations: spec.annotations,
         // M-8: a real strict z.object (no cast) — see buildInputSchema. Every
         // tool also gets the automatic `instance` (profile) parameter (MI-3),
         // unless its own schema already uses that name.
         // M-9: `run_as_task` only when SN_EXPERIMENTAL_TASKS is on.
-        inputSchema: withTaskInput(spec, buildInputSchema(spec)),
+        // M-7: the legacy parameter names only when SN_LEGACY_TOOL_NAMES is on.
+        inputSchema: withTaskInput(spec, buildInputSchema(spec, { legacy })),
         // M-6: a passthrough z.object — see buildOutputSchema.
         ...(spec.output
           ? { outputSchema: withTaskOutput(spec, buildOutputSchema(spec)!) }
@@ -348,14 +401,46 @@ export function registerAllTools(server: McpServer, runtime: Runtime): void {
       // progressToken + sendNotification, request and session ids.
       // E-5: every call is timed into the runtime's per-tool statistics.
       // M-9: `run_as_task:true` returns a task handle and runs in background.
-      (args, extra) =>
-        runWithRuntime(runtime, () =>
+      (args, extra) => {
+        onCall?.();
+        return runWithRuntime(runtime, () =>
           runMaybeAsTask(spec, args, extra, (a, e) =>
             timeToolCall(spec.name, () => runSpec(spec, a, e)),
           ),
-        ),
+        );
+      },
     );
+
+  for (const spec of ALL_TOOLS) {
+    if (!policyPermits(spec, deniedSet, readOnlySet)) continue;
+    const handle = register(spec, spec.name, spec.title, spec.description);
     session.addTool(spec.package, spec.name, handle);
+  }
+
+  // M-7 (B2): under SN_LEGACY_TOOL_NAMES=1 every v2 name is an alias that
+  // dispatches to its v3 tool (same schema, same handler, logged under the
+  // v3 name) and follows that tool's package. Off: the old names do not exist.
+  if (legacy) {
+    const byName = new Map(ALL_TOOLS.map((s) => [s.name as string, s]));
+    for (const rename of TOOL_RENAMES) {
+      const spec = byName.get(rename.to);
+      if (!spec || !policyPermits(spec, deniedSet, readOnlySet)) continue;
+      let warned = false;
+      const handle = register(
+        spec,
+        rename.from,
+        `${spec.title} (deprecated name)`,
+        `Deprecated alias of ${spec.name} (SN_LEGACY_TOOL_NAMES=1); use ${spec.name}. ${spec.description}`,
+        () => {
+          if (warned) return;
+          warned = true;
+          logger.warn(
+            `Tool ${rename.from} is a deprecated alias — use ${spec.name}.`,
+          );
+        },
+      );
+      session.addAlias(spec.package, handle);
+    }
   }
   bindPackageSession(session, runtime);
 

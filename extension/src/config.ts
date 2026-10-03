@@ -142,9 +142,10 @@ export function settingsEnv(
 
 /**
  * The environment signed-in credentials contribute. Process environment wins
- * over the env file in the server (dotenv `override: false`), so these values
- * take precedence over whatever the file holds. `SN_AUTH` is always explicit
- * (the server would otherwise auto-detect from keys the file may still hold),
+ * over the env file in the server (`process.loadEnvFile` never overrides a
+ * variable that is already set), so these values take precedence over
+ * whatever the file holds. `SN_AUTH` is always explicit (the server would
+ * otherwise auto-detect from keys the file may still hold),
  * and `SN_ACTIVE_PROFILE=default` pins the profile the keys belong to.
  */
 export function credentialsEnv(

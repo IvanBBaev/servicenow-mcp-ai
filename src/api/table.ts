@@ -533,6 +533,8 @@ export async function resolveUpsert(
     throw new ServiceNowError(
       `The ${table} record matching the key came back without a sys_id.`,
       502,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE", source: "servicenow" },
     );
   }
   const before = Object.fromEntries(

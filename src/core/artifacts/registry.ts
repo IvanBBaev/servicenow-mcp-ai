@@ -10,7 +10,7 @@
  *
  * Descriptors flagged `scriptTools: true` are served by the script-intelligence
  * tools (list / get / search_code / where_used / lint_script / snapshot /
- * compare / code_health); `SCRIPT_TYPES` in `src/api/scripts.ts` is a derived
+ * compare / check_code_health); `SCRIPT_TYPES` in `src/api/scripts.ts` is a derived
  * view over exactly those, in registry order. The nine legacy script types
  * (`business_rule` … `acl`) come first and are `verified:true`; S-4 widened the
  * view to the other script-bearing tables (portal widgets, UI pages / scripts /
@@ -282,7 +282,7 @@ export interface ArtifactType {
   /**
    * Served by list_scripts / get_script / search_code only on explicit
    * request (`type`, or search_code `extended:true`), never by the default
-   * sweep, where_used, lint_script, code_health, snapshot or compare (P-9).
+   * sweep, where_used, lint_script, check_code_health, snapshot or compare (P-9).
    * Mutually exclusive with `scriptTools`.
    */
   scriptToolsOptIn?: boolean;

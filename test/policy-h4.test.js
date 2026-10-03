@@ -2,13 +2,12 @@
 // verdict. Attachments follow their parent table, the plugin-API tools check
 // their backing tables, code-search hits on denied tables are dropped, the
 // Batch API cannot nest, hide a table in its query/body or (opt-in) reach an
-// unmapped surface, and change_conflicts(calculate) is a plan/apply write.
+// unmapped surface, and check_change_conflicts(calculate) is a plan/apply write.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { ALL_TOOLS } from "../build/mcp/registry.js";
 import { runSpec } from "../build/mcp/define.js";
@@ -32,7 +31,7 @@ import {
 
 baselineEnv();
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = path.join(import.meta.dirname, "..");
 const spec = (name) => ALL_TOOLS.find((s) => s.name === name);
 const call = (name, args) => runSpec(spec(name), args);
 const out = (res) => JSON.parse(res.content[0].text);
@@ -93,30 +92,31 @@ async function scenario(env, fn, extra) {
 
 // --- settings --------------------------------------------------------------
 
-test("settings: SN_BATCH_UNMAPPED and SN_BATCH_MAX_REQUESTS keep today's behaviour by default", async () => {
+test("settings: SN_BATCH_UNMAPPED and SN_BATCH_MAX_REQUESTS default to deny / 50 (3.0, B8)", async () => {
   await withEnv(
     { SN_BATCH_UNMAPPED: undefined, SN_BATCH_MAX_REQUESTS: undefined },
     () => {
-      assert.equal(getBatchUnmapped(), "allow");
-      assert.equal(getBatchMaxRequests(), 1000);
+      assert.equal(getBatchUnmapped(), "deny");
+      assert.equal(getBatchMaxRequests(), 50);
     },
   );
   for (const [raw, want] of [
     ["deny", "deny"],
     [" DENY ", "deny"],
     ["allow", "allow"],
-    ["no", "allow"],
+    [" ALLOW ", "allow"],
+    ["no", "deny"],
   ]) {
     await withEnv({ SN_BATCH_UNMAPPED: raw }, () =>
       assert.equal(getBatchUnmapped(), want, raw),
     );
   }
   for (const [raw, want] of [
-    ["50", 50],
+    ["1000", 1000],
     ["1", 1],
-    ["0", 1000],
-    ["1001", 1000],
-    ["x", 1000],
+    ["0", 50],
+    ["1001", 50],
+    ["x", 50],
   ]) {
     await withEnv({ SN_BATCH_MAX_REQUESTS: raw }, () =>
       assert.equal(getBatchMaxRequests(), want, raw),
@@ -131,13 +131,13 @@ test("attachments: get / download / delete follow the parent table's policy", as
     { SN_TABLES_DENY: "hr_case", SN_WRITE_MODE: "apply" },
     async (calls) => {
       for (const [name, args] of [
-        ["servicenow_get_attachment", { attachment_sys_id: SYS_ID }],
-        ["servicenow_download_attachment", { attachment_sys_id: SYS_ID }],
-        ["servicenow_delete_attachment", { attachment_sys_id: SYS_ID }],
+        ["servicenow_get_attachment", { sys_id: SYS_ID }],
+        ["servicenow_download_attachment", { sys_id: SYS_ID }],
+        ["servicenow_delete_attachment", { sys_id: SYS_ID }],
       ]) {
         const res = out(await call(name, args));
-        assert.equal(res.error?.status, 403, name);
-        assert.match(res.error.message, /hr_case.*SN_TABLES_DENY/, name);
+        assert.equal(res?.status, 403, name);
+        assert.match(res.error, /hr_case.*SN_TABLES_DENY/, name);
       }
       assert.equal(mutating(calls).length, 0);
       assert.ok(
@@ -152,7 +152,7 @@ test("attachments: get / download / delete follow the parent table's policy", as
 test("attachments: an allowed parent table still works; an unscoped list drops denied rows", async () => {
   await scenario({ SN_TABLES_DENY: "hr_case" }, async () => {
     const meta = out(
-      await call("servicenow_get_attachment", { attachment_sys_id: SYS_ID }),
+      await call("servicenow_get_attachment", { sys_id: SYS_ID }),
     );
     assert.equal(meta.error, undefined, JSON.stringify(meta));
     await withFetch(
@@ -181,14 +181,14 @@ test("plugin-API tools check their backing tables before any request", async () 
   const cases = [
     ["change_request", "servicenow_list_changes", {}],
     ["change_request", "servicenow_get_change", { sys_id: SYS_ID }],
-    ["change_request", "servicenow_change_conflicts", { sys_id: SYS_ID }],
+    ["change_request", "servicenow_check_change_conflicts", { sys_id: SYS_ID }],
     ["sc_catalog", "servicenow_list_catalogs", {}],
     ["sc_cat_item", "servicenow_list_catalog_items", {}],
-    ["sc_cat_item", "servicenow_get_catalog_item", { item_sys_id: SYS_ID }],
+    ["sc_cat_item", "servicenow_get_catalog_item", { sys_id: SYS_ID }],
     [
       "sc_request",
       "servicenow_order_catalog_item",
-      { item_sys_id: SYS_ID, apply: true },
+      { sys_id: SYS_ID, apply: true },
     ],
     ["kb_knowledge", "servicenow_search_knowledge", {}],
     ["kb_knowledge", "servicenow_get_knowledge_article", { sys_id: SYS_ID }],
@@ -215,7 +215,7 @@ test("plugin-API tools check their backing tables before any request", async () 
     [
       "sys_atf_test",
       "servicenow_run_atf_test",
-      { test_sys_id: SYS_ID, apply: true },
+      { sys_id: SYS_ID, apply: true },
     ],
   ];
   for (const [table, name, args] of cases) {
@@ -224,8 +224,8 @@ test("plugin-API tools check their backing tables before any request", async () 
       { SN_TABLES_DENY: table, SN_WRITE_MODE: "apply" },
       async (calls) => {
         const res = out(await call(name, args));
-        assert.equal(res.error?.status, 403, `${name}: ${JSON.stringify(res)}`);
-        assert.match(res.error.message, new RegExp(`"${table}"`), name);
+        assert.equal(res?.status, 403, `${name}: ${JSON.stringify(res)}`);
+        assert.match(res.error, new RegExp(`"${table}"`), name);
         assert.equal(calls.length, 0, `${name} sent nothing`);
       },
     );
@@ -371,19 +371,43 @@ test("batch: an attachment addressed by sys_id is checked against its parent tab
   });
 });
 
-test("batch: unmapped paths pass by default and are refused with SN_BATCH_UNMAPPED=deny", async () => {
+test("batch: unmapped paths are refused by default (B8) and pass with SN_BATCH_UNMAPPED=allow", async () => {
   const req = [{ method: "GET", url: "/api/x_acme/custom/thing" }];
-  await scenario({}, async () => {
+  for (const env of [{}, { SN_BATCH_UNMAPPED: "deny" }]) {
+    await scenario(env, async () => {
+      await withFetch(batchOk, async (calls) => {
+        await assert.rejects(runBatch(req), (err) => {
+          assert.match(err.message, /SN_BATCH_UNMAPPED=deny/);
+          assert.equal(err.code, "POLICY_DENIED");
+          assert.match(err.hint, /SN_BATCH_UNMAPPED=allow/);
+          return true;
+        });
+        assert.equal(calls.length, 0, "nothing is sent");
+        await runBatch([{ method: "GET", url: "/api/now/table/incident" }]);
+        assert.equal(calls.length, 1, "mapped paths still work");
+      });
+    });
+  }
+  await scenario({ SN_BATCH_UNMAPPED: "allow" }, async () => {
     await withFetch(batchOk, async (calls) => {
       await runBatch(req);
       assert.equal(calls.length, 1);
     });
   });
-  await scenario({ SN_BATCH_UNMAPPED: "deny" }, async () => {
+});
+
+test("batch: more than 50 sub-requests are refused by default (B8)", async () => {
+  await scenario({}, async () => {
     await withFetch(batchOk, async (calls) => {
-      await assert.rejects(runBatch(req), /SN_BATCH_UNMAPPED=deny/);
-      await runBatch([{ method: "GET", url: "/api/now/table/incident" }]);
-      assert.equal(calls.length, 1, "mapped paths still work");
+      const many = (n) =>
+        Array.from({ length: n }, () => ({
+          method: "GET",
+          url: "/api/now/table/incident",
+        }));
+      await assert.rejects(runBatch(many(51)), /at most 50 sub-requests/);
+      assert.equal(calls.length, 0);
+      await runBatch(many(50));
+      assert.equal(calls.length, 1);
     });
   });
 });
@@ -458,12 +482,12 @@ test("GA-7: every REST surface the server calls maps to a tool package", () => {
   }
 });
 
-// --- change_conflicts ---------------------------------------------------------
+// --- check_change_conflicts ---------------------------------------------------------
 
-test("change_conflicts(calculate): plan previews the current conflicts, apply POSTs and journals", async () => {
+test("check_change_conflicts(calculate): plan previews the current conflicts, apply POSTs and journals", async () => {
   await scenario({}, async (calls, docs) => {
     const plan = out(
-      await call("servicenow_change_conflicts", {
+      await call("servicenow_check_change_conflicts", {
         sys_id: SYS_ID,
         calculate: true,
       }),
@@ -474,16 +498,17 @@ test("change_conflicts(calculate): plan previews the current conflicts, apply PO
     assert.equal(mutating(calls).length, 0);
 
     const read = out(
-      await call("servicenow_change_conflicts", { sys_id: SYS_ID }),
+      await call("servicenow_check_change_conflicts", { sys_id: SYS_ID }),
     );
     assert.ok(read.result);
     assert.equal(mutating(calls).length, 0);
 
     const applied = out(
-      await call("servicenow_change_conflicts", {
+      await call("servicenow_check_change_conflicts", {
         sys_id: SYS_ID,
         calculate: true,
         apply: true,
+        plan_token: plan.plan_token,
       }),
     );
     assert.ok(applied.result);
@@ -498,24 +523,24 @@ test("change_conflicts(calculate): plan previews the current conflicts, apply PO
     assert.equal(lines.length, 1);
     assert.equal(lines[0].action, "execute");
     assert.equal(lines[0].table, "conflict");
-    assert.equal(lines[0].tool, "servicenow_change_conflicts");
+    assert.equal(lines[0].tool, "servicenow_check_change_conflicts");
   });
 });
 
-test("change_conflicts(calculate) needs a plan_token under SN_DESTRUCTIVE_CONFIRM=token; a read does not", async () => {
+test("check_change_conflicts(calculate) needs a plan_token under SN_DESTRUCTIVE_CONFIRM=token; a read does not", async () => {
   await scenario({ SN_DESTRUCTIVE_CONFIRM: "token" }, async (calls) => {
     const read = out(
-      await call("servicenow_change_conflicts", { sys_id: SYS_ID }),
+      await call("servicenow_check_change_conflicts", { sys_id: SYS_ID }),
     );
     assert.equal(read.error, undefined);
     const refused = out(
-      await call("servicenow_change_conflicts", {
+      await call("servicenow_check_change_conflicts", {
         sys_id: SYS_ID,
         calculate: true,
         apply: true,
       }),
     );
-    assert.equal(refused.error.code, "PLAN_REQUIRED");
+    assert.equal(refused.code, "PLAN_REQUIRED");
     assert.equal(mutating(calls).length, 0);
   });
 });
@@ -524,16 +549,16 @@ test("change_conflicts(calculate) needs a plan_token under SN_DESTRUCTIVE_CONFIR
 
 /** Valid arguments for every tool that can write to the instance. */
 const WRITE_ARGS = {
-  servicenow_create_record: { table: "incident", fields: { a: "1" } },
+  servicenow_create_record: { table: "incident", values: { a: "1" } },
   servicenow_update_record: {
     table: "incident",
     sys_id: SYS_ID,
-    fields: { a: "1" },
+    values: { a: "1" },
   },
   servicenow_upsert_record: {
     table: "incident",
     key: { number: "INC1" },
-    fields: { a: "1" },
+    values: { a: "1" },
   },
   servicenow_delete_record: { table: "incident", sys_id: SYS_ID },
   servicenow_upload_attachment: {
@@ -542,41 +567,41 @@ const WRITE_ARGS = {
     file_name: "a.txt",
     content_base64: "aGVsbG8=",
   },
-  servicenow_delete_attachment: { attachment_sys_id: SYS_ID },
+  servicenow_delete_attachment: { sys_id: SYS_ID },
   servicenow_insert_import_set_row: {
-    staging_table: "u_imp_x",
-    fields: { a: "1" },
+    table: "u_imp_x",
+    values: { a: "1" },
   },
   servicenow_batch: {
     requests: [{ method: "POST", url: "/api/now/table/incident", body: {} }],
   },
-  servicenow_order_catalog_item: { item_sys_id: SYS_ID },
-  servicenow_create_change: { type: "normal", fields: {} },
-  servicenow_update_change: { sys_id: SYS_ID, fields: { a: "1" } },
-  servicenow_change_conflicts: { sys_id: SYS_ID, calculate: true },
+  servicenow_order_catalog_item: { sys_id: SYS_ID },
+  servicenow_create_change: { type: "normal", values: {} },
+  servicenow_update_change: { sys_id: SYS_ID, values: { a: "1" } },
+  servicenow_check_change_conflicts: { sys_id: SYS_ID, calculate: true },
   servicenow_create_ci: {
-    class_name: "cmdb_ci_server",
-    attributes: { a: "1" },
+    table: "cmdb_ci_server",
+    values: { a: "1" },
   },
   servicenow_update_ci: {
-    class_name: "cmdb_ci_server",
+    table: "cmdb_ci_server",
     sys_id: SYS_ID,
-    attributes: { a: "1" },
+    values: { a: "1" },
   },
   servicenow_identify_reconcile: {
     items: [{ className: "cmdb_ci_server", values: { name: "x" } }],
     data_source: "ServiceNow",
   },
   servicenow_send_email: { to: ["a@example.com"], subject: "s", body: "b" },
-  servicenow_run_atf_test: { test_sys_id: SYS_ID },
-  servicenow_run_atf_suite: { suite_sys_id: SYS_ID },
+  servicenow_run_atf_test: { sys_id: SYS_ID },
+  servicenow_run_atf_suite: { sys_id: SYS_ID },
   servicenow_revert_write: { entry_id: "01J0000000000000000000000" },
   servicenow_set_property: { name: "glide.x", value: "1" },
   servicenow_upsert_artifact: {
     artifactType: "ui_policy",
     key: { short_description: "x", table: "incident" },
-    fields: { conditions: "active=true" },
-    children: [{ fields: { field: "priority", visible: "false" } }],
+    values: { conditions: "active=true" },
+    children: [{ values: { field: "priority", visible: "false" } }],
   },
 };
 
@@ -593,7 +618,7 @@ const WRITE_TABLE = {
   servicenow_order_catalog_item: "sc_request",
   servicenow_create_change: "change_request",
   servicenow_update_change: "change_request",
-  servicenow_change_conflicts: "conflict",
+  servicenow_check_change_conflicts: "conflict",
   servicenow_create_ci: "cmdb_ci_server",
   servicenow_update_ci: "cmdb_ci_server",
   servicenow_identify_reconcile: "cmdb_ci_server",

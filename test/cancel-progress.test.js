@@ -152,8 +152,8 @@ test("a cancelled snapshot stops issuing requests within one retry window", asyn
         await pending;
         assert.equal(clock.elapsed(), 0, "ended inside the retry window");
         assert.equal(result.isError, true);
-        assert.equal(payload(result).error.code, "CANCELLED");
-        assert.match(payload(result).error.hint, /cancelled/);
+        assert.equal(payload(result).code, "CANCELLED");
+        assert.match(payload(result).hint, /cancelled/);
         // S-7: sections fan out, so other units may have read on while the
         // third request waited — but nothing is sent after the abort.
         assert.equal(
@@ -185,7 +185,7 @@ test("a snapshot cancelled between sections fails fast instead of warning", asyn
         { signal: controller.signal },
       );
       assert.equal(result.isError, true);
-      assert.equal(payload(result).error.code, "CANCELLED");
+      assert.equal(payload(result).code, "CANCELLED");
       // At most one in-flight read per fan-out slot (S-7), none after.
       assert.ok(calls.length <= 4, `${calls.length} requests`);
     },
@@ -201,7 +201,7 @@ test("an already-aborted signal sends no request at all", async () => {
       { table: "incident" },
       { signal: controller.signal },
     );
-    assert.equal(payload(result).error.code, "CANCELLED");
+    assert.equal(payload(result).code, "CANCELLED");
     assert.equal(calls.length, 0);
   });
 });

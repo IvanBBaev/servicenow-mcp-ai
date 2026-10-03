@@ -10,7 +10,6 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   DOC_KINDS,
@@ -51,12 +50,7 @@ beforeEach(() => {
   clearSchemaCache();
 });
 
-const GOLDENS = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "docs",
-  "writers",
-);
+const GOLDENS = path.join(import.meta.dirname, "fixtures", "docs", "writers");
 const UPDATE =
   process.env.UPDATE_GOLDENS === "1" || process.env.UPDATE_GOLDEN === "1";
 
@@ -604,7 +598,7 @@ const appDetailTables = () => ({
   ],
 });
 
-test("app doc detail: diagrams per flow and portal, a dependency graph and a lint summary; Mermaid parses; docs_read returns it (acceptance)", async () => {
+test("app doc detail: diagrams per flow and portal, a dependency graph and a lint summary; Mermaid parses; read_doc returns it (acceptance)", async () => {
   const dir = tempDocs();
   await withEnv({ SN_DOCS_DIR: dir }, () =>
     withMetadataFetch(router(appDetailTables()), async () => {

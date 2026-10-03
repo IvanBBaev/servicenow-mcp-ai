@@ -17,32 +17,38 @@ baselineEnv();
  * shape, so the test adapts automatically as tools change.
  */
 function synth(zt) {
-  const def = zt?._def;
-  const t = def?.typeName;
-  switch (t) {
-    case "ZodOptional":
-    case "ZodNullable":
-    case "ZodDefault":
+  // E-2: zod 4 keeps the definition on `_zod.def`, discriminated by `type`.
+  const def = zt?._zod?.def;
+  switch (def?.type) {
+    case "optional":
+    case "nullable":
+    case "default":
+    case "prefault":
+    case "nonoptional":
+    case "readonly":
+    case "catch":
       return synth(def.innerType);
-    case "ZodString":
+    case "pipe":
+      return synth(def.in);
+    case "string":
       return "x";
-    case "ZodNumber":
+    case "number":
       return 1;
-    case "ZodBoolean":
+    case "boolean":
       return true;
-    case "ZodEnum":
+    case "enum":
+      return Object.values(def.entries)[0];
+    case "literal":
       return def.values[0];
-    case "ZodNativeEnum":
-      return Object.values(def.values)[0];
-    case "ZodArray":
-      return [synth(def.type)];
-    case "ZodRecord":
+    case "array":
+      return [synth(def.element)];
+    case "record":
       return {};
-    case "ZodUnion":
+    case "union":
       return synth(def.options[0]);
-    case "ZodObject": {
+    case "object": {
       const o = {};
-      for (const [k, v] of Object.entries(def.shape())) o[k] = synth(v);
+      for (const [k, v] of Object.entries(def.shape)) o[k] = synth(v);
       return o;
     }
     default:

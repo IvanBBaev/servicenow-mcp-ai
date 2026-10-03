@@ -58,7 +58,7 @@ export function isReadOnly(profile?: string): boolean {
 /**
  * Tables whose writes can grant access, change security or run code on the
  * instance (GAP L3-01). Writes to them are refused while
- * SN_PROTECTED_TABLES_WRITE=deny (the planned 3.0 default, O-4 / B11) unless
+ * SN_PROTECTED_TABLES_WRITE=deny (the 3.0 default, B11) unless
  * SN_TABLES_ALLOW lists the table *exactly* — explicit listing is informed
  * consent. Reads are never affected. `*` / `?` are globs.
  */
@@ -146,12 +146,12 @@ function firstMatch(
   );
 }
 
-/** H-11: `SN_PROTECTED_TABLES_WRITE` — `allow` (default until 3.0) or `deny`. */
+/** H-11: `SN_PROTECTED_TABLES_WRITE` — `deny` (the 3.0 default, B11) or `allow` (the opt-out). */
 export function protectedTablesWrite(profile?: string): "allow" | "deny" {
   return (
     readEnum<"allow" | "deny">("SN_PROTECTED_TABLES_WRITE", {
       profile: profile ?? activeProfile(),
-    }) ?? "allow"
+    }) ?? "deny"
   );
 }
 
@@ -161,9 +161,16 @@ export function protectedEntry(table: string): string | undefined {
   return PROTECTED_TABLES.find((e) => matchesEntry(t, e));
 }
 
-/** H-11: `SN_IMPORT_SET_TABLES` — staging-table patterns; empty = unrestricted. */
+/** H-11: the 3.0 default of `SN_IMPORT_SET_TABLES` (the GAP L3-01 proposal). */
+export const DEFAULT_IMPORT_SET_TABLES: readonly string[] = ["u_*", "imp_*"];
+
+/**
+ * H-11: `SN_IMPORT_SET_TABLES` — staging-table patterns. Unset (or blank) =
+ * the 3.0 default `u_*,imp_*`; `*` lets any table the table policy allows.
+ */
 export function getImportSetTables(profile?: string): string[] {
-  return list("IMPORT_SET_TABLES", profile);
+  const patterns = list("IMPORT_SET_TABLES", profile);
+  return patterns.length > 0 ? patterns : [...DEFAULT_IMPORT_SET_TABLES];
 }
 
 /**
@@ -246,11 +253,36 @@ export function evaluateTable(
   };
 }
 
-function policyDenied(reason: string): ServiceNowError {
+const EXPLAIN = " servicenow_explain_policy shows which rule applies.";
+
+/**
+ * M-2: the fix for a table denial, as a hint naming the setting to change.
+ * Table settings are profile-overridable, so the hint names both forms.
+ */
+const TABLE_HINTS: Partial<Record<PolicyRule, (table: string) => string>> = {
+  "deny-exact": (t) =>
+    `Remove "${t}" from SN_TABLES_DENY (or SN_PROFILE_<NAME>_TABLES_DENY) and restart.${EXPLAIN}`,
+  "deny-pattern": (t) =>
+    `Narrow the SN_TABLES_DENY (or SN_PROFILE_<NAME>_TABLES_DENY) pattern that matches "${t}" and restart.${EXPLAIN}`,
+  "protected-default": (t) =>
+    `List "${t}" exactly in SN_TABLES_ALLOW, or set SN_PROTECTED_TABLES_WRITE=allow (or the SN_PROFILE_<NAME>_ forms), and restart.${EXPLAIN}`,
+  "not-in-allowlist": (t) =>
+    `Add "${t}" to SN_TABLES_ALLOW (or SN_PROFILE_<NAME>_TABLES_ALLOW) and restart.${EXPLAIN}`,
+};
+
+function policyDenied(reason: string, hint: string): ServiceNowError {
   return new ServiceNowError(`${reason}${POLICY_HINT}`, 403, undefined, {
     code: "POLICY_DENIED",
-    hint: "servicenow_explain_policy shows which rule applies and how to change it.",
+    source: "policy",
+    hint,
   });
+}
+
+function tableDenied(table: string, verdict: PolicyVerdict): ServiceNowError {
+  const hint =
+    TABLE_HINTS[verdict.rule]?.(table) ??
+    `servicenow_explain_policy shows which rule applies and how to change it.`;
+  return policyDenied(verdict.reason, hint);
 }
 
 /**
@@ -264,7 +296,7 @@ export function isTableAllowed(table: string): boolean {
 /** Throw a 403-style ServiceNowError (POLICY_DENIED) when the table may not be read. */
 export function assertTableAllowed(table: string): void {
   const verdict = evaluateTable(table, "read");
-  if (!verdict.allowed) throw policyDenied(verdict.reason);
+  if (!verdict.allowed) throw tableDenied(table, verdict);
 }
 
 /**
@@ -273,20 +305,21 @@ export function assertTableAllowed(table: string): void {
  */
 export function assertTableWriteAllowed(table: string): void {
   const verdict = evaluateTable(table, "write");
-  if (!verdict.allowed) throw policyDenied(verdict.reason);
+  if (!verdict.allowed) throw tableDenied(table, verdict);
 }
 
 /**
- * H-11: an import-set staging table must match SN_IMPORT_SET_TABLES when it
- * is set, so a data load cannot target a real table through the staging path.
+ * H-11: an import-set staging table must match SN_IMPORT_SET_TABLES (default
+ * `u_*,imp_*`), so a data load cannot target a real table through the
+ * staging path.
  */
 export function assertImportSetTable(table: string): void {
   const patterns = getImportSetTables();
-  if (patterns.length === 0) return;
   const t = table.trim().toLowerCase();
   if (!patterns.some((p) => matchesEntry(t, p))) {
     throw policyDenied(
-      `Table "${table}" is not an import-set staging table allowed by SN_IMPORT_SET_TABLES (${patterns.join(", ")}).`,
+      `Table "${table}" is not an import-set staging table allowed by SN_IMPORT_SET_TABLES (${patterns.join(", ")}). Add its pattern to SN_IMPORT_SET_TABLES, or set it to * to lift the restriction.`,
+      `Add a pattern matching "${table}" to SN_IMPORT_SET_TABLES (or set it to *) and restart.`,
     );
   }
 }
@@ -297,6 +330,12 @@ export function assertWriteAllowed(operation: string): void {
     throw new ServiceNowError(
       `Server is in read-only mode (SN_READONLY); "${operation}" is not permitted.${POLICY_HINT}`,
       403,
+      undefined,
+      {
+        code: "POLICY_DENIED",
+        source: "policy",
+        hint: "Unset SN_READONLY (or SN_PROFILE_<NAME>_READONLY for this profile) and restart the server.",
+      },
     );
   }
 }
@@ -311,6 +350,12 @@ export function assertPackageAllowed(pkg: string): void {
     throw new ServiceNowError(
       `Access to package "${pkg}" is denied by SN_PACKAGES_DENY.${POLICY_HINT}`,
       403,
+      undefined,
+      {
+        code: "POLICY_DENIED",
+        source: "policy",
+        hint: `Remove "${pkg}" from SN_PACKAGES_DENY and restart the server.`,
+      },
     );
   }
 }
@@ -328,6 +373,12 @@ export function assertPackageWriteAllowed(
     throw new ServiceNowError(
       `Package "${pkg}" is read-only (SN_PACKAGES_READONLY); "${operation}" is not permitted.${POLICY_HINT}`,
       403,
+      undefined,
+      {
+        code: "POLICY_DENIED",
+        source: "policy",
+        hint: `Remove "${pkg}" from SN_PACKAGES_READONLY and restart the server.`,
+      },
     );
   }
 }

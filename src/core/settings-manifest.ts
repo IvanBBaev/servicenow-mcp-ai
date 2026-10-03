@@ -161,7 +161,7 @@ export type SettingKind =
  */
 export type ProfileScope = "override" | "fallback" | "isolated";
 
-type Schema = z.ZodType<unknown, z.ZodTypeDef, string>;
+type Schema = z.ZodType<unknown, string>;
 
 export interface SettingSpec {
   key: string;
@@ -793,7 +793,21 @@ const BASE_SETTINGS: SettingSpec[] = [
       defaultText: "`0`",
       example: "0",
       description:
-        'M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `code_health` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK\'s experimental task API.',
+        'M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `check_code_health` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK\'s experimental task API.',
+    },
+    ["1", "true"],
+    ["0", "false"],
+  ),
+  bool(
+    {
+      key: "SN_LEGACY_TOOL_NAMES",
+      section: "packages",
+      since: NEXT,
+      default: false,
+      defaultText: "`0`",
+      example: "0",
+      description:
+        "M-7 (B2), **deprecated bridge for one minor cycle**: `1` registers every tool name and parameter name renamed by the v3 naming convention as an alias of its new name (the alias dispatches to the new tool and logs a one-time deprecation warning). Off: the old names do not exist and are absent from `tools/list`. See the rename table in the README.",
     },
     ["1", "true"],
     ["0", "false"],
@@ -839,10 +853,10 @@ const BASE_SETTINGS: SettingSpec[] = [
     key: "SN_DESTRUCTIVE_CONFIRM",
     section: "policy",
     since: NEXT,
-    default: "off",
+    default: "token",
     example: "token",
     description:
-      "H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `change_conflicts` with `calculate:true`) in plan mode. `token`: the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments, else `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it, except on a profile marked `prod` (`SN_ENV`), which is always at least `elicit` and is confirmed in apply mode too. The 3.0 default is an owner decision (O-4).",
+      "H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `upsert_artifact`, `check_change_conflicts` with `calculate:true`) in plan mode. `token` (the 3.0 default, B4): the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments, else `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it, except on a profile marked `prod` (`SN_ENV`), which is always at least `elicit` and is confirmed in apply mode too. `off` is the explicit opt-out (the pre-3.0 behaviour).",
   }),
   int(
     { min: 30, max: 86_400, integer: true },
@@ -859,10 +873,10 @@ const BASE_SETTINGS: SettingSpec[] = [
     key: "SN_BATCH_UNMAPPED",
     section: "policy",
     since: NEXT,
-    default: "allow",
-    example: "deny",
+    default: "deny",
+    example: "allow",
     description:
-      "H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `allow` checks it against the table and read-only axes only; `deny` refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch). A nested batch is always refused. The 3.0 default is an owner decision (O-4).",
+      "H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `deny` (the 3.0 default, B8) refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch); `allow` is the opt-out and checks it against the table and read-only axes only. A nested batch is always refused.",
   }),
   int(
     { min: 1, max: 1000, integer: true },
@@ -870,10 +884,10 @@ const BASE_SETTINGS: SettingSpec[] = [
       key: "SN_BATCH_MAX_REQUESTS",
       section: "policy",
       since: NEXT,
-      default: 1000,
+      default: 50,
       example: "50",
       description:
-        "H-4: most sub-requests one `servicenow_batch` call may carry (1–1000), checked before anything is sent.",
+        "H-4: most sub-requests one `servicenow_batch` call may carry (1–1000; 50 since 3.0), checked before anything is sent.",
     },
   ),
   oneOf(["allow", "deny"], {
@@ -881,19 +895,20 @@ const BASE_SETTINGS: SettingSpec[] = [
     section: "policy",
     since: NEXT,
     profile: "override",
-    default: "allow",
+    default: "deny",
     example: "deny",
     description:
-      "H-11: `deny` refuses writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them) with `POLICY_DENIED`; an exact `SN_TABLES_ALLOW` entry re-enables one. Reads are unaffected. The 3.0 default is an owner decision (O-4).",
+      "H-11: `deny` (the 3.0 default, B11) refuses writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them) with `POLICY_DENIED`; an exact `SN_TABLES_ALLOW` entry re-enables one; `allow` is the opt-out for all of them. Reads are unaffected.",
   }),
   list({
     key: "SN_IMPORT_SET_TABLES",
     section: "policy",
     since: NEXT,
     profile: "override",
-    example: "u_*,imp_*",
+    default: "u_*,imp_*",
+    example: "u_*,imp_*,x_acme_*",
     description:
-      "H-11: patterns (`*`, `?`) the import-set staging table must match (e.g. `u_*,imp_*`); unset = any table the table policy allows.",
+      "H-11: patterns (`*`, `?`) the import-set staging table must match (3.0 default `u_*,imp_*`); `*` is the opt-out (any table the table policy allows).",
   }),
   int(
     { min: 0, integer: true },
@@ -901,11 +916,10 @@ const BASE_SETTINGS: SettingSpec[] = [
       key: "SN_MAX_WRITES_PER_SESSION",
       section: "policy",
       since: NEXT,
-      default: 0,
-      defaultText: "—",
+      defaultText: "500 per HTTP session, none on stdio",
       example: "500",
       description:
-        "H-11: most applied instance writes per session (the process on stdio, one MCP session over HTTP; a batch counts its write sub-requests). Past it, writes fail with `WRITE_CAP` before any request; `get_status.writes.caps` shows the usage. Unset = no cap.",
+        "H-11: most applied instance writes per session (the process on stdio, one MCP session over HTTP; a batch counts its write sub-requests). Past it, writes fail with `WRITE_CAP` before any request; `get_status.writes.caps` shows the usage. Unset = 500 per HTTP session and no cap on stdio (3.0 default); `0` = no cap.",
     },
   ),
   int(
@@ -914,11 +928,10 @@ const BASE_SETTINGS: SettingSpec[] = [
       key: "SN_MAX_DELETES_PER_SESSION",
       section: "policy",
       since: NEXT,
-      default: 0,
-      defaultText: "—",
+      default: 100,
       example: "100",
       description:
-        "H-11: most applied deletes per session (`WRITE_CAP`). Unset = no cap.",
+        "H-11: most applied deletes per session (`WRITE_CAP`; 100 since 3.0). `0` = no cap.",
     },
   ),
   int(
@@ -927,11 +940,10 @@ const BASE_SETTINGS: SettingSpec[] = [
       key: "SN_MAX_BATCH_WRITES",
       section: "policy",
       since: NEXT,
-      default: 0,
-      defaultText: "—",
+      default: 50,
       example: "50",
       description:
-        "H-11: most write (non-GET) sub-requests in one `servicenow_batch` (`WRITE_CAP`). Unset = no cap.",
+        "H-11: most write (non-GET) sub-requests in one `servicenow_batch` (`WRITE_CAP`; 50 since 3.0). `0` = no cap.",
     },
   ),
   oneOf(["prod", "test", "dev"], {
@@ -1162,7 +1174,7 @@ const BASE_SETTINGS: SettingSpec[] = [
     since: NEXT,
     default: 30,
     description:
-      "`servicenow_docs_list` flags a generated document `stale` when its `sn_generated_at` is older than this many days.",
+      "`servicenow_list_docs` flags a generated document `stale` when its `sn_generated_at` is older than this many days.",
   }),
   positive({
     key: "SN_DOCS_SEARCH_MAX",
@@ -1170,7 +1182,7 @@ const BASE_SETTINGS: SettingSpec[] = [
     since: NEXT,
     default: 200,
     description:
-      "Most matches `servicenow_docs_search` returns; past it the result carries `truncated: true`.",
+      "Most matches `servicenow_search_docs` returns; past it the result carries `truncated: true`.",
   }),
   positive({
     key: "SN_DIAGRAM_MAX_NODES",

@@ -51,7 +51,7 @@ export const SCRIPT_TYPE_NAMES = Object.keys(SCRIPT_TYPES);
  * Angular providers, templates, themes, CSS and search sources. list_scripts,
  * get_script and search_code serve them only when asked for explicitly (a
  * `type`, or search_code `extended:true`); the default sweep, where_used,
- * lint_script, code_health, snapshot and compare stay on {@link SCRIPT_TYPES}.
+ * lint_script, check_code_health, snapshot and compare stay on {@link SCRIPT_TYPES}.
  */
 export const OPT_IN_SCRIPT_TYPES: Record<string, ScriptType> = scriptTypeView(
   (t) => t.scriptToolsOptIn === true,

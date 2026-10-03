@@ -6,10 +6,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { isLoopbackHost } from "../build/mcp/transport.js";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = path.join(import.meta.dirname, "..");
 const read = (file) => readFileSync(path.join(root, file), "utf8");
 const pkg = JSON.parse(read("package.json"));
 const dockerfile = read("Dockerfile");

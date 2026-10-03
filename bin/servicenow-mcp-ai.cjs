@@ -2,12 +2,15 @@
 // CommonJS launcher whose only job is the Node version guard. It must stay
 // parseable by ancient Node (no ?., ??, ESM syntax): the real entry is an ESM
 // graph that old Node fails to *parse*, so a guard inside it can never run.
+// E-1: the floor is 22.12 — the first 22.x release with require(esm) unflagged.
 "use strict";
 
-var major = parseInt(process.versions.node.split(".")[0], 10);
-if (major < 20) {
+var parts = process.versions.node.split(".");
+var major = parseInt(parts[0], 10);
+var minor = parseInt(parts[1], 10);
+if (major < 22 || (major === 22 && minor < 12)) {
   console.error(
-    "servicenow-mcp-ai requires Node.js >= 20, but this is " +
+    "servicenow-mcp-ai requires Node.js >= 22.12, but this is " +
       process.versions.node +
       ".\nUse a newer runtime, e.g.: nvm install 22 && nvm use 22",
   );

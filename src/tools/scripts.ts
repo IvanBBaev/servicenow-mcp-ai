@@ -97,7 +97,11 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
-    output: { type: z.string(), table: z.string(), record: z.unknown() },
+    output: {
+      type: z.string(),
+      table: z.string(),
+      record: z.unknown().optional(),
+    },
     input: {
       type: scriptType.describe(`Script type. One of: ${TYPE_LIST}.`),
       sys_id: sysId().describe("sys_id of the script record."),
@@ -158,7 +162,7 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_table_logic",
+    name: "servicenow_describe_table_logic",
     title: "Explain ServiceNow table logic",
     description:
       "Assemble the automation that runs on a table: business rules (ordered by " +

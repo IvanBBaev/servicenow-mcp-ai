@@ -36,7 +36,10 @@ const ireItems = z
     z.object({
       className: tableName().describe("CI class, e.g. 'cmdb_ci_linux_server'."),
       values: z
-        .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+        .record(
+          z.string(),
+          z.union([z.string(), z.number(), z.boolean(), z.null()]),
+        )
         .describe(
           "Identifying and descriptive attributes (name, serial_number, ip_address, ...).",
         ),
@@ -69,7 +72,7 @@ const ireRelations = z
   .describe("Relationships between the items (IRE payload `relations`).");
 
 const attributes = z
-  .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+  .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
   .describe("CI attribute name/value pairs.");
 
 export const specs: AnyToolSpec[] = [
@@ -85,20 +88,19 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    deprecatedParams: { class_name: "table" },
     input: {
-      class_name: tableName().describe(
-        "CMDB class/table, e.g. 'cmdb_ci_server'.",
-      ),
+      table: tableName().describe("CMDB class/table, e.g. 'cmdb_ci_server'."),
       query: encodedQuery()
         .optional()
         .describe("Encoded query (sysparm_query)."),
       limit: z.number().int().positive().max(1000).optional(),
       offset: z.number().int().nonnegative().optional(),
     },
-    logFields: (args) => ({ class_name: args.class_name }),
-    handler: async ({ class_name, query, limit, offset }) =>
+    logFields: (args) => ({ table: args.table }),
+    handler: async ({ table, query, limit, offset }) =>
       ok({
-        result: await listCmdbInstances(class_name, { query, limit, offset }),
+        result: await listCmdbInstances(table, { query, limit, offset }),
       }),
   }),
 
@@ -114,13 +116,14 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    deprecatedParams: { class_name: "table" },
     input: {
-      class_name: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
+      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
       sys_id: sysId().describe("sys_id of the CI."),
     },
-    logFields: (args) => ({ class_name: args.class_name }),
-    handler: async ({ class_name, sys_id }) =>
-      ok({ result: await getCmdbInstance(class_name, sys_id) }),
+    logFields: (args) => ({ table: args.table }),
+    handler: async ({ table, sys_id }) =>
+      ok({ result: await getCmdbInstance(table, sys_id) }),
   }),
 
   defineTool({
@@ -135,32 +138,34 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    deprecatedParams: { class_name: "table" },
+    legacyParams: { attributes: "values" },
     input: {
-      class_name: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
-      attributes,
+      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
+      values: attributes,
       source: shortText()
         .optional()
         .describe("Discovery source recorded by IRE (e.g. 'ServiceNow')."),
       apply: applyInput,
     },
-    logFields: (args) => ({ class_name: args.class_name }),
-    handler: async ({ class_name, attributes: attrs, source, apply }) => {
+    logFields: (args) => ({ table: args.table }),
+    handler: async ({ table, values: attrs, source, apply }) => {
       if (!shouldApply(apply)) {
         return planPreview({
           action: "create",
-          table: class_name,
+          table,
           after: { ...attrs, ...(source ? { source } : {}) },
         });
       }
       const result = await journaledWrite(
         {
           action: "create",
-          table: class_name,
+          table,
           fields: attrs,
         },
         () =>
           createCmdbInstance({
-            className: class_name,
+            className: table,
             attributes: attrs,
             source,
           }),
@@ -181,45 +186,39 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    deprecatedParams: { class_name: "table" },
+    legacyParams: { attributes: "values" },
     input: {
-      class_name: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
+      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
       sys_id: sysId().describe("sys_id of the CI."),
-      attributes,
+      values: attributes,
       source: shortText().optional().describe("Discovery source for IRE."),
       apply: applyInput,
     },
-    logFields: (args) => ({ class_name: args.class_name }),
-    handler: async ({
-      class_name,
-      sys_id,
-      attributes: attrs,
-      source,
-      apply,
-    }) => {
+    logFields: (args) => ({ table: args.table }),
+    handler: async ({ table, sys_id, values: attrs, source, apply }) => {
       if (!shouldApply(apply)) {
-        const before = await getCmdbInstance(class_name, sys_id);
+        const before = await getCmdbInstance(table, sys_id);
         return planPreview({
           action: "update",
-          table: class_name,
+          table,
           sys_id,
           before,
           after: attrs,
         });
       }
-      const before = await captureBefore(() =>
-        getCmdbInstance(class_name, sys_id),
-      );
+      const before = await captureBefore(() => getCmdbInstance(table, sys_id));
       const result = await journaledWrite(
         {
           action: "update",
-          table: class_name,
+          table,
           sys_id,
           fields: attrs,
           before,
         },
         () =>
           updateCmdbInstance(sys_id, {
-            className: class_name,
+            className: table,
             attributes: attrs,
             source,
           }),
@@ -240,12 +239,12 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    deprecatedParams: { class_name: "table" },
     input: {
-      class_name: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
+      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
     },
-    logFields: (args) => ({ class_name: args.class_name }),
-    handler: async ({ class_name }) =>
-      ok({ result: await getCmdbMeta(class_name) }),
+    logFields: (args) => ({ table: args.table }),
+    handler: async ({ table }) => ok({ result: await getCmdbMeta(table) }),
   }),
 
   defineTool({

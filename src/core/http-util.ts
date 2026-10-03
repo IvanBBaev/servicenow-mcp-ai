@@ -1,6 +1,8 @@
 import {
   CANCELLED_HINT,
+  IntegrationError,
   ServiceNowError,
+  instanceHttpCode,
   type ServiceNowErrorOptions,
 } from "./errors.js";
 import { userAgent } from "./identity.js";
@@ -590,7 +592,7 @@ export type ErrorFactory = (
   status?: number,
   detail?: unknown,
   options?: ServiceNowErrorOptions,
-) => ServiceNowError;
+) => IntegrationError;
 
 export interface RawRequestOptions {
   /** Full URL (may carry a query string). */
@@ -646,6 +648,19 @@ const CIRCUIT_HINT =
   "The instance failed repeatedly and requests are paused — check its availability (servicenow_test_connection / doctor still probe it), or wait for SN_BREAKER_RESET_MS to pass.";
 const REDIRECT_HINT =
   "Redirects are never followed (a redirect could carry the request body and auth headers to another origin). Point the instance/site setting at the final host; a login/SSO redirect usually means the auth method is wrong, and a redirect to the developer portal means the PDI is hibernating.";
+const TIMEOUT_HINT =
+  "The instance did not answer in time — retry, narrow the request, or raise SN_TIMEOUT_MS.";
+const UNREACHABLE_HINT =
+  "Check the instance setting (SN_INSTANCE or the profile's instance), DNS and network access; a PDI may need waking at developer.servicenow.com.";
+/**
+ * M-2: the fix for the upstream statuses a reader can act on; the others
+ * carry no hint (the instance's own `detail` explains them).
+ */
+const STATUS_HINTS: Readonly<Record<number, string>> = {
+  401: "The instance rejected the credentials — check the profile's user/password (or its auth method's secrets) with servicenow_doctor.",
+  403: "The instance's ACLs refused the call — the user needs a role that grants it, and REST API access policies may require snc_platform_rest_api_access.",
+  429: "The instance is rate-limiting this user — wait and retry, or lower the request rate (servicenow_get_status shows the rate-limit headers).",
+};
 const TOO_LARGE_HINT =
   "Narrow the request (fewer fields, a smaller page, a tighter query) or raise SN_MAX_BODY_BYTES.";
 const BUSY_HINT =
@@ -749,7 +764,7 @@ async function rawRequestInner(
     telemetry.totalMs += Date.now() - started;
   };
 
-  const deadlineError = (attempts: number, last: string): ServiceNowError => {
+  const deadlineError = (attempts: number, last: string): IntegrationError => {
     finish();
     countError(telemetry, "deadline");
     logger.warn(`${system} request exceeded its deadline`, {
@@ -767,7 +782,7 @@ async function rawRequestInner(
     );
   };
 
-  const cancelledError = (): ServiceNowError => {
+  const cancelledError = (): IntegrationError => {
     finish();
     countError(telemetry, "cancelled");
     logger.debug(`${system} request cancelled`, { method, url: safeUrl });
@@ -797,7 +812,10 @@ async function rawRequestInner(
     }
   }
 
-  const deadlineFailure = (attempts: number, last: string): ServiceNowError => {
+  const deadlineFailure = (
+    attempts: number,
+    last: string,
+  ): IntegrationError => {
     breakerFailure(host);
     return deadlineError(attempts, last);
   };
@@ -914,10 +932,18 @@ async function rawRequestInner(
       breakerFailure(host);
       finish();
       if (timedOut) {
-        throw makeError(`Request to ${system} timed out after ${timeoutMs}ms.`);
+        throw makeError(
+          `Request to ${system} timed out after ${timeoutMs}ms.`,
+          undefined,
+          undefined,
+          { code: "TIMEOUT", hint: TIMEOUT_HINT },
+        );
       }
       throw makeError(
         `Could not reach ${system} at ${safeUrl}: ${err.message}`,
+        undefined,
+        undefined,
+        { code: "UNREACHABLE", hint: UNREACHABLE_HINT },
       );
     }
 
@@ -940,7 +966,7 @@ async function rawRequestInner(
         `${system} answered HTTP ${res.status} with a redirect to ${target}; redirects are not followed.`,
         res.status,
         { redirectHost: target },
-        { code: "REDIRECT_BLOCKED", hint: REDIRECT_HINT },
+        { code: "REDIRECT_BLOCKED", hint: REDIRECT_HINT, source: "servicenow" },
       );
     }
 
@@ -1005,7 +1031,13 @@ async function rawRequestInner(
         `${errorPrefix} (${res.status}): ${summary}`,
         res.status,
         shaped.detail,
-        shaped.code ? { code: shaped.code, hint: shaped.hint } : undefined,
+        {
+          // M-2: an upstream answer always carries a code — the shaped one
+          // (HTML pages) or INSTANCE_HTTP_<status>.
+          code: shaped.code ?? instanceHttpCode(res.status),
+          hint: shaped.hint ?? STATUS_HINTS[res.status],
+          source: "servicenow",
+        },
       );
     }
 

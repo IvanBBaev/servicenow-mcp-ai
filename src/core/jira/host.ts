@@ -16,7 +16,8 @@ const JIRA_HOST_POLICY: HostPolicy = {
   allowedHostsEnv: "JIRA_ALLOWED_HOSTS",
   nonCanonicalError: (host) =>
     `Host "${host}" is not a *.atlassian.net site. Set JIRA_ALLOWED_HOSTS to allow a Server/Data-Center or custom domain.`,
-  makeError: (message) => new JiraError(message),
+  makeError: (message, options) =>
+    new JiraError(message, undefined, undefined, options),
 };
 
 /**

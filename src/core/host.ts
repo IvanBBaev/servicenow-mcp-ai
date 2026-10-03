@@ -1,5 +1,5 @@
 import { isIPv6 } from "node:net";
-import { ServiceNowError } from "./errors.js";
+import { ServiceNowError, type ServiceNowErrorOptions } from "./errors.js";
 import { isDeclaredSetting, rawSetting } from "./settings-manifest.js";
 
 /** True for an IPv4 dotted quad in a loopback/private/link-local range. */
@@ -76,7 +76,7 @@ export interface HostPolicy {
   /** Error for a non-canonical host when no allowlist is configured. */
   nonCanonicalError: (host: string) => string;
   /** Error constructor, so each system throws its own error class. */
-  makeError: (message: string) => Error;
+  makeError: (message: string, options?: ServiceNowErrorOptions) => Error;
 }
 
 /** Optional comma-separated allowlist of permitted hosts from `envVar`. */
@@ -176,6 +176,19 @@ function isExplicitlyAllowed(target: ParsedHost, allowed: string[]): boolean {
   return allowed.some((raw) => matchEntry(target, raw) === "exact");
 }
 
+/** M-2: a malformed host value — INVALID_INPUT. */
+function invalidHost(policy: HostPolicy, message: string): Error {
+  return policy.makeError(message, { code: "INVALID_INPUT" });
+}
+
+/** M-2: a host the SSRF / allowlist policy refuses — POLICY_DENIED. */
+function deniedHost(policy: HostPolicy, message: string): Error {
+  return policy.makeError(message, {
+    code: "POLICY_DENIED",
+    hint: `List the host exactly in ${policy.allowedHostsEnv} to allow it.`,
+  });
+}
+
 /**
  * Normalise and validate a host value under the given policy.
  * Accepts a bare name (gets the canonical suffix appended), a fully qualified
@@ -190,20 +203,21 @@ export function resolveHostWithPolicy(raw: string, policy: HostPolicy): string {
   // Drop any path, query or fragment.
   value = value.split(/[/?#]/, 1)[0] ?? "";
   if (value.includes("@")) {
-    throw policy.makeError(
+    throw invalidHost(
+      policy,
       `Invalid ${policy.subject}: embedded credentials are not allowed.`,
     );
   }
   if (!value) {
-    throw policy.makeError(`${policy.subject} is empty or invalid.`);
+    throw invalidHost(policy, `${policy.subject} is empty or invalid.`);
   }
   const parsed = parseHostPort(value);
   if (!parsed) {
-    throw policy.makeError(`Invalid ${policy.system} host: "${value}".`);
+    throw invalidHost(policy, `Invalid ${policy.system} host: "${value}".`);
   }
   let host = parsed.host;
   if (!host) {
-    throw policy.makeError(`${policy.subject} is empty or invalid.`);
+    throw invalidHost(policy, `${policy.subject} is empty or invalid.`);
   }
   if (!parsed.ipv6) {
     if (!host.includes(".")) {
@@ -216,7 +230,7 @@ export function resolveHostWithPolicy(raw: string, policy: HostPolicy): string {
       host.endsWith(".") ||
       host.startsWith("-")
     ) {
-      throw policy.makeError(`Invalid ${policy.system} host: "${host}".`);
+      throw invalidHost(policy, `Invalid ${policy.system} host: "${host}".`);
     }
   }
   const target: ParsedHost = { ...parsed, host };
@@ -225,28 +239,33 @@ export function resolveHostWithPolicy(raw: string, policy: HostPolicy): string {
   const allowed = getAllowedHosts(policy.allowedHostsEnv);
   if (allowed.length > 0) {
     if (!isAllowed(target, allowed)) {
-      throw policy.makeError(
+      throw deniedHost(
+        policy,
         `Host "${canonical}" is not permitted by ${policy.allowedHostsEnv}.`,
       );
     }
     if (isBlockedHost(host) && !isExplicitlyAllowed(target, allowed)) {
-      throw policy.makeError(
+      throw deniedHost(
+        policy,
         `Refusing to connect to internal/loopback host "${canonical}": ${policy.allowedHostsEnv} matches it only by suffix. List "${canonical}" there exactly to allow it.`,
       );
     }
   } else {
     if (target.ipv6) {
-      throw policy.makeError(
+      throw deniedHost(
+        policy,
         `IPv6 literal "${canonical}" is not permitted without ${policy.allowedHostsEnv}; list it there verbatim to allow it.`,
       );
     }
     if (target.port) {
-      throw policy.makeError(
+      throw deniedHost(
+        policy,
         `Explicit port ${target.port} on "${host}" is not permitted without ${policy.allowedHostsEnv}; list "${canonical}" there to allow it.`,
       );
     }
     if (isBlockedHost(host)) {
-      throw policy.makeError(
+      throw deniedHost(
+        policy,
         `Refusing to connect to internal/loopback host "${host}". Set ${policy.allowedHostsEnv} to override.`,
       );
     }
@@ -254,7 +273,7 @@ export function resolveHostWithPolicy(raw: string, policy: HostPolicy): string {
     // reachable. A custom domain must be opted in through the allowlist env
     // var, so a redirected/typo'd host cannot silently receive credentials.
     if (!host.toLowerCase().endsWith(policy.canonicalSuffix)) {
-      throw policy.makeError(policy.nonCanonicalError(host));
+      throw deniedHost(policy, policy.nonCanonicalError(host));
     }
   }
   return canonical;
@@ -267,7 +286,8 @@ const SN_HOST_POLICY: HostPolicy = {
   allowedHostsEnv: "SN_ALLOWED_HOSTS",
   nonCanonicalError: (host) =>
     `Host "${host}" is not a *.service-now.com instance. Set SN_ALLOWED_HOSTS to allow a custom or sovereign-cloud domain.`,
-  makeError: (message) => new ServiceNowError(message),
+  makeError: (message, options) =>
+    new ServiceNowError(message, undefined, undefined, options),
 };
 
 /**

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { activeProfile } from "../core/config.js";
 import { getProfileEnv } from "../core/settings.js";
 import { inlineArg, untrusted } from "./boundary.js";
+import { TOOLS } from "./naming.js";
 import {
   completeProfile,
   completeTable,
@@ -103,11 +104,11 @@ export function registerPrompts(
                 "",
                 `Triage ServiceNow incident ${incident}. Use the servicenow_* tools and read every value from the instance — do not invent field values.`,
                 "",
-                `1. Fetch the incident. If ${incident} looks like a 32-char sys_id use servicenow_get_record on 'incident'; otherwise servicenow_query_table on 'incident' with query number=${incident}. Retrieve short_description, description, priority, urgency, impact, state, category, subcategory, assignment_group, caller_id, opened_at.`,
+                `1. Fetch the incident. If ${incident} looks like a 32-char sys_id use ${TOOLS.get_record} on 'incident'; otherwise ${TOOLS.query_table} on 'incident' with query number=${incident}. Retrieve short_description, description, priority, urgency, impact, state, category, subcategory, assignment_group, caller_id, opened_at.`,
                 "2. Summarise the issue in 2-3 sentences.",
                 "3. Assess whether priority/urgency/impact are appropriate and recommend changes if needed.",
                 "4. Suggest the correct category/subcategory and assignment group.",
-                "5. Find similar resolved incidents (servicenow_query_table on 'incident' with a short_descriptionLIKE<keyword> query and state IN 6,7) and note how they were resolved.",
+                `5. Find similar resolved incidents (${TOOLS.query_table} on 'incident' with a short_descriptionLIKE<keyword> query and state IN 6,7) and note how they were resolved.`,
                 "6. Recommend concrete next steps for the assignee.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
@@ -145,11 +146,11 @@ export function registerPrompts(
                 "",
                 `Perform an impact analysis for ServiceNow change ${change}. Use the servicenow_* tools and read all values from the instance.`,
                 "",
-                `1. Fetch the change. Prefer servicenow_get_change (if the 'change' package is enabled); otherwise servicenow_query_table on 'change_request' with number=${change}. Capture type, risk, impact, state, start_date, end_date, short_description and description.`,
+                `1. Fetch the change. Prefer ${TOOLS.get_change} (if the 'change' package is enabled); otherwise ${TOOLS.query_table} on 'change_request' with number=${change}. Capture type, risk, impact, state, start_date, end_date, short_description and description.`,
                 "2. Summarise what the change does and its scheduling window.",
-                "3. Identify affected configuration items: servicenow_query_table on 'task_ci' for this change, and/or servicenow_list_cis for the relevant class. Flag business-critical CIs.",
-                "4. Check schedule conflicts with servicenow_change_conflicts (do not recalculate unless asked).",
-                "5. List related or overlapping changes in the same window (servicenow_query_table on 'change_request').",
+                `3. Identify affected configuration items: ${TOOLS.query_table} on 'task_ci' for this change, and/or ${TOOLS.list_cis} for the relevant class. Flag business-critical CIs.`,
+                `4. Check schedule conflicts with ${TOOLS.check_change_conflicts} (do not recalculate unless asked).`,
+                `5. List related or overlapping changes in the same window (${TOOLS.query_table} on 'change_request').`,
                 "6. Give an overall risk summary and a go/no-go recommendation with mitigations.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
@@ -165,7 +166,7 @@ export function registerPrompts(
     {
       title: "Document a ServiceNow table",
       description:
-        "Generate a table's documentation with servicenow_document_table, then fill in " +
+        `Generate a table's documentation with ${TOOLS.document_table}, then fill in ` +
         "its hand-written Purpose section.",
       argsSchema: {
         table: completable(
@@ -205,11 +206,11 @@ export function registerPrompts(
                 "",
                 `Document the ServiceNow table ${table} for profile ${profile}. Use the servicenow_* tools.`,
                 "",
-                `1. Generate the document: servicenow_document_table with table ${table} and profile ${profile}. It writes <profile>/${tableFile} and a .json companion from metadata (columns, references, diagrams, logic, ACLs, caveats); a re-run keeps hand-written text.`,
-                `2. Read it back: servicenow_docs_read ${tableFile} with profile ${profile}.`,
-                "3. If the Purpose section is empty, write 2-5 sentences on what the table is for and how it is used, based only on the document and the tools' output (servicenow_table_logic and servicenow_describe_table may help).",
-                `4. Save it with servicenow_docs_write (path ${tableFile}, profile ${profile}, overwrite true): the document exactly as read, with your text only between <!-- sn:manual:start purpose --> and <!-- sn:manual:end -->. Change nothing else — the generated parts are rewritten on the next run.`,
-                "Any encoded query you build (servicenow_query_table and friends) must follow the encoded-query reference attached below (servicenow://reference/encoded-query).",
+                `1. Generate the document: ${TOOLS.document_table} with table ${table} and profile ${profile}. It writes <profile>/${tableFile} and a .json companion from metadata (columns, references, diagrams, logic, ACLs, caveats); a re-run keeps hand-written text.`,
+                `2. Read it back: ${TOOLS.read_doc} ${tableFile} with profile ${profile}.`,
+                `3. If the Purpose section is empty, write 2-5 sentences on what the table is for and how it is used, based only on the document and the tools' output (${TOOLS.describe_table_logic} and ${TOOLS.describe_table} may help).`,
+                `4. Save it with ${TOOLS.write_doc} (path ${tableFile}, profile ${profile}, overwrite true): the document exactly as read, with your text only between <!-- sn:manual:start purpose --> and <!-- sn:manual:end -->. Change nothing else — the generated parts are rewritten on the next run.`,
+                `Any encoded query you build (${TOOLS.query_table} and friends) must follow the encoded-query reference attached below (servicenow://reference/encoded-query).`,
                 "Document structure only: do not paste record data (field values of business records) into the document.",
                 "Read every value from the instance; do not fabricate fields, scripts or relationships.",
                 INSTANCE_DATA_NOTE,
@@ -287,9 +288,9 @@ function registerInstanceOverview(server: McpServer): void {
               "",
               environmentCaution(),
               "",
-              "1. servicenow_check_capabilities: the capability matrix. Report which groups are available, read-only, plan-only or unavailable, and what that rules out (e.g. no script intelligence without sys_script read access).",
-              "2. servicenow_get_status: active profile, instance, auth mode, write mode, table policy and the enabled / denied / read-only packages.",
-              "3. servicenow_list_packages: which packages are on for this session. If the goal needs a package that is off and not denied, name it and offer servicenow_enable_package; never enable a package without the user's consent.",
+              `1. ${TOOLS.check_capabilities}: the capability matrix. Report which groups are available, read-only, plan-only or unavailable, and what that rules out (e.g. no script intelligence without sys_script read access).`,
+              `2. ${TOOLS.get_status}: active profile, instance, auth mode, write mode, table policy and the enabled / denied / read-only packages.`,
+              `3. ${TOOLS.list_packages}: which packages are on for this session. If the goal needs a package that is off and not denied, name it and offer ${TOOLS.enable_package}; never enable a package without the user's consent.`,
               ...(args.goal
                 ? [
                     `4. Map the goal ${inlineArg(args.goal)} to the tools that serve it, flagging any step the capability matrix or the write policy blocks.`,
@@ -349,17 +350,17 @@ function registerWhyIsItSlow(server: McpServer): void {
                 "",
                 "Diagnose why this ServiceNow instance is slow. Use the servicenow_* tools; the ops tools need the 'ops' package (SN_TOOL_PACKAGES). Base every conclusion on values read from the instance.",
                 "",
-                "1. servicenow_ops_read kind 'overview' (minutes 60): note error/warning volume, the scheduler backlog (overdue ready jobs), the send-ready email backlog and semaphore count. A section with available:false is unknown, not healthy — say so.",
-                "2. If errors or warnings are high: servicenow_ops_read kind 'syslog' (level 'warning', narrow with source from top_sources) and group the messages by cause (slow queries, script timeouts, integration failures).",
-                "3. servicenow_ops_read kind 'jobs' with filter 'overdue', then 'running': many overdue jobs mean the scheduler workers are saturated; a job running for long on one node (claimed_by / system_id) is a suspect.",
-                "4. servicenow_ops_read kind 'email_queue': a growing send-ready backlog or repeated failures point at the email job or the SMTP connection.",
-                "5. servicenow_ops_read kind 'semaphores': many rows held for long suggest long transactions blocking others.",
+                `1. ${TOOLS.read_ops} kind 'overview' (minutes 60): note error/warning volume, the scheduler backlog (overdue ready jobs), the send-ready email backlog and semaphore count. A section with available:false is unknown, not healthy — say so.`,
+                `2. If errors or warnings are high: ${TOOLS.read_ops} kind 'syslog' (level 'warning', narrow with source from top_sources) and group the messages by cause (slow queries, script timeouts, integration failures).`,
+                `3. ${TOOLS.read_ops} kind 'jobs' with filter 'overdue', then 'running': many overdue jobs mean the scheduler workers are saturated; a job running for long on one node (claimed_by / system_id) is a suspect.`,
+                `4. ${TOOLS.read_ops} kind 'email_queue': a growing send-ready backlog or repeated failures point at the email job or the SMTP connection.`,
+                `5. ${TOOLS.read_ops} kind 'semaphores': many rows held for long suggest long transactions blocking others.`,
                 ...(table
                   ? [
-                      `6. For ${table}: servicenow_trace_table_event ${table} with operation 'update' (and 'insert') to see every business rule, flow and notification a save runs, then servicenow_lint_table ${table} for query-in-loop and unbounded GlideRecord queries; servicenow_get_flow_runs shows slow or failing flow runs. servicenow_data_health ${table} can reveal duplicate or orphaned data that makes lookups expensive.`,
+                      `6. For ${table}: ${TOOLS.trace_table_event} ${table} with operation 'update' (and 'insert') to see every business rule, flow and notification a save runs, then ${TOOLS.lint_table} ${table} for query-in-loop and unbounded GlideRecord queries; ${TOOLS.get_flow_runs} shows slow or failing flow runs. ${TOOLS.check_data_health} ${table} can reveal duplicate or orphaned data that makes lookups expensive.`,
                     ]
                   : [
-                      "6. If the symptom names a table or form, repeat with that table: servicenow_trace_table_event and servicenow_lint_table.",
+                      `6. If the symptom names a table or form, repeat with that table: ${TOOLS.trace_table_event} and ${TOOLS.lint_table}.`,
                     ]),
                 "7. Report the most likely causes ranked by evidence (instance-wide vs table-specific), the data behind each, what could not be read, and concrete next steps (e.g. stats.do / transaction logs on the node for what these tools cannot see).",
                 INSTANCE_DATA_NOTE,

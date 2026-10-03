@@ -82,6 +82,9 @@ function decodeBase64Strict(input: string): Buffer {
   if (compact.length % 4 !== 0 || !BASE64_RE.test(compact)) {
     throw new ServiceNowError(
       "contentBase64 is not valid base64 data (check for stray characters or truncation).",
+      undefined,
+      undefined,
+      { code: "INVALID_INPUT" },
     );
   }
   return Buffer.from(compact, "base64");
@@ -134,6 +137,9 @@ export function sanitizeFileName(raw: string): string {
   if (!name || name === "." || name === "..") {
     throw new ServiceNowError(
       `file_name "${raw.slice(0, 80)}" is empty after removing directory parts and control characters.`,
+      undefined,
+      undefined,
+      { code: "INVALID_INPUT" },
     );
   }
   return name;
@@ -282,6 +288,9 @@ export async function downloadAttachment(
     if (estBase64Chars > maxChars) {
       throw new ServiceNowError(
         `Attachment ${meta.file_name ?? attachmentSysId} is too large to return inline (~${estBase64Chars} base64 chars > ${maxChars}). Increase SN_MAX_RESULT_CHARS or download it out of band.`,
+        undefined,
+        undefined,
+        { code: "RESPONSE_TOO_LARGE" },
       );
     }
   }
@@ -298,6 +307,9 @@ export async function downloadAttachment(
   if (data.length > maxChars) {
     throw new ServiceNowError(
       `Attachment is too large to return inline (${data.length} base64 chars > ${maxChars}). Increase SN_MAX_RESULT_CHARS or download it out of band.`,
+      undefined,
+      undefined,
+      { code: "RESPONSE_TOO_LARGE" },
     );
   }
   const padding = data.endsWith("==") ? 2 : data.endsWith("=") ? 1 : 0;

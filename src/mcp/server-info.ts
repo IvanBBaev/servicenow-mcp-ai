@@ -99,7 +99,7 @@ function writesState(): string {
   // H-3: say how a destructive apply is confirmed, so the model keeps the token.
   return getDestructiveConfirm() === "off"
     ? plan
-    : `${plan} Destructive applies (deletes, writing batches, email, catalog orders, reverts, conflict recalculation) also need the preview's single-use plan_token.`;
+    : `${plan} Destructive applies (deletes, writing batches, email, catalog orders, reverts, artifact upserts, conflict recalculation) also need the preview's single-use plan_token.`;
 }
 
 /**
@@ -132,7 +132,7 @@ export function buildServerInstructions(version: string): string {
     );
   } else {
     lines.push(
-      `Credentials: NOT configured${status.missing.length ? ` (missing ${status.missing.join(", ")})` : ""}. Instance tools fail with error.code NOT_CONFIGURED until fixed.`,
+      `Credentials: NOT configured${status.missing.length ? ` (missing ${status.missing.join(", ")})` : ""}. Instance tools fail with code NOT_CONFIGURED until fixed.`,
       "To configure: ask the user for the instance and credentials, call servicenow_set_credentials, then servicenow_test_connection. Never guess or echo a password.",
     );
   }

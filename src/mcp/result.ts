@@ -1,4 +1,11 @@
-import { ServiceNowError } from "../core/errors.js";
+import {
+  IntegrationError,
+  errorCodeOf,
+  errorSourceOf,
+  type ErrorSource,
+  type ServiceNowErrorOptions,
+  type ToolErrorCode,
+} from "../core/errors.js";
 import { getMaxResultChars, resultPretty } from "../core/settings.js";
 import { redactRecords } from "./redact.js";
 import { redactValue } from "../core/redaction.js";
@@ -48,8 +55,8 @@ export function okStructured(data: Record<string, unknown>): ToolResult {
   return { ...asText(masked), structuredContent: masked };
 }
 
-/** Pull the useful part out of a ServiceNow error body, if present. */
-function snDetail(detail: unknown): unknown {
+/** Pull the useful part out of an upstream error body, if present. */
+function upstreamDetail(detail: unknown): unknown {
   if (detail && typeof detail === "object" && "error" in detail) {
     return (detail as { error?: unknown }).error;
   }
@@ -57,31 +64,59 @@ function snDetail(detail: unknown): unknown {
 }
 
 /**
- * Error result. ServiceNow errors keep their structure (`status`, `snDetail`)
- * so the model can react differently to 401 (credentials), 403 (ACL/policy),
- * 429 (rate limit) and so on, instead of parsing a flat string.
+ * M-2 — the error payload of every failed tool result (error contract v2, B3).
+ * `error` is the message; `code` is always present (ToolErrorCode);
+ * `source` says who failed (`servicenow` | `server` | `policy`); `status` is
+ * the HTTP status when one applies; `hint` is the fix in one sentence; and
+ * `detail` is the instance's own error object (its `{message, detail}`) when
+ * it sent one.
  */
-export function fail(error: unknown): ToolResult {
-  if (error instanceof ServiceNowError) {
-    const payload = safe({
-      error: {
-        message: error.message,
-        status: error.status,
-        snDetail: snDetail(error.detail),
-        // Client-side conditions (BUSY, DEADLINE_EXCEEDED, UPSTREAM_HTML)
-        // carry a code and a one-line hint; absent otherwise.
-        ...(error.code ? { code: error.code } : {}),
-        ...(error.hint ? { hint: error.hint } : {}),
-      },
-    });
-    return {
-      content: [{ type: "text", text: stringify(payload) }],
-      isError: true,
-    };
-  }
+export interface ErrorPayload {
+  error: string;
+  code: ToolErrorCode;
+  source: ErrorSource;
+  status?: number;
+  hint?: string;
+  detail?: unknown;
+}
+
+/** M-2: the payload a failure maps to — the one place the shape is built. */
+export function errorPayload(error: unknown): ErrorPayload {
   const message = error instanceof Error ? error.message : String(error);
+  const payload: ErrorPayload = {
+    error: message,
+    code: errorCodeOf(error),
+    source: errorSourceOf(error),
+  };
+  if (error instanceof IntegrationError) {
+    if (error.status !== undefined) payload.status = error.status;
+    if (error.hint) payload.hint = error.hint;
+    const detail = upstreamDetail(error.detail);
+    if (detail !== undefined) payload.detail = detail;
+  }
+  return payload;
+}
+
+/**
+ * Error result. Every failure carries a stable `code` and a `source` next to
+ * the message (M-2), so the model can react to POLICY_DENIED, PLAN_REQUIRED,
+ * INSTANCE_HTTP_401 and so on instead of parsing a flat string. A string
+ * argument becomes the message; `options` give it a code and a hint (a bare
+ * string without a code maps to INTERNAL_ERROR — call sites always pass one).
+ */
+export function fail(
+  error: unknown,
+  options?: ServiceNowErrorOptions,
+): ToolResult {
+  const err =
+    typeof error === "string"
+      ? new IntegrationError(error, undefined, undefined, {
+          code: "INTERNAL_ERROR",
+          ...options,
+        })
+      : error;
   return {
-    content: [{ type: "text", text: stringify(safe({ error: { message } })) }],
+    content: [{ type: "text", text: stringify(safe(errorPayload(err))) }],
     isError: true,
   };
 }

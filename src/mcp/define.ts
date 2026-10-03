@@ -17,6 +17,7 @@ import { planArgsHash } from "./plan-token.js";
 import { confirmDestructiveApply } from "./confirm.js";
 import type { JournalInput } from "../core/write-journal.js";
 import { EMAIL_ADDRESS_RE } from "../api/shared.js";
+import { legacyToolNames, type ToolName } from "./naming.js";
 
 /**
  * The MCP behaviour hints every tool must declare (M-8 / GAP L4-07): all four
@@ -40,7 +41,8 @@ export interface ToolAnnotationSet {
  * from the manifest list, nothing else.
  */
 export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
-  name: string;
+  /** M-7: the v3 name, `servicenow_<verb>_<noun>` (see naming.ts TOOLS). */
+  name: ToolName;
   title: string;
   description: string;
   /** Package this tool belongs to — the only place the tag lives. */
@@ -50,7 +52,7 @@ export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
   input: S;
   /**
    * Optional zod output shape (MCP outputSchema, M-6). The registered schema
-   * is `z.object(output).passthrough()` (see buildOutputSchema) so a payload
+   * is `z.looseObject(output)` (see buildOutputSchema) so a payload
    * may carry more keys than it declares. A success result without
    * structuredContent gets its JSON text parsed into it by runSpec; an error
    * result never carries structuredContent.
@@ -66,13 +68,19 @@ export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
    * the record for the confirmation prompt and a refusal's journal line.
    */
   confirm?: ConfirmSpec;
+  /**
+   * M-7 (B2): v2 parameter names → their v3 name. Accepted only under
+   * SN_LEGACY_TOOL_NAMES=1 (one minor cycle); otherwise an unknown argument.
+   */
+  legacyParams?: Readonly<Record<string, string>>;
+  /**
+   * M-7: documented deprecated aliases → their canonical name, accepted
+   * always (e.g. `class_name` for `table` on the CMDB tools).
+   */
+  deprecatedParams?: Readonly<Record<string, string>>;
   /** Fields for the log line; never secrets or raw encoded queries. */
-  logFields?: (
-    args: z.objectOutputType<S, z.ZodTypeAny>,
-  ) => Record<string, unknown>;
-  handler: (
-    args: z.objectOutputType<S, z.ZodTypeAny>,
-  ) => ToolResult | Promise<ToolResult>;
+  logFields?: (args: z.output<z.ZodObject<S>>) => Record<string, unknown>;
+  handler: (args: z.output<z.ZodObject<S>>) => ToolResult | Promise<ToolResult>;
 }
 
 /** H-3: see ToolSpec.confirm. */
@@ -176,15 +184,22 @@ export async function runSpec(
 
 async function runSpecInner(
   spec: AnyToolSpec,
-  args: Record<string, unknown>,
+  rawArgs: Record<string, unknown>,
   call: CallContext,
 ): Promise<ToolResult> {
+  const normalized = normalizeParamAliases(spec, rawArgs);
+  if ("error" in normalized) return normalized.error;
+  const args = normalized.args;
   let profile: string | undefined;
   if (hasAutoInstanceParam(spec) && typeof args.instance === "string") {
     profile = args.instance.trim().toLowerCase();
     if (profile && !listProfiles().includes(profile)) {
       return fail(
         `Unknown connection profile "${profile}". Available: ${listProfiles().join(", ") || "(none)"}. See servicenow_list_instances.`,
+        {
+          code: "UNKNOWN_PROFILE",
+          hint: "Pass a profile servicenow_list_instances names, or add one with servicenow_set_credentials.",
+        },
       );
     }
   }
@@ -227,6 +242,74 @@ async function runSpecInner(
     });
     return fail(error);
   }
+}
+
+/**
+ * M-7: the parameter aliases a spec accepts right now — its deprecated
+ * aliases always, its v2 (legacy) names only under SN_LEGACY_TOOL_NAMES=1.
+ */
+export function activeParamAliases(
+  spec: AnyToolSpec,
+  legacy: boolean = legacyToolNames(),
+): Record<string, string> {
+  return {
+    ...(legacy ? spec.legacyParams : {}),
+    ...spec.deprecatedParams,
+  };
+}
+
+const warnedAliases = new Set<string>();
+
+/**
+ * M-7: move every accepted alias argument to its canonical name before the
+ * call runs (so the plan token, the confirmation and the handler only ever
+ * see canonical names), then re-check the arguments against the canonical
+ * schema — the registered schema had to make an aliased parameter optional.
+ * Passing both an alias and its canonical name is INVALID_INPUT.
+ */
+function normalizeParamAliases(
+  spec: AnyToolSpec,
+  args: Record<string, unknown>,
+): { args: Record<string, unknown> } | { error: ToolResult } {
+  const aliases = activeParamAliases(spec);
+  const used = Object.keys(aliases).filter((a) => a in args);
+  if (!used.length) return { args };
+  const out: Record<string, unknown> = { ...args };
+  for (const alias of used) {
+    const canonical = aliases[alias]!;
+    if (canonical in out) {
+      return {
+        error: fail(
+          `Pass either '${canonical}' or its deprecated alias '${alias}', not both.`,
+          {
+            code: "INVALID_INPUT",
+            hint: `Use '${canonical}' only.`,
+          },
+        ),
+      };
+    }
+    out[canonical] = out[alias];
+    delete out[alias];
+    const key = `${spec.name}.${alias}`;
+    if (!warnedAliases.has(key)) {
+      warnedAliases.add(key);
+      logger.warn(
+        `Parameter '${alias}' of ${spec.name} is deprecated — use '${canonical}'.`,
+      );
+    }
+  }
+  const parsed = buildInputSchema(spec, { aliases: false }).safeParse(out);
+  if (!parsed.success) {
+    return {
+      error: fail(
+        `Invalid arguments for ${spec.name}: ${parsed.error.issues
+          .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+          .join("; ")}`,
+        { code: "INVALID_INPUT" },
+      ),
+    };
+  }
+  return { args: parsed.data };
 }
 
 /**
@@ -385,21 +468,40 @@ export const planTokenParam = shortText(64)
  * `instance` parameter (unless the spec already uses the name), as a strict
  * object — an unknown argument (e.g. a typo like 'tabel') is a visible
  * validation error instead of being stripped silently.
+ *
+ * M-7: with `aliases` (the default) each accepted alias (activeParamAliases)
+ * is added as an optional parameter with the canonical one's schema, and the
+ * canonical parameter becomes optional too (runSpec re-checks the arguments
+ * against the alias-free schema once the alias is moved). `legacy` defaults
+ * to SN_LEGACY_TOOL_NAMES.
  */
-export function buildInputSchema(spec: AnyToolSpec) {
-  const shape: z.ZodRawShape = hasAutoInstanceParam(spec)
+export function buildInputSchema(
+  spec: AnyToolSpec,
+  options: { aliases?: boolean; legacy?: boolean } = {},
+) {
+  const shape: Record<string, z.core.$ZodType> = hasAutoInstanceParam(spec)
     ? { ...spec.input, instance: instanceParam }
     : { ...spec.input };
   if (spec.confirm && !("plan_token" in shape))
     shape.plan_token = planTokenParam;
+  if (options.aliases !== false) {
+    const aliases = activeParamAliases(spec, options.legacy);
+    for (const [alias, canonical] of Object.entries(aliases)) {
+      const target = shape[canonical] as z.ZodType | undefined;
+      if (!target || alias in shape) continue;
+      const optional = target.optional();
+      shape[canonical] = optional;
+      shape[alias] = target.optional().describe(`Deprecated: use ${canonical}`);
+    }
+  }
   return z.object(shape).strict();
 }
 
 /**
  * The registered output schema of a spec (M-6): its output shape as a
- * passthrough object — permissive by design, so a payload may add keys
- * without a schema change (JSON Schema `additionalProperties: true`).
+ * loose object — permissive by design, so a payload may add keys without a
+ * schema change (JSON Schema `additionalProperties: {}`, i.e. any value).
  */
 export function buildOutputSchema(spec: AnyToolSpec) {
-  return spec.output ? z.object(spec.output).passthrough() : undefined;
+  return spec.output ? z.looseObject(spec.output) : undefined;
 }

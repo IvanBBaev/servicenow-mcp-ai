@@ -1,6 +1,6 @@
 # Security review — profile `default`
 
-Generated from the security scan of servicenow_code_health (S-3; the timestamp is in the frontmatter). Text inside the manual block survives re-runs.
+Generated from the security scan of servicenow_check_code_health (S-3; the timestamp is in the frontmatter). Text inside the manual block survives re-runs.
 
 - **Scan available:** yes
 - **Active ACLs scanned:** 5

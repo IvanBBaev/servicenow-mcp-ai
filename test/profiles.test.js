@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 
 import {
   listProfiles,
@@ -14,6 +14,10 @@ import {
 } from "../build/core/config.js";
 import { createRecord, ServiceNowError } from "../build/api/table.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
 
 baselineEnv();
 
@@ -62,7 +66,7 @@ test("saveCredentials on a named profile writes prefixed keys only", async () =>
           "default untouched",
         );
 
-        const parsed = dotenv.parse(await fs.readFile(envFile, "utf8"));
+        const parsed = parseEnv(await fs.readFile(envFile, "utf8"));
         assert.equal(parsed.SN_PROFILE_DEV_USER, "new-dev-user");
         assert.equal(
           parsed.SN_USER,
@@ -189,7 +193,7 @@ test("useProfile switches and persists; unknown/invalid names throw", async () =
         assert.equal(activeProfile(), "dev");
         assert.equal(getCredentials().user, "dev-user");
 
-        const parsed = dotenv.parse(await fs.readFile(envFile, "utf8"));
+        const parsed = parseEnv(await fs.readFile(envFile, "utf8"));
         assert.equal(parsed.SN_ACTIVE_PROFILE, "dev");
 
         assert.throws(() => useProfile("prod"), /Unknown profile "prod"/);

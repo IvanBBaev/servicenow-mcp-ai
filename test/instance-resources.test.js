@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 
 import { registerAllTools, registerResources } from "../build/mcp/registry.js";
 import { currentRuntime } from "../build/core/runtime.js";
@@ -83,7 +84,7 @@ test("servicenow://instances lists profiles without passwords", async () => {
   });
 });
 
-test("servicenow://<profile>/schema/<table> reads through that profile", async () => {
+test("servicenow://profiles/<profile>/schema/<table> reads through that profile", async () => {
   baselineEnv();
   clearSchemaCache();
   await withEnv(PROFILE_ENV, async () => {
@@ -91,7 +92,7 @@ test("servicenow://<profile>/schema/<table> reads through that profile", async (
     try {
       await withFetch(schemaFetch, async (calls) => {
         const res = await client.readResource({
-          uri: `servicenow://prod/schema/incident`,
+          uri: `servicenow://profiles/prod/schema/incident`,
         });
         const payload = JSON.parse(res.contents[0].text);
         assert.equal(payload.profile, "prod");
@@ -109,16 +110,23 @@ test("servicenow://<profile>/schema/<table> reads through that profile", async (
   });
 });
 
-test("unknown profile in the schema URI returns a JSON error payload", async () => {
+test("unknown profile in the schema URI throws an McpError (M-2)", async () => {
   baselineEnv();
   await withEnv(PROFILE_ENV, async () => {
     const { client, close } = await startServer();
     try {
-      const res = await client.readResource({
-        uri: "servicenow://nope/schema/incident",
-      });
-      const payload = JSON.parse(res.contents[0].text);
-      assert.match(payload.error, /Unknown connection profile "nope"/);
+      await assert.rejects(
+        client.readResource({
+          uri: "servicenow://profiles/nope/schema/incident",
+        }),
+        (err) => {
+          assert.equal(err.code, ErrorCode.InvalidParams);
+          assert.match(err.message, /Unknown connection profile "nope"/);
+          assert.equal(err.data?.code, "UNKNOWN_PROFILE");
+          assert.equal(err.data?.source, "server");
+          return true;
+        },
+      );
     } finally {
       await close();
     }

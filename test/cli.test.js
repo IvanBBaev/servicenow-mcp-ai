@@ -524,7 +524,7 @@ test("support-bundle: writes one JSON file, prints its path, masks every secret"
   assert.equal(bundle.settings.SN_PASSWORD, "***");
   assert.equal(bundle.settings.SN_USER, "alice");
   assert.equal(bundle.doctor.status, "healthy");
-  assert.equal(bundle.manifest.manifestVersion, 2);
+  assert.equal(bundle.manifest.manifestVersion, 3);
   assert.equal(bundle.manifest.serverVersion, SERVER_VERSION);
   assert.ok(bundle.manifest.toolCount >= bundle.manifest.activeTools.length);
   assert.deepEqual(bundle.npm, { name: "servicenow-mcp-ai" });

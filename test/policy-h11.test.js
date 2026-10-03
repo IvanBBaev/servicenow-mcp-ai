@@ -1,5 +1,5 @@
 // H-11 — policy model v2: glob patterns with a fixed precedence, protected
-// tables (opt-in write deny), an import-set allowlist, one evaluator shared by
+// tables (write-denied by default since 3.0, B11), an import-set allowlist, one evaluator shared by
 // the guards, servicenow_explain_policy and servicenow://policy, per-session
 // write caps, and the per-profile environment marker (prod).
 import test from "node:test";
@@ -24,8 +24,17 @@ import {
   globToRegExp,
 } from "../build/core/policy.js";
 import { policyResourcePayload } from "../build/mcp/policy-view.js";
+import { getWriteCaps } from "../build/core/write-journal.js";
+import {
+  createRuntime,
+  currentRuntime,
+  runWithRuntime,
+} from "../build/core/runtime.js";
 import {
   getDestructiveConfirm,
+  getMaxBatchWrites,
+  getMaxDeletesPerSession,
+  getMaxWritesPerSession,
   getProfileEnv,
   getWriteMode,
   writeModeHold,
@@ -214,12 +223,12 @@ test("acceptance: create_record on sys_user_has_role is refused under the protec
       const res = out(
         await call("servicenow_create_record", {
           table: "sys_user_has_role",
-          fields: { user: "x", role: "admin" },
+          values: { user: "x", role: "admin" },
         }),
       );
-      assert.equal(res.error.code, "POLICY_DENIED");
-      assert.match(res.error.message, /protected table/);
-      assert.match(res.error.message, /SN_TABLES_ALLOW/);
+      assert.equal(res.code, "POLICY_DENIED");
+      assert.match(res.error, /protected table/);
+      assert.match(res.error, /SN_TABLES_ALLOW/);
       assert.equal(mutating(calls).length, 0);
     },
   );
@@ -232,21 +241,39 @@ test("acceptance: create_record on sys_user_has_role is refused under the protec
     async (calls) => {
       const res = await call("servicenow_create_record", {
         table: "sys_user_has_role",
-        fields: { user: "x", role: "admin" },
+        values: { user: "x", role: "admin" },
       });
       assert.equal(res.isError, undefined, res.content[0].text);
       assert.equal(mutating(calls).length, 1);
     },
   );
-  // The default (allow) keeps today's behaviour.
-  await scenario({ SN_WRITE_MODE: "apply" }, async (calls) => {
-    const res = await call("servicenow_create_record", {
-      table: "sys_user_has_role",
-      fields: { user: "x" },
-    });
-    assert.equal(res.isError, undefined, res.content[0].text);
-    assert.equal(mutating(calls).length, 1);
-  });
+  // Unset is the 3.0 default (B11): the write is refused.
+  await scenario(
+    { SN_WRITE_MODE: "apply", SN_PROTECTED_TABLES_WRITE: undefined },
+    async (calls) => {
+      const res = out(
+        await call("servicenow_create_record", {
+          table: "sys_user_has_role",
+          values: { user: "x" },
+        }),
+      );
+      assert.equal(res.code, "POLICY_DENIED");
+      assert.match(res.error, /SN_PROTECTED_TABLES_WRITE=deny/);
+      assert.equal(mutating(calls).length, 0);
+    },
+  );
+  // SN_PROTECTED_TABLES_WRITE=allow is the explicit opt-out.
+  await scenario(
+    { SN_WRITE_MODE: "apply", SN_PROTECTED_TABLES_WRITE: "allow" },
+    async (calls) => {
+      const res = await call("servicenow_create_record", {
+        table: "sys_user_has_role",
+        values: { user: "x" },
+      });
+      assert.equal(res.isError, undefined, res.content[0].text);
+      assert.equal(mutating(calls).length, 1);
+    },
+  );
 });
 
 test("protected tables: batch writes and set_property meet the rule; reads do not", async () => {
@@ -260,11 +287,11 @@ test("protected tables: batch writes and set_property meet the rule; reads do no
           ],
         }),
       );
-      assert.equal(batch.error.code, "POLICY_DENIED");
+      assert.equal(batch.code, "POLICY_DENIED");
       const prop = out(
         await call("servicenow_set_property", { name: "glide.x", value: "1" }),
       );
-      assert.equal(prop.error.code, "POLICY_DENIED");
+      assert.equal(prop.code, "POLICY_DENIED");
       assert.equal(mutating(calls).length, 0);
       const read = await call("servicenow_get_record", {
         table: "sys_user",
@@ -281,18 +308,51 @@ test("SN_IMPORT_SET_TABLES: the staging table must match a pattern", async () =>
     async (calls) => {
       const bad = out(
         await call("servicenow_insert_import_set_row", {
-          staging_table: "incident",
-          fields: { a: "1" },
+          table: "incident",
+          values: { a: "1" },
         }),
       );
-      assert.equal(bad.error.code, "POLICY_DENIED");
-      assert.match(bad.error.message, /SN_IMPORT_SET_TABLES/);
+      assert.equal(bad.code, "POLICY_DENIED");
+      assert.match(bad.error, /SN_IMPORT_SET_TABLES/);
       assert.equal(mutating(calls).length, 0);
       const good = await call("servicenow_insert_import_set_row", {
-        staging_table: "u_imp_users",
-        fields: { a: "1" },
+        table: "u_imp_users",
+        values: { a: "1" },
       });
       assert.equal(good.isError, undefined, good.content[0].text);
+      assert.equal(mutating(calls).length, 1);
+    },
+  );
+});
+
+test("SN_IMPORT_SET_TABLES: unset means u_*,imp_* (3.0, B11); * lifts the restriction", async () => {
+  const insert = (staging_table) =>
+    call("servicenow_insert_import_set_row", {
+      table: staging_table,
+      values: { a: "1" },
+    });
+  await scenario(
+    { SN_WRITE_MODE: "apply", SN_IMPORT_SET_TABLES: undefined },
+    async (calls) => {
+      for (const table of ["incident", "x_acme_stage"]) {
+        const bad = out(await insert(table));
+        assert.equal(bad.code, "POLICY_DENIED", table);
+        assert.match(bad.error, /SN_IMPORT_SET_TABLES/);
+        assert.match(bad.error, /set it to \*/);
+      }
+      assert.equal(mutating(calls).length, 0);
+      for (const table of ["u_imp_users", "imp_user"]) {
+        const good = await insert(table);
+        assert.equal(good.isError, undefined, good.content[0].text);
+      }
+      assert.equal(mutating(calls).length, 2);
+    },
+  );
+  await scenario(
+    { SN_WRITE_MODE: "apply", SN_IMPORT_SET_TABLES: "*" },
+    async (calls) => {
+      const res = await insert("x_acme_stage");
+      assert.equal(res.isError, undefined, res.content[0].text);
       assert.equal(mutating(calls).length, 1);
     },
   );
@@ -371,7 +431,7 @@ test("explain_policy without a table and servicenow://policy return the effectiv
         exact: ["hr_case"],
         patterns: ["sys_*"],
       });
-      assert.equal(p.protectedTables.write, "allow");
+      assert.equal(p.protectedTables.write, "deny", "3.0 default (B11)");
       assert.ok(p.protectedTables.list.includes("sys_rest_message*"));
       const res = policyResourcePayload();
       assert.equal(res.activeProfile, "default");
@@ -401,8 +461,8 @@ test("write caps: the cap+1th delete fails with WRITE_CAP before any request and
           sys_id: SYS_ID,
         }),
       );
-      assert.equal(refused.error.code, "WRITE_CAP");
-      assert.equal(refused.error.status, 429);
+      assert.equal(refused.code, "WRITE_CAP");
+      assert.equal(refused.status, 429);
       assert.equal(mutating(calls).length, 2);
       assert.ok(
         calls.slice(before).every((c) => (c.init?.method ?? "GET") === "GET"),
@@ -414,7 +474,7 @@ test("write caps: the cap+1th delete fails with WRITE_CAP before any request and
       const update = await call("servicenow_update_record", {
         table: "incident",
         sys_id: SYS_ID,
-        fields: { a: "1" },
+        values: { a: "1" },
       });
       assert.equal(update.isError, undefined, update.content[0].text);
       const status = out(await call("servicenow_get_status", {}));
@@ -448,16 +508,16 @@ test("write caps: a batch counts its write sub-requests; SN_MAX_BATCH_WRITES cap
     async () => {
       await withFetch(batchOk, async (calls) => {
         const tooBig = out(await call("servicenow_batch", req(4)));
-        assert.equal(tooBig.error.code, "WRITE_CAP");
-        assert.match(tooBig.error.message, /SN_MAX_BATCH_WRITES/);
+        assert.equal(tooBig.code, "WRITE_CAP");
+        assert.match(tooBig.error, /SN_MAX_BATCH_WRITES/);
         assert.equal(calls.length, 0);
         assert.equal(
           (await call("servicenow_batch", req(3))).isError,
           undefined,
         );
         const over = out(await call("servicenow_batch", req(3)));
-        assert.equal(over.error.code, "WRITE_CAP");
-        assert.match(over.error.message, /3 of 5 writes/);
+        assert.equal(over.code, "WRITE_CAP");
+        assert.match(over.error, /3 of 5 writes/);
         assert.equal(calls.length, 1);
         freshRuntime();
         assert.equal(
@@ -465,6 +525,107 @@ test("write caps: a batch counts its write sub-requests; SN_MAX_BATCH_WRITES cap
           undefined,
         );
         assert.equal(calls.length, 2);
+      });
+    },
+  );
+});
+
+test("write caps: 3.0 defaults — 100 deletes, 50 batch writes, 500 writes per HTTP session, none on stdio; 0 lifts a cap", async () => {
+  await withEnv(
+    {
+      SN_MAX_WRITES_PER_SESSION: undefined,
+      SN_MAX_DELETES_PER_SESSION: undefined,
+      SN_MAX_BATCH_WRITES: undefined,
+    },
+    () => {
+      assert.equal(getMaxDeletesPerSession(), 100);
+      assert.equal(getMaxBatchWrites(), 50);
+      assert.equal(getMaxWritesPerSession(), 0, "stdio: no write cap");
+      assert.equal(getMaxWritesPerSession(true), 500, "HTTP session");
+      freshRuntime();
+      assert.deepEqual(getWriteCaps(), {
+        writes: { used: 0, max: null },
+        deletes: { used: 0, max: 100 },
+      });
+      const session = createRuntime({ parent: currentRuntime() });
+      assert.deepEqual(
+        runWithRuntime(session, () => getWriteCaps()),
+        {
+          writes: { used: 0, max: 500 },
+          deletes: { used: 0, max: 100 },
+        },
+      );
+    },
+  );
+  await withEnv(
+    {
+      SN_MAX_WRITES_PER_SESSION: "0",
+      SN_MAX_DELETES_PER_SESSION: "0",
+      SN_MAX_BATCH_WRITES: "0",
+    },
+    () => {
+      assert.equal(getMaxDeletesPerSession(), 0);
+      assert.equal(getMaxBatchWrites(), 0);
+      assert.equal(getMaxWritesPerSession(true), 0);
+    },
+  );
+});
+
+test("write caps: by default the 101st delete in a session is refused with WRITE_CAP", async () => {
+  await scenario(
+    { SN_WRITE_MODE: "apply", SN_MAX_DELETES_PER_SESSION: undefined },
+    async (calls) => {
+      for (let i = 0; i < 100; i++) {
+        const ok = await call("servicenow_delete_record", {
+          table: "incident",
+          sys_id: SYS_ID,
+        });
+        assert.equal(ok.isError, undefined, ok.content[0].text);
+      }
+      const refused = out(
+        await call("servicenow_delete_record", {
+          table: "incident",
+          sys_id: SYS_ID,
+        }),
+      );
+      assert.equal(refused.code, "WRITE_CAP");
+      assert.match(refused.error, /100 of 100 deletes/);
+      assert.equal(mutating(calls).length, 100, "no 101st DELETE");
+    },
+  );
+});
+
+test("write caps: by default a batch with more than 50 write sub-requests is refused", async () => {
+  const batchOk = () =>
+    jsonResponse(200, {
+      batch_request_id: "1",
+      serviced_requests: [{ id: "1", status_code: 200, body: btoa("{}") }],
+      unserviced_requests: [],
+    });
+  const req = (n) => ({
+    requests: Array.from({ length: n }, () => ({
+      method: "PATCH",
+      url: `/api/now/table/incident/${SYS_ID}`,
+      body: { a: "1" },
+    })),
+  });
+  await scenario(
+    // SN_BATCH_MAX_REQUESTS (also 50 by default, B8) is raised so the write
+    // cap, not the request-count limit, is what refuses the 51-write batch.
+    {
+      SN_WRITE_MODE: "apply",
+      SN_MAX_BATCH_WRITES: undefined,
+      SN_BATCH_MAX_REQUESTS: "100",
+    },
+    async () => {
+      await withFetch(batchOk, async (calls) => {
+        const tooBig = out(await call("servicenow_batch", req(51)));
+        assert.equal(tooBig.code, "WRITE_CAP");
+        assert.match(tooBig.error, /SN_MAX_BATCH_WRITES/);
+        assert.equal(calls.length, 0);
+        const ok = await call("servicenow_batch", req(50));
+        assert.equal(ok.isError, undefined, ok.content[0].text);
+        assert.equal(calls.length, 1);
       });
     },
   );
@@ -496,7 +657,7 @@ test("env: a prod profile configured for apply stays in plan mode until acknowle
     const res = await call("servicenow_update_record", {
       table: "incident",
       sys_id: SYS_ID,
-      fields: { a: "1" },
+      values: { a: "1" },
     });
     const body = out(res);
     assert.equal(body.mode, "plan");
@@ -562,7 +723,7 @@ test("env: prod destructive applies are confirmed even in acknowledged apply mod
     const close1 = await connectedServer({});
     try {
       const r = out(await call("servicenow_delete_record", del));
-      assert.equal(r.error.code, "CONFIRM_REQUIRED");
+      assert.equal(r.code, "CONFIRM_REQUIRED");
     } finally {
       await close1();
     }
@@ -572,7 +733,7 @@ test("env: prod destructive applies are confirmed even in acknowledged apply mod
     }));
     try {
       const r = out(await call("servicenow_delete_record", del));
-      assert.equal(r.error.code, "CONFIRM_DECLINED");
+      assert.equal(r.code, "CONFIRM_DECLINED");
     } finally {
       await close2();
     }
@@ -591,7 +752,7 @@ test("env: prod destructive applies are confirmed even in acknowledged apply mod
     }
     const upd = await call("servicenow_update_record", {
       ...del,
-      fields: { a: "1" },
+      values: { a: "1" },
     });
     assert.equal(upd.isError, undefined, upd.content[0].text);
     assert.equal(mutating(calls).length, 2);

@@ -28,7 +28,7 @@ import { assertNoCaret, snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 
 /**
- * P-17 — `artifact_dependencies`: the dependency graph of one registry
+ * P-17 — `get_artifact_dependencies`: the dependency graph of one registry
  * artefact.
  *
  * Outbound edges (what the artefact uses) come from the descriptor alone:

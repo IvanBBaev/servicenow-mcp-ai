@@ -20,6 +20,7 @@ import {
 import { journaledWrite } from "../core/write-journal.js";
 
 const importFieldsSchema = z.record(
+  z.string(),
   z.union([z.string(), z.number(), z.boolean(), z.null()]),
 );
 
@@ -36,35 +37,36 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    legacyParams: { staging_table: "table", fields: "values" },
     input: {
-      staging_table: tableName().describe(
+      table: tableName().describe(
         "Import staging table, e.g. 'u_imp_incident'.",
       ),
-      fields: importFieldsSchema.describe(
+      values: importFieldsSchema.describe(
         "Column name/value pairs for the staging row.",
       ),
       apply: applyInput,
     },
-    logFields: (args) => ({ staging_table: args.staging_table }),
-    handler: async ({ staging_table, fields, apply }) => {
+    logFields: (args) => ({ table: args.table }),
+    handler: async ({ table, values, apply }) => {
       if (!shouldApply(apply)) {
         return planPreview({
           action: "create",
-          table: staging_table,
-          after: fields,
+          table,
+          after: values,
         });
       }
       const result = await journaledWrite(
         {
           action: "create",
-          table: staging_table,
-          fields,
+          table,
+          fields: values,
         },
-        () => insertImportSetRow(staging_table, fields),
+        () => insertImportSetRow(table, values),
         (r) => ({ sys_id: resultSysId(r) }),
       );
       // S-10: the run status and transform maps, best-effort (warnings).
-      const run = await describeImportRun(staging_table, result);
+      const run = await describeImportRun(table, result);
       return ok({ message: "Import set row inserted", result, ...run });
     },
   }),
@@ -81,12 +83,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { staging_table: "table" },
     input: {
-      staging_table: tableName().describe("Import staging table name."),
+      table: tableName().describe("Import staging table name."),
       sys_id: sysId().describe("sys_id of the staging row."),
     },
-    logFields: (args) => ({ staging_table: args.staging_table }),
-    handler: async ({ staging_table, sys_id }) =>
-      ok({ result: await getImportSetRow(staging_table, sys_id) }),
+    logFields: (args) => ({ table: args.table }),
+    handler: async ({ table, sys_id }) =>
+      ok({ result: await getImportSetRow(table, sys_id) }),
   }),
 ];

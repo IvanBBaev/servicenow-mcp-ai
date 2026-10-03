@@ -8,17 +8,16 @@ import {
   unlinkSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
-import dotenv from "dotenv";
+import { ServiceNowError } from "./errors.js";
 import { activeProfile, PROFILE_RE } from "./profile.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
 import { resolveSecretFiles, secretFileSourceFor } from "./secret-files.js";
 import { logger } from "./logging.js";
 import { profileEnvKey, rawSetting, readString } from "./settings-manifest.js";
 
-const moduleDir = dirname(fileURLToPath(import.meta.url));
+const moduleDir = import.meta.dirname;
 
 /** The project-root .env (parent of build/ or src/), used in local development. */
 const projectEnvPath = join(moduleDir, "..", ".env");
@@ -81,14 +80,16 @@ export function loadEnv(): void {
     logger.warn(PROJECT_ENV_DEPRECATION, { envFile: path });
   }
   if (existsSync(path)) {
-    // override:false so values already in the environment (e.g. supplied by the
-    // MCP client) take precedence over the file — environment-first config.
-    dotenv.config({ path, override: false });
+    // Node's own env-file loader (E-2, replaces dotenv): a value already in
+    // the environment (e.g. supplied by the MCP client) takes precedence over
+    // the file — environment-first config, as dotenv's override:false did.
+    process.loadEnvFile(path);
   }
   // D-5 / L2-12: <KEY>_FILE secret sources (container secrets). Runs after the
   // env file so a _FILE setting may live there too; throws on a <KEY> /
   // <KEY>_FILE conflict or an unreadable file.
   resolveSecretFiles();
+  assertNoReservedProfiles();
   reloadCredentialsFromEnv();
 }
 
@@ -100,12 +101,61 @@ export function loadEnv(): void {
  * given.
  */
 
-/** Throw on a malformed profile name (lowercase letters, digits, underscores). */
+/**
+ * M-7 (B13, L4-03): profile names that collide with a fixed `servicenow://`
+ * resource segment. A profile with one of these names would make
+ * the v2 template `servicenow://<profile>/schema/<table>` (aliased for one
+ * minor) ambiguous, so it is refused when a
+ * profile is created and when the env file is loaded.
+ */
+export const RESERVED_PROFILE_NAMES: readonly string[] = [
+  "capabilities",
+  "docs",
+  "policy",
+  "profiles",
+  "reference",
+  "schema",
+  "status",
+];
+
+function reservedProfileError(profile: string): ServiceNowError {
+  return new ServiceNowError(
+    `Profile name "${profile}" is reserved — it is a servicenow:// resource segment (${RESERVED_PROFILE_NAMES.join(", ")}).`,
+    undefined,
+    undefined,
+    {
+      code: "RESERVED_PROFILE_NAME",
+      hint: `Rename the profile: move its SN_PROFILE_${profile.toUpperCase()}_* keys to a name that is not reserved.`,
+    },
+  );
+}
+
+/**
+ * Throw on a malformed profile name (lowercase letters, digits, underscores)
+ * or a reserved one (M-7 / B13).
+ */
 export function assertValidProfileName(profile: string): void {
   if (!PROFILE_RE.test(profile)) {
-    throw new Error(
+    throw new ServiceNowError(
       `Invalid profile name "${profile}" — use lowercase letters, digits and underscores.`,
+      undefined,
+      undefined,
+      { code: "INVALID_INPUT" },
     );
+  }
+  if (RESERVED_PROFILE_NAMES.includes(profile)) {
+    throw reservedProfileError(profile);
+  }
+}
+
+/**
+ * M-7 (B13): refuse an environment that defines a reserved profile
+ * (SN_PROFILE_<RESERVED>_INSTANCE). Runs on every env load, so the server
+ * never starts with a profile whose resource URIs would be ambiguous.
+ */
+export function assertNoReservedProfiles(): void {
+  for (const name of listProfiles()) {
+    if (RESERVED_PROFILE_NAMES.includes(name)) throw reservedProfileError(name);
   }
 }
 
@@ -399,8 +449,14 @@ export function resolveProfileName(name: string): string {
   assertValidProfileName(profile);
   const known = listProfiles();
   if (!known.includes(profile)) {
-    throw new Error(
+    throw new ServiceNowError(
       `Unknown profile "${profile}". Available: ${known.join(", ") || "(none)"}.`,
+      undefined,
+      undefined,
+      {
+        code: "UNKNOWN_PROFILE",
+        hint: "Pass a profile servicenow_list_instances names, or add one with servicenow_set_credentials.",
+      },
     );
   }
   return profile;
@@ -426,9 +482,11 @@ export function useProfile(
 }
 
 /**
- * Serialise a value for an .env line so that dotenv parses it back identically.
+ * Serialise a value for an .env line so that Node's env-file parser
+ * (`process.loadEnvFile` / `util.parseEnv`, dotenv-compatible) parses it back
+ * identically.
  *
- * dotenv (v16) strips one pair of surrounding quotes and, for double quotes
+ * The parser (like dotenv v16) strips one pair of surrounding quotes and, for double quotes
  * only, expands `\n`/`\r`; it never unescapes `\\`, `\'`, `\"` or `` \` ``.
  * Single- and backtick-quoted values are therefore fully literal — backslashes
  * included (L2-11: a Windows path such as `C:\Program Files\ca.pem` round-trips)
@@ -440,8 +498,11 @@ export function useProfile(
  */
 export function formatEnvValue(value: string): string {
   if (/[\r\n]/.test(value)) {
-    throw new Error(
+    throw new ServiceNowError(
       "Value cannot be stored safely in .env: it contains a newline.",
+      undefined,
+      undefined,
+      { code: "INVALID_INPUT" },
     );
   }
   const needsQuoting =
@@ -454,8 +515,11 @@ export function formatEnvValue(value: string): string {
   if (!value.includes("'")) return `'${value}'`;
   if (!value.includes("`")) return `\`${value}\``;
   if (!value.includes('"') && !value.includes("\\")) return `"${value}"`;
-  throw new Error(
+  throw new ServiceNowError(
     "Value cannot be stored safely in .env: it contains single quotes, backticks and either double quotes or a backslash.",
+    undefined,
+    undefined,
+    { code: "INVALID_INPUT" },
   );
 }
 
@@ -496,8 +560,14 @@ function updateEnvFile(updates: Record<string, string>): void {
   for (const key of Object.keys(updates)) {
     const fileKey = secretFileSourceFor(key);
     if (fileKey) {
-      throw new Error(
+      throw new ServiceNowError(
         `${key} is loaded from ${fileKey} — update that file instead of saving ${key}`,
+        undefined,
+        undefined,
+        {
+          code: "CONFLICT",
+          hint: `Write the new value to ${fileKey} instead.`,
+        },
       );
     }
   }

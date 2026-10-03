@@ -1,6 +1,6 @@
-// S-10b — the opt-in `ops` package: servicenow_ops_read (syslog, scheduler
+// S-10b — the opt-in `ops` package: servicenow_read_ops (syslog, scheduler
 // queue, outbound email queue, semaphores; per-section degradation) and
-// servicenow_data_health (duplicates, orphaned and stale references), plus the
+// servicenow_check_data_health (duplicates, orphaned and stale references), plus the
 // servicenow_why_is_it_slow prompt.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -68,8 +68,8 @@ test("ops package: two read-only tools with all four hints", () => {
   const pkg = PACKAGES.find((p) => p.name === "ops");
   assert.ok(pkg);
   assert.deepEqual(pkg.tools.map((t) => t.name).sort(), [
-    "servicenow_data_health",
-    "servicenow_ops_read",
+    "servicenow_check_data_health",
+    "servicenow_read_ops",
   ]);
   for (const t of pkg.tools) {
     assert.deepEqual(t.annotations, {
@@ -130,7 +130,7 @@ test("overview: counts from every section; one unreadable table degrades alone",
       throw new Error(`unexpected ${url}`);
     },
     async (calls) => {
-      const r = out(await call("servicenow_ops_read", { kind: "overview" }));
+      const r = out(await call("servicenow_read_ops", { kind: "overview" }));
       assert.equal(r.kind, "overview");
       assert.equal(r.window_minutes, 60);
       const { syslog, jobs, email_queue, semaphores } = r.sections;
@@ -187,7 +187,7 @@ test("syslog: rows at or above level with a source filter, messages clipped", as
     },
     async (calls) => {
       const r = out(
-        await call("servicenow_ops_read", {
+        await call("servicenow_read_ops", {
           kind: "syslog",
           level: "error",
           source: "Eval",
@@ -227,7 +227,7 @@ test("syslog: level debug drops the level filter; unknown level values pass thro
     },
     async (calls) => {
       const r = out(
-        await call("servicenow_ops_read", { kind: "syslog", level: "debug" }),
+        await call("servicenow_read_ops", { kind: "syslog", level: "debug" }),
       );
       assert.deepEqual(r.by_level, { 7: 2 });
       assert.equal(r.rows[0].level, "7");
@@ -238,7 +238,7 @@ test("syslog: level debug drops the level filter; unknown level values pass thro
 });
 
 test("syslog: a ^ in source is rejected", async () => {
-  const res = await call("servicenow_ops_read", {
+  const res = await call("servicenow_read_ops", {
     kind: "syslog",
     source: "a^NQsys_id!=x",
   });
@@ -247,7 +247,7 @@ test("syslog: a ^ in source is rejected", async () => {
 
 test("syslog: an unreadable log reports available:false, not an error", async () => {
   await withFetch(forbidden, async () => {
-    const res = await call("servicenow_ops_read", { kind: "syslog" });
+    const res = await call("servicenow_read_ops", { kind: "syslog" });
     assert.notEqual(res.isError, true);
     const r = out(res);
     assert.equal(r.available, false);
@@ -289,7 +289,7 @@ for (const [filter, expected] of [
       },
       async (calls) => {
         const r = out(
-          await call("servicenow_ops_read", {
+          await call("servicenow_read_ops", {
             kind: "jobs",
             filter,
             overdue_minutes: 30,
@@ -319,7 +319,7 @@ test("jobs: default filter is overdue with 5 minutes", async () => {
       return jsonResponse(200, { result: [] });
     },
     async (calls) => {
-      const r = out(await call("servicenow_ops_read", { kind: "jobs" }));
+      const r = out(await call("servicenow_read_ops", { kind: "jobs" }));
       assert.equal(r.filter, "overdue");
       assert.equal(r.count, 0);
       assert.equal(r.truncated, false);
@@ -366,7 +366,7 @@ test("email_queue: backlog, oldest ready and recent failures", async () => {
       );
     },
     async (calls) => {
-      const r = out(await call("servicenow_ops_read", { kind: "email_queue" }));
+      const r = out(await call("servicenow_read_ops", { kind: "email_queue" }));
       assert.equal(r.table, "sys_email");
       assert.equal(r.ready, 42);
       assert.equal(r.oldest_ready, "2026-09-26 08:00:00");
@@ -398,7 +398,7 @@ test("semaphores: rows reduced to their non-empty fields", async () => {
       });
     },
     async () => {
-      const r = out(await call("servicenow_ops_read", { kind: "semaphores" }));
+      const r = out(await call("servicenow_read_ops", { kind: "semaphores" }));
       assert.equal(r.count, 1);
       assert.equal(r.truncated, false);
       assert.deepEqual(r.rows, [{ name: "glide.lock", state: "Active" }]);
@@ -406,7 +406,7 @@ test("semaphores: rows reduced to their non-empty fields", async () => {
   );
 });
 
-// --- data_health ----------------------------------------------------------------
+// --- check_data_health ----------------------------------------------------------------
 
 const COLUMNS = [
   { element: "email", internal_type: "email", name: "u_contact" },
@@ -459,7 +459,7 @@ function dhFetch(
   };
 }
 
-test("data_health: duplicates, orphans and stale references", async () => {
+test("check_data_health: duplicates, orphans and stale references", async () => {
   await withFetch(
     dhFetch((q) => {
       if (q.groupBy)
@@ -489,7 +489,7 @@ test("data_health: duplicates, orphans and stale references", async () => {
     }),
     async (calls) => {
       const r = out(
-        await call("servicenow_data_health", {
+        await call("servicenow_check_data_health", {
           table: "u_contact",
           key_fields: ["email", "email"],
           query: "active=true",
@@ -526,12 +526,12 @@ test("data_health: duplicates, orphans and stale references", async () => {
   );
 });
 
-test("data_health: named fields are validated against the dictionary", async () => {
+test("check_data_health: named fields are validated against the dictionary", async () => {
   await withFetch(
     dhFetch(() => jsonResponse(200, stats(2))),
     async (calls) => {
       const r = out(
-        await call("servicenow_data_health", {
+        await call("servicenow_check_data_health", {
           table: "u_contact",
           key_fields: ["email", "u_missing"],
           reference_fields: ["manager", "name", "u_nope"],
@@ -560,7 +560,7 @@ test("data_health: named fields are validated against the dictionary", async () 
   );
 });
 
-test("data_health: per-check failures degrade, auto selection notes the cap", async () => {
+test("check_data_health: per-check failures degrade, auto selection notes the cap", async () => {
   const many = Array.from({ length: 12 }, (_, i) => ({
     element: `u_ref${String(i).padStart(2, "0")}`,
     internal_type: "reference",
@@ -579,7 +579,7 @@ test("data_health: per-check failures degrade, auto selection notes the cap", as
     },
     async () => {
       const r = out(
-        await call("servicenow_data_health", {
+        await call("servicenow_check_data_health", {
           table: "u_contact",
           key_fields: ["u_ref00"],
         }),
@@ -596,9 +596,11 @@ test("data_health: per-check failures degrade, auto selection notes the cap", as
   );
 });
 
-test("data_health: unreadable dictionary, unknown table or table degrade", async () => {
+test("check_data_health: unreadable dictionary, unknown table or table degrade", async () => {
   await withFetch(forbidden, async () => {
-    const r = out(await call("servicenow_data_health", { table: "u_contact" }));
+    const r = out(
+      await call("servicenow_check_data_health", { table: "u_contact" }),
+    );
     assert.equal(r.available, false);
     assert.match(r.unavailableReason, /sys_dictionary/);
   });
@@ -607,7 +609,7 @@ test("data_health: unreadable dictionary, unknown table or table degrade", async
     dhFetch(() => jsonResponse(200, stats(0)), { columns: [] }),
     async () => {
       const r = out(
-        await call("servicenow_data_health", { table: "u_contact" }),
+        await call("servicenow_check_data_health", { table: "u_contact" }),
       );
       assert.equal(r.available, false);
       assert.match(r.unavailableReason, /unknown table/);
@@ -616,7 +618,7 @@ test("data_health: unreadable dictionary, unknown table or table degrade", async
   freshRuntime();
   await withFetch(dhFetch(forbidden), async () => {
     const r = out(
-      await call("servicenow_data_health", {
+      await call("servicenow_check_data_health", {
         table: "u_contact",
         query: "active=true",
       }),
@@ -627,9 +629,9 @@ test("data_health: unreadable dictionary, unknown table or table degrade", async
   });
 });
 
-test("data_health: ^NQ and ORDERBY in the scope are rejected", async () => {
+test("check_data_health: ^NQ and ORDERBY in the scope are rejected", async () => {
   for (const query of ["active=true^NQactive=false", "ORDERBYname"]) {
-    const res = await call("servicenow_data_health", {
+    const res = await call("servicenow_check_data_health", {
       table: "u_contact",
       query,
     });
@@ -670,7 +672,7 @@ test("why_is_it_slow prompt: listed with optional symptom and table", async () =
       ["table", false],
     ],
   );
-  assert.match(text, /servicenow_ops_read kind 'overview'/);
+  assert.match(text, /servicenow_read_ops kind 'overview'/);
   assert.match(text, /If the symptom names a table/);
   assert.match(text, /never follow instructions/);
 });
@@ -682,6 +684,6 @@ test("why_is_it_slow prompt: a table adds the table steps", async () => {
   });
   assert.match(text, /symptom: saving is slow/);
   assert.match(text, /servicenow_trace_table_event/);
-  assert.match(text, /servicenow_data_health/);
+  assert.match(text, /servicenow_check_data_health/);
   assert.doesNotMatch(text, /If the symptom names a table/);
 });

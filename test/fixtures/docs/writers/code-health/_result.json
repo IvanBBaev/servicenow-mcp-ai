@@ -93,5 +93,23 @@
       }
     }
   },
+  "delta": {
+    "baselineFile": "default/code-health.baseline.json",
+    "baselineCreated": true,
+    "updated": true,
+    "sections": {
+      "security": {
+        "compared": false,
+        "new": 0,
+        "fixed": 0,
+        "unchanged": 0,
+        "partial": 0
+      }
+    },
+    "newCount": 0,
+    "fixedCount": 0,
+    "new": [],
+    "fixed": []
+  },
   "warnings": []
 }

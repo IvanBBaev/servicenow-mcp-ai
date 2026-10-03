@@ -1,11 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 
 import { formatEnvValue } from "../build/core/config.js";
 
-/** Serialise a value, parse it back through dotenv, and return the result. */
-const roundTrip = (value) => dotenv.parse(`KEY=${formatEnvValue(value)}`).KEY;
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
+
+/** Serialise a value, parse it back through the env-file parser, and return the result. */
+const roundTrip = (value) => parseEnv(`KEY=${formatEnvValue(value)}`).KEY;
 
 test("round-trips plain values without quoting", () => {
   for (const value of [
@@ -52,7 +56,7 @@ test("L2-11: backslashes and mixed quotes round-trip through the literal quote f
   assert.equal(formatEnvValue(" back\\slash"), "' back\\slash'");
 });
 
-test("refuses values dotenv cannot round-trip", () => {
+test("refuses values the env-file parser cannot round-trip", () => {
   // Contains a newline.
   assert.throws(() => formatEnvValue("line\nbreak"));
   assert.throws(() => formatEnvValue("carriage\rreturn"));

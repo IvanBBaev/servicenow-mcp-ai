@@ -6,7 +6,6 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   DIST_TAGS_URL,
   LLMS_URL,
@@ -21,7 +20,7 @@ import {
 import * as registry from "../build/core/artifacts/registry.js";
 import { jsonResponse, withFetch } from "./helpers.js";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
+const here = import.meta.dirname;
 const LLMS = readFileSync(path.join(here, "fixtures", "sdk-llms.txt"), "utf8");
 const NEXT_TAGS = { latest: "4.12.2", next: "4.13.0" };
 

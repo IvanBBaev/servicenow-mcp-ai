@@ -1,4 +1,4 @@
-// P-17 — servicenow_artifact_dependencies: outbound edges from reference
+// P-17 — servicenow_get_artifact_dependencies: outbound edges from reference
 // fields, decoded JSON and script text; inbound edges from reverse reference
 // queries, script callers (search_code), flow step values and the S-9
 // structural pass; the depth cap and cycle guard, the node cap, degraded
@@ -8,7 +8,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   artifactDependencies,
@@ -30,11 +29,7 @@ import {
 
 baselineEnv();
 
-const FIXTURES = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "explain",
-);
+const FIXTURES = path.join(import.meta.dirname, "fixtures", "explain");
 
 const SDK_OFF = { SN_SDK_MANAGED_SCOPES: undefined, SN_SDK_PROJECT_DIRS: "" };
 
@@ -235,7 +230,7 @@ function instance(tables = fixture(), status = {}) {
 }
 
 const spec = ALL_TOOLS.find(
-  (s) => s.name === "servicenow_artifact_dependencies",
+  (s) => s.name === "servicenow_get_artifact_dependencies",
 );
 
 async function deps(opts, mock = instance()) {
@@ -293,7 +288,7 @@ test("jsonTargets finds table keys, table+sys_id pairs and script text", () => {
 
 // -- the tool -------------------------------------------------------------------
 
-test("artifact_dependencies lives in the artifacts package with bounded inputs", async () => {
+test("get_artifact_dependencies lives in the artifacts package with bounded inputs", async () => {
   assert.ok(spec, "tool registered");
   assert.equal(spec.package, "artifacts");
   assert.equal(spec.annotations.readOnlyHint, true);

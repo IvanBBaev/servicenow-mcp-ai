@@ -75,7 +75,10 @@ export async function confirmDestructiveApply(
         `Destructive apply refused: ${WHY[check.reason]}. Nothing was changed.`,
         428,
         undefined,
-        { code: "PLAN_REQUIRED", hint: PLAN_HINT },
+        {
+          code: check.reason === "expired" ? "PLAN_EXPIRED" : "PLAN_REQUIRED",
+          hint: PLAN_HINT,
+        },
       ),
     );
   }

@@ -484,7 +484,7 @@ test("a plain-text error body is capped and not classified as HTML", async () =>
       () =>
         assert.rejects(
           snRequest({ method: "GET", path: "/api/now/table/incident" }),
-          (err) => err.code === undefined && err.message.length < 600,
+          (err) => err.code === "INSTANCE_HTTP_500" && err.message.length < 600,
         ),
     ),
   );

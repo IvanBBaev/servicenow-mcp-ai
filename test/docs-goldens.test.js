@@ -2,7 +2,6 @@ import test, { beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { generateErDiagram, generateTableFlow } from "../build/api/diagrams.js";
 import { traceTableEvent } from "../build/api/flows.js";
@@ -27,11 +26,7 @@ import { lintMermaid } from "./mermaid-lint.js";
 baselineEnv();
 beforeEach(() => clearSchemaCache());
 
-const FIXTURES = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "docs",
-);
+const FIXTURES = path.join(import.meta.dirname, "fixtures", "docs");
 
 function golden(name, actual) {
   const file = path.join(FIXTURES, name);

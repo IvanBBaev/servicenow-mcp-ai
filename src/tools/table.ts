@@ -45,6 +45,7 @@ import { fetchAllProgress } from "../core/progress.js";
  * nested objects/arrays are rejected, so they are disallowed here.
  */
 const fieldsSchema = z.record(
+  z.string(),
   z.union([z.string(), z.number(), z.boolean(), z.null()]),
 );
 
@@ -315,9 +316,10 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    legacyParams: { fields: "values" },
     input: {
       table: tableName().describe("Table name, e.g. 'incident'."),
-      fields: fieldsSchema.describe(
+      values: fieldsSchema.describe(
         'Field name/value pairs for the new record, e.g. { "short_description": "Printer down", "urgency": "2" }.',
       ),
       inputDisplayValue: inputDisplayValueInput,
@@ -327,7 +329,7 @@ export const specs: AnyToolSpec[] = [
     logFields: (args) => ({ table: args.table }),
     handler: async ({
       table,
-      fields,
+      values: fields,
       inputDisplayValue,
       update_set,
       apply,
@@ -372,10 +374,11 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { fields: "values" },
     input: {
       table: tableName().describe("Table name, e.g. 'incident'."),
       sys_id: sysId().describe("The sys_id of the record to update."),
-      fields: fieldsSchema.describe(
+      values: fieldsSchema.describe(
         "Field name/value pairs to change on the record.",
       ),
       inputDisplayValue: inputDisplayValueInput,
@@ -387,7 +390,7 @@ export const specs: AnyToolSpec[] = [
     handler: async ({
       table,
       sys_id,
-      fields,
+      values: fields,
       inputDisplayValue,
       update_set,
       expected_mod_count,
@@ -438,17 +441,18 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { fields: "values" },
     input: {
       table: tableName().describe("Table name, e.g. 'cmdb_ci_server'."),
       key: z
-        .record(z.union([z.string(), z.number(), z.boolean()]))
+        .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
         .refine((k) => Object.keys(k).length > 0, {
           message: "key needs at least one field",
         })
         .describe(
           "Field/value pairs that identify the record, matched on raw stored values (an empty string matches an empty field). Values cannot contain '^'.",
         ),
-      fields: fieldsSchema.describe(
+      values: fieldsSchema.describe(
         "Field name/value pairs to write. On create the key fields are written too.",
       ),
       expected_action: z
@@ -470,7 +474,7 @@ export const specs: AnyToolSpec[] = [
     handler: async ({
       table,
       key,
-      fields,
+      values: fields,
       expected_action,
       expected_sys_id,
       inputDisplayValue,
@@ -480,7 +484,7 @@ export const specs: AnyToolSpec[] = [
       for (const [field, value] of Object.entries(key)) {
         if (field in fields && String(fields[field]) !== String(value)) {
           throw new ServiceNowError(
-            `fields.${field} conflicts with key.${field}; a created record would not match its own key.`,
+            `values.${field} conflicts with key.${field}; a created record would not match its own key.`,
             400,
           );
         }

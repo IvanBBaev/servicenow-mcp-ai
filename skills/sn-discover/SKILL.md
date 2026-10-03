@@ -28,11 +28,11 @@ file.
    the scopes; without it every `sys_app` scope is covered (at most 50 per run
    — the rest are listed as a caveat). Add `write: false` for a dry run that
    returns the Markdown instead of writing it.
-4. Read the result back with `servicenow_docs_read` (for example
+4. Read the result back with `servicenow_read_doc` (for example
    `default/discovery/overview.md`) and summarise: counts, the largest scopes,
    and every Caveats line — a caveat is where the map is incomplete.
 5. For one scope in depth, follow up with `servicenow_document_app` or
-   `servicenow_document_table`; `servicenow_docs_search` finds text across the
+   `servicenow_document_table`; `servicenow_search_docs` finds text across the
    written documents.
 
 ## Rules

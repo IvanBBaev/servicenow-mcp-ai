@@ -74,7 +74,11 @@ async function startServer() {
   return connect(server);
 }
 
-const errorOf = (result) => JSON.parse(result.content[0].text).error;
+// M-2: the flat error payload ({ error, code, source, hint?, ... }).
+const errorOf = (result) => {
+  const body = JSON.parse(result.content[0].text);
+  return { ...body, message: body.error };
+};
 
 // ---------------------------------------------------------------------------
 // Instructions
@@ -253,7 +257,14 @@ test("notConfiguredError: additive code + hint, message unchanged", () => {
   );
   assert.equal(notConfiguredError("y").hint, NOT_CONFIGURED_HINT);
   const payload = errorOf(fail(e));
-  assert.deepEqual(Object.keys(payload).sort(), ["code", "hint", "message"]);
+  assert.deepEqual(Object.keys(payload).sort(), [
+    "code",
+    "error",
+    "hint",
+    "message",
+    "source",
+  ]);
+  assert.equal(payload.source, "server");
 });
 
 test("a tool call without an instance fails with NOT_CONFIGURED and a set_credentials hint", async () => {
@@ -310,6 +321,7 @@ test("get_status v2: server, policy, redaction, docs, limits, writes, profile so
   await withEnv(
     {
       SN_WRITE_MODE: undefined,
+      SN_DESTRUCTIVE_CONFIRM: undefined,
       SN_REDACT_FIELDS: "email, phone",
       SN_REDACT_PII: "true",
       SN_MAX_RECORDS: "123",
@@ -327,7 +339,7 @@ test("get_status v2: server, policy, redaction, docs, limits, writes, profile so
       assert.equal(s.writeMode, "plan");
       assert.deepEqual(s.policy, {
         writeMode: "plan",
-        destructiveConfirm: "off",
+        destructiveConfirm: "token",
         readOnly: false,
         summary: policySummary(),
       });

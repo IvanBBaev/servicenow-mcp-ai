@@ -19,6 +19,10 @@ import { ALL_TOOLS, PACKAGES } from "../build/mcp/registry.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
 baselineEnv();
+// These tests drive destructive apply:true calls directly; the H-3 plan-token
+// gate (the 3.0 default SN_DESTRUCTIVE_CONFIRM=token, B4) is covered in
+// plan-token.test.js, so this file opts out explicitly.
+process.env.SN_DESTRUCTIVE_CONFIRM = "off";
 
 const tool = (name) => {
   const spec = ALL_TOOLS.find((s) => s.name === name);
@@ -27,7 +31,7 @@ const tool = (name) => {
 };
 const call = (name, args) => runSpec(tool(name), args);
 const out = (res) => JSON.parse(res.content[0].text);
-const errMsg = (res) => out(res).error.message;
+const errMsg = (res) => out(res).error;
 
 /** Run `fn(dir)` with a throw-away SN_DOCS_DIR. */
 async function withDocs(env, fn) {
@@ -137,7 +141,7 @@ test("update → revert: plan preview, then apply restores before and journals r
         await call("servicenow_update_record", {
           table: "incident",
           sys_id: "inc1",
-          fields: { urgency: "1", short_description: "Fire" },
+          values: { urgency: "1", short_description: "Fire" },
           apply: true,
         }),
       );
@@ -214,7 +218,7 @@ test("create → revert deletes the record; delete → revert re-creates it", as
       const created = out(
         await call("servicenow_create_record", {
           table: "incident",
-          fields: { short_description: "Temp" },
+          values: { short_description: "Temp" },
           apply: true,
         }),
       );
@@ -350,7 +354,7 @@ test("drift: sys_mod_count moved on → STALE_RECORD; force reverts and is journ
       await call("servicenow_update_record", {
         table: "incident",
         sys_id: "inc1",
-        fields: { urgency: "1" },
+        values: { urgency: "1" },
         apply: true,
       });
       const origin = last();
@@ -644,7 +648,7 @@ test("redacted before (SN_REDACT_FIELDS / SN_REDACT_PII): whole revert refused",
       await call("servicenow_update_record", {
         table: "incident",
         sys_id: "inc1",
-        fields: { urgency: "1", short_description: "Fire" },
+        values: { urgency: "1", short_description: "Fire" },
         apply: true,
       });
       const origin = last();

@@ -56,6 +56,11 @@
   (GA-9 → E-6); **O-3** distribution + KPI checkpoint (GA-8, DX-3 GIF; the 2026-08-01 checkpoint
   passed unreviewed — next at 3.0.0 + 30 days); **O-4** approve the breaking-change register
   (B1–B13; B11–B13 were added on 2026-09-09) before any 3.0.0-beta.
+  - **Decided 2026-10-01:** **O-4 approved** — the whole register B1–B13 ships in 3.0 (B10 stays
+    out: ARCH-14 is deferred). **O-7 approved** — `@servicenow/sdk` 4.12.2 (exact) as a dev
+    dependency, the P-29 type-check oracle. **O-1 / ARCH-14 deferred** — E-8 stays blocked, the
+    Jira scaffold stays dark and untouched. **S-12 approved** — `acorn` as a runtime parser
+    dependency with the regex rules as fallback. O-2, O-3 and O-5 remain open.
 - [x] **H-10 · HTTP client resilience + identity** — done 2026-09-23 (uncommitted): one
       `getDispatcher(host)` for proxy (`SN_HTTPS_PROXY` → `HTTPS_PROXY` / `HTTP_PROXY` + `NO_PROXY`)
       and TLS without a client cert, identifying `User-Agent` (+ `SN_USER_AGENT_SUFFIX`),
@@ -315,14 +320,19 @@
       following key); **F2** — U+2028 / U+2029 are written unquoted and break dotenv's line split;
       **F3** — `docsWriteRaw` accepts `index.md` / `index.json`, which the store silently rebuilds
       after the write. Fix F1/F2 in the env writer and reject the store's own files in F3?
+      **Update 2026-10-01 (E-2):** F1 and F2 are resolved by the switch to Node's env-file
+      parser (`process.loadEnvFile` / `util.parseEnv`), which has neither hazard; both are now
+      regular tests. F3 remains.
 - [ ] **Owner decisions from batch 12 (S-16/D-8, 2026-09-26):** (a) The S-16 acceptance says
       `document_instance({depth:"apps"})` produces the four-file set; as built, `depth` is
       cumulative — `apps` writes `overview.md`, `apps.md` and `tables-<scope>.md`, and
       `artifacts-<scope>.md` needs `depth:"artefacts"`. Keep the tiers, or make `apps` write all
       four? (b) Without `apps`, discovery scopes come from `sys_app` only (non-global, capped at
       `INSTANCE_TARGETS_MAX`, the rest reported as skipped) — store apps (`sys_store_app`) are
-      not included; add them? (c) The D-8 `PreToolUse` hook that blocks `apply:true` without a
-      `plan_token` waits for H-3 (BREAKING, O-4); no `hooks/hooks.json` ships. (d) Slash
+      not included; add them? (c) ~~The D-8 `PreToolUse` hook waits for H-3 / O-4~~ — **done
+      2026-10-01:** `hooks/hooks.json` + `hooks/require-plan-token.mjs` deny a token-less
+      destructive `apply:true` (presence check only, fails open, honours
+      `SN_DESTRUCTIVE_CONFIRM=off`; `SN_WRITE_MODE=apply` is not visible to it). (d) Slash
       commands (`commands/*.md`) were skipped — the plugin skills are already invocable as
       `/servicenow-mcp-ai:sn-*`; add thin command wrappers anyway? (e) The harness
       `~/.claude/skills/discovery` should delegate to `servicenow_document_instance({depth})` when
@@ -390,6 +400,9 @@
       plan made with `force:true` (the arguments are bound) — fine? (f) tools/list `all` budget
       139,000 (measured 137,894). Still open inside H-3: `change_conflicts` (H-4), `STALE_RECORD`
       on delete, email `body_preview`, `unknown_fields`, prod `CONFIRM_REQUIRED` (H-11).
+      **Resolved 2026-10-01 (O-4 approved):** (a) the default is `token` (B4; `off` opts out);
+      the in-H-3 items above all landed (H-3 remainder, H-4, H-11). (b)–(e) stay as built unless
+      the owner says otherwise. Left: O-5 PDI verification.
 - [ ] **P-21 · Application documentation detail — done 2026-09-26 (uncommitted) bar UIB
       experiences (P-14).** `document_app({detail})`; 2 tests. Owner decisions: (a) `detail` is
       opt-in — make it the default for `document_app` (and pass it from `document_instance`)?
@@ -433,6 +446,13 @@
       unmarked named profiles? (f) prod + apply mode + a client without elicitation refuses
       destructive applies (`CONFIRM_REQUIRED`) even with `I_UNDERSTAND` — right? (g) the
       `tools/list` budgets rose to 140,000 / 36,000 (measured 139,089 / 35,473).
+      **Resolved 2026-10-01 (O-4 approved):** (a) all four defaults shipped —
+      `SN_PROTECTED_TABLES_WRITE=deny` (B11; `allow` or an exact `SN_TABLES_ALLOW` entry opts
+      out), `SN_IMPORT_SET_TABLES=u_*,imp_*` (`*` lifts it), caps 500 writes per HTTP session (none
+      on stdio) / 100 deletes / 50 batch writes (`0` = no cap). Note: `set_property` and
+      `sys_script` writes are now refused by default, and the 50-batch-write cap is only reachable
+      with `SN_BATCH_MAX_REQUESTS` raised above 50. Still open: (b), (c), (d) (no format was ever
+      specified, so the policy file is not built), (e), (f).
 - [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (uncommitted).** Attachments follow
       the parent table; plugin-API tools check backing tables; Code Search hits filtered; batch:
       nested batch refused, tables from query/body, attachment-by-id resolved under a table policy,
@@ -449,13 +469,50 @@
       Search LIKE fallback refuses the whole search when a default script table is denied, while
       the API path filters — make the LIKE path skip denied types too? (g) `delete_attachment`
       apply reads the metadata twice (journal `before` + the policy check) — one extra GET.
+      **Resolved 2026-10-01 (O-4 approved):** (a) `SN_BATCH_UNMAPPED=deny` and
+      `SN_BATCH_MAX_REQUESTS=50` are the defaults (B8); (b) the `SN_BATCH_UNMAPPED=allow` knob is
+      the one documented (breaking register fixed); (c) moot — ships in 3.0. Still open: (d)–(g).
 - [x] **Test hermeticity** — done 2026-09-26 (uncommitted): with `HTTPS_PROXY` set in the shell
       (corporate / cloud dev environments) 553 tests failed and `test/tasks.test.js` spun at 100 %
       CPU — H-10's dispatcher asks for the optional `undici` package. `baselineEnv()` in
       `test/helpers.js` now clears `SN_HTTPS_PROXY` / `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`
       (both cases); the suite is green with a proxy in the environment.
+- [ ] **Open items from batch 18 (M-7, 2026-10-03, uncommitted).**
+  - Next minor: remove the legacy tool aliases, the `legacyParams` maps and
+    `SN_LEGACY_TOOL_NAMES`; remove the old `servicenow://{profile}/schema/{table}` template; keep
+    or drop `class_name` on the CMDB tools (documented as deprecated, always accepted today).
+  - camelCase parameters were not normalized (`inputDisplayValue`, `artifactType` and similar);
+    a later naming pass, if wanted — it would be another breaking change.
+  - With the `class_name` alias published, `table` is optional in the CMDB tools' JSON schema
+    (one of the two is enforced in the handler); same for `children[].fields` on
+    `upsert_artifact`, which is normalized in the handler, not in the schema.
+  - `run_atf_test` keeps `execution_id` (it names an execution, not the test record).
+  - `kind` keeps its one meaning (selector of the target's variant / category: docs, flows,
+    directory, ops, scripts) — not renamed; confirm.
+  - The D-8 hook always maps the legacy `change_conflicts` name, whether or not the server runs
+    with the flag (the hook cannot read the server's env).
+  - With `SN_LEGACY_TOOL_NAMES=1`, `tools/list` grows about 20 KB (`all`); the budget test
+    measures the default (flag off).
+- [ ] **Open items from batch 18 (M-2, 2026-10-02, uncommitted).**
+  - Acceptance deviation: the manifest carries one global `errorCodes` table (manifest v3) instead
+    of a per-tool code list — most tools can raise most codes (profile, policy, instance HTTP), so
+    a per-tool list would be noise. Confirm, or ask for per-tool lists.
+  - Older suites still match only the message text on failures; convert them to `code` asserts as
+    they are touched (the new `test/error-contract.test.js` covers the contract itself).
+  - A resource `McpError` reaches clients as `MCP error -32602: MCP error -32602: …` (the SDK's
+    `McpError` prefixes its message on the server and again when the client rebuilds it) — SDK
+    behaviour, not fixed.
+- [ ] **Owner decisions from batch 17 (2026-10-01, uncommitted).**
+  - P-29: `SPPage`, flow variables, stages, action inputs / outputs and process inputs take no `$id`
+    in SDK 4.12.2, so `now-sdk build` mints new sys_ids — installing generated Fluent on the
+    source instance can duplicate those records. Accept with the per-file note, or refuse to emit
+    pages until the SDK supports `$id`? O-2 / O-5: fixtures for the per-field instance comparison.
+  - H-11: the `SN_TABLE_POLICY_FILE` format; attachments as parent-table writes.
+  - H-4: the Code Search LIKE fallback refuses the whole search on a denied default table.
+  - E-2: TypeScript 7 waits for typescript-eslint support.
+  - `pack:check`: 2012.7 KB vs the 800 KB ceiling (still open).
 - [ ] **Owner decisions from batch 16 (2026-09-30, uncommitted).**
-  - O-7 (now also gating P-27 / P-28): the SDK dev dependency + 4.12.2 target; the P-29 oracle
+  - ~~O-7~~ approved 2026-10-01; the P-29 oracle now verifies the shapes (was: O-7, now also gating P-27 / P-28): the SDK dev dependency + 4.12.2 target; the P-29 oracle
     would verify the `Flow` / `Subflow` / `Action` / `PlaybookDefinition` and portal / workspace /
     catalog property names, which are taken from SDK-PARITY and are unverified.
   - P-27: `wfa.dataPill` without a type argument; step-output pills emitted as text; the subflow

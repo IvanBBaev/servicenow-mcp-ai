@@ -1,15 +1,19 @@
 import test from "node:test";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 import fc from "fast-check";
 
 import { formatEnvValue } from "../build/core/config.js";
+
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
 
 /**
  * Property-based tests (Q2-2) for the two hand-written codecs, where
  * hand-picked examples are weakest: arbitrary inputs explore the corners.
  */
 
-test("formatEnvValue: whatever it accepts, dotenv parses back identically", () => {
+test("formatEnvValue: whatever it accepts, the env-file parser reads back identically", () => {
   fc.assert(
     fc.property(fc.string(), (value) => {
       let formatted;
@@ -20,7 +24,7 @@ test("formatEnvValue: whatever it accepts, dotenv parses back identically", () =
         // only covers values the codec claims to support.
         return true;
       }
-      const parsed = dotenv.parse(`KEY=${formatted}`).KEY ?? "";
+      const parsed = parseEnv(`KEY=${formatted}`).KEY ?? "";
       return parsed === value;
     }),
     { numRuns: 500 },
@@ -54,7 +58,7 @@ test("L2-11: formatEnvValue over an adversarial alphabet round-trips (and only r
         // backslash, when no other quote is free) is legitimately refused.
         return value.includes("'") && value.includes("`");
       }
-      const parsed = dotenv.parse(`KEY=${formatted}`).KEY ?? "";
+      const parsed = parseEnv(`KEY=${formatted}`).KEY ?? "";
       return parsed === value;
     }),
     { numRuns: 2000 },

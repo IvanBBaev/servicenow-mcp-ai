@@ -2,10 +2,11 @@ import { queryTable, type QueryResult, type SnRecord } from "./table.js";
 import { snString } from "./shared.js";
 import { ServiceNowError } from "../core/errors.js";
 import type { Severity } from "./codecheck.js";
+import { scriptCalls, type CallFact } from "./script-ast.js";
 
 /**
  * DF-1 / S-3 — security scan over the access-control layer, part of the
- * `codecheck` package (folded into `servicenow_code_health`).
+ * `codecheck` package (folded into `servicenow_check_code_health`).
  *
  * The ACL read pages through every active `sys_security_acl` row (fetchAll,
  * bounded by SN_MAX_RECORDS and a hard ceiling) and says so when it stops
@@ -86,29 +87,47 @@ const EVERYONE_ROLES = new Set(["*", "public"]);
 /** Fallback when sys_user_role.elevated_privilege cannot be read. */
 const DEFAULT_ELEVATED_ROLES = ["security_admin"];
 
+const ACL_WRITE_METHODS = new Set([
+  "update",
+  "insertWithReferences",
+  "deleteRecord",
+]);
+
 /** Rules over an ACL's evaluation script — where a weak check becomes a hole. */
 const ACL_SCRIPT_RULES: {
   id: string;
   severity: Severity;
+  /** Fallback when the script does not parse. */
   re: RegExp;
+  /** S-12: the AST match over the script's calls. */
+  call: (c: CallFact) => boolean;
   hint: string;
 }[] = [
   {
     id: "eval-in-acl",
     severity: "error",
     re: /\beval\s*\(/,
+    call: (c) => c.kind === "call" && c.name === "eval",
     hint: "eval() in an ACL evaluation script is a security risk — an attacker-influenced value could flip the access decision.",
   },
   {
     id: "gr-write-in-acl",
     severity: "warn",
     re: /\.(update|insertWithReferences|deleteRecord)\s*\(/,
+    call: (c) =>
+      c.kind === "call" &&
+      c.objectText !== undefined &&
+      ACL_WRITE_METHODS.has(c.name ?? ""),
     hint: "An ACL script that writes records has side effects during an access check — ACLs must be read-only decisions.",
   },
   {
     id: "getuser-in-acl",
     severity: "info",
     re: /gs\.getUser(ID|Name)?\s*\(/,
+    call: (c) =>
+      c.kind === "call" &&
+      c.object === "gs" &&
+      /^getUser(ID|Name)?$/.test(c.name ?? ""),
     hint: "gs.getUser* inside an ACL script — verify the identity logic genuinely belongs in the access check.",
   },
 ];
@@ -385,8 +404,14 @@ export async function securityScan(
       name: acl.name,
       operation: acl.operation,
     };
+    // S-12: match calls in the parsed script, so a commented-out eval() or a
+    // string naming gs.getUser() is not a finding; regex when it does not parse.
+    const calls = acl.script ? scriptCalls(acl.script) : undefined;
     for (const rule of ACL_SCRIPT_RULES) {
-      if (acl.script && rule.re.test(acl.script)) {
+      const hit = calls
+        ? calls.some(rule.call)
+        : Boolean(acl.script) && rule.re.test(acl.script);
+      if (hit) {
         add({
           ...base,
           rule: rule.id,

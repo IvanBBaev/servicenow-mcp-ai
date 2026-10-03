@@ -98,8 +98,8 @@ test("the all profile is a superset of core and includes the gated packages", as
         "servicenow_list_changes",
         "servicenow_order_catalog_item",
         "servicenow_search_knowledge",
-        "servicenow_table_logic",
-        "servicenow_docs_read",
+        "servicenow_describe_table_logic",
+        "servicenow_read_doc",
       ]) {
         assert.ok(names.includes(t), t);
       }
@@ -201,8 +201,8 @@ test("a ServiceNow error comes back as a structured fail() payload", async () =>
           });
           assert.ok(res.isError);
           const payload = JSON.parse(res.content[0].text);
-          assert.equal(payload.error.status, 403);
-          assert.equal(payload.error.snDetail.message, "Insufficient rights");
+          assert.equal(payload.status, 403);
+          assert.equal(payload.detail.message, "Insufficient rights");
         },
       );
     } finally {
@@ -381,6 +381,7 @@ test("resources follow the package policy (K-7)", async () => {
         "instances",
         "policy",
         "profile-schema",
+        "profile-schema-legacy",
         "schema",
         "status",
         "tables",

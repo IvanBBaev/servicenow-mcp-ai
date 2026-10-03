@@ -64,13 +64,11 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { attachment_sys_id: "sys_id" },
     input: {
-      attachment_sys_id: sysId().describe(
-        "The sys_id of the attachment record.",
-      ),
+      sys_id: sysId().describe("The sys_id of the attachment record."),
     },
-    handler: async ({ attachment_sys_id }) =>
-      ok(await getAttachmentMeta(attachment_sys_id)),
+    handler: async ({ sys_id }) => ok(await getAttachmentMeta(sys_id)),
   }),
 
   defineTool({
@@ -85,13 +83,11 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { attachment_sys_id: "sys_id" },
     input: {
-      attachment_sys_id: sysId().describe(
-        "The sys_id of the attachment to download.",
-      ),
+      sys_id: sysId().describe("The sys_id of the attachment to download."),
     },
-    handler: async ({ attachment_sys_id }) =>
-      ok(await downloadAttachment(attachment_sys_id)),
+    handler: async ({ sys_id }) => ok(await downloadAttachment(sys_id)),
   }),
 
   defineTool({
@@ -181,36 +177,33 @@ export const specs: AnyToolSpec[] = [
       target: (args) => ({
         action: "delete",
         table: "sys_attachment",
-        sys_id: String(args.attachment_sys_id),
+        sys_id: String(args.sys_id),
       }),
     },
+    legacyParams: { attachment_sys_id: "sys_id" },
     input: {
-      attachment_sys_id: sysId().describe(
-        "The sys_id of the attachment to delete.",
-      ),
+      sys_id: sysId().describe("The sys_id of the attachment to delete."),
       apply: applyInput,
     },
-    handler: async ({ attachment_sys_id, apply }) => {
+    handler: async ({ sys_id, apply }) => {
       if (!shouldApply(apply)) {
-        const before = await getAttachmentMeta(attachment_sys_id);
+        const before = await getAttachmentMeta(sys_id);
         return planPreview({
           action: "delete",
           table: "sys_attachment",
-          sys_id: attachment_sys_id,
+          sys_id,
           before,
         });
       }
-      const before = await captureBefore(() =>
-        getAttachmentMeta(attachment_sys_id),
-      );
+      const before = await captureBefore(() => getAttachmentMeta(sys_id));
       const result = await journaledWrite(
         {
           action: "delete",
           table: "sys_attachment",
-          sys_id: attachment_sys_id,
+          sys_id,
           before,
         },
-        () => deleteAttachment(attachment_sys_id),
+        () => deleteAttachment(sys_id),
       );
       return ok({ message: "Attachment deleted", ...result });
     },

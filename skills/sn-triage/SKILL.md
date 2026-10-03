@@ -13,12 +13,12 @@ profile; nothing here writes to the instance.
 1. Health first: `servicenow_get_status` (profile, packages, write mode) and
    `servicenow_check_capabilities` (what this user can read). A missing
    capability explains many "empty" answers.
-2. Symptoms: `servicenow_ops_read` with `kind: "syslog"` and `level: "error"`
+2. Symptoms: `servicenow_read_ops` with `kind: "syslog"` and `level: "error"`
    for the last minutes; `kind: "jobs"` with `filter: "overdue"` for stuck
    scheduled work; `kind: "email_queue"` for mail problems.
 3. The record: `servicenow_get_record` for the current state, then
    `servicenow_get_record_history` to see who changed which field and when.
-4. The automation that touches it: `servicenow_table_logic` for the table's
+4. The automation that touches it: `servicenow_describe_table_logic` for the table's
    business rules, client scripts, UI policies, UI actions and ACLs, and
    `servicenow_trace_table_event` (`operation: "update"` or `"insert"`) for the
    order they run in. `servicenow_get_flow_runs` shows flow executions for the

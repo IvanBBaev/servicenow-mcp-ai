@@ -6,6 +6,7 @@ import { queryTable } from "../build/api/table.js";
 import { getAuthMode, invalidateTokens } from "../build/core/auth.js";
 import { signJwtRS256 } from "../build/core/jwt.js";
 import { getTlsDispatcher } from "../build/core/mtls.js";
+import { _setUndiciLoader } from "../build/core/dispatcher.js";
 import { ServiceNowError } from "../build/core/errors.js";
 import {
   baselineEnv,
@@ -168,11 +169,21 @@ test("mutual TLS: no dispatcher unless configured; clear error when undici is ab
     },
     async () => {
       freshRuntime();
-      // undici is an optional dependency and is not installed in this project.
-      await assert.rejects(
-        getTlsDispatcher(),
-        (err) => err instanceof ServiceNowError && /undici/.test(err.message),
-      );
+      // undici is an optional dependency; simulate its absence (a devDependency
+      // such as @servicenow/sdk may pull it into node_modules transitively).
+      _setUndiciLoader(async () => {
+        throw Object.assign(new Error("Cannot find package 'undici'"), {
+          code: "ERR_MODULE_NOT_FOUND",
+        });
+      });
+      try {
+        await assert.rejects(
+          getTlsDispatcher(),
+          (err) => err instanceof ServiceNowError && /undici/.test(err.message),
+        );
+      } finally {
+        _setUndiciLoader(null);
+      }
     },
   );
   freshRuntime();

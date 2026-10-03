@@ -91,8 +91,8 @@ test("C-3: a 2xx hibernation page throws INSTANCE_HTML_RESPONSE with the wake-up
 
       // The tool boundary exposes the machine code and the hint.
       const out = JSON.parse(fail(err).content[0].text);
-      assert.equal(out.error.code, "INSTANCE_HTML_RESPONSE");
-      assert.match(out.error.hint, /wake it/i);
+      assert.equal(out.code, "INSTANCE_HTML_RESPONSE");
+      assert.match(out.hint, /wake it/i);
     },
   );
 });

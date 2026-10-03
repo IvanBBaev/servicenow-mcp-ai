@@ -28,6 +28,13 @@ import {
 } from "./helpers.js";
 
 baselineEnv();
+// These tests drive destructive apply:true calls directly; the H-3 plan-token
+// gate (the 3.0 default SN_DESTRUCTIVE_CONFIRM=token, B4) is covered in
+// plan-token.test.js, so this file opts out explicitly.
+process.env.SN_DESTRUCTIVE_CONFIRM = "off";
+// They also write sys_properties (set_property), a protected table that is
+// write-denied by default since 3.0 (B11, covered in policy-h11.test.js).
+process.env.SN_PROTECTED_TABLES_WRITE = "allow";
 
 test.beforeEach(() => {
   baselineEnv();
@@ -158,8 +165,8 @@ test("insert_import_set_row: adds the run status and the transform maps used", a
     async () => {
       const res = out(
         await call("servicenow_insert_import_set_row", {
-          staging_table: "u_imp_inc",
-          fields: { u_number: "INC1" },
+          table: "u_imp_inc",
+          values: { u_number: "INC1" },
           apply: true,
         }),
       );
@@ -1001,7 +1008,7 @@ test("run_atf_suite wait_seconds: polls to a final state with progress", async (
       async () => {
         const res = out(
           await call("servicenow_run_atf_suite", {
-            suite_sys_id: id("5"),
+            sys_id: id("5"),
             wait_seconds: 5,
             apply: true,
           }),
@@ -1019,7 +1026,7 @@ test("run_atf_suite wait_seconds: polls to a final state with progress", async (
       async (calls) => {
         const res = out(
           await call("servicenow_run_atf_test", {
-            test_sys_id: id("6"),
+            sys_id: id("6"),
             apply: true,
           }),
         );

@@ -590,7 +590,7 @@ unless it says so.
 - **Depends on:** P-7, P-8, P-9; S-9 (structural where-used shares the reference extractor).
 - **Acceptance:** a script include used by a business rule, a flow script step and a widget shows all
   three inbound edges.
-- **Done 2026-09-26 (local, uncommitted):** `servicenow_artifact_dependencies` (`artifacts`
+- **Done 2026-09-26 (local, uncommitted):** `servicenow_get_artifact_dependencies` (`artifacts`
   package, `src/api/dependencies.ts`). Tests: `test/dependencies.test.js`, golden
   `test/fixtures/explain/dependencies.mmd`.
 
@@ -622,7 +622,7 @@ unless it says so.
 - **Acceptance:** each rule has a positive and a negative fixture; results appear in `code_health`.
 
 - **Done 2026-09-28 (local, uncommitted) — flows, portal and legacy workflows; bar UIB.**
-  `src/api/domain-analysers.ts` (`analyseDomains`) behind the opt-in `servicenow_code_health({domains:true})`
+  `src/api/domain-analysers.ts` (`analyseDomains`) behind the opt-in `servicenow_check_code_health({domains:true})`
   (default unchanged): `flow-run-as-system-protected`, `flow-draft-differs`, `flow-unused-subflow`,
   `flow-unused-action`, `flow-integration-no-error-handling`, `flow-long-wait` (> 86,400 s),
   `portal-public-data-widget`, `portal-orphan-widget`, `portal-orphan-page`, `portal-route-map-loop`,
@@ -797,7 +797,11 @@ mermaid: true})` renders each changed record of `flow`, `subflow`, `flow_action`
   rows outside the tree) is an `unsupported[]` entry plus a `Record()` fallback; a degraded tree falls
   back to the P-26 `Record()` form. The API names are the SDK-PARITY names, marked `verified:false`;
   goldens (`test/fixtures/fluent/{flow,subflow,action,playbook}_emitter.golden.txt`) only prove the
-  output is deterministic and parses as TypeScript. The build-output comparison is P-29 (O-7).
+  output is deterministic and parses as TypeScript. **2026-10-01:** the P-29 oracle type-checks and
+  builds the goldens against SDK 4.12.2; `action.core` inputs are typed from the generated
+  `src/api/fluent-sdk-actions.ts`, steps are called by name, `endFlow` only inside blocks, and
+  `wfa.action` keys sit on `sys_hub_action_instance_v2`. Comparison with the instance step tree
+  stays open (O-5).
 
 #### P-28 — Portal, workspace and catalog emitters (M)
 
@@ -826,8 +830,8 @@ mermaid: true})` renders each changed record of `flow`, `subflow`, `flow_action`
   output is deterministic, as in P-26. Property names follow this document and are **not verified**
   (`verified: false`, a `warnings[]` entry and a header note per file); the `Dashboard` /
   `UxListMenuConfig` / `Applicability` nested structures (U) use camelCase field names. The acceptance
-  oracle (P-29, owner gate O-7) is still open — tests prove the output parses as TypeScript.
-  `test/fluent-ui.test.js` (26 tests, goldens `test/fixtures/fluent/ui_*.golden.txt`,
+  oracle (P-29, owner gate O-7) type-checks and builds every UI golden against SDK 4.12.2 since
+  2026-10-01; `SPPage` takes no `$id`. `test/fluent-ui.test.js` (26 tests, goldens `test/fixtures/fluent/ui_*.golden.txt`,
   mutation-checked).
 
 #### P-29 — Round-trip verification harness (M)
@@ -837,6 +841,22 @@ mermaid: true})` renders each changed record of `flow`, `subflow`, `flow_action`
 - [ ] Mismatch report per field; the report drives `unsupported[]` in P-27.
 - **Depends on:** P-26, O-7.
 - **Acceptance:** zero field mismatches for every G-tier fixture type, or a documented `unsupported` entry.
+- **Partly done 2026-10-01 (local, uncommitted; O-7 approved — `@servicenow/sdk` 4.12.2 exact as a
+  dev dependency).** `scripts/fluent-verify.mjs` (`npm run fluent:verify`, flags `--no-build`,
+  `--json`, `--keep`) writes every golden of `test/fixtures/fluent/` into temporary SDK projects,
+  type-checks them with strict `tsc` (excess-property checks on) and runs `now-sdk build` offline.
+  Goldens that emit a common record are built in separate projects. Every key a golden declares must
+  come out under its own sys*id — as `dist/app/update/<table>*<sys_id>.xml`or nested in the
+parent's update XML (flow logic, actions, trigger, playbook lanes / activities) — and no`DELETE`may be emitted.`test/fluent-sdk-oracle.test.js`runs it (skipped without the SDK); result: 27
+goldens, 0 type errors, 93 keyed records among 100 built.`scripts/gen-fluent-actions.mjs`
+(`npm run fluent:actions`, `--check`in`npm run check`) generates the `action.core`/`actionStep` input table (`src/api/fluent-sdk-actions.ts`) from the SDK's built-ins.
+  - SDK facts the oracle established: an unreferenced `keys.ts` entry builds as a `DELETE` (the
+    emitter now declares only keys a `$id` uses); a key on a table other than the one the SDK writes
+    (`wfa.action` → `sys_hub_action_instance_v2`) is re-minted; `SPPage`, flow variables, stages,
+    action inputs / outputs and process inputs take no `$id`, so the SDK mints their sys_ids (a
+    per-file note warns that installing on the source instance can duplicate the page).
+  - Open: the field-value comparison with instance records and the per-field mismatch report
+    (needs O-2 / O-5 fixtures).
 
 ### Summary
 

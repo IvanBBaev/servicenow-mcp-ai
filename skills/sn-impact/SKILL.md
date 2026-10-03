@@ -19,7 +19,7 @@ Read-only analysis through the ServiceNow MCP server.
 3. Text references the structural pass cannot see:
    `servicenow_search_code` with the name (script includes, field names in
    GlideRecord calls).
-4. What runs on the table: `servicenow_table_logic` and, for the operation you
+4. What runs on the table: `servicenow_describe_table_logic` and, for the operation you
    will change, `servicenow_trace_table_event`.
 5. Optional picture: `servicenow_generate_er_diagram` for the table and its
    neighbours.

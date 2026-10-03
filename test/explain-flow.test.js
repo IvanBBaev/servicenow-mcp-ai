@@ -21,7 +21,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
 import fc from "fast-check";
 
@@ -46,11 +45,7 @@ import {
 
 baselineEnv();
 
-const FIXTURES = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "explain",
-);
+const FIXTURES = path.join(import.meta.dirname, "fixtures", "explain");
 
 const id = (c) => c.repeat(32);
 const FLOW = id("a");

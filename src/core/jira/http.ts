@@ -98,17 +98,26 @@ export async function jiraRequest<T>({
   if (!site) {
     throw new JiraError(
       "Jira site is not configured. Use the jira_set_credentials tool first (or set JIRA_SITE).",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   if (!email || !apiToken) {
     throw new JiraError(
       "Jira auth requires JIRA_EMAIL and JIRA_API_TOKEN. Use the jira_set_credentials tool first.",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
 
   if (form !== undefined && body !== undefined) {
     throw new JiraError(
       "A Jira request cannot carry both a JSON body and a form; pass only one.",
+      undefined,
+      undefined,
+      { code: "INVALID_INPUT" },
     );
   }
   // Auth, content negotiation and body labelling are owned by this client.
@@ -120,6 +129,9 @@ export async function jiraRequest<T>({
     if (k === "authorization" || k === "accept" || k === "content-type") {
       throw new JiraError(
         `extraHeaders must not set "${key}"; it is managed by the Jira client.`,
+        undefined,
+        undefined,
+        { code: "INVALID_INPUT" },
       );
     }
   }

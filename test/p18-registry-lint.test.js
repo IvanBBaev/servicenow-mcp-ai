@@ -1,5 +1,5 @@
 // P-18 — registry-driven lint and search: the portal client / server rules,
-// lint_script over the opt-in registry types, code_health's `extended`
+// lint_script over the opt-in registry types, check_code_health's `extended`
 // registry sweep, and where_used's `extended` search.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -159,9 +159,11 @@ test("lint_script: opt-in registry types use their client fields", async () => {
   });
 });
 
-test("code_health extended: findings in a widget and a UX client script (acceptance)", async () => {
+test("check_code_health extended: findings in a widget and a UX client script (acceptance)", async () => {
   await scenario({}, async (calls) => {
-    const r = out(await call("servicenow_code_health", { extended: true }));
+    const r = out(
+      await call("servicenow_check_code_health", { extended: true }),
+    );
     const a = r.artifacts;
     assert.ok(a, JSON.stringify(r).slice(0, 400));
     assert.ok(a.types.sp_widget.findingCount >= 2);
@@ -174,7 +176,7 @@ test("code_health extended: findings in a widget and a UX client script (accepta
     const reads = calls
       .map((c) => new URL(c.url))
       .filter((u) => /^\/api\/now\/table\/[^/]+$/.test(u.pathname));
-    // The sweep's reads (the security scan in code_health reads other tables).
+    // The sweep's reads (the security scan in check_code_health reads other tables).
     const sweep = reads.filter((u) =>
       /ORDERBYDESCsys_updated_on$/.test(
         u.searchParams.get("sysparm_query") ?? "",
@@ -202,9 +204,9 @@ test("code_health extended: findings in a widget and a UX client script (accepta
   });
 });
 
-test("code_health: without extended nothing is swept; an unreadable type is a warning; limit caps and flags", async () => {
+test("check_code_health: without extended nothing is swept; an unreadable type is a warning; limit caps and flags", async () => {
   await scenario({}, async (calls) => {
-    const r = out(await call("servicenow_code_health", {}));
+    const r = out(await call("servicenow_check_code_health", {}));
     assert.equal(r.artifacts, undefined);
     assert.equal("uib_client_script" in r.scriptCounts, false);
     assert.ok(

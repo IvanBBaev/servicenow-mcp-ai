@@ -1,7 +1,6 @@
 import { execFile } from "node:child_process";
 import { closeSync, existsSync, openSync, readSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { getEnvPath } from "../core/config.js";
 import { SERVER_VERSION } from "../core/identity.js";
 import { getLogFile } from "../core/settings.js";
@@ -92,7 +91,7 @@ export function tailFile(path: string, lines = LOG_TAIL_LINES): string[] {
 }
 
 /** The package root (parent of build/ or src/). */
-const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const packageRoot = join(import.meta.dirname, "..", "..");
 
 /** `npm ls --omit=dev --depth=0 --json` in the package root — best effort. */
 export function npmLs(timeoutMs = 20_000): Promise<unknown> {

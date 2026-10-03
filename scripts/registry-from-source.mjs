@@ -28,3 +28,15 @@ export function loadToolsFromSource() {
 export function loadToolSchemasFromSource() {
   return loadRegistry().then((m) => m.describeToolSchemas());
 }
+
+/** M-2: the error-code table from the sources (the manifest's errorCodes). */
+export function loadErrorCodesFromSource() {
+  return loadRegistry()
+    .then(() => import("../src/core/errors.ts"))
+    .then((m) => m.errorCodeTable());
+}
+
+/** M-7: renames and per-tool parameter aliases / overlap reasons. */
+export function loadNamingFromSource() {
+  return loadRegistry().then((m) => m.describeNaming());
+}

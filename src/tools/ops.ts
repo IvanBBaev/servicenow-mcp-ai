@@ -41,12 +41,12 @@ const bounded = (b: { default: number; max: number }, what: string) =>
 /**
  * S-10b — the opt-in `ops` package: platform health reads (system log,
  * scheduler queue, outbound email queue, semaphores) and the data-quality
- * twin of servicenow_code_health. Read-only; each section degrades to
+ * twin of servicenow_check_code_health. Read-only; each section degrades to
  * `available:false` when its table is unreadable.
  */
 export const specs: AnyToolSpec[] = [
   defineTool({
-    name: "servicenow_ops_read",
+    name: "servicenow_read_ops",
     title: "Read instance operations data",
     description:
       "Bounded operational views for 'why is it slow' triage: overview (all counts), syslog (recent entries by level/source), jobs (sys_trigger queue), email_queue (backlog, failures), semaphores. An unreadable section reports available:false + why.",
@@ -82,10 +82,10 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_data_health",
+    name: "servicenow_check_data_health",
     title: "Data health report",
     description:
-      "Data-quality counts for one table (twin of servicenow_code_health): duplicate groups over key_fields, and orphaned or stale (inactive target) references per reference field, each with the query listing the rows. Unreadable checks: available:false.",
+      "Data-quality counts for one table (twin of check_code_health): duplicate groups over key_fields, and orphaned or stale (inactive target) references per reference field, each with the query listing the rows. Unreadable checks: available:false.",
     package: "ops",
     annotations: READ_ONLY,
     input: {

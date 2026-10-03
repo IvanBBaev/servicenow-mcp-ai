@@ -24,6 +24,13 @@ import {
 } from "./helpers.js";
 
 baselineEnv();
+// These tests drive destructive apply:true calls directly; the H-3 plan-token
+// gate (the 3.0 default SN_DESTRUCTIVE_CONFIRM=token, B4) is covered in
+// plan-token.test.js, so this file opts out explicitly.
+process.env.SN_DESTRUCTIVE_CONFIRM = "off";
+// They also write sys_script (business rules), protected tables that are write-denied
+// by default since 3.0 (B11, covered in policy-h11.test.js).
+process.env.SN_PROTECTED_TABLES_WRITE = "allow";
 
 const tool = (name) => {
   const spec = ALL_TOOLS.find((s) => s.name === name);
@@ -653,7 +660,7 @@ test("binding: without update_set or SN_UPDATE_SET a write makes no extra reques
       const plan = out(
         await call("servicenow_create_record", {
           table: "sys_script",
-          fields: { name: "x" },
+          values: { name: "x" },
         }),
       );
       assert.equal(plan.mode, "plan");
@@ -662,7 +669,7 @@ test("binding: without update_set or SN_UPDATE_SET a write makes no extra reques
       const res = out(
         await call("servicenow_create_record", {
           table: "sys_script",
-          fields: { name: "x" },
+          values: { name: "x" },
           apply: true,
         }),
       );
@@ -680,7 +687,7 @@ test("acceptance: an applied business-rule change lands in the named update set"
       const args = {
         table: "sys_script",
         sys_id: BR_ID,
-        fields: { script: "current.priority = 1;" },
+        values: { script: "current.priority = 1;" },
         update_set: "Sprint 12",
       };
       const plan = out(await call("servicenow_update_record", args));
@@ -746,7 +753,7 @@ test("binding: SN_UPDATE_SET applies to create; a missing preference row is crea
       const plan = out(
         await call("servicenow_create_record", {
           table: "sys_script",
-          fields: { name: "New rule" },
+          values: { name: "New rule" },
         }),
       );
       assert.equal(plan.update_set.source, "SN_UPDATE_SET");
@@ -754,7 +761,7 @@ test("binding: SN_UPDATE_SET applies to create; a missing preference row is crea
       const res = out(
         await call("servicenow_create_record", {
           table: "sys_script",
-          fields: { name: "New rule" },
+          values: { name: "New rule" },
           apply: true,
         }),
       );
@@ -822,7 +829,7 @@ test("binding: upsert carries the set into its plan and its applied write", asyn
       const args = {
         table: "sys_script",
         key: { name: "Set priority" },
-        fields: { active: "false" },
+        values: { active: "false" },
         update_set: "Sprint 12",
       };
       const plan = out(await call("servicenow_upsert_record", args));
@@ -848,7 +855,7 @@ test("binding: a data-row table is written without switching, and the plan says 
       const args = {
         table: "incident",
         sys_id: "i1",
-        fields: { short_description: "Printer on fire" },
+        values: { short_description: "Printer on fire" },
       };
       const plan = out(await call("servicenow_update_record", args));
       assert.equal(plan.update_set.captured, false);
@@ -871,7 +878,7 @@ test("binding: a table with the update_synch attribute is captured", async () =>
       const plan = out(
         await call("servicenow_create_record", {
           table: "u_synced",
-          fields: { name: "x" },
+          values: { name: "x" },
           update_set: "Sprint 12",
         }),
       );
@@ -886,7 +893,7 @@ test("binding: a set that is not in progress is flagged in the plan and refused 
     await withFetch(sn.handler, async (calls) => {
       const args = {
         table: "sys_script",
-        fields: { name: "x" },
+        values: { name: "x" },
         update_set: "Sprint 11",
       };
       const plan = out(await call("servicenow_create_record", args));
@@ -911,7 +918,7 @@ test("binding: an unknown set fails the plan before anything is written", async 
     await withFetch(sn.handler, async () => {
       const res = await call("servicenow_create_record", {
         table: "sys_script",
-        fields: { name: "x" },
+        values: { name: "x" },
         update_set: "Nope",
         apply: true,
       });
@@ -933,7 +940,7 @@ test("binding: a failed write still restores the preference", async () => {
       const res = await call("servicenow_update_record", {
         table: "sys_script",
         sys_id: BR_ID,
-        fields: { script: "x" },
+        values: { script: "x" },
         update_set: "Sprint 12",
         apply: true,
       });
@@ -957,7 +964,7 @@ test("binding: a failed restore is reported, never the write's failure", async (
         await call("servicenow_update_record", {
           table: "sys_script",
           sys_id: BR_ID,
-          fields: { script: "x" },
+          values: { script: "x" },
           update_set: "Sprint 12",
           apply: true,
         }),
@@ -978,7 +985,7 @@ test("binding: the preference table is subject to the table policy", async () =>
     await withFetch(sn.handler, async () => {
       const res = await call("servicenow_create_record", {
         table: "sys_script",
-        fields: { name: "x" },
+        values: { name: "x" },
         update_set: "Sprint 12",
         apply: true,
       });
@@ -997,7 +1004,7 @@ test("binding: concurrent bound writes of one user do not interleave switch and 
         ["a", "b"].map((name) =>
           call("servicenow_create_record", {
             table: "sys_script",
-            fields: { name },
+            values: { name },
             update_set: "Sprint 12",
             apply: true,
           }),

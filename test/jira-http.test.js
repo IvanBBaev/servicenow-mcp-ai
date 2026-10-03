@@ -10,7 +10,11 @@ import {
   hasJiraCredentials,
   saveJiraCredentials,
 } from "../build/core/jira/config.js";
-import { JiraError, ServiceNowError } from "../build/core/errors.js";
+import {
+  IntegrationError,
+  JiraError,
+  ServiceNowError,
+} from "../build/core/errors.js";
 import { getTelemetry } from "../build/core/http-util.js";
 import {
   baselineEnv,
@@ -224,14 +228,19 @@ test("falls back to the top-level message field of an error body", async () => {
   );
 });
 
-test("JiraError keeps the ServiceNowError contract (name + inheritance)", () => {
+test("JiraError shares the IntegrationError contract, not ServiceNowError (ARCH-11b)", () => {
   const err = new JiraError("boom", 418, { raw: "x" });
   assert.equal(err.name, "JiraError");
   assert.equal(err.status, 418);
   assert.deepEqual(err.detail, { raw: "x" });
-  // The MCP result boundary (mcp/result.ts) narrows on ServiceNowError; the
-  // subclass must keep passing that check or Jira failures lose their mapping.
-  assert.ok(err instanceof ServiceNowError);
+  // The MCP result boundary (mcp/result.ts) narrows on the neutral base;
+  // Jira is a sibling of ServiceNow under it, no longer a subclass.
+  assert.ok(err instanceof IntegrationError);
+  assert.ok(!(err instanceof ServiceNowError));
+  const coded = new JiraError("nope", undefined, undefined, {
+    code: "NOT_CONFIGURED",
+  });
+  assert.equal(coded.code, "NOT_CONFIGURED");
 });
 
 // --- request: configuration guards -----------------------------------------

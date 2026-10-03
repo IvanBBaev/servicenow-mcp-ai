@@ -80,13 +80,23 @@ export function adfToText(node: unknown): string {
 export function toAdf(body: string | AdfNode): AdfNode {
   if (typeof body === "string") return adfFromText(body);
   if (body && typeof body === "object" && !Array.isArray(body)) return body;
-  throw new JiraError("A rich-text body must be a string or an ADF object.");
+  throw new JiraError(
+    "A rich-text body must be a string or an ADF object.",
+    undefined,
+    undefined,
+    { code: "INVALID_INPUT" },
+  );
 }
 
 /** Assert that a Jira response body is a non-null object before reading fields off it. */
 export function expectJira<T>(data: T | null | undefined, api: string): T {
   if (data == null || typeof data !== "object" || Array.isArray(data)) {
-    throw new JiraError(`Unexpected response from Jira ${api}.`);
+    throw new JiraError(
+      `Unexpected response from Jira ${api}.`,
+      undefined,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE" },
+    );
   }
   return data;
 }
@@ -98,7 +108,12 @@ export function expectJira<T>(data: T | null | undefined, api: string): T {
  */
 export function expectJiraArray<T>(data: unknown, api: string): T[] {
   if (!Array.isArray(data)) {
-    throw new JiraError(`Unexpected response from Jira ${api}.`);
+    throw new JiraError(
+      `Unexpected response from Jira ${api}.`,
+      undefined,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE" },
+    );
   }
   return data as T[];
 }

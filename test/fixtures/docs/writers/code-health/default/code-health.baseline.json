@@ -1,0 +1,21 @@
+{
+  "sn_generated": true,
+  "sn_generator": "servicenow_check_code_health",
+  "sn_generator_version": "1",
+  "sn_kind": "code-health-baseline",
+  "sn_profile": "default",
+  "sn_instance": "dev00000.service-now.com",
+  "sn_generated_at": "<generatedAt>",
+  "sn_source_hash": "sha256:32f1257e6eef9c68770206aab4b73b4f369d5bebc5f37c1a88de92b2e999f12a",
+  "version": 1,
+  "scopes": {
+    "instance": {
+      "takenAt": "<generatedAt>",
+      "sections": {
+        "security": [
+          "table-no-acl|task|#1"
+        ]
+      }
+    }
+  }
+}

@@ -23,6 +23,10 @@ import {
 } from "./helpers.js";
 
 baselineEnv();
+// These tests drive destructive apply:true calls directly; the H-3 plan-token
+// gate (the 3.0 default SN_DESTRUCTIVE_CONFIRM=token, B4) is covered in
+// plan-token.test.js, so this file opts out explicitly.
+process.env.SN_DESTRUCTIVE_CONFIRM = "off";
 
 const tool = (name) => {
   const spec = ALL_TOOLS.find((s) => s.name === name);
@@ -418,7 +422,7 @@ test("upsert: a missing key plans a create, then applies it with the key fields"
         await call("servicenow_upsert_record", {
           table: "cmdb_ci_server",
           key: { u_ext: "B-2" },
-          fields: { name: "db01" },
+          values: { name: "db01" },
         }),
       );
       assert.equal(plan.mode, "plan");
@@ -432,7 +436,7 @@ test("upsert: a missing key plans a create, then applies it with the key fields"
         await call("servicenow_upsert_record", {
           table: "cmdb_ci_server",
           key: { u_ext: "B-2" },
-          fields: { name: "db01" },
+          values: { name: "db01" },
           ...plan.apply_with,
           apply: true,
         }),
@@ -455,7 +459,7 @@ test("upsert: a present key plans an update, applies it and the write is reverti
       const args = {
         table: "cmdb_ci_server",
         key: { u_ext: "A-17" },
-        fields: { ip_address: "10.0.0.9" },
+        values: { ip_address: "10.0.0.9" },
       };
       const plan = out(await call("servicenow_upsert_record", args));
       assert.equal(plan.action, "update");
@@ -502,7 +506,7 @@ test("upsert: the decision is re-checked at apply (STALE_RECORD)", async () => {
       const stale = await call("servicenow_upsert_record", {
         table: "cmdb_ci_server",
         key: { u_ext: "A-17" },
-        fields: { name: "x" },
+        values: { name: "x" },
         expected_action: "create",
         apply: true,
       });
@@ -514,7 +518,7 @@ test("upsert: the decision is re-checked at apply (STALE_RECORD)", async () => {
       const moved = await call("servicenow_upsert_record", {
         table: "cmdb_ci_server",
         key: { u_ext: "A-17" },
-        fields: { name: "x" },
+        values: { name: "x" },
         expected_action: "update",
         expected_sys_id: "ci9",
         apply: true,
@@ -525,7 +529,7 @@ test("upsert: the decision is re-checked at apply (STALE_RECORD)", async () => {
       const gone = await call("servicenow_upsert_record", {
         table: "cmdb_ci_server",
         key: { u_ext: "Z-9" },
-        fields: { name: "x" },
+        values: { name: "x" },
         expected_sys_id: "ci1",
         apply: true,
       });
@@ -545,7 +549,7 @@ test("upsert: more than one match, or a hidden match, is AMBIGUOUS_KEY", async (
       const res = await call("servicenow_upsert_record", {
         table: "cmdb_ci_server",
         key: { u_ext: "A-17" },
-        fields: { name: "x" },
+        values: { name: "x" },
       });
       assert.equal(res.isError, true);
       assert.match(res.content[0].text, /AMBIGUOUS_KEY/);
@@ -557,7 +561,7 @@ test("upsert: more than one match, or a hidden match, is AMBIGUOUS_KEY", async (
         const res = await call("servicenow_upsert_record", {
           table: "cmdb_ci_server",
           key: { u_ext: "A-17" },
-          fields: { name: "x" },
+          values: { name: "x" },
           apply: true,
         });
         assert.match(res.content[0].text, /AMBIGUOUS_KEY/);
@@ -576,7 +580,7 @@ test("upsert: a field that contradicts the key is refused before any request", a
       const res = await call("servicenow_upsert_record", {
         table: "cmdb_ci_server",
         key: { u_ext: "A-17" },
-        fields: { u_ext: "B-1" },
+        values: { u_ext: "B-1" },
       });
       assert.equal(res.isError, true);
       assert.match(res.content[0].text, /conflicts with key/);

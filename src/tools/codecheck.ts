@@ -56,7 +56,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_lint_table",
     title: "Lint a table's scripts",
     description:
-      "Lint every active business rule, client script and UI policy of a table (via table_logic), " +
+      "Lint every active business rule, client script and UI policy of a table (via describe_table_logic), " +
       "returning per-script findings and a severity summary.",
     package: "codecheck",
     annotations: {
@@ -80,10 +80,10 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_code_health",
+    name: "servicenow_check_code_health",
     title: "Code health report",
     description:
-      "Code-health report: script counts by type, ACL security scan (open, public-role, scripted, elevated ACLs, public REST/UI pages, tables without ACL; unreadable checks: available:false) and, with a table, lint findings. Writes <profile>/code-health.md.",
+      "Code-health report: script counts by type, ACL security scan (open, public-role, scripted, elevated ACLs, public REST/UI pages, tables without ACL), lint for a table, and new/fixed findings vs a stored baseline. Writes <profile>/code-health.md.",
     package: "codecheck",
     annotations: {
       readOnlyHint: false,
@@ -124,9 +124,20 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Also run the flow, Service Portal, UI Builder and legacy-workflow analysers (run-as-System on protected tables, unused subflows/actions, unguarded integration steps, long waits, public data widgets, orphans, route-map loops, UIB routes without a screen, screens without audience, brokers without ACL, workflows to migrate).",
         ),
+      update_baseline: z
+        .boolean()
+        .optional()
+        .describe(
+          "Reset the baseline (<profile>/code-health.baseline.json) to this run; otherwise the first run records it and later runs report new/fixed findings against it.",
+        ),
     },
     logFields: (args) => ({ scope: args.scope ?? "instance" }),
-    handler: ({ scope, extended, domains, limit }) =>
-      codeHealth(scope, { extended, domains, limit }).then(ok),
+    handler: ({ scope, extended, domains, limit, update_baseline }) =>
+      codeHealth(scope, {
+        extended,
+        domains,
+        limit,
+        updateBaseline: update_baseline,
+      }).then(ok),
   }),
 ];

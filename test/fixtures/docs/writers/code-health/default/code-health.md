@@ -1,12 +1,12 @@
 ---
 sn_generated: true
-sn_generator: servicenow_code_health
+sn_generator: servicenow_check_code_health
 sn_generator_version: 1
 sn_kind: code-health
 sn_profile: default
 sn_instance: dev00000.service-now.com
 sn_generated_at: <generatedAt>
-sn_source_hash: sha256:77f7724a532666d3bcf897c318e85d6df9ca52b1aa00b392f13da1fc6b965f56
+sn_source_hash: sha256:02b1afb948b1ca699869374e0f3058fb3c3c9b91a1f9381948e7d65d1d4578ca
 ---
 
 # Code health — profile `default`
@@ -59,3 +59,11 @@ Generated <generatedAt>.
 | Item | Operation | Rule | Severity |
 | --- | --- | --- | --- |
 | task |  | table-no-acl | warn |
+
+## Baseline delta
+
+Baseline recorded in `default/code-health.baseline.json`; the next run reports new and fixed findings.
+
+| Section | Compared | New | Fixed | Unchanged | Partial |
+| --- | --- | --- | --- | --- | --- |
+| security | recorded | 0 | 0 | 0 | 0 |

@@ -132,7 +132,7 @@ test("fail() emits a structured error payload for ServiceNowError", () => {
   );
   assert.equal(result.isError, true);
   const payload = JSON.parse(result.content[0].text);
-  assert.equal(payload.error.status, 403);
-  assert.equal(payload.error.message, "ACL exception");
-  assert.equal(payload.error.snDetail.message, "Insufficient rights");
+  assert.equal(payload.status, 403);
+  assert.equal(payload.error, "ACL exception");
+  assert.equal(payload.detail.message, "Insufficient rights");
 });

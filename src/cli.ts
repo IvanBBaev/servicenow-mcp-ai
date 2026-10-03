@@ -657,7 +657,7 @@ async function cmdSupportBundle(
       return buildSupportBundle({
         doctor,
         manifest: {
-          manifestVersion: 2,
+          manifestVersion: 3,
           serverVersion: SERVER_VERSION,
           toolCount: ALL_TOOLS.length,
           packageCount: ALL_PACKAGES.length,

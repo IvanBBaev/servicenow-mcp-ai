@@ -1,0 +1,17 @@
+{
+  "description": "D-8: block a destructive ServiceNow apply:true that carries no plan_token before it reaches the server.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__.*__servicenow_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/require-plan-token.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

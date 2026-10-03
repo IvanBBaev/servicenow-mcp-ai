@@ -93,11 +93,17 @@ function describeProxyUrl(
   } catch {
     throw new ServiceNowError(
       `${source} is not a valid URL — expected http://host:port or https://host:port (credentials as user:pass@ are allowed).`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new ServiceNowError(
       `${source} must use http:// or https:// (got ${parsed.protocol.replace(/:$/, "")}).`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const port = parsed.port || (parsed.protocol === "https:" ? "443" : "80");
@@ -147,6 +153,9 @@ function readPem(
     } catch (err) {
       throw new ServiceNowError(
         `${fileVar} points to a file that cannot be read (${(err as Error).message}).`,
+        undefined,
+        undefined,
+        { code: "UNREADABLE" },
       );
     }
   }
@@ -176,6 +185,9 @@ export function buildTlsOptions(
     if ((cert && !key) || (!cert && key)) {
       throw new ServiceNowError(
         "Mutual TLS needs both SN_TLS_CLIENT_CERT[_FILE] and SN_TLS_CLIENT_KEY[_FILE]; only one is set.",
+        undefined,
+        undefined,
+        { code: "NOT_CONFIGURED" },
       );
     }
   }
@@ -364,6 +376,9 @@ export async function getDispatcher(
   } catch {
     throw new ServiceNowError(
       `${needsUndiciReason(options)} needs the optional 'undici' package — install it with: npm install undici`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
 

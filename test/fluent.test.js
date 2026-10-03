@@ -150,7 +150,7 @@ const CASES = {
           sys_id: id("2"),
           name: "Corp LDAP",
           password: "[redacted]",
-          login_distinguished_name: "cn=svc",
+          rdn: "ou=people,dc=acme,dc=com",
           active: "true",
           sys_scope: SCOPE.sys_id,
         },
@@ -186,6 +186,9 @@ const CASES = {
           internal_name: "onboard_user",
           latest_snapshot: id("6"),
           active: "true",
+          status: "published",
+          type: "flow",
+          access: "public",
           sys_scope: SCOPE.sys_id,
         },
         children: [
@@ -456,17 +459,17 @@ test("unmapped fields and unreadable records are reported, not lost", () => {
   assert.ok(!/order:/.test(text));
 });
 
-test("the header names the SDK baseline and the O-7 assumption", () => {
+test("the header names the SDK baseline the P-29 oracle checks against", () => {
   assert.equal(FLUENT_TARGET.version, SDK_BASELINE);
-  assert.equal(FLUENT_TARGET.assumption, true);
-  assert.equal(FLUENT_TARGET.typeChecked, false);
+  assert.equal(FLUENT_TARGET.assumption, false);
+  assert.equal(FLUENT_TARGET.typeChecked, true);
   for (const name of Object.keys(CASES)) {
     for (const f of emitCase(name).files.filter((x) =>
       x.path.endsWith(".ts"),
     )) {
       assert.ok(f.content.includes(`@servicenow/sdk ${SDK_BASELINE}`), f.path);
-      assert.ok(f.content.includes("owner gate O-7"), f.path);
-      assert.ok(f.content.includes("not been type-checked"), f.path);
+      assert.ok(f.content.includes("checked by npm run fluent:verify"), f.path);
+      assert.ok(!f.content.includes("owner gate O-7"), f.path);
     }
   }
 });

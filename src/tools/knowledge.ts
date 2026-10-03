@@ -61,7 +61,7 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_knowledge_highlights",
+    name: "servicenow_get_knowledge_highlights",
     title: "Featured / most-viewed knowledge",
     description:
       "List featured or most-viewed knowledge articles for the current user.",

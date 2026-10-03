@@ -44,11 +44,12 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { catalog_sys_id: "sys_id" },
     input: {
-      catalog_sys_id: sysId().describe("sys_id of the catalog."),
+      sys_id: sysId().describe("sys_id of the catalog."),
     },
-    handler: async ({ catalog_sys_id }) =>
-      ok({ result: await listCatalogCategories(catalog_sys_id) }),
+    handler: async ({ sys_id }) =>
+      ok({ result: await listCatalogCategories(sys_id) }),
   }),
 
   defineTool({
@@ -87,11 +88,11 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { item_sys_id: "sys_id" },
     input: {
-      item_sys_id: sysId().describe("sys_id of the catalog item."),
+      sys_id: sysId().describe("sys_id of the catalog item."),
     },
-    handler: async ({ item_sys_id }) =>
-      ok({ result: await getCatalogItem(item_sys_id) }),
+    handler: async ({ sys_id }) => ok({ result: await getCatalogItem(sys_id) }),
   }),
 
   defineTool({
@@ -110,11 +111,12 @@ export const specs: AnyToolSpec[] = [
       target: (args) => ({
         action: "create",
         table: "sc_request",
-        fields: { item: args.item_sys_id, quantity: args.quantity ?? 1 },
+        fields: { item: args.sys_id, quantity: args.quantity ?? 1 },
       }),
     },
+    legacyParams: { item_sys_id: "sys_id" },
     input: {
-      item_sys_id: sysId().describe("sys_id of the catalog item."),
+      sys_id: sysId().describe("sys_id of the catalog item."),
       quantity: z
         .number()
         .int()
@@ -122,18 +124,18 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Quantity to order (default 1)."),
       variables: z
-        .record(z.unknown())
+        .record(z.string(), z.unknown())
         .optional()
         .describe("Variable name/value pairs for the item."),
       apply: applyInput,
     },
-    handler: async ({ item_sys_id, quantity, variables, apply }) => {
+    handler: async ({ sys_id, quantity, variables, apply }) => {
       if (!shouldApply(apply)) {
         return planPreview({
           action: "create",
           table: "sc_request",
           after: {
-            item: item_sys_id,
+            item: sys_id,
             quantity: quantity ?? 1,
             ...(variables ? { variables } : {}),
           },
@@ -143,11 +145,11 @@ export const specs: AnyToolSpec[] = [
         {
           action: "create",
           table: "sc_request",
-          fields: { item: item_sys_id, quantity: quantity ?? 1 },
+          fields: { item: sys_id, quantity: quantity ?? 1 },
         },
         () =>
           orderCatalogItem({
-            itemSysId: item_sys_id,
+            itemSysId: sys_id,
             quantity,
             variables,
           }),

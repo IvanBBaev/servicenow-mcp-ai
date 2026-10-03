@@ -1,7 +1,7 @@
 /**
  * P-19 — domain analysers (project/SDK-PARITY.md §4 P-19): rules over the
  * Flow Designer, Service Portal, UI Builder and legacy-workflow metadata,
- * folded into `code_health` behind its opt-in `domains` switch.
+ * folded into `check_code_health` behind its opt-in `domains` switch.
  *
  * Flows (sys_hub_flow and its step tables, read the way explain_flow reads
  * them — P-10 / P-11):
@@ -35,7 +35,7 @@
  * Legacy: `workflow-migration-candidate` — a wf_workflow still referenced by
  * a catalog item or an SLA definition.
  *
- * Bounds: the newest `limit` candidates per rule (the `limit` of code_health
+ * Bounds: the newest `limit` candidates per rule (the `limit` of check_code_health
  * `extended`), child reads capped at `DOMAIN_CHILD_MAX` rows per table and
  * chunked IN lists; a capped read marks the rule `truncated`. An unused /
  * orphan rule never reports a candidate whose callers were not fully read.
@@ -48,6 +48,7 @@ import { ServiceNowError } from "../core/errors.js";
 import { decodeValues, type StepInput } from "./explain-flow.js";
 import { snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { scriptCalls } from "./script-ast.js";
 
 export type DomainSeverity = "error" | "warn" | "info";
 
@@ -89,7 +90,7 @@ export const DOMAIN_RULES: Record<
   "workflow-migration-candidate": { domain: "workflow", severity: "info" },
 };
 
-/** Candidates per rule (default / max) — the code_health `limit`. */
+/** Candidates per rule (default / max) — the check_code_health `limit`. */
 export const DOMAIN_LIMIT = { default: 50, max: 200 } as const;
 
 /** Rows read per child table (summed over IN chunks). */
@@ -824,6 +825,27 @@ async function unused(
 
 const DATA_READ =
   /\bnew\s+(GlideRecord|GlideAggregate|GlideQuery)\s*\(|\$sp\.getRecord\s*\(/;
+const DATA_READ_CTORS = new Set([
+  "GlideRecord",
+  "GlideAggregate",
+  "GlideQuery",
+]);
+
+/**
+ * S-12: does a widget server script read records? Matched on the parsed
+ * calls (a commented-out GlideRecord is not a read); the regex when the
+ * script does not parse.
+ */
+function readsData(script: string): boolean {
+  if (!script) return false;
+  const calls = scriptCalls(script);
+  if (!calls) return DATA_READ.test(script);
+  return calls.some((c) =>
+    c.kind === "new"
+      ? c.object === undefined && DATA_READ_CTORS.has(c.name ?? "")
+      : c.object === "$sp" && c.name === "getRecord",
+  );
+}
 const WIDGET_FIELDS = [
   "sys_id",
   "id",
@@ -921,7 +943,7 @@ async function analysePortal(ctx: Ctx, out: Collector): Promise<void> {
     );
     out.scanned("portal-public-data-widget", candidates.length, capped);
     for (const w of candidates) {
-      if (!DATA_READ.test(str(w, "script"))) continue;
+      if (!readsData(str(w, "script"))) continue;
       const pagesOf = onPublic.get(str(w, "sys_id")) ?? [];
       const isPublic = truthy(str(w, "public"));
       out.add(
@@ -1425,7 +1447,7 @@ const SEVERITY_ORDER: Record<DomainSeverity, number> = {
 /**
  * Run the flow, portal, UI Builder and legacy-workflow rules. Never throws for an
  * unreadable table; an unexpected error propagates to the caller
- * (code_health turns it into a warning).
+ * (check_code_health turns it into a warning).
  */
 export async function analyseDomains(
   opts: { limit?: number } = {},

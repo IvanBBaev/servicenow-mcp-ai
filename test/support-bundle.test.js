@@ -99,7 +99,7 @@ test("buildSupportBundle: versions, settings, npm, missing log file recorded", a
     async () => {
       const text = await buildSupportBundle({
         doctor: { summary: "saw Zz-secret-1" },
-        manifest: { manifestVersion: 2 },
+        manifest: { manifestVersion: 3 },
         npm: async () => ({ ok: true }),
         now: new Date("2026-01-02T03:04:05.000Z"),
       });
@@ -194,6 +194,45 @@ test("envFileLine and doctorChecks", () => {
     config: { ...config, configured: false, missing: ["instance", "user"] },
   });
   assert.deepEqual(missing, [
-    { name: "credentials", ok: false, detail: "missing: instance, user" },
+    {
+      name: "credentials",
+      ok: false,
+      detail: "missing: instance, user",
+      hint: "Set SN_INSTANCE, SN_OAUTH_CLIENT_ID and the material for SN_OAUTH_GRANT (see the README auth section).",
+    },
   ]);
+  // M-2: a failed probe carries the fix as a hint (status-specific).
+  const [, forbidden] = doctorChecks({
+    status: "degraded",
+    summary: "",
+    config,
+    connection: { ok: false, status: 403, latencyMs: 5 },
+  });
+  assert.match(forbidden.hint, /snc_platform_rest_api_access/);
+  const [, unauthorized] = doctorChecks({
+    status: "degraded",
+    summary: "",
+    config,
+    connection: { ok: false, status: 401, latencyMs: 5 },
+  });
+  assert.match(unauthorized.hint, /SN_OAUTH_CLIENT_ID/);
+  const [, unreachable] = doctorChecks({
+    status: "degraded",
+    summary: "",
+    config,
+    connection: { ok: false, status: null, latencyMs: 5 },
+  });
+  assert.match(unreachable.hint, /SN_INSTANCE/);
+  const [, , degraded] = doctorChecks({
+    status: "degraded",
+    summary: "",
+    config,
+    connection: { ok: true, status: 200, latencyMs: 5 },
+    capabilities: {
+      degraded: true,
+      summary: "x",
+      recommendation: "Grant admin.",
+    },
+  });
+  assert.equal(degraded.hint, "Grant admin.");
 });

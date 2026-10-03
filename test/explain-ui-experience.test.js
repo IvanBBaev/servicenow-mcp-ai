@@ -19,7 +19,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { runSpec } from "../build/mcp/define.js";
 import { ALL_TOOLS, PACKAGES } from "../build/mcp/registry.js";
@@ -46,11 +45,7 @@ import {
 
 baselineEnv();
 
-const FIXTURES = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "explain",
-);
+const FIXTURES = path.join(import.meta.dirname, "fixtures", "explain");
 
 const id = (c) => c.repeat(32);
 const EXP = id("a");

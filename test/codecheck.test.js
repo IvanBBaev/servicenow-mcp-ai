@@ -87,7 +87,7 @@ test("lintScript fetches a business rule and lints its script field (FT-5)", asy
   );
 });
 
-test("lintTable lints active scripts of a table via table_logic (FT-5)", async () => {
+test("lintTable lints active scripts of a table via describe_table_logic (FT-5)", async () => {
   await withMetadataFetch(
     (url) => {
       const m = /\/api\/now\/table\/([^/?]+)(?:\/([^/?]+))?/.exec(url);

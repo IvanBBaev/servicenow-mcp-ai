@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { promises as fs, existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -43,6 +43,10 @@ import {
   withFetch,
   jsonResponse,
 } from "./helpers.js";
+
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
 
 baselineEnv();
 
@@ -93,7 +97,7 @@ async function withScratch(env, fn) {
 }
 
 const savedFile = async (envFile) =>
-  existsSync(envFile) ? dotenv.parse(await fs.readFile(envFile, "utf8")) : null;
+  existsSync(envFile) ? parseEnv(await fs.readFile(envFile, "utf8")) : null;
 
 // ---------------------------------------------------------------------------
 // Per-method evaluation
@@ -272,8 +276,8 @@ test("L2-11: the env writer keeps a CRLF file CRLF and stores Windows paths lite
     );
     assert.ok(raw.endsWith("\r\n"));
     assert.ok(raw.startsWith("# header\r\n"));
-    assert.equal(dotenv.parse(raw).SN_PASSWORD, " C:\\Program Files\\x ");
-    assert.equal(dotenv.parse(raw).OTHER, "1");
+    assert.equal(parseEnv(raw).SN_PASSWORD, " C:\\Program Files\\x ");
+    assert.equal(parseEnv(raw).OTHER, "1");
   });
   await withScratch({}, async ({ envFile }) => {
     await fs.writeFile(envFile, "A=1\n");
@@ -508,14 +512,15 @@ test("L6-02: a rejected bearer token without a fresher file fails with AUTH_EXPI
       /requires SN_BEARER_TOKEN or SN_TOKEN_FILE/,
     );
   });
-  // Basic auth keeps its plain 401 (no AUTH_EXPIRED code).
+  // Basic auth keeps its plain 401 (M-2: INSTANCE_HTTP_401, not AUTH_EXPIRED).
   await withScratch({}, async () => {
     await withFetch(
       () => jsonResponse(401, { error: { message: "nope" } }),
       async () => {
         await assert.rejects(queryTable({ table: "incident" }), (err) => {
           assert.equal(err.status, 401);
-          assert.equal(err.code, undefined);
+          assert.equal(err.code, "INSTANCE_HTTP_401");
+          assert.equal(err.source, "servicenow");
           return true;
         });
       },
@@ -622,7 +627,9 @@ test("L8-01: profiles report auth, grant, refresh and write mode — never a sec
 const spec = ALL_TOOLS.find((s) => s.name === "servicenow_set_credentials");
 const setCredentials = (args) => runSpec(spec, args);
 const payload = (res) => JSON.parse(res.content[0].text);
-const errorMessage = (res) => payload(res).error.message;
+const errorMessage = (res) => payload(res).error;
+// M-2: the fix travels in `hint`.
+const errorText = (res) => `${payload(res).error}\n${payload(res).hint ?? ""}`;
 
 async function connectedServer(clientCapabilities, onElicit) {
   const server = new McpServer({ name: "d2-test", version: "0.0.0" });
@@ -693,14 +700,14 @@ test("D-2: secrets are refused without elicitation — even with the confirmatio
       let res = await setCredentials({ request_secrets: ["api_key"] });
       assert.equal(res.isError, true);
       assert.match(errorMessage(res), /never accepted as tool arguments/);
-      assert.match(errorMessage(res), /SN_API_KEY/);
+      assert.match(errorText(res), /SN_API_KEY/);
       const { close } = await connectedServer({}, null);
       try {
         res = await setCredentials({
           request_secrets: ["oauth_client_secret"],
         });
         assert.equal(res.isError, true);
-        assert.match(errorMessage(res), /SN_OAUTH_CLIENT_SECRET/);
+        assert.match(errorText(res), /SN_OAUTH_CLIENT_SECRET/);
       } finally {
         await close();
       }
@@ -800,7 +807,8 @@ test("D-2 / H-2: a host change needs the next auth method's own material", async
         password: "pw",
       });
       assert.equal(res.isError, true);
-      assert.match(errorMessage(res), /^CREDENTIALS_INCOMPLETE: .*new API key/);
+      assert.equal(payload(res).code, "CREDENTIALS_INCOMPLETE");
+      assert.match(errorMessage(res), /new API key/);
 
       // OAuth client_credentials: the client secret must come along.
       res = await setCredentials({

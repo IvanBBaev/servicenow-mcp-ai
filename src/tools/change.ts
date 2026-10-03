@@ -24,7 +24,7 @@ import {
 import { journaledWrite } from "../core/write-journal.js";
 
 const changeFields = z
-  .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
+  .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
   .describe(
     'Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.',
   );
@@ -83,6 +83,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    legacyParams: { fields: "values" },
     input: {
       type: z
         .enum(["normal", "standard", "emergency"])
@@ -90,11 +91,11 @@ export const specs: AnyToolSpec[] = [
       template_id: sysId()
         .optional()
         .describe("Standard change template sys_id (required for standard)."),
-      fields: changeFields.optional(),
+      values: changeFields.optional(),
       apply: applyInput,
     },
     logFields: (args) => ({ type: args.type }),
-    handler: async ({ type, template_id, fields, apply }) => {
+    handler: async ({ type, template_id, values: fields, apply }) => {
       const proposed = {
         type,
         ...(template_id ? { template_id } : {}),
@@ -136,12 +137,13 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    legacyParams: { fields: "values" },
     input: {
       sys_id: sysId().describe("sys_id of the change request."),
-      fields: changeFields,
+      values: changeFields,
       apply: applyInput,
     },
-    handler: async ({ sys_id, fields, apply }) => {
+    handler: async ({ sys_id, values: fields, apply }) => {
       if (!shouldApply(apply)) {
         const before = await getChange(sys_id);
         return planPreview({
@@ -168,7 +170,7 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_change_conflicts",
+    name: "servicenow_check_change_conflicts",
     title: "Change schedule conflicts",
     description:
       "Read schedule conflicts for a change, or recalculate them (calculate=true). Recalculation is a write: plan/apply like other writes, journaled, blocked in read-only mode.",

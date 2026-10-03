@@ -9,8 +9,8 @@ import { ServiceNowError } from "../core/errors.js";
  * S-10b — the opt-in `ops` package: bounded, read-only views of the platform
  * tables an admin opens when "the instance is slow" — the system log
  * (`syslog`), the scheduler queue (`sys_trigger`), the outbound email queue
- * (`sys_email`) and semaphores — plus `data_health`, the data-side twin of
- * `servicenow_code_health` (duplicates, orphaned and stale references).
+ * (`sys_email`) and semaphores — plus `check_data_health`, the data-side twin of
+ * `servicenow_check_code_health` (duplicates, orphaned and stale references).
  *
  * Every section reads its own table and degrades on its own to
  * `available:false` with the reason (ACL, policy, missing table): an
@@ -154,7 +154,7 @@ function tally(
   return out;
 }
 
-// --- ops_read -----------------------------------------------------------------
+// --- read_ops -----------------------------------------------------------------
 
 export interface OpsReadArgs {
   kind: OpsKind;
@@ -404,7 +404,7 @@ export async function opsRead(args: OpsReadArgs): Promise<unknown> {
   };
 }
 
-// --- data_health --------------------------------------------------------------
+// --- check_data_health --------------------------------------------------------------
 
 export const DATA_HEALTH_LIMIT = { default: 20, max: 100 };
 export const MAX_KEY_FIELDS = 5;
@@ -523,7 +523,7 @@ export async function dataHealth(args: DataHealthArgs): Promise<unknown> {
   const scope = args.query?.trim() ?? "";
   if (/\^NQ|ORDERBY/.test(scope)) {
     throw new ServiceNowError(
-      "The data_health query cannot contain ^NQ or ORDERBY (it is ANDed with each check).",
+      "The check_data_health query cannot contain ^NQ or ORDERBY (it is ANDed with each check).",
       400,
     );
   }

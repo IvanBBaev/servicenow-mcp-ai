@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ServiceNowError } from "../core/errors.js";
+import { legacyToolNames } from "../mcp/naming.js";
 import { listArtifacts, getArtifact, LIST_LIMIT } from "../api/artifacts.js";
 import { explainArtifact } from "../api/explain-artifact.js";
 import { FLUENT_LIMIT, generateFluent } from "../api/fluent.js";
@@ -51,9 +53,11 @@ const artifactRefInput = {
   key: z
     .union([
       keyValue,
-      z.record(keyValue).refine((o) => Object.keys(o).length <= 10, {
-        message: "A key has at most 10 fields.",
-      }),
+      z
+        .record(z.string(), keyValue)
+        .refine((o) => Object.keys(o).length <= 10, {
+          message: "A key has at most 10 fields.",
+        }),
     ])
     .optional()
     .describe(
@@ -63,6 +67,7 @@ const artifactRefInput = {
 
 /** Flat Table API values (the same shape the Table write tools take). */
 const fieldsSchema = z.record(
+  z.string(),
   z.union([z.string(), z.number(), z.boolean(), z.null()]),
 );
 
@@ -126,6 +131,53 @@ const degradedOutput = z
 /** Set on a degraded read: whether the instance has the type's table at all. */
 const availableOutput = z.boolean().optional();
 
+/**
+ * M-7: a child's write payload is `values`; the v2 name `fields` is accepted
+ * only under SN_LEGACY_TOOL_NAMES=1 (the nested alias cannot be expressed by
+ * the top-level `legacyParams`, so the child schema carries both, optional,
+ * and this check enforces exactly one).
+ */
+export function normalizeChildValues<V, C extends { values?: V; fields?: V }>(
+  children: C[],
+): (Omit<C, "values" | "fields"> & { fields: V })[] {
+  const legacy = legacyToolNames();
+  return children.map((child, index) => {
+    const { values, fields, ...rest } = child;
+    if (fields !== undefined && !legacy) {
+      throw new ServiceNowError(
+        `children[${index}].fields was renamed to values.`,
+        400,
+        undefined,
+        {
+          code: "INVALID_INPUT",
+          hint: "Pass children[].values (SN_LEGACY_TOOL_NAMES=1 accepts the old name for one minor).",
+        },
+      );
+    }
+    if (fields !== undefined && values !== undefined) {
+      throw new ServiceNowError(
+        `Pass either children[${index}].values or its deprecated alias fields, not both.`,
+        400,
+        undefined,
+        { code: "INVALID_INPUT", hint: "Use values only." },
+      );
+    }
+    const payload = values ?? fields;
+    if (payload === undefined) {
+      throw new ServiceNowError(
+        `children[${index}].values is required.`,
+        400,
+        undefined,
+        {
+          code: "INVALID_INPUT",
+          hint: "Give each child its field/value pairs in values.",
+        },
+      );
+    }
+    return { ...rest, fields: payload };
+  });
+}
+
 export const specs: AnyToolSpec[] = [
   defineTool({
     name: "servicenow_list_artifacts",
@@ -179,12 +231,12 @@ export const specs: AnyToolSpec[] = [
           .object({
             sys_id: z.string(),
             name: z.string(),
-            key: z.record(z.string()),
+            key: z.record(z.string(), z.string()),
             scope: scopeOutput,
             active: z.boolean().optional(),
             sdkManaged: z.enum(["yes", "no", "unknown"]),
           })
-          .passthrough(),
+          .loose(),
       ),
       missingFields: z.array(z.string()).optional(),
       degraded: degradedOutput,
@@ -213,10 +265,10 @@ export const specs: AnyToolSpec[] = [
       caveat: z.string().optional(),
       sys_id: z.string().optional(),
       name: z.string().optional(),
-      key: z.record(z.string()).optional(),
+      key: z.record(z.string(), z.string()).optional(),
       scope: scopeOutput.optional(),
       sdkManaged: sdkManagedOutput.optional(),
-      record: z.record(z.unknown()).nullable(),
+      record: z.record(z.string(), z.unknown()).nullable(),
       children: z.array(
         z
           .object({
@@ -226,13 +278,13 @@ export const specs: AnyToolSpec[] = [
             verified: z.boolean(),
             count: z.number(),
             truncated: z.boolean().optional(),
-            records: z.array(z.record(z.unknown())),
+            records: z.array(z.record(z.string(), z.unknown())),
             redacted: z.boolean().optional(),
             reason: z.string().optional(),
             error: z.string().optional(),
             status: z.number().optional(),
           })
-          .passthrough(),
+          .loose(),
       ),
       missingFields: z.array(z.string()).optional(),
       degraded: degradedOutput,
@@ -261,32 +313,32 @@ export const specs: AnyToolSpec[] = [
       caveat: z.string().optional(),
       sys_id: z.string().optional(),
       name: z.string().optional(),
-      key: z.record(z.string()).optional(),
+      key: z.record(z.string(), z.string()).optional(),
       scope: scopeOutput.optional(),
       sdkManaged: sdkManagedOutput.optional(),
       missingFields: z.array(z.string()).optional(),
       summary: z.string(),
-      when: z.record(z.unknown()).nullable(),
-      fields: z.record(z.unknown()),
+      when: z.record(z.string(), z.unknown()).nullable(),
+      fields: z.record(z.string(), z.unknown()),
       truncatedFields: z.array(z.string()).optional(),
       explanation: z
         .object({ kind: z.string(), lines: z.array(z.string()) })
-        .passthrough()
+        .loose()
         .optional(),
       children: z.array(
         z
           .object({
             table: z.string(),
             count: z.number(),
-            items: z.array(z.record(z.unknown())),
+            items: z.array(z.record(z.string(), z.unknown())),
             omitted: z.number().optional(),
           })
-          .passthrough(),
+          .loose(),
       ),
       references: z.array(
         z
           .object({ field: z.string(), table: z.string(), sys_id: z.string() })
-          .passthrough(),
+          .loose(),
       ),
       decoded: z.array(
         z
@@ -296,7 +348,7 @@ export const specs: AnyToolSpec[] = [
             decoder: z.string(),
             decoded: z.boolean(),
           })
-          .passthrough(),
+          .loose(),
       ),
       degraded: degradedOutput,
       available: availableOutput,
@@ -305,7 +357,7 @@ export const specs: AnyToolSpec[] = [
   }),
 
   defineTool({
-    name: "servicenow_artifact_dependencies",
+    name: "servicenow_get_artifact_dependencies",
     title: "Artifact dependencies",
     description:
       "Dependency graph of one artifact: outbound (reference fields, decoded JSON, script calls and GlideRecord tables) and inbound (reverse reference queries, script and flow-step callers, structural refs). Depth-capped; JSON or Mermaid.",
@@ -369,7 +421,7 @@ export const specs: AnyToolSpec[] = [
         .array(
           z
             .object({ id: z.string(), kind: z.string(), name: z.string() })
-            .passthrough(),
+            .loose(),
         )
         .optional(),
       edges: z
@@ -381,7 +433,7 @@ export const specs: AnyToolSpec[] = [
               via: z.string(),
               field: z.string(),
             })
-            .passthrough(),
+            .loose(),
         )
         .optional(),
       truncated: z.boolean().optional(),
@@ -459,11 +511,11 @@ export const specs: AnyToolSpec[] = [
       sdkApi: z.string(),
       emitter: z.enum(["dedicated", "record"]),
       count: z.number(),
-      keys: z.array(z.object({ key: z.string() }).passthrough()),
+      keys: z.array(z.object({ key: z.string() }).loose()),
       unsupported: z.array(
-        z.object({ kind: z.string(), reason: z.string() }).passthrough(),
+        z.object({ kind: z.string(), reason: z.string() }).loose(),
       ),
-      files: z.array(z.object({ path: z.string() }).passthrough()),
+      files: z.array(z.object({ path: z.string() }).loose()),
     },
     logFields: (args) => ({
       artifactType: args.artifactType,
@@ -495,6 +547,7 @@ export const specs: AnyToolSpec[] = [
           )?.table ?? "artifact",
       }),
     },
+    legacyParams: { fields: "values" },
     input: {
       artifactType: artifactTypeInput,
       key: artifactRefInput.key
@@ -502,7 +555,7 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "The primary record's key: a plain value for a single key field, or an object of field/value pairs (every key field; a sys_id-keyed type takes any identifying fields, e.g. {table, short_description}). Written on create.",
         ),
-      fields: fieldsSchema.describe(
+      values: fieldsSchema.describe(
         "Primary-record fields to write (the type's descriptor fields; sys_scope on create only).",
       ),
       children: z
@@ -514,14 +567,21 @@ export const specs: AnyToolSpec[] = [
                 "Child table; defaults to the type's only child table.",
               ),
             key: z
-              .record(keyValue)
+              .record(z.string(), keyValue)
               .optional()
               .describe(
                 "Identifies the child under the parent; defaults to its name field (e.g. {field: 'state'}).",
               ),
-            fields: fieldsSchema.describe(
-              "Child fields to write; the link to the parent is set by the tool.",
-            ),
+            values: fieldsSchema
+              .optional()
+              .describe(
+                "Child fields to write; the link to the parent is set by the tool. Required.",
+              ),
+            fields: fieldsSchema
+              .optional()
+              .describe(
+                "Deprecated: use values (accepted only with SN_LEGACY_TOOL_NAMES=1).",
+              ),
             parent: z
               .number()
               .int()
@@ -555,7 +615,7 @@ export const specs: AnyToolSpec[] = [
     handler: async ({
       artifactType,
       key,
-      fields,
+      values: fields,
       children,
       expected_action,
       expected_sys_id,
@@ -566,7 +626,7 @@ export const specs: AnyToolSpec[] = [
         artifactType,
         key,
         fields,
-        children,
+        children: children && normalizeChildValues(children),
       });
       const { parent } = plan;
       const writes = planWrites(plan);

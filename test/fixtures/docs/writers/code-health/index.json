@@ -3,18 +3,30 @@
   "generated_at": "<generatedAt>",
   "files": [
     {
+      "path": "default/code-health.baseline.json",
+      "kind": "code-health-baseline",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_check_code_health",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:32f1257e6eef9c68770206aab4b73b4f369d5bebc5f37c1a88de92b2e999f12a",
+      "bytes": 557,
+      "headings": []
+    },
+    {
       "path": "default/code-health.md",
       "kind": "code-health",
       "title": "Code health — profile `default`",
       "profile": "default",
-      "generator": "servicenow_code_health",
+      "generator": "servicenow_check_code_health",
       "generated_at": "<generatedAt>",
-      "source_hash": "sha256:77f7724a532666d3bcf897c318e85d6df9ca52b1aa00b392f13da1fc6b965f56",
-      "bytes": 2457,
+      "source_hash": "sha256:02b1afb948b1ca699869374e0f3058fb3c3c9b91a1f9381948e7d65d1d4578ca",
+      "bytes": 2724,
       "headings": [
         "Code health — profile `default`",
         "Script inventory",
-        "Security — ACL scan"
+        "Security — ACL scan",
+        "Baseline delta"
       ]
     },
     {
@@ -25,7 +37,7 @@
       "generator": null,
       "generated_at": null,
       "source_hash": null,
-      "bytes": 345,
+      "bytes": 451,
       "headings": [
         "Write journal — default"
       ]

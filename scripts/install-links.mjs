@@ -12,7 +12,6 @@
 // and paste the printed links into both files.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 /** The MCP server key every snippet uses (matches .claude-plugin/plugin.json). */
 export const SERVER_NAME = "servicenow";
@@ -65,10 +64,10 @@ export function htmlEscape(value) {
 
 const invokedDirectly =
   process.argv[1] !== undefined &&
-  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  path.resolve(process.argv[1]) === import.meta.filename;
 
 if (invokedDirectly) {
-  const root = fileURLToPath(new URL("..", import.meta.url));
+  const root = path.join(import.meta.dirname, "..");
   const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
   for (const [key, value] of Object.entries(installLinks(pkg))) {
     console.log(`${key}:\n  ${value}\n  html: ${htmlEscape(value)}\n`);

@@ -756,7 +756,7 @@ export async function explainPortal(
     if (!list.includes(why)) list.push(why);
     pageRoles.set(id, list);
   };
-  let pageRows: SnRecord[] = [];
+  let pageRows: SnRecord[];
   let themeJs: SnRecord[] = [];
   let themeCss: SnRecord[] = [];
 

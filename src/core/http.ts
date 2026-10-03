@@ -200,8 +200,11 @@ export async function snRequest<T>({
       return false;
     },
     makeError: (message, status, detail, options) =>
-      status === 401 && !options?.code && getAuthMode() === "token"
+      status === 401 &&
+      (!options?.code || options.code === "INSTANCE_HTTP_401") &&
+      getAuthMode() === "token"
         ? new ServiceNowError(message, status, detail, {
+            ...options,
             code: "AUTH_EXPIRED",
             hint: AUTH_EXPIRED_HINT,
           })

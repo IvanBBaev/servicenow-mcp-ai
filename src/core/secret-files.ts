@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { ServiceNowError } from "./errors.js";
 import { isSecretFileSource } from "./settings-manifest.js";
 
 /**
@@ -71,11 +72,25 @@ export function readSecretFile(fileKey: string, path: string): string {
     const reason =
       (error as NodeJS.ErrnoException).code ??
       (error instanceof Error ? error.message : String(error));
-    throw new Error(`Cannot read ${fileKey} (${path}): ${reason}`);
+    const failure = new ServiceNowError(
+      `Cannot read ${fileKey} (${path}): ${reason}`,
+      undefined,
+      undefined,
+      {
+        code: "UNREADABLE",
+        hint: `Check that ${fileKey} names a readable file.`,
+      },
+    );
+    throw Object.assign(failure, { cause: error });
   }
   const value = raw.replace(/\r?\n$/, "");
   if (value === "") {
-    throw new Error(`${fileKey} (${path}) is empty`);
+    throw new ServiceNowError(
+      `${fileKey} (${path}) is empty`,
+      undefined,
+      undefined,
+      { code: "UNREADABLE", hint: `Write the secret into ${path}.` },
+    );
   }
   return value;
 }
@@ -102,8 +117,11 @@ export function resolveSecretFiles(
     const current = env[key];
     const ours = current !== undefined && injected.get(key) === current;
     if (current !== undefined && current.trim() !== "" && !ours) {
-      throw new Error(
+      throw new ServiceNowError(
         `Both ${key} and ${fileKey} are set — set only one of them`,
+        undefined,
+        undefined,
+        { code: "NOT_CONFIGURED", hint: `Unset ${key} or ${fileKey}.` },
       );
     }
     const value = readSecretFile(fileKey, path);

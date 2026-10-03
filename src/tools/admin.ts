@@ -48,12 +48,6 @@ import {
 } from "../mcp/define.js";
 import { explainTable, policyPayload } from "../mcp/policy-view.js";
 
-/**
- * Machine-readable token for the H-2 refusal. fail() carries no code field,
- * so the token leads the message where a client can match it.
- */
-const CREDENTIALS_INCOMPLETE = "CREDENTIALS_INCOMPLETE";
-
 const UNCONFIRMED_HINT =
   "Set SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1 on the server to let credential changes proceed without confirmation.";
 
@@ -73,11 +67,12 @@ async function confirmCredentialChange(
   if (!server || !capabilities?.elicitation) {
     if (allowUnconfirmedCredentialChange()) return null;
     return fail(
-      `Credential change refused: this client cannot confirm it (no elicitation support). ${UNCONFIRMED_HINT}`,
+      "Credential change refused: this client cannot confirm it (no elicitation support).",
+      { code: "CREDENTIALS_UNCONFIRMED", hint: UNCONFIRMED_HINT },
     );
   }
 
-  let confirmed = false;
+  let confirmed: boolean;
   try {
     const res = await server.server.elicitInput({
       message: `Save ServiceNow credentials (${summary})?`,
@@ -101,11 +96,14 @@ async function confirmCredentialChange(
     if (allowUnconfirmedCredentialChange()) return null;
     const detail = error instanceof Error ? error.message : String(error);
     return fail(
-      `Credential change refused: the confirmation prompt failed (${detail}). ${UNCONFIRMED_HINT}`,
+      `Credential change refused: the confirmation prompt failed (${detail}).`,
+      { code: "CREDENTIALS_UNCONFIRMED", hint: UNCONFIRMED_HINT },
     );
   }
   if (!confirmed) {
-    return fail("Credential change was not confirmed by the user.");
+    return fail("Credential change was not confirmed by the user.", {
+      code: "CREDENTIALS_UNCONFIRMED",
+    });
   }
   return null;
 }
@@ -164,7 +162,11 @@ async function elicitSecrets(
     return {
       ok: false,
       refusal: fail(
-        `Secret entry refused: ${secrets.join(" and ")} can only be entered through an elicitation prompt, which this client does not support — secrets are never accepted as tool arguments. Set ${secrets.map((n) => `SN_${SECRET_FIELDS[n].setting}`).join(" / ")} in the env file instead. Nothing was changed.`,
+        `Secret entry refused: ${secrets.join(" and ")} can only be entered through an elicitation prompt, which this client does not support — secrets are never accepted as tool arguments. Nothing was changed.`,
+        {
+          code: "CREDENTIALS_UNCONFIRMED",
+          hint: `Set ${secrets.map((n) => `SN_${SECRET_FIELDS[n].setting}`).join(" / ")} in the env file instead.`,
+        },
       ),
     };
   }
@@ -190,7 +192,9 @@ async function elicitSecrets(
     if (res.action !== "accept") {
       return {
         ok: false,
-        refusal: fail("Credential change was not confirmed by the user."),
+        refusal: fail("Credential change was not confirmed by the user.", {
+          code: "CREDENTIALS_UNCONFIRMED",
+        }),
       };
     }
     content = res.content;
@@ -200,6 +204,7 @@ async function elicitSecrets(
       ok: false,
       refusal: fail(
         `Secret entry refused: the elicitation prompt failed (${detail}). Nothing was changed.`,
+        { code: "CREDENTIALS_UNCONFIRMED" },
       ),
     };
   }
@@ -211,6 +216,7 @@ async function elicitSecrets(
         ok: false,
         refusal: fail(
           `Secret entry refused: no value was entered for ${name}. Nothing was changed.`,
+          { code: "CREDENTIALS_UNCONFIRMED" },
         ),
       };
     }
@@ -272,13 +278,12 @@ function instanceChanged(profile: string, nextHost: string): boolean {
 }
 
 /** The always-on management surface: registered regardless of SN_TOOL_PACKAGES. */
-const NO_SESSION =
-  "NO_PACKAGE_SESSION: packages can only be toggled on a running MCP server.";
+const NO_SESSION = "Packages can only be toggled on a running MCP server.";
 
 /** Shared body of servicenow_enable_package / servicenow_disable_package (M-5). */
 function togglePackage(name: string, on: boolean) {
   const session = currentPackageSession();
-  if (!session) return fail(NO_SESSION);
+  if (!session) return fail(NO_SESSION, { code: "NO_PACKAGE_SESSION" });
   try {
     const change: PackageChange = on
       ? session.enable(name)
@@ -376,6 +381,7 @@ export const specs: AnyToolSpec[] = [
       ) {
         return fail(
           "Provide at least one non-empty value: instance, user, password, auth, oauth_client_id, oauth_grant or request_secrets.",
+          { code: "INVALID_INPUT" },
         );
       }
       // The auth method this profile will use once the change is saved; a
@@ -406,7 +412,11 @@ export const specs: AnyToolSpec[] = [
         );
         if (needed && instanceChanged(profile, nextHost)) {
           return fail(
-            `${CREDENTIALS_INCOMPLETE}: changing the instance of profile "${profile}" to "${nextHost}" requires ${needed} in the same call — the credentials stored for the current instance are never sent to a different host. Nothing was changed.`,
+            `Changing the instance of profile "${profile}" to "${nextHost}" requires ${needed} in the same call — the credentials stored for the current instance are never sent to a different host. Nothing was changed.`,
+            {
+              code: "CREDENTIALS_INCOMPLETE",
+              hint: `Repeat the call with instance and ${needed} together.`,
+            },
           );
         }
       }
@@ -619,17 +629,18 @@ export const specs: AnyToolSpec[] = [
       enabledPackages: z.array(z.string()),
       deniedPackages: z.array(z.string()),
       readOnlyPackages: z.array(z.string()),
-      pluginApis: z.record(z.string()),
+      pluginApis: z.record(z.string(), z.string()),
       telemetry: z.object({
         requests: z.number(),
         retries: z.number(),
-        errors: z.record(z.number()),
+        errors: z.record(z.string(), z.number()),
         totalMs: z.number(),
         perHost: z.record(
+          z.string(),
           z.object({
             requests: z.number(),
             retries: z.number(),
-            errors: z.record(z.number()),
+            errors: z.record(z.string(), z.number()),
             totalMs: z.number(),
           }),
         ),
@@ -645,7 +656,10 @@ export const specs: AnyToolSpec[] = [
           clientCert: z.boolean(),
           verify: z.string(),
         }),
-        queue: z.record(z.object({ active: z.number(), queued: z.number() })),
+        queue: z.record(
+          z.string(),
+          z.object({ active: z.number(), queued: z.number() }),
+        ),
       }),
       sdkManaged: z.object({
         authority: z.string(),
@@ -665,7 +679,7 @@ export const specs: AnyToolSpec[] = [
       // TOOLS_LIST_BUDGET_CORE); redaction, docs, limits, profileSource ride along.
       server: z.object({ version: z.string(), uptimeSec: z.number() }),
       policy: z.object({ writeMode: z.string(), summary: z.string() }),
-      writes: z.record(z.unknown()),
+      writes: z.record(z.string(), z.unknown()),
       profileDetails: z.array(z.object({ name: z.string() })),
     },
     handler: () => okStructured(buildStatusPayload()),
@@ -712,8 +726,8 @@ export const specs: AnyToolSpec[] = [
     output: {
       degraded: z.boolean(),
       summary: z.string(),
-      capabilities: z.unknown(),
-      matrix: z.unknown(),
+      capabilities: z.unknown().optional(),
+      matrix: z.unknown().optional(),
     },
     input: {
       groups: z
@@ -757,7 +771,7 @@ export const specs: AnyToolSpec[] = [
     },
     handler: () => {
       const session = currentPackageSession();
-      if (!session) return fail(NO_SESSION);
+      if (!session) return fail(NO_SESSION, { code: "NO_PACKAGE_SESSION" });
       return okStructured({
         packages: session.list(),
         enabled: session.enabledPackages(),

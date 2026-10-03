@@ -215,11 +215,12 @@ export function getWriteMode(
 /**
  * H-3 — how a destructive apply (`apply:true` on delete_record,
  * delete_attachment, a writing batch, send_email, order_catalog_item,
- * revert_write, change_conflicts with calculate) is confirmed
- * (`SN_DESTRUCTIVE_CONFIRM`):
- * - `off` (default until 3.0): no extra check — today's behaviour;
- * - `token`: in plan mode the call must carry the `plan_token` of a
- *   matching, unexpired, unused plan preview (`PLAN_REQUIRED` otherwise);
+ * revert_write, upsert_artifact, check_change_conflicts with calculate) is
+ * confirmed (`SN_DESTRUCTIVE_CONFIRM`):
+ * - `token` (the 3.0 default, B4): in plan mode the call must carry the
+ *   `plan_token` of a matching, unexpired, unused plan preview
+ *   (`PLAN_REQUIRED` otherwise);
+ * - `off`: no extra check — the explicit opt-out (the pre-3.0 behaviour);
  * - `elicit`: `token`, and a client that supports elicitation is also asked
  *   to confirm (a decline or a failed prompt refuses the write).
  * Apply mode (a trusted operator) bypasses it — except on a prod profile
@@ -231,7 +232,7 @@ export function getDestructiveConfirm(
 ): "off" | "token" | "elicit" {
   if (getProfileEnv(profile) === "prod") return "elicit";
   return (
-    readEnum<"off" | "token" | "elicit">("SN_DESTRUCTIVE_CONFIRM") ?? "off"
+    readEnum<"off" | "token" | "elicit">("SN_DESTRUCTIVE_CONFIRM") ?? "token"
   );
 }
 
@@ -242,41 +243,55 @@ export function getPlanTokenTtlSec(): number {
 
 /**
  * H-4 — what a Batch API sub-request whose path maps to no tool package gets
- * (`SN_BATCH_UNMAPPED`): `allow` (default until 3.0) checks it against the
- * table and read-only axes only; `deny` refuses it, so a new plugin API cannot
- * slip past SN_PACKAGES_DENY / SN_PACKAGES_READONLY inside a batch.
+ * (`SN_BATCH_UNMAPPED`): `deny` (the 3.0 default, B8) refuses it, so a new
+ * plugin API cannot slip past SN_PACKAGES_DENY / SN_PACKAGES_READONLY inside
+ * a batch; `allow` (the opt-out) checks it against the table and read-only
+ * axes only.
  */
 export function getBatchUnmapped(): "allow" | "deny" {
-  return readEnum<"allow" | "deny">("SN_BATCH_UNMAPPED") ?? "allow";
+  return readEnum<"allow" | "deny">("SN_BATCH_UNMAPPED") ?? "deny";
 }
 
-/** H-4 — most sub-requests one batch may carry (`SN_BATCH_MAX_REQUESTS`, 1–1000, default 1000). */
+/** H-4 — most sub-requests one batch may carry (`SN_BATCH_MAX_REQUESTS`, 1–1000, default 50 since 3.0). */
 export function getBatchMaxRequests(): number {
-  return positiveInt("SN_BATCH_MAX_REQUESTS", 1000);
+  return positiveInt("SN_BATCH_MAX_REQUESTS", DEFAULT_BATCH_MAX_REQUESTS);
 }
 
 /**
  * H-11 (L3-02) — per-session write caps. A session is the runtime container
- * (the process on stdio, one MCP session over HTTP). `0` / unset = no cap
- * (the pre-H-11 behaviour; the 3.0 defaults are an owner decision, O-4).
+ * (the process on stdio, one MCP session over HTTP). An explicit `0` means
+ * no cap; unset takes the 3.0 default (GAP L3-02, O-4): 500 writes per HTTP
+ * session (none on stdio), 100 deletes per session, 50 write sub-requests
+ * per batch.
  */
-function capSetting(name: string): number {
-  return positiveInt(name, 0);
+export const DEFAULT_MAX_WRITES_PER_HTTP_SESSION = 500;
+export const DEFAULT_MAX_DELETES_PER_SESSION = 100;
+export const DEFAULT_MAX_BATCH_WRITES = 50;
+export const DEFAULT_BATCH_MAX_REQUESTS = 50;
+
+/**
+ * Applied instance writes per session (`SN_MAX_WRITES_PER_SESSION`; a batch
+ * counts its write sub-requests). `httpSession` picks the unset default: 500
+ * for an HTTP session, no cap for the stdio process.
+ */
+export function getMaxWritesPerSession(httpSession = false): number {
+  return positiveInt(
+    "SN_MAX_WRITES_PER_SESSION",
+    httpSession ? DEFAULT_MAX_WRITES_PER_HTTP_SESSION : 0,
+  );
 }
 
-/** Applied instance writes per session (`SN_MAX_WRITES_PER_SESSION`; a batch counts its write sub-requests). */
-export function getMaxWritesPerSession(): number {
-  return capSetting("SN_MAX_WRITES_PER_SESSION");
-}
-
-/** Applied deletes per session (`SN_MAX_DELETES_PER_SESSION`). */
+/** Applied deletes per session (`SN_MAX_DELETES_PER_SESSION`, default 100; `0` = no cap). */
 export function getMaxDeletesPerSession(): number {
-  return capSetting("SN_MAX_DELETES_PER_SESSION");
+  return positiveInt(
+    "SN_MAX_DELETES_PER_SESSION",
+    DEFAULT_MAX_DELETES_PER_SESSION,
+  );
 }
 
-/** Write (non-GET) sub-requests in one batch (`SN_MAX_BATCH_WRITES`). */
+/** Write (non-GET) sub-requests in one batch (`SN_MAX_BATCH_WRITES`, default 50; `0` = no cap). */
 export function getMaxBatchWrites(): number {
-  return capSetting("SN_MAX_BATCH_WRITES");
+  return positiveInt("SN_MAX_BATCH_WRITES", DEFAULT_MAX_BATCH_WRITES);
 }
 
 /**
@@ -595,7 +610,7 @@ export const DEFAULT_DOCS_STALE_DAYS = 30;
 
 /**
  * Age after which a generated document is reported `stale` by
- * `servicenow_docs_list` (`SN_DOCS_STALE_DAYS`, default 30 days).
+ * `servicenow_list_docs` (`SN_DOCS_STALE_DAYS`, default 30 days).
  */
 export function getDocsStaleDays(): number {
   return positiveInt("SN_DOCS_STALE_DAYS", DEFAULT_DOCS_STALE_DAYS);
@@ -604,7 +619,7 @@ export function getDocsStaleDays(): number {
 export const DEFAULT_DOCS_SEARCH_MAX = 200;
 
 /**
- * Most matches one `servicenow_docs_search` returns (`SN_DOCS_SEARCH_MAX`,
+ * Most matches one `servicenow_search_docs` returns (`SN_DOCS_SEARCH_MAX`,
  * default 200); a capped result says `truncated: true`.
  */
 export function getDocsSearchMax(): number {

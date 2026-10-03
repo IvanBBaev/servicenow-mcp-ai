@@ -3,6 +3,7 @@ import {
   McpServer,
   ResourceTemplate,
 } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { buildStatusPayload, profilesPayload } from "./status.js";
 import {
   listTables,
@@ -21,10 +22,57 @@ import { artifactTypeCatalog } from "../api/artifacts.js";
 import { activeProfile, listProfiles } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
+import {
+  errorCodeOf,
+  errorSourceOf,
+  IntegrationError,
+} from "../core/errors.js";
 import { untrusted } from "./boundary.js";
 import type { ToolInfo } from "./registry.js";
 
 const JSON_MIME = "application/json";
+
+/**
+ * M-2: codes that mean the URI itself is wrong — a missing part, an unknown
+ * profile, a document or table that does not exist. The SDK has no
+ * ResourceNotFound code, so these become InvalidParams; anything else
+ * (instance down, credentials missing, policy) is InternalError.
+ */
+const CALLER_CODES = new Set([
+  "INVALID_INPUT",
+  "NOT_FOUND",
+  "UNKNOWN_PROFILE",
+  "INSTANCE_HTTP_404",
+]);
+
+/**
+ * M-2: a failed resource read as a protocol error (not a 200 body with an
+ * `error` field). `data` carries the tool error contract's code, source and
+ * hint so a client can branch the same way it does on a failed tool call.
+ */
+export function resourceError(
+  what: string,
+  error: unknown,
+  context: Record<string, unknown> = {},
+): McpError {
+  if (error instanceof McpError) return error;
+  const message = error instanceof Error ? error.message : String(error);
+  logger.warn(`${what} resource failed`, { ...context, error: message });
+  const code = errorCodeOf(error);
+  const hint = error instanceof IntegrationError ? error.hint : undefined;
+  return new McpError(
+    CALLER_CODES.has(code) ? ErrorCode.InvalidParams : ErrorCode.InternalError,
+    message,
+    { code, source: errorSourceOf(error), ...(hint ? { hint } : {}) },
+  );
+}
+
+/** M-2: a resource URI that is malformed or names nothing. */
+function badUri(message: string): IntegrationError {
+  return new IntegrationError(message, undefined, undefined, {
+    code: "INVALID_INPUT",
+  });
+}
 
 function jsonContents(uri: URL, data: unknown) {
   return {
@@ -77,8 +125,9 @@ export function completeProfile(value: string): string[] {
 /**
  * Package-scoped resource registrars (A2-1). Gating lives in the registry's
  * package manifest — these functions only know how to register themselves.
- * Errors are returned as JSON content rather than thrown, so a missing
- * connection does not break resource listing.
+ * M-2: a failed read throws an McpError (resourceError) instead of returning
+ * a 200 body with an `error` field; listing never calls the instance, so a
+ * missing connection still does not break resources/list.
  */
 
 /** Always-on management surface (admin package). */
@@ -111,12 +160,7 @@ export function registerCapabilitiesResource(server: McpServer): void {
       try {
         return jsonContents(uri, await checkCapabilities());
       } catch (error) {
-        logger.warn("capabilities resource failed", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return jsonContents(uri, {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        throw resourceError("capabilities", error);
       }
     },
   );
@@ -321,12 +365,7 @@ export function registerSchemaResources(server: McpServer): void {
         const tables = await listTables();
         return jsonContents(uri, { count: tables.length, tables });
       } catch (error) {
-        logger.warn("tables resource failed", {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return jsonContents(uri, {
-          error: error instanceof Error ? error.message : String(error),
-        });
+        throw resourceError("tables", error);
       }
     },
   );
@@ -355,18 +394,11 @@ export function registerSchemaResources(server: McpServer): void {
     async (uri, variables) => {
       const table = one(variables.table);
       try {
-        if (!table) throw new Error("No table specified in the resource URI.");
+        if (!table) throw badUri("No table specified in the resource URI.");
         const columns = await describeTable(table);
         return jsonContents(uri, { table, count: columns.length, columns });
       } catch (error) {
-        logger.warn("schema resource failed", {
-          table,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return jsonContents(uri, {
-          table,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        throw resourceError("schema", error, { table });
       }
     },
   );
@@ -388,7 +420,7 @@ export function registerInstanceResources(server: McpServer): void {
 
   server.registerResource(
     "profile-schema",
-    new ResourceTemplate("servicenow://{profile}/schema/{table}", {
+    new ResourceTemplate(PROFILE_SCHEMA_TEMPLATE, {
       // M-4: per profile, only the tables its schema cache already holds —
       // the seed would multiply by the profile count.
       list: () => {
@@ -397,7 +429,7 @@ export function registerInstanceResources(server: McpServer): void {
           for (const table of cachedTableNames(profile)) {
             if (resources.length >= LIST_CAP) break;
             resources.push({
-              uri: `servicenow://${profile}/schema/${table}`,
+              uri: profileSchemaUri(profile, table),
               name: `${profile}: ${table}`,
               mimeType: JSON_MIME,
             });
@@ -405,54 +437,99 @@ export function registerInstanceResources(server: McpServer): void {
         }
         return { resources };
       },
-      complete: {
-        profile: (value) => completeProfile(value),
-        table: (value, context) =>
-          completeTable(value, context?.arguments?.profile),
-      },
+      complete: profileSchemaCompletions,
     }),
     {
       title: "Table schema on a specific profile",
       description:
         "Columns of a table from sys_dictionary, read through the named connection profile. " +
-        "URI: servicenow://<profile>/schema/<table>; servicenow://schema/<table> stays bound to the active profile.",
+        "URI: servicenow://profiles/<profile>/schema/<table>; servicenow://schema/<table> stays bound to the active profile.",
       mimeType: JSON_MIME,
     },
-    async (uri, variables) => {
-      const profile = one(variables.profile)?.toLowerCase();
-      const table = one(variables.table);
-      try {
-        if (!profile || !table) {
-          throw new Error("URI must be servicenow://<profile>/schema/<table>.");
-        }
-        if (!listProfiles().includes(profile)) {
-          throw new Error(
-            `Unknown connection profile "${profile}". Available: ${listProfiles().join(", ") || "(none)"}.`,
-          );
-        }
-        const columns = await runWithProfile(profile, () =>
-          describeTable(table),
+    (uri, variables) => readProfileSchema(uri, variables),
+  );
+
+  // M-7 (B13): the v2 template, kept for one minor cycle. It reads the same
+  // schema, warns once, and lists nothing (the v3 template lists the tables).
+  server.registerResource(
+    "profile-schema-legacy",
+    new ResourceTemplate(LEGACY_PROFILE_SCHEMA_TEMPLATE, {
+      list: undefined,
+      complete: profileSchemaCompletions,
+    }),
+    {
+      title: "Table schema on a specific profile (deprecated URI)",
+      description:
+        "Deprecated: use servicenow://profiles/<profile>/schema/<table>. " +
+        "This URI is removed in the next minor release.",
+      mimeType: JSON_MIME,
+    },
+    (uri, variables) => {
+      if (!legacyProfileSchemaWarned) {
+        legacyProfileSchemaWarned = true;
+        logger.warn(
+          `Resource URI ${LEGACY_PROFILE_SCHEMA_TEMPLATE} is deprecated; use ${PROFILE_SCHEMA_TEMPLATE}.`,
+          { uri: uri.href },
         );
-        return jsonContents(uri, {
-          profile,
-          table,
-          count: columns.length,
-          columns,
-        });
-      } catch (error) {
-        logger.warn("profile schema resource failed", {
-          profile,
-          table,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return jsonContents(uri, {
-          profile,
-          table,
-          error: error instanceof Error ? error.message : String(error),
-        });
       }
+      return readProfileSchema(uri, variables);
     },
   );
+}
+
+/** M-7 (B13): the per-profile schema template; profiles get their own segment. */
+export const PROFILE_SCHEMA_TEMPLATE =
+  "servicenow://profiles/{profile}/schema/{table}";
+
+/** M-7 (B13): the v2 per-profile template, aliased for one minor cycle. */
+export const LEGACY_PROFILE_SCHEMA_TEMPLATE =
+  "servicenow://{profile}/schema/{table}";
+
+let legacyProfileSchemaWarned = false;
+
+/** The v3 URI of one table's schema on one profile. */
+export function profileSchemaUri(profile: string, table: string): string {
+  return `servicenow://profiles/${profile}/schema/${table}`;
+}
+
+/** M-4: `{profile}` completes profiles; `{table}` uses that profile's cache. */
+const profileSchemaCompletions = {
+  profile: (value: string) => completeProfile(value),
+  table: (value: string, context?: { arguments?: Record<string, string> }) =>
+    completeTable(value, context?.arguments?.profile),
+};
+
+/** Read one table's schema through the named profile (both templates). */
+async function readProfileSchema(
+  uri: URL,
+  variables: Record<string, string | string[]>,
+) {
+  const profile = one(variables.profile)?.toLowerCase();
+  const table = one(variables.table);
+  try {
+    if (!profile || !table) {
+      throw badUri(
+        "URI must be servicenow://profiles/<profile>/schema/<table>.",
+      );
+    }
+    if (!listProfiles().includes(profile)) {
+      throw new IntegrationError(
+        `Unknown connection profile "${profile}". Available: ${listProfiles().join(", ") || "(none)"}.`,
+        undefined,
+        undefined,
+        { code: "UNKNOWN_PROFILE" },
+      );
+    }
+    const columns = await runWithProfile(profile, () => describeTable(table));
+    return jsonContents(uri, {
+      profile,
+      table,
+      count: columns.length,
+      columns,
+    });
+  } catch (error) {
+    throw resourceError("profile schema", error, { profile, table });
+  }
 }
 
 /** One docs entry for the resource list: the manifest's fields we use. */
@@ -574,15 +651,17 @@ export function registerDocsResources(server: McpServer): void {
     }),
     {
       title: "ServiceNow instance documentation",
+      // M-2: no fixed mimeType — the store holds `.md` (text/markdown) and
+      // `.json` (application/json) documents; each listed entry and each
+      // read declares its own (docsMime / docsRead agree on the extension).
       description:
-        "A Markdown document from the local docs store, wrapped in an untrusted-content boundary. URI: servicenow://docs/<path>.",
-      mimeType: "text/markdown",
+        "A Markdown or JSON document from the local docs store, wrapped in an untrusted-content boundary. URI: servicenow://docs/<path>.",
     },
     async (uri, variables) => {
       const raw = variables.path;
       let docPath = Array.isArray(raw) ? raw.join("/") : raw;
       try {
-        if (!docPath) throw new Error("No document path specified in the URI.");
+        if (!docPath) throw badUri("No document path specified in the URI.");
         docPath = decodeURIComponent(docPath);
         const { content, mimeType } = await docsRead(docPath);
         return {
@@ -596,14 +675,7 @@ export function registerDocsResources(server: McpServer): void {
           ],
         };
       } catch (error) {
-        logger.warn("docs resource failed", {
-          path: docPath,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return jsonContents(uri, {
-          path: docPath,
-          error: error instanceof Error ? error.message : String(error),
-        });
+        throw resourceError("docs", error, { path: docPath });
       }
     },
   );

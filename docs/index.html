@@ -65,7 +65,7 @@
             "name": "servicenow-mcp-ai",
             "alternateName": "ServiceNow MCP Server",
             "applicationCategory": "DeveloperApplication",
-            "operatingSystem": "Cross-platform (Node.js 20+)",
+            "operatingSystem": "Cross-platform (Node.js 22.12+)",
             "description": "A Model Context Protocol server that lets an MCP-capable AI client operate a ServiceNow instance across the full REST surface, with script intelligence, multi-instance profiles and least-privilege governance.",
             "url": "https://ivanbbaev.github.io/servicenow-mcp-ai/",
             "downloadUrl": "https://www.npmjs.com/package/servicenow-mcp-ai",
@@ -377,7 +377,7 @@
           </div>
           <div class="badges">
             <span class="badge">MIT licensed</span>
-            <span class="badge">Node.js 20+</span>
+            <span class="badge">Node.js 22.12+</span>
             <span class="badge">TypeScript · ESM</span>
             <span class="badge">MCP SDK 1.29</span>
             <span class="badge">OAuth 2.1 PKCE</span>
@@ -638,7 +638,7 @@
           <h2>Connected in under a minute.</h2>
           <p class="lead">
             Install once, point it at your instance, and add it to any MCP
-            client. You need <strong>Node.js 20+</strong> and a ServiceNow
+            client. You need <strong>Node.js 22.12+</strong> and a ServiceNow
             instance you can reach (a free
             <a
               href="https://developer.servicenow.com/"
@@ -1448,7 +1448,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             <summary><code>servicenow_create_record</code> <span class="pill wr">write</span><span class="tool-sum">Create a new record in a table with the given field values.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident'.</td></tr>
-              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Field name/value pairs for the new record, e.g. { "short_description": "Printer down", "urgency": "2" }.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="req">required</span></td><td>Field name/value pairs for the new record, e.g. { "short_description": "Printer down", "urgency": "2" }.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
@@ -1456,7 +1456,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'incident'.</td></tr>
               <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the record to update.</td></tr>
-              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Field name/value pairs to change on the record.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="req">required</span></td><td>Field name/value pairs to change on the record.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
@@ -1464,7 +1464,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table name, e.g. 'cmdb_ci_server'.</td></tr>
               <tr><td><code>key</code></td><td>object</td><td><span class="req">required</span></td><td>Exact-match field/value pairs that identify the record, e.g. { "u_external_id": "A-17" }.</td></tr>
-              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Field values to set; on a create the key fields are added.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="req">required</span></td><td>Field values to set; on a create the key fields are added.</td></tr>
               <tr><td><code>expected_action</code></td><td>enum</td><td><span class="opt">optional</span></td><td>one of: <code>create</code> · <code>update</code> — from the plan's apply_with.</td></tr>
               <tr><td><code>expected_sys_id</code></td><td>string</td><td><span class="opt">optional</span></td><td>From the plan's apply_with; STALE_RECORD if the key now resolves elsewhere.</td></tr>
               <tr><td><code>inputDisplayValue</code></td><td>boolean</td><td><span class="opt">optional</span></td><td>sysparm_input_display_value — values are display values.</td></tr>
@@ -1517,13 +1517,13 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <details class="tool">
             <summary><code>servicenow_get_attachment</code> <span class="pill ro">read</span><span class="tool-sum">Read a single attachment's metadata by its sys_id.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>attachment_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment record.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment record.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_download_attachment</code> <span class="pill ro">read</span><span class="tool-sum">Download an attachment's bytes, returned as base64. Large files are refused (see SN_MAX_RESULT_CHARS).</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>attachment_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment to download.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment to download.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
@@ -1539,21 +1539,21 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <details class="tool">
             <summary><code>servicenow_delete_attachment</code> <span class="pill wr">write</span><span class="tool-sum">Delete an attachment by its sys_id.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>attachment_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment to delete.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>The sys_id of the attachment to delete.</td></tr>
             </tbody></table></div>
           </details>
           <h3 id="pkg-importset">importset <span class="pkg-meta">— Import Set staging inserts and their transform outcome. <em>(2 tools)</em></span></h3>
           <details class="tool">
             <summary><code>servicenow_insert_import_set_row</code> <span class="pill wr">write</span><span class="tool-sum">Insert a single row into a staging table and run its transform map. Returns the transform result.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>staging_table</code></td><td>string</td><td><span class="req">required</span></td><td>Import staging table, e.g. 'u_imp_incident'.</td></tr>
-              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Column name/value pairs for the staging row.</td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Import staging table, e.g. 'u_imp_incident'.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="req">required</span></td><td>Column name/value pairs for the staging row.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_get_import_set_row</code> <span class="pill ro">read</span><span class="tool-sum">Read the transform outcome for a previously inserted staging row by its sys_id.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>staging_table</code></td><td>string</td><td><span class="req">required</span></td><td>Import staging table name.</td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Import staging table name.</td></tr>
               <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the staging row.</td></tr>
             </tbody></table></div>
           </details>
@@ -1572,7 +1572,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <details class="tool">
             <summary><code>servicenow_list_catalog_categories</code> <span class="pill ro">read</span><span class="tool-sum">List the categories within a service catalog.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>catalog_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
@@ -1587,13 +1587,13 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <details class="tool">
             <summary><code>servicenow_get_catalog_item</code> <span class="pill ro">read</span><span class="tool-sum">Get a catalog item, including its order variables, by sys_id.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>item_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog item.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog item.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_order_catalog_item</code> <span class="pill wr">write</span><span class="tool-sum">Order a catalog item directly ('order now'). Creates a request/RITM. Provide variable values keyed by their names.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>item_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog item.</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the catalog item.</td></tr>
               <tr><td><code>quantity</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
               <tr><td><code>variables</code></td><td>object</td><td><span class="opt">optional</span></td><td></td></tr>
             </tbody></table></div>
@@ -1619,18 +1619,18 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>type</code></td><td>enum</td><td><span class="req">required</span></td><td>Change type. — one of: <code>normal</code> · <code>standard</code> · <code>emergency</code></td></tr>
               <tr><td><code>template_id</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
-              <tr><td><code>fields</code></td><td>object</td><td><span class="opt">optional</span></td><td>Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="opt">optional</span></td><td>Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_update_change</code> <span class="pill wr">write</span><span class="tool-sum">Update fields on a change request by sys_id.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the change request.</td></tr>
-              <tr><td><code>fields</code></td><td>object</td><td><span class="req">required</span></td><td>Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="req">required</span></td><td>Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_change_conflicts</code> <span class="pill wr">write</span><span class="tool-sum">Read schedule conflicts for a change, or recalculate them (calculate=true). Recalculation is a write and is blocked in read-only mode.</span></summary>
+            <summary><code>servicenow_check_change_conflicts</code> <span class="pill wr">write</span><span class="tool-sum">Read schedule conflicts for a change, or recalculate them (calculate=true). Recalculation is a write and is blocked in read-only mode.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the change request.</td></tr>
               <tr><td><code>calculate</code></td><td>boolean</td><td><span class="opt">optional</span></td><td></td></tr>
@@ -1654,7 +1654,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </tbody></table></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_knowledge_highlights</code> <span class="pill ro">read</span><span class="tool-sum">List featured or most-viewed knowledge articles for the current user.</span></summary>
+            <summary><code>servicenow_get_knowledge_highlights</code> <span class="pill ro">read</span><span class="tool-sum">List featured or most-viewed knowledge articles for the current user.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>mode</code></td><td>enum</td><td><span class="req">required</span></td><td>Which highlight list to return. — one of: <code>featured</code> · <code>most_viewed</code></td></tr>
               <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
@@ -1664,7 +1664,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <details class="tool">
             <summary><code>servicenow_list_cis</code> <span class="pill ro">read</span><span class="tool-sum">List configuration items of a CMDB class through the class-aware CMDB Instance API.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class/table, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class/table, e.g. 'cmdb_ci_server'. Deprecated alias: <code>class_name</code>.</td></tr>
               <tr><td><code>query</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
               <tr><td><code>limit</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
               <tr><td><code>offset</code></td><td>number</td><td><span class="opt">optional</span></td><td></td></tr>
@@ -1673,31 +1673,31 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <details class="tool">
             <summary><code>servicenow_get_ci</code> <span class="pill ro">read</span><span class="tool-sum">Get a CI with its attributes and inbound/outbound relations by class and sys_id.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'. Deprecated alias: <code>class_name</code>.</td></tr>
               <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the CI.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_create_ci</code> <span class="pill wr">write</span><span class="tool-sum">Create a CI via the CMDB Instance API (routed through Identification &amp; Reconciliation).</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
-              <tr><td><code>attributes</code></td><td>object</td><td><span class="req">required</span></td><td>CI attribute name/value pairs.</td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'. Deprecated alias: <code>class_name</code>.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="req">required</span></td><td>CI attribute name/value pairs.</td></tr>
               <tr><td><code>source</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_update_ci</code> <span class="pill wr">write</span><span class="tool-sum">Update a CI's attributes via the CMDB Instance API (IRE).</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'. Deprecated alias: <code>class_name</code>.</td></tr>
               <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the CI.</td></tr>
-              <tr><td><code>attributes</code></td><td>object</td><td><span class="req">required</span></td><td>CI attribute name/value pairs.</td></tr>
+              <tr><td><code>values</code></td><td>object</td><td><span class="req">required</span></td><td>CI attribute name/value pairs.</td></tr>
               <tr><td><code>source</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_get_cmdb_meta</code> <span class="pill ro">read</span><span class="tool-sum">Get the schema/metadata of a CMDB class (attributes, relationship rules) from the CMDB Meta API.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>class_name</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'.</td></tr>
+              <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>CMDB class, e.g. 'cmdb_ci_server'. Deprecated alias: <code>class_name</code>.</td></tr>
             </tbody></table></div>
           </details>
           <h3 id="pkg-scripts">scripts <span class="pkg-meta">— Read-only code intelligence over server-side script artefacts. <em>(5 tools)</em></span></h3>
@@ -1731,7 +1731,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </tbody></table></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_table_logic</code> <span class="pill ro">read</span><span class="tool-sum">Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI policies, UI actions and ACLs. Metadata only.</span></summary>
+            <summary><code>servicenow_describe_table_logic</code> <span class="pill ro">read</span><span class="tool-sum">Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI policies, UI actions and ACLs. Metadata only.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table to analyse, e.g. 'incident'.</td></tr>
             </tbody></table></div>
@@ -1798,36 +1798,36 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </tbody></table></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_lint_table</code> <span class="pill ro">read</span><span class="tool-sum">Lint every active business rule, client script and UI policy of a table (via table_logic), returning per-script findings and a severity summary.</span></summary>
+            <summary><code>servicenow_lint_table</code> <span class="pill ro">read</span><span class="tool-sum">Lint every active business rule, client script and UI policy of a table (via describe_table_logic), returning per-script findings and a severity summary.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>table</code></td><td>string</td><td><span class="req">required</span></td><td>Table to lint, e.g. 'incident'.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_code_health</code> <span class="pill wr">write</span><span class="tool-sum">Aggregate code-health picture: script counts by type, and (when a table scope is given) the lint findings by severity with the top offenders. Writes a Markdown report to SN_DOCS_DIR/&lt;profile&gt;/code-health.md.</span></summary>
+            <summary><code>servicenow_check_code_health</code> <span class="pill wr">write</span><span class="tool-sum">Aggregate code-health picture: script counts by type, and (when a table scope is given) the lint findings by severity with the top offenders. Writes a Markdown report to SN_DOCS_DIR/&lt;profile&gt;/code-health.md.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>scope</code></td><td>string</td><td><span class="opt">optional</span></td><td></td></tr>
             </tbody></table></div>
           </details>
           <h3 id="pkg-docs">docs <span class="pkg-meta">— Local Markdown self-documentation store and Mermaid diagram generators. <em>(6 tools)</em></span></h3>
           <details class="tool">
-            <summary><code>servicenow_docs_list</code> <span class="pill ro">read</span><span class="tool-sum">List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR).</span></summary>
+            <summary><code>servicenow_list_docs</code> <span class="pill ro">read</span><span class="tool-sum">List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR).</span></summary>
             <div class="tool-params"><p class="noparams">No parameters.</p></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_docs_read</code> <span class="pill ro">read</span><span class="tool-sum">Read one Markdown document from the local instance-documentation folder.</span></summary>
+            <summary><code>servicenow_read_doc</code> <span class="pill ro">read</span><span class="tool-sum">Read one Markdown document from the local instance-documentation folder.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>path</code></td><td>string</td><td><span class="req">required</span></td><td>Document path relative to the docs folder, e.g. 'tables/incident.md'.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_docs_search</code> <span class="pill ro">read</span><span class="tool-sum">Search the local instance documentation for a substring; returns a snippet per match.</span></summary>
+            <summary><code>servicenow_search_docs</code> <span class="pill ro">read</span><span class="tool-sum">Search the local instance documentation for a substring; returns a snippet per match.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>text</code></td><td>string</td><td><span class="req">required</span></td><td>Substring to search for across all documents.</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
-            <summary><code>servicenow_docs_write</code> <span class="pill wr">write</span><span class="tool-sum">Create or overwrite a Markdown document in the local docs folder and refresh index.md. Use this to record durable knowledge (descriptions, Mermaid diagrams, instance quirks).</span></summary>
+            <summary><code>servicenow_write_doc</code> <span class="pill wr">write</span><span class="tool-sum">Create or overwrite a Markdown document in the local docs folder and refresh index.md. Use this to record durable knowledge (descriptions, Mermaid diagrams, instance quirks).</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
               <tr><td><code>path</code></td><td>string</td><td><span class="req">required</span></td><td>Target document path relative to the docs folder, e.g. 'tables/incident.md'.</td></tr>
               <tr><td><code>content</code></td><td>string</td><td><span class="req">required</span></td><td>Full Markdown content to write.</td></tr>
@@ -1903,13 +1903,13 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           <details class="tool">
             <summary><code>servicenow_run_atf_test</code> <span class="pill wr">write</span><span class="tool-sum">Run a single ATF test through the CI/CD API. EXECUTES CODE on the instance — use only on a non-production instance with the sn_cicd plugin active. Returns an execution id to poll with servicenow_get_atf_result.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>test_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the ATF test (sys_atf_test).</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the ATF test (sys_atf_test).</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
             <summary><code>servicenow_run_atf_suite</code> <span class="pill wr">write</span><span class="tool-sum">Run an ATF test suite through the CI/CD API. EXECUTES CODE on the instance. Returns an execution id to poll with servicenow_get_atf_result.</span></summary>
             <div class="tool-params"><table><thead><tr><th>Parameter</th><th>Type</th><th></th><th>Notes</th></tr></thead><tbody>
-              <tr><td><code>suite_sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the ATF test suite (sys_atf_test_suite).</td></tr>
+              <tr><td><code>sys_id</code></td><td>string</td><td><span class="req">required</span></td><td>sys_id of the ATF test suite (sys_atf_test_suite).</td></tr>
             </tbody></table></div>
           </details>
           <details class="tool">
@@ -1997,7 +1997,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </div>
             <div class="under-hood">
               <span class="tag">Tools</span> <code>servicenow_get_change</code>
-              <span class="arrow">→</span> <code>servicenow_change_conflicts</code>
+              <span class="arrow">→</span> <code>servicenow_check_change_conflicts</code>
               <span class="arrow">→</span> <code>servicenow_list_changes</code>
             </div>
           </div>
@@ -2031,7 +2031,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               Combine schema, automation and diagrams into a durable Markdown
               page saved to the local docs store — via the
               <code>servicenow_document_table</code> prompt (uses
-              <code>describe_table</code>, <code>table_logic</code> and both
+              <code>describe_table</code>, <code>describe_table_logic</code> and both
               Mermaid generators).
             </p>
             <div class="prompt">
@@ -2041,12 +2041,12 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </div>
             <div class="under-hood">
               <span class="tag">Tools</span> <code>servicenow_describe_table</code>
-              <span class="arrow">→</span> <code>servicenow_table_logic</code>
+              <span class="arrow">→</span> <code>servicenow_describe_table_logic</code>
               <span class="arrow">→</span>
               <code>servicenow_generate_er_diagram</code>
               <span class="arrow">→</span>
               <code>servicenow_generate_table_flow</code>
-              <span class="arrow">→</span> <code>servicenow_docs_write</code>
+              <span class="arrow">→</span> <code>servicenow_write_doc</code>
             </div>
           </div>
 
@@ -2057,7 +2057,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               Search the instance's own code for a function, table or API call
               with <code>servicenow_search_code</code>, or get the full
               automation picture for a table with
-              <code>servicenow_table_logic</code> — without opening Studio.
+              <code>servicenow_describe_table_logic</code> — without opening Studio.
             </p>
             <div class="prompt">
               <span class="tag">Prompt</span>
@@ -2066,7 +2066,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </div>
             <div class="under-hood">
               <span class="tag">Tools</span> <code>servicenow_search_code</code>
-              <span class="arrow">→</span> <code>servicenow_table_logic</code>
+              <span class="arrow">→</span> <code>servicenow_describe_table_logic</code>
             </div>
           </div>
 
@@ -2194,7 +2194,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
                 <tr><td><code>servicenow://tables</code></td><td>Tables from sys_db_object.</td></tr>
                 <tr><td><code>servicenow://schema/{table}</code></td><td>Columns of a table from sys_dictionary.</td></tr>
                 <tr><td><code>servicenow://instances</code></td><td>Configured connection profiles (no passwords).</td></tr>
-                <tr><td><code>servicenow://{profile}/schema/{table}</code></td><td>A table's schema read through a named profile.</td></tr>
+                <tr><td><code>servicenow://profiles/{profile}/schema/{table}</code></td><td>A table's schema read through a named profile (the v2 URI <code>servicenow://{profile}/schema/{table}</code> is deprecated).</td></tr>
                 <tr><td><code>servicenow://docs/{+path}</code></td><td>A Markdown document from the local docs store, wrapped in an untrusted-content block.</td></tr>
                 <tr><td><code>servicenow://reference/encoded-query</code></td><td>Encoded-query syntax, javascript: values and limits, and how fetchAll pages.</td></tr>
                 <tr><td><code>servicenow://reference/tools</code></td><td>The tool manifest as Markdown, with this session's package policy.</td></tr>
@@ -2386,7 +2386,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             adding a package touches exactly one list. Quality is enforced by a
             single gate — <code>npm run check</code> (build, type-checked lint,
             format, coverage-gated tests, prod audit) — and a CI matrix across
-            Node 20/22/24 + macOS. See
+            Node 22/24/26 + macOS and Windows. See
             <a
               href="https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/ARCHITECTURE.md"
               target="_blank"

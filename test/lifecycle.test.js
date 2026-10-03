@@ -4,7 +4,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createServer } from "node:net";
-import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 import {
@@ -31,6 +30,7 @@ import {
   closeHttpTransport,
 } from "../build/mcp/transport.js";
 import { baselineEnv, withEnv, withFetch } from "./helpers.js";
+import { join } from "node:path";
 
 baselineEnv();
 
@@ -38,9 +38,7 @@ baselineEnv();
 // Crash handlers — the real path, in a child process
 // ---------------------------------------------------------------------------
 
-const probe = fileURLToPath(
-  new URL("./fixtures/crash-probe.mjs", import.meta.url),
-);
+const probe = join(import.meta.dirname, "./fixtures/crash-probe.mjs");
 
 /** Run the crash probe; resolves with its exit code, streams and timings. */
 function runProbe(mode) {

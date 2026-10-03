@@ -11,6 +11,9 @@ export function expectResult<T>(
   if (!data || data.result == null) {
     throw new ServiceNowError(
       `Unexpected response from ServiceNow ${api}: missing 'result'.`,
+      undefined,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE" },
     );
   }
   return data.result;
@@ -90,6 +93,9 @@ export function expectResultArray<T>(
   if (!data || !Array.isArray(data.result)) {
     throw new ServiceNowError(
       `Unexpected response from ServiceNow ${api}: missing 'result' array.`,
+      undefined,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE" },
     );
   }
   return data.result;

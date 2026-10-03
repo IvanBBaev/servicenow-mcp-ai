@@ -137,7 +137,7 @@ test("profile-schema completes profiles and per-profile tables", async () => {
   await withEnv(ENV, async () => {
     const { client, close } = await startServer();
     try {
-      const uri = "servicenow://{profile}/schema/{table}";
+      const uri = "servicenow://profiles/{profile}/schema/{table}";
       assert.deepEqual(await complete(client, uri, "profile", ""), [
         "default",
         "prod",
@@ -145,7 +145,9 @@ test("profile-schema completes profiles and per-profile tables", async () => {
       assert.deepEqual(await complete(client, uri, "profile", "pr"), ["prod"]);
 
       await withFetch(schemaFetch, () =>
-        client.readResource({ uri: "servicenow://prod/schema/u_prod_only" }),
+        client.readResource({
+          uri: "servicenow://profiles/prod/schema/u_prod_only",
+        }),
       );
       assert.deepEqual(
         await complete(client, uri, "table", "u_prod", { profile: "prod" }),
@@ -161,7 +163,7 @@ test("profile-schema completes profiles and per-profile tables", async () => {
       assert.ok(
         resources.some(
           (r) =>
-            r.uri === "servicenow://prod/schema/u_prod_only" &&
+            r.uri === "servicenow://profiles/prod/schema/u_prod_only" &&
             r.name === "prod: u_prod_only",
         ),
       );
@@ -360,7 +362,7 @@ test("servicenow://reference/tools renders the manifest and the policy", async (
       assert.match(text, /## table \(enabled\)/);
       assert.match(text, /## docs \(not enabled\)/);
       assert.match(text, /\| `servicenow_query_table` \| read \| yes \|/);
-      assert.match(text, /\| `servicenow_docs_write` \| write \| no \|/);
+      assert.match(text, /\| `servicenow_write_doc` \| write \| no \|/);
     } finally {
       await close();
     }

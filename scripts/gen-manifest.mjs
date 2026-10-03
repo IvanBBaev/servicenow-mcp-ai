@@ -7,21 +7,37 @@
 // the diff is stable), the SHA-256 of the description, and `since` — the
 // package version the tool first appeared in. `since` is carried over from
 // the previous fixture; a tool without history gets the current version.
+//
+// Manifest v3 (M-2) adds a top-level `errorCodes` table: every `code` a failed
+// tool result can carry, with its `source` and a one-line description. It is
+// deliberately global, not per tool: most codes come from shared layers (the
+// request primitive, the policy gate, the plan-token gate, credentials) that
+// any tool can hit, so a per-tool list would either over-promise or need a
+// static analysis the code base does not have. The table is the contract.
+//
+// Manifest v4 (M-7) adds a top-level `toolRenames` list (every v2 -> v3 tool
+// rename with its reason; the old names exist only under
+// SN_LEGACY_TOOL_NAMES=1) and, per tool, `legacyParams` (v2 parameter names
+// accepted only under the same flag), `deprecatedParams` (aliases accepted
+// always) and `overlap` (why a tool overlapping another is kept).
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 
 import {
+  loadErrorCodesFromSource,
+  loadNamingFromSource,
   loadToolsFromSource,
   loadToolSchemasFromSource,
 } from "./registry-from-source.mjs";
+import { join } from "node:path";
 
-export const FIXTURE_PATH = fileURLToPath(
-  new URL("../test/fixtures/tools-manifest.json", import.meta.url),
+export const FIXTURE_PATH = join(
+  import.meta.dirname,
+  "../test/fixtures/tools-manifest.json",
 );
 
-export const MANIFEST_VERSION = 2;
+export const MANIFEST_VERSION = 4;
 
 /** The package version (the `since` of a tool without history). */
 export const PACKAGE_VERSION = JSON.parse(
@@ -54,20 +70,30 @@ export function sinceFrom(previous) {
 
 /**
  * Build the manifest from a ToolInfo[] and the matching ToolSchemas[] (the
- * snapshot test passes its own); `since` maps names to their first version.
+ * snapshot test passes its own); `since` maps names to their first version;
+ * `errorCodes` is the M-2 table (errorCodeTable() in src/core/errors.ts).
  */
 export function buildManifest(
   tools,
   schemas,
   since = new Map(),
   version = PACKAGE_VERSION,
+  errorCodes = {},
+  naming = { renames: [], tools: [] },
 ) {
   const byName = new Map(schemas.map((s) => [s.name, s]));
+  const namingByName = new Map(naming.tools.map((n) => [n.name, n]));
   return {
     manifestVersion: MANIFEST_VERSION,
+    errorCodes: sortKeys(errorCodes),
+    toolRenames: [...naming.renames]
+      .map(({ from, to, reason }) => ({ from, reason, to }))
+      .sort((a, b) => a.from.localeCompare(b.from)),
     tools: tools
       .map(({ name, package: pkg, title, description, annotations }) => {
         const schema = byName.get(name);
+        const { legacyParams, deprecatedParams, overlap } =
+          namingByName.get(name) ?? {};
         return {
           name,
           package: pkg,
@@ -79,6 +105,11 @@ export function buildManifest(
           ...(schema?.outputSchema
             ? { outputSchema: sortKeys(schema.outputSchema) }
             : {}),
+          ...(legacyParams ? { legacyParams: sortKeys(legacyParams) } : {}),
+          ...(deprecatedParams
+            ? { deprecatedParams: sortKeys(deprecatedParams) }
+            : {}),
+          ...(overlap ? { overlap } : {}),
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name)),
@@ -92,12 +123,21 @@ export function readFixture() {
     : undefined;
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const [tools, schemas] = await Promise.all([
+if (process.argv[1] === import.meta.filename) {
+  const [tools, schemas, errorCodes, naming] = await Promise.all([
     loadToolsFromSource(),
     loadToolSchemasFromSource(),
+    loadErrorCodesFromSource(),
+    loadNamingFromSource(),
   ]);
-  const manifest = buildManifest(tools, schemas, sinceFrom(readFixture()));
+  const manifest = buildManifest(
+    tools,
+    schemas,
+    sinceFrom(readFixture()),
+    PACKAGE_VERSION,
+    errorCodes,
+    naming,
+  );
   // Written in the repository's Prettier style so format:check stays green.
   const prettier = await import("prettier");
   const options = (await prettier.resolveConfig(FIXTURE_PATH)) ?? {};

@@ -1379,7 +1379,7 @@ export function renderSecurity(scan: SecurityScan, ctx: RenderContext): string {
   const lines: string[] = [
     `# Security review — profile ${code(ctx.profile)}`,
     "",
-    "Generated from the security scan of servicenow_code_health (S-3; the timestamp is in the frontmatter). Text inside the manual block survives re-runs.",
+    "Generated from the security scan of servicenow_check_code_health (S-3; the timestamp is in the frontmatter). Text inside the manual block survives re-runs.",
     "",
     `- **Scan available:** ${scan.available ? "yes" : "no"}`,
     ...(scan.unavailableReason

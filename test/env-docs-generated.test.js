@@ -6,7 +6,6 @@ import assert from "node:assert/strict";
 import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   EXAMPLE_BEGIN,
@@ -22,7 +21,7 @@ import {
 } from "../scripts/env-docs.mjs";
 import { SETTINGS, SETTING_SECTIONS } from "../build/core/settings-manifest.js";
 
-const root = fileURLToPath(new URL("..", import.meta.url));
+const root = path.join(import.meta.dirname, "..");
 const FILES = ["README.md", ".env.example", "server.json"];
 
 test("the generated env docs match the settings manifest", () => {

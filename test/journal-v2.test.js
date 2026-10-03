@@ -18,7 +18,7 @@ import {
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 import fc from "fast-check";
 
 import {
@@ -39,6 +39,10 @@ import { ALL_TOOLS } from "../build/mcp/registry.js";
 import { specs as tableSpecs } from "../build/tools/table.js";
 import { specs as batchSpecs } from "../build/tools/batch.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
 
 baselineEnv();
 
@@ -277,7 +281,7 @@ test("update/delete apply journal the before-state; a read-only refusal is journ
         await tool("servicenow_update_record").handler({
           table: "incident",
           sys_id: "s1",
-          fields: { state: "2" },
+          values: { state: "2" },
         });
         await tool("servicenow_delete_record").handler({
           table: "incident",
@@ -289,7 +293,7 @@ test("update/delete apply journal the before-state; a read-only refusal is journ
       await assert.rejects(
         tool("servicenow_create_record").handler({
           table: "incident",
-          fields: { short_description: "x" },
+          values: { short_description: "x" },
         }),
         /read-only/,
       );
@@ -461,7 +465,7 @@ test("config entries carry key names only; concurrent set_credentials leaves a v
           results.every((r) => !r.isError),
           JSON.stringify(results),
         );
-        const saved = dotenv.parse(readFileSync(envFile, "utf8"));
+        const saved = parseEnv(readFileSync(envFile, "utf8"));
         assert.ok(/^pw-/.test(saved.SN_PASSWORD));
         assert.deepEqual(
           readdirSync(dir).filter((f) => f.endsWith(".tmp")),
@@ -510,7 +514,7 @@ test("write tools echo records through the redaction boundary", async () => {
         async () => {
           const res = await tool("servicenow_create_record").handler({
             table: "incident",
-            fields: { u_secret: "abc" },
+            values: { u_secret: "abc" },
           });
           assert.equal(out(res).record.u_secret, "[redacted]");
         },

@@ -199,6 +199,8 @@ export async function pluginCall<T>(
     throw new ServiceNowError(
       `${apiLabel} API is not available on this instance (a namespace 404 was cached in the last ${describeWindow(getPluginNegativeTtlMs())}; the backing plugin is probably inactive).${describeVerdict(apiLabel, state.verdict)}`,
       404,
+      undefined,
+      { code: "INSTANCE_HTTP_404", source: "servicenow" },
     );
   }
   try {
@@ -236,6 +238,7 @@ export async function pluginCall<T>(
         `${err.message} (If every ${apiLabel} request fails this way, the ${apiLabel} API/plugin may not be active on this instance.)${describeVerdict(apiLabel, verdict)}`,
         err.status,
         err.detail,
+        { code: err.code, hint: err.hint, source: err.source },
       );
     }
     throw err;

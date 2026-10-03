@@ -47,18 +47,18 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * Batch 12 (S-16 document_instance depth) measured 129,954 (all) and 31,151 (core).
  * Batch 12 (P-11 explain_flow kind:"action" + depth) measured 129,926 (all)
  * and 31,151 (core): both stay within the budget.
- * Batch 12 (P-17 artifact_dependencies; 90 tools) measured 133,469 (all)
+ * Batch 12 (P-17 get_artifact_dependencies; 90 tools) measured 133,469 (all)
  * and 31,151 (core): the all budget rises to 134,000.
  * Batch 12 (M-5 list/enable/disable_package; 92 tools, 3 in the always-on admin package) measured 132,949 (all) and 34,426 (core).
  * The merged batch 12 tree (93 tools) measured 137,276 (all) and 34,426 (core).
  * H-3 (the automatic plan_token argument on six destructive-apply tools)
  * measured 137,894 (all) and 34,632 (core): the all budget rises to 139,000.
- * H-4 (change_conflicts apply + plan_token) measured 138,248 (all).
+ * H-4 (check_change_conflicts apply + plan_token) measured 138,248 (all).
  * H-11 (servicenow_explain_policy, always-on admin; 94 tools) measured
  * 139,089 (all) and 35,473 (core): the budgets rise to 140,000 / 36,000.
  * H-3 remainder (expected_mod_count on update/delete_record) measured
  * 139,421 (all) and 35,805 (core): within the budget.
- * P-18 (code_health extended/limit, where_used extended, lint_script opt-in
+ * P-18 (check_code_health extended/limit, where_used extended, lint_script opt-in
  * types) measured 139,658 (all) and 35,805 (core): within the budget.
  * P-20 (types/scope on snapshot_instance and compare_instances, both in the
  * opt-in instance package) measured 140,142 (all) and 35,805 (core): the all
@@ -74,10 +74,19 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * P-26 (servicenow_generate_fluent in the opt-in artifacts package; 97
  * tools) measured 148,384 (all) and 35,805 (core): the all budget rises to
  * 148,500.
+ * E-2 (zod 4: the SDK converts the schemas with zod's own toJSONSchema —
+ * `propertyNames` on every record, an inlined `$ref`, the safe-integer
+ * `maximum` of `.int()`) measured 150,175 (all) and 36,224 (core): the
+ * budgets rise to 151,000 / 36,500.
+ * M-7 (tool naming v3: renamed tools, `values` / `sys_id` / `table`
+ * parameters, the always-published `class_name` deprecated alias on the CMDB
+ * tools) measured 150,916 (all) and 36,158 (core): within the budget. The
+ * legacy alias tools (SN_LEGACY_TOOL_NAMES=1, off by default and not
+ * budgeted) add about 20 KB to `all`.
  * owner to restate (M-6 budget)
  */
-const TOOLS_LIST_BUDGET_ALL = 149_000;
-const TOOLS_LIST_BUDGET_CORE = 36_000;
+const TOOLS_LIST_BUDGET_ALL = 151_000;
+const TOOLS_LIST_BUDGET_CORE = 36_500;
 
 async function listTools(packages) {
   return withEnv({ SN_TOOL_PACKAGES: packages }, async () => {
@@ -169,7 +178,9 @@ test("tools with an output shape publish a permissive outputSchema", async () =>
       continue;
     }
     assert.equal(tool.outputSchema?.type, "object", tool.name);
-    assert.equal(tool.outputSchema.additionalProperties, true, tool.name);
+    // E-2: zod 4 writes the passthrough as `{}` (any value) where the zod 3
+    // converter wrote `true` — the same JSON Schema meaning.
+    assert.deepEqual(tool.outputSchema.additionalProperties, {}, tool.name);
   }
   for (const name of [
     "servicenow_get_status",
@@ -183,7 +194,7 @@ test("tools with an output shape publish a permissive outputSchema", async () =>
     "servicenow_list_scripts",
     "servicenow_list_flows",
     "servicenow_lint_script",
-    "servicenow_code_health",
+    "servicenow_check_code_health",
   ]) {
     assert.ok(withOutput.has(name), `${name} declares an output shape`);
   }

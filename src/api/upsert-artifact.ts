@@ -947,6 +947,8 @@ export async function applyArtifactPlan(
             throw new ServiceNowError(
               `The parent of children[${r.index}] came back without a sys_id; it and the records after it were not written.`,
               502,
+              undefined,
+              { code: "UNEXPECTED_RESPONSE", source: "servicenow" },
             );
           }
           const payload =

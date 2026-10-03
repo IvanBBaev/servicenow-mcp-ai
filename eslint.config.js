@@ -95,10 +95,11 @@ export default tseslint.config(
     },
   },
   // D-7: the VS Code extension has its own tsconfig and its `@types/vscode`
-  // lives in extension/node_modules (not installed by the root CI job), so it
-  // gets the syntax-only ruleset; its typecheck and the type-aware lint
-  // (extension/eslint.config.mjs, `npm run lint` in extension/) run in the CI
-  // extension job.
+  // lives in extension/node_modules (not installed by the root CI job). E-2:
+  // ESLint 10 lints each file with its nearest config, so extension/ files use
+  // extension/eslint.config.mjs (type-aware); the root `npm run lint` skips
+  // extension/ and the CI extension job lints it. This block stays as the
+  // syntax-only fallback should the extension config ever be removed.
   {
     files: ["extension/src/**/*.ts"],
     extends: [...tseslint.configs.recommended],
@@ -110,6 +111,9 @@ export default tseslint.config(
   {
     languageOptions: {
       globals: { ...globals.node },
+      // E-2: typescript-eslint 8.5x+ refuses to guess the root when it sees
+      // two tsconfig roots (here and extension/), even for syntax-only files.
+      parserOptions: { tsconfigRootDir: import.meta.dirname },
     },
   },
   prettier,

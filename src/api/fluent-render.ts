@@ -1,8 +1,9 @@
 /**
  * P-26 — a tiny, deterministic TypeScript source renderer for the Fluent
  * emitter (`src/api/fluent.ts`). It knows exactly the shapes the emitter
- * produces — object literals, arrays, string / number / boolean literals and
- * pre-rendered code (`Now.include(…)`, `Now.ref(…)`) — and renders them with a
+ * produces — object literals, arrays, string / number / boolean literals,
+ * constructor calls (`Duration({…})`, `StringColumn({…})`) and pre-rendered
+ * code (`Now.include(…)`, `Now.ref(…)`) — and renders them with a
  * fixed layout (4-space indent, single quotes, trailing commas), so the same
  * input always gives byte-identical output.
  */
@@ -11,6 +12,7 @@
 export type Expr =
   | { k: "lit"; v: string | number | boolean }
   | { k: "code"; code: string }
+  | { k: "call"; fn: string; args: Expr[] }
   | { k: "arr"; items: Expr[] }
   | { k: "obj"; props: Prop[] };
 
@@ -23,6 +25,12 @@ export interface Prop {
 
 export const lit = (v: string | number | boolean): Expr => ({ k: "lit", v });
 export const code = (c: string): Expr => ({ k: "code", code: c });
+/** `fn(arg, …)`, its arguments indented at the depth the call is rendered at. */
+export const call = (fn: string, ...args: Expr[]): Expr => ({
+  k: "call",
+  fn,
+  args,
+});
 export const arr = (items: Expr[]): Expr => ({ k: "arr", items });
 export const obj = (props: Prop[]): Expr => ({ k: "obj", props });
 
@@ -68,6 +76,8 @@ export function render(e: Expr, depth = 0): string {
       return e.v ? "true" : "false";
     case "code":
       return e.code;
+    case "call":
+      return `${e.fn}(${e.args.map((a) => render(a, depth)).join(", ")})`;
     case "arr": {
       if (!e.items.length) return "[]";
       const flat = e.items.every((i) => i.k === "lit" || i.k === "code");

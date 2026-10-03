@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { promises as fs, existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -26,12 +26,18 @@ import { allowUnconfirmedCredentialChange } from "../build/core/settings.js";
 import { setServer } from "../build/mcp/context.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
 
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
+
 baselineEnv();
 
 const spec = ALL_TOOLS.find((s) => s.name === "servicenow_set_credentials");
 const setCredentials = (args) => runSpec(spec, args);
 const payload = (res) => JSON.parse(res.content[0].text);
-const errorMessage = (res) => payload(res).error.message;
+const errorMessage = (res) => payload(res).error;
+// M-2: the fix travels in `hint`, the stable identifier in `code`.
+const errorHint = (res) => payload(res).hint ?? "";
 
 const BASELINE = {
   instance: "dev00000.service-now.com",
@@ -72,7 +78,7 @@ async function withScratchStore(env, fn) {
 }
 
 const savedFile = async (envFile) =>
-  existsSync(envFile) ? dotenv.parse(await fs.readFile(envFile, "utf8")) : null;
+  existsSync(envFile) ? parseEnv(await fs.readFile(envFile, "utf8")) : null;
 
 /** The store still holds the baseline and nothing reached the env file. */
 async function assertUntouched(envFile) {
@@ -129,7 +135,8 @@ test("H-2: an instance-only change on a configured profile is refused with CREDE
         const res = await setCredentials(args);
         assert.equal(res.isError, true, JSON.stringify(args));
         const message = errorMessage(res);
-        assert.match(message, /^CREDENTIALS_INCOMPLETE: /);
+        assert.equal(payload(res).code, "CREDENTIALS_INCOMPLETE");
+        assert.equal(payload(res).source, "policy");
         assert.match(message, /"default"/);
         assert.match(message, /dev99999\.service-now\.com/);
         assert.doesNotMatch(message, /new-secret-value|s3cret/);
@@ -231,7 +238,8 @@ test("H-2: without a client that can confirm, the change is refused unless the o
     const res = await setCredentials({ user: "bob" });
     assert.equal(res.isError, true);
     assert.match(errorMessage(res), /cannot confirm/);
-    assert.match(errorMessage(res), /SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1/);
+    assert.match(errorHint(res), /SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1/);
+    assert.equal(payload(res).code, "CREDENTIALS_UNCONFIRMED");
     await assertUntouched(envFile);
 
     for (const value of ["0", "false", "off", ""]) {
@@ -270,10 +278,7 @@ test("H-2: a connected client without the elicitation capability is refused (fai
       const res = await setCredentials({ user: "bob" });
       assert.equal(res.isError, true);
       assert.match(errorMessage(res), /no elicitation support/);
-      assert.match(
-        errorMessage(res),
-        /SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1/,
-      );
+      assert.match(errorHint(res), /SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1/);
       await assertUntouched(envFile);
 
       await withEnv(
@@ -311,6 +316,7 @@ test("H-2: an explicit decline is refused even with the opt-out; a prompt error 
             const res = await setCredentials({ user: "bob" });
             assert.equal(res.isError, true, JSON.stringify(reply));
             assert.match(errorMessage(res), /not confirmed/);
+            assert.equal(payload(res).code, "CREDENTIALS_UNCONFIRMED");
           }
           await assertUntouched(envFile);
         },
@@ -322,7 +328,7 @@ test("H-2: an explicit decline is refused even with the opt-out; a prompt error 
       assert.equal(failed.isError, true);
       assert.match(errorMessage(failed), /confirmation prompt failed/);
       assert.match(
-        errorMessage(failed),
+        errorHint(failed),
         /SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1/,
       );
       await assertUntouched(envFile);

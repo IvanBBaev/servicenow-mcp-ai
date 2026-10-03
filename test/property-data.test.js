@@ -17,7 +17,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 import fc from "fast-check";
 
 import { REDACTED, redactValue } from "../build/core/redaction.js";
@@ -32,6 +32,10 @@ import {
 } from "../build/core/write-journal.js";
 import { ServiceNowError } from "../build/core/errors.js";
 import { baselineEnv, fcParams, withEnv } from "./helpers.js";
+
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
 
 baselineEnv();
 
@@ -459,16 +463,6 @@ function mustRefuse(v) {
   );
 }
 
-/**
- * Values formatEnvValue accepts today that dotenv can misread once other
- * lines follow (findings F1/F2, todo tests below): a quoted value ending in a
- * backslash (dotenv reads `\'` as an escaped quote and runs into the next
- * line), and U+2028 / U+2029 (line terminators to dotenv's line regex). The
- * round-trip properties exclude exactly these until the owner decides.
- */
-const dotenvHazard = (v) =>
-  /[\u2028\u2029]/.test(v) || (needsQuoting(v) && v.endsWith("\\"));
-
 test("env value: refuses exactly the unrepresentable, and everything else round-trips next to other keys", () => {
   fc.assert(
     fc.property(envValue, envValue, (v1, v2) => {
@@ -488,8 +482,7 @@ test("env value: refuses exactly the unrepresentable, and everything else round-
       assert.equal(f2 === undefined, mustRefuse(v2), JSON.stringify(v2));
       if (f1 === undefined || f2 === undefined) return;
       assert.doesNotMatch(f1, /[\r\n]/);
-      if (dotenvHazard(v1) || dotenvHazard(v2)) return;
-      const parsed = dotenv.parse(`# c\nA=${f1}\nB=${f2}\nC='tail'\nD=#x\n`);
+      const parsed = parseEnv(`# c\nA=${f1}\nB=${f2}\nC='tail'\nD=#x\n`);
       assert.deepEqual(parsed, { A: v1, B: v2, C: "tail", D: "" });
     }),
     fcParams({ scale: 3 }),
@@ -504,7 +497,7 @@ test("env value: the real env-file writer round-trips an accepted value and leav
     process.env.SN_ENV_FILE = file;
     fc.assert(
       fc.property(
-        envValue.filter((v) => !mustRefuse(v) && !dotenvHazard(v)),
+        envValue.filter((v) => !mustRefuse(v)),
         fc.boolean(),
         (value, crlf) => {
           // The key is replaced in place, between other keys (quoted ones too).
@@ -516,7 +509,7 @@ test("env value: the real env-file writer round-trips an accepted value and leav
           persistEnv({ SN_PROP_VALUE: value });
           const text = readFileSync(file, "utf8");
           assert.ok(text.startsWith(`# keep me${eol}`));
-          assert.deepEqual(dotenv.parse(text), {
+          assert.deepEqual(parseEnv(text), {
             SN_PROP_VALUE: value,
             SN_OTHER: "kept",
           });
@@ -532,38 +525,31 @@ test("env value: the real env-file writer round-trips an accepted value and leav
   }
 });
 
-test(
-  "env value: a quoted value ending in a backslash does not swallow the next line",
-  {
-    todo: "E-6 finding F1 (owner decision): a value that needs quotes and ends in a backslash is written as '...\\', and dotenv reads the closing backslash-quote as an escaped quote",
-  },
-  () => {
-    const value = "pa#ss\\";
-    const parsed = dotenv.parse(`A=${formatEnvValue(value)}\nB='#x'\n`);
-    assert.deepEqual(parsed, { A: value, B: "#x" });
-  },
-);
+// E-6 findings F1 / F2 were dotenv parser hazards (`\'` read as an escaped
+// quote; U+2028 / U+2029 as line ends). E-2 replaced dotenv with Node's own
+// env-file parser (process.loadEnvFile / util.parseEnv), which has neither,
+// so the round-trip properties above no longer exclude these values and the
+// former todo tests are regular regressions.
+test("env value: a quoted value ending in a backslash does not swallow the next line", () => {
+  const value = "pa#ss\\";
+  const parsed = parseEnv(`A=${formatEnvValue(value)}\nB='#x'\n`);
+  assert.deepEqual(parsed, { A: value, B: "#x" });
+});
 
-test(
-  "env value: U+2028 / U+2029 in a value are refused or quoted so dotenv keeps them",
-  {
-    todo: "E-6 finding F2 (owner decision): dotenv's line regex treats U+2028/U+2029 as line ends; formatEnvValue passes them through unquoted",
-  },
-  () => {
-    for (const value of ["a\u2028`b`", 'x\u2029"y"']) {
-      let formatted;
-      try {
-        formatted = formatEnvValue(value);
-      } catch {
-        continue; // refusing is an acceptable fix
-      }
-      assert.deepEqual(dotenv.parse(`A=${formatted}\nB=z\n`), {
-        A: value,
-        B: "z",
-      });
+test("env value: U+2028 / U+2029 in a value survive the env-file parser", () => {
+  for (const value of ["a\u2028`b`", 'x\u2029"y"']) {
+    let formatted;
+    try {
+      formatted = formatEnvValue(value);
+    } catch {
+      continue; // refusing is an acceptable fix
     }
-  },
-);
+    assert.deepEqual(parseEnv(`A=${formatted}\nB=z\n`), {
+      A: value,
+      B: "z",
+    });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Write-journal hash chain

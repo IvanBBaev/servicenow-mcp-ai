@@ -6,11 +6,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { USAGE } from "../build/cli.js";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const root = join(import.meta.dirname, "..");
 const read = (p) => readFileSync(join(root, p), "utf8");
 const pkg = JSON.parse(read("package.json"));
 const ADVISORY_URL =

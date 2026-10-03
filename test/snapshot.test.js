@@ -537,7 +537,7 @@ test("a cancelled snapshot leaves a partial index; resume skips finished units (
           { tables: ["incident"] },
           { signal: controller.signal },
         );
-        assert.equal(JSON.parse(r.content[0].text).error.code, "CANCELLED");
+        assert.equal(JSON.parse(r.content[0].text).code, "CANCELLED");
       },
     ),
   );

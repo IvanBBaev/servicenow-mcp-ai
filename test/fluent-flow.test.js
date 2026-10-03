@@ -61,6 +61,12 @@ const inputs = (list) => ({
   inputs: list.map(([name, value]) => ({ name, value })),
 });
 
+/** Built-in action step definition sys_ids (src/api/fluent-sdk-actions.ts). */
+const SDK_STEP = {
+  script: "106afb6647032200b4fad7527c9a71e7",
+  createRecord: "9cbaa0f267003200553fafb49585ef69",
+};
+
 let seq = 0;
 /** A tree step; sys_ids are stable per fixture build. */
 function step(kind, name, extra = {}, children = []) {
@@ -156,6 +162,7 @@ function flowCase() {
           ref: { sys_id: SUB, name: "Notify Approvers" },
           values: inputs([["attempts", "{{flow_variables.attempts}}"]]),
         }),
+        step("logic", "End Flow", {}),
       ],
     ),
     step("logic", "Try", {}, [
@@ -375,6 +382,7 @@ function subflowCase() {
         element: "caller",
         label: "Caller",
         type: "reference",
+        reference: "sys_user",
         mandatory: true,
       },
       {
@@ -434,8 +442,12 @@ function actionCase() {
       description: "Creates a follow-up task",
     },
     steps: [
-      step("step", "Script", { comment: "build the description" }),
+      step("step", "Script", {
+        comment: "build the description",
+        ref: { sys_id: SDK_STEP.script, name: "Script" },
+      }),
       step("step", "Create Record", {
+        ref: { sys_id: SDK_STEP.createRecord, name: "Create Record" },
         values: inputs([
           ["table", "task"],
           ["short_description", "{{action_inputs.short_description}}"],
@@ -457,6 +469,7 @@ function actionCase() {
         element: "task",
         label: "Task",
         type: "reference",
+        reference: "task",
       },
     ],
   };
@@ -692,24 +705,28 @@ test("the flow-group types have a tree emitter, not a P-26 dedicated one", () =>
 });
 
 test("flow: Flow(), trigger, core actions, logic chains and data pills", () => {
-  const text = mainFile(emitCase("flow_emitter"));
+  const b = emitCase("flow_emitter");
+  const text = mainFile(b);
   assert.match(
     text,
-    /import \{ Flow, action, trigger, wfa \} from '@servicenow\/sdk\/automation'/,
+    /import \{ Flow, FlowStage, action, trigger, wfa \} from '@servicenow\/sdk\/automation'/,
   );
   assert.match(text, /^Flow\(\n/m);
   assert.match(text, /wfa\.trigger\(trigger\.record\.created, \{/);
   assert.match(text, /wfa\.action\(action\.core\.lookUpRecord, \{/);
   assert.match(
     text,
-    /conditions: `priority=\$\{wfa\.dataPill\(params\.trigger\.current\.priority\)\}`/,
+    /conditions: `priority=\$\{wfa\.dataPill\(params\.trigger\.current\.priority, 'string'\)\}`/,
   );
   assert.match(
     text,
-    /condition: `\$\{wfa\.dataPill\(params\.trigger\.current\.priority\)\}=1`/,
+    /condition: `\$\{wfa\.dataPill\(params\.trigger\.current\.priority, 'string'\)\}=1`/,
   );
-  assert.match(text, /\}\)\.elseIf\(\{/);
-  assert.match(text, /wfa\.flowLogic\.forEach\(\{[\s\S]*?\}, \(item\) => \{/);
+  assert.match(text, /\}\)\n\s+wfa\.flowLogic\.elseIf\(\{/);
+  assert.match(
+    text,
+    /wfa\.flowLogic\.forEach\(`[^`]*`, \{[\s\S]*?\}, \(_?item\) => \{/,
+  );
   assert.match(
     text,
     /wfa\.flowLogic\.tryCatch\(\{[\s\S]*?try: \(\) => \{[\s\S]*?catch: \(\) => \{/,
@@ -717,22 +734,37 @@ test("flow: Flow(), trigger, core actions, logic chains and data pills", () => {
   assert.match(text, /wfa\.flowLogic\.doInParallel\(/);
   assert.match(text, /wfa\.flowLogic\.waitForADuration\(\{/);
   assert.match(text, /wfa\.flowLogic\.endFlow\(\{/);
-  assert.match(text, /wfa\.subflow\(Now\.ref\('sys_hub_flow', 'b{32}'\)/);
+  // The SDK accepts endFlow only inside a block: a top-level one falls back.
+  assert.equal(text.match(/wfa\.flowLogic\.endFlow\(/g)?.length, 1);
+  assert.ok(b.unsupported.some((u) => /End Flow outside an If/.test(u.reason)));
+  assert.match(text, /wfa\.subflow\('b{32}'/);
   assert.match(
     text,
-    /attempts: wfa\.dataPill\(params\.flowVariables\.attempts\)/,
+    /attempts: wfa\.dataPill\(params\.flowVariables\.attempts, 'integer'\)/,
   );
   assert.match(
     text,
     /runWithRoles: \['itil', Now\.ref\('sys_user_role', 'f{32}'\)\]/,
   );
   assert.match(text, /attempts: IntegerColumn\(\{/);
-  assert.match(text, /stages: \[/);
-  assert.match(text, /verified:false/);
+  assert.match(text, /stages: \{\n\s+triage: FlowStage\(\{/);
+  assert.match(text, /type-checked against @servicenow\/sdk 4\.12\.2/);
+  // Every declared key is used by an $id (an unused one builds as a DELETE),
+  // and wfa.action keys name the table now-sdk build writes.
+  for (const k of b.keys) {
+    assert.ok(text.includes(`Now.ID['${k.key}']`), k.key);
+  }
+  assert.ok(
+    !b.keys.some(
+      (k) => k.table === "sys_hub_flow_variable" && /va1/.test(k.sys_id),
+    ),
+  );
+  const lookUp = b.keys.find((k) => k.key.endsWith("__action_ac010000"));
+  assert.equal(lookUp?.table, "sys_hub_action_instance_v2");
   // Template-literal escaping: a backtick and ${ in text stay literal.
   assert.match(
     text,
-    /message: `Value \\`x\\` \\\$\{y\} for \$\{wfa\.dataPill\(params\.trigger\.current\.number\)\}`/,
+    /message: `Value \\`x\\` \\\$\{y\} for \$\{wfa\.dataPill\(params\.trigger\.current\.number, 'string'\)\}`/,
   );
 });
 
@@ -788,14 +820,18 @@ test("unsupported constructs: explicit entries plus Record() fallbacks, never si
 test("playbook: PlaybookDefinition with lanes, core activities, timers; Questionnaire and variants fall back", () => {
   const b = emitCase("playbook_emitter");
   const text = mainFile(b);
-  assert.match(text, /^PlaybookDefinition\(\{/m);
+  assert.match(text, /^PlaybookDefinition\(\n/m);
   assert.match(
     text,
-    /activityDefinition: ActivityDefinitions\.Core\.instruction/,
+    /wfa\.playbook\.activity\(ActivityDefinitions\.Core\.Instruction, \{/,
   );
-  assert.match(text, /activityDefinition: ActivityDefinitions\.Core\.form/);
-  assert.match(text, /activityDefinition: ActivityDefinitions\.Core\.subflow/);
-  assert.match(text, /timers: \[/);
+  assert.match(
+    text,
+    /wfa\.playbook\.activity\(ActivityDefinitions\.Core\.RecordForm, \{/,
+  );
+  assert.match(text, /lanes: \(_?params\) => \(\{/);
+  // A timer of a supported activity becomes its startWithDelay.
+  assert.match(text, /startWithDelay: \{\n\s+type: 'explicit',/);
   assert.match(text, /start_date: DateColumn\(\{/);
   const reasons = b.unsupported.map((u) => u.reason);
   assert.ok(
@@ -811,11 +847,16 @@ test("playbook: PlaybookDefinition with lanes, core activities, timers; Question
       /variant 'EMEA' has no PlaybookDefinition property/.test(r),
     ),
   );
-  assert.ok(reasons.some((r) => /Timer of an unsupported activity/.test(r)));
+  assert.ok(
+    reasons.some((r) =>
+      /'Run Subflow' has no ActivityDefinitions\.Core mapping/.test(r),
+    ),
+  );
+  assert.ok(reasons.some((r) => /Timer not emitted as startWithDelay/.test(r)));
   assert.match(text, /table: 'sys_pd_process_variant'/);
   assert.match(text, /table: 'sys_pd_activity'/);
   assert.match(text, /table: 'sys_pd_timer_attributes'/);
-  assert.doesNotMatch(text, /label: 'Survey'[\s\S]*activityDefinition/);
+  assert.doesNotMatch(text, /label: 'Survey'[\s\S]*wfa\.playbook\.activity/);
 });
 
 test("subflow and action: inputs / outputs as columns, input pills", () => {
@@ -823,17 +864,30 @@ test("subflow and action: inputs / outputs as columns, input pills", () => {
   assert.match(sub, /^Subflow\(\n/m);
   assert.match(sub, /caller: ReferenceColumn\(\{/);
   assert.match(sub, /notified: StringColumn\(\{/);
-  assert.match(sub, /\$\{wfa\.dataPill\(params\.inputs\.caller\)\}/);
+  assert.match(
+    sub,
+    /\$\{wfa\.dataPill\(params\.inputs\.caller, 'reference'\)\}/,
+  );
   assert.match(sub, /wfa\.flowLogic\.assignSubflowOutputs\(\{/);
   const act = emitCase("action_emitter");
   const text = mainFile(act);
   assert.match(text, /^Action\(\n/m);
   assert.match(text, /category: 'Acme'/);
-  assert.match(text, /wfa\.action\(action\.core\.createRecord/);
-  assert.match(text, /wfa\.dataPill\(params\.inputs\.short_description\)/);
+  assert.match(text, /wfa\.actionStep\('Create Record', \{/);
+  assert.match(
+    text,
+    /wfa\.dataPill\(params\.inputs\.short_description, 'string'\)/,
+  );
+  // A Script step maps to actionStep.script (by built-in name while untyped).
+  assert.match(text, /\/\/ actionStep\.script by name/);
+  // A step definition copied under a built-in name is not the built-in.
+  const copy = emitCase("action_emitter", null, (c) => {
+    c.sources[0].flowTree.steps[1].ref.sys_id = "c".repeat(32);
+  });
+  assert.doesNotMatch(mainFile(copy), /wfa\.actionStep\('Create Record'/);
   assert.ok(
-    act.unsupported.some((u) =>
-      /action step type 'Script' has no action\.core mapping/.test(u.reason),
+    copy.unsupported.some((u) =>
+      /is not the built-in 'Create Record'/.test(u.reason),
     ),
   );
 });
@@ -1037,7 +1091,10 @@ test("generate_fluent: a flow runs through explain_flow into Flow(), GETs only",
       assert.match(main, /^Flow\(/m);
       assert.match(main, /wfa\.trigger\(trigger\.record\.created/);
       assert.match(main, /wfa\.action\(action\.core\.lookUpRecord/);
-      assert.match(main, /wfa\.dataPill\(params\.trigger\.current\.priority\)/);
+      assert.match(
+        main,
+        /wfa\.dataPill\(params\.trigger\.current\.priority, 'string'\)/,
+      );
       assert.deepEqual(parseErrors("f.ts", main), []);
     }),
   );

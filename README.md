@@ -121,7 +121,7 @@ with the model and client of your choice.
   `SN_UPDATE_SET`), restoring the user's current set afterwards.
 - **Operations and data health** (`ops`, opt-in): bounded "why is it slow"
   reads of the system log, the scheduler queue, the outbound email queue and
-  semaphores, plus `servicenow_data_health` — duplicate keys, orphaned and
+  semaphores, plus `servicenow_check_data_health` — duplicate keys, orphaned and
   stale references for one table, from Aggregate API counts.
 - **Operations reads** (opt-in): a record's change history from `sys_audit` and
   `sys_journal_field` (`history` — including the comments and work notes the
@@ -148,7 +148,7 @@ with the model and client of your choice.
 
 ## Requirements
 
-- Node.js 20+ (enforced: `engines` + a runtime guard with a clear message;
+- Node.js 22.12+ (enforced: `engines` + a runtime guard with a clear message;
   the project targets the version in `.nvmrc`).
 
 ## Setup
@@ -168,7 +168,7 @@ npx servicenow-mcp-ai
 
 ### Install in your MCP client
 
-Every client launches the same stdio command, `npx -y servicenow-mcp-ai` (Node.js 20+),
+Every client launches the same stdio command, `npx -y servicenow-mcp-ai` (Node.js 22.12+),
 under the server name `servicenow`. The one-click links and snippets below carry **no
 credentials**: keep them in the env file (`~/.config/servicenow-mcp-ai/.env`, see
 [Configure credentials](#configure-credentials)), run the one-time
@@ -538,12 +538,12 @@ A global/`npx` install therefore writes to your user config rather than into
 At `initialize` the server sends `instructions` built from the live configuration: the enabled
 packages and tool count, the write mode, the active profile and, when nothing is configured,
 what is missing and how to fix it. Until then every instance tool fails with
-`error.code: "NOT_CONFIGURED"` and a hint naming `servicenow_set_credentials`. A first session
+`code: "NOT_CONFIGURED"` and a hint naming `servicenow_set_credentials`. A first session
 with an empty env file looks like this (abridged):
 
 ```text
 instructions  Credentials: NOT configured (missing instance, user, password). Instance tools
-              fail with error.code NOT_CONFIGURED until fixed. To configure: ask the user for
+              fail with code NOT_CONFIGURED until fixed. To configure: ask the user for
               the instance and credentials, call servicenow_set_credentials, then
               servicenow_test_connection. Never guess or echo a password.
 user          How many open P1 incidents do we have?
@@ -700,7 +700,8 @@ Which tools are registered. The admin tools (set_credentials, get_status, use_in
 | `SN_PACKAGES_DENY` | no | — | 1.0.0 | Comma/space-separated packages to exclude even if enabled by `SN_TOOL_PACKAGES`. The only way to block plugin APIs (catalog, change, knowledge…) — the table policy does not see them. |
 | `SN_PACKAGES_READONLY` | no | — | 1.0.0 | Comma/space-separated packages whose write tools are not registered; their read tools stay. Per-package complement to the global `SN_READONLY`. |
 | `SN_CODESEARCH` | no | `false` | 1.1.0 | Opt in to the Code Search API (`sn_codesearch`) for `servicenow_search_code` (FT-7). When `true` and the plugin is active it replaces the LIKE iteration; falls back to LIKE on any failure. |
-| `SN_EXPERIMENTAL_TASKS` | no | `0` | next | M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `code_health` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK's experimental task API. |
+| `SN_EXPERIMENTAL_TASKS` | no | `0` | next | M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `check_code_health` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK's experimental task API. |
+| `SN_LEGACY_TOOL_NAMES` | no | `0` | next | M-7 (B2), **deprecated bridge for one minor cycle**: `1` registers every tool name and parameter name renamed by the v3 naming convention as an alias of its new name (the alias dispatches to the new tool and logs a one-time deprecation warning). Off: the old names do not exist and are absent from `tools/list`. See the rename table in the README. |
 
 #### Access policy and write safety
 
@@ -712,15 +713,15 @@ Least-privilege table policy, plan-and-apply writes, destructive-write confirmat
 | `SN_TABLES_DENY` | no | — | 1.1.0 | Comma-separated table denylist; always wins over the allowlist. |
 | `SN_READONLY` | no | `false` | 1.1.0 | When truthy, refuse every create/update/delete. |
 | `SN_WRITE_MODE` | no | `plan` | 2.0.0 | `plan` (default) previews a write as a before/after diff without mutating; `apply` executes; passing `apply:true` forces a single call. |
-| `SN_DESTRUCTIVE_CONFIRM` | no | `off` | next | H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `change_conflicts` with `calculate:true`) in plan mode. `token`: the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments, else `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it, except on a profile marked `prod` (`SN_ENV`), which is always at least `elicit` and is confirmed in apply mode too. The 3.0 default is an owner decision (O-4). |
+| `SN_DESTRUCTIVE_CONFIRM` | no | `token` | next | H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `upsert_artifact`, `check_change_conflicts` with `calculate:true`) in plan mode. `token` (the 3.0 default, B4): the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments, else `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it, except on a profile marked `prod` (`SN_ENV`), which is always at least `elicit` and is confirmed in apply mode too. `off` is the explicit opt-out (the pre-3.0 behaviour). |
 | `SN_PLAN_TOKEN_TTL_SEC` | no | `600` | next | H-3: lifetime of a `plan_token` in seconds (30–86400). Tokens live only in the server process and are used up by the apply. |
-| `SN_BATCH_UNMAPPED` | no | `allow` | next | H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `allow` checks it against the table and read-only axes only; `deny` refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch). A nested batch is always refused. The 3.0 default is an owner decision (O-4). |
-| `SN_BATCH_MAX_REQUESTS` | no | `1000` | next | H-4: most sub-requests one `servicenow_batch` call may carry (1–1000), checked before anything is sent. |
-| `SN_PROTECTED_TABLES_WRITE` | no | `allow` | next | H-11: `deny` refuses writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them) with `POLICY_DENIED`; an exact `SN_TABLES_ALLOW` entry re-enables one. Reads are unaffected. The 3.0 default is an owner decision (O-4). |
-| `SN_IMPORT_SET_TABLES` | no | — | next | H-11: patterns (`*`, `?`) the import-set staging table must match (e.g. `u_*,imp_*`); unset = any table the table policy allows. |
-| `SN_MAX_WRITES_PER_SESSION` | no | — | next | H-11: most applied instance writes per session (the process on stdio, one MCP session over HTTP; a batch counts its write sub-requests). Past it, writes fail with `WRITE_CAP` before any request; `get_status.writes.caps` shows the usage. Unset = no cap. |
-| `SN_MAX_DELETES_PER_SESSION` | no | — | next | H-11: most applied deletes per session (`WRITE_CAP`). Unset = no cap. |
-| `SN_MAX_BATCH_WRITES` | no | — | next | H-11: most write (non-GET) sub-requests in one `servicenow_batch` (`WRITE_CAP`). Unset = no cap. |
+| `SN_BATCH_UNMAPPED` | no | `deny` | next | H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `deny` (the 3.0 default, B8) refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch); `allow` is the opt-out and checks it against the table and read-only axes only. A nested batch is always refused. |
+| `SN_BATCH_MAX_REQUESTS` | no | `50` | next | H-4: most sub-requests one `servicenow_batch` call may carry (1–1000; 50 since 3.0), checked before anything is sent. |
+| `SN_PROTECTED_TABLES_WRITE` | no | `deny` | next | H-11: `deny` (the 3.0 default, B11) refuses writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them) with `POLICY_DENIED`; an exact `SN_TABLES_ALLOW` entry re-enables one; `allow` is the opt-out for all of them. Reads are unaffected. |
+| `SN_IMPORT_SET_TABLES` | no | `u_*,imp_*` | next | H-11: patterns (`*`, `?`) the import-set staging table must match (3.0 default `u_*,imp_*`); `*` is the opt-out (any table the table policy allows). |
+| `SN_MAX_WRITES_PER_SESSION` | no | 500 per HTTP session, none on stdio | next | H-11: most applied instance writes per session (the process on stdio, one MCP session over HTTP; a batch counts its write sub-requests). Past it, writes fail with `WRITE_CAP` before any request; `get_status.writes.caps` shows the usage. Unset = 500 per HTTP session and no cap on stdio (3.0 default); `0` = no cap. |
+| `SN_MAX_DELETES_PER_SESSION` | no | `100` | next | H-11: most applied deletes per session (`WRITE_CAP`; 100 since 3.0). `0` = no cap. |
+| `SN_MAX_BATCH_WRITES` | no | `50` | next | H-11: most write (non-GET) sub-requests in one `servicenow_batch` (`WRITE_CAP`; 50 since 3.0). `0` = no cap. |
 | `SN_ENV` | no | — | next | H-11: marks the default profile `prod`, `test` or `dev` (`SN_PROFILE_<NAME>_ENV` for others). A `prod` profile stays in plan mode even when apply is configured unless `SN_PROD_WRITES` (`SN_PROFILE_<NAME>_PROD_WRITES`) is `I_UNDERSTAND`; its destructive applies are always confirmed (at least `SN_DESTRUCTIVE_CONFIRM=elicit`, also in apply mode — `CONFIRM_REQUIRED` for a client without elicitation); results carry `_meta.environment`; `use_instance` warns. `SN_PROFILE_<NAME>_WRITE_MODE` sets the write mode per profile. |
 | `SN_PROD_WRITES` | no | — | next | H-11: `I_UNDERSTAND` lets a `prod` default profile run in apply mode. |
 | `SN_UPDATE_SET` | no | — | next | S-6: update set (sys_id or exact name) that applied Table-tool writes (create / update / upsert / delete) land in; a per-call `update_set` overrides it. The plan names the set; the user's current update set is switched for the write and restored after it. Data-row tables are written unchanged. |
@@ -767,8 +768,8 @@ The local Markdown docs store (also home of the write journal — keep it out of
 | -------- | :------: | ------- | ----- | ----------- |
 | `SN_DOCS_DIR` | no | `docs/instance` | 1.0.0 | Directory the `docs` package reads/writes Markdown in. Relative paths resolve against the working directory. It also holds the per-profile write journal — add `docs/instance/` to `.gitignore` in any repository you run the server from. |
 | `SN_DOCS_MAX_FILE_BYTES` | no | `5242880` | next | Per-file size cap for the docs tools: larger writes are refused, reads return the first bytes with `truncated: true`, search skips the file. |
-| `SN_DOCS_STALE_DAYS` | no | `30` | next | `servicenow_docs_list` flags a generated document `stale` when its `sn_generated_at` is older than this many days. |
-| `SN_DOCS_SEARCH_MAX` | no | `200` | next | Most matches `servicenow_docs_search` returns; past it the result carries `truncated: true`. |
+| `SN_DOCS_STALE_DAYS` | no | `30` | next | `servicenow_list_docs` flags a generated document `stale` when its `sn_generated_at` is older than this many days. |
+| `SN_DOCS_SEARCH_MAX` | no | `200` | next | Most matches `servicenow_search_docs` returns; past it the result carries `truncated: true`. |
 | `SN_DIAGRAM_MAX_NODES` | no | `200` | next | Node cap for the generated Mermaid diagrams (table flow, event trace, where-used; tables in a detailed ER diagram). Nodes past it fold into one `+N more` node. |
 
 #### HTTP transport
@@ -853,8 +854,9 @@ trimmed in both, and table matching is case-insensitive — so
 `SN_TABLES_DENY=Change_Request, sys_user` works. Since H-11 a table entry may be
 a pattern (`*` any run, `?` one character): `SN_TABLES_DENY=sys_*` blocks
 `sys_user` and leaves `incident` alone. The order is: an exact deny, an exact
-allow, a pattern deny, the protected tables (writes, with
-`SN_PROTECTED_TABLES_WRITE=deny`), then the allowlist's patterns. Ask
+allow, a pattern deny, the protected tables (writes; denied by default since
+3.0, `SN_PROTECTED_TABLES_WRITE=allow` lifts it), then the allowlist's
+patterns. Ask
 `servicenow_explain_policy({table, action})` which rule decides, or read
 `servicenow://policy`.
 
@@ -1031,10 +1033,10 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `change` | `servicenow_get_change` | yes | Get a single change request by sys_id |
 | `change` | `servicenow_create_change` | no | Create a normal, standard or emergency change |
 | `change` | `servicenow_update_change` | no | Update fields on a change request by sys_id |
-| `change` | `servicenow_change_conflicts` | no | Read schedule conflicts for a change, or recalculate them (calculate=true) |
+| `change` | `servicenow_check_change_conflicts` | no | Read schedule conflicts for a change, or recalculate them (calculate=true) |
 | `knowledge` | `servicenow_search_knowledge` | yes | Full-text search of knowledge articles (Knowledge API), with optional encoded query and paging |
 | `knowledge` | `servicenow_get_knowledge_article` | yes | Get a knowledge article (content and metadata) by sys_id |
-| `knowledge` | `servicenow_knowledge_highlights` | yes | List featured or most-viewed knowledge articles for the current user |
+| `knowledge` | `servicenow_get_knowledge_highlights` | yes | List featured or most-viewed knowledge articles for the current user |
 | `cmdb` | `servicenow_list_cis` | yes | List configuration items of a CMDB class through the class-aware CMDB Instance API |
 | `cmdb` | `servicenow_get_ci` | yes | Get a CI with its attributes and inbound/outbound relations by class and sys_id |
 | `cmdb` | `servicenow_create_ci` | no | Create a CI via the CMDB Instance API (routed through Identification & Reconciliation) |
@@ -1045,7 +1047,7 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `scripts` | `servicenow_list_scripts` | yes | List script artefacts of one type as compact metadata (no source code); 'type' lists the standard and opt-i… |
 | `scripts` | `servicenow_get_script` | yes | Read one script artefact in full, including its source code and execution context |
 | `scripts` | `servicenow_search_code` | yes | Search script source for a literal substring across one or all script types |
-| `scripts` | `servicenow_table_logic` | yes | Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI po… |
+| `scripts` | `servicenow_describe_table_logic` | yes | Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI po… |
 | `scripts` | `servicenow_where_used` | yes | Find references to a table, field (table.field) or script: matching lines in script sources, rules/ACLs att… |
 | `flows` | `servicenow_trace_table_event` | yes | Trace what would run for a table operation, in order, without executing: display/before/after/async busines… |
 | `flows` | `servicenow_list_flows` | yes | List Flow Designer flows (sys_hub_flow) or legacy workflows (kind: 'workflow') as compact metadata |
@@ -1053,12 +1055,12 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `flows` | `servicenow_get_flow_runs` | yes | Read flow execution evidence from sys_flow_context — by flow sys_id or by the record (document) it ran agai… |
 | `flows` | `servicenow_explain_flow` | yes | Explain a flow/subflow (trigger, step tree, decoded inputs and pills, calls expanded), a custom action (inp… |
 | `codecheck` | `servicenow_lint_script` | yes | Run deterministic code-quality rules over one script artefact (hard-coded sys_ids/URLs, unbounded or in-loo… |
-| `codecheck` | `servicenow_lint_table` | yes | Lint every active business rule, client script and UI policy of a table (via table_logic), returning per-sc… |
-| `codecheck` | `servicenow_code_health` | no | Code-health report: script counts by type, ACL security scan (open, public-role, scripted, elevated ACLs, p… |
-| `docs` | `servicenow_docs_list` | yes | List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR), with per-file metadat… |
-| `docs` | `servicenow_docs_read` | yes | Read one Markdown document or generated .json companion from the local instance-documentation folder; the r… |
-| `docs` | `servicenow_docs_search` | yes | Search the local instance documentation for a substring; returns a snippet and the nearest heading per matc… |
-| `docs` | `servicenow_docs_write` | no | Create or overwrite a Markdown document in the local docs folder and refresh index.md |
+| `codecheck` | `servicenow_lint_table` | yes | Lint every active business rule, client script and UI policy of a table (via describe_table_logic), returni… |
+| `codecheck` | `servicenow_check_code_health` | no | Code-health report: script counts by type, ACL security scan (open, public-role, scripted, elevated ACLs, p… |
+| `docs` | `servicenow_list_docs` | yes | List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR), with per-file metadat… |
+| `docs` | `servicenow_read_doc` | yes | Read one Markdown document or generated .json companion from the local instance-documentation folder; the r… |
+| `docs` | `servicenow_search_docs` | yes | Search the local instance documentation for a substring; returns a snippet and the nearest heading per matc… |
+| `docs` | `servicenow_write_doc` | no | Create or overwrite a Markdown document in the local docs folder and refresh index.md |
 | `docs` | `servicenow_generate_er_diagram` | yes | Build a Mermaid erDiagram from sys_dictionary: an entity per table, a relationship per reference field |
 | `docs` | `servicenow_generate_table_flow` | yes | Mermaid flowchart of a record's lifecycle on a table: active business rules by phase (display/before/after/… |
 | `docs` | `servicenow_document_table` | no | Write <profile>/tables/<table>.md + .json from metadata only: inheritance, columns, referencing columns, ER… |
@@ -1078,14 +1080,14 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `artifacts` | `servicenow_list_artifacts` | yes | List records of any registry artifact type (business rules, UI policies, widgets, flows, catalog items, …) … |
 | `artifacts` | `servicenow_get_artifact` | yes | Read one artifact of any registry type in full: the record, its registry child records (e.g |
 | `artifacts` | `servicenow_explain_artifact` | yes | Explain one artifact of any registry type: summary, trigger fields, non-empty fields, children, referenced … |
-| `artifacts` | `servicenow_artifact_dependencies` | yes | Dependency graph of one artifact: outbound (reference fields, decoded JSON, script calls and GlideRecord ta… |
+| `artifacts` | `servicenow_get_artifact_dependencies` | yes | Dependency graph of one artifact: outbound (reference fields, decoded JSON, script calls and GlideRecord ta… |
 | `artifacts` | `servicenow_generate_fluent` | yes | Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope |
 | `artifacts` | `servicenow_upsert_artifact` | no | Create or update a registry artifact and its children (UI policy actions, portal page layout, catalog varia… |
 | `updatesets` | `servicenow_list_update_sets` | yes | List update sets (sys_update_set), newest first, with state, application scope and whether each is the user… |
 | `updatesets` | `servicenow_get_update_set` | yes | Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target name, action, t… |
 | `updatesets` | `servicenow_compare_update_set` | yes | Compare an update set's artefacts with another profile (live) or a stored snapshot: per artefact same / dif… |
-| `ops` | `servicenow_ops_read` | yes | Bounded operational views for 'why is it slow' triage: overview (all counts), syslog (recent entries by lev… |
-| `ops` | `servicenow_data_health` | yes | Data-quality counts for one table (twin of servicenow_code_health): duplicate groups over key_fields, and o… |
+| `ops` | `servicenow_read_ops` | yes | Bounded operational views for 'why is it slow' triage: overview (all counts), syslog (recent entries by lev… |
+| `ops` | `servicenow_check_data_health` | yes | Data-quality counts for one table (twin of check_code_health): duplicate groups over key_fields, and orphan… |
 | `history` | `servicenow_get_record_history` | yes | Read a record's change history: sys_audit field changes and sys_journal_field entries (comments, work_notes… |
 | `properties` | `servicenow_get_properties` | yes | Read system properties (sys_properties) by exact name or name prefix: value, type, description, read/write … |
 | `properties` | `servicenow_set_property` | no | Set the value of one existing system property (sys_properties) by name |
@@ -1107,6 +1109,43 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 
 All tools carry MCP annotations (`readOnlyHint`, `destructiveHint`,
 `idempotentHint`) so clients can apply the right confirmation UX.
+
+### Tool names (v3)
+
+Every tool is named `servicenow_<verb>_<noun>`. Parameters follow one
+vocabulary: `sys_id` is a record id, `table` is a table name (the CMDB tools
+still accept `class_name` as a deprecated alias), `fields` is the list of
+columns to return, and `values` is a write payload. Version 3.0 renamed these
+tools:
+
+<!-- GENERATED:TOOL-RENAMES:BEGIN (npm run docs:readme) -->
+
+_Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
+`npm run docs:readme` after changing it._
+
+| v2 name                            | v3 name                                | Why                                   |
+| ---------------------------------- | -------------------------------------- | ------------------------------------- |
+| `servicenow_artifact_dependencies` | `servicenow_get_artifact_dependencies` | No verb.                              |
+| `servicenow_change_conflicts`      | `servicenow_check_change_conflicts`    | No verb.                              |
+| `servicenow_code_health`           | `servicenow_check_code_health`         | No verb.                              |
+| `servicenow_data_health`           | `servicenow_check_data_health`         | No verb; parallels check_code_health. |
+| `servicenow_docs_list`             | `servicenow_list_docs`                 | Noun before verb.                     |
+| `servicenow_docs_read`             | `servicenow_read_doc`                  | Noun before verb.                     |
+| `servicenow_docs_search`           | `servicenow_search_docs`               | Noun before verb.                     |
+| `servicenow_docs_write`            | `servicenow_write_doc`                 | Noun before verb.                     |
+| `servicenow_knowledge_highlights`  | `servicenow_get_knowledge_highlights`  | No verb.                              |
+| `servicenow_ops_read`              | `servicenow_read_ops`                  | Noun before verb.                     |
+| `servicenow_table_logic`           | `servicenow_describe_table_logic`      | No verb.                              |
+
+<!-- GENERATED:TOOL-RENAMES:END -->
+
+Set `SN_LEGACY_TOOL_NAMES=1` to keep a 2.x client working for one minor
+release: the old names are registered as deprecated aliases of the new tools,
+and the old parameter names (`attachment_sys_id`, `item_sys_id`,
+`catalog_sys_id`, `test_sys_id`, `suite_sys_id`, `staging_table`, `fields` as
+a write payload, `attributes`) are accepted. Each use logs one deprecation
+warning. The tool manifest lists the renames (`toolRenames`) and each tool's
+accepted aliases.
 
 ### Tool packages
 
@@ -1266,7 +1305,7 @@ triage and data quality. Every section reads its own table; an unreadable
 table (ACL, table policy, missing table) reports `available: false` with the
 reason instead of failing the call, so a blank section never reads as healthy.
 
-- `servicenow_ops_read` — `kind`:
+- `servicenow_read_ops` — `kind`:
   - `overview` — the counts of every section below in one call.
   - `syslog` — entries of the last `minutes` (default 60, max 1440) at or
     above `level` (default `warning`), optional `source` fragment: counts by
@@ -1280,7 +1319,7 @@ reason instead of failing the call, so a blank section never reads as healthy.
 
   Rows are capped by `limit` (default 25, max 200).
 
-- `servicenow_data_health` — the data twin of `servicenow_code_health` for one
+- `servicenow_check_data_health` — the data twin of `servicenow_check_code_health` for one
   `table`, optionally scoped by `query` (no `^NQ` / `ORDERBY`): duplicate
   groups over `key_fields` (Aggregate API grouping, count > 1, capped by
   `limit`), and per reference field (`reference_fields`, default the first 10
@@ -1440,7 +1479,7 @@ fields and child tables):
   choice set or table its choices per element in sequence order, and a UI
   policy or data policy the effect on each field when its condition holds
   (and, with reverse-if-false, when it does not).
-- `servicenow_artifact_dependencies` — same identification plus `direction`
+- `servicenow_get_artifact_dependencies` — same identification plus `direction`
   (`outbound` / `inbound` / `both`, default), `depth` (1–3, default 1),
   `limit` (rows per inbound source, 1–100) and `format` (`json` or
   `mermaid`) → a dependency graph of `nodes` and `edges` (`from` depends on
@@ -1515,7 +1554,7 @@ Create an incident:
 // servicenow_create_record
 {
   "table": "incident",
-  "fields": {
+  "values": {
     "short_description": "Printer on 3rd floor is down",
     "urgency": "2",
     "impact": "2",
@@ -1546,7 +1585,7 @@ declaratively instead of calling a tool:
 | `servicenow://tables`                   | List of tables from `sys_db_object`.                                                                |
 | `servicenow://schema/{table}`           | Columns of a table from `sys_dictionary` (bound to the active profile).                             |
 | `servicenow://instances`                | Configured connection profiles: name, host, user, read-only flag, credential completeness.          |
-| `servicenow://{profile}/schema/{table}` | Columns of a table read through a specific named connection profile.                                |
+| `servicenow://profiles/{profile}/schema/{table}` | Columns of a table read through a specific named connection profile. The v2 URI `servicenow://{profile}/schema/{table}` still works until the next minor release (deprecated). |
 | `servicenow://docs/{+path}`             | A Markdown document from the local docs store (nested paths allowed), wrapped in an untrusted-content block. |
 | `servicenow://artifact-types`           | Artifact types the generic artifact tools accept: table, name / key / scope fields, child tables, SDK API, verified flag (`artifacts` package). |
 | `servicenow://reference/encoded-query`  | Encoded-query reference: syntax, `javascript:` values, limits (no `^` escaping, URL length, silently ignored fields, ACL-hidden rows) and how `fetchAll` pages. |

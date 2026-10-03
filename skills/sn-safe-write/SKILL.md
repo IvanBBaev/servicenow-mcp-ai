@@ -20,7 +20,11 @@ that way.
    `apply`. Show the user the preview (the fields that change, before and
    after).
 4. Apply only after the user approves this preview: repeat the same call with
-   `apply: true`. For configuration records pass `update_set` so the change is
+   `apply: true`. A destructive apply (`servicenow_delete_record`, a writing
+   `servicenow_batch`, `servicenow_revert_write`, …) also needs the
+   `plan_token` from that preview — the server refuses it with
+   `PLAN_REQUIRED` otherwise, and the plugin's hook stops it before it is
+   sent. For configuration records pass `update_set` so the change is
    captured.
 5. Verify: read the record back with `servicenow_get_record`.
 6. Undo path: `servicenow_list_writes` shows the local write journal;
@@ -32,5 +36,5 @@ that way.
 - One approval covers one previewed call. A changed payload needs a new plan.
 - Bulk changes go through `servicenow_batch` only after a single-record dry
   run succeeded.
-- Never paste secrets into `fields`; credentials change through
+- Never paste secrets into `values`; credentials change through
   `servicenow_set_credentials` only.

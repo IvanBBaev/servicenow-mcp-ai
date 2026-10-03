@@ -106,9 +106,15 @@ function readTokenFile(path: string): string {
   } catch (error) {
     throw new ServiceNowError(
       `Cannot read SN_TOKEN_FILE (${error instanceof Error ? error.message : String(error)}).`,
+      undefined,
+      undefined,
+      { code: "UNREADABLE" },
     );
   }
-  if (!token) throw new ServiceNowError("SN_TOKEN_FILE is empty.");
+  if (!token)
+    throw new ServiceNowError("SN_TOKEN_FILE is empty.", undefined, undefined, {
+      code: "UNREADABLE",
+    });
   return token;
 }
 
@@ -236,6 +242,9 @@ function readOAuthConfig(): OAuthConfig {
   ) {
     throw new ServiceNowError(
       `Unsupported SN_OAUTH_GRANT "${rawGrant}". Use password, client_credentials, refresh_token or jwt_bearer.`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const grantType: OAuthGrant = rawGrant;
@@ -553,6 +562,9 @@ export async function exchangeAuthorizationCode(
   if (typeof accessToken !== "string" || !accessToken) {
     throw new ServiceNowError(
       "Authorization Code exchange did not return an access_token.",
+      undefined,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE", source: "servicenow" },
     );
   }
   const ttl = Number(json.expires_in);
@@ -607,6 +619,9 @@ class OAuthProvider implements AuthProvider {
     if (typeof token !== "string" || !token) {
       throw new ServiceNowError(
         "OAuth token response did not contain an access_token.",
+        undefined,
+        undefined,
+        { code: "UNEXPECTED_RESPONSE", source: "servicenow" },
       );
     }
     const ttlSec = Number(json.expires_in);

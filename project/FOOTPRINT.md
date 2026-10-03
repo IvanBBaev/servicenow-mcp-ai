@@ -25,7 +25,7 @@ install is about half of that.
 | ------------------------------------------------- | ---------- | ----- |
 | `servicenow-mcp-ai` itself (build/, bin/, README) | 1,772 KB   | 7%    |
 | `zod` (our direct dependency, also the SDK's)     | 5,136 KB   | 20%   |
-| `dotenv` (our direct dependency)                  | 108 KB     | <1%   |
+| `acorn` (our direct dependency since S-12)        | ~568 KB    | 2%    |
 | `@modelcontextprotocol/sdk` itself                | 6,112 KB   | 24%   |
 | Everything the SDK pulls in (93 packages)         | ~12,300 KB | 48%   |
 

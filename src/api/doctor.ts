@@ -59,6 +59,11 @@ export interface DoctorReport {
   capabilities?: CapabilityReport;
   /** One-line, human-readable summary of the verdict. */
   summary: string;
+  /**
+   * M-2: the fix, when the verdict is not healthy — which env var to set or
+   * which role the user needs. Absent when there is nothing to fix.
+   */
+  hint?: string;
 }
 
 /**
@@ -110,6 +115,24 @@ function configureHint(config: DoctorConfig): string {
   }
 }
 
+/** M-2: the fix for a failed connectivity probe, per status and auth method. */
+export function connectionHint(
+  c: ConnectionProbe,
+  config: DoctorConfig,
+): string | undefined {
+  if (c.ok) return undefined;
+  if (c.status === 401) {
+    return `Check the credentials: ${configureHint(config)} servicenow_set_credentials updates them at runtime.`;
+  }
+  if (c.status === 403) {
+    return "Grant the user a role that can read sys_user over REST (e.g. itil), plus snc_platform_rest_api_access where REST access is restricted.";
+  }
+  if (c.status === null) {
+    return "Check SN_INSTANCE (the host must resolve and be reachable), the network, and the proxy settings (HTTPS_PROXY / NO_PROXY).";
+  }
+  return undefined;
+}
+
 /**
  * Run the full health check for the active profile. Returns a structured
  * report (never throws for the expected "not configured / unreachable / 401"
@@ -126,6 +149,7 @@ export async function runDoctor(): Promise<DoctorReport> {
       status: "not_configured",
       config,
       summary: `Profile "${profile}" is not configured (missing: ${config.missing.join(", ")}). ${configureHint(config)}`,
+      hint: configureHint(config),
     };
   }
 
@@ -136,11 +160,13 @@ export async function runDoctor(): Promise<DoctorReport> {
     : { ok: false, status: null, latencyMs: 0, message: "not configured" };
 
   if (!connection.ok) {
+    const hint = connectionHint(connection, config);
     return {
       status: "degraded",
       config,
       connection,
       summary: `Configured but not reachable — ${describeConnection(connection)}.`,
+      ...(hint ? { hint } : {}),
     };
   }
 
@@ -166,7 +192,16 @@ export async function runDoctor(): Promise<DoctorReport> {
       ? `Healthy — ${config.instance} reachable in ${connection.latencyMs}ms; ${capabilities.summary}`
       : `Degraded — ${config.instance} reachable, but ${capabilities.summary}`;
 
-  return { status, config, connection, capabilities, summary };
+  return {
+    status,
+    config,
+    connection,
+    capabilities,
+    summary,
+    ...(status === "degraded" && capabilities.recommendation
+      ? { hint: capabilities.recommendation }
+      : {}),
+  };
 }
 
 /** Short phrase for a failed connectivity probe (401/403/timeout/other). */
@@ -253,6 +288,9 @@ export function formatDoctorReport(report: DoctorReport): string {
 
   lines.push("");
   lines.push(report.summary);
+  if (report.hint && report.hint !== report.capabilities?.recommendation) {
+    lines.push(`Fix: ${report.hint}`);
+  }
   return lines.join("\n");
 }
 
@@ -265,6 +303,8 @@ export interface DoctorCheck {
   name: "credentials" | "connectivity" | "capabilities";
   ok: boolean;
   detail: string;
+  /** M-2: the fix for a failed check (absent when it passed). */
+  hint?: string;
 }
 
 /** The report's stages as a flat list; skipped stages are omitted. */
@@ -277,6 +317,7 @@ export function doctorChecks(report: DoctorReport): DoctorCheck[] {
       detail: config.configured
         ? `profile "${config.profile}" (${config.auth})`
         : `missing: ${config.missing.join(", ")}`,
+      ...(config.configured ? {} : { hint: configureHint(config) }),
     },
   ];
   if (report.connection) {
@@ -287,6 +328,7 @@ export function doctorChecks(report: DoctorReport): DoctorCheck[] {
       detail: c.ok
         ? `HTTP ${c.status} in ${c.latencyMs}ms`
         : describeConnection(c),
+      ...(connectionHint(c, config) ? { hint: connectionHint(c, config) } : {}),
     });
   }
   if (report.capabilities) {
@@ -294,6 +336,9 @@ export function doctorChecks(report: DoctorReport): DoctorCheck[] {
       name: "capabilities",
       ok: !report.capabilities.degraded,
       detail: report.capabilities.summary,
+      ...(report.capabilities.degraded && report.capabilities.recommendation
+        ? { hint: report.capabilities.recommendation }
+        : {}),
     });
   }
   return checks;

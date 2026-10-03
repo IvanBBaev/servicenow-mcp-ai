@@ -322,11 +322,22 @@ const capUsagePart = defineRuntimePart(
   },
 );
 
+/**
+ * H-11: an HTTP session runs in a child runtime (H-7); the stdio process in
+ * the root one. Picks the unset SN_MAX_WRITES_PER_SESSION default.
+ */
+function isHttpSession(): boolean {
+  return currentRuntime().parent !== undefined;
+}
+
 /** The caps and their usage in this session, for `get_status`. */
 export function getWriteCaps() {
   const u = currentRuntime().get(capUsagePart);
   return {
-    writes: { used: u.writes, max: getMaxWritesPerSession() || null },
+    writes: {
+      used: u.writes,
+      max: getMaxWritesPerSession(isHttpSession()) || null,
+    },
     deletes: { used: u.deletes, max: getMaxDeletesPerSession() || null },
   };
 }
@@ -361,7 +372,7 @@ export function assertWriteCap(
   const w = weightOf(entry, weight);
   if (w.writes === 0 && w.deletes === 0) return;
   const u = currentRuntime().get(capUsagePart);
-  const maxWrites = getMaxWritesPerSession();
+  const maxWrites = getMaxWritesPerSession(isHttpSession());
   const maxDeletes = getMaxDeletesPerSession();
   let message: string | undefined;
   if (maxDeletes && u.deletes + w.deletes > maxDeletes) {

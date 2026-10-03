@@ -116,6 +116,9 @@ export async function runOAuthLogin(
   if (!instance) {
     throw new ServiceNowError(
       "Set SN_INSTANCE (or the active profile's instance) before running login.",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const host = resolveHost(instance);
@@ -123,6 +126,9 @@ export async function runOAuthLogin(
   if (!clientId) {
     throw new ServiceNowError(
       "OAuth login needs SN_OAUTH_CLIENT_ID — register an Authorization Code OAuth API endpoint in ServiceNow first.",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const clientSecret = authEnv("OAUTH_CLIENT_SECRET")?.trim() || undefined;
@@ -134,6 +140,9 @@ export async function runOAuthLogin(
   if (redirect.hostname !== "localhost" && redirect.hostname !== "127.0.0.1") {
     throw new ServiceNowError(
       `SN_OAUTH_REDIRECT_URI must be a loopback URL (localhost / 127.0.0.1); got "${redirectUri}".`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const port = Number(redirect.port || "80");
@@ -172,13 +181,24 @@ export async function runOAuthLogin(
       clearTimeout(timer);
       server.close();
       if (ok && result.code) resolve(result.code);
-      else reject(new ServiceNowError(`OAuth login failed: ${result.error}`));
+      else
+        reject(
+          new ServiceNowError(
+            `OAuth login failed: ${result.error}`,
+            undefined,
+            undefined,
+            { code: "REQUEST_FAILED", source: "servicenow" },
+          ),
+        );
     });
     const timer = setTimeout(() => {
       server.close();
       reject(
         new ServiceNowError(
           "OAuth login timed out waiting for the browser redirect.",
+          undefined,
+          undefined,
+          { code: "TIMEOUT" },
         ),
       );
     }, opts.timeoutMs ?? 300_000);
@@ -187,6 +207,9 @@ export async function runOAuthLogin(
       reject(
         new ServiceNowError(
           `Could not start the loopback listener on ${redirectUri}: ${e.message}`,
+          undefined,
+          undefined,
+          { code: "INTERNAL_ERROR" },
         ),
       );
     });
@@ -209,6 +232,9 @@ export async function runOAuthLogin(
   if (!tokens.refreshToken) {
     throw new ServiceNowError(
       "The token response had no refresh_token — enable a refresh-token lifespan on the OAuth entity so the server can run non-interactively.",
+      undefined,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE", source: "servicenow" },
     );
   }
 

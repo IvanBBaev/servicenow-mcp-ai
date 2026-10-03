@@ -10,7 +10,6 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { snapshotInstance } from "../build/api/snapshot.js";
 import { compareInstances } from "../build/api/compare.js";
@@ -36,12 +35,7 @@ const DOCS_DIR = path.join(
 );
 process.env.SN_DOCS_DIR = DOCS_DIR;
 
-const FIXTURES = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "docs",
-  "writers",
-);
+const FIXTURES = path.join(import.meta.dirname, "fixtures", "docs", "writers");
 
 const PROD_HOST = "prod99999.service-now.com";
 const PROFILE_ENV = {

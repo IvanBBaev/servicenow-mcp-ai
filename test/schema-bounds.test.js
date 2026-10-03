@@ -25,57 +25,71 @@ import {
  */
 const INTENTIONALLY_UNBOUNDED = new Map([
   // Record field values: any column value, sized by the instance itself.
-  ["servicenow_create_record.fields{}", "field values (instance-sized)"],
-  ["servicenow_update_record.fields{}", "field values (instance-sized)"],
-  ["servicenow_upsert_record.fields{}", "field values (instance-sized)"],
+  ["servicenow_create_record.values{}", "field values (instance-sized)"],
+  ["servicenow_update_record.values{}", "field values (instance-sized)"],
+  ["servicenow_upsert_record.values{}", "field values (instance-sized)"],
   ["servicenow_upsert_record.key{}", "field values (instance-sized)"],
-  ["servicenow_upsert_artifact.fields{}", "field values (instance-sized)"],
+  ["servicenow_upsert_artifact.values{}", "field values (instance-sized)"],
   [
-    "servicenow_upsert_artifact.children[].fields{}",
+    "servicenow_upsert_artifact.children[].values{}",
     "field values (instance-sized; at most 200 children)",
   ],
-  ["servicenow_insert_import_set_row.fields{}", "field values"],
-  ["servicenow_create_change.fields{}", "field values"],
-  ["servicenow_update_change.fields{}", "field values"],
-  ["servicenow_create_ci.attributes{}", "CI attribute values"],
-  ["servicenow_update_ci.attributes{}", "CI attribute values"],
+  [
+    "servicenow_upsert_artifact.children[].fields{}",
+    "M-7 legacy alias of children[].values (SN_LEGACY_TOOL_NAMES=1 only)",
+  ],
+  ["servicenow_insert_import_set_row.values{}", "field values"],
+  ["servicenow_create_change.values{}", "field values"],
+  ["servicenow_update_change.values{}", "field values"],
+  ["servicenow_create_ci.values{}", "CI attribute values"],
+  ["servicenow_update_ci.values{}", "CI attribute values"],
   ["servicenow_identify_reconcile.items[].values{}", "CI attribute values"],
   ["servicenow_order_catalog_item.variables{}", "catalog variable values"],
   // Payloads capped by an SN_* setting at run time.
   ["servicenow_upload_attachment.content_base64", "SN_MAX_UPLOAD_BYTES"],
-  ["servicenow_docs_write.content", "SN_DOCS_MAX_FILE_BYTES"],
+  ["servicenow_write_doc.content", "SN_DOCS_MAX_FILE_BYTES"],
   ["servicenow_batch.requests[].body", "SN_MAX_BODY_BYTES"],
   // Left to S-9 (where-used rework) to avoid a merge conflict.
   ["servicenow_where_used.name", "S-9"],
 ]);
 
-/** Walk a zod schema, collecting every unbounded string, array and record leaf. */
+/**
+ * Walk a zod schema, collecting every unbounded string, array and record leaf.
+ * E-2: zod 4 keeps the definition on `_zod.def` (discriminated by `type`) and
+ * a `.max()` / `.length()` bound is a `max_length` / `length_equals` check.
+ */
 function unboundedLeaves(schema, path, out) {
-  const d = schema._def;
-  switch (d.typeName) {
-    case "ZodOptional":
-    case "ZodNullable":
-    case "ZodDefault":
+  const d = schema._zod.def;
+  const bounded = (d.checks ?? []).some((c) =>
+    ["max_length", "length_equals"].includes(c._zod.def.check),
+  );
+  switch (d.type) {
+    case "optional":
+    case "nullable":
+    case "default":
+    case "prefault":
+    case "nonoptional":
+    case "readonly":
+    case "catch":
       return unboundedLeaves(d.innerType, path, out);
-    case "ZodEffects":
-      return unboundedLeaves(d.schema, path, out);
-    case "ZodString":
-      if (!d.checks.some((c) => c.kind === "max" || c.kind === "length"))
-        out.push(path);
+    case "pipe":
+      return unboundedLeaves(d.in, path, out);
+    case "string":
+      if (!bounded) out.push(path);
       return;
-    case "ZodArray":
-      if (!d.maxLength) out.push(path);
-      return unboundedLeaves(d.type, `${path}[]`, out);
-    case "ZodObject":
-      for (const [k, v] of Object.entries(d.shape()))
+    case "array":
+      if (!bounded) out.push(path);
+      return unboundedLeaves(d.element, `${path}[]`, out);
+    case "object":
+      for (const [k, v] of Object.entries(d.shape))
         unboundedLeaves(v, `${path}.${k}`, out);
       return;
-    case "ZodRecord":
+    case "record":
       return unboundedLeaves(d.valueType, `${path}{}`, out);
-    case "ZodUnion":
+    case "union":
       for (const o of d.options) unboundedLeaves(o, path, out);
       return;
-    case "ZodUnknown":
+    case "unknown":
       out.push(path);
       return;
     default:
@@ -135,11 +149,11 @@ test("every tool declares all four annotation hints (M-8 / L4-07)", () => {
     }
   }
   const byName = new Map(ALL_TOOLS.map((s) => [s.name, s.annotations]));
-  assert.equal(byName.get("servicenow_docs_write").destructiveHint, true);
+  assert.equal(byName.get("servicenow_write_doc").destructiveHint, true);
   for (const name of [
-    "servicenow_docs_list",
-    "servicenow_docs_read",
-    "servicenow_docs_search",
+    "servicenow_list_docs",
+    "servicenow_read_doc",
+    "servicenow_search_docs",
   ]) {
     assert.equal(byName.get(name).openWorldHint, false, name);
   }

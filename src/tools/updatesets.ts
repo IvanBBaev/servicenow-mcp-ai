@@ -48,7 +48,7 @@ const setOutput = z
     application: z.string(),
     application_name: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -125,8 +125,8 @@ export const specs: AnyToolSpec[] = [
       count: z.number(),
       total: z.number().optional(),
       truncated: z.boolean(),
-      by_type: z.record(z.number()),
-      by_action: z.record(z.number()),
+      by_type: z.record(z.string(), z.number()),
+      by_action: z.record(z.string(), z.number()),
       updates: z.array(
         z
           .object({
@@ -137,7 +137,7 @@ export const specs: AnyToolSpec[] = [
             action: z.string(),
             table: z.string(),
           })
-          .passthrough(),
+          .loose(),
       ),
     },
     handler: async (args) => okStructured(await getUpdateSet(args)),
@@ -166,11 +166,11 @@ export const specs: AnyToolSpec[] = [
     },
     output: {
       update_set: setOutput,
-      against: z.record(z.string()),
+      against: z.record(z.string(), z.string()),
       count: z.number(),
       total: z.number().optional(),
       truncated: z.boolean(),
-      summary: z.record(z.number()),
+      summary: z.record(z.string(), z.number()),
       artefacts: z.array(
         z
           .object({
@@ -189,7 +189,7 @@ export const specs: AnyToolSpec[] = [
             fields: z.array(z.string()).optional(),
             reason: z.string().optional(),
           })
-          .passthrough(),
+          .loose(),
       ),
       warnings: z.array(z.string()).optional(),
       caveats: z.array(z.string()),

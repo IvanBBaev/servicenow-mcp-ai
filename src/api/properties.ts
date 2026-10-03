@@ -160,6 +160,8 @@ export async function resolveProperty(name: string): Promise<SnRecord> {
     throw new ServiceNowError(
       `More than one sys_properties row is named "${name}"; refusing an ambiguous write.`,
       409,
+      undefined,
+      { code: "AMBIGUOUS_KEY" },
     );
   }
   return records[0] as SnRecord;

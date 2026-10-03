@@ -74,7 +74,7 @@ export const TASK_TOOLS: ReadonlySet<string> = new Set([
   "servicenow_compare_instances",
   "servicenow_run_atf_test",
   "servicenow_run_atf_suite",
-  "servicenow_code_health",
+  "servicenow_check_code_health",
   "servicenow_query_table",
 ]);
 
@@ -352,7 +352,7 @@ const runAsTaskParam = z
  * when the flag is on. The same object is returned otherwise, so tools/list
  * is unchanged by default.
  */
-export function withTaskInput<T extends z.AnyZodObject>(
+export function withTaskInput<T extends z.ZodObject>(
   spec: AnyToolSpec,
   schema: T,
 ): T {
@@ -366,7 +366,7 @@ export function withTaskInput<T extends z.AnyZodObject>(
  * turns optional there; the handle body then validates like any result.
  * Otherwise the same object is returned, so tools/list is unchanged by default.
  */
-export function withTaskOutput<T extends z.AnyZodObject>(
+export function withTaskOutput<T extends z.ZodObject>(
   spec: AnyToolSpec,
   schema: T,
 ): T {
@@ -399,12 +399,20 @@ export async function runMaybeAsTask(
   if (spec.name === "servicenow_query_table" && rest.format !== "file") {
     return fail(
       "run_as_task on servicenow_query_table needs format:'file' (the S-11 export path).",
+      {
+        code: "TASKS_UNAVAILABLE",
+        hint: "Repeat the call with format:'file'.",
+      },
     );
   }
   const requestStore = extra.taskStore;
   if (!requestStore) {
     return fail(
       "run_as_task is unavailable: this server was started without a task store (SN_EXPERIMENTAL_TASKS).",
+      {
+        code: "TASKS_UNAVAILABLE",
+        hint: "Set SN_EXPERIMENTAL_TASKS=true and restart the server, or call the tool without run_as_task.",
+      },
     );
   }
   const store = taskStoreFor(currentRuntime());

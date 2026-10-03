@@ -414,7 +414,7 @@ async function withUpdateSetAccess(
   entry: MatrixEntry,
   keyPrefix: string,
 ): Promise<MatrixEntry> {
-  let canRead: boolean | null = null;
+  let canRead: boolean | null;
   try {
     // An undecided preference probe (no user, policy denial) adds no request.
     if (entry.status === "unknown") throw new Error("not probed");

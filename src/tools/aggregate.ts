@@ -22,7 +22,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
-    output: { result: z.unknown() },
+    output: { result: z.unknown().optional() },
     input: {
       table: tableName().describe("Table name, e.g. 'incident'."),
       query: encodedQuery()
@@ -56,6 +56,7 @@ export const specs: AnyToolSpec[] = [
       if (!hasAggregation) {
         return fail(
           "At least one aggregation is required: count, avg_fields, min_fields, max_fields or sum_fields.",
+          { code: "INVALID_INPUT" },
         );
       }
       const result = await aggregate({

@@ -5,7 +5,7 @@ Related documents: [PRODUCT-STATE.md](PRODUCT-STATE.md) (state), [IMPLEMENTATION
 
 ## 1. What servicenow-mcp is
 
-A TypeScript **stdio MCP server** for ServiceNow: an LLM client (Claude, VS Code Chat, Inspector…) gets 97 tools in 26 packages over the ServiceNow REST surface — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, Email, CMDB/IRE, script intelligence, flow tracing, local code checking, ATF runs, Mermaid generators and local self-documentation, a journal-based revert of local writes, generic reads of any registered artifact type (with its child records) and a plan-first upsert of scalar and parent/child artifact types (`servicenow_upsert_artifact`), Fluent (`.now.ts`) source generation for scalar artifact types (`servicenow_generate_fluent`), record history (audit + journal), system properties and user / group / role lookups. One process, no runtime dependencies beyond `@modelcontextprotocol/sdk`, `zod` and `dotenv`; all I/O is JSON over stdio (logs go to stderr only).
+A TypeScript **stdio MCP server** for ServiceNow: an LLM client (Claude, VS Code Chat, Inspector…) gets 97 tools in 26 packages over the ServiceNow REST surface — Table, Aggregate, Attachment, Import Set, Batch, Service Catalog, Change Management, Knowledge, Email, CMDB/IRE, script intelligence, flow tracing, local code checking, ATF runs, Mermaid generators and local self-documentation, a journal-based revert of local writes, generic reads of any registered artifact type (with its child records) and a plan-first upsert of scalar and parent/child artifact types (`servicenow_upsert_artifact`), Fluent (`.now.ts`) source generation for scalar artifact types (`servicenow_generate_fluent`), record history (audit + journal), system properties and user / group / role lookups. One process, no runtime dependencies beyond `@modelcontextprotocol/sdk`, `zod` and `acorn` (the S-12 script parser; the env file is read by Node's own `process.loadEnvFile`); all I/O is JSON over stdio (logs go to stderr only).
 
 The principles that hold the design together:
 
@@ -113,7 +113,7 @@ sequenceDiagram
     T->>T: expectResultArray → okQueryResult (truncation guard)
     T-->>S: {content: [JSON text]}
     S-->>C: result
-    Note over T,C: on exception → fail(): {error: {message, status, snDetail}}
+    Note over T,C: on exception → fail(): {error, code, source, status?, hint?, detail?}
 ```
 
 Key details:
@@ -159,7 +159,7 @@ The password is not part of the cache key → credential changes explicitly clea
 
 ## 6. Configuration
 
-- **Env-first:** values supplied by the MCP client always win (`dotenv` with `override:false`); the `.env` file is resolved as `SN_ENV_FILE` → XDG (`~/.config/servicenow-mcp-ai/.env`) → project root.
+- **Env-first:** values supplied by the MCP client always win (`process.loadEnvFile` never overrides a variable that is already set); the `.env` file is resolved as `SN_ENV_FILE` → XDG (`~/.config/servicenow-mcp-ai/.env`) → project root.
 - **Profile ConfigStore (credentials):** the environment is only the _initial_ source — the first read of a profile takes an immutable snapshot; `saveCredentials` writes the file atomically (temp + rename), updates `process.env` (for child processes) and swaps the store in a single assignment. A torn read ("new user + old password") is structurally impossible. Named profiles: `SN_PROFILE_<NAME>_*` keys; the bare keys are the `default` profile; `SN_ACTIVE_PROFILE` (or a per-call `instance` argument) selects one.
 - **All settings** (timeout, retries, limits, packages, log level) are read through `settings.ts` with validating parsers and documented defaults (README env table + `.env.example`).
 
@@ -181,10 +181,14 @@ flowchart TD
 
 The `core` profile = table + schema + aggregate + attachment (+ the always-on admin tools = 19 tools); `all` = all 17 opt-in packages (61 tools; the always-on `admin` package is the 18th, bringing the full count to 67). `effectivePackages()` is the single source of truth — used by registration, the status payload and the generators.
 
+**Naming (M-7).** Every tool is `servicenow_<verb>_<noun>`; `src/mcp/naming.ts` holds the names (`TOOLS`), the v2 → v3 alias map (`TOOL_RENAMES`) and the overlap reasons (`TOOL_OVERLAPS`). Under `SN_LEGACY_TOOL_NAMES=1` the registry adds one alias tool per renamed tool (same schema and handler, gated with its package); `defineTool` maps renamed parameters (`legacyParams` under the flag, `deprecatedParams` always) onto the canonical ones before validation. The manifest (v4) publishes all three.
+
 ## 8. Errors and results
 
 - Every tool response is JSON text: `ok(data)` / `okStructured(data)` (adds structuredContent for tools with an outputSchema) / `okQueryResult(records, total)` (with truncation) / `fail(error)`.
-- `fail` preserves the `ServiceNowError` structure: `{ error: { message, status, snDetail } }` — the model reacts differently to 401 (credentials), 403 (policy/ACL), 429 (rate limit).
+- **Error contract v2 (M-2, B3).** `fail` emits one flat payload: `{ error, code, source, status?, hint?, detail? }`. `error` is the message; `code` is always present — a fixed code from `ERROR_CODES` in `src/core/errors.ts` (`NOT_CONFIGURED`, `POLICY_DENIED`, `PLAN_REQUIRED`, `PLAN_EXPIRED`, `UNREADABLE`, `INSTANCE_HTML_RESPONSE`, `RECIPIENT_NOT_ALLOWED`, `CREDENTIALS_INCOMPLETE`, `CANCELLED`, …) or the open family `INSTANCE_HTTP_<status>`; `source` is `servicenow` (the instance answered with an error), `policy` (this server's policy or a confirmation step refused) or `server` (anything else this server detected); `hint` is the fix in one sentence (policy denials name the setting, the doctor names the role or variable); `detail` is the instance's own error object. `errorCodeOf` derives the code: the error's own, else `INSTANCE_HTTP_<status>` for an upstream answer (`rawRequest` marks every non-2xx `source: "servicenow"`), else a status-derived code (400/422 → `INVALID_INPUT`, 404 → `NOT_FOUND`, 409 → `CONFLICT`, 413 → `PAYLOAD_TOO_LARGE`, else `REQUEST_FAILED`), `INVALID_INPUT` for a zod error and `INTERNAL_ERROR` otherwise; `errorSourceOf` takes the error's own source, else the code's row. The tool manifest (v3) publishes the table as `errorCodes`.
+- **Error classes (ARCH-11b).** `IntegrationError` is the neutral base the result boundary narrows on; `ServiceNowError` and `JiraError` (dark scaffold) are sibling subclasses; `PackageError` (M-5) extends the base.
+- **Resources** throw `McpError` (M-2): a wrong URI, unknown profile or missing document is `InvalidParams` (the SDK has no ResourceNotFound), anything else `InternalError`; `data` carries the same `{ code, source, hint? }`.
 - `pluginCall` translates ServiceNow's most misleading error: a 404 for a whole namespace (= inactive plugin) is distinguished from a 404 for a missing record; the namespace variant is cached for 5 minutes (fail-fast, no network) and surfaces as `pluginApis` in the status payload.
 
 ## 9. Test architecture

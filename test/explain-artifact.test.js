@@ -7,7 +7,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -42,11 +41,7 @@ const SDK_OFF = { SN_SDK_MANAGED_SCOPES: undefined, SN_SDK_PROJECT_DIRS: "" };
 const APP_ID = "a".repeat(32);
 const id = (c) => c.repeat(32);
 
-const FIXTURES = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "fixtures",
-  "explain",
-);
+const FIXTURES = path.join(import.meta.dirname, "fixtures", "explain");
 
 /** Compare parsed JSON so prettier formatting of the golden does not matter. */
 function golden(name, actual) {

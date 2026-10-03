@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import dotenv from "dotenv";
+import { parseEnv as parseEnvFile } from "node:util";
 
 import {
   getCredentials,
@@ -14,6 +14,10 @@ import {
   getEnvPath,
 } from "../build/core/config.js";
 import { baselineEnv, withEnv } from "./helpers.js";
+
+// E-2: Node's env-file parser (dotenv's replacement); a plain object, since
+// Node 26 returns a null-prototype one that deepStrictEqual would reject.
+const parseEnv = (text) => ({ ...parseEnvFile(text) });
 
 baselineEnv();
 
@@ -125,8 +129,8 @@ test("saveCredentials persists, updates env and swaps the snapshot at once", asy
       assert.equal(updated.instance, "dev00000.service-now.com");
       assert.equal(getCredentials().password, "n3w");
 
-      // Persisted to the env file in dotenv round-trippable form.
-      const parsed = dotenv.parse(await fs.readFile(envFile, "utf8"));
+      // Persisted to the env file in env-file round-trippable form.
+      const parsed = parseEnv(await fs.readFile(envFile, "utf8"));
       assert.equal(parsed.SN_USER, "bob");
       assert.equal(parsed.SN_PASSWORD, "n3w");
       assert.equal(parsed.SN_INSTANCE, undefined, "untouched keys stay absent");
