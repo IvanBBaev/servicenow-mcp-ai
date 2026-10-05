@@ -815,11 +815,11 @@ items:
     title: "Instance Scan"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "C"
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: 'Phase C (read) / D (run). `check_code_health` `kind:"instance_scan"` beside the server''s own findings; optional CI/CD run behind the ATF rails (NX-03).'
+    notes: "**Read done 2026-10-05 (93071c9).** `src/api/instance-scan.ts`: latest `scan_result` + its `scan_finding` rows by priority and artefact type, plus the \"both agree\" set with our lint, as an Instance Scan section of `check_code_health` (always on, degrades to unavailable). 0 B tools/list; the `kind:\"instance_scan\"` parameter waits for O-10; tables unverified until O-5. Open: phase D run behind the ATF rails (NX-03)."
   - id: "N-4"
     title: "CI/CD promotion lane"
     pillar: "N"
@@ -878,20 +878,20 @@ items:
     title: "hardening compliance"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: "C"
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Phase C. Versioned hardening rule table over `sys_properties`; `document_instance` kind `security` + `check_code_health` section (NX-17)."
+    notes: "**Done 2026-10-05 (93071c9).** Versioned hardening rule table over `sys_properties`; `document_instance` kind `security` + `check_code_health` section. 0 B tools/list (NX-17)."
   - id: "N-14"
     title: "cross-scope access report"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: "C"
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Phase C. Outbound cross-scope calls joined to `sys_scope_privilege` and restricted caller access in `document_app` kind `security` (NX-18)."
+    notes: "**Done 2026-10-05 (93071c9).** Outbound cross-scope calls joined to `sys_scope_privilege` and restricted caller access in `document_app` kind `security`. 0 B tools/list (NX-18)."
   - id: "N-15"
     title: "index and table-size advisor"
     pillar: "N"
@@ -932,20 +932,20 @@ items:
     title: "prompts for the N flagships"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Ships with N-1 / N-2 / N-13: `review-upgrade`, `why-no-access`, `security-posture` (NX-24)."
+    notes: "**Done 2026-10-05 (93071c9).** `servicenow_security_posture` prompt; `review-upgrade` / `why-no-access` ship with N-1 / N-2 (NX-24)."
   - id: "N-20"
     title: "elevated-privilege roles"
     pillar: "N"
     effort: "M–L"
-    status: "open"
+    status: "partial"
     phase: null
-    done: null
+    done: "2026-10-05"
     gates: ["O-16"]
-    notes: "EL-0 PDI spike, EL-1 detection and EL-2 `ELEVATION_REQUIRED` in phase A. EL-3 … EL-5 (session cookie jar, elevation scoped to one apply, consent and journal) in phase D, behind O-16 (NX-25 … NX-29)."
+    notes: "**EL-1 / EL-2 done 2026-10-05 (93071c9).** The `roles` capability probe reports `elevatable` roles; a 403 on an elevation-gated Table API write (`sys_security_acl*` → security_admin) becomes `ELEVATION_REQUIRED`. 0 B tools/list. Open: EL-0 PDI spike (O-5), EL-3 … EL-5 behind O-16 (NX-25 … NX-29)."
   - id: "N-21"
     title: "type-based field masking"
     pillar: "N"
