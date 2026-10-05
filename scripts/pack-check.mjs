@@ -8,14 +8,14 @@
 //   (c) tests or instance docs (test/, docs/instance/);
 //   (d) a top-level entry outside the allow-list below, which is exactly what
 //       the 2.0.1 tarball contained;
-//   (e) an unpacked size above 800 KB.
+//   (e) an unpacked size above 3 MB.
 //
-// Why 800 KB: the 2.0.1 tarball unpacks to ~390 KB and 3.0 keeps growing —
-// every new tool package and the SDK artefact registry add to build/ (the
-// 3.0 work tree reached ~640 KB on 2026-09-24, past the first 600 KB
-// ceiling). 800 KB still catches the mistakes this guard exists for (src/,
-// docs/, coverage/ or the maps leaking in), each of which adds far more than
-// the remaining headroom.
+// Why 3 MB: the 2.0.1 tarball unpacked to ~390 KB; 3.0 grew build/ to ~2.4 MB
+// (97 tools in 26 packages plus script intelligence, explainers, document
+// and Fluent generators), past the earlier 600 KB and 800 KB ceilings. The
+// owner raised it to 3 MB on 2026-10-05 instead of bundling build/. 3 MB
+// still catches the mistakes this guard exists for: src/, docs/, coverage/
+// or the source maps leaking in each add far more than the remaining headroom.
 //
 // Wired into `npm run check`, hence into prepublishOnly and publish.yml.
 import { execFileSync } from "node:child_process";
@@ -27,7 +27,7 @@ const ALLOWED_TOP_LEVEL = new Set([
   "bin",
   "build",
 ]);
-const MAX_UNPACKED_BYTES = 800 * 1024;
+const MAX_UNPACKED_BYTES = 3 * 1024 * 1024;
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(1)} KB`;
 

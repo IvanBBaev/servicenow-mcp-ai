@@ -183,7 +183,7 @@ taken). Publishing happens **from CI on a version tag**, never from a laptop.
    `npm publish --dry-run` — the file list must be `build` + `bin` + README +
    LICENSE; `npm run pack:check`, part of the gate, fails on a `.map`, `jira/`,
    `test/` or `docs/instance/` entry, an unexpected top-level file or an
-   unpacked size above 800 KB).
+   unpacked size above 3 MB).
 3. Bump + tag: `npm version <patch|minor|major>` then
    `git push --follow-tags`.
 4. The [`publish.yml`](.github/workflows/publish.yml) workflow runs on the `v*`
