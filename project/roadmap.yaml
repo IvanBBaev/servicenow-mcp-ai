@@ -1265,11 +1265,11 @@ items:
     title: "tool-surface security scan"
     pillar: "N"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: null
     done: "2026-10-05"
     gates: []
-    notes: "**P0. Done 2026-10-05 (75e34b2).** `scripts/scan-surface.mjs` in `npm run check` (97 tools, server texts, plugin files clean); OWASP MCP Top 10 mapping in SECURITY.md (TK-32, TK-33). Open: Windows `start` URL split (MCP05). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (75e34b2).** `scripts/scan-surface.mjs` in `npm run check` (97 tools, server texts, plugin files clean); OWASP MCP Top 10 mapping in SECURITY.md (TK-32, TK-33). **Windows `start` URL split (MCP05) closed 2026-10-05 (local):** `browserCommand` uses `rundll32 url.dll,FileProtocolHandler`, http(s) only. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-57"
     title: "token measurement harness"
     pillar: "N"

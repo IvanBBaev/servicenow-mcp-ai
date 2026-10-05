@@ -77,13 +77,38 @@ function escapeHtml(s: string): string {
   );
 }
 
-function openBrowser(url: string): void {
-  const platform = process.platform;
-  const cmd =
-    platform === "darwin" ? "open" : platform === "win32" ? "cmd" : "xdg-open";
-  const args = platform === "win32" ? ["/c", "start", "", url] : [url];
+/**
+ * The command that opens `url` in the system browser, or undefined for a URL
+ * that is not http(s). No shell is involved on any platform: on Windows
+ * `cmd /c start` would let cmd.exe split the URL at `&` (N-56, MCP05), so the
+ * URL goes to the shell's URL handler through rundll32 as one argument.
+ */
+export function browserCommand(
+  url: string,
+  platform: NodeJS.Platform = process.platform,
+): { cmd: string; args: string[] } | undefined {
+  let protocol: string;
   try {
-    const child = spawn(cmd, args, { stdio: "ignore", detached: true });
+    protocol = new URL(url).protocol;
+  } catch {
+    return undefined;
+  }
+  if (protocol !== "https:" && protocol !== "http:") return undefined;
+  if (platform === "darwin") return { cmd: "open", args: [url] };
+  if (platform === "win32") {
+    return { cmd: "rundll32", args: ["url.dll,FileProtocolHandler", url] };
+  }
+  return { cmd: "xdg-open", args: [url] };
+}
+
+function openBrowser(url: string): void {
+  const command = browserCommand(url);
+  if (!command) return;
+  try {
+    const child = spawn(command.cmd, command.args, {
+      stdio: "ignore",
+      detached: true,
+    });
     child.on("error", () => {
       /* best-effort — the URL is also printed */
     });

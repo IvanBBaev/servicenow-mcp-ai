@@ -12,7 +12,11 @@ import {
   exchangeAuthorizationCode,
   invalidateTokens,
 } from "../build/core/auth.js";
-import { parseRedirect, runOAuthLogin } from "../build/core/oauth-login.js";
+import {
+  browserCommand,
+  parseRedirect,
+  runOAuthLogin,
+} from "../build/core/oauth-login.js";
 import { queryTable } from "../build/api/table.js";
 import {
   baselineEnv,
@@ -248,4 +252,34 @@ test("runOAuthLogin validates instance, client id and a loopback redirect", asyn
       await assert.rejects(runOAuthLogin({ open: false }), /loopback/);
     },
   );
+});
+
+test("browserCommand never hands the URL to a shell (N-56, MCP05)", () => {
+  const url =
+    "https://dev.service-now.com/oauth_auth.do?response_type=code&client_id=a&state=b";
+  assert.deepEqual(browserCommand(url, "win32"), {
+    cmd: "rundll32",
+    args: ["url.dll,FileProtocolHandler", url],
+  });
+  assert.deepEqual(browserCommand(url, "darwin"), { cmd: "open", args: [url] });
+  assert.deepEqual(browserCommand(url, "linux"), {
+    cmd: "xdg-open",
+    args: [url],
+  });
+});
+
+test("browserCommand opens only http(s) URLs", () => {
+  for (const url of [
+    "file:///C:/Windows/System32/calc.exe",
+    "javascript:x",
+    "not a url",
+  ]) {
+    for (const platform of ["win32", "darwin", "linux"]) {
+      assert.equal(
+        browserCommand(url, platform),
+        undefined,
+        `${platform} ${url}`,
+      );
+    }
+  }
 });
