@@ -423,6 +423,125 @@ test("types without an emitter fall back to Record() and say so in unsupported[]
   assert.deepEqual(ldap.unsupported, []);
 });
 
+// N-29 / N-30: the workspace and data broker registry types have no Fluent
+// API, so each one falls back to Record(). One golden per group holds every
+// type's bundle (npm run fluent:verify builds them against the real SDK).
+const sid = (s) => s.repeat(32 / s.length);
+const rec = (type, record) => ({
+  type,
+  sources: [
+    {
+      scope: SCOPE,
+      record: { ...record, sys_scope: SCOPE.sys_id },
+      children: [],
+    },
+  ],
+});
+const FALLBACK_GROUPS = {
+  workspace_fallback: [
+    rec("ux_declarative_action", {
+      sys_id: sid("b1"),
+      action_name: "acme_escalate",
+      label: "Escalate",
+      table: "incident",
+      active: "true",
+      order: "100",
+      model: sid("b2"),
+      declarative_action_type: "client_script",
+      action: sid("b3"),
+      client_action: sid("b4"),
+      ui_component: sid("b5"),
+      workspace: sid("b6"),
+      view: sid("b7"),
+      form_position: "action_bar",
+      button_type: "primary",
+      record_selection_required: "false",
+      record_conditions: "active=true^priority<=2",
+      experience_restricted: "false",
+      server_script: "current.escalation = 1;\ncurrent.update();",
+      client_script: "function onClick(g_form) { g_form.save(); }",
+    }),
+    rec("ux_declarative_action_definition", {
+      sys_id: sid("b3"),
+      action_name: "acme_escalate",
+      label: "Escalate",
+      table: "incident",
+    }),
+    rec("ux_declarative_action_payload", {
+      sys_id: sid("b4"),
+      key: "ACME_ESCALATE",
+      label: "Escalate payload",
+      payload: '{"sysId":"{{sysId}}","table":"{{table}}"}',
+    }),
+    rec("uib_app_theme", {
+      sys_id: sid("b8"),
+      app: sid("b9"),
+      theme: sid("ba"),
+      order: "100",
+    }),
+    rec("aw_master_config", {
+      sys_id: sid("b6"),
+      name: "Acme Agent Workspace",
+      active: "true",
+    }),
+    rec("aw_list", {
+      sys_id: sid("bb"),
+      title: "Open incidents",
+      table: "incident",
+      condition: "active=true",
+      workspace: sid("b6"),
+    }),
+  ],
+  uib_broker_fallback: [
+    rec("uib_data_broker_rest", {
+      sys_id: sid("c1"),
+      name: "Acme weather",
+      mutates_server_data: "false",
+      properties: '[{"name":"city","fieldType":"string"}]',
+    }),
+    rec("uib_data_broker_graphql", {
+      sys_id: sid("c2"),
+      name: "Acme incident query",
+      mutates_server_data: "true",
+      properties: '[{"name":"sysId","fieldType":"string"}]',
+    }),
+  ],
+};
+const fallbackBundles = (name) =>
+  FALLBACK_GROUPS[name].map((c) =>
+    emitFluent(getArtifactType(c.type), c.sources, c.type, null),
+  );
+
+for (const name of Object.keys(FALLBACK_GROUPS)) {
+  test(`fluent golden: ${name}`, () => {
+    golden(name, fallbackBundles(name).map(bundleText).join("\n"));
+  });
+}
+
+test("workspace and data broker types fall back to Record() with one api entry each", () => {
+  for (const name of Object.keys(FALLBACK_GROUPS)) {
+    for (const b of fallbackBundles(name)) {
+      const main = b.files.find((f) => f.path.endsWith(".now.ts"));
+      assert.match(main.content, /^Record\(\{/m, main.path);
+      assert.deepEqual(parseErrors(main.path, main.content), [], main.path);
+      assert.deepEqual(
+        b.unsupported.map((u) => [u.kind, /no Fluent API/.test(u.reason)]),
+        [["api", true]],
+        main.path,
+      );
+    }
+  }
+  // The assignment's scripts go to sidecars; the client script is client-side.
+  const [action] = fallbackBundles("workspace_fallback");
+  assert.deepEqual(
+    action.files.map((f) => f.path).filter((p) => !p.endsWith(".ts")),
+    [
+      "ux_declarative_action_escalate.client_script.client.js",
+      "ux_declarative_action_escalate.server_script.server.js",
+    ],
+  );
+});
+
 test("unmapped fields and unreadable records are reported, not lost", () => {
   const t = getArtifactType("business_rule");
   const [base] = CASES.business_rule.sources;

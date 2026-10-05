@@ -65,6 +65,7 @@ import {
 } from "./security.js";
 import { assertNoCaret, mdTable, snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { WORKSPACE_CATEGORY } from "./uib-workspace.js";
 
 /**
  * S-15 — document generators. Each kind of document collects structured
@@ -1673,6 +1674,7 @@ async function readSection(
   table: string,
   fields: string[],
   query: string,
+  opts: { absentIsEmpty?: boolean } = {},
 ): Promise<SectionRead> {
   throwIfCancelled();
   try {
@@ -1692,8 +1694,42 @@ async function readSection(
     };
   } catch (error) {
     if (isCancelled(error)) throw error;
+    // A plugin table that is not installed (404) has no rows to report.
+    if (
+      opts.absentIsEmpty &&
+      error instanceof ServiceNowError &&
+      error.status === 404
+    ) {
+      return { table, rows: [] };
+    }
     return { table, rows: [], unreadable: true };
   }
+}
+
+/** Rows per `IN` list in one read (keeps the encoded query URL short). */
+const IN_CHUNK = 100;
+
+/** {@link readSection} over `field IN values`, in chunks; no values, no read. */
+async function readSectionIn(
+  table: string,
+  fields: string[],
+  field: string,
+  values: string[],
+  rest = "",
+): Promise<SectionRead> {
+  const unique = [...new Set(values.filter(Boolean))];
+  const out: SectionRead = { table, rows: [] };
+  for (let i = 0; i < unique.length; i += IN_CHUNK) {
+    const part = await readSection(
+      table,
+      fields,
+      `${field}IN${unique.slice(i, i + IN_CHUNK).join(",")}${rest}`,
+    );
+    out.rows.push(...part.rows);
+    if (part.unreadable) out.unreadable = true;
+    if (part.truncated) out.truncated = true;
+  }
+  return out;
 }
 
 const NOT_READABLE = "_Not readable for this user — see Caveats._";
@@ -2115,11 +2151,38 @@ export interface InstanceDocData {
   apps: Record<string, AppRow[]>;
   automation: Record<string, AutomationStat | null>;
   updateSets: SectionRead;
+  /** N-30: workspaces and the Agent Workspace items still to migrate. */
+  workspaces?: InstanceWorkspaces;
   /** The documents this run writes besides the README. */
   documents: InstanceDocLink[];
   /** Collector sources that could not be read or hit the cap. */
   unreadable: string[];
   capped: string[];
+}
+
+/**
+ * N-30 — the instance's workspaces: configurable workspaces (page registries
+ * in the workspace experience category) beside legacy Agent Workspace
+ * configs, and the Agent Workspace items a migration has to move, each with
+ * its configurable counterpart when one is found.
+ */
+export interface InstanceWorkspaces {
+  kind: "configurable" | "agent" | "mixed" | "none";
+  configurable: {
+    sys_id: string;
+    title: string;
+    path: string;
+    scope: string;
+  }[];
+  agent: { sys_id: string; name: string; scope: string; active: string }[];
+  migration: {
+    table: string;
+    sys_id: string;
+    name: string;
+    scope: string;
+    /** The configurable-workspace record that already covers it. */
+    counterpart?: string;
+  }[];
 }
 
 /** The instance-run context the README and artifact-types kinds read. */
@@ -2133,6 +2196,127 @@ export interface InstanceRunContext {
   discovery?: DiscoveryRun;
   /** Data of the documents built so far, keyed `<kind>:<target>` (S-16). */
   built?: ReadonlyMap<string, unknown>;
+}
+
+/**
+ * N-30 — read the instance's workspaces (see {@link InstanceWorkspaces}).
+ * The Agent Workspace tables are plugin tables: a 404 means none, not a
+ * caveat. AW lists and restricted declarative actions are read only when an
+ * Agent Workspace config exists. Unverified until O-5 (PDI): the category
+ * sys_id, `sys_aw_list.table` and the 404 answer for an absent plugin.
+ */
+async function collectWorkspaces(): Promise<{
+  data: InstanceWorkspaces;
+  reads: SectionRead[];
+}> {
+  const v = (r: Record<string, string>, field: string): string =>
+    r[field] ?? "";
+  const categories = await readSection(
+    "sys_ux_registry_m2m_category",
+    ["page_registry"],
+    `experience_category=${WORKSPACE_CATEGORY}`,
+  );
+  const registries = await readSectionIn(
+    "sys_ux_page_registry",
+    ["sys_id", "title", "path", "sys_scope.scope"],
+    "sys_id",
+    categories.rows.map((r) => v(r, "page_registry")),
+    "^ORDERBYtitle",
+  );
+  const configs = await readSection(
+    "sys_aw_master_config",
+    ["sys_id", "name", "active", "sys_scope.scope"],
+    "ORDERBYname",
+    { absentIsEmpty: true },
+  );
+  const reads = [categories, registries, configs];
+  const configurable = registries.rows.map((r) => ({
+    sys_id: v(r, "sys_id"),
+    title: v(r, "title"),
+    path: v(r, "path"),
+    scope: v(r, "sys_scope.scope"),
+  }));
+  const agent = configs.rows.map((r) => ({
+    sys_id: v(r, "sys_id"),
+    name: v(r, "name"),
+    scope: v(r, "sys_scope.scope"),
+    active: v(r, "active"),
+  }));
+  const migration: InstanceWorkspaces["migration"] = [];
+  if (agent.length) {
+    const lists = await readSection(
+      "sys_aw_list",
+      ["sys_id", "title", "table", "sys_scope.scope"],
+      "ORDERBYtitle",
+      { absentIsEmpty: true },
+    );
+    const actions = await readSection(
+      "sys_declarative_action_assignment",
+      ["sys_id", "label", "action_name", "table", "sys_scope.scope"],
+      "workspaceISNOTEMPTY^ORDERBYtable^ORDERBYaction_name",
+    );
+    const uxLists = await readSectionIn(
+      "sys_ux_list",
+      ["table"],
+      "table",
+      lists.rows.map((r) => v(r, "table")),
+    );
+    const open = await readSectionIn(
+      "sys_declarative_action_assignment",
+      ["action_name", "table"],
+      "action_name",
+      actions.rows.map((r) => v(r, "action_name")),
+      "^workspaceISEMPTY",
+    );
+    reads.push(lists, actions, uxLists, open);
+    const uxTables = new Set(uxLists.rows.map((r) => v(r, "table")));
+    const openActions = new Set(
+      open.rows.map((r) => `${v(r, "table")}:${v(r, "action_name")}`),
+    );
+    for (const c of agent) {
+      const twin = configurable.find((w) => w.scope && w.scope === c.scope);
+      migration.push({
+        table: "sys_aw_master_config",
+        sys_id: c.sys_id,
+        name: c.name,
+        scope: c.scope,
+        ...(twin ? { counterpart: `workspace ${twin.title}` } : {}),
+      });
+    }
+    for (const r of lists.rows) {
+      migration.push({
+        table: "sys_aw_list",
+        sys_id: v(r, "sys_id"),
+        name: v(r, "title"),
+        scope: v(r, "sys_scope.scope"),
+        ...(v(r, "table") && uxTables.has(v(r, "table"))
+          ? { counterpart: `sys_ux_list on ${v(r, "table")}` }
+          : {}),
+      });
+    }
+    for (const r of actions.rows) {
+      migration.push({
+        table: "sys_declarative_action_assignment",
+        sys_id: v(r, "sys_id"),
+        name: v(r, "label") || v(r, "action_name"),
+        scope: v(r, "sys_scope.scope"),
+        ...(openActions.has(`${v(r, "table")}:${v(r, "action_name")}`)
+          ? {
+              counterpart: `unrestricted ${v(r, "action_name")} on ${v(r, "table")}`,
+            }
+          : {}),
+      });
+    }
+  }
+  const kind =
+    configurable.length && agent.length
+      ? "mixed"
+      : configurable.length
+        ? "configurable"
+        : agent.length
+          ? "agent"
+          : "none";
+  return { data: { kind, configurable, agent, migration }, reads };
 }
 
 export async function collectInstance(
@@ -2152,17 +2336,22 @@ export async function collectInstance(
     ["name", "application.scope"],
     "state=in progress^ORDERBYname",
   );
+  const workspaces = await collectWorkspaces();
   const unreadable = [
     ...tables.unreadable,
     ...plugins.unreadable,
     ...apps.unreadable,
     ...automation.unreadable,
+    ...new Set(
+      workspaces.reads.filter((r) => r.unreadable).map((r) => r.table),
+    ),
   ];
   const capped = [
     ...tables.capped,
     ...plugins.capped,
     ...apps.capped,
     ...automation.capped,
+    ...new Set(workspaces.reads.filter((r) => r.truncated).map((r) => r.table)),
   ];
   const p = plugins.data;
   return {
@@ -2188,6 +2377,7 @@ export async function collectInstance(
     ),
     automation: automation.data,
     updateSets,
+    workspaces: workspaces.data,
     documents: opts.instance?.documents ?? [],
     unreadable,
     capped,
@@ -2274,6 +2464,7 @@ export function renderInstance(
       ]),
     ),
     "",
+    ...(data.workspaces ? workspaceSections(data.workspaces) : []),
   ];
   const caveats = [
     ...readCaveats([data.version, data.updateSets]),
@@ -2294,6 +2485,64 @@ export function renderInstance(
     ...caveatsSection([...caveats, VISIBILITY_CAVEAT, METADATA_CAVEAT]),
   );
   return lines.join("\n");
+}
+
+const WORKSPACE_KIND_TEXT: Record<InstanceWorkspaces["kind"], string> = {
+  configurable: "configurable workspaces only.",
+  agent:
+    "legacy Agent Workspace only; Agent Workspace is superseded by configurable workspaces.",
+  mixed:
+    "both configurable workspaces and legacy Agent Workspace: a migration is pending or in progress.",
+  none: "no workspace found.",
+};
+
+/** The README's Workspaces and Workspace migration sections (N-30). */
+function workspaceSections(w: InstanceWorkspaces): string[] {
+  const missing = w.migration.filter((m) => !m.counterpart).length;
+  return [
+    "## Workspaces",
+    "",
+    `Kind: ${WORKSPACE_KIND_TEXT[w.kind]}`,
+    "",
+    tableOrNone(
+      ["Workspace", "Kind", "Path", "Scope", "Active"],
+      [
+        ...w.configurable.map((c) => [
+          cell(c.title),
+          "Configurable",
+          codeOf(c.path),
+          codeOf(c.scope),
+          "",
+        ]),
+        ...w.agent.map((a) => [
+          cell(a.name),
+          "Agent Workspace (legacy)",
+          "",
+          codeOf(a.scope),
+          yesNo(a.active),
+        ]),
+      ],
+    ),
+    "",
+    "## Workspace migration",
+    "",
+    ...(w.migration.length
+      ? [
+          `${w.migration.length} legacy Agent Workspace record(s) to move to a configurable workspace; ${missing} without a configurable counterpart yet.`,
+          "",
+          mdTable(
+            ["Record", "Table", "Scope", "Configurable counterpart"],
+            w.migration.map((m) => [
+              cell(m.name),
+              code(m.table),
+              codeOf(m.scope),
+              m.counterpart ? cell(m.counterpart) : "_none yet_",
+            ]),
+          ),
+        ]
+      : ["_Nothing to migrate: no legacy Agent Workspace configuration._"]),
+    "",
+  ];
 }
 
 /** The README's Counts rows (also the discovery overview's, S-16). */

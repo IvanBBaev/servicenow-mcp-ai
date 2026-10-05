@@ -8,6 +8,7 @@ import {
   clearCapabilityCache,
   probeCapabilityMatrix,
   probeDomainSeparation,
+  probeWorkspaces,
   MATRIX_GROUPS,
   type MatrixEntry,
   type MatrixGroup,
@@ -124,6 +125,12 @@ export interface CapabilityReport {
    * when `groups` narrowed the matrix.
    */
   domainSeparation?: MatrixEntry;
+  /**
+   * N-30: configurable workspaces vs legacy Agent Workspace configs
+   * (`detail.kind` configurable / agent / mixed / none, with counts). Probed
+   * on a full run only — absent when `groups` narrowed the matrix.
+   */
+  workspaces?: MatrixEntry;
 }
 
 export interface CheckCapabilitiesOptions {
@@ -196,10 +203,11 @@ export async function checkCapabilities(
     clearPluginAvailability();
   }
   // The matrix never throws; a table-probe transport error still does.
-  const [probed, matrix, domainSeparation] = await Promise.all([
+  const [probed, matrix, domainSeparation, workspaces] = await Promise.all([
     Promise.all(tables.map(probeTable)),
     probeCapabilityMatrix(opts.groups ?? MATRIX_GROUPS),
     opts.groups ? undefined : probeDomainSeparation(),
+    opts.groups ? undefined : probeWorkspaces(),
   ]);
   const readable = new Set(
     probed.filter((p) => p.readable).map((p) => p.table),
@@ -235,5 +243,6 @@ export async function checkCapabilities(
     matrix,
     sdkManaged: sdkManagedStatus(),
     ...(domainSeparation ? { domainSeparation } : {}),
+    ...(workspaces ? { workspaces } : {}),
   };
 }

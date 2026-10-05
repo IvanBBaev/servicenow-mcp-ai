@@ -15,6 +15,7 @@ import {
 } from "../core/settings.js";
 import { currentRuntime, defineRuntimePart } from "../core/runtime.js";
 import { pluginAvailability } from "./plugin.js";
+import { WORKSPACE_CATEGORY } from "./uib-workspace.js";
 
 /**
  * S-13 — capability preflight v2 (GAP L3-06, L6-06).
@@ -617,4 +618,124 @@ export function cachedDomainSeparation(): MatrixEntry | undefined {
   const hit = cache().get(`${instance}|${user}|domain_separation`);
   if (!hit || hit.until <= Date.now()) return undefined;
   return hit.entry.detail?.active === true ? hit.entry : undefined;
+}
+
+/** Rows a workspace probe reads before it reports a count as a floor. */
+export const WORKSPACE_PROBE_LIMIT = 100;
+
+const WORKSPACE_PROBE_TABLES = [
+  "sys_ux_registry_m2m_category",
+  "sys_aw_master_config",
+] as const;
+
+/**
+ * N-30 — the workspace inventory probe. Not a matrix group (a new `groups`
+ * enum value would grow tools/list): `check_capabilities` reports it beside
+ * the matrix on a full run, like the domain-separation probe.
+ *
+ * Two cached GETs (`sys_id` only, at most {@link WORKSPACE_PROBE_LIMIT} rows
+ * each): configurable workspaces (page registries in the workspace experience
+ * category, `sys_ux_registry_m2m_category`) and legacy Agent Workspace
+ * configs (`sys_aw_master_config`). `detail.kind` is `configurable`, `agent`,
+ * `mixed` (both: a migration is pending or in progress) or `none`. A 404 on
+ * the Agent Workspace table counts as none (the plugin is not installed).
+ * Unverified until O-5 (PDI): the category sys_id on every release.
+ */
+export async function probeWorkspaces(): Promise<MatrixEntry> {
+  const { instance, user } = getCredentials();
+  try {
+    for (const t of WORKSPACE_PROBE_TABLES) assertTableAllowed(t);
+  } catch (error) {
+    return {
+      status: "unknown",
+      reason: `not probed — ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+  const key = `${instance}|${user}|workspaces`;
+  const hit = cache().get(key);
+  if (hit && hit.until > Date.now()) return { ...hit.entry, cached: true };
+
+  const read = (table: string, query?: string) =>
+    runProbe({
+      table,
+      path: `/api/now/table/${table}`,
+      params: {
+        ...(query ? { sysparm_query: query } : {}),
+        sysparm_fields: "sys_id",
+        sysparm_limit: String(WORKSPACE_PROBE_LIMIT),
+      },
+      interpret: (rows) => ({
+        status: "available",
+        detail: { count: rows?.length ?? 0 },
+      }),
+    });
+  const [ux, aw] = await Promise.all([
+    read(
+      WORKSPACE_PROBE_TABLES[0],
+      `experience_category=${WORKSPACE_CATEGORY}`,
+    ),
+    read(WORKSPACE_PROBE_TABLES[1]),
+  ]);
+  const entry = interpretWorkspaces(ux.entry, aw.entry);
+  if (ux.cacheable && aw.cacheable) {
+    const ttl =
+      entry.status === "available"
+        ? getCapabilityTtlMs()
+        : getPluginNegativeTtlMs();
+    cache().set(key, { entry, until: Date.now() + ttl });
+  } else {
+    cache().delete(key);
+  }
+  return entry;
+}
+
+/** Combine the two workspace reads into one entry. */
+function interpretWorkspaces(ux: MatrixEntry, aw: MatrixEntry): MatrixEntry {
+  const countOf = (e: MatrixEntry): number | undefined =>
+    e.status === "available" ? Number(e.detail?.count ?? 0) : undefined;
+  const configurable = countOf(ux);
+  // No Agent Workspace plugin: the table is absent, which means none.
+  const agent = aw.httpStatus === 404 ? 0 : countOf(aw);
+  const why = (table: string, e: MatrixEntry) =>
+    `${table} (${e.reason ?? e.status})`;
+  const unreadable = [
+    ...(configurable === undefined ? [why(WORKSPACE_PROBE_TABLES[0], ux)] : []),
+    ...(agent === undefined ? [why(WORKSPACE_PROBE_TABLES[1], aw)] : []),
+  ];
+  if (configurable === undefined && agent === undefined) {
+    return {
+      status:
+        ux.status === "unknown" || aw.status === "unknown"
+          ? "unknown"
+          : "unavailable",
+      reason: `Workspaces could not be read: ${unreadable.join("; ")}.`,
+    };
+  }
+  const c = configurable ?? 0;
+  const a = agent ?? 0;
+  const kind = c && a ? "mixed" : c ? "configurable" : a ? "agent" : "none";
+  const shown = (v: number) =>
+    v >= WORKSPACE_PROBE_LIMIT ? `${v}+` : String(v);
+  const reason =
+    kind === "mixed"
+      ? `${shown(c)} configurable workspace(s) and ${shown(a)} legacy Agent Workspace config(s): a migration is pending or in progress (document_instance lists the Agent Workspace items).`
+      : kind === "agent"
+        ? `${shown(a)} legacy Agent Workspace config(s) and no configurable workspace; Agent Workspace is superseded by configurable workspaces.`
+        : kind === "configurable"
+          ? `${shown(c)} configurable workspace(s); no legacy Agent Workspace config.`
+          : "No configurable workspace and no Agent Workspace config found.";
+  return {
+    status: "available",
+    reason: unreadable.length
+      ? `${reason} Not readable: ${unreadable.join("; ")}.`
+      : reason,
+    detail: {
+      kind,
+      ...(configurable !== undefined ? { configurable } : {}),
+      ...(agent !== undefined ? { agent } : {}),
+      ...(c >= WORKSPACE_PROBE_LIMIT || a >= WORKSPACE_PROBE_LIMIT
+        ? { truncated: true }
+        : {}),
+    },
+  };
 }

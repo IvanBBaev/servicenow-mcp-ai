@@ -17,6 +17,7 @@ import {
   artifactColumns,
   INSTANCE_DOC_KINDS,
   INSTANCE_TARGETS_MAX,
+  collectInstance,
   documentApp,
   documentInstance,
   documentSecurity,
@@ -35,6 +36,7 @@ import {
 } from "./helpers.js";
 import { lintMermaid } from "./mermaid-lint.js";
 import { docsRead } from "../build/api/docs.js";
+import { WORKSPACE_CATEGORY } from "../build/api/uib-workspace.js";
 
 /**
  * S-15 document writers (ID-18 … ID-26): the `table`, `app` and `security`
@@ -1116,6 +1118,84 @@ function instanceTables() {
       { name: "ACME release 3", "application.scope": "x_acme" },
       { name: "Default", "application.scope": "global" },
     ],
+    ...workspaceTables(),
+  };
+}
+
+/**
+ * N-30: one configurable workspace beside two legacy Agent Workspace configs
+ * (one in the same scope), two AW lists (one with a sys_ux_list twin) and an
+ * AW-restricted declarative action with an unrestricted twin.
+ */
+function workspaceTables() {
+  const WS = "e1".repeat(16);
+  return {
+    sys_ux_registry_m2m_category: (q) =>
+      q.startsWith(`experience_category=${WORKSPACE_CATEGORY}`)
+        ? [{ page_registry: WS }]
+        : [],
+    sys_ux_page_registry: (q) =>
+      q === `sys_idIN${WS}^ORDERBYtitle`
+        ? [
+            {
+              sys_id: WS,
+              title: "Acme Workspace",
+              path: "acme-ws",
+              "sys_scope.scope": "x_acme",
+            },
+          ]
+        : [],
+    // Instance-wide reads only: a scoped discovery read sees none.
+    sys_aw_master_config: (q) =>
+      q !== "ORDERBYname"
+        ? []
+        : [
+            {
+              sys_id: "a1".repeat(16),
+              name: "Acme Agent Workspace",
+              active: "true",
+              "sys_scope.scope": "x_acme",
+            },
+            {
+              sys_id: "a2".repeat(16),
+              name: "Legacy HR Workspace",
+              active: "false",
+              "sys_scope.scope": "sn_hr",
+            },
+          ],
+    sys_aw_list: (q) =>
+      q !== "ORDERBYtitle"
+        ? []
+        : [
+            {
+              sys_id: "a3".repeat(16),
+              title: "Open incidents",
+              table: "incident",
+              "sys_scope.scope": "x_acme",
+            },
+            {
+              sys_id: "a4".repeat(16),
+              title: "HR cases",
+              table: "sn_hr_case",
+              "sys_scope.scope": "sn_hr",
+            },
+          ],
+    sys_ux_list: (q) =>
+      q.startsWith("tableINincident,sn_hr_case") ? [{ table: "incident" }] : [],
+    sys_declarative_action_assignment: (q) =>
+      q.startsWith("workspaceISNOTEMPTY")
+        ? [
+            {
+              sys_id: "a5".repeat(16),
+              label: "Escalate",
+              action_name: "acme_escalate",
+              table: "incident",
+              "sys_scope.scope": "x_acme",
+            },
+          ]
+        : q.startsWith("action_nameINacme_escalate^workspaceISEMPTY")
+          ? [{ action_name: "acme_escalate", table: "incident" }]
+          : [],
   };
 }
 
@@ -1191,6 +1271,32 @@ test("golden: document_instance writes the README and every named document", asy
       assert.match(typesMd, /\| Collected in this run \|/);
       assert.match(typesMd, /\| `catalog_item` \|.*\| yes \|$/m);
     }),
+  );
+});
+
+test("document_instance workspaces: an absent Agent Workspace plugin is none, a denied category read is a caveat (N-30)", async () => {
+  await withMetadataFetch(
+    router({
+      ...instanceTables(),
+      sys_aw_master_config: 404,
+      sys_ux_registry_m2m_category: 403,
+    }),
+    async (calls) => {
+      const data = await collectInstance({});
+      assert.deepEqual(data.workspaces, {
+        kind: "none",
+        configurable: [],
+        agent: [],
+        migration: [],
+      });
+      assert.ok(data.unreadable.includes("sys_ux_registry_m2m_category"));
+      assert.ok(!data.unreadable.includes("sys_aw_master_config"));
+      // No Agent Workspace config: lists and restricted actions are not read.
+      assert.ok(!calls.some((c) => /\/sys_aw_list\b/.test(c.url)));
+      assert.ok(
+        !calls.some((c) => /\/sys_declarative_action_assignment\b/.test(c.url)),
+      );
+    },
   );
 });
 

@@ -6,9 +6,12 @@ import assert from "node:assert/strict";
 import {
   MATRIX_GROUPS,
   clearCapabilityCache,
+  WORKSPACE_PROBE_LIMIT,
   probeCapabilityMatrix,
+  probeWorkspaces,
   releaseFamily,
 } from "../build/api/capability-matrix.js";
+import { WORKSPACE_CATEGORY } from "../build/api/uib-workspace.js";
 import { checkCapabilities } from "../build/api/capabilities.js";
 import { formatDoctorReport, runDoctor } from "../build/api/doctor.js";
 import {
@@ -467,4 +470,135 @@ test("S-6: update_sets canRead / canSet follow the reads and the write policy", 
       assert.equal(hits(calls, "sys_update_set"), 0);
     }),
   );
+});
+
+// N-30 — the workspace inventory probe beside the matrix.
+
+/** Answer the two workspace reads with `ux` / `aw` rows or an HTTP status. */
+const workspaceFetch = (ux, aw) => (url) => {
+  const p = new URL(url).pathname;
+  const answer = p.endsWith("/table/sys_ux_registry_m2m_category")
+    ? ux
+    : p.endsWith("/table/sys_aw_master_config")
+      ? aw
+      : undefined;
+  if (answer === undefined) return okInstance(url);
+  if (typeof answer === "number" && answer >= 400) {
+    return jsonResponse(answer, { error: { message: `status ${answer}` } });
+  }
+  return jsonResponse(200, {
+    result: Array.from({ length: answer }, (_, i) => ({ sys_id: `w${i}` })),
+  });
+};
+
+test("workspaces: counts configurable vs Agent Workspace and classifies the instance; cached", async () => {
+  freshRuntime();
+  await withFetch(workspaceFetch(2, 1), async (calls) => {
+    const w = await probeWorkspaces();
+    assert.equal(w.status, "available");
+    assert.deepEqual(w.detail, { kind: "mixed", configurable: 2, agent: 1 });
+    assert.match(w.reason, /migration is pending/);
+    const ux = calls.find((c) =>
+      c.url.includes("/table/sys_ux_registry_m2m_category"),
+    );
+    const q = new URL(ux.url).searchParams;
+    assert.equal(
+      q.get("sysparm_query"),
+      `experience_category=${WORKSPACE_CATEGORY}`,
+    );
+    assert.equal(q.get("sysparm_fields"), "sys_id");
+    assert.equal(q.get("sysparm_limit"), String(WORKSPACE_PROBE_LIMIT));
+    assert.equal(calls.length, 2);
+    const again = await probeWorkspaces();
+    assert.equal(again.cached, true);
+    assert.equal(calls.length, 2);
+  });
+});
+
+test("workspaces: a missing Agent Workspace plugin is none; kinds and the row floor", async () => {
+  const cases = [
+    [
+      3,
+      404,
+      { kind: "configurable", configurable: 3, agent: 0 },
+      /3 configurable/,
+    ],
+    [0, 2, { kind: "agent", configurable: 0, agent: 2 }, /superseded/],
+    [0, 404, { kind: "none", configurable: 0, agent: 0 }, /No configurable/],
+    [
+      WORKSPACE_PROBE_LIMIT,
+      0,
+      {
+        kind: "configurable",
+        configurable: WORKSPACE_PROBE_LIMIT,
+        agent: 0,
+        truncated: true,
+      },
+      /100\+ configurable/,
+    ],
+  ];
+  for (const [ux, aw, detail, reason] of cases) {
+    freshRuntime();
+    await withFetch(workspaceFetch(ux, aw), async () => {
+      const w = await probeWorkspaces();
+      assert.equal(w.status, "available");
+      assert.deepEqual(w.detail, detail);
+      assert.match(w.reason, reason);
+    });
+  }
+});
+
+test("workspaces: one unreadable table is named, both unreadable is unavailable, denied tables are not probed", async () => {
+  freshRuntime();
+  await withFetch(workspaceFetch(403, 1), async () => {
+    const w = await probeWorkspaces();
+    assert.equal(w.status, "available");
+    assert.deepEqual(w.detail, { kind: "agent", agent: 1 });
+    assert.match(w.reason, /Not readable: sys_ux_registry_m2m_category/);
+  });
+  freshRuntime();
+  await withFetch(workspaceFetch(403, 403), async () => {
+    const w = await probeWorkspaces();
+    assert.equal(w.status, "unavailable");
+    assert.match(w.reason, /could not be read/);
+  });
+  freshRuntime();
+  await withFetch(
+    (url) => {
+      throw new TypeError(`fetch failed: ${url}`);
+    },
+    async (calls) => {
+      const w = await probeWorkspaces();
+      assert.equal(w.status, "unknown");
+      await probeWorkspaces();
+      assert.equal(calls.length, 4, "transport failures are not cached");
+    },
+  );
+  freshRuntime();
+  await withEnv({ SN_TABLES_DENY: "sys_aw_master_config" }, () =>
+    withFetch(
+      () => assert.fail("a denied table must not be probed"),
+      async () => {
+        const w = await probeWorkspaces();
+        assert.equal(w.status, "unknown");
+        assert.match(w.reason, /not probed/);
+      },
+    ),
+  );
+});
+
+test("check_capabilities: full run reports workspaces; narrowed run skips it", async () => {
+  freshRuntime();
+  await withFetch(workspaceFetch(1, 0), async () => {
+    const full = await checkCapabilities();
+    assert.equal(full.workspaces.detail.kind, "configurable");
+  });
+  freshRuntime();
+  await withFetch(workspaceFetch(1, 0), async (calls) => {
+    const narrow = await checkCapabilities({ groups: [] });
+    assert.equal("workspaces" in narrow, false);
+    assert.ok(
+      !calls.some((c) => c.url.includes("/table/sys_aw_master_config")),
+    );
+  });
 });
