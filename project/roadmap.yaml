@@ -959,11 +959,11 @@ items:
     title: "access review"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "C"
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Phase C. `document_instance` kind `access_review`: privileged accounts with their grant paths, dormant flags and role-change audit (NX-31, NX-33)."
+    notes: "**Core done 2026-10-05.** `src/api/access-review.ts` (dark): privileged roles (`admin`, `security_admin`, `elevated_privilege`, and containers through `sys_user_role_contains`), holders per user with grant path (direct / group / contained role), `active` / `last_login_time` and a dormant flag (`DORMANT_DAYS` 90), creator and date per grant, revokes from `sys_audit_delete` (degrades to unavailable). It reads account data, so it stays out of the metadata-only security document. Open: the `access_review` kind and `lookup_directory` `role_history` (tools/list bytes, O-10); tables unverified (O-5) (NX-31, NX-33)."
   - id: "N-23"
     title: "least-privilege advisor"
     pillar: "N"
