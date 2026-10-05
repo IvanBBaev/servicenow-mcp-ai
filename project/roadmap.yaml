@@ -819,7 +819,7 @@ items:
     phase: "C"
     done: "2026-10-05"
     gates: []
-    notes: "**Read done 2026-10-05 (93071c9).** `src/api/instance-scan.ts`: latest `scan_result` + its `scan_finding` rows by priority and artefact type, plus the \"both agree\" set with our lint, as an Instance Scan section of `check_code_health` (always on, degrades to unavailable). 0 B tools/list; the `kind:\"instance_scan\"` parameter waits for O-10; tables unverified until O-5. Open: phase D run behind the ATF rails (NX-03)."
+    notes: '**Read done 2026-10-05 (93071c9).** `src/api/instance-scan.ts`: latest `scan_result` + its `scan_finding` rows by priority and artefact type, plus the "both agree" set with our lint, as an Instance Scan section of `check_code_health` (always on, degrades to unavailable). 0 B tools/list; the `kind:"instance_scan"` parameter waits for O-10; tables unverified until O-5. Open: phase D run behind the ATF rails (NX-03).'
   - id: "N-4"
     title: "CI/CD promotion lane"
     pillar: "N"
@@ -1157,11 +1157,11 @@ items:
     title: "decision records"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: "C"
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Phase C. `project/adr/` template, one ADR per decided owner gate, ARCH-10 / ARCH-14 imported (TK-20). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Done 2026-10-05.** [`project/adr/`](adr/README.md): README + template, ADRs for O-4, O-7 and S-12 (accepted 2026-10-01), ARCH-10 and ARCH-14 / O-1 imported as proposed (deferred); gate lines and ARCHITECTURE.md link to them (TK-20). `test/adr.test.js` lints names, header fields, the index, links and the decided-gate rule (every accepted O-gate ADR is linked from its gate line). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-45"
     title: "harness hygiene"
     pillar: "N"
