@@ -1022,29 +1022,29 @@ items:
     title: "UIB data brokers and security"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "B"
-    done: null
-    gates: []
-    notes: "Phase B. REST / GraphQL broker descriptors, three broker lint rules, `ux_data_broker` kind in the security scan (UX-10, UX-11, UX-12). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
+    done: "2026-10-05"
+    gates: ["O-5"]
+    notes: "**Partly done 2026-10-05.** Registry descriptors `uib_data_broker_rest` / `uib_data_broker_graphql` (read tier, `verified: false`); `explain_ui_experience` resolves REST / GraphQL brokers and returns `brokerHints`; three broker rules in `src/api/uib-broker-lint.ts` (`uib-broker-mutates-no-acl` error, `uib-transform-gliderecord-no-acl-check` warn, `uib-broker-no-input-schema` info) run in the `check_code_health` UIB domain and as explainer hints; `tools/list` delta 0 B. **Open:** the `ux_data_broker` kind in the security scan (`src/api/security.ts`, UX-12); broker scripts in script intelligence (needs an opt-in that grows the script-type enum, O-10); O-5 live verification of the REST / GraphQL broker tables and of `mutates_server_data` / `properties` (UX-10, UX-11, UX-12). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
   - id: "N-30"
     title: "workspace coverage"
     pillar: "N"
     effort: "M–L"
-    status: "open"
+    status: "partial"
     phase: "B"
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Phase B. Declarative actions, app shell / chrome, UX form config, side panel, `m2m_app_theme`, `sys_ux_list` decoding, Agent vs Configurable Workspace (UX-16 … UX-20). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
+    notes: "**Partly done 2026-10-05.** `explain_ui_experience` returns `shell` (app shell + decoded chrome page properties), `actions` (declarative action assignments with model, surface, position, decoded conditions, roles, what they run), `forms` (form action layouts, action bar, related items, side panel from `form_position`), `themes` (`m2m_app_theme`), `workspace` (Agent vs Configurable classification, signals, AW migration list), and `sys_ux_list` `columns` / `conditionTerms` via the new encoded-query reader; markdown `## Workspace` section; unreadable tables become caveats; `tools/list` delta 0 B. Registry descriptors (read tier, `verified: false`) for `sys_declarative_action_assignment`, its action definition and payload definition, `m2m_app_theme`, `sys_aw_master_config` and `sys_aw_list`; action runs name their payload, action definition and UI component from one read per table. **Open:** a Fluent fallback golden for the new types; `check_capabilities` / `document_instance` reporting and a `workspace_migration` document section; the experience-restricted action m2m; dedicated UX form config and side panel tables (no SDK table names); O-5 live verification of every new table and field name (UX-16 … UX-20). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
   - id: "N-31"
     title: "UIB composition diff and page hints"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "C"
-    done: null
-    gates: []
-    notes: "Phase C. Per-element macroponent diff in snapshot / compare, `uib-page-weight` rule, `required_translations` into N-7 (UX-21, UX-22, UX-23). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
+    done: "2026-10-05"
+    gates: ["O-5"]
+    notes: "**Partly done 2026-10-05.** `src/core/artifacts/uib-composition-diff.ts`: per-element `composition` diff (added / removed / moved / changed, props vs bindings) on `compare` `types` as `elementDiff` plus an `[elements +A -R ~C]` cell in the report; `src/api/uib-page-lint.ts`: the `uib-page-weight` rule (elements, depth, on-load data resources, data resources without `when`; thresholds 150 / 8 / 5); `src/core/artifacts/uib-translations.ts`: pure `requiredTranslations()` helper; both surfaced in `explain_ui_experience` (`pageHints` inline when a page trips the rule, a `## Page hints` markdown section, and per-macroponent `pageMetrics` / `translations` at the `elements` depth that the `file` format reads). 0 B tools/list. Open: feed the translations helper to N-7; the `raw:true` JSON hunk (needs a schema change); shapes unverified until O-5 (UX-21, UX-22, UX-23). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
   - id: "N-32"
     title: "UIB client-script lint"
     pillar: "N"

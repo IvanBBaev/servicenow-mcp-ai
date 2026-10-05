@@ -174,6 +174,12 @@ export const METADATA_TABLES = [
   /^sys_restricted_caller_access$/,
   // N-3 Instance Scan read: scan results and findings (check / target refs).
   /^scan_(result|finding)$/,
+  // N-30 workspace coverage: declarative actions, themes, the workspace
+  // category and the legacy Agent Workspace configuration.
+  /^sys_declarative_action_[a-z_]+$/,
+  /^m2m_app_theme$/,
+  /^sys_ux_registry_m2m_category$/,
+  /^sys_aw_(master_config|list)$/,
 ];
 
 /** Primary and child tables of every registered artefact type. */

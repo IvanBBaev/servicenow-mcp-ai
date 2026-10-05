@@ -8,14 +8,20 @@
  *     → sys_ux_screen (variants, in order, with their applicability)
  *     → sys_ux_macroponent (component tree, data resources, client state,
  *       event wiring) → sys_ux_client_script + data brokers
- *       (sys_ux_data_broker_transform / _scriptlet) → their `ux_data_broker`
- *       ACLs
+ *       (sys_ux_data_broker_transform / _scriptlet / _rest / _graphql) →
+ *       their `ux_data_broker` ACLs
  *
  * and, for workspaces (P-15), the experience's page properties, the
  * dashboards and list menus they reference (`par_dashboard` → tabs →
  * widgets; `sys_ux_list_menu_config` → categories → lists), the audience
  * (`sys_ux_applicability`, with roles) of screens and lists, and the form
  * action layouts of the experience's application scope.
+ *
+ * N-30 (uib-workspace.ts) adds the workspace view: declarative actions on
+ * the workspace's tables, the app shell and chrome, a UX form view per table
+ * (layouts, action bar, related items, contextual side panel), the themes of
+ * `m2m_app_theme`, decoded `sys_ux_list` columns and conditions, and Agent
+ * Workspace vs Configurable Workspace with a migration list.
  *
  * Macroponent JSON goes through the `uib-composition` / `json` decoders and
  * the tolerant readers in uib-composition.ts: an unknown shape is reported
@@ -43,6 +49,22 @@
  *   (`sys_ux_event`);
  * - `scripts` — client-script and broker script bodies.
  *
+ * N-31 (UX-22, UX-23) adds page hints: `pageHints` lists the `uib-page-weight`
+ * findings (uib-page-lint.ts) of each macroponent that has any, with the
+ * screen variants that render it (omitted when no page trips the rule, so a
+ * light page's JSON does not grow). With `elements` depth, each macroponent
+ * also carries its `pageMetrics` and a `translations` summary
+ * (uib-translations.ts: user-facing composition strings against the
+ * declared `required_translations`, with a bounded sample).
+ *
+ * N-29 (UX-11) resolves REST and GraphQL data brokers too
+ * (sys_ux_data_broker_rest / _graphql, O-5: unverified) and adds broker
+ * hints: `brokerHints` lists the uib-broker-lint.ts findings of each broker
+ * that has any — a mutating broker with no ux_data_broker ACL (error), a
+ * transform querying with GlideRecord without an access check (warn), an
+ * empty input schema (info). Omitted when no broker trips a rule. The
+ * transform script is read for the check but echoed only with `scripts`.
+ *
  * The tool reaches the full depth through `format: "file"` (the JSON lands in
  * exports/, not in the context); a dedicated `detail` input waits for the
  * tools/list budget (O-10). Prop, binding and handler shapes are
@@ -68,8 +90,39 @@ import { ServiceNowError } from "../core/errors.js";
 import { trackProgress, type ProgressTracker } from "../core/progress.js";
 import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label } from "./mermaid.js";
+import { readEncodedQuery, type EncodedQueryTerm } from "./query-explain.js";
+import { requiredTranslations } from "../core/artifacts/uib-translations.js";
+import {
+  UIB_PAGE_RULES,
+  lintUibPageWeight,
+  type UibPageFinding,
+  type UibPageMetrics,
+} from "./uib-page-lint.js";
+import {
+  BROKER_KIND_BY_TABLE,
+  UIB_BROKER_RULES,
+  lintUibBroker,
+  type UibBrokerFinding,
+} from "./uib-broker-lint.js";
 import { snString } from "./shared.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
+import {
+  WORKSPACE_CAVEAT,
+  classifyWorkspace,
+  conditionText,
+  decodeShell,
+  formViews,
+  listColumns,
+  readDeclarativeActions,
+  readThemes,
+  type UxDeclarativeAction,
+  type UxFormView,
+  type UxShell,
+  type UxTheme,
+  type UxWorkspaceClass,
+  type WorkspaceIo,
+  workspaceLines,
+} from "./uib-workspace.js";
 
 /** Ids per `fieldIN…` query (keeps the URL short). */
 const IN_CHUNK = 100;
@@ -102,6 +155,35 @@ export type UiExperienceDetail = (typeof UI_EXPERIENCE_DETAILS)[number];
 
 /** Characters of one script body kept with `detail: "scripts"`. */
 export const UI_SCRIPT_MAX = 100_000;
+
+/** N-31: undeclared (or, with an unknown declaration, all) strings sampled. */
+export const UI_TRANSLATION_SAMPLE = 20;
+
+const PAGE_HINT_CAVEAT =
+  "Page hints (uib-page-weight) treat a data resource with no on-demand evaluation mode as fired on page load, and read `when` conditions from data resource shapes that have not been confirmed on a live instance (gate O-5).";
+
+const BROKER_HINT_CAVEAT =
+  "Broker hints (N-29) read `mutates_server_data`, `properties` and the REST / GraphQL broker tables (sys_ux_data_broker_rest / _graphql), which have not been confirmed on a live instance (gate O-5); the GlideRecord rule is a static check of the transform script.";
+
+/** N-29: broker tables in resolution order, with the fields read (O-5). */
+const UI_BROKER_READS: readonly (readonly [string, string[]])[] = [
+  [
+    "sys_ux_data_broker_transform",
+    ["sys_id", "name", "mutates_server_data", "properties", "script"],
+  ],
+  ["sys_ux_data_broker_scriptlet", ["sys_id", "name", "properties"]],
+  [
+    "sys_ux_data_broker_rest",
+    ["sys_id", "name", "mutates_server_data", "properties"],
+  ],
+  [
+    "sys_ux_data_broker_graphql",
+    ["sys_id", "name", "mutates_server_data", "properties"],
+  ],
+];
+
+const TRANSLATIONS_CAVEAT =
+  "Translations list user-facing literals of the composition (text-like props and typed translation literals) against `required_translations`; both shapes are unverified until O-5, and the strings are not yet checked against sys_ui_message (N-7).";
 
 const DETAIL_CAVEAT =
   "Element props, binding expressions, event handler targets and component resolution read UI Builder JSON shapes (propertyValues, typed bindings, handler definition / targetId / operationName) that have not been confirmed on a live instance (gate O-5).";
@@ -248,6 +330,56 @@ export interface UxMacroponent {
   bindings?: UxBinding[];
   /** N-26 `events`. */
   eventChains?: UxEventChain[];
+  /** N-31 `elements`: the page weight metrics (uib-page-weight). */
+  pageMetrics?: UibPageMetrics;
+  /** N-31 `elements`: user-facing strings against `required_translations`. */
+  translations?: UxTranslations;
+}
+
+/**
+ * N-31 (UX-23): the translatable strings of one macroponent's composition.
+ * `sample` holds up to UI_TRANSLATION_SAMPLE undeclared strings, or the
+ * first strings when the declaration could not be read (`declared: null`).
+ */
+export interface UxTranslations {
+  /** Element / prop uses of user-facing strings. */
+  strings: number;
+  /** Unique strings. */
+  texts: number;
+  /** Messages in `required_translations`; null when unreadable. */
+  declared: number | null;
+  /** Unique strings missing from `required_translations`. */
+  undeclared: number;
+  sample: string[];
+  /** Strings past the per-page cap (TRANSLATIONS_MAX). */
+  omitted?: number;
+}
+
+/**
+ * N-31 (UX-22): `uib-page-weight` findings of one macroponent. The rule's
+ * hint is the same for every finding, so it is left out here (it is in
+ * UIB_PAGE_RULES and the markdown section).
+ */
+export interface UxPageHint {
+  macroponent: string;
+  name?: string;
+  /** Screen variants that render the macroponent. */
+  screens?: string[];
+  findings: Omit<UibPageFinding, "hint">[];
+  /** The composition or data hit a cap or has an unknown shape. */
+  partial?: true;
+}
+
+/**
+ * N-29 (UX-11): broker rule findings of one data broker. The rule hints are
+ * the same for every finding, so they are left out here (they are in
+ * UIB_BROKER_RULES and the markdown section).
+ */
+export interface UxBrokerHint {
+  broker: string;
+  name?: string;
+  table: string;
+  findings: Omit<UibBrokerFinding, "hint">[];
 }
 
 export interface UxDataBroker extends UxScriptBody {
@@ -288,6 +420,10 @@ export interface UxListMenu {
       title?: string;
       table?: string;
       condition?: string;
+      /** N-30: `columns`, split. */
+      columns?: string[];
+      /** N-30: `condition` read by the encoded-query reader. */
+      conditionTerms?: EncodedQueryTerm[];
       order: number;
       applicability: string[];
     }[];
@@ -329,6 +465,9 @@ export interface UxCounts {
   listMenus: number;
   lists: number;
   formActionLayouts: number;
+  /** N-30 */
+  actions: number;
+  themes: number;
 }
 
 export interface ExplainUiExperienceResult {
@@ -352,6 +491,20 @@ export interface ExplainUiExperienceResult {
   dashboards: UxDashboard[];
   listMenus: UxListMenu[];
   formActionLayouts: UxFormActionLayout[];
+  /** N-30: root macroponent and decoded chrome (null without either). */
+  shell: UxShell | null;
+  /** N-30: declarative action assignments on the workspace's tables. */
+  actions: UxDeclarativeAction[];
+  /** N-30: the UX form of each table (layouts and positioned actions). */
+  forms: UxFormView[];
+  /** N-30: themes linked through m2m_app_theme. */
+  themes: UxTheme[];
+  /** N-30: Agent Workspace vs Configurable Workspace. */
+  workspace: UxWorkspaceClass;
+  /** N-31: `uib-page-weight` findings; omitted when no page has any. */
+  pageHints?: UxPageHint[];
+  /** N-29: broker rule findings; omitted when no broker has any. */
+  brokerHints?: UxBrokerHint[];
   counts: UxCounts;
   /** N-26: the depth read, with its counts (only when `detail` is set). */
   detail?: {
@@ -361,6 +514,10 @@ export interface ExplainUiExperienceResult {
     bindings: number;
     eventChains: number;
     scripts: number;
+    /** N-31 (`elements`): user-facing string uses across macroponents. */
+    translatableStrings?: number;
+    /** N-31 (`elements`): unique strings missing from the declarations. */
+    undeclaredTranslations?: number;
   };
   verified: false;
   caveats: string[];
@@ -632,6 +789,8 @@ function emptyCounts(): UxCounts {
     listMenus: 0,
     lists: 0,
     formActionLayouts: 0,
+    actions: 0,
+    themes: 0,
   };
 }
 
@@ -677,6 +836,11 @@ export async function explainUiExperience(
     dashboards: [],
     listMenus: [],
     formActionLayouts: [],
+    shell: null,
+    actions: [],
+    forms: [],
+    themes: [],
+    workspace: { kind: "unknown", signals: [], migration: [] },
     counts: emptyCounts(),
     verified: false,
     caveats: ctx.caveats,
@@ -814,7 +978,10 @@ export async function explainUiExperience(
     "sys_ux_macroponent",
     "sys_id",
     macroIds,
-    MACROPONENT_FIELDS,
+    [
+      ...MACROPONENT_FIELDS,
+      ...(want("elements") ? ["required_translations"] : []),
+    ],
   );
   const scriptRows = await readIn(
     ctx,
@@ -894,22 +1061,25 @@ export async function explainUiExperience(
       if (d.broker && SYS_ID.test(d.broker)) brokerIds.add(d.broker);
     }
   }
-  for (const table of [
-    "sys_ux_data_broker_transform",
-    "sys_ux_data_broker_scriptlet",
-  ]) {
-    const fields = [
-      "sys_id",
-      "name",
-      ...(table === "sys_ux_data_broker_transform"
-        ? ["mutates_server_data"]
-        : []),
-      ...(want("scripts") ? ["script"] : []),
+  // N-29: transform, scriptlet, then REST and GraphQL brokers (the latter
+  // only for ids still unresolved — O-5: unverified tables). `properties`
+  // and the transform `script` are read for the broker hints; the script is
+  // echoed only with `scripts` depth.
+  const brokerRows = new Map<string, SnRecord>();
+  const pending = new Set(brokerIds);
+  for (const [table, fields] of UI_BROKER_READS) {
+    if (!pending.size) break;
+    const read = [
+      ...fields,
+      ...(want("scripts") && !fields.includes("script") ? ["script"] : []),
     ];
-    const rows = await readIn(ctx, table, "sys_id", brokerIds, fields);
+    const rows = await readIn(ctx, table, "sys_id", pending, read);
     for (const b of rows) {
+      const id = str(b, "sys_id");
+      if (!pending.delete(id)) continue;
+      brokerRows.set(id, b);
       result.dataBrokers.push({
-        sys_id: str(b, "sys_id"),
+        sys_id: id,
         table,
         ...(opt(b, "name") ? { name: opt(b, "name") } : {}),
         ...(opt(b, "mutates_server_data")
@@ -924,7 +1094,7 @@ export async function explainUiExperience(
   result.unresolvedBrokers = [...brokerIds].filter((id) => !found.has(id));
   if (result.unresolvedBrokers.length) {
     ctx.caveats.push(
-      `${result.unresolvedBrokers.length} data resource broker(s) are not transform or scriptlet brokers (built-in, REST or GraphQL brokers are not read) or could not be found.`,
+      `${result.unresolvedBrokers.length} data resource broker(s) are not transform, scriptlet, REST or GraphQL brokers (built-in brokers are not read) or could not be found.`,
     );
   }
   if (found.size) {
@@ -946,6 +1116,7 @@ export async function explainUiExperience(
       }));
     }
   }
+  readBrokerHints(ctx, result, brokerRows);
 
   // P-15: dashboards and list menus referenced by the page properties.
   if (referenced.size) {
@@ -1013,7 +1184,7 @@ export async function explainUiExperience(
       "sys_ux_list",
       "category",
       ids(catRows),
-      ["sys_id", "category", "title", "table", "condition", "order"],
+      ["sys_id", "category", "title", "table", "condition", "columns", "order"],
       { order: "order" },
     );
     const m2mRows = await readIn(
@@ -1044,6 +1215,10 @@ export async function explainUiExperience(
                 ...(opt(l, "condition")
                   ? { condition: opt(l, "condition") }
                   : {}),
+                ...(opt(l, "columns")
+                  ? { columns: listColumns(str(l, "columns")) }
+                  : {}),
+                ...listConditionTerms(str(l, "condition")),
                 order: num(l, "order"),
                 applicability: ids(
                   m2mBy.get(str(l, "sys_id")) ?? [],
@@ -1121,6 +1296,8 @@ export async function explainUiExperience(
     ctx.caveats.push(LINK_CAVEAT);
   }
 
+  await readWorkspace(ctx, result, row, macroRows, configId);
+
   // Audiences: screen variants, lists and form actions.
   const applicabilityIds = new Set<string>([
     ...ids(screenRows, "applicability"),
@@ -1149,6 +1326,8 @@ export async function explainUiExperience(
     });
   }
 
+  readPageHints(ctx, result, macroRows);
+
   const c = result.counts;
   c.routes = result.routes.length;
   c.screens = result.routes.reduce((n, r) => n + r.screens.length, 0);
@@ -1172,11 +1351,262 @@ export async function explainUiExperience(
     0,
   );
   c.formActionLayouts = result.formActionLayouts.length;
+  c.actions = result.actions.length;
+  c.themes = result.themes.length;
   if (levels.length) {
     await readDetail(ctx, result, levels, macroRows, scriptRows);
   }
   if (Object.keys(ctx.missing).length) result.missingFields = ctx.missing;
   return result;
+}
+
+/** N-30: a list condition's terms, when the reader parses any. */
+function listConditionTerms(condition: string): {
+  conditionTerms?: EncodedQueryTerm[];
+} {
+  if (!condition) return {};
+  const { terms } = readEncodedQuery(condition);
+  return terms.length ? { conditionTerms: terms } : {};
+}
+
+/**
+ * N-30: shell and chrome, declarative actions, UX form views, themes and the
+ * Agent / Configurable Workspace classification (uib-workspace.ts).
+ */
+async function readWorkspace(
+  ctx: Ctx,
+  result: ExplainUiExperienceResult,
+  row: SnRecord,
+  macroRows: SnRecord[],
+  configId: string | undefined,
+): Promise<void> {
+  const io: WorkspaceIo = {
+    read: (table, query, fields) => read(ctx, table, query, fields),
+    readIn: (table, field, list, fields, opts) =>
+      readIn(ctx, table, field, list, fields, opts),
+  };
+  const expId = str(row, "sys_id");
+  const rootId = opt(row, "root_macroponent");
+  const rootRow = rootId
+    ? macroRows.find((m) => str(m, "sys_id") === rootId)
+    : undefined;
+  result.shell = decodeShell(
+    result.properties,
+    rootId
+      ? {
+          sys_id: rootId,
+          ...(rootRow && opt(rootRow, "name")
+            ? { name: opt(rootRow, "name") }
+            : {}),
+          ...(rootRow && opt(rootRow, "category")
+            ? { category: opt(rootRow, "category") }
+            : {}),
+        }
+      : undefined,
+  );
+  const uxListTables = result.listMenus.flatMap((m) =>
+    m.categories.flatMap((c) => c.lists.flatMap((l) => l.table ?? [])),
+  );
+  const tables = new Set<string>([
+    ...uxListTables,
+    ...result.formActionLayouts.flatMap((l) => l.table ?? []),
+    ...(result.shell?.tabs?.newTabTables ?? []),
+  ]);
+  result.actions = (await readDeclarativeActions(io, tables)).sort(
+    (a, b) => (a.table ?? "").localeCompare(b.table ?? "") || a.order - b.order,
+  );
+  result.forms = formViews(result.actions, result.formActionLayouts);
+  result.themes = await readThemes(io, [
+    expId,
+    ...(configId ? [configId] : []),
+  ]);
+  const categories = (
+    await readIn(
+      ctx,
+      "sys_ux_registry_m2m_category",
+      "page_registry",
+      [expId],
+      ["sys_id", "page_registry", "experience_category"],
+    )
+  )
+    .filter((r) => str(r, "page_registry") === expId)
+    .map((r) => str(r, "experience_category"))
+    .filter(Boolean);
+  const scope = opt(row, "sys_scope");
+  const inScope = async (table: string, fields: string[]) =>
+    scope && SAFE_ID.test(scope)
+      ? (await read(ctx, table, `sys_scope=${scope}`, fields)).filter(
+          (r) => !("sys_scope" in r) || str(r, "sys_scope") === scope,
+        )
+      : [];
+  const awConfigs = await inScope("sys_aw_master_config", ["sys_id", "name"]);
+  const awLists = await inScope("sys_aw_list", ["sys_id", "title", "table"]);
+  result.workspace = classifyWorkspace({
+    ...(result.experience?.path ? { path: result.experience.path } : {}),
+    categories,
+    propertyNames: result.properties.map((p) => p.name),
+    routes: result.routes.length,
+    actions: result.actions,
+    awConfigs,
+    awLists,
+    uxListTables,
+    ...(result.experience?.title
+      ? { experienceName: result.experience.title }
+      : {}),
+  });
+  if (
+    result.shell ||
+    result.actions.length ||
+    result.themes.length ||
+    result.workspace.signals.length
+  ) {
+    ctx.caveats.push(WORKSPACE_CAVEAT);
+  }
+}
+
+/**
+ * N-29 (UX-11): the broker rules (uib-broker-lint.ts) over every broker
+ * read. ACL presence is unknown when sys_security_acl was unreadable, so
+ * `uib-broker-mutates-no-acl` does not fire then.
+ */
+function readBrokerHints(
+  ctx: Ctx,
+  result: ExplainUiExperienceResult,
+  rows: Map<string, SnRecord>,
+): void {
+  const aclKnown = !ctx.unreadable.some((u) => u.table === "sys_security_acl");
+  const field = (row: SnRecord, f: string): string | undefined =>
+    f in row ? str(row, f) : undefined;
+  const hints: UxBrokerHint[] = [];
+  for (const b of result.dataBrokers) {
+    const row = rows.get(b.sys_id);
+    const kind = BROKER_KIND_BY_TABLE[b.table];
+    if (!row || !kind) continue;
+    const findings = lintUibBroker(
+      {
+        kind,
+        mutates_server_data: field(row, "mutates_server_data"),
+        properties: field(row, "properties"),
+        script: kind === "transform" ? field(row, "script") : undefined,
+      },
+      aclKnown ? { hasAcl: b.acls.length > 0 } : {},
+    );
+    if (!findings.length) continue;
+    hints.push({
+      broker: b.sys_id,
+      ...(b.name ? { name: b.name } : {}),
+      table: b.table,
+      findings: findings.map((f) => ({
+        rule: f.rule,
+        severity: f.severity,
+        message: f.message,
+        ...(f.line !== undefined ? { line: f.line } : {}),
+      })),
+    });
+  }
+  if (!hints.length) return;
+  result.brokerHints = hints;
+  ctx.caveats.push(BROKER_HINT_CAVEAT);
+}
+
+/**
+ * N-31 (UX-22): the `uib-page-weight` findings of every macroponent with
+ * any, and the screen variants that render it. With `elements` depth the
+ * metrics land on the macroponent too (readTranslations).
+ */
+function readPageHints(
+  ctx: Ctx,
+  result: ExplainUiExperienceResult,
+  macroRows: SnRecord[],
+): void {
+  const hints: UxPageHint[] = [];
+  for (const row of macroRows) {
+    const id = str(row, "sys_id");
+    const { metrics, findings } = lintUibPageWeight({
+      composition: str(row, "composition"),
+      data: str(row, "data"),
+    });
+    if (!findings.length) continue;
+    const mp = result.macroponents.find((m) => m.sys_id === id);
+    const screens = result.routes.flatMap((r) =>
+      r.screens
+        .filter((s) => s.macroponent === id)
+        .map((s) => s.name ?? s.sys_id),
+    );
+    hints.push({
+      macroponent: id,
+      ...(mp?.name ? { name: mp.name } : {}),
+      ...(screens.length ? { screens } : {}),
+      findings: findings.map((f) => {
+        const { hint, ...rest } = f;
+        void hint;
+        return rest;
+      }),
+      ...(metrics.partial ? { partial: true as const } : {}),
+    });
+  }
+  if (!hints.length) return;
+  result.pageHints = hints;
+  ctx.caveats.push(PAGE_HINT_CAVEAT);
+}
+
+/**
+ * N-31 (UX-22, UX-23), `elements` depth: each macroponent's page metrics
+ * and its translatable strings against `required_translations`.
+ */
+function readTranslations(
+  ctx: Ctx,
+  result: ExplainUiExperienceResult,
+  macroRows: SnRecord[],
+): void {
+  let strings = 0;
+  let undeclaredCount = 0;
+  let any = false;
+  for (const row of macroRows) {
+    const mp = result.macroponents.find((m) => m.sys_id === str(row, "sys_id"));
+    if (!mp) continue;
+    mp.pageMetrics = lintUibPageWeight({
+      composition: str(row, "composition"),
+      data: str(row, "data"),
+    }).metrics;
+    const comp = decodeField(
+      "uib-composition",
+      str(row, "composition") || "[]",
+    );
+    if (!comp.decoded) continue;
+    const declared = declaredValue(row);
+    const t = requiredTranslations(comp.value, declared.value);
+    const known = declared.known && t.declared !== null;
+    if (!t.strings.length && !t.declared?.length) continue;
+    any = true;
+    const undeclared = known ? t.undeclared : [];
+    mp.translations = {
+      strings: t.strings.length,
+      texts: t.texts.length,
+      declared: known ? t.declared!.length : null,
+      undeclared: undeclared.length,
+      sample: (known ? undeclared : t.texts).slice(0, UI_TRANSLATION_SAMPLE),
+      ...(t.omitted ? { omitted: t.omitted } : {}),
+    };
+    strings += t.strings.length;
+    undeclaredCount += undeclared.length;
+  }
+  if (!any) return;
+  result.detail!.translatableStrings = strings;
+  result.detail!.undeclaredTranslations = undeclaredCount;
+  ctx.caveats.push(TRANSLATIONS_CAVEAT);
+}
+
+/**
+ * The decoded `required_translations` of a macroponent row; not `known`
+ * when the field was not returned or does not decode.
+ */
+function declaredValue(row: SnRecord): { known: boolean; value?: unknown } {
+  if (!("required_translations" in row)) return { known: false };
+  const raw = str(row, "required_translations");
+  if (!raw.trim()) return { known: true, value: [] };
+  const d = decodeField("json", raw);
+  return d.decoded ? { known: true, value: d.value } : { known: false };
 }
 
 /** The requested N-26 levels, in canonical order, unknown values dropped. */
@@ -1235,6 +1665,7 @@ async function readDetail(
   const brokers = new Map(result.dataBrokers.map((b) => [b.sys_id, b]));
 
   if (levels.includes("elements")) {
+    readTranslations(ctx, result, macroRows);
     await resolveComponents(ctx, result);
     for (const m of result.macroponents) {
       for (const comp of m.components ?? []) {
@@ -1733,6 +2164,34 @@ function detailLines(m: UxMacroponent, out: string[]): void {
       out.push(`- \`${b.elementId}\`.${b.prop} = ${b.expression}${to}`);
     }
   }
+  if (m.pageMetrics) {
+    const p = m.pageMetrics;
+    out.push(
+      "",
+      `Page weight: ${p.elements} element(s), slot depth ${p.maxDepth}, ${p.onLoadBrokers} of ${p.dataBrokers} data resource(s) on load${
+        p.unconditionalOnLoad.length
+          ? `, ${p.unconditionalOnLoad.length} without \`when\``
+          : ""
+      }${p.partial ? " _(partial)_" : ""}`,
+    );
+  }
+  if (m.translations) {
+    const t = m.translations;
+    out.push(
+      "",
+      `Translations: ${t.texts} string(s) in ${t.strings} use(s), ${
+        t.declared === null
+          ? "required_translations unreadable"
+          : `${t.declared} declared, ${t.undeclared} undeclared`
+      }${t.omitted ? ` (${t.omitted} past the cap)` : ""}${
+        t.sample.length
+          ? ` · ${t.declared === null ? "e.g." : "missing"}: ${t.sample
+              .map((x) => JSON.stringify(x))
+              .join(", ")}`
+          : ""
+      }`,
+    );
+  }
   if (m.eventChains?.length) {
     out.push("", "Event chains:");
     for (const c of m.eventChains) {
@@ -1743,6 +2202,53 @@ function detailLines(m: UxMacroponent, out: string[]): void {
       );
     }
   }
+}
+
+/** N-31: the `## Page hints` section; nothing when no page has a finding. */
+function pageHintLines(result: ExplainUiExperienceResult, out: string[]): void {
+  if (!result.pageHints?.length) return;
+  const rule = UIB_PAGE_RULES[0]!;
+  out.push("## Page hints", "", `\`${rule.id}\`: ${rule.hint}`, "");
+  for (const h of result.pageHints) {
+    out.push(
+      `- **${h.name ?? h.macroponent}**${
+        h.screens?.length ? ` (${h.screens.join(", ")})` : ""
+      }${h.partial ? " _(partial)_" : ""}`,
+    );
+    for (const f of h.findings) {
+      out.push(
+        `  - ${f.message}${
+          f.elementIds?.length
+            ? ` ${f.elementIds.map((e) => `\`${e}\``).join(", ")}`
+            : ""
+        }`,
+      );
+    }
+  }
+  out.push("");
+}
+
+/** N-29: the `## Broker hints` section; nothing when no broker has a finding. */
+function brokerHintLines(
+  result: ExplainUiExperienceResult,
+  out: string[],
+): void {
+  if (!result.brokerHints?.length) return;
+  out.push("## Broker hints", "");
+  const used = new Set<string>(
+    result.brokerHints.flatMap((h) => h.findings.map((f) => f.rule)),
+  );
+  for (const r of UIB_BROKER_RULES) {
+    if (used.has(r.id)) out.push(`- \`${r.id}\` (${r.severity}): ${r.hint}`);
+  }
+  out.push("");
+  for (const h of result.brokerHints) {
+    out.push(`- **${h.name ?? h.broker}** (${h.table})`);
+    for (const f of h.findings) {
+      out.push(`  - ${f.severity}: ${f.message} (\`${f.rule}\`)`);
+    }
+  }
+  out.push("");
 }
 
 /**
@@ -1818,7 +2324,7 @@ export function uiExperienceMarkdown(
   );
   const c = result.counts;
   out.push(
-    `${c.routes} route(s), ${c.screens} screen variant(s), ${c.macroponents} macroponent(s), ${c.elements} element(s), ${c.dataResources} data resource(s), ${c.dataBrokers} data broker(s), ${c.acls} broker ACL(s), ${c.dashboards} dashboard(s), ${c.lists} list(s), ${c.formActionLayouts} form action layout(s). verified:false.`,
+    `${c.routes} route(s), ${c.screens} screen variant(s), ${c.macroponents} macroponent(s), ${c.elements} element(s), ${c.dataResources} data resource(s), ${c.dataBrokers} data broker(s), ${c.acls} broker ACL(s), ${c.dashboards} dashboard(s), ${c.lists} list(s), ${c.formActionLayouts} form action layout(s), ${c.actions} declarative action(s), ${c.themes} theme(s). verified:false.`,
   );
   if (result.appConfig) {
     const a = result.appConfig;
@@ -1916,6 +2422,8 @@ export function uiExperienceMarkdown(
       out.push("");
     }
   }
+  pageHintLines(result, out);
+  brokerHintLines(result, out);
   if (result.dataBrokers.length || result.unresolvedBrokers.length) {
     out.push("## Data brokers", "");
     for (const b of result.dataBrokers) {
@@ -1926,7 +2434,9 @@ export function uiExperienceMarkdown(
       );
     }
     for (const id of result.unresolvedBrokers) {
-      out.push(`- ${id} _(not a transform / scriptlet broker, or not found)_`);
+      out.push(
+        `- ${id} _(not a transform / scriptlet / REST / GraphQL broker, or not found)_`,
+      );
     }
     out.push("");
   }
@@ -1961,6 +2471,13 @@ export function uiExperienceMarkdown(
               who.length ? ` · audience ${who.join("; ")}` : ""
             }`,
           );
+          const decoded = [
+            ...(l.columns?.length ? [`columns ${l.columns.join(", ")}`] : []),
+            ...(l.conditionTerms?.length
+              ? [`condition ${conditionText(l.conditionTerms)}`]
+              : []),
+          ];
+          if (decoded.length) out.push(`      - ${decoded.join(" · ")}`);
         }
       }
     }
@@ -1976,6 +2493,7 @@ export function uiExperienceMarkdown(
     }
     out.push("");
   }
+  workspaceLines(result, out);
   out.push("## Page map", "", "```mermaid", mermaid, "```", "");
   out.push("## Caveats", "");
   for (const cav of result.caveats) out.push(`- ${cav}`);

@@ -731,6 +731,132 @@ test("uib-data-broker-no-acl: brokers with no ux_data_broker ACL (positive) vs g
   );
 });
 
+// N-29: broker rows with the fields the new rules read.
+const N29_BROKERS = {
+  ...UIB_TABLES,
+  sys_ux_data_broker_transform: [
+    // Guarded (b1 ACL), mutates, queries without a check, has a schema.
+    {
+      sys_id: "b1",
+      name: "Guarded transform",
+      mutates_server_data: "true",
+      properties: '[{"name":"table"}]',
+      script:
+        "function transform(input) {\n  var gr = new GlideRecord('incident');\n  gr.query();\n}",
+    },
+    // Mutates, no ACL; checks access; empty schema.
+    {
+      sys_id: "b2",
+      name: "Open transform",
+      mutates_server_data: "true",
+      properties: "[]",
+      script:
+        "function transform(input) {\n  var gr = new GlideRecord('incident');\n  if (!gr.canWrite()) return;\n}",
+    },
+  ],
+  sys_ux_data_broker_scriptlet: [
+    { sys_id: "b3", name: "Open scriptlet", properties: "" },
+  ],
+  sys_ux_data_broker_rest: [
+    {
+      sys_id: "b4",
+      name: "REST writer",
+      mutates_server_data: "true",
+      properties: '[{"name":"id"}]',
+    },
+    { sys_id: "b5", name: "REST reader", mutates_server_data: "false" },
+  ],
+  sys_ux_data_broker_graphql: [
+    {
+      sys_id: "b6",
+      name: "Graph",
+      mutates_server_data: "false",
+      properties: "{}",
+    },
+  ],
+};
+
+test("N-29 broker rules: mutates-no-acl (error, replaces no-acl), GlideRecord without a check, no input schema", async () => {
+  await scenario(N29_BROKERS, async () => {
+    const d = await analyseDomains();
+    // b2 (transform) and b4 (REST) mutate with no ACL: the error rule, and
+    // b2 is no longer reported as uib-data-broker-no-acl.
+    assert.deepEqual(ids(d, "uib-broker-mutates-no-acl"), ["b2", "b4"]);
+    assert.deepEqual(ids(d, "uib-data-broker-no-acl"), ["b3"]);
+    const b4 = d.findings.find(
+      (f) => f.rule === "uib-broker-mutates-no-acl" && f.ref.sys_id === "b4",
+    );
+    assert.equal(b4.severity, "error");
+    assert.equal(b4.ref.artifactType, "uib_data_broker_rest");
+    assert.equal(b4.details.kind, "rest");
+    // REST / GraphQL brokers do not join the transform / scriptlet rule.
+    assert.equal(d.rules["uib-data-broker-no-acl"].scanned, 3);
+    assert.equal(d.rules["uib-broker-mutates-no-acl"].scanned, 6);
+    // b1 queries and never checks; b2 checks canWrite().
+    assert.deepEqual(ids(d, "uib-transform-gliderecord-no-acl-check"), ["b1"]);
+    const gr = d.findings.find(
+      (f) => f.rule === "uib-transform-gliderecord-no-acl-check",
+    );
+    assert.equal(gr.severity, "warn");
+    assert.equal(gr.details.line, 2);
+    assert.equal(d.rules["uib-transform-gliderecord-no-acl-check"].scanned, 2);
+    // Empty "[]", "" and "{}" are no schema; b5 has no properties field
+    // (unknown), so it is not reported.
+    assert.deepEqual(ids(d, "uib-broker-no-input-schema"), ["b2", "b3", "b6"]);
+    assert.equal(
+      d.findings.find((f) => f.rule === "uib-broker-no-input-schema").severity,
+      "info",
+    );
+  });
+  // REST / GraphQL tables unreadable: they are skipped, the rules still run.
+  await scenario(
+    N29_BROKERS,
+    async () => {
+      const d = await analyseDomains();
+      assert.equal(d.rules["uib-broker-mutates-no-acl"].available, true);
+      assert.deepEqual(ids(d, "uib-broker-mutates-no-acl"), ["b2"]);
+      assert.deepEqual(ids(d, "uib-broker-no-input-schema"), ["b2", "b3"]);
+    },
+    { sys_ux_data_broker_rest: 404, sys_ux_data_broker_graphql: 403 },
+  );
+  // No ACL table: both ACL rules unavailable, the pure rules still run.
+  await scenario(
+    N29_BROKERS,
+    async () => {
+      const d = await analyseDomains();
+      assert.equal(d.rules["uib-broker-mutates-no-acl"].available, false);
+      assert.equal(d.rules["uib-data-broker-no-acl"].available, false);
+      assert.equal(
+        d.rules["uib-transform-gliderecord-no-acl-check"].available,
+        true,
+      );
+      assert.deepEqual(ids(d, "uib-transform-gliderecord-no-acl-check"), [
+        "b1",
+      ]);
+    },
+    { sys_security_acl: 404 },
+  );
+  // Neither transform nor scriptlet readable: every broker rule unavailable.
+  await scenario(
+    N29_BROKERS,
+    async () => {
+      const d = await analyseDomains();
+      for (const rule of [
+        "uib-broker-mutates-no-acl",
+        "uib-transform-gliderecord-no-acl-check",
+        "uib-broker-no-input-schema",
+      ]) {
+        assert.equal(d.rules[rule].available, false, rule);
+        assert.match(
+          d.rules[rule].unavailableReason,
+          /sys_ux_data_broker_transform/,
+        );
+      }
+    },
+    { sys_ux_data_broker_transform: 403, sys_ux_data_broker_scriptlet: 403 },
+  );
+});
+
 test("UI Builder rules degrade: unreadable tables disable their rule, capped confirming reads report nothing", async () => {
   await scenario(
     ALL,

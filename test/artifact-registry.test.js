@@ -389,6 +389,15 @@ const P9_TYPES = {
     "uib_form_action",
     "uib_form_action_layout",
     "uib_composite_definition",
+    // N-29 / N-30
+    "uib_data_broker_rest",
+    "uib_data_broker_graphql",
+    "ux_declarative_action",
+    "ux_declarative_action_definition",
+    "ux_declarative_action_payload",
+    "uib_app_theme",
+    "aw_master_config",
+    "aw_list",
   ],
   portal: [
     "sp_portal",
@@ -437,6 +446,33 @@ test("P-9: every NX / UIB / portal / flow / workflow row is an unverified R-tier
   }
   // sp_widget keeps its S-4 script-tools tiers and fields.
   assert.deepEqual(getArtifactType("sp_widget").tiers, ["R", "A", "S"]);
+});
+
+test("N-29 / N-30: broker, declarative action, theme and AW rows stay out of the script tools", () => {
+  // REST / GraphQL brokers: no script fields, the broker meta flag.
+  for (const type of ["uib_data_broker_rest", "uib_data_broker_graphql"]) {
+    const t = getArtifactType(type);
+    assert.deepEqual(t.scriptFields, [], type);
+    assert.deepEqual(t.metaFields, ["mutates_server_data"], type);
+    assert.equal(t.jsonFields[0].field, "properties", type);
+    assert.notEqual(t.scriptToolsOptIn, true, type);
+  }
+  const da = getArtifactType("ux_declarative_action");
+  assert.equal(da.table, "sys_declarative_action_assignment");
+  assert.deepEqual(da.scriptFields, ["server_script", "client_script"]);
+  assert.deepEqual(da.clientFields, ["client_script"]);
+  // A script field, but not a script-tools type (no enum growth).
+  assert.notEqual(da.scriptToolsOptIn, true);
+  const ref = (t, field) => t.refFields.find((r) => r.field === field);
+  assert.equal(ref(da, "ui_component").type, "uib_component");
+  assert.equal(ref(da, "action").type, "ux_declarative_action_definition");
+  assert.equal(ref(da, "client_action").type, "ux_declarative_action_payload");
+  assert.equal(ref(da, "workspace").type, "aw_master_config");
+  assert.equal(
+    ref(getArtifactType("uib_app_theme"), "theme").type,
+    "uib_theme",
+  );
+  assert.equal(getArtifactType("aw_list").nameField, "title");
 });
 
 test("P-9: the rows carry their child tables", () => {

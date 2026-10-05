@@ -337,3 +337,51 @@ test("compare types from_snapshot reads the stored artefact files", async () => 
     assert.equal(live.length, 0, "artefacts came from the snapshot files");
   });
 });
+
+test("compare types: a UIB macroponent gets a per-element composition diff (N-31)", async () => {
+  const M1 = "5".repeat(32);
+  const el = (elementId, extra = {}) => ({
+    elementId,
+    definition: { id: `cmp_${elementId}`, type: "COMPONENT" },
+    ...extra,
+  });
+  const page = (composition) => ({
+    sys_id: M1,
+    name: "Incident page",
+    composition: JSON.stringify(composition),
+    data: "[]",
+    sys_updated_on: "x",
+  });
+  const a = [el("header", { propertyValues: { title: "A" } }), el("list")];
+  const b = [el("header", { propertyValues: { title: "B" } }), el("button")];
+  const data = {
+    "dev00000.service-now.com": { sys_ux_macroponent: [page(a)] },
+    "dev11111.service-now.com": { sys_ux_macroponent: [page(b)] },
+  };
+  await scenario(
+    {},
+    async (_calls, docs) => {
+      const r = await compareInstances({
+        a: "default",
+        b: "b",
+        types: ["uib_macroponent"],
+      });
+      assert.equal(r.artifactDiffs.length, 1);
+      const d = r.artifactDiffs[0];
+      assert.deepEqual(d.fields, ["composition"]);
+      assert.deepEqual(
+        d.elementDiff.composition.elements.map((e) => [e.elementId, e.status]),
+        [
+          ["button", "added"],
+          ["header", "changed"],
+          ["list", "removed"],
+        ],
+      );
+      assert.match(
+        readFileSync(path.join(docs, r.report), "utf8"),
+        /composition \[elements \+1 -1 ~1\]/,
+      );
+    },
+    data,
+  );
+});

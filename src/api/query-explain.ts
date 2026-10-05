@@ -257,3 +257,67 @@ export function explainQuery(
 
   return { conditions, orderBy, notes: [...notes], indexFriendly };
 }
+
+/** One condition of an encoded query, with its value (N-30). */
+export interface EncodedQueryTerm {
+  /** 0-based `^NQ` block the condition belongs to. */
+  block: number;
+  field: string;
+  operator: string;
+  /** Raw value after the operator (`@`-joined for BETWEEN / DATEPART). */
+  value: string;
+  /** True for an `^OR` condition (joined with the previous one). */
+  or: boolean;
+}
+
+export interface EncodedQueryRead {
+  terms: EncodedQueryTerm[];
+  orderBy: { field: string; desc: boolean }[];
+  groupBy: string[];
+  /** Terms the reader did not recognise (javascript:, keyword search…). */
+  unparsed: string[];
+}
+
+/**
+ * N-30 — read an encoded query into its conditions, values included. Pure and
+ * tolerant: an unknown term lands in `unparsed`, never thrown on. Values are
+ * echoed as stored (a DYNAMIC value is the sys_id of a dynamic filter option).
+ */
+export function readEncodedQuery(query: string): EncodedQueryRead {
+  const out: EncodedQueryRead = {
+    terms: [],
+    orderBy: [],
+    groupBy: [],
+    unparsed: [],
+  };
+  query.split("^NQ").forEach((blockText, block) => {
+    for (const raw of blockText.split("^")) {
+      let term = raw.trim();
+      if (!term || term === "EQ") continue;
+      if (term.startsWith("ORDERBYDESC") || term.startsWith("ORDERBY")) {
+        const desc = term.startsWith("ORDERBYDESC");
+        out.orderBy.push({ field: term.slice(desc ? 11 : 7), desc });
+        continue;
+      }
+      if (term.startsWith("GROUPBY")) {
+        out.groupBy.push(term.slice(7));
+        continue;
+      }
+      const or = term.startsWith("OR") && FIELD_RE.test(term.slice(2));
+      if (or) term = term.slice(2);
+      const parsed = parseCondition(term);
+      if (!parsed) {
+        out.unparsed.push(raw);
+        continue;
+      }
+      out.terms.push({
+        block,
+        field: parsed.field,
+        operator: parsed.operator,
+        value: term.slice(parsed.field.length + parsed.operator.length),
+        or,
+      });
+    }
+  });
+  return out;
+}

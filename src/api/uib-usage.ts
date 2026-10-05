@@ -39,8 +39,11 @@ export const BROKER_TABLES: Readonly<
     table: "sys_ux_data_broker_scriptlet",
     type: "uib_data_broker_scriptlet",
   },
-  REST: { table: "sys_ux_data_broker_rest" },
-  GRAPHQL: { table: "sys_ux_data_broker_graphql" },
+  REST: { table: "sys_ux_data_broker_rest", type: "uib_data_broker_rest" },
+  GRAPHQL: {
+    table: "sys_ux_data_broker_graphql",
+    type: "uib_data_broker_graphql",
+  },
 };
 
 /**

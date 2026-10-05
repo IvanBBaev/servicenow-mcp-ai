@@ -11,6 +11,12 @@ import {
   type JsonField,
 } from "../core/artifacts/registry.js";
 import { decodeField } from "../core/artifacts/decoders.js";
+import {
+  compositionDiff,
+  isEmptyCompositionDiff,
+  type CompositionDiff,
+} from "../core/artifacts/uib-composition-diff.js";
+import { isComposition } from "../core/artifacts/uib-composition.js";
 import { REDACTED } from "../core/redaction.js";
 
 /**
@@ -383,6 +389,49 @@ export interface ArtifactDiff {
     string,
     { only_in_a: number; only_in_b: number; different: number }
   >;
+  /**
+   * N-31 (UX-21): `different` UI Builder macroponents — per composition
+   * field (`uib-composition` decoder) that differs, the element-level diff
+   * (added / removed / moved / prop or binding changed). Additive: the field
+   * is still named in `fields`.
+   */
+  elementDiff?: Record<string, CompositionDiff>;
+}
+
+/** The registry fields of a type decoded as UIB compositions. */
+function compositionFields(type: string): string[] {
+  const t = ARTIFACT_TYPES.find((x) => x.type === type);
+  return (t?.jsonFields ?? [])
+    .filter((j) => j.decoder === "uib-composition")
+    .map((j) => j.field);
+}
+
+/** A stored composition value: decoded array, or empty for no value. */
+function asComposition(v: unknown): unknown[] | undefined {
+  if (v === undefined || v === null || v === "") return [];
+  return isComposition(v) ? v : undefined;
+}
+
+/**
+ * N-31: element diffs of the differing composition fields of one record
+ * pair; a side whose value did not decode to a composition is skipped.
+ */
+export function elementDiffs(
+  type: string,
+  fields: readonly string[],
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): Record<string, CompositionDiff> | undefined {
+  const out: Record<string, CompositionDiff> = {};
+  for (const f of compositionFields(type)) {
+    if (!fields.includes(f)) continue;
+    const x = asComposition(a[f]);
+    const y = asComposition(b[f]);
+    if (!x || !y) continue;
+    const d = compositionDiff(x, y);
+    if (!isEmptyCompositionDiff(d)) out[f] = d;
+  }
+  return Object.keys(out).length ? out : undefined;
 }
 
 function pairUp<T extends { sys_id: string; key: string }>(
@@ -464,12 +513,14 @@ export function diffArtifactType(
         };
       }
     }
+    const elementDiff = elementDiffs(type, fields, l.fields, r.fields);
     out.push({
       type,
       key: l.key,
       status: "different",
       ...(fields.length ? { fields } : {}),
       ...(Object.keys(children).length ? { children } : {}),
+      ...(elementDiff ? { elementDiff } : {}),
     });
   }
   return out.sort((x, y) => x.key.localeCompare(y.key));

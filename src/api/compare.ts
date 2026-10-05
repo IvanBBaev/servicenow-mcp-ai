@@ -32,6 +32,7 @@ import {
   type MermaidDiff,
 } from "./artifact-mermaid.js";
 import { snString, mdTable } from "./shared.js";
+import { compositionDiffSummary } from "../core/artifacts/uib-composition-diff.js";
 import { listProfiles } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
 import { getDocsDir } from "../core/settings.js";
@@ -549,6 +550,19 @@ function mdList(title: string, items: string[]): string[] {
   ];
 }
 
+/**
+ * The Fields cell of one artefact diff; N-31 appends the element summary of
+ * a changed composition (`composition [elements +1 -0 ~2 (moved 1)]`).
+ */
+function artifactFieldsCell(d: ArtifactDiff): string {
+  return (d.fields ?? [])
+    .map((f) => {
+      const e = d.elementDiff?.[f];
+      return e ? `${f} [elements ${compositionDiffSummary(e)}]` : f;
+    })
+    .join(", ");
+}
+
 export async function compareInstances(
   opts: CompareOptions,
 ): Promise<CompareResult> {
@@ -791,7 +805,7 @@ export async function compareInstances(
                       d.type,
                       d.key,
                       d.status,
-                      d.fields?.join(", ") ?? "",
+                      artifactFieldsCell(d),
                       Object.entries(d.children ?? {})
                         .map(
                           ([t, c]) =>

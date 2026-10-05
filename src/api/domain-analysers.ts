@@ -30,7 +30,13 @@
  *     matches every user, and shadows any later variant of its screen type
  *     (`warn` when it does, `info` otherwise);
  *   - `uib-data-broker-no-acl` — a custom transform / scriptlet data broker
- *     with no `ux_data_broker` ACL (sys_security_acl `name` = broker sys_id).
+ *     with no `ux_data_broker` ACL (sys_security_acl `name` = broker sys_id);
+ *   - N-29 (./uib-broker-lint.ts, also over the REST / GraphQL broker tables
+ *     when readable): `uib-broker-mutates-no-acl` (error — a broker that
+ *     declares `mutates_server_data` with no ACL; reported instead of
+ *     `uib-data-broker-no-acl`), `uib-transform-gliderecord-no-acl-check`
+ *     (a transform querying with GlideRecord and never checking access) and
+ *     `uib-broker-no-input-schema` (empty `properties`).
  *
  * Legacy: `workflow-migration-candidate` — a wf_workflow still referenced by
  * a catalog item or an SLA definition.
@@ -49,6 +55,11 @@ import { decodeValues, type StepInput } from "./explain-flow.js";
 import { snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 import { scriptCalls } from "./script-ast.js";
+import {
+  brokerMutates,
+  lintUibBroker,
+  type UibBrokerKind,
+} from "./uib-broker-lint.js";
 
 export type DomainSeverity = "error" | "warn" | "info";
 
@@ -66,6 +77,9 @@ export type DomainRuleId =
   | "uib-route-no-screen"
   | "uib-screen-no-applicability"
   | "uib-data-broker-no-acl"
+  | "uib-broker-mutates-no-acl"
+  | "uib-transform-gliderecord-no-acl-check"
+  | "uib-broker-no-input-schema"
   | "workflow-migration-candidate";
 
 export type DomainName = "flow" | "portal" | "uib" | "workflow";
@@ -87,6 +101,9 @@ export const DOMAIN_RULES: Record<
   "uib-route-no-screen": { domain: "uib", severity: "warn" },
   "uib-screen-no-applicability": { domain: "uib", severity: "info" },
   "uib-data-broker-no-acl": { domain: "uib", severity: "warn" },
+  "uib-broker-mutates-no-acl": { domain: "uib", severity: "error" },
+  "uib-transform-gliderecord-no-acl-check": { domain: "uib", severity: "warn" },
+  "uib-broker-no-input-schema": { domain: "uib", severity: "info" },
   "workflow-migration-candidate": { domain: "workflow", severity: "info" },
 };
 
@@ -170,6 +187,9 @@ interface Rows {
 }
 
 const str = (row: SnRecord, field: string): string => snString(row[field]);
+/** A field as a string, or undefined when the row does not carry it. */
+const raw = (row: SnRecord, field: string): string | undefined =>
+  row[field] === undefined ? undefined : snString(row[field]);
 
 /**
  * One bounded read (`max` rows). An instance or policy error on a table is
@@ -1206,6 +1226,39 @@ const BROKER_TABLES = [
   ["sys_ux_data_broker_scriptlet", "uib_data_broker_scriptlet"],
 ] as const;
 
+/** Broker reads: table, registry type, kind, fields (N-29; O-5 unverified). */
+const BROKER_READS: readonly (readonly [
+  string,
+  string,
+  UibBrokerKind,
+  string[],
+])[] = [
+  [
+    "sys_ux_data_broker_transform",
+    "uib_data_broker_transform",
+    "transform",
+    ["sys_id", "name", "mutates_server_data", "properties", "script"],
+  ],
+  [
+    "sys_ux_data_broker_scriptlet",
+    "uib_data_broker_scriptlet",
+    "scriptlet",
+    ["sys_id", "name", "properties"],
+  ],
+  [
+    "sys_ux_data_broker_rest",
+    "uib_data_broker_rest",
+    "rest",
+    ["sys_id", "name", "mutates_server_data", "properties"],
+  ],
+  [
+    "sys_ux_data_broker_graphql",
+    "uib_data_broker_graphql",
+    "graphql",
+    ["sys_id", "name", "mutates_server_data", "properties"],
+  ],
+];
+
 async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
   const { limit } = ctx;
 
@@ -1313,26 +1366,43 @@ async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
     }
   });
 
-  // 3. Transform / scriptlet data brokers with no ux_data_broker ACL.
-  await out.run(["uib-data-broker-no-acl"], async () => {
-    const brokers: { row: SnRecord; table: string; type: string }[] = [];
-    let capped = false;
-    let any = false;
-    for (const [table, type] of BROKER_TABLES) {
-      const r = await read(
-        ctx,
-        table,
-        `${NOT_OOB}^${NEWEST}`,
-        ["sys_id", "name"],
-        limit,
-      );
-      if (!r) continue;
-      any = true;
-      capped ||= r.capped;
-      for (const row of r.rows) brokers.push({ row, table, type });
-    }
-    if (!any) need(ctx, null, ...BROKER_TABLES.map(([t]) => t));
-    out.scanned("uib-data-broker-no-acl", brokers.length, capped);
+  // 3. Data brokers, read once: transform / scriptlet (the tables the
+  // rules need) plus the N-29 REST / GraphQL brokers (optional — an
+  // unreadable one is skipped; O-5: unverified tables).
+  const brokers: {
+    row: SnRecord;
+    table: string;
+    type: string;
+    kind: UibBrokerKind;
+  }[] = [];
+  let brokersCapped = false;
+  let anyBrokerTable = false;
+  for (const [table, type, kind, fields] of BROKER_READS) {
+    const r = await read(ctx, table, `${NOT_OOB}^${NEWEST}`, fields, limit);
+    if (!r) continue;
+    if (kind === "transform" || kind === "scriptlet") anyBrokerTable = true;
+    brokersCapped ||= r.capped;
+    for (const row of r.rows) brokers.push({ row, table, type, kind });
+  }
+  const coreTables = BROKER_TABLES.map(([t]) => t);
+  const isCore = (b: { kind: UibBrokerKind }): boolean =>
+    b.kind === "transform" || b.kind === "scriptlet";
+
+  // 3a. Brokers with no ux_data_broker ACL: `uib-data-broker-no-acl` for a
+  // transform / scriptlet, `uib-broker-mutates-no-acl` (error, N-29) instead
+  // for any broker that declares mutates_server_data.
+  const aclRules: DomainRuleId[] = [
+    "uib-data-broker-no-acl",
+    "uib-broker-mutates-no-acl",
+  ];
+  await out.run(aclRules, async () => {
+    if (!anyBrokerTable) need(ctx, null, ...coreTables);
+    out.scanned(
+      "uib-data-broker-no-acl",
+      brokers.filter(isCore).length,
+      brokersCapped,
+    );
+    out.scanned("uib-broker-mutates-no-acl", brokers.length, brokersCapped);
     if (!brokers.length) return;
     const acls = need(
       ctx,
@@ -1348,18 +1418,58 @@ async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
     );
     // A capped ACL read cannot prove a broker has none: report nothing.
     if (acls.capped) {
-      out.scanned("uib-data-broker-no-acl", 0, true);
+      for (const rule of aclRules) out.scanned(rule, 0, true);
       return;
     }
     const guarded = new Set(acls.rows.map((r) => str(r, "name")));
     for (const b of brokers) {
       if (guarded.has(str(b.row, "sys_id"))) continue;
+      if (brokerMutates(raw(b.row, "mutates_server_data"))) {
+        out.add(
+          "uib-broker-mutates-no-acl",
+          refOf(b.type, b.table, b.row),
+          "The data broker declares mutates_server_data and no ux_data_broker ACL names it: a page can change server data through it without an access check. Add an ACL of type ux_data_broker with the broker's sys_id as its name.",
+          { kind: b.kind },
+        );
+        continue;
+      }
+      if (!isCore(b)) continue;
       out.add(
         "uib-data-broker-no-acl",
         refOf(b.type, b.table, b.row),
         "No ux_data_broker ACL names this data broker: depending on the release it either cannot execute for non-admin users or runs unguarded. Add an ACL of type ux_data_broker with the broker's sys_id as its name.",
       );
     }
+  });
+
+  // 3b. N-29: transform scripts that query without an access check, and
+  // brokers with no input schema (pure, from the broker rows).
+  const lintRules: DomainRuleId[] = [
+    "uib-transform-gliderecord-no-acl-check",
+    "uib-broker-no-input-schema",
+  ];
+  await out.run(lintRules, () => {
+    if (!anyBrokerTable) need(ctx, null, ...coreTables);
+    out.scanned(
+      "uib-transform-gliderecord-no-acl-check",
+      brokers.filter((b) => b.kind === "transform").length,
+      brokersCapped,
+    );
+    out.scanned("uib-broker-no-input-schema", brokers.length, brokersCapped);
+    for (const b of brokers) {
+      const findings = lintUibBroker({
+        kind: b.kind,
+        properties: raw(b.row, "properties"),
+        script: raw(b.row, "script"),
+      });
+      for (const f of findings) {
+        out.add(f.rule, refOf(b.type, b.table, b.row), f.message, {
+          kind: b.kind,
+          ...(f.line ? { line: f.line } : {}),
+        });
+      }
+    }
+    return Promise.resolve();
   });
 }
 

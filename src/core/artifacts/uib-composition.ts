@@ -245,8 +245,11 @@ export function isComposition(value: unknown): value is Obj[] {
   );
 }
 
-/** The `[name, items]` slot pairs of one element, whatever the encoding. */
-function slotsOf(el: Obj): [string, unknown[]][] {
+/**
+ * The `[name, items]` slot pairs of one element, whatever the encoding
+ * (exported for the N-31 element diff and page metrics).
+ */
+export function slotsOf(el: Obj): [string, unknown[]][] {
   const out: [string, unknown[]][] = [];
   const slots = el.slots;
   if (Array.isArray(slots)) {

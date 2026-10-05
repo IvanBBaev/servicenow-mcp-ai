@@ -230,9 +230,21 @@ function fixture() {
       { sys_id: "cs1", name: "onLoad", type: "default", macroponent: HOME_MP },
     ],
     sys_ux_data_broker_transform: [
-      { sys_id: BROKER_T, name: "Incident list", mutates_server_data: "false" },
+      {
+        sys_id: BROKER_T,
+        name: "Incident list",
+        mutates_server_data: "false",
+        properties: '[{"name":"table","type":"string"}]',
+        script: "function transform(input) { return []; }",
+      },
     ],
-    sys_ux_data_broker_scriptlet: [{ sys_id: BROKER_S, name: "Counter" }],
+    sys_ux_data_broker_scriptlet: [
+      {
+        sys_id: BROKER_S,
+        name: "Counter",
+        properties: '[{"name":"count","type":"number"}]',
+      },
+    ],
     sys_security_acl: [
       {
         sys_id: "acl1",
@@ -271,6 +283,7 @@ function fixture() {
         title: "All",
         table: "incident",
         condition: "",
+        columns: "number,short_description",
         order: "2",
       },
       {
@@ -279,6 +292,7 @@ function fixture() {
         title: "Mine",
         table: "incident",
         condition: "assigned_toDYNAMIC90d1921e5f510100a9ad2572f2b477fe",
+        columns: "number, priority,state",
         order: "1",
       },
     ],
@@ -442,6 +456,8 @@ test("the fixture workspace walks routes → screen variants → macroponents", 
     listMenus: 1,
     lists: 2,
     formActionLayouts: 1,
+    actions: 0,
+    themes: 0,
   });
   assert.equal(res.missingFields, undefined);
   // By sys_id too.
@@ -558,6 +574,89 @@ test("data brokers, their ux_data_broker ACLs and unresolved brokers", async () 
   ]);
   assert.deepEqual(res.unresolvedBrokers, [BROKER_X]);
   assert.ok(res.caveats.some((c) => /1 data resource broker/.test(c)));
+});
+
+test("N-29: REST / GraphQL brokers resolve, broker hints flag the three rules", async () => {
+  const clean = payload(await run({ path: "now/acme" }));
+  // The default fixture trips no broker rule: no key, no caveat.
+  assert.equal(clean.brokerHints, undefined);
+  assert.ok(!clean.caveats.some((c) => /Broker hints/.test(c)));
+
+  const tables = fixture();
+  // A transform that queries without an access check, mutating, unguarded.
+  tables.sys_ux_data_broker_transform[0].script =
+    "function transform(input) {\n  var gr = new GlideRecord('incident');\n  gr.query();\n}";
+  // The scriptlet declares no input.
+  tables.sys_ux_data_broker_scriptlet[0].properties = "[]";
+  // BROKER_X lives in the GraphQL table: it mutates and has no ACL.
+  tables.sys_ux_data_broker_graphql = [
+    {
+      sys_id: BROKER_X,
+      name: "Graph writer",
+      mutates_server_data: "true",
+      properties: '[{"name":"id"}]',
+    },
+  ];
+  const mock = instance(tables);
+  const res = payload(await run({ path: "now/acme" }, mock));
+  assert.deepEqual(res.unresolvedBrokers, []);
+  const graph = res.dataBrokers.find((b) => b.sys_id === BROKER_X);
+  assert.equal(graph.table, "sys_ux_data_broker_graphql");
+  assert.equal(graph.mutates_server_data, "true");
+  assert.deepEqual(graph.acls, []);
+  // The REST table is read for the still-unresolved id only.
+  assert.ok(mock.reads.includes("sys_ux_data_broker_rest"));
+  // The transform script is read for the lint but not echoed.
+  assert.equal(res.dataBrokers[0].script, undefined);
+  const hint = (id) => res.brokerHints.find((h) => h.broker === id);
+  assert.deepEqual(
+    hint(BROKER_T).findings.map((f) => [f.rule, f.severity, f.line]),
+    [["uib-transform-gliderecord-no-acl-check", "warn", 2]],
+  );
+  assert.deepEqual(
+    hint(BROKER_S).findings.map((f) => [f.rule, f.severity]),
+    [["uib-broker-no-input-schema", "info"]],
+  );
+  assert.deepEqual(
+    hint(BROKER_X).findings.map((f) => [f.rule, f.severity]),
+    [["uib-broker-mutates-no-acl", "error"]],
+  );
+  assert.equal(hint(BROKER_X).name, "Graph writer");
+  // Hints carry no rule hint text (it is in the markdown section).
+  assert.equal(hint(BROKER_X).findings[0].hint, undefined);
+  assert.ok(res.caveats.some((c) => /Broker hints \(N-29\)/.test(c)));
+
+  const md = payload(
+    await run({ path: "now/acme", format: "markdown" }, instance(tables)),
+  ).markdown;
+  assert.match(md, /## Broker hints/);
+  assert.match(md, /`uib-broker-mutates-no-acl` \(error\): /);
+  assert.match(
+    md,
+    /\*\*Graph writer\*\* \(sys_ux_data_broker_graphql\)\n {2}- error: /,
+  );
+
+  // ACLs unreadable: whether a broker is guarded is unknown, so the
+  // mutates rule stays silent; the pure rules still report.
+  const denied = payload(
+    await run(
+      { path: "now/acme" },
+      instance(tables, { sys_security_acl: 403 }),
+    ),
+  );
+  assert.equal(
+    denied.brokerHints.some((h) =>
+      h.findings.some((f) => f.rule === "uib-broker-mutates-no-acl"),
+    ),
+    false,
+  );
+  assert.ok(
+    denied.brokerHints.some((h) =>
+      h.findings.some(
+        (f) => f.rule === "uib-transform-gliderecord-no-acl-check",
+      ),
+    ),
+  );
 });
 
 test("P-15: properties, dashboards, lists, audiences and form actions", async () => {
@@ -1318,4 +1417,235 @@ test("N-26: prop and handler readers are tolerant and bounded", async () => {
       },
     ],
   );
+});
+
+// N-31 (UX-22, UX-23): page hints and translations.
+
+/** A macroponent row with `n` flat elements, a slot chain `depth` deep and `data`. */
+function heavyMacroponent(sysId, { n = 0, depth = 0, data = [] } = {}) {
+  const composition = Array.from({ length: n }, (_, i) => ({
+    elementId: `e${i}`,
+  }));
+  if (depth) {
+    let deep = { elementId: `d${depth}` };
+    for (let i = depth - 1; i >= 1; i--) {
+      deep = {
+        elementId: `d${i}`,
+        slots: [{ slotName: "s", children: [deep] }],
+      };
+    }
+    composition.push(deep);
+  }
+  return {
+    sys_id: sysId,
+    name: "Heavy page",
+    category: "page",
+    composition: JSON.stringify(composition),
+    data: JSON.stringify(data),
+    state_properties: "",
+    internal_event_mappings: "",
+  };
+}
+
+test("N-31: pageHints lists uib-page-weight findings per macroponent", async () => {
+  const res = payload(await run({ path: "now/acme" }));
+  // The fixture home fires three data resources on load without `when`.
+  assert.deepEqual(res.pageHints, [
+    {
+      macroponent: HOME_MP,
+      name: "Acme home",
+      screens: ["Home (default)"],
+      findings: [
+        {
+          rule: "uib-page-weight",
+          severity: "info",
+          metric: "unconditional-broker",
+          value: 3,
+          message:
+            "3 data resource(s) fire on page load without a `when` condition.",
+          elementIds: ["incidents", "counter", "graph"],
+        },
+      ],
+    },
+  ]);
+  assert.ok(res.caveats.some((c) => /^Page hints \(uib-page-weight\)/.test(c)));
+  // Default depth: no metrics or translations on the macroponents.
+  for (const m of res.macroponents) {
+    assert.equal(m.pageMetrics, undefined);
+    assert.equal(m.translations, undefined);
+  }
+
+  // A heavy page trips every metric; JUST_IN_TIME and `when` are exempt.
+  const tables = fixture();
+  const data = [
+    ...Array.from({ length: 6 }, (_, i) => ({ elementId: `b${i}` })),
+    { elementId: "lazy", evaluationMode: "JUST_IN_TIME" },
+    { elementId: "guarded", when: "@state.tab == 'x'" },
+  ];
+  tables.sys_ux_macroponent[1] = heavyMacroponent(HOME_MP, {
+    n: 150,
+    depth: 9,
+    data,
+  });
+  const heavy = payload(await run({ path: "now/acme" }, instance(tables)));
+  assert.equal(heavy.pageHints.length, 1);
+  const hint = heavy.pageHints[0];
+  assert.equal(hint.name, "Heavy page");
+  assert.deepEqual(
+    hint.findings.map((f) => [f.metric, f.value, f.threshold]),
+    [
+      ["elements", 159, 150],
+      ["depth", 9, 8],
+      ["on-load-brokers", 7, 5],
+      ["unconditional-broker", 6, undefined],
+    ],
+  );
+  assert.deepEqual(hint.findings[3].elementIds, [
+    "b0",
+    "b1",
+    "b2",
+    "b3",
+    "b4",
+    "b5",
+  ]);
+  for (const f of hint.findings) assert.equal(f.hint, undefined);
+
+  const md = payload(
+    await run({ path: "now/acme", format: "markdown" }, instance(tables)),
+  ).markdown;
+  assert.match(md, /## Page hints\n\n`uib-page-weight`: Split a heavy page/);
+  assert.match(md, /- \*\*Heavy page\*\* \(Home \(default\)\)/);
+  assert.match(md, / {2}- The page has 159 elements \(threshold 150\)\./);
+  assert.match(md, /without a `when` condition\. `b0`, `b1`/);
+});
+
+test("N-31: a light page adds no pageHints and no caveat", async () => {
+  const tables = fixture();
+  tables.sys_ux_macroponent[1].data = JSON.stringify([
+    { elementId: "incidents", evaluationMode: "LAZY" },
+    { elementId: "counter", when: "@state.count > 0" },
+  ]);
+  const res = payload(await run({ path: "now/acme" }, instance(tables)));
+  assert.equal("pageHints" in res, false);
+  assert.equal(
+    res.caveats.some((c) => /uib-page-weight/.test(c)),
+    false,
+  );
+  const md = payload(
+    await run({ path: "now/acme", format: "markdown" }, instance(tables)),
+  ).markdown;
+  assert.doesNotMatch(md, /## Page hints/);
+});
+
+test("N-31: elements depth adds page metrics and a translations summary", async () => {
+  const { explainUiExperience, uiExperienceMarkdown } =
+    await import("../build/api/ui-experience.js");
+  const tables = fixture();
+  const labels = Array.from({ length: 25 }, (_, i) => ({
+    elementId: `t${i}`,
+    propertyValues: { label: `Label ${String(i).padStart(2, "0")}` },
+  }));
+  const home = tables.sys_ux_macroponent[1];
+  home.composition = JSON.stringify([
+    {
+      elementId: "hdr",
+      propertyValues: {
+        title: "Open incidents",
+        heading: { type: "TRANSLATION_LITERAL", value: "Welcome" },
+        table: "incident",
+        tooltip: "@data.incidents.results",
+      },
+    },
+    { elementId: "hdr2", propertyValues: { title: "Open incidents" } },
+    ...labels,
+  ]);
+  home.required_translations = JSON.stringify([
+    "Open incidents",
+    { message: "Label 00" },
+  ]);
+  // The default read does not ask for required_translations.
+  const plain = await withMetadataFetch(instance(tables).handler, () =>
+    explainUiExperience({ path: "now/acme" }),
+  );
+  assert.equal(plain.macroponents[1].translations, undefined);
+  assert.equal(plain.detail, undefined);
+
+  const res = await withMetadataFetch(instance(tables).handler, () =>
+    explainUiExperience({ path: "now/acme", detail: "elements" }),
+  );
+  const mp = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.deepEqual(mp.pageMetrics, {
+    elements: 27,
+    maxDepth: 1,
+    dataBrokers: 3,
+    onLoadBrokers: 3,
+    unconditionalOnLoad: ["incidents", "counter", "graph"],
+  });
+  assert.equal(mp.translations.strings, 28);
+  assert.equal(mp.translations.texts, 27);
+  assert.equal(mp.translations.declared, 2);
+  assert.equal(mp.translations.undeclared, 25);
+  assert.equal(mp.translations.sample.length, 20);
+  assert.equal(mp.translations.sample[0], "Label 01");
+  assert.ok(!mp.translations.sample.includes("Open incidents"));
+  // Sorted and bounded: "Welcome" (a typed literal) is the 25th undeclared.
+  assert.equal(mp.translations.sample.at(-1), "Label 20");
+  assert.equal(res.detail.translatableStrings, 28);
+  assert.equal(res.detail.undeclaredTranslations, 25);
+  assert.ok(res.caveats.some((c) => /^Translations list user-facing/.test(c)));
+  // The shell (empty composition) carries metrics but no translations.
+  assert.equal(res.macroponents[0].translations, undefined);
+  assert.equal(res.macroponents[0].pageMetrics.elements, 0);
+  // Rows without the field are not missing while one row returns it.
+  assert.deepEqual(res.missingFields, undefined);
+
+  const md = uiExperienceMarkdown(res, "flowchart TD");
+  assert.match(
+    md,
+    /Page weight: 27 element\(s\), slot depth 1, 3 of 3 data resource\(s\) on load, 3 without `when`/,
+  );
+  assert.match(
+    md,
+    /Translations: 27 string\(s\) in 28 use\(s\), 2 declared, 25 undeclared · missing: "Label 01", "Label 02"/,
+  );
+});
+
+test("N-31: an unreadable required_translations leaves declared null", async () => {
+  const { explainUiExperience } = await import("../build/api/ui-experience.js");
+  const tables = fixture();
+  const home = tables.sys_ux_macroponent[1];
+  home.composition = JSON.stringify([
+    { elementId: "a", propertyValues: { label: "Save" } },
+    { elementId: "b", propertyValues: { placeholder: "Search" } },
+  ]);
+  home.required_translations = "{not json";
+  const res = await withMetadataFetch(instance(tables).handler, () =>
+    explainUiExperience({ path: "now/acme", detail: ["elements"] }),
+  );
+  const mp = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.deepEqual(mp.translations, {
+    strings: 2,
+    texts: 2,
+    declared: null,
+    undeclared: 0,
+    sample: ["Save", "Search"],
+  });
+  // The field not returned at all is unknown too, and listed as missing.
+  delete home.required_translations;
+  const missing = await withMetadataFetch(instance(tables).handler, () =>
+    explainUiExperience({ path: "now/acme", detail: ["elements"] }),
+  );
+  const m2 = missing.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(m2.translations.declared, null);
+  assert.deepEqual(missing.missingFields, {
+    sys_ux_macroponent: ["required_translations"],
+  });
+  // An empty declaration is known: every string is undeclared.
+  home.required_translations = "";
+  const empty = await withMetadataFetch(instance(tables).handler, () =>
+    explainUiExperience({ path: "now/acme", detail: ["elements"] }),
+  );
+  const m3 = empty.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(m3.translations.declared, 0);
+  assert.equal(m3.translations.undeclared, 2);
 });

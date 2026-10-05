@@ -13,7 +13,7 @@ sn_source_hash: <masked>
 
 Every artefact type this server knows (servicenow_artifact_types), with what this scope has of it and, when nothing was collected, why. [Overview](overview.md) · [Applications](apps.md)
 
-- **Types:** 128
+- **Types:** 136
 - **Collected:** 12
 
 ## Types
@@ -96,6 +96,14 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `uib_form_action` | uib | `sys_ux_form_action` | no | no — no records in this scope |
 | `uib_form_action_layout` | uib | `sys_ux_form_action_layout` | no | no — no records in this scope |
 | `uib_composite_definition` | uib | `sys_ux_composite_definition` | no | no — no records in this scope |
+| `uib_data_broker_rest` | uib | `sys_ux_data_broker_rest` | no | no — no records in this scope |
+| `uib_data_broker_graphql` | uib | `sys_ux_data_broker_graphql` | no | no — no records in this scope |
+| `ux_declarative_action` | uib | `sys_declarative_action_assignment` | no | no — no records in this scope |
+| `ux_declarative_action_definition` | uib | `sys_declarative_action_definition` | no | no — no records in this scope |
+| `ux_declarative_action_payload` | uib | `sys_declarative_action_payload_definition` | no | no — no records in this scope |
+| `uib_app_theme` | uib | `m2m_app_theme` | no | no — no records in this scope |
+| `aw_master_config` | uib | `sys_aw_master_config` | no | no — no records in this scope |
+| `aw_list` | uib | `sys_aw_list` | no | no — no records in this scope |
 | `sp_portal` | portal | `sp_portal` | no | no — no records in this scope |
 | `sp_page` | portal | `sp_page` | no | no — no records in this scope |
 | `sp_ng_template` | portal | `sp_ng_template` | no | no — no records in this scope |
