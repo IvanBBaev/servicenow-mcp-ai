@@ -806,11 +806,11 @@ items:
     title: "task context: approvals + SLAs"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "C"
-    done: null
+    done: "2026-10-06"
     gates: []
-    notes: "Phase C. `servicenow_get_task_context` (opt-in `history`): approvals, task SLAs, assignment; `pending_for` an approver (NX-05)."
+    notes: "**Core done 2026-10-06.** `src/api/task-context.ts` (dark): for one task (sys_id or number, any `task` descendant) the assignment (group, assignee, state), approvals from `sysapproval_approver` (approver, approval group, state, created, due; counts per state), task SLAs from `task_sla` (definition, stage, breach flag, planned end, business elapsed % and time left) and an optional bounded `sys_journal_field` history via the S-10 reader; `pendingApprovals` lists the requested approvals of one approver (sys_id or user_name, capped). Each section degrades to unavailable on its own; Markdown renderers included. 0 B tools/list. Open: `servicenow_get_task_context` (opt-in `history` package) with `pending_for` (tools/list bytes, O-10); tables, fields and choices unverified (O-5) (NX-05)."
   - id: "N-3"
     title: "Instance Scan"
     pillar: "N"
