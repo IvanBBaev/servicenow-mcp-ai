@@ -180,6 +180,11 @@ export const METADATA_TABLES = [
   /^m2m_app_theme$/,
   /^sys_ux_registry_m2m_category$/,
   /^sys_aw_(master_config|list)$/,
+  // N-7 translation coverage: UI messages, labels, translated text, languages.
+  /^sys_ui_message$/,
+  /^sys_documentation$/,
+  /^sys_translated_text$/,
+  /^sys_language$/,
 ];
 
 /** Primary and child tables of every registered artefact type. */

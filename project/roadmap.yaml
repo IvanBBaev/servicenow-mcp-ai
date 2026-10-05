@@ -851,11 +851,11 @@ items:
     title: "translation coverage"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: null
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Stretch. `document_app` kind `i18n` per language (NX-07)."
+    notes: "**Partly done 2026-10-05.** `src/api/i18n-coverage.ts`: `i18nCoverage()` per language (given or active `sys_language`) over UI messages (`sys_ui_message`), labels (`sys_documentation`), choices (`sys_choice`) and translated text (`sys_translated_text`) of a scope's tables, plus the UIB strings of N-31 `requiredTranslations` matched against `sys_ui_message`; translated / missing counts, a bounded missing-key sample, per-table degradation, and `i18nCoverageMarkdown()`. Code-only, 0 B tools/list. Open: the `document_app` kind `i18n` waits for O-10; `sys_translated` is not read; table and field names unverified until O-5 (NX-07)."
   - id: "N-11"
     title: "3.0.0-beta on `next`"
     pillar: "N"
