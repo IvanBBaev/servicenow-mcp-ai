@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 import {
+  loadCorePackagesFromSource,
   loadNamingFromSource,
   loadToolsFromSource,
 } from "./registry-from-source.mjs";
@@ -24,27 +25,42 @@ export const RENAMES_END = "<!-- GENERATED:TOOL-RENAMES:END -->";
 const README_PATH = join(import.meta.dirname, "../README.md");
 const CHANGELOG_PATH = join(import.meta.dirname, "../CHANGELOG.md");
 
-/** First sentence of a tool description, table-safe and capped in length. */
-function summary(description) {
-  const sentence = (description.split(/(?<=\.)\s/)[0] ?? "").trim();
-  const safe = sentence.replaceAll("|", "\\|").replace(/\.$/, "");
-  return safe.length > 110 ? `${safe.slice(0, 107)}…` : safe;
+/** A tool name without the shared `servicenow_` prefix, as inline code. */
+function shortName(name) {
+  return `\`${name.replace(/^servicenow_/, "")}\``;
 }
 
-/** Render the Tools table from a ToolInfo[] (the sync test passes its own). */
-export function buildToolsSection(tools) {
-  const rows = tools.map(
-    (t) =>
-      `| \`${t.package}\` | \`${t.name}\` | ${t.readOnly ? "yes" : "no"} | ${summary(t.description)} |`,
-  );
+/**
+ * N-42 (TK-17): render the README "Tools" section as one row per package,
+ * linking its generated reference page (`docs/tools/<package>.md`), instead of
+ * a row per tool. `corePackages` is the default `core` profile; `admin` is
+ * always on. The sync test passes its own inputs.
+ */
+export function buildToolsSection(tools, corePackages) {
+  const order = [];
+  const grouped = new Map();
+  for (const tool of tools) {
+    if (!grouped.has(tool.package)) {
+      grouped.set(tool.package, []);
+      order.push(tool.package);
+    }
+    grouped.get(tool.package).push(tool);
+  }
+  const names = (list) => list.map((t) => shortName(t.name)).join(", ") || "—";
+  const rows = order.map((pkg) => {
+    const list = grouped.get(pkg);
+    const core = pkg === "admin" || corePackages.has(pkg) ? "yes" : "no";
+    return `| [\`${pkg}\`](docs/tools/${pkg}.md) | ${core} | ${names(list.filter((t) => t.readOnly))} | ${names(list.filter((t) => !t.readOnly))} |`;
+  });
   return [
     BEGIN,
     "",
     "_This table is generated from the tool registrations — edit the tool",
-    "definitions in `src/tools/`, then run `npm run docs:readme`._",
+    "definitions in `src/tools/`, then run `npm run docs:readme`. Every tool",
+    "name carries the `servicenow_` prefix, left out below._",
     "",
-    "| Package | Tool | Read-only | Description |",
-    "| ------- | ---- | :-------: | ----------- |",
+    "| Package | Default `core` | Read tools | Write tools |",
+    "| ------- | :------------: | ---------- | ----------- |",
     ...rows,
     "",
     END,
@@ -94,13 +110,13 @@ function replaceBetween(source, begin, end, section, label) {
   return source.slice(0, b) + section + source.slice(e + end.length);
 }
 
-export function updateReadme(tools, path = README_PATH, renames) {
+export function updateReadme(tools, corePackages, path = README_PATH, renames) {
   const source = readFileSync(path, "utf8");
   let updated = replaceBetween(
     source,
     BEGIN,
     END,
-    buildToolsSection(tools),
+    buildToolsSection(tools, corePackages),
     "README",
   );
   if (renames) {
@@ -134,6 +150,7 @@ if (process.argv[1] === import.meta.filename) {
   const { renames } = await loadNamingFromSource();
   const changed = updateReadme(
     await loadToolsFromSource(),
+    await loadCorePackagesFromSource(),
     README_PATH,
     renames,
   );

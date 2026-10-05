@@ -1139,11 +1139,11 @@ items:
     title: "generated tool reference and `llms-full.txt`"
     pillar: "N"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-05"
+    done: "2026-10-06"
     gates: []
-    notes: '**Partly done 2026-10-05 (local, uncommitted).** `scripts/tool-docs.mjs`: `docs/tools/<package>.md` + index with the error codes, `docs/llms-full.txt`, generated `docs/llms.txt` link section, `docs/index.md` (the landing page as Markdown, `scripts/landing-md.mjs`, linked as `rel="alternate"`), all in `docs:sync --check`, `test/tool-docs.test.js`. Open: slimmer README (TK-17). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).'
+    notes: '**Done 2026-10-06.** Reference 2026-10-05: `scripts/tool-docs.mjs`: `docs/tools/<package>.md` + index with the error codes, `docs/llms-full.txt`, generated `docs/llms.txt` link section, `docs/index.md` (the landing page as Markdown, `scripts/landing-md.mjs`, linked as `rel="alternate"`), all in `docs:sync --check`, `test/tool-docs.test.js`. The README "Tools" table is one row per package linking its page (`npm run docs:readme`, 135 → 125 KB) (TK-17). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).'
   - id: "N-43"
     title: "agent-facing repository docs"
     pillar: "N"

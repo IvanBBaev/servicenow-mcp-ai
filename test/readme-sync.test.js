@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { BEGIN, END, buildToolsSection } from "../scripts/readme-tools.mjs";
-import { describeAllTools } from "../build/mcp/registry.js";
+import {
+  describeAllTools,
+  resolveEnabledPackages,
+} from "../build/mcp/registry.js";
 
 const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
 
@@ -17,7 +20,7 @@ test("README tools section matches the live tool registrations", () => {
   const actual = readme.slice(begin, end + END.length);
   assert.equal(
     actual,
-    buildToolsSection(describeAllTools()),
+    buildToolsSection(describeAllTools(), resolveEnabledPackages(["core"])),
     "README is stale — run `npm run docs:readme` and commit the result",
   );
 });
