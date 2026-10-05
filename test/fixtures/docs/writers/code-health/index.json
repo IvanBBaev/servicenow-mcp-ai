@@ -20,12 +20,14 @@
       "profile": "default",
       "generator": "servicenow_check_code_health",
       "generated_at": "<generatedAt>",
-      "source_hash": "sha256:02b1afb948b1ca699869374e0f3058fb3c3c9b91a1f9381948e7d65d1d4578ca",
-      "bytes": 2724,
+      "source_hash": "sha256:df2a14d6cf8b709733269d7903cdf365d426f0d5963ba410582529eef14ea4ff",
+      "bytes": 5953,
       "headings": [
         "Code health — profile `default`",
         "Script inventory",
         "Security — ACL scan",
+        "Security — hardening",
+        "Instance Scan",
         "Baseline delta"
       ]
     },

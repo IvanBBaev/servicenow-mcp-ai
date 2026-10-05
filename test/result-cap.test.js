@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 
 import { ok, okQueryResult, okStructured, fail } from "../build/mcp/result.js";
-import { capResult, supportsFileFormat } from "../build/mcp/result-cap.js";
+import {
+  capResult,
+  csvRowEnds,
+  supportsFileFormat,
+} from "../build/mcp/result-cap.js";
+import { ALL_TOOLS } from "../build/mcp/registry.js";
 import { defineTool, runSpec, buildOutputSchema } from "../build/mcp/define.js";
 import { listChanges } from "../build/api/change.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
@@ -86,13 +91,88 @@ test('capResult adds the format:"file" hint only when asked', () => {
   assert.match(capped.note, /format:"file"/);
 });
 
-test("capResult leaves errors, non-JSON text and top-level arrays alone", () => {
+test("capResult leaves errors alone", () => {
   const error = fail("x".repeat(500), { code: "INTERNAL_ERROR" });
   assert.equal(capResult(error, { maxChars: 50 }), error);
-  const csv = { content: [{ type: "text", text: "a,b\n".repeat(200) }] };
-  assert.equal(capResult(csv, { maxChars: 50 }), csv);
-  const list = ok(rows(30));
-  assert.equal(capResult(list, { maxChars: 50 }), list);
+});
+
+test("csvRowEnds keeps a quoted newline inside its row", () => {
+  const csv = 'a,b\n1,"x\ny"\n2,z';
+  const ends = csvRowEnds(csv);
+  assert.equal(ends.length, 3);
+  assert.equal(csv.slice(0, ends[1]), 'a,b\n1,"x\ny"');
+  assert.equal(ends[2], csv.length);
+});
+
+test("a CSV payload keeps its header and whole rows", () => {
+  const body = ["sys_id,short_description"];
+  for (let i = 0; i < 200; i++)
+    body.push(`id${i},"line one\nline ""two"" ${i}"`);
+  const res = ok({ format: "csv", rows: 200, content: body.join("\n") });
+  const capped = parse(capResult(res, { maxChars: 2_000 }));
+  assert.ok(JSON.stringify(capped).length <= 2_000);
+  assert.equal(capped.format, "csv");
+  assert.equal(capped.rows, 200);
+  assert.equal(capped.truncated, true);
+  const kept = Number(/content: (\d+) of 200 rows/.exec(capped.note)?.[1]);
+  assert.ok(kept > 0);
+  // Header plus `kept` complete rows: the text is a prefix ending on a row.
+  assert.ok(capped.content.startsWith("sys_id,short_description\n"));
+  assert.equal(capped.content, body.slice(0, kept + 1).join("\n"));
+});
+
+test("a long string keeps a prefix once no array is left", () => {
+  const script = "gs.info('x');\n".repeat(400);
+  const res = ok({ sys_id: "abc", name: "SI", script, items: rows(3) });
+  const capped = parse(capResult(res, { maxChars: 1_500 }));
+  assert.ok(JSON.stringify(capped).length <= 1_500);
+  assert.equal(capped.sys_id, "abc");
+  assert.ok(script.startsWith(capped.script));
+  assert.match(capped.note, /script: \d+ of 5600 chars/);
+});
+
+test("a Mermaid diagram is never cut (S-11 returns it whole)", () => {
+  const mermaid = `erDiagram\n${"  a ||--o{ b : x\n".repeat(300)}`;
+  const res = ok({ mermaid, note: "over the cap" });
+  assert.equal(parse(capResult(res, { maxChars: 1_000 })).mermaid, mermaid);
+});
+
+test("a top-level array keeps its leading items and adds a note block", () => {
+  const items = rows(60);
+  const capped = capResult(ok(items), { maxChars: 1_500 });
+  assert.equal(capped.content.length, 2);
+  const kept = JSON.parse(capped.content[0].text);
+  assert.ok(kept.length > 0 && kept.length < 60);
+  assert.deepEqual(kept, items.slice(0, kept.length));
+  assert.match(
+    capped.content[1].text,
+    new RegExp(`\\(array\\): ${kept.length} of 60 items`),
+  );
+  assert.ok(
+    capped.content[0].text.length + capped.content[1].text.length <= 1_500,
+  );
+});
+
+test("non-JSON text keeps whole leading lines, or a prefix of one line", () => {
+  const lines = Array.from({ length: 100 }, (_, i) => `| row ${i} | value |`);
+  const text = lines.join("\n");
+  const capped = capResult(
+    { content: [{ type: "text", text }] },
+    { maxChars: 600 },
+  );
+  assert.equal(capped.content.length, 2);
+  const body = capped.content[0].text;
+  assert.ok(lines.slice(0, body.split("\n").length).join("\n") === body);
+  assert.match(capped.content[1].text, /\(text\): \d+ of 100 lines/);
+  assert.ok(body.length + capped.content[1].text.length <= 600);
+
+  const one = "y".repeat(5_000);
+  const cut = capResult(
+    { content: [{ type: "text", text: one }] },
+    { maxChars: 600 },
+  );
+  assert.ok(cut.content[0].text.length > 0);
+  assert.match(cut.content[1].text, /\(text\): \d+ of 5000 chars/);
 });
 
 test("capResult keeps structuredContent in step with the text", () => {
@@ -189,4 +269,36 @@ test("list_changes defaults to 10 rows and keeps an explicit limit", async () =>
     },
   );
   assert.deepEqual(seen, ["10", "50"]);
+});
+
+test("query_table format:csv is capped by whole rows (N-61)", async () => {
+  const spec = ALL_TOOLS.find((t) => t.name === "servicenow_query_table");
+  const result = Array.from({ length: 300 }, (_, i) => ({
+    sys_id: `s${String(i).padStart(3, "0")}`,
+    short_description: `Row ${i}, with a comma`,
+  }));
+  await withEnv({ SN_MAX_RESULT_CHARS: "4000" }, () =>
+    withFetch(
+      () => jsonResponse(200, { result }, { "X-Total-Count": "300" }),
+      async () => {
+        const res = await runSpec(spec, {
+          table: "incident",
+          format: "csv",
+          fields: ["sys_id", "short_description"],
+          limit: 300,
+        });
+        const payload = parse(res);
+        assert.ok(res.content[0].text.length <= 4_000);
+        assert.equal(payload.truncated, true);
+        const rowsKept = payload.content.split("\n");
+        // The CSV opens with a UTF-8 BOM for spreadsheet apps.
+        assert.equal(rowsKept[0], "\uFEFFsys_id,short_description");
+        assert.equal(
+          rowsKept.at(-1),
+          `s${String(rowsKept.length - 2).padStart(3, "0")},"Row ${rowsKept.length - 2}, with a comma"`,
+        );
+        assert.match(payload.note, /content: \d+ of 300 rows/);
+      },
+    ),
+  );
 });

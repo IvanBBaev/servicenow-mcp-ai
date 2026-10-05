@@ -1,5 +1,6 @@
 import { queryTable, type QueryResult, type SnRecord } from "./table.js";
 import { snString } from "./shared.js";
+import type { HardeningReport } from "./hardening.js";
 import { ServiceNowError } from "../core/errors.js";
 import type { Severity } from "./codecheck.js";
 import { scriptCalls, type CallFact } from "./script-ast.js";
@@ -76,6 +77,8 @@ export interface SecurityScan {
   filtered?: number;
   /** Per-check availability and counts (S-3). */
   checks?: Record<SecurityCheckName, SecurityCheck>;
+  /** N-13: hardening compliance, added by the security document (not by the scan). */
+  hardening?: HardeningReport;
 }
 
 /** Hard ceiling on rows one security-scan read keeps, whatever SN_MAX_RECORDS says. */

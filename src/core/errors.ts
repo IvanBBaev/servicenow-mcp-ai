@@ -71,6 +71,12 @@ export type ServiceNowErrorCode =
    * fresher token was available from SN_TOKEN_FILE — rotate it.
    */
   | "AUTH_EXPIRED"
+  /**
+   * N-20 EL-2: a write to a table that needs an elevated role (security_admin
+   * on the ACL tables) was refused with 403. A REST session cannot elevate;
+   * the hint names the role and the way around it.
+   */
+  | "ELEVATION_REQUIRED"
   /** S-6: the named update set (sys_id or name) does not exist or is not readable. */
   | "UPDATE_SET_NOT_FOUND"
   /** S-6: an applied write was bound to an update set that is not "in progress". */
@@ -304,6 +310,11 @@ export const ERROR_CODES: Readonly<Record<ServiceNowErrorCode, ErrorCodeInfo>> =
       source: "servicenow",
       description:
         "The bearer token (SN_AUTH=token) was rejected with 401 — rotate it.",
+    },
+    ELEVATION_REQUIRED: {
+      source: "servicenow",
+      description:
+        "A write to a table that needs an elevated role (security_admin) was refused with 403 — elevate in the UI or deliver it in an update set.",
     },
     UPDATE_SET_NOT_FOUND: {
       source: "server",

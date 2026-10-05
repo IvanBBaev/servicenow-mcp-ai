@@ -5,7 +5,7 @@ Decisions from the reviews: the `.env` file mode and instance switching are **no
 
 > **HISTORICAL — frozen as written (banner added 2026-07-06).** Everything specified here
 > shipped: Phases 1–8, the optional X-8 HTTP transport and the DX work are complete — see
-> [DONE.md](DONE.md) for the record and [PRODUCT-STATE.md](PRODUCT-STATE.md) for the current
+> [DONE.md](../DONE.md) for the record and [PRODUCT-STATE.md](PRODUCT-STATE.md) for the current
 > state; Phase 9 / v2.0 was specified later in [ROADMAP-V2.md](ROADMAP-V2.md). Unchecked
 > checkboxes and the original estimates below (e.g. "~45–50 tools in ~12 packages" — the
 > shipped result is 67 tools in 18 packages) are left as written; this file is no longer
@@ -102,7 +102,7 @@ Principles:
 
 ---
 
-> Work completed so far is moved out into [DONE.md](DONE.md).
+> Work completed so far is moved out into [DONE.md](../DONE.md).
 
 ## Phase 1 — Foundation for growth · ~1 day
 
@@ -181,7 +181,7 @@ This is a **self-contained execution specification** — every task names the fi
 
 > By "harness" we mean the shared infrastructure all tools stand on: `http.ts`, `auth.ts`, `host.ts`, `policy.ts`, `config.ts`, `settings.ts`, `errors.ts`, `logging.ts`, `result.ts`, `registry.ts`, `resources.ts`, `tools/util.ts`.
 >
-> **Addendum 2026-06-12:** the deep review in [TODO.md](TODO.md) (tasks `S-*`/`A-*`/`Q-*`) is executed together with this phase — `S-7` with K-1, `S-6` with K-4, `A-4` with M-1, `Q-1`/`Q-3` before step 2 (safety net), `A-2` before Phase 7, `A-1` with MI-2.
+> **Addendum 2026-06-12:** the deep review in [TODO.md](../TODO.md) (tasks `S-*`/`A-*`/`Q-*`) is executed together with this phase — `S-7` with K-1, `S-6` with K-4, `A-4` with M-1, `Q-1`/`Q-3` before step 2 (safety net), `A-2` before Phase 7, `A-1` with MI-2.
 
 ## 6.0 Analysis findings (state at the time)
 

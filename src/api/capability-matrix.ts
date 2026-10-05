@@ -236,10 +236,25 @@ function probeFor(group: MatrixGroup, user: string): GroupProbe | undefined {
         path: "/api/now/table/sys_user_has_role",
         params: {
           sysparm_query: `user.user_name=${user}^state=active`,
-          sysparm_fields: "role.name",
+          // N-20 EL-1: the dot-walked flag marks the roles a session must
+          // elevate before they apply (unverified until O-5).
+          sysparm_fields: "role.name,role.elevated_privilege",
           sysparm_limit: "500",
         },
         interpret: (rows) => {
+          const elevatable = [
+            ...new Set(
+              (rows ?? [])
+                .filter(
+                  (r) =>
+                    str(
+                      (r as Record<string, unknown>)["role.elevated_privilege"],
+                    ) === "true",
+                )
+                .map((r) => str((r as Record<string, unknown>)["role.name"]))
+                .filter((n): n is string => !!n),
+            ),
+          ].sort();
           const names = [
             ...new Set(
               (rows ?? [])
@@ -259,6 +274,7 @@ function probeFor(group: MatrixGroup, user: string): GroupProbe | undefined {
             detail: {
               admin: names.includes("admin"),
               notable: NOTABLE_ROLES.filter((r) => names.includes(r)),
+              elevatable,
               roles: names.slice(0, MAX_ROLE_NAMES),
               ...(names.length > MAX_ROLE_NAMES
                 ? { truncated: names.length }
@@ -501,4 +517,104 @@ export async function probeCapabilityMatrix(
     out.update_sets = await withUpdateSetAccess(out.update_sets, keyPrefix);
   }
   return out;
+}
+
+/**
+ * N-12 (NX-16) — the domain-separation probe. Not a matrix group (a new
+ * `groups` enum value would grow tools/list): `check_capabilities` reports it
+ * beside the matrix and `get_status` repeats a cached positive answer.
+ *
+ * One cached GET of the user's own sys_user row asking for `sys_domain` /
+ * `sys_domain_path` with display values. The fields exist only when domain
+ * separation is installed, so a row that carries a domain means it is active;
+ * a row without one means it is not detected. Unverified until O-5 (PDI):
+ * whether a non-separated instance omits `sys_domain` or returns it empty,
+ * and `sys_domain_path` (not read by any other code yet).
+ */
+export async function probeDomainSeparation(): Promise<MatrixEntry> {
+  const { instance, user } = getCredentials();
+  if (!user || user.includes("^")) {
+    return {
+      status: "unknown",
+      reason:
+        "No user name is configured for this auth method, so the per-user probe cannot run.",
+    };
+  }
+  try {
+    assertTableAllowed("sys_user");
+  } catch (error) {
+    return {
+      status: "unknown",
+      reason: `not probed — ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+  const key = `${instance}|${user}|domain_separation`;
+  const hit = cache().get(key);
+  if (hit && hit.until > Date.now()) return { ...hit.entry, cached: true };
+
+  const { entry, cacheable } = await runProbe({
+    table: "sys_user",
+    path: "/api/now/table/sys_user",
+    params: {
+      sysparm_query: `user_name=${user}`,
+      sysparm_fields: "sys_id,sys_domain,sys_domain_path",
+      sysparm_display_value: "all",
+      sysparm_limit: "1",
+    },
+    interpret: (rows) => interpretDomainRow(rows?.[0]),
+  });
+  if (cacheable) {
+    const ttl =
+      entry.status === "available"
+        ? getCapabilityTtlMs()
+        : getPluginNegativeTtlMs();
+    cache().set(key, { entry, until: Date.now() + ttl });
+  } else {
+    cache().delete(key);
+  }
+  return entry;
+}
+
+/** Read the user's sys_user row (display values = all) into an entry. */
+function interpretDomainRow(row: unknown): MatrixEntry {
+  if (!row || typeof row !== "object") {
+    return {
+      status: "unknown",
+      reason:
+        "The connected user's sys_user row is not visible, so domain separation could not be detected.",
+    };
+  }
+  const r = row as Record<string, unknown>;
+  const field = r.sys_domain;
+  const sysId = str(field) ?? "";
+  if (!sysId) {
+    return { status: "available", detail: { active: false } };
+  }
+  const display = (field as { display_value?: unknown }).display_value;
+  const name = (typeof display === "string" && display) || sysId;
+  const path = str(r.sys_domain_path);
+  const global = sysId === "global";
+  return {
+    status: "available",
+    reason: global
+      ? "Domain separation is active; the user is in the global domain, so reads see every domain the instance shows to global."
+      : `Domain separation is active; reads run in the user's domain '${name}' (and its visible parents), so records of other domains are not seen.`,
+    detail: {
+      active: true,
+      domain: { sys_id: sysId, name },
+      ...(path ? { path } : {}),
+    },
+  };
+}
+
+/**
+ * The cached domain-separation answer for `get_status` (no request): only an
+ * unexpired positive probe that found domain separation active, so a
+ * non-separated instance's status payload is unchanged.
+ */
+export function cachedDomainSeparation(): MatrixEntry | undefined {
+  const { instance, user } = getCredentials();
+  const hit = cache().get(`${instance}|${user}|domain_separation`);
+  if (!hit || hit.until <= Date.now()) return undefined;
+  return hit.entry.detail?.active === true ? hit.entry : undefined;
 }

@@ -1,5 +1,7 @@
 import path from "node:path";
 import { activeProfile } from "../core/config.js";
+import { checkHardening, renderHardening } from "./hardening.js";
+import { crossScopeReport, type CrossScopeReport } from "./cross-scope.js";
 import { ServiceNowError } from "../core/errors.js";
 import { throwIfCancelled, trackProgress } from "../core/progress.js";
 import {
@@ -652,6 +654,8 @@ export interface AppDetail {
       rule: string;
     }[];
   };
+  /** N-14: calls into other scopes joined to sys_scope_privilege, and the inverse. */
+  crossScope?: Omit<CrossScopeReport, "caveats">;
 }
 
 /** P-21: diagrams per explained type, dependency roots, lint rows per type. */
@@ -720,6 +724,7 @@ function packageDenied(pkg: string): boolean {
  */
 async function collectAppDetail(
   scopeRef: string,
+  app: AppDocRecord,
   artefacts: Record<string, ArtifactSummary[]>,
   caveats: string[],
 ): Promise<AppDetail> {
@@ -845,6 +850,17 @@ async function collectAppDetail(
       rethrowCancelled(e);
       caveats.push(`Lint: ${e instanceof Error ? e.message : String(e)}`);
     }
+  }
+
+  if (app.sys_id) {
+    const { caveats: cs, ...crossScope } = await crossScopeReport(
+      app.sys_id,
+      app.scope,
+    );
+    caveats.push(...cs);
+    detail.crossScope = crossScope;
+  } else {
+    caveats.push("Cross-scope: the application record has no sys_id.");
   }
   return detail;
 }
@@ -1101,7 +1117,7 @@ export async function collectApp(
   }
 
   const detail = opts.detail
-    ? await collectAppDetail(scopeRef, artefacts, caveats)
+    ? await collectAppDetail(scopeRef, app, artefacts, caveats)
     : undefined;
 
   return {
@@ -1170,6 +1186,76 @@ function renderAppDetail(d: AppDetail): string[] {
         "",
       );
     }
+  } else {
+    lines.push("_Not available._", "");
+  }
+  lines.push("## Cross-scope access", "");
+  if (d.crossScope) {
+    const x = d.crossScope;
+    lines.push(
+      `${x.scanned} script(s) scanned · outbound: ${x.counts.denied} denied, ${x.counts.missing} missing, ${x.counts.requested} requested, ${x.counts.allowed} allowed.`,
+      "",
+      "### Outbound",
+      "",
+      tableOrNone(
+        [
+          "Status",
+          "Target scope",
+          "Type",
+          "Target",
+          "Operations",
+          "Called from",
+        ],
+        x.outbound.map((c) => [
+          c.status,
+          code(c.targetScope),
+          c.targetType,
+          code(c.target),
+          c.operations.join(", "),
+          cell(
+            c.callers.map((k) => `${k.type} ${k.name}`).join(", ") +
+              (c.callerCount > c.callers.length
+                ? ` (+${c.callerCount - c.callers.length})`
+                : ""),
+          ),
+        ]),
+      ),
+      "",
+      "### Inbound",
+      "",
+      tableOrNone(
+        ["Source scope", "Type", "Target", "Operation", "Status"],
+        x.inbound.map((r) => [
+          code(r.sourceScope),
+          r.targetType,
+          code(r.target),
+          r.operation,
+          r.status,
+        ]),
+      ),
+      "",
+      "### Restricted caller access",
+      "",
+      tableOrNone(
+        [
+          "Source scope",
+          "Target scope",
+          "Source table",
+          "Target table",
+          "Target",
+          "Status",
+        ],
+        x.restricted.map((r) => [
+          code(r.sourceScope),
+          code(r.targetScope),
+          code(r.sourceTable),
+          code(r.targetTable),
+          cell(r.target),
+          r.status,
+        ]),
+      ),
+      "",
+    );
   } else {
     lines.push("_Not available._", "");
   }
@@ -1409,8 +1495,13 @@ export function renderSecurity(scan: SecurityScan, ctx: RenderContext): string {
       `Filtered: the instance counted ${scan.filtered} ACL row(s) it did not return to this user; they are not in this document.`,
     );
   }
+  // N-13: hardening compliance does not depend on the ACL read.
+  const hardening = scan.hardening
+    ? ["## Hardening", "", ...renderHardening(scan.hardening)]
+    : [];
   if (!scan.available) {
     lines.push(
+      ...hardening,
       ...caveatsSection([
         ...caveats,
         "No access-control data could be read, so this document holds no findings. Re-run with a user that can read sys_security_acl.",
@@ -1466,6 +1557,7 @@ export function renderSecurity(scan: SecurityScan, ctx: RenderContext): string {
     lines.push(tableOrNone(FINDING_HEADER, findingRows(findings)), "");
   }
   lines.push(
+    ...hardening,
     ...caveatsSection([...caveats, VISIBILITY_CAVEAT, METADATA_CAVEAT]),
   );
   return lines.join("\n");
@@ -2905,7 +2997,10 @@ const securityKind: DocKind<SecurityScan> = {
   requires: ["codecheck"],
   generator: "servicenow_document_security",
   path: () => "security.md",
-  collect: () => securityScan(),
+  collect: async () => {
+    const scan = await securityScan();
+    return { ...scan, hardening: await checkHardening() };
+  },
   render: renderSecurity,
   singleton: true,
 };

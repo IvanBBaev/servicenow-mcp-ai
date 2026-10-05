@@ -613,6 +613,7 @@ test("app doc detail: diagrams per flow and portal, a dependency graph and a lin
       assert.match(md, /## Dependencies/);
       assert.match(md, /## Lint summary/);
       assert.match(md, /eval-usage/);
+      assert.match(md, /## Cross-scope access/);
       assert.ok(lintBlocks(md) >= 3, "ER + flow + portal diagrams at least");
       const json = JSON.parse(
         readFileSync(path.join(dir, "default/apps/x_acme.json"), "utf8"),
@@ -770,6 +771,7 @@ test("golden: security doc with the ACL matrix and every check", async () => {
     assert.match(md, /acl-public-role/);
     assert.match(md, /acl-elevated-privilege/);
     assert.match(md, /table-no-acl/);
+    assert.match(md, /## Hardening\n\nRule table v1: /);
     golden("security.md", md);
   });
 });

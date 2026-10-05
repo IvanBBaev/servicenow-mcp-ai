@@ -20,6 +20,13 @@
 // SN_LEGACY_TOOL_NAMES=1) and, per tool, `legacyParams` (v2 parameter names
 // accepted only under the same flag), `deprecatedParams` (aliases accepted
 // always) and `overlap` (why a tool overlapping another is kept).
+//
+// Manifest v5 (N-37) adds, per tool, `sizes`: the bytes of the description,
+// the input schema, the parameter descriptions inside it and the output schema
+// (0 when the tool has none), as test/surface.js's toolSizes() measures the
+// published entry. The per-tool caps live in test/tool-size.test.js; the
+// manifest makes every size change a reviewable diff. toolSizes() is read
+// from test/surface.js, which imports build/ — run `npm run build` first.
 
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
@@ -37,7 +44,7 @@ export const FIXTURE_PATH = join(
   "../test/fixtures/tools-manifest.json",
 );
 
-export const MANIFEST_VERSION = 4;
+export const MANIFEST_VERSION = 5;
 
 /** The package version (the `since` of a tool without history). */
 export const PACKAGE_VERSION = JSON.parse(
@@ -68,10 +75,20 @@ export function sinceFrom(previous) {
   return since;
 }
 
+/** N-37: the size components the manifest records per tool. */
+export const SIZE_COMPONENTS = [
+  "description",
+  "inputSchema",
+  "paramDescriptions",
+  "outputSchema",
+];
+
 /**
  * Build the manifest from a ToolInfo[] and the matching ToolSchemas[] (the
  * snapshot test passes its own); `since` maps names to their first version;
- * `errorCodes` is the M-2 table (errorCodeTable() in src/core/errors.ts).
+ * `errorCodes` is the M-2 table (errorCodeTable() in src/core/errors.ts);
+ * `toolSizes` is test/surface.js's measurer (N-37) — without it the
+ * manifest carries no `sizes`.
  */
 export function buildManifest(
   tools,
@@ -80,6 +97,7 @@ export function buildManifest(
   version = PACKAGE_VERSION,
   errorCodes = {},
   naming = { renames: [], tools: [] },
+  toolSizes = undefined,
 ) {
   const byName = new Map(schemas.map((s) => [s.name, s]));
   const namingByName = new Map(naming.tools.map((n) => [n.name, n]));
@@ -94,6 +112,14 @@ export function buildManifest(
         const schema = byName.get(name);
         const { legacyParams, deprecatedParams, overlap } =
           namingByName.get(name) ?? {};
+        const measured = toolSizes?.({
+          name,
+          title,
+          description,
+          annotations,
+          inputSchema: schema?.inputSchema,
+          outputSchema: schema?.outputSchema,
+        });
         return {
           name,
           package: pkg,
@@ -110,6 +136,13 @@ export function buildManifest(
             ? { deprecatedParams: sortKeys(deprecatedParams) }
             : {}),
           ...(overlap ? { overlap } : {}),
+          ...(measured
+            ? {
+                sizes: Object.fromEntries(
+                  SIZE_COMPONENTS.map((c) => [c, measured[c]]),
+                ),
+              }
+            : {}),
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name)),
@@ -124,12 +157,15 @@ export function readFixture() {
 }
 
 if (process.argv[1] === import.meta.filename) {
-  const [tools, schemas, errorCodes, naming] = await Promise.all([
-    loadToolsFromSource(),
-    loadToolSchemasFromSource(),
-    loadErrorCodesFromSource(),
-    loadNamingFromSource(),
-  ]);
+  const [tools, schemas, errorCodes, naming, { toolSizes }] = await Promise.all(
+    [
+      loadToolsFromSource(),
+      loadToolSchemasFromSource(),
+      loadErrorCodesFromSource(),
+      loadNamingFromSource(),
+      import("../test/surface.js"),
+    ],
+  );
   const manifest = buildManifest(
     tools,
     schemas,
@@ -137,6 +173,7 @@ if (process.argv[1] === import.meta.filename) {
     PACKAGE_VERSION,
     errorCodes,
     naming,
+    toolSizes,
   );
   // Written in the repository's Prettier style so format:check stays green.
   const prettier = await import("prettier");

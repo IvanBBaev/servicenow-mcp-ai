@@ -960,3 +960,362 @@ test("composition readers are tolerant and bounded", () => {
   assert.equal(eventWiring(5), null);
   assert.deepEqual(eventWiring(null), []);
 });
+
+// N-26 (UX-02, UX-03, UX-04, UX-06) — page explainer depth: element props and
+// bindings, event → handler → target chains, component resolution and opt-in
+// script bodies. The tool reaches it through format:"file" (no tools/list
+// change); the API takes `detail`. Shapes are verified:false until O-5.
+const CUSTOM_C = "ef".repeat(16);
+const NESTED_MP = "12".repeat(16);
+const EVT = "34".repeat(16);
+const MISSING_C = "56".repeat(16);
+
+const DEEP_COMPOSITION = [
+  {
+    elementId: "list_1",
+    definition: { id: "now-record-list", type: "COMPONENT" },
+    propertyValues: {
+      table: { type: "JSON_LITERAL", value: "incident" },
+      items: {
+        type: "DATA_OUTPUT_BINDING",
+        binding: { address: ["incidents", "results"] },
+      },
+      selected: {
+        type: "STATE_BINDING",
+        binding: { address: ["selectedTab"] },
+      },
+      sysId: {
+        type: "CONTEXT_BINDING",
+        binding: { address: ["props", "sysId"] },
+      },
+      title: "Open: @state.count of @data.counter.output",
+      filter: "@state.missingState",
+      onRow: { type: "CLIENT_TRANSFORM_SCRIPT", value: "function(){}" },
+    },
+    isHidden: { type: "STATE_BINDING", binding: { address: ["hideList"] } },
+    config: { density: "compact" },
+    overrides: {
+      inner_1: { propertyValues: { label: "@context.props.title" } },
+    },
+  },
+  {
+    elementId: "card",
+    definition: { id: CUSTOM_C, type: "COMPONENT" },
+    slots: [
+      {
+        slotName: "body",
+        children: [
+          {
+            elementId: "nested",
+            definition: { id: NESTED_MP, type: "MACROPONENT" },
+          },
+        ],
+      },
+    ],
+  },
+  { elementId: "ghost", definition: { id: MISSING_C } },
+  { elementId: "ghost2", definition: { id: "x-acme-widget" } },
+];
+
+const DEEP_EVENTS = [
+  {
+    sourceElementId: "list_1",
+    event: "NOW_RECORD_LIST#ROW_CLICKED",
+    handlers: [
+      { type: "CLIENT_SCRIPT", definition: { id: "cs1" } },
+      {
+        type: "DATABROKER_OP",
+        targetId: "incidents",
+        operationName: "REFRESH",
+      },
+      {
+        type: "UPDATE_STATE",
+        parameters: { propName: { value: "selectedTab" } },
+      },
+      { definition: { id: EVT, type: "EVENT" } },
+    ],
+  },
+  {
+    sourceElementId: "card.CARD#CLICKED",
+    handlers: [{ type: "SET_STATE", propName: "nope" }, { odd: 1 }],
+  },
+];
+
+function deepFixture() {
+  const tables = fixture();
+  const home = tables.sys_ux_macroponent.find((m) => m.sys_id === HOME_MP);
+  home.composition = JSON.stringify(DEEP_COMPOSITION);
+  home.internal_event_mappings = JSON.stringify(DEEP_EVENTS);
+  tables.sys_ux_macroponent.push({
+    sys_id: NESTED_MP,
+    name: "Acme nested",
+    category: "component",
+  });
+  tables.sys_ux_client_script[0].script = "api.setState('selectedTab', 'x');";
+  tables.sys_ux_data_broker_transform[0].script = "(function(){ return 1; })";
+  tables.sys_ux_data_broker_scriptlet[0].script = "x".repeat(100_010);
+  tables.sys_ux_lib_component = [
+    { sys_id: CUSTOM_C, name: "Acme card", tag: "x-acme-card" },
+    { sys_id: "lc2", name: "Record list", tag: "now-record-list" },
+  ];
+  tables.sys_ux_event = [{ sys_id: EVT, name: "ACME#OPEN", label: "Open" }];
+  return tables;
+}
+
+test("N-26: the default JSON stays metadata-only and shallow", async () => {
+  const mock = instance(deepFixture());
+  const res = payload(await run({ path: "now/acme" }, mock));
+  const home = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(res.detail, undefined);
+  assert.equal(home.components, undefined);
+  assert.equal(home.bindings, undefined);
+  assert.equal(home.eventChains, undefined);
+  assert.equal(home.composition.value.elements[0].props, undefined);
+  assert.equal(home.clientScripts[0].script, undefined);
+  assert.equal(res.dataBrokers[0].script, undefined);
+  assert.ok(!mock.reads.includes("sys_ux_lib_component"));
+  assert.ok(!mock.reads.includes("sys_ux_event"));
+  // The flat wiring is still reported as before.
+  assert.deepEqual(home.events.value[0], {
+    source: "list_1",
+    event: "NOW_RECORD_LIST#ROW_CLICKED",
+    handlers: ["cs1", "REFRESH", "UPDATE_STATE", EVT],
+  });
+});
+
+test("N-26: format:file carries props, bindings, events, components and scripts", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "sn-n26-"));
+  try {
+    const res = await withEnv({ SN_DOCS_DIR: dir }, () =>
+      run({ path: "now/acme", format: "file" }, instance(deepFixture())),
+    );
+    const out = payload(res);
+    const written = JSON.parse(readFileSync(out.file, "utf8"));
+    assert.deepEqual(written.detail, {
+      levels: ["elements", "bindings", "events", "scripts"],
+      components: 5,
+      unresolvedComponents: 2,
+      bindings: 8,
+      eventChains: 2,
+      scripts: 3,
+    });
+    assert.ok(written.caveats.some((c) => /propertyValues/.test(c)));
+    const home = written.macroponents.find((m) => m.sys_id === HOME_MP);
+
+    // UX-02: props, config, overrides and a bound visibility.
+    const list = home.composition.value.elements[0];
+    const prop = (n) => list.props.find((p) => p.name === n);
+    assert.deepEqual(prop("table"), {
+      name: "table",
+      source: "props",
+      kind: "literal",
+      value: "incident",
+    });
+    assert.deepEqual(prop("items").bindings, ["@data.incidents.results"]);
+    assert.equal(prop("title").kind, "expression");
+    assert.equal(prop("onRow").kind, "script");
+    assert.equal(prop("isHidden").kind, "state");
+    assert.equal(prop("density").source, "config");
+    assert.deepEqual(prop("inner_1.label"), {
+      name: "inner_1.label",
+      source: "overrides",
+      kind: "context",
+      bindings: ["@context.props.title"],
+    });
+    const bind = (e) => home.bindings.find((b) => b.expression === e);
+    assert.deepEqual(bind("@data.incidents.results").resolves, {
+      dataResource: "incidents",
+      broker: BROKER_T,
+      brokerName: "Incident list",
+    });
+    assert.deepEqual(bind("@state.selectedTab").resolves, {
+      state: "selectedTab",
+      declared: true,
+    });
+    assert.deepEqual(bind("@state.missingState").resolves, {
+      state: "missingState",
+      declared: false,
+    });
+    assert.deepEqual(bind("@context.props.sysId").resolves, {
+      context: "props.sysId",
+    });
+    assert.equal(bind("@data.counter.output").resolves.brokerName, "Counter");
+
+    // UX-03: source → event → handler targets.
+    assert.deepEqual(home.eventChains[0], {
+      source: "list_1",
+      element: "list_1",
+      component: "now-record-list",
+      event: "NOW_RECORD_LIST#ROW_CLICKED",
+      targets: [
+        {
+          kind: "clientScript",
+          sys_id: "cs1",
+          name: "onLoad",
+          type: "CLIENT_SCRIPT",
+        },
+        {
+          kind: "brokerOperation",
+          dataResource: "incidents",
+          operation: "REFRESH",
+          broker: BROKER_T,
+          brokerName: "Incident list",
+          type: "DATABROKER_OP",
+        },
+        {
+          kind: "state",
+          property: "selectedTab",
+          declared: true,
+          name: "UPDATE_STATE",
+          type: "UPDATE_STATE",
+        },
+        { kind: "event", name: "ACME#OPEN", sys_id: EVT, type: "EVENT" },
+      ],
+    });
+    assert.deepEqual(home.eventChains[1], {
+      source: "card.CARD#CLICKED",
+      element: "card",
+      component: CUSTOM_C,
+      event: "CARD#CLICKED",
+      targets: [
+        {
+          kind: "state",
+          property: "nope",
+          declared: false,
+          name: "SET_STATE",
+          type: "SET_STATE",
+        },
+      ],
+    });
+
+    // UX-04: component resolution.
+    const comp = (id) => home.components.find((c) => c.id === id);
+    assert.equal(comp("now-record-list").kind, "oob");
+    assert.equal(comp("now-record-list").artifactType, "uib_component");
+    assert.deepEqual(comp(CUSTOM_C), {
+      id: CUSTOM_C,
+      kind: "custom",
+      sys_id: CUSTOM_C,
+      name: "Acme card",
+      tag: "x-acme-card",
+      table: "sys_ux_lib_component",
+      artifactType: "uib_component",
+      elements: ["card"],
+    });
+    assert.deepEqual(comp(NESTED_MP), {
+      id: NESTED_MP,
+      kind: "macroponent",
+      sys_id: NESTED_MP,
+      name: "Acme nested",
+      category: "component",
+      table: "sys_ux_macroponent",
+      artifactType: "uib_macroponent",
+      elements: ["nested"],
+    });
+    assert.equal(comp(MISSING_C).kind, "unresolved");
+    assert.equal(comp("x-acme-widget").kind, "unresolved");
+
+    // UX-06: script bodies, cut at UI_SCRIPT_MAX.
+    assert.match(home.clientScripts[0].script, /setState/);
+    const t = written.dataBrokers.find((b) => b.sys_id === BROKER_T);
+    assert.match(t.script, /return 1/);
+    const sl = written.dataBrokers.find((b) => b.sys_id === BROKER_S);
+    assert.equal(sl.script.length, 100_000);
+    assert.equal(sl.scriptTruncated, 10);
+
+    // Event flow view.
+    lintMermaid(written.eventMermaid);
+    assert.match(written.eventMermaid, /ACME#OPEN|ACME/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("N-26: API levels are independent; markdown renders the deep sections", async () => {
+  const {
+    explainUiExperience,
+    uiExperienceMarkdown,
+    uiExperienceEventMermaid,
+  } = await import("../build/api/ui-experience.js");
+  const mock = instance(deepFixture());
+  const res = await withMetadataFetch(mock.handler, () =>
+    explainUiExperience({ path: "now/acme", detail: "events" }),
+  );
+  const home = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.deepEqual(res.detail.levels, ["events"]);
+  assert.equal(home.components, undefined);
+  assert.equal(home.bindings, undefined);
+  assert.equal(home.eventChains.length, 2);
+  assert.ok(!mock.reads.includes("sys_ux_lib_component"));
+  const md = uiExperienceMarkdown(res, "flowchart TD");
+  assert.match(md, /Event chains:/);
+  assert.match(md, /client script onLoad/);
+  assert.match(md, /REFRESH on incidents \(Incident list\)/);
+  assert.match(md, /set state nope _\(undeclared\)_/);
+  // No chain → no event view.
+  const plain = await withMetadataFetch(instance().handler, () =>
+    explainUiExperience({ path: "now/acme" }),
+  );
+  assert.equal(uiExperienceEventMermaid(plain).mermaid, "");
+
+  const all = await withMetadataFetch(instance(deepFixture()).handler, () =>
+    explainUiExperience({
+      path: "now/acme",
+      detail: ["bindings", "elements", "bogus"],
+    }),
+  );
+  assert.deepEqual(all.detail.levels, ["elements", "bindings"]);
+  const md2 = uiExperienceMarkdown(all, "flowchart TD");
+  assert.match(md2, /Components:/);
+  assert.match(md2, /Bindings:/);
+  assert.match(md2, /`list_1`\.selected = @state\.selectedTab → client state/);
+});
+
+test("N-26: prop and handler readers are tolerant and bounded", async () => {
+  const { classifyProp, eventMappings, ELEMENT_MAX_PROPS } =
+    await import("../build/core/artifacts/uib-composition.js");
+  assert.deepEqual(classifyProp("@data.a.b"), {
+    kind: "data",
+    bindings: ["@data.a.b"],
+  });
+  assert.deepEqual(classifyProp("plain"), { kind: "literal", value: "plain" });
+  assert.deepEqual(classifyProp(42), { kind: "literal", value: 42 });
+  assert.equal(classifyProp("y".repeat(500)).value.length, 200);
+  assert.deepEqual(
+    classifyProp({ type: "JSON_LITERAL", value: "@state.flag" }),
+    { kind: "state", bindings: ["@state.flag"] },
+  );
+  assert.deepEqual(
+    classifyProp({ type: "MAP_CONTAINER", container: { a: "@data.r.x" } }),
+    { kind: "expression", bindings: ["@data.r.x"] },
+  );
+  assert.deepEqual(classifyProp({ type: "STATE_BINDING" }), { kind: "state" });
+  assert.deepEqual(classifyProp(undefined), { kind: "literal" });
+
+  const many = Object.fromEntries(
+    Array.from({ length: ELEMENT_MAX_PROPS + 5 }, (_, i) => [`p${i}`, i]),
+  );
+  const tree = compositionTree([{ elementId: "e", propertyValues: many }], {
+    props: true,
+  });
+  assert.equal(tree.elements[0].props.length, ELEMENT_MAX_PROPS);
+  assert.equal(tree.elements[0].propsOmitted, 5);
+
+  assert.deepEqual(eventMappings(null), []);
+  assert.equal(eventMappings("text"), null);
+  assert.deepEqual(
+    eventMappings({
+      btn: { CLICKED: ["NAMED", { targetId: "r", operation: "X" }] },
+    }),
+    [
+      {
+        source: "btn",
+        event: "CLICKED",
+        handlers: [
+          { name: "NAMED" },
+          { name: "r", targetId: "r", operation: "X" },
+        ],
+      },
+    ],
+  );
+});

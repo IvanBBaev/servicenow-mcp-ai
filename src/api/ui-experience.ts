@@ -26,18 +26,42 @@
  * is `verified:false` in the registry (gate O-5), so an unreadable table
  * (policy denial, ACL, missing plugin) becomes a caveat with the table name
  * and status, and fields the instance did not return are listed per table in
- * `missingFields`. Metadata only: no client-script or broker script bodies.
+ * `missingFields`. Metadata only by default: no client-script or broker script
+ * bodies.
+ *
+ * N-26 (UX-02, UX-03, UX-04, UX-06) adds opt-in depth through `detail`:
+ *
+ * - `elements` — element props / config / overrides on the component tree,
+ *   and each `definition.id` resolved to an OOB `now-*` component, a custom
+ *   `sys_ux_lib_component` or a nested macroponent (with the registry type to
+ *   pass to get_artifact);
+ * - `bindings` — every binding expression (`@data.*`, `@state.*`,
+ *   `@context.*`, `@payload.*`) with the data resource / broker or state
+ *   property it resolves to;
+ * - `events` — source element → event → handler → target, where the target
+ *   is a client script, a broker operation, a state change or a page event
+ *   (`sys_ux_event`);
+ * - `scripts` — client-script and broker script bodies.
+ *
+ * The tool reaches the full depth through `format: "file"` (the JSON lands in
+ * exports/, not in the context); a dedicated `detail` input waits for the
+ * tools/list budget (O-10). Prop, binding and handler shapes are
+ * verified:false until O-5.
  */
 import { decodeField } from "../core/artifacts/decoders.js";
 import {
   compositionTree,
   dataResources,
+  eventMappings,
   eventWiring,
   stateProperties,
   type CompositionTree,
+  type UibBindingKind,
   type UibDataResource,
   type UibElement,
+  type UibEventHandler,
   type UibEventWiring,
+  type UibProp,
   type UibStateProperty,
 } from "../core/artifacts/uib-composition.js";
 import { ServiceNowError } from "../core/errors.js";
@@ -67,11 +91,28 @@ const UNVERIFIED_CAVEAT =
 const LINK_CAVEAT =
   "Dashboards and list menus are found through sys_id values in the experience's page properties, and form action layouts through the experience's application scope; both links are unverified (gate O-5).";
 
+/** N-26 depth levels of {@link explainUiExperience}. */
+export const UI_EXPERIENCE_DETAILS = [
+  "elements",
+  "bindings",
+  "events",
+  "scripts",
+] as const;
+export type UiExperienceDetail = (typeof UI_EXPERIENCE_DETAILS)[number];
+
+/** Characters of one script body kept with `detail: "scripts"`. */
+export const UI_SCRIPT_MAX = 100_000;
+
+const DETAIL_CAVEAT =
+  "Element props, binding expressions, event handler targets and component resolution read UI Builder JSON shapes (propertyValues, typed bindings, handler definition / targetId / operationName) that have not been confirmed on a live instance (gate O-5).";
+
 export interface ExplainUiExperienceOptions {
   /** sys_ux_page_registry sys_id. */
   sys_id?: string;
   /** sys_ux_page_registry path (e.g. 'now/sow'). */
   path?: string;
+  /** N-26: opt-in depth (one level or several); none by default. */
+  detail?: UiExperienceDetail | readonly UiExperienceDetail[];
 }
 
 export interface Unreadable {
@@ -115,6 +156,79 @@ export interface UxRoute {
   screens: UxScreen[];
 }
 
+/** A script body (N-26, `detail: "scripts"`). */
+export interface UxScriptBody {
+  script?: string;
+  /** Characters cut past UI_SCRIPT_MAX. */
+  scriptTruncated?: number;
+}
+
+/**
+ * N-26 (UX-04): what an element's `definition.id` renders. `oob` is a
+ * `now-*` / `sn-*` component (by its tag, with or without a
+ * sys_ux_lib_component row), `custom` any other sys_ux_lib_component,
+ * `macroponent` a nested sys_ux_macroponent. `artifactType` is the registry
+ * type to pass to get_artifact / explain_artifact.
+ */
+export interface UxComponent {
+  id: string;
+  kind: "oob" | "custom" | "macroponent" | "unresolved";
+  sys_id?: string;
+  name?: string;
+  tag?: string;
+  category?: string;
+  table?: string;
+  artifactType?: "uib_component" | "uib_macroponent";
+  /** Elements of this macroponent that render it. */
+  elements: string[];
+}
+
+/** N-26 (UX-02): one binding expression and what it resolves to. */
+export interface UxBinding {
+  elementId: string;
+  prop: string;
+  source: UibProp["source"];
+  kind: UibBindingKind;
+  expression: string;
+  resolves?: {
+    /** `@data.<dataResource>.…` */
+    dataResource?: string;
+    broker?: string;
+    brokerName?: string;
+    /** `@state.<state>` */
+    state?: string;
+    /** Whether the state property is declared on the macroponent. */
+    declared?: boolean;
+    /** `@context.<path>`: page context, resolved at run time. */
+    context?: string;
+  };
+}
+
+/** N-26 (UX-03): what one handler does. */
+export interface UxEventTarget {
+  kind: "clientScript" | "brokerOperation" | "state" | "event" | "unknown";
+  name?: string;
+  sys_id?: string;
+  /** The handler's own `type`, as read. */
+  type?: string;
+  dataResource?: string;
+  operation?: string;
+  broker?: string;
+  brokerName?: string;
+  property?: string;
+  declared?: boolean;
+}
+
+/** N-26 (UX-03): source element → event → handler targets. */
+export interface UxEventChain {
+  source: string;
+  /** The composition element the source names, when found. */
+  element?: string;
+  component?: string;
+  event?: string;
+  targets: UxEventTarget[];
+}
+
 export interface UxMacroponent {
   sys_id: string;
   name?: string;
@@ -123,10 +237,20 @@ export interface UxMacroponent {
   data: DecodedColumn<UibDataResource[]>;
   state: DecodedColumn<UibStateProperty[]>;
   events: DecodedColumn<UibEventWiring[]>;
-  clientScripts: { sys_id: string; name?: string; type?: string }[];
+  clientScripts: ({
+    sys_id: string;
+    name?: string;
+    type?: string;
+  } & UxScriptBody)[];
+  /** N-26 `elements`: components rendered by this macroponent. */
+  components?: UxComponent[];
+  /** N-26 `bindings`. */
+  bindings?: UxBinding[];
+  /** N-26 `events`. */
+  eventChains?: UxEventChain[];
 }
 
-export interface UxDataBroker {
+export interface UxDataBroker extends UxScriptBody {
   sys_id: string;
   table: string;
   name?: string;
@@ -229,6 +353,15 @@ export interface ExplainUiExperienceResult {
   listMenus: UxListMenu[];
   formActionLayouts: UxFormActionLayout[];
   counts: UxCounts;
+  /** N-26: the depth read, with its counts (only when `detail` is set). */
+  detail?: {
+    levels: UiExperienceDetail[];
+    components: number;
+    unresolvedComponents: number;
+    bindings: number;
+    eventChains: number;
+    scripts: number;
+  };
   verified: false;
   caveats: string[];
   unreadable: Unreadable[];
@@ -523,6 +656,9 @@ export async function explainUiExperience(
       400,
     );
   }
+  const levels = detailLevels(opts.detail);
+  const want = (l: UiExperienceDetail): boolean => levels.includes(l);
+  const withProps = want("elements") || want("bindings");
   const ctx: Ctx = {
     caveats: [UNVERIFIED_CAVEAT],
     unreadable: [],
@@ -685,7 +821,13 @@ export async function explainUiExperience(
     "sys_ux_client_script",
     "macroponent",
     ids(macroRows),
-    ["sys_id", "name", "type", "macroponent"],
+    [
+      "sys_id",
+      "name",
+      "type",
+      "macroponent",
+      ...(want("scripts") ? ["script"] : []),
+    ],
     { order: "name" },
   );
   const scriptsBy = groupBy(scriptRows, "macroponent");
@@ -703,7 +845,7 @@ export async function explainUiExperience(
       composition: column(
         str(m, "composition"),
         "uib-composition",
-        (v) => compositionTree(v),
+        (v) => compositionTree(v, { props: withProps }),
         "composition",
       ),
       data: column(str(m, "data"), "json", dataResources, "data"),
@@ -723,6 +865,7 @@ export async function explainUiExperience(
         sys_id: str(s, "sys_id"),
         ...(opt(s, "name") ? { name: opt(s, "name") } : {}),
         ...(opt(s, "type") ? { type: opt(s, "type") } : {}),
+        ...(want("scripts") ? scriptBody(s) : {}),
       })),
     };
     if (mp.composition.value?.omitted) {
@@ -755,10 +898,14 @@ export async function explainUiExperience(
     "sys_ux_data_broker_transform",
     "sys_ux_data_broker_scriptlet",
   ]) {
-    const fields =
-      table === "sys_ux_data_broker_transform"
-        ? ["sys_id", "name", "mutates_server_data"]
-        : ["sys_id", "name"];
+    const fields = [
+      "sys_id",
+      "name",
+      ...(table === "sys_ux_data_broker_transform"
+        ? ["mutates_server_data"]
+        : []),
+      ...(want("scripts") ? ["script"] : []),
+    ];
     const rows = await readIn(ctx, table, "sys_id", brokerIds, fields);
     for (const b of rows) {
       result.dataBrokers.push({
@@ -768,6 +915,7 @@ export async function explainUiExperience(
         ...(opt(b, "mutates_server_data")
           ? { mutates_server_data: opt(b, "mutates_server_data") }
           : {}),
+        ...(want("scripts") ? scriptBody(b) : {}),
         acls: [],
       });
     }
@@ -1024,8 +1172,374 @@ export async function explainUiExperience(
     0,
   );
   c.formActionLayouts = result.formActionLayouts.length;
+  if (levels.length) {
+    await readDetail(ctx, result, levels, macroRows, scriptRows);
+  }
   if (Object.keys(ctx.missing).length) result.missingFields = ctx.missing;
   return result;
+}
+
+/** The requested N-26 levels, in canonical order, unknown values dropped. */
+function detailLevels(
+  detail: ExplainUiExperienceOptions["detail"],
+): UiExperienceDetail[] {
+  const asked = new Set<string>(
+    detail === undefined ? [] : typeof detail === "string" ? [detail] : detail,
+  );
+  return UI_EXPERIENCE_DETAILS.filter((l) => asked.has(l));
+}
+
+/** A script body, cut at UI_SCRIPT_MAX (N-26, UX-06). */
+function scriptBody(row: SnRecord): UxScriptBody {
+  if (!("script" in row)) return {};
+  const body = str(row, "script");
+  if (body.length <= UI_SCRIPT_MAX) return { script: body };
+  return {
+    script: body.slice(0, UI_SCRIPT_MAX),
+    scriptTruncated: body.length - UI_SCRIPT_MAX,
+  };
+}
+
+/** Every element of a tree, depth first. */
+function* allElements(elements: UibElement[]): Generator<UibElement> {
+  for (const el of elements) {
+    yield el;
+    for (const slot of el.slots) yield* allElements(slot.elements);
+  }
+}
+
+const OOB_TAG = /^(now|sn)-/;
+
+/**
+ * N-26 depth on top of the page map: component resolution (UX-04), bindings
+ * (UX-02) and event chains (UX-03). Script bodies (UX-06) were read with the
+ * client scripts and brokers.
+ */
+async function readDetail(
+  ctx: Ctx,
+  result: ExplainUiExperienceResult,
+  levels: UiExperienceDetail[],
+  macroRows: SnRecord[],
+  scriptRows: SnRecord[],
+): Promise<void> {
+  ctx.caveats.push(DETAIL_CAVEAT);
+  const detail = {
+    levels,
+    components: 0,
+    unresolvedComponents: 0,
+    bindings: 0,
+    eventChains: 0,
+    scripts: 0,
+  };
+  result.detail = detail;
+  const brokers = new Map(result.dataBrokers.map((b) => [b.sys_id, b]));
+
+  if (levels.includes("elements")) {
+    await resolveComponents(ctx, result);
+    for (const m of result.macroponents) {
+      for (const comp of m.components ?? []) {
+        detail.components += 1;
+        if (comp.kind === "unresolved") detail.unresolvedComponents += 1;
+      }
+    }
+  }
+
+  if (levels.includes("bindings")) {
+    for (const m of result.macroponents) {
+      const resources = new Map(
+        (m.data.value ?? []).map((d) => [d.elementId, d] as const),
+      );
+      const states = new Set((m.state.value ?? []).map((st) => st.name));
+      const bindings: UxBinding[] = [];
+      for (const el of allElements(m.composition.value?.elements ?? [])) {
+        for (const p of el.props ?? []) {
+          for (const expression of p.bindings ?? []) {
+            bindings.push({
+              elementId: el.elementId,
+              prop: p.name,
+              source: p.source,
+              kind: p.kind,
+              expression,
+              ...resolveBinding(expression, resources, states, brokers),
+            });
+          }
+        }
+      }
+      if (bindings.length) m.bindings = bindings;
+      detail.bindings += bindings.length;
+    }
+  }
+
+  if (levels.includes("events")) {
+    const scripts = new Map(
+      scriptRows.map((r) => [str(r, "sys_id"), r] as const),
+    );
+    const decoded = macroRows.map((row) => ({
+      id: str(row, "sys_id"),
+      mappings: decodedMappings(str(row, "internal_event_mappings")),
+    }));
+    // Handler ids that are neither a client script nor known: sys_ux_event.
+    const eventIds = new Set<string>();
+    for (const d of decoded) {
+      for (const mp of d.mappings) {
+        for (const h of mp.handlers) {
+          if (
+            h.definitionId &&
+            SYS_ID.test(h.definitionId) &&
+            !scripts.has(h.definitionId)
+          ) {
+            eventIds.add(h.definitionId);
+          }
+        }
+      }
+    }
+    const events = new Map(
+      (
+        await readIn(ctx, "sys_ux_event", "sys_id", eventIds, [
+          "sys_id",
+          "name",
+          "label",
+        ])
+      ).map((r) => [str(r, "sys_id"), r] as const),
+    );
+    for (const m of result.macroponents) {
+      const mappings = decoded.find((d) => d.id === m.sys_id)?.mappings ?? [];
+      if (!mappings.length) continue;
+      const elements = new Map<string, UibElement>();
+      for (const el of allElements(m.composition.value?.elements ?? [])) {
+        elements.set(el.elementId, el);
+      }
+      const resources = new Map(
+        (m.data.value ?? []).map((d) => [d.elementId, d] as const),
+      );
+      const states = new Set((m.state.value ?? []).map((st) => st.name));
+      m.eventChains = mappings.map((mp) => {
+        let element: UibElement | undefined = elements.get(mp.source);
+        let event = mp.event;
+        if (!element && mp.source.includes(".")) {
+          const dot = mp.source.indexOf(".");
+          element = elements.get(mp.source.slice(0, dot));
+          if (element && !event) event = mp.source.slice(dot + 1);
+        }
+        return {
+          source: mp.source,
+          ...(element ? { element: element.elementId } : {}),
+          ...(element?.component ? { component: element.component } : {}),
+          ...(event ? { event } : {}),
+          targets: mp.handlers.map((h) =>
+            resolveHandler(h, { scripts, resources, states, brokers, events }),
+          ),
+        };
+      });
+      detail.eventChains += m.eventChains.length;
+    }
+  }
+
+  if (levels.includes("scripts")) {
+    detail.scripts =
+      result.macroponents.reduce(
+        (n, m) => n + m.clientScripts.filter((s) => s.script).length,
+        0,
+      ) + result.dataBrokers.filter((b) => b.script).length;
+  }
+}
+
+function decodedMappings(raw: string) {
+  const d = decodeField("json", raw);
+  return d.decoded ? (eventMappings(d.value) ?? []) : [];
+}
+
+/** What one binding expression points at (N-26, UX-02). */
+function resolveBinding(
+  expression: string,
+  resources: Map<string, UibDataResource>,
+  states: Set<string>,
+  brokers: Map<string, UxDataBroker>,
+): Pick<UxBinding, "resolves"> {
+  const m = /^@(data|state|context|payload)\.([^.[]+)(.*)$/.exec(expression);
+  if (!m) return {};
+  const [, kind, head, rest] = m as unknown as [string, string, string, string];
+  if (kind === "data") {
+    const r = resources.get(head);
+    const b = r?.broker ? brokers.get(r.broker) : undefined;
+    return {
+      resolves: {
+        dataResource: head,
+        ...(r?.broker ? { broker: r.broker } : {}),
+        ...(b?.name ? { brokerName: b.name } : {}),
+      },
+    };
+  }
+  if (kind === "state") {
+    return { resolves: { state: head, declared: states.has(head) } };
+  }
+  if (kind === "context") return { resolves: { context: `${head}${rest}` } };
+  return {};
+}
+
+/** The target of one event handler (N-26, UX-03). */
+function resolveHandler(
+  h: UibEventHandler,
+  look: {
+    scripts: Map<string, SnRecord>;
+    resources: Map<string, UibDataResource>;
+    states: Set<string>;
+    brokers: Map<string, UxDataBroker>;
+    events: Map<string, SnRecord>;
+  },
+): UxEventTarget {
+  const type = h.type ? { type: h.type } : {};
+  const scriptId = [h.definitionId, h.targetId].find(
+    (i) => i && look.scripts.has(i),
+  );
+  if (scriptId || /CLIENT_?SCRIPT/i.test(h.type ?? "")) {
+    const row = scriptId ? look.scripts.get(scriptId) : undefined;
+    const sysId = scriptId ?? h.definitionId;
+    const name = (row && opt(row, "name")) ?? h.name;
+    return {
+      kind: "clientScript",
+      ...(sysId ? { sys_id: sysId } : {}),
+      ...(name ? { name } : {}),
+      ...type,
+    };
+  }
+  const resourceId = [h.targetId, h.definitionId].find(
+    (i) => i && look.resources.has(i),
+  );
+  const marks = [h.type, h.definitionId, h.name, h.operation].join(" ");
+  if (!resourceId && (h.property || /STATE/i.test(marks))) {
+    return {
+      kind: "state",
+      ...(h.property
+        ? { property: h.property, declared: look.states.has(h.property) }
+        : {}),
+      ...(h.name ? { name: h.name } : {}),
+      ...type,
+    };
+  }
+  if (
+    resourceId ||
+    /DATA_?BROKER|DATA_?RESOURCE|DATA_?OP/i.test(h.type ?? "")
+  ) {
+    const r = resourceId ? look.resources.get(resourceId) : undefined;
+    const b = r?.broker ? look.brokers.get(r.broker) : undefined;
+    const target = resourceId ?? h.targetId;
+    return {
+      kind: "brokerOperation",
+      ...(target ? { dataResource: target } : {}),
+      ...(h.operation ? { operation: h.operation } : {}),
+      ...(r?.broker ? { broker: r.broker } : {}),
+      ...(b?.name ? { brokerName: b.name } : {}),
+      ...type,
+    };
+  }
+  const ev = h.definitionId ? look.events.get(h.definitionId) : undefined;
+  const name =
+    (ev && (opt(ev, "name") ?? opt(ev, "label"))) ?? h.definitionId ?? h.name;
+  if (name) {
+    return {
+      kind: "event",
+      name,
+      ...(ev ? { sys_id: str(ev, "sys_id") } : {}),
+      ...type,
+    };
+  }
+  return { kind: "unknown", ...type };
+}
+
+/**
+ * Resolve each element's `definition.id` (N-26, UX-04): sys_ids against
+ * sys_ux_lib_component and sys_ux_macroponent, tags against
+ * sys_ux_lib_component.tag; an unknown `now-*` / `sn-*` tag is OOB by name.
+ */
+async function resolveComponents(
+  ctx: Ctx,
+  result: ExplainUiExperienceResult,
+): Promise<void> {
+  const used = new Map<string, Map<string, string[]>>();
+  const all = new Set<string>();
+  for (const m of result.macroponents) {
+    const byId = new Map<string, string[]>();
+    for (const el of allElements(m.composition.value?.elements ?? [])) {
+      if (!el.component) continue;
+      const list = byId.get(el.component) ?? [];
+      list.push(el.elementId);
+      byId.set(el.component, list);
+      all.add(el.component);
+    }
+    used.set(m.sys_id, byId);
+  }
+  if (!all.size) return;
+  const sysIds = [...all].filter((i) => SYS_ID.test(i));
+  const tags = [...all].filter((i) => !SYS_ID.test(i));
+  const libFields = ["sys_id", "name", "tag", "category"];
+  const libRows = [
+    ...(await readIn(ctx, "sys_ux_lib_component", "sys_id", sysIds, libFields)),
+    ...(await readIn(ctx, "sys_ux_lib_component", "tag", tags, libFields)),
+  ];
+  const lib = new Map<string, SnRecord>();
+  for (const r of libRows) {
+    lib.set(str(r, "sys_id"), r);
+    if (opt(r, "tag")) lib.set(str(r, "tag"), r);
+  }
+  const known = new Map<string, SnRecord>();
+  const loaded = result.macroponents.map((m) => m.sys_id);
+  const toRead = sysIds.filter((i) => !lib.has(i));
+  for (const r of await readIn(
+    ctx,
+    "sys_ux_macroponent",
+    "sys_id",
+    toRead.filter((i) => !loaded.includes(i)),
+    ["sys_id", "name", "category"],
+  )) {
+    known.set(str(r, "sys_id"), r);
+  }
+  for (const m of result.macroponents) {
+    if (toRead.includes(m.sys_id)) {
+      known.set(m.sys_id, {
+        sys_id: m.sys_id,
+        ...(m.name ? { name: m.name } : {}),
+        ...(m.category ? { category: m.category } : {}),
+      });
+    }
+  }
+  for (const m of result.macroponents) {
+    const comps: UxComponent[] = [];
+    for (const [id, elements] of used.get(m.sys_id) ?? []) {
+      const l = lib.get(id);
+      const mp = known.get(id);
+      if (l) {
+        const tag = opt(l, "tag") ?? (SYS_ID.test(id) ? undefined : id);
+        comps.push({
+          id,
+          kind: tag && OOB_TAG.test(tag) ? "oob" : "custom",
+          sys_id: str(l, "sys_id"),
+          ...(opt(l, "name") ? { name: opt(l, "name") } : {}),
+          ...(tag ? { tag } : {}),
+          ...(opt(l, "category") ? { category: opt(l, "category") } : {}),
+          table: "sys_ux_lib_component",
+          artifactType: "uib_component",
+          elements,
+        });
+      } else if (mp) {
+        comps.push({
+          id,
+          kind: "macroponent",
+          sys_id: id,
+          ...(opt(mp, "name") ? { name: opt(mp, "name") } : {}),
+          ...(opt(mp, "category") ? { category: opt(mp, "category") } : {}),
+          table: "sys_ux_macroponent",
+          artifactType: "uib_macroponent",
+          elements,
+        });
+      } else if (OOB_TAG.test(id)) {
+        comps.push({ id, kind: "oob", tag: id, elements });
+      } else {
+        comps.push({ id, kind: "unresolved", elements });
+      }
+    }
+    if (comps.length) m.components = comps;
+  }
 }
 
 /** The root table could not be read: a degraded result, not a failure. */
@@ -1172,6 +1686,119 @@ function elementLines(
   }
 }
 
+const targetText = (t: UxEventTarget): string => {
+  switch (t.kind) {
+    case "clientScript":
+      return `client script ${t.name ?? t.sys_id ?? "?"}`;
+    case "brokerOperation":
+      return `${t.operation ?? "operation"} on ${t.dataResource ?? "?"}${
+        t.brokerName ? ` (${t.brokerName})` : ""
+      }`;
+    case "state":
+      return `set state ${t.property ?? t.name ?? "?"}${
+        t.declared === false ? " _(undeclared)_" : ""
+      }`;
+    case "event":
+      return `event ${t.name ?? "?"}`;
+    default:
+      return `?${t.type ? ` (${t.type})` : ""}`;
+  }
+};
+
+/** N-26 sections of one macroponent; nothing when no detail was read. */
+function detailLines(m: UxMacroponent, out: string[]): void {
+  if (m.components?.length) {
+    out.push("", "Components:");
+    for (const c of m.components) {
+      out.push(
+        `- \`${c.id}\` → ${c.kind}${c.name ? ` ${c.name}` : ""}${
+          c.artifactType ? ` [${c.artifactType}]` : ""
+        } · ${c.elements.join(", ")}`,
+      );
+    }
+  }
+  if (m.bindings?.length) {
+    out.push("", "Bindings:");
+    for (const b of m.bindings) {
+      const r = b.resolves;
+      const to = r?.dataResource
+        ? ` → ${r.brokerName ?? r.broker ?? r.dataResource}`
+        : r?.state
+          ? r.declared
+            ? " → client state"
+            : " → _undeclared state_"
+          : r?.context
+            ? " → page context"
+            : "";
+      out.push(`- \`${b.elementId}\`.${b.prop} = ${b.expression}${to}`);
+    }
+  }
+  if (m.eventChains?.length) {
+    out.push("", "Event chains:");
+    for (const c of m.eventChains) {
+      out.push(
+        `- ${c.element ?? c.source}${c.event ? ` · ${c.event}` : ""} → ${
+          c.targets.map(targetText).join("; ") || "?"
+        }`,
+      );
+    }
+  }
+}
+
+/**
+ * N-26: the event flow of every macroponent as a Mermaid flowchart (source
+ * element → event → handler target), capped by SN_DIAGRAM_MAX_NODES; empty
+ * when no event chain was read.
+ */
+export function uiExperienceEventMermaid(result: ExplainUiExperienceResult): {
+  mermaid: string;
+  truncated: number;
+} {
+  const doc = new MermaidDoc("flowchart LR");
+  const seen = new Set<string>();
+  const declare = (id: string, text: string, shape?: "db" | "input"): void => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    doc.node(id, label(text, 80), shape);
+  };
+  let chains = 0;
+  for (const m of result.macroponents) {
+    const mid = ident(m.sys_id);
+    for (const [i, c] of (m.eventChains ?? []).entries()) {
+      chains += 1;
+      const src = `src_${mid}_${ident(c.element ?? c.source)}`;
+      declare(
+        src,
+        `${m.name ?? m.sys_id}: ${c.element ?? c.source}${c.component ? ` (${c.component})` : ""}`,
+      );
+      const ev = `ev_${mid}_${i}`;
+      declare(ev, c.event ?? "event", "input");
+      doc.edge(src, ev);
+      for (const t of c.targets) {
+        const tid =
+          t.kind === "clientScript"
+            ? `cs_${ident(t.sys_id ?? t.name ?? "x")}`
+            : t.kind === "brokerOperation"
+              ? `b_${ident(t.broker ?? `${mid}_${t.dataResource ?? "x"}`)}`
+              : t.kind === "state"
+                ? `st_${mid}_${ident(t.property ?? t.name ?? "x")}`
+                : `t_${ident(t.name ?? t.type ?? "unknown")}`;
+        declare(
+          tid,
+          t.kind === "brokerOperation"
+            ? `Data: ${t.brokerName ?? t.dataResource ?? "?"}`
+            : targetText(t).replace(/ _\(undeclared\)_/, " (undeclared)"),
+          t.kind === "brokerOperation" ? "db" : undefined,
+        );
+        doc.edge(ev, tid);
+      }
+    }
+  }
+  return chains
+    ? { mermaid: doc.render(), truncated: doc.truncated }
+    : { mermaid: "", truncated: 0 };
+}
+
 const fmt = (v: unknown): string => {
   const text = typeof v === "string" ? v : JSON.stringify(v);
   const one = (text ?? "").replace(/[\r\n]+/g, " ");
@@ -1285,6 +1912,7 @@ export function uiExperienceMarkdown(
             .join(", ")}`,
         );
       }
+      detailLines(m, out);
       out.push("");
     }
   }

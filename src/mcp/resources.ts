@@ -24,6 +24,7 @@ import { runWithProfile } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
 import {
   errorCodeOf,
+  errorCodeTable,
   errorSourceOf,
   IntegrationError,
 } from "../core/errors.js";
@@ -179,13 +180,24 @@ function summary(description: string): string {
   return first.replace(/\s+/g, " ").replace(/\|/g, "\\|").trim();
 }
 
+/** Whether a tool is registered under the package policy of `src`. */
+function isRegistered(src: ToolsReferenceSource, t: ToolInfo): boolean {
+  return (
+    t.package === "admin" ||
+    (src.enabled.includes(t.package) &&
+      (!src.readOnly.includes(t.package) || t.readOnly))
+  );
+}
+
+/** A package's state under the policy of `src`, as the references word it. */
+function packageState(src: ToolsReferenceSource, pkg: string): string {
+  if (pkg !== "admin" && !src.enabled.includes(pkg)) return "not enabled";
+  return src.readOnly.includes(pkg) ? "enabled, read-only" : "enabled";
+}
+
 /** The tool manifest as Markdown, grouped by package (M-4 / PR-1). */
 export function renderToolsReference(src: ToolsReferenceSource): string {
-  const enabled = new Set(src.enabled);
-  const readOnly = new Set(src.readOnly);
-  const registered = (t: ToolInfo): boolean =>
-    t.package === "admin" ||
-    (enabled.has(t.package) && (!readOnly.has(t.package) || t.readOnly));
+  const registered = (t: ToolInfo): boolean => isRegistered(src, t);
   const packages = [...new Set(src.tools.map((t) => t.package))];
   const lines = [
     "# ServiceNow MCP tools",
@@ -193,12 +205,7 @@ export function renderToolsReference(src: ToolsReferenceSource): string {
     `${src.tools.length} tools in ${packages.length} packages; ${src.tools.filter(registered).length} registered in this session (SN_TOOL_PACKAGES, SN_PACKAGES_DENY, SN_PACKAGES_READONLY).`,
   ];
   for (const pkg of packages) {
-    const state =
-      pkg === "admin" || enabled.has(pkg)
-        ? readOnly.has(pkg)
-          ? "enabled, read-only"
-          : "enabled"
-        : "not enabled";
+    const state = packageState(src, pkg);
     lines.push(
       "",
       `## ${pkg} (${state})`,
@@ -241,6 +248,135 @@ export function registerToolsReferenceResource(
         },
       ],
     }),
+  );
+}
+
+/** N-37: the URI template of one tool's full reference. */
+export const TOOL_REFERENCE_TEMPLATE = "servicenow://reference/tools/{name}";
+
+/** N-37: the reference URI of one tool. */
+export function toolReferenceUri(name: string): string {
+  return `servicenow://reference/tools/${name}`;
+}
+
+/**
+ * N-37: the parts of one tool's definition the compact ToolInfo leaves out —
+ * its JSON Schemas as tools/list publishes them and its M-7 naming metadata.
+ */
+export interface ToolReferenceDetail {
+  inputSchema: Record<string, unknown>;
+  outputSchema?: Record<string, unknown>;
+  legacyParams?: Record<string, string>;
+  deprecatedParams?: Record<string, string>;
+  overlap?: string;
+}
+
+/** N-37: what the per-tool reference reads, supplied by the registry. */
+export interface ToolReferenceSource {
+  /** The tool set and the package policy (as for servicenow://reference/tools). */
+  reference: () => ToolsReferenceSource;
+  /** The schemas and naming metadata of one tool, or undefined if unknown. */
+  detail: (name: string) => ToolReferenceDetail | undefined;
+  /** Retired tool names (M-7), for a hint when one is asked for. */
+  renames?: readonly { from: string; to: string }[];
+}
+
+/**
+ * N-37: the error codes a tool result can carry, grouped by source. The M-2
+ * table is global — most codes come from shared layers any tool can hit — so
+ * the reference lists the names only; the manifest holds the descriptions.
+ */
+function errorCodesBySource(): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [code, info] of Object.entries(errorCodeTable())) {
+    (out[info.source] ??= []).push(code);
+  }
+  return out;
+}
+
+/** N-37: one tool's full reference as a JSON payload. */
+export function toolReferencePayload(
+  src: ToolsReferenceSource,
+  tool: ToolInfo,
+  detail: ToolReferenceDetail,
+): Record<string, unknown> {
+  return {
+    name: tool.name,
+    title: tool.title,
+    package: tool.package,
+    packageState: packageState(src, tool.package),
+    access: tool.readOnly ? "read" : "write",
+    registered: isRegistered(src, tool),
+    description: tool.description,
+    annotations: tool.annotations,
+    inputSchema: detail.inputSchema,
+    outputSchema: detail.outputSchema ?? null,
+    ...(detail.legacyParams ? { legacyParams: detail.legacyParams } : {}),
+    ...(detail.deprecatedParams
+      ? { deprecatedParams: detail.deprecatedParams }
+      : {}),
+    ...(detail.overlap ? { overlap: detail.overlap } : {}),
+    errorCodes: {
+      scope: "global",
+      note: "Any tool can return these codes (shared request, policy, plan-token and credential layers); a failed result carries code, source and hint.",
+      bySource: errorCodesBySource(),
+    },
+  };
+}
+
+/**
+ * N-37: the per-tool reference template. Always on, like the tool list: it
+ * documents every tool, registered or not, and says which. It lists nothing
+ * (97 entries would crowd resources/list); `{name}` completes tool names.
+ */
+export function registerToolReferenceTemplate(
+  server: McpServer,
+  source: ToolReferenceSource,
+): void {
+  server.registerResource(
+    "tool-reference",
+    new ResourceTemplate(TOOL_REFERENCE_TEMPLATE, {
+      list: undefined,
+      complete: {
+        name: (value) =>
+          byPrefix(
+            source.reference().tools.map((t) => t.name),
+            value,
+          ),
+      },
+    }),
+    {
+      title: "Tool reference (one tool)",
+      description:
+        "One tool's full definition: description, input and output JSON Schema, annotations, package and whether it is registered, parameter aliases and the error codes. URI: servicenow://reference/tools/<tool name>.",
+      mimeType: JSON_MIME,
+    },
+    (uri, variables) => {
+      const name = one(variables.name);
+      try {
+        if (!name) throw badUri("No tool name specified in the resource URI.");
+        const src = source.reference();
+        const tool = src.tools.find((t) => t.name === name);
+        const detail = tool ? source.detail(name) : undefined;
+        if (!tool || !detail) {
+          const renamed = source.renames?.find((r) => r.from === name);
+          throw new IntegrationError(
+            `Unknown tool "${name}".`,
+            undefined,
+            undefined,
+            {
+              code: "NOT_FOUND",
+              hint: renamed
+                ? `"${name}" was renamed; read ${toolReferenceUri(renamed.to)}.`
+                : "servicenow://reference/tools lists every tool name.",
+            },
+          );
+        }
+        return jsonContents(uri, toolReferencePayload(src, tool, detail));
+      } catch (error) {
+        throw resourceError("tool reference", error, { name });
+      }
+    },
   );
 }
 

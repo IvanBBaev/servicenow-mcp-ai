@@ -884,7 +884,9 @@ patterns. Ask
 
 - **Status.** `servicenow_get_status` carries an `observability` block: per-tool
   `{count, errors, p50, p95, totalMs}` (percentiles in ms over each tool's last 256
-  calls — memory stays bounded), schema-cache hits/misses, per-host retry counters,
+  calls — memory stays bounded) plus result sizes `{bytesTotal, textBytes,
+  structuredBytes, bytesP50, bytesP95}` (UTF-8 bytes of the text blocks and of
+  `structuredContent`, the wire cost of each tool), schema-cache hits/misses, per-host retry counters,
   queue limits and occupancy, circuit-breaker state and the last `X-RateLimit-*`
   headers each host sent. It never calls the instance.
 - **Logs.** Logs go to stderr only (stdout is the MCP protocol). `SN_LOG_FORMAT=text`
@@ -1683,6 +1685,7 @@ declaratively instead of calling a tool:
 | `servicenow://artifact-types`           | Artifact types the generic artifact tools accept: table, name / key / scope fields, child tables, SDK API, verified flag (`artifacts` package). |
 | `servicenow://reference/encoded-query`  | Encoded-query reference: syntax, `javascript:` values, limits (no `^` escaping, URL length, silently ignored fields, ACL-hidden rows) and how `fetchAll` pages. |
 | `servicenow://reference/tools`          | The tool manifest as Markdown: every tool by package, read / write, and whether this session registered it under the package policy. |
+| `servicenow://reference/tools/{name}`   | One tool in full: description, annotations, the published input and output schema, package and registration state. |
 
 Resources are package-gated like tools: `status`, `capabilities` and the tool
 reference are always on; `encoded-query` comes with the `table` package, `tables`/`schema` with the `schema` package, `instances`/per-profile
@@ -1797,14 +1800,14 @@ always listed). The list follows `servicenow_enable_package` /
 | Document | Contents |
 | -------- | -------- |
 | [ARCHITECTURE.md](project/ARCHITECTURE.md) | Layered architecture, Mermaid diagrams (modules, request lifecycle, security model, auth, packages), condensed ADRs |
-| [PRODUCT-STATE.md](project/PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
+| [PRODUCT-STATE.md](project/archive/PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
 | [ROADMAP.md](project/ROADMAP.md) | Forward plan: the shipped phases, the 2.x hardening line, the proposed 3.0 milestone, optional and deferred items |
-| [ROADMAP-V3.md](project/ROADMAP-V3.md) / [DEEP-REVIEW-2026-09.md](project/DEEP-REVIEW-2026-09.md) | The proposed v3.0 execution tracker (correctness, governance, reach at scale) / the five-lens review its items are built on |
-| [GAP-ANALYSIS-2026-09.md](project/GAP-ANALYSIS-2026-09.md) | The 2026-09-09 second pass over the v3.0 plan: nine narrower lenses, 67 findings each with design, acceptance criteria and tests, mapped to tracker items |
-| [INSTANCE-DOCS-ANALYSIS-2026-09.md](project/INSTANCE-DOCS-ANALYSIS-2026-09.md) | The 2026-09-23 pass on instance documentation: the docs store, the Mermaid generators, the `document_table` prompt and the missing document kinds — 17 findings with design, acceptance criteria and tests, mapped to S-14 … S-16 |
-| [INSTANCE-DOCS-ANALYSIS-2026-09-25.md](project/INSTANCE-DOCS-ANALYSIS-2026-09-25.md) | The 2026-09-25 second pass on instance documentation: dispositions of the first 17 findings after the docs store, artefact registry, artefact readers and security scan landed, plus 12 new findings (ID-18 … ID-29) with design, acceptance criteria and tests, mapped to S-15, S-16, M-4, M-8, S-7, E-6, E-7 |
+| [ROADMAP-V3.md](project/ROADMAP-V3.md) / [DEEP-REVIEW-2026-09.md](project/archive/DEEP-REVIEW-2026-09.md) | The proposed v3.0 execution tracker (correctness, governance, reach at scale) / the five-lens review its items are built on |
+| [GAP-ANALYSIS-2026-09.md](project/archive/GAP-ANALYSIS-2026-09.md) | The 2026-09-09 second pass over the v3.0 plan: nine narrower lenses, 67 findings each with design, acceptance criteria and tests, mapped to tracker items |
+| [INSTANCE-DOCS-ANALYSIS-2026-09.md](project/archive/INSTANCE-DOCS-ANALYSIS-2026-09.md) | The 2026-09-23 pass on instance documentation: the docs store, the Mermaid generators, the `document_table` prompt and the missing document kinds — 17 findings with design, acceptance criteria and tests, mapped to S-14 … S-16 |
+| [INSTANCE-DOCS-ANALYSIS-2026-09-25.md](project/archive/INSTANCE-DOCS-ANALYSIS-2026-09-25.md) | The 2026-09-25 second pass on instance documentation: dispositions of the first 17 findings after the docs store, artefact registry, artefact readers and security scan landed, plus 12 new findings (ID-18 … ID-29) with design, acceptance criteria and tests, mapped to S-15, S-16, M-4, M-8, S-7, E-6, E-7 |
 | [COMPETITIVE-ANALYSIS.md](project/COMPETITIVE-ANALYSIS.md) | Positioning vs the official ServiceNow MCP Server Console: comparison, where it structurally lags, the Phase 9 boost plan, and platform risks |
-| [IMPLEMENTATION-PLAN.md](project/IMPLEMENTATION-PLAN.md) | Detailed specs for the upcoming phases (harness 2.0, multi-instance, flow testing) |
+| [IMPLEMENTATION-PLAN.md](project/archive/IMPLEMENTATION-PLAN.md) | Detailed specs for the upcoming phases (harness 2.0, multi-instance, flow testing) |
 | [DONE.md](project/DONE.md) / [TODO.md](project/TODO.md) | Completed work with commit refs / remaining decisions |
 | [WORKLOG.md](WORKLOG.md) / [CHANGELOG.md](CHANGELOG.md) | Detailed work journal / user-facing changelog |
 | [CONTRIBUTING.md](CONTRIBUTING.md) / [SECURITY.md](SECURITY.md) | Dev setup, gates and conventions / security model and reporting |

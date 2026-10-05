@@ -7,6 +7,7 @@ import {
   sinceFrom,
   sortKeys,
   MANIFEST_VERSION,
+  SIZE_COMPONENTS,
   PACKAGE_VERSION,
 } from "../scripts/gen-manifest.mjs";
 import {
@@ -16,8 +17,9 @@ import {
 } from "../build/mcp/registry.js";
 import { TOOL_OVERLAPS, TOOL_RENAMES } from "../build/mcp/naming.js";
 import { errorCodeTable } from "../build/core/errors.js";
+import { measureSurface, toolSizes } from "./surface.js";
 
-test("the tool manifest matches the checked-in fixture (M-6 v2, M-2 v3, M-7 v4)", () => {
+test("the tool manifest matches the checked-in fixture (M-6 v2, M-2 v3, M-7 v4, N-37 v5)", () => {
   const fixture = readFixture();
   assert.equal(fixture?.manifestVersion, MANIFEST_VERSION);
   assert.deepEqual(
@@ -28,6 +30,7 @@ test("the tool manifest matches the checked-in fixture (M-6 v2, M-2 v3, M-7 v4)"
       PACKAGE_VERSION,
       errorCodeTable(),
       describeNaming(),
+      toolSizes,
     ),
     fixture,
     "Tool surface changed — if intentional, run `npm run gen:manifest` and commit the fixture diff",
@@ -119,4 +122,25 @@ test("manifest v4 publishes the M-7 renames, parameter aliases and overlaps", ()
       }
     }
   }
+});
+
+test("manifest v5 records per-tool sizes equal to the published tools/list entry (N-37)", async () => {
+  const fixture = readFixture();
+  const { perTool } = await measureSurface("all");
+  const wire = new Map(perTool.map((t) => [t.name, t]));
+  assert.equal(wire.size, fixture.tools.length, "every tool is published");
+  for (const tool of fixture.tools) {
+    assert.deepEqual(Object.keys(tool.sizes), SIZE_COMPONENTS, tool.name);
+    const published = wire.get(tool.name);
+    for (const component of SIZE_COMPONENTS) {
+      assert.equal(
+        tool.sizes[component],
+        published[component],
+        `${tool.name}.${component} matches the wire`,
+      );
+    }
+  }
+  // Without a measurer the manifest carries no sizes (pure builds above).
+  const [bare] = buildManifest(describeAllTools(), describeToolSchemas()).tools;
+  assert.equal(bare.sizes, undefined);
 });

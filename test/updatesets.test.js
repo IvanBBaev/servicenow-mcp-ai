@@ -1023,3 +1023,147 @@ test("binding: concurrent bound writes of one user do not interleave switch and 
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// N-28 (UX-09): uib_completeness
+// ---------------------------------------------------------------------------
+
+test("get: uib_completeness lists the page records the set does not carry", async () => {
+  freshRuntime();
+  const ROUTE = id("4");
+  const SCREEN = id("5");
+  const VARIANT = id("6");
+  const APPL = id("7");
+  const MP = id("8");
+  const CS = id("9");
+  const BROKER = "ab".repeat(16);
+  const ACL = "cd".repeat(16);
+  const seed = devSeed();
+  seed.sys_update_xml = [
+    ...seed.sys_update_xml,
+    ...[
+      ["u1", `sys_ux_macroponent_${MP}`, "Macroponent"],
+      ["u2", `sys_ux_screen_${VARIANT}`, "UX Screen"],
+      ["u3", `sys_ux_client_script_${CS}`, "UX Client Script"],
+    ].map(([sys_id, name, type]) => ({
+      sys_id,
+      update_set: id("a"),
+      name,
+      type,
+      target_name: name,
+      action: "INSERT_OR_UPDATE",
+      table: "",
+      payload: "",
+    })),
+  ];
+  Object.assign(seed, {
+    sys_ux_app_route: [{ sys_id: ROUTE, name: "home", screen_type: SCREEN }],
+    sys_ux_screen_type: [{ sys_id: SCREEN, name: "Home" }],
+    sys_ux_screen: [
+      {
+        sys_id: VARIANT,
+        name: "Home default",
+        screen_type: SCREEN,
+        macroponent: MP,
+        applicability: APPL,
+      },
+    ],
+    sys_ux_applicability: [{ sys_id: APPL, name: "Agents" }],
+    sys_ux_macroponent: [
+      {
+        sys_id: MP,
+        name: "Home page",
+        data: JSON.stringify([
+          { elementId: "look", definition: { id: BROKER, type: "TRANSFORM" } },
+        ]),
+      },
+    ],
+    sys_ux_client_script: [{ sys_id: CS, name: "On load", macroponent: MP }],
+    sys_ux_data_broker_transform: [{ sys_id: BROKER, name: "Lookup" }],
+    sys_security_acl: [
+      {
+        sys_id: ACL,
+        name: BROKER,
+        operation: "execute",
+        type: "ux_data_broker",
+      },
+    ],
+  });
+  const sn = instance(seed);
+  await withFetch(sn.handler, async () => {
+    const res = out(
+      await call("servicenow_get_update_set", { update_set: "Sprint 12" }),
+    );
+    const u = res.uib_completeness;
+    assert.ok(u, "uib_completeness present");
+    assert.equal(u.checked, 1);
+    assert.equal(u.complete, false);
+    const [page] = u.pages;
+    assert.deepEqual(page.variant, { sys_id: VARIANT, name: "Home default" });
+    assert.deepEqual(page.macroponent, { sys_id: MP, name: "Home page" });
+    assert.deepEqual(page.expected, {
+      route: 1,
+      screen: 1,
+      variant: 1,
+      applicability: 1,
+      macroponent: 1,
+      client_script: 1,
+      data_broker: 1,
+      acl: 1,
+    });
+    assert.deepEqual(
+      page.missing.map((m) => `${m.role}:${m.table}:${m.sys_id}`),
+      [
+        `route:sys_ux_app_route:${ROUTE}`,
+        `screen:sys_ux_screen_type:${SCREEN}`,
+        `applicability:sys_ux_applicability:${APPL}`,
+        `data_broker:sys_ux_data_broker_transform:${BROKER}`,
+        `acl:sys_security_acl:${ACL}`,
+      ],
+    );
+    assert.ok(u.caveats.some((c) => /already exist on the target/.test(c)));
+  });
+});
+
+test("get: no uib_completeness without UI Builder records; an unreadable table degrades", async () => {
+  freshRuntime();
+  await withFetch(instance(devSeed()).handler, async () => {
+    const res = out(
+      await call("servicenow_get_update_set", { update_set: "Sprint 12" }),
+    );
+    assert.ok(!("uib_completeness" in res));
+  });
+  const MP = id("8");
+  const seed = devSeed();
+  seed.sys_update_xml = [
+    ...seed.sys_update_xml,
+    {
+      sys_id: "u1",
+      update_set: id("a"),
+      name: `sys_ux_macroponent_${MP}`,
+      type: "Macroponent",
+      target_name: "Home page",
+      action: "INSERT_OR_UPDATE",
+      table: "",
+      payload: "",
+    },
+  ];
+  seed.sys_ux_macroponent = [{ sys_id: MP, name: "Home page", data: "[]" }];
+  const sn = instance(seed, {
+    fail: (method, table) =>
+      table === "sys_ux_screen"
+        ? jsonResponse(403, { error: { message: "denied", detail: "ACL" } })
+        : undefined,
+  });
+  await withFetch(sn.handler, async () => {
+    const res = out(
+      await call("servicenow_get_update_set", { update_set: "Sprint 12" }),
+    );
+    const u = res.uib_completeness;
+    assert.equal(u.unavailable[0].table, "sys_ux_screen");
+    assert.equal(u.complete, false);
+    // The macroponent anchors a macroponent-only page that the set carries.
+    assert.equal(u.pages.length, 1);
+    assert.deepEqual(u.pages[0].missing, []);
+  });
+});

@@ -3,8 +3,8 @@
 Date: 2026-06-21 · Horizon: the next major version (v2.0) and the 12–18 months around it.
 _v2.0 has since shipped (2026-06-22); the post-ship review that measures the outcome
 against this analysis is [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md)._
-Companion to [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) (the "why" behind the
-moat), [ROADMAP.md](ROADMAP.md) (Phase 9 DF-0…DF-6 and the DX adoption levers) and
+Companion to [COMPETITIVE-ANALYSIS.md](../COMPETITIVE-ANALYSIS.md) (the "why" behind the
+moat), [ROADMAP.md](../ROADMAP.md) (Phase 9 DF-0…DF-6 and the DX adoption levers) and
 [PRODUCT-STATE.md](PRODUCT-STATE.md) (what ships today). This document adds the
 dimension those three do not cover: **market, business model, monetization, and what
 "v2.0" means as a milestone** — and ends with a single recommendation.
@@ -287,8 +287,8 @@ must-haves** (trust + the headline depth + discovery); DF-4, DF-5, DF-6 can foll
 
 ## Sources & basis
 
-- Internal: [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) (positioning, durable/temporary
-  gaps, R1–R7, segments §8), [ROADMAP.md](ROADMAP.md) (Phase 9 DF-0…DF-6, DX-1…DX-4),
+- Internal: [COMPETITIVE-ANALYSIS.md](../COMPETITIVE-ANALYSIS.md) (positioning, durable/temporary
+  gaps, R1–R7, segments §8), [ROADMAP.md](../ROADMAP.md) (Phase 9 DF-0…DF-6, DX-1…DX-4),
   [PRODUCT-STATE.md](PRODUCT-STATE.md) (shipped capability).
 - External context (orders of magnitude only): the ServiceNow practitioner/customer
   ecosystem and the 2025–2026 MCP/agentic-AI adoption wave. Market figures here are

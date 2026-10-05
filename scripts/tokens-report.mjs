@@ -4,11 +4,13 @@
 //
 //   npm run tokens:report             the breakdown, repeated parameter text,
 //                                     the 15 heaviest tools and the deltas
-//                                     against test/fixtures/token-budgets.json
+//                                     against test/fixtures/token-budgets.json,
+//                                     plus the N-58 lean projection (not wired)
 //   npm run tokens:report -- --json   the same data as JSON
 
 import { readFileSync } from "node:fs";
 
+import { leanToolsList } from "../build/mcp/lean-list.js";
 import { baselineEnv } from "../test/helpers.js";
 import {
   BYTES_PER_TOKEN,
@@ -57,6 +59,9 @@ const tokens = (bytes) => Math.round(bytes / BYTES_PER_TOKEN.schema);
 const profiles = {};
 for (const profile of Object.keys(PROFILES)) {
   const m = await measureSurface(profile);
+  const lean = JSON.stringify(
+    leanToolsList(await listPublishedTools(PROFILES[profile])),
+  ).length;
   const breakdown = Object.fromEntries(
     COMPONENTS.map((c) => [c, m.perTool.reduce((sum, t) => sum + t[c], 0)]),
   );
@@ -66,6 +71,7 @@ for (const profile of Object.keys(PROFILES)) {
     tools: m.tools,
     budget: budgets[profile] ?? null,
     delta: budgets[profile] === undefined ? null : m.bytes - budgets[profile],
+    lean,
     breakdown,
   };
 }
@@ -85,13 +91,14 @@ if (process.argv.includes("--json")) {
     `tools/list surface (tokens ≈ bytes / ${report.bytesPerToken})\n`,
   );
   console.log(
-    `${"profile".padEnd(11)}${n("tools")}${n("bytes")}${n("tokens")}${n("budget")}${n("delta")}`,
+    `${"profile".padEnd(11)}${n("tools")}${n("bytes")}${n("tokens")}${n("budget")}${n("delta")}${n("lean")}`,
   );
   for (const [name, p] of Object.entries(profiles)) {
     console.log(
-      `${name.padEnd(11)}${n(p.tools)}${n(p.bytes)}${n(p.tokens)}${n(p.budget ?? "-")}${n(p.delta ?? "-")}`,
+      `${name.padEnd(11)}${n(p.tools)}${n(p.bytes)}${n(p.tokens)}${n(p.budget ?? "-")}${n(p.delta ?? "-")}${n(p.lean)}`,
     );
   }
+  console.log("(lean: N-58 serializer, not on the wire until O-10 (b))");
   console.log(`\n${"component (bytes)".padEnd(19)}${n("core")}${n("all")}`);
   for (const c of COMPONENTS) {
     console.log(

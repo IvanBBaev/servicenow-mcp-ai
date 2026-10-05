@@ -95,6 +95,24 @@ with the model, judge model, threshold and spend ceiling as inputs. It needs the
 `ANTHROPIC_API_KEY` repository secret and fails at once without it; the JSON
 report goes to the job summary.
 
+`npm run eval:tools` (N-18) is the tool-selection eval in
+`evals/tool-selection/`: about 150 natural-language tasks (one paraphrase per
+tool, confusable clusters, write tasks with expected arguments, and tasks no
+tool fits) are scored against the published `tools/list` of the `core`, `all`
+and a simulated `discovery` profile. It is on demand and **not** part of
+`npm run check`. The default backend is an offline lexical (TF-IDF) baseline
+that needs no key; `-- --backend anthropic [--model claude-sonnet-5-5]` calls
+the Messages API with `ANTHROPIC_API_KEY` and spends real budget, and
+`--record <file>` / `--backend recorded --answers <file>` replay a run without
+the network. The report gives top-1 accuracy per profile, kind, package and
+cluster, the confusion pairs, plan-first compliance and argument validity;
+`--json` prints it all. `--write-baseline` writes
+`evals/tool-selection/baseline.<backend or model>.json` with the per-case
+picks and the sha256 of every tool description; later runs print the delta,
+the flipped cases and a stale-baseline warning when a description changed,
+and `--max-drop <points>` turns the delta into an exit code.
+`test/tool-selection-eval.test.js` covers the harness without a model.
+
 ## Dependencies and the audit gate
 
 The last step of `npm run check` is `npm audit --omit=dev --audit-level=high`:
@@ -141,7 +159,7 @@ the SDK's peer range (`^3.25 || ^4.0` — the zod 4 move is a breaking item,
   regenerate with `npm run gen:manifest` only when the change is deliberate.
 - Docs move with the code: [CHANGELOG.md](CHANGELOG.md) (Unreleased section),
   [TODO.md](project/TODO.md)/[DONE.md](project/DONE.md) when an item closes,
-  [PRODUCT-STATE.md](project/PRODUCT-STATE.md) on milestones.
+  [PRODUCT-STATE.md](project/archive/PRODUCT-STATE.md) on milestones.
 - Prettier checks Markdown too (`project/*.md`, the CHANGELOG, this file).
   After editing a doc run `npx prettier --write <files>` **twice**, then
   `npx prettier --check .`: the formatter is not idempotent on an inline code

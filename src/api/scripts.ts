@@ -4,6 +4,7 @@ import { snRequest } from "../core/http.js";
 import { useCodeSearch } from "../core/settings.js";
 import { queryTable, getRecord, type SnRecord } from "./table.js";
 import { assertNoCaret, snString } from "./shared.js";
+import { DOMAIN_FIELDS, keepDomainFields } from "./domain-separation.js";
 import { pluginCall } from "./plugin.js";
 import {
   ARTIFACT_TYPES,
@@ -189,6 +190,8 @@ export async function listScripts(
     descriptor.nameField,
     ...descriptor.metaFields,
     ...AUDIT_FIELDS,
+    // N-12: absent on an instance without domain separation.
+    ...DOMAIN_FIELDS,
   ];
 
   const { records } = await queryTable({
@@ -219,6 +222,7 @@ function normalizeSummary(
   for (const field of [...descriptor.metaFields, ...AUDIT_FIELDS]) {
     if (field in record) summary[field] = record[field];
   }
+  keepDomainFields(record, summary);
   return summary;
 }
 

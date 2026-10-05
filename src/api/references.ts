@@ -4,6 +4,7 @@ import { scopeClause } from "./scripts.js";
 import { ServiceNowError } from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
 import { PERFORMANCE_ANALYTICS } from "../core/artifacts/registry.js";
+import { macroponentUses, uibImports } from "./uib-usage.js";
 
 /**
  * S-9 — structural reference extractor. Finds where a table, field or script
@@ -37,7 +38,13 @@ export type StructuralRefKind =
   | "catalog_variable"
   | "flow_input"
   | "report"
-  | "pa_indicator_source";
+  | "pa_indicator_source"
+  /** N-28: a UIB macroponent's composition renders the target component. */
+  | "uib_composition"
+  /** N-28: a UIB macroponent's data resource calls the target broker. */
+  | "uib_data_resource"
+  /** N-28: a UIB client script imports the target client script include. */
+  | "uib_client_script";
 
 /** What a structural reference points at. */
 export type RefTargetValue =
@@ -606,6 +613,82 @@ const paIndicatorSource: ReferenceSource = {
   },
 };
 
+/** A where-used name usable in a LIKE query on a UIB JSON / script column. */
+const UIB_NAME = /^[A-Za-z0-9_$.-]+$/;
+
+/**
+ * N-28 (UX-08) — UI Builder macroponents (`sys_ux_macroponent`): the
+ * components their composition renders and the data brokers their data
+ * resources call. A `script` where-used target names the component
+ * (macroponent sys_id) or broker sys_id. O-5: the JSON shapes are unverified.
+ */
+const uibMacroponent: ReferenceSource = {
+  id: "uib_macroponent",
+  kind: "uib_composition",
+  table: "sys_ux_macroponent",
+  scopeField: "sys_scope",
+  verified: false,
+  fields: ["sys_id", "name", "composition", "data"],
+  query: (t) =>
+    t.kind === "script" && UIB_NAME.test(t.name)
+      ? `compositionLIKE${t.name}^ORdataLIKE${t.name}`
+      : undefined,
+  extract(r) {
+    const name = snString(r.name) || snString(r.sys_id);
+    const self = snString(r.sys_id);
+    const uses = macroponentUses(r);
+    const out: StructuralRef[] = [];
+    for (const c of uses.components) {
+      if (c.id === self) continue;
+      out.push({
+        ...origin(this, r, name),
+        field: "composition",
+        target: { kind: "script", name: c.id },
+        value: c.elements.slice(0, 5).join(", "),
+      });
+    }
+    for (const b of uses.brokers) {
+      out.push({
+        ...origin(this, r, name),
+        kind: "uib_data_resource",
+        field: "data",
+        target: { kind: "script", name: b.id },
+        value: b.elements.slice(0, 5).join(", "),
+      });
+    }
+    return out;
+  },
+};
+
+/**
+ * N-28 (UX-08) — UI Builder client scripts (`sys_ux_client_script`) that
+ * import a client script include through `imports['…']`; the parent is the
+ * macroponent (page) the script belongs to. O-5: unverified.
+ */
+const uibClientScript: ReferenceSource = {
+  id: "uib_client_script",
+  kind: "uib_client_script",
+  table: "sys_ux_client_script",
+  scopeField: "sys_scope",
+  verified: false,
+  fields: ["sys_id", "name", "script", "macroponent", "macroponent.name"],
+  query: (t) =>
+    t.kind === "script" && UIB_NAME.test(t.name)
+      ? `scriptLIKE${t.name}`
+      : undefined,
+  extract(r) {
+    const parent =
+      snString(r["macroponent.name"]) || snString(r.macroponent) || undefined;
+    const name = snString(r.name) || snString(r.sys_id);
+    return uibImports(snString(r.script)).map((include) => ({
+      ...origin(this, r, parent ? `${parent}: ${name}` : name, parent),
+      field: "script",
+      target: { kind: "script" as const, name: include },
+      value: include,
+    }));
+  },
+};
+
 /** Every source of the structural pass, in read order. */
 export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   dictionaryReference,
@@ -618,6 +701,8 @@ export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   flowInputSource("flow_input", "sys_hub_flow_input"),
   report,
   paIndicatorSource,
+  uibMacroponent,
+  uibClientScript,
 ];
 
 /**

@@ -1,0 +1,15 @@
+import { ALL_TOOLS } from "../build/mcp/registry.js";
+import { runSpec } from "../build/mcp/define.js";
+import { measureResultBytes } from "../build/core/metrics.js";
+import { baselineEnv, createFetchDouble, freshRuntime } from "./helpers.js";
+baselineEnv();
+const [name, argsJson] = process.argv.slice(2);
+const spec = ALL_TOOLS.find((t) => t.name === name);
+const d = createFetchDouble({ fallback: (call) => ({ status: 200, json: { result: [] } }) });
+d.install();
+freshRuntime();
+const res = await runSpec(spec, JSON.parse(argsJson ?? "{}"));
+d.restore();
+for (const c of d.calls) console.log(c.method, c.path, c.query.toString().slice(0, 200));
+console.log(JSON.stringify(res).slice(0, 800));
+console.log(measureResultBytes(res));

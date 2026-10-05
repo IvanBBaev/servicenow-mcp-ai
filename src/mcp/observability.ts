@@ -21,8 +21,8 @@ import { getMaxConcurrent, getMaxQueue } from "../core/settings.js";
 export function observabilityPayload() {
   const telemetry = getTelemetry();
   return {
-    // Per-tool counters since startup; p50/p95 (ms) over the last
-    // `sampleWindow` calls of each tool.
+    // Per-tool counters since startup; p50/p95 (ms) and bytesP50/bytesP95
+    // (result size) over the last `sampleWindow` calls of each tool.
     tools: getToolStats(),
     sampleWindow: TOOL_SAMPLE_SIZE,
     cache: { schema: getSchemaCacheStats() },
@@ -111,6 +111,37 @@ export function renderPrometheus(): string {
     out.sample(`${P}_tool_duration_ms`, { tool, quantile: "0.95" }, s.p95);
     out.sample(`${P}_tool_duration_ms_sum`, { tool }, s.totalMs);
     out.sample(`${P}_tool_duration_ms_count`, { tool }, s.count);
+  }
+  out.family(
+    `${P}_tool_result_bytes`,
+    "summary",
+    `Tool result size in bytes (text plus structured content); quantiles over the last ${o.sampleWindow} calls.`,
+  );
+  for (const [tool, s] of tools) {
+    out.sample(`${P}_tool_result_bytes`, { tool, quantile: "0.5" }, s.bytesP50);
+    out.sample(
+      `${P}_tool_result_bytes`,
+      { tool, quantile: "0.95" },
+      s.bytesP95,
+    );
+    out.sample(`${P}_tool_result_bytes_sum`, { tool }, s.bytesTotal);
+  }
+  out.family(
+    `${P}_tool_result_channel_bytes_total`,
+    "counter",
+    "Tool result bytes by channel: text content blocks or structuredContent.",
+  );
+  for (const [tool, s] of tools) {
+    out.sample(
+      `${P}_tool_result_channel_bytes_total`,
+      { tool, channel: "text" },
+      s.textBytes,
+    );
+    out.sample(
+      `${P}_tool_result_channel_bytes_total`,
+      { tool, channel: "structured" },
+      s.structuredBytes,
+    );
   }
 
   const hosts = Object.entries(telemetry.perHost);

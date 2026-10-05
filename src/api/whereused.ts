@@ -15,7 +15,10 @@ import {
  * it (business rules, client scripts, UI policies/actions, ACLs). S-9 adds a
  * structural pass (src/api/references.ts) over configuration that names the
  * target without script text: dictionary references, list / form layouts,
- * catalog variables, flow action inputs and report conditions.
+ * catalog variables, flow action inputs and report conditions. N-28 adds UI
+ * Builder sources for a `script` target: macroponents whose composition or
+ * data resources name it (a component / macroponent or data broker sys_id)
+ * and UIB client scripts that import it (a client script include name).
  */
 
 export type WhereUsedKind = "table" | "field" | "script";
@@ -91,7 +94,7 @@ export function whereUsedCaveats(
 ): string[] {
   const caveats = [
     extra.structural
-      ? "Textual search of script sources plus a structural pass over dictionary references, list and form layouts, catalog variables, flow action inputs and report conditions (see structural.sources): names built at runtime (string concatenation, variables, GlideRecord(table) from a property) and references in other non-script fields (flow step values, workflow activities, UI policy and notification conditions) are not found."
+      ? "Textual search of script sources plus a structural pass over dictionary references, list and form layouts, catalog variables, flow action inputs, report conditions and (for a script name or a UI Builder component / data broker sys_id) UI Builder compositions, data resources and client script imports (see structural.sources): names built at runtime (string concatenation, variables, GlideRecord(table) from a property) and references in other non-script fields (flow step values, workflow activities, UI policy and notification conditions) are not found."
       : "Textual search only: names built at runtime (string concatenation, variables, GlideRecord(table) from a property) and references in non-script fields (conditions, flows, workflows, reports) are not found.",
     "Only records the connected user can read are searched — ACLs and domain separation can hide referencing artefacts, so an empty result is not proof that nothing uses it.",
     "Cross-scope: artefacts in other application scopes are included when readable, but runtime cross-scope access is governed by application access settings and cross-scope privileges (sys_scope_privilege), which this search does not evaluate.",

@@ -1,0 +1,963 @@
+{
+  "version": 1,
+  "description": "N-18 tool-selection eval. Each case is one natural-language task and the tool name(s) a model should pick first. `expected: []` means no tool fits and the model should answer without calling one. Prompts paraphrase the task instead of copying description wording.",
+  "cases": [
+    {
+      "id": "pos-aggregate",
+      "kind": "positive",
+      "prompt": "How many open P1 incidents does each assignment group have right now?",
+      "expected": ["servicenow_aggregate"]
+    },
+    {
+      "id": "pos-batch",
+      "kind": "positive",
+      "prompt": "Send these five REST calls to the instance in a single round trip instead of one by one.",
+      "expected": ["servicenow_batch"]
+    },
+    {
+      "id": "pos-check-capabilities",
+      "kind": "positive",
+      "prompt": "With the account I am connected as, which of your features will actually work on this instance?",
+      "expected": ["servicenow_check_capabilities"]
+    },
+    {
+      "id": "pos-check-change-conflicts",
+      "kind": "positive",
+      "prompt": "Does change CHG0031024 clash with any blackout window or other change on the same CI?",
+      "expected": ["servicenow_check_change_conflicts"]
+    },
+    {
+      "id": "pos-check-code-health",
+      "kind": "positive",
+      "prompt": "Give me an overall quality report of the server-side code in the x_acme_hr scoped app.",
+      "expected": ["servicenow_check_code_health"]
+    },
+    {
+      "id": "pos-check-data-health",
+      "kind": "positive",
+      "prompt": "Find data quality problems like orphaned references and duplicate users on the instance.",
+      "expected": ["servicenow_check_data_health"]
+    },
+    {
+      "id": "pos-compare-instances",
+      "kind": "positive",
+      "prompt": "Diff the business rules between our dev and test environments.",
+      "expected": ["servicenow_compare_instances"]
+    },
+    {
+      "id": "pos-compare-update-set",
+      "kind": "positive",
+      "prompt": "Before I promote it, show what update set 'Sprint 42 fixes' would overwrite on the target.",
+      "expected": ["servicenow_compare_update_set"]
+    },
+    {
+      "id": "pos-create-change",
+      "kind": "positive",
+      "prompt": "Raise a normal change to patch the Oracle database servers next Tuesday night.",
+      "expected": ["servicenow_create_change"]
+    },
+    {
+      "id": "pos-create-ci",
+      "kind": "positive",
+      "prompt": "Register a new Linux server called web-prod-07 in the CMDB.",
+      "expected": ["servicenow_create_ci", "servicenow_identify_reconcile"]
+    },
+    {
+      "id": "pos-create-record",
+      "kind": "positive",
+      "prompt": "Open a new incident: the VPN drops every ten minutes for the Sofia office.",
+      "expected": ["servicenow_create_record"]
+    },
+    {
+      "id": "pos-delete-attachment",
+      "kind": "positive",
+      "prompt": "Remove the screenshot file that was attached to INC0010023 by mistake; its attachment id is 9f2c1a.",
+      "expected": ["servicenow_delete_attachment"]
+    },
+    {
+      "id": "pos-delete-record",
+      "kind": "positive",
+      "prompt": "Get rid of the duplicate user record with sys_id 6816f79cc0a8016401c5a33be04be441.",
+      "expected": ["servicenow_delete_record"]
+    },
+    {
+      "id": "pos-describe-table",
+      "kind": "positive",
+      "prompt": "What columns does the cmdb_ci_server table have and which are mandatory?",
+      "expected": ["servicenow_describe_table"]
+    },
+    {
+      "id": "pos-describe-table-logic",
+      "kind": "positive",
+      "prompt": "What business rules, client scripts and ACLs fire on the change_request table?",
+      "expected": ["servicenow_describe_table_logic"]
+    },
+    {
+      "id": "pos-disable-package",
+      "kind": "positive",
+      "prompt": "Turn off the email tools for this session, I do not want them offered.",
+      "expected": ["servicenow_disable_package"]
+    },
+    {
+      "id": "pos-document-app",
+      "kind": "positive",
+      "prompt": "Produce technical documentation for the whole x_acme_facilities application.",
+      "expected": ["servicenow_document_app"]
+    },
+    {
+      "id": "pos-document-instance",
+      "kind": "positive",
+      "prompt": "Write an overview document describing this entire ServiceNow instance and its customisations.",
+      "expected": ["servicenow_document_instance"]
+    },
+    {
+      "id": "pos-document-table",
+      "kind": "positive",
+      "prompt": "Generate a reference document for the u_vendor_contract table.",
+      "expected": ["servicenow_document_table"]
+    },
+    {
+      "id": "pos-download-attachment",
+      "kind": "positive",
+      "prompt": "Fetch the contents of the PDF attached to the contract record so I can read it.",
+      "expected": ["servicenow_download_attachment"]
+    },
+    {
+      "id": "pos-enable-package",
+      "kind": "positive",
+      "prompt": "Switch on the CMDB tool package so I can work with configuration items.",
+      "expected": ["servicenow_enable_package"]
+    },
+    {
+      "id": "pos-explain-artifact",
+      "kind": "positive",
+      "prompt": "Explain in plain words what the UI policy 'Hide close notes' does.",
+      "expected": ["servicenow_explain_artifact"]
+    },
+    {
+      "id": "pos-explain-flow",
+      "kind": "positive",
+      "prompt": "Walk me through the steps of the 'Onboard new hire' Flow Designer flow.",
+      "expected": ["servicenow_explain_flow"]
+    },
+    {
+      "id": "pos-explain-policy",
+      "kind": "positive",
+      "prompt": "Why is this server refusing to let me write to the sys_properties table?",
+      "expected": ["servicenow_explain_policy"]
+    },
+    {
+      "id": "pos-explain-portal",
+      "kind": "positive",
+      "prompt": "Describe how the employee Service Portal is put together: pages, widgets and themes.",
+      "expected": ["servicenow_explain_portal"]
+    },
+    {
+      "id": "pos-explain-ui-experience",
+      "kind": "positive",
+      "prompt": "Break down the structure of our custom Workspace built in UI Builder.",
+      "expected": ["servicenow_explain_ui_experience"]
+    },
+    {
+      "id": "pos-generate-er-diagram",
+      "kind": "positive",
+      "prompt": "Draw an entity-relationship diagram of the tables in the HR scoped app.",
+      "expected": ["servicenow_generate_er_diagram"]
+    },
+    {
+      "id": "pos-generate-fluent",
+      "kind": "positive",
+      "prompt": "Convert this business rule into ServiceNow SDK source code I can keep in git.",
+      "expected": ["servicenow_generate_fluent"]
+    },
+    {
+      "id": "pos-generate-table-flow",
+      "kind": "positive",
+      "prompt": "Make a Mermaid diagram of everything that runs when an incident is inserted.",
+      "expected": [
+        "servicenow_generate_table_flow",
+        "servicenow_trace_table_event"
+      ]
+    },
+    {
+      "id": "pos-get-artifact",
+      "kind": "positive",
+      "prompt": "Show me the full definition of the script include 'AcmeUtils' including its fields.",
+      "expected": ["servicenow_get_artifact", "servicenow_get_script"]
+    },
+    {
+      "id": "pos-get-artifact-dependencies",
+      "kind": "positive",
+      "prompt": "What does the 'Approval helper' script include depend on, and what depends on it?",
+      "expected": [
+        "servicenow_get_artifact_dependencies",
+        "servicenow_where_used"
+      ]
+    },
+    {
+      "id": "pos-get-atf-result",
+      "kind": "positive",
+      "prompt": "Did the automated test run I started five minutes ago pass?",
+      "expected": ["servicenow_get_atf_result"]
+    },
+    {
+      "id": "pos-get-attachment",
+      "kind": "positive",
+      "prompt": "What is the size and content type of attachment a1b2c3d4?",
+      "expected": ["servicenow_get_attachment"]
+    },
+    {
+      "id": "pos-get-catalog-item",
+      "kind": "positive",
+      "prompt": "Which variables do I need to fill in to request the 'New laptop' catalog item?",
+      "expected": ["servicenow_get_catalog_item"]
+    },
+    {
+      "id": "pos-get-change",
+      "kind": "positive",
+      "prompt": "Show me CHG0030001 with its tasks and approvals.",
+      "expected": ["servicenow_get_change"]
+    },
+    {
+      "id": "pos-get-ci",
+      "kind": "positive",
+      "prompt": "Pull up the configuration item for the server db-prod-02 with its details.",
+      "expected": ["servicenow_get_ci"]
+    },
+    {
+      "id": "pos-get-cmdb-meta",
+      "kind": "positive",
+      "prompt": "What identification rules and attributes does the cmdb_ci_linux_server class define?",
+      "expected": ["servicenow_get_cmdb_meta"]
+    },
+    {
+      "id": "pos-get-email",
+      "kind": "positive",
+      "prompt": "Show the body and recipients of the outbound notification that was sent for INC0010045.",
+      "expected": ["servicenow_get_email"]
+    },
+    {
+      "id": "pos-get-flow",
+      "kind": "positive",
+      "prompt": "Get the trigger, actions and inputs of the flow with sys_id 3c1f.",
+      "expected": ["servicenow_get_flow"]
+    },
+    {
+      "id": "pos-get-flow-runs",
+      "kind": "positive",
+      "prompt": "Have there been failed executions of the 'Offboarding' flow this week?",
+      "expected": ["servicenow_get_flow_runs"]
+    },
+    {
+      "id": "pos-get-import-set-row",
+      "kind": "positive",
+      "prompt": "What happened to the staging row I inserted into u_imp_users, did the transform succeed?",
+      "expected": ["servicenow_get_import_set_row"]
+    },
+    {
+      "id": "pos-get-knowledge-article",
+      "kind": "positive",
+      "prompt": "Open knowledge article KB0010234 and show me its text.",
+      "expected": ["servicenow_get_knowledge_article"]
+    },
+    {
+      "id": "pos-get-knowledge-highlights",
+      "kind": "positive",
+      "prompt": "Which knowledge articles are the most popular with our users?",
+      "expected": ["servicenow_get_knowledge_highlights"]
+    },
+    {
+      "id": "pos-get-properties",
+      "kind": "positive",
+      "prompt": "What is the current value of glide.ui.session_timeout?",
+      "expected": ["servicenow_get_properties"]
+    },
+    {
+      "id": "pos-get-record",
+      "kind": "positive",
+      "prompt": "Show me incident INC0010001.",
+      "expected": ["servicenow_get_record", "servicenow_query_table"]
+    },
+    {
+      "id": "pos-get-record-history",
+      "kind": "positive",
+      "prompt": "Who changed the priority on PRB0040012 and when?",
+      "expected": ["servicenow_get_record_history"]
+    },
+    {
+      "id": "pos-get-script",
+      "kind": "positive",
+      "prompt": "Show me the source code of the business rule 'Set assignment group'.",
+      "expected": ["servicenow_get_script"]
+    },
+    {
+      "id": "pos-get-status",
+      "kind": "positive",
+      "prompt": "Which instance am I connected to and as which user?",
+      "expected": ["servicenow_get_status"]
+    },
+    {
+      "id": "pos-get-update-set",
+      "kind": "positive",
+      "prompt": "List what is inside the update set 'Release 7.2' and its state.",
+      "expected": ["servicenow_get_update_set"]
+    },
+    {
+      "id": "pos-identify-reconcile",
+      "kind": "positive",
+      "prompt": "Push this discovered server payload through identification and reconciliation so it does not create duplicates.",
+      "expected": ["servicenow_identify_reconcile"]
+    },
+    {
+      "id": "pos-insert-import-set-row",
+      "kind": "positive",
+      "prompt": "Load this user row into the u_imp_users staging table and let the transform map run.",
+      "expected": ["servicenow_insert_import_set_row"]
+    },
+    {
+      "id": "pos-lint-script",
+      "kind": "positive",
+      "prompt": "Review this snippet for bad practices: var gr = new GlideRecord('incident'); gr.query(); while (gr.next()) { gr.update(); }",
+      "expected": ["servicenow_lint_script"]
+    },
+    {
+      "id": "pos-lint-table",
+      "kind": "positive",
+      "prompt": "Check every script attached to the incident table for anti-patterns.",
+      "expected": ["servicenow_lint_table"]
+    },
+    {
+      "id": "pos-list-artifacts",
+      "kind": "positive",
+      "prompt": "Which UI actions exist in the x_acme_hr scope?",
+      "expected": ["servicenow_list_artifacts", "servicenow_list_scripts"]
+    },
+    {
+      "id": "pos-list-atf-suites",
+      "kind": "positive",
+      "prompt": "Show the automated test suites we have.",
+      "expected": ["servicenow_list_atf_suites"]
+    },
+    {
+      "id": "pos-list-atf-tests",
+      "kind": "positive",
+      "prompt": "Which ATF tests cover the change management process?",
+      "expected": ["servicenow_list_atf_tests"]
+    },
+    {
+      "id": "pos-list-attachments",
+      "kind": "positive",
+      "prompt": "What files are attached to RITM0010012?",
+      "expected": ["servicenow_list_attachments"]
+    },
+    {
+      "id": "pos-list-catalog-categories",
+      "kind": "positive",
+      "prompt": "What categories does the service catalog have?",
+      "expected": ["servicenow_list_catalog_categories"]
+    },
+    {
+      "id": "pos-list-catalog-items",
+      "kind": "positive",
+      "prompt": "What can I request from the Hardware section of the catalog?",
+      "expected": ["servicenow_list_catalog_items"]
+    },
+    {
+      "id": "pos-list-catalogs",
+      "kind": "positive",
+      "prompt": "Which service catalogs are defined on the instance?",
+      "expected": ["servicenow_list_catalogs"]
+    },
+    {
+      "id": "pos-list-changes",
+      "kind": "positive",
+      "prompt": "Show the emergency changes scheduled for this weekend.",
+      "expected": ["servicenow_list_changes"]
+    },
+    {
+      "id": "pos-list-ci-relations",
+      "kind": "positive",
+      "prompt": "What runs on the server app-prod-01 and what does it depend on upstream?",
+      "expected": ["servicenow_list_ci_relations"]
+    },
+    {
+      "id": "pos-list-cis",
+      "kind": "positive",
+      "prompt": "List all Windows servers in the CMDB that are in the Frankfurt data center.",
+      "expected": ["servicenow_list_cis"]
+    },
+    {
+      "id": "pos-list-docs",
+      "kind": "positive",
+      "prompt": "What instance notes have been saved so far?",
+      "expected": ["servicenow_list_docs"]
+    },
+    {
+      "id": "pos-list-flows",
+      "kind": "positive",
+      "prompt": "Which Flow Designer flows are active in the global scope?",
+      "expected": ["servicenow_list_flows"]
+    },
+    {
+      "id": "pos-list-instances",
+      "kind": "positive",
+      "prompt": "Which ServiceNow connection profiles are configured here?",
+      "expected": ["servicenow_list_instances"]
+    },
+    {
+      "id": "pos-list-packages",
+      "kind": "positive",
+      "prompt": "Which groups of tools exist and which of them are switched on?",
+      "expected": ["servicenow_list_packages"]
+    },
+    {
+      "id": "pos-list-scripts",
+      "kind": "positive",
+      "prompt": "List the client scripts defined on the problem table.",
+      "expected": ["servicenow_list_scripts"]
+    },
+    {
+      "id": "pos-list-tables",
+      "kind": "positive",
+      "prompt": "What tables exist whose name starts with u_vendor?",
+      "expected": ["servicenow_list_tables"]
+    },
+    {
+      "id": "pos-list-update-sets",
+      "kind": "positive",
+      "prompt": "Which update sets are still in progress?",
+      "expected": ["servicenow_list_update_sets"]
+    },
+    {
+      "id": "pos-list-writes",
+      "kind": "positive",
+      "prompt": "What changes have you made to the instance during this session?",
+      "expected": ["servicenow_list_writes"]
+    },
+    {
+      "id": "pos-lookup-directory",
+      "kind": "positive",
+      "prompt": "Find the user Maria Petrova and tell me which groups and roles she has.",
+      "expected": ["servicenow_lookup_directory"]
+    },
+    {
+      "id": "pos-order-catalog-item",
+      "kind": "positive",
+      "prompt": "Request a standard laptop for the new hire Georgi from the catalog.",
+      "expected": ["servicenow_order_catalog_item"]
+    },
+    {
+      "id": "pos-query-table",
+      "kind": "positive",
+      "prompt": "List incidents assigned to the Network group that were opened in the last 7 days.",
+      "expected": ["servicenow_query_table"]
+    },
+    {
+      "id": "pos-read-doc",
+      "kind": "positive",
+      "prompt": "Open the note called 'integration-architecture' that we saved earlier.",
+      "expected": ["servicenow_read_doc"]
+    },
+    {
+      "id": "pos-read-ops",
+      "kind": "positive",
+      "prompt": "Show me the slowest transactions and recent errors from the system logs.",
+      "expected": ["servicenow_read_ops"]
+    },
+    {
+      "id": "pos-revert-write",
+      "kind": "positive",
+      "prompt": "Undo the update you just made to that incident.",
+      "expected": ["servicenow_revert_write", "servicenow_list_writes"]
+    },
+    {
+      "id": "pos-run-atf-suite",
+      "kind": "positive",
+      "prompt": "Kick off the 'Regression - ITSM' test suite.",
+      "expected": ["servicenow_run_atf_suite", "servicenow_list_atf_suites"]
+    },
+    {
+      "id": "pos-run-atf-test",
+      "kind": "positive",
+      "prompt": "Execute the single ATF test 'Create incident as ESS user'.",
+      "expected": ["servicenow_run_atf_test", "servicenow_list_atf_tests"]
+    },
+    {
+      "id": "pos-search-code",
+      "kind": "positive",
+      "prompt": "Find every script that calls gs.sleep.",
+      "expected": ["servicenow_search_code"]
+    },
+    {
+      "id": "pos-search-docs",
+      "kind": "positive",
+      "prompt": "Do any of our saved instance notes mention the SAP integration?",
+      "expected": ["servicenow_search_docs"]
+    },
+    {
+      "id": "pos-search-knowledge",
+      "kind": "positive",
+      "prompt": "Is there a knowledge article explaining how to reset a forgotten password?",
+      "expected": ["servicenow_search_knowledge"]
+    },
+    {
+      "id": "pos-send-email",
+      "kind": "positive",
+      "prompt": "Email the on-call manager that the outage is resolved.",
+      "expected": ["servicenow_send_email", "servicenow_lookup_directory"]
+    },
+    {
+      "id": "pos-set-credentials",
+      "kind": "positive",
+      "prompt": "Here is my new password for the integration user; please use it from now on.",
+      "expected": ["servicenow_set_credentials"]
+    },
+    {
+      "id": "pos-set-property",
+      "kind": "positive",
+      "prompt": "Change glide.ui.session_timeout to 60 minutes.",
+      "expected": ["servicenow_set_property"]
+    },
+    {
+      "id": "pos-snapshot-instance",
+      "kind": "positive",
+      "prompt": "Capture the current metadata of the instance so I can compare against it after the upgrade.",
+      "expected": ["servicenow_snapshot_instance"]
+    },
+    {
+      "id": "pos-test-connection",
+      "kind": "positive",
+      "prompt": "Can you actually reach the instance with the current credentials? Try it.",
+      "expected": ["servicenow_test_connection"]
+    },
+    {
+      "id": "pos-trace-table-event",
+      "kind": "positive",
+      "prompt": "If I update an incident's state to Resolved, what logic gets executed and in what order?",
+      "expected": ["servicenow_trace_table_event"]
+    },
+    {
+      "id": "pos-update-change",
+      "kind": "positive",
+      "prompt": "Move the planned start of CHG0030001 to Friday 22:00.",
+      "expected": ["servicenow_update_change"]
+    },
+    {
+      "id": "pos-update-ci",
+      "kind": "positive",
+      "prompt": "Set the operational status of server db-prod-02 to retired in the CMDB.",
+      "expected": ["servicenow_update_ci"]
+    },
+    {
+      "id": "pos-update-record",
+      "kind": "positive",
+      "prompt": "Reassign INC0010001 to the Database group.",
+      "expected": ["servicenow_update_record"]
+    },
+    {
+      "id": "pos-upload-attachment",
+      "kind": "positive",
+      "prompt": "Attach this log file to problem PRB0040012.",
+      "expected": ["servicenow_upload_attachment"]
+    },
+    {
+      "id": "pos-upsert-artifact",
+      "kind": "positive",
+      "prompt": "Create or update the script include 'DateUtils' with this new code.",
+      "expected": ["servicenow_upsert_artifact"]
+    },
+    {
+      "id": "pos-upsert-record",
+      "kind": "positive",
+      "prompt": "Make sure a location named 'Sofia HQ' exists; create it if missing, otherwise update its address.",
+      "expected": ["servicenow_upsert_record"]
+    },
+    {
+      "id": "pos-use-instance",
+      "kind": "positive",
+      "prompt": "Switch over to the test instance profile.",
+      "expected": ["servicenow_use_instance"]
+    },
+    {
+      "id": "pos-where-used",
+      "kind": "positive",
+      "prompt": "Where is the script include 'AcmeUtils' referenced across the instance?",
+      "expected": ["servicenow_where_used", "servicenow_search_code"]
+    },
+    {
+      "id": "pos-write-doc",
+      "kind": "positive",
+      "prompt": "Save a note describing how our SSO login flow works so future sessions can read it.",
+      "expected": ["servicenow_write_doc"]
+    },
+
+    {
+      "id": "cl-records-count",
+      "kind": "cluster",
+      "cluster": "records",
+      "prompt": "How many problems were closed last month?",
+      "expected": ["servicenow_aggregate"]
+    },
+    {
+      "id": "cl-records-list",
+      "kind": "cluster",
+      "cluster": "records",
+      "prompt": "Show me the ten most recent problems with their short descriptions.",
+      "expected": ["servicenow_query_table"]
+    },
+    {
+      "id": "cl-records-one",
+      "kind": "cluster",
+      "cluster": "records",
+      "prompt": "Fetch the sys_user record with sys_id 62826bf03710200044e0bfc8bcbe5df1.",
+      "expected": ["servicenow_get_record"]
+    },
+    {
+      "id": "cl-records-group-avg",
+      "kind": "cluster",
+      "cluster": "records",
+      "prompt": "What is the average reassignment count of incidents per category?",
+      "expected": ["servicenow_aggregate"]
+    },
+    {
+      "id": "cl-schema-list",
+      "kind": "cluster",
+      "cluster": "schema",
+      "prompt": "Which tables extend task?",
+      "expected": ["servicenow_list_tables"]
+    },
+    {
+      "id": "cl-schema-describe",
+      "kind": "cluster",
+      "cluster": "schema",
+      "prompt": "What type is the field caller_id on incident and what does it reference?",
+      "expected": ["servicenow_describe_table"]
+    },
+    {
+      "id": "cl-schema-logic",
+      "kind": "cluster",
+      "cluster": "schema",
+      "prompt": "What server-side automation is attached to the problem table?",
+      "expected": ["servicenow_describe_table_logic"]
+    },
+    {
+      "id": "cl-schema-doc",
+      "kind": "cluster",
+      "cluster": "schema",
+      "prompt": "Write me a markdown reference page for the problem table that I can hand to a new developer.",
+      "expected": ["servicenow_document_table"]
+    },
+    {
+      "id": "cl-code-search",
+      "kind": "cluster",
+      "cluster": "code",
+      "prompt": "Which scripts contain the string 'setWorkflow(false)'?",
+      "expected": ["servicenow_search_code"]
+    },
+    {
+      "id": "cl-code-get",
+      "kind": "cluster",
+      "cluster": "code",
+      "prompt": "Print the script of the script include 'TaskUtils'.",
+      "expected": ["servicenow_get_script", "servicenow_get_artifact"]
+    },
+    {
+      "id": "cl-code-list",
+      "kind": "cluster",
+      "cluster": "code",
+      "prompt": "Which business rules run on the sc_req_item table?",
+      "expected": ["servicenow_list_scripts", "servicenow_describe_table_logic"]
+    },
+    {
+      "id": "cl-code-where-used",
+      "kind": "cluster",
+      "cluster": "code",
+      "prompt": "If I rename the field u_cost_center, which scripts would break?",
+      "expected": ["servicenow_where_used", "servicenow_search_code"]
+    },
+    {
+      "id": "cl-lint-snippet",
+      "kind": "cluster",
+      "cluster": "lint",
+      "prompt": "Is there anything wrong with this client script? function onLoad() { var gr = new GlideRecord('sys_user'); gr.get(g_user.userID); }",
+      "expected": ["servicenow_lint_script"]
+    },
+    {
+      "id": "cl-lint-table",
+      "kind": "cluster",
+      "cluster": "lint",
+      "prompt": "Audit the scripts on the sc_task table for performance issues.",
+      "expected": ["servicenow_lint_table"]
+    },
+    {
+      "id": "cl-lint-health",
+      "kind": "cluster",
+      "cluster": "lint",
+      "prompt": "How healthy is the custom code on this instance overall? Give me a score.",
+      "expected": ["servicenow_check_code_health"]
+    },
+    {
+      "id": "cl-artifact-explain",
+      "kind": "cluster",
+      "cluster": "artifacts",
+      "prompt": "What is the purpose of the ACL on incident.close_notes?",
+      "expected": ["servicenow_explain_artifact"]
+    },
+    {
+      "id": "cl-artifact-list",
+      "kind": "cluster",
+      "cluster": "artifacts",
+      "prompt": "List the scheduled jobs that are active.",
+      "expected": ["servicenow_list_artifacts"]
+    },
+    {
+      "id": "cl-artifact-get",
+      "kind": "cluster",
+      "cluster": "artifacts",
+      "prompt": "Show the raw fields of the UI policy with sys_id 0a1b2c.",
+      "expected": ["servicenow_get_artifact"]
+    },
+    {
+      "id": "cl-docs-list",
+      "kind": "cluster",
+      "cluster": "docs",
+      "prompt": "Show the index of everything we have written down about this instance.",
+      "expected": ["servicenow_list_docs"]
+    },
+    {
+      "id": "cl-docs-search",
+      "kind": "cluster",
+      "cluster": "docs",
+      "prompt": "Look through our saved instance notes for anything about MID servers.",
+      "expected": ["servicenow_search_docs"]
+    },
+    {
+      "id": "cl-docs-kb",
+      "kind": "cluster",
+      "cluster": "docs",
+      "prompt": "Search the knowledge base for VPN troubleshooting steps.",
+      "expected": ["servicenow_search_knowledge"]
+    },
+    {
+      "id": "cl-conn-status",
+      "kind": "cluster",
+      "cluster": "connection",
+      "prompt": "Show the active profile and the server version you are running.",
+      "expected": ["servicenow_get_status"]
+    },
+    {
+      "id": "cl-conn-test",
+      "kind": "cluster",
+      "cluster": "connection",
+      "prompt": "Ping the instance and tell me if authentication works.",
+      "expected": ["servicenow_test_connection"]
+    },
+    {
+      "id": "cl-conn-caps",
+      "kind": "cluster",
+      "cluster": "connection",
+      "prompt": "Does my user have enough roles to read flows and run ATF tests?",
+      "expected": ["servicenow_check_capabilities"]
+    },
+    {
+      "id": "cl-flow-explain",
+      "kind": "cluster",
+      "cluster": "flows",
+      "prompt": "In plain language, what does the 'Approve RITM' flow do?",
+      "expected": ["servicenow_explain_flow"]
+    },
+    {
+      "id": "cl-flow-trace",
+      "kind": "cluster",
+      "cluster": "flows",
+      "prompt": "When a catalog request item is inserted, which flows, rules and notifications fire?",
+      "expected": ["servicenow_trace_table_event"]
+    },
+    {
+      "id": "cl-flow-runs",
+      "kind": "cluster",
+      "cluster": "flows",
+      "prompt": "Show the last executions of the 'Approve RITM' flow and their outcome.",
+      "expected": ["servicenow_get_flow_runs"]
+    },
+    {
+      "id": "cl-cmdb-list",
+      "kind": "cluster",
+      "cluster": "cmdb",
+      "prompt": "Which network switches do we have in the CMDB?",
+      "expected": ["servicenow_list_cis"]
+    },
+    {
+      "id": "cl-cmdb-relations",
+      "kind": "cluster",
+      "cluster": "cmdb",
+      "prompt": "What would be impacted if the storage array san-01 goes down?",
+      "expected": ["servicenow_list_ci_relations"]
+    },
+    {
+      "id": "cl-change-get-vs-list",
+      "kind": "cluster",
+      "cluster": "change",
+      "prompt": "Which changes are waiting for CAB approval?",
+      "expected": ["servicenow_list_changes"]
+    },
+
+    {
+      "id": "w-create-incident",
+      "kind": "write",
+      "prompt": "Create an incident with short description 'Printer on floor 3 jammed', caller abel.tuter.",
+      "expected": ["servicenow_create_record"],
+      "args": { "table": "incident" }
+    },
+    {
+      "id": "w-update-incident",
+      "kind": "write",
+      "prompt": "Set the state of incident with sys_id 9d385017c611228701d22104cc95c371 to In Progress.",
+      "expected": ["servicenow_update_record"],
+      "args": {
+        "table": "incident",
+        "sys_id": "9d385017c611228701d22104cc95c371"
+      }
+    },
+    {
+      "id": "w-delete-record",
+      "kind": "write",
+      "prompt": "Delete the test problem record 7f1c2e3a4b5c6d7e8f9a0b1c2d3e4f5a.",
+      "expected": ["servicenow_delete_record"],
+      "args": {
+        "table": "problem",
+        "sys_id": "7f1c2e3a4b5c6d7e8f9a0b1c2d3e4f5a"
+      }
+    },
+    {
+      "id": "w-upsert-location",
+      "kind": "write",
+      "prompt": "Upsert a cmn_location keyed on name 'Plovdiv Office' with city Plovdiv.",
+      "expected": ["servicenow_upsert_record"],
+      "args": { "table": "cmn_location" }
+    },
+    {
+      "id": "w-set-property",
+      "kind": "write",
+      "prompt": "Set the system property glide.email.smtp.active to false.",
+      "expected": ["servicenow_set_property"],
+      "args": { "name": "glide.email.smtp.active" }
+    },
+    {
+      "id": "w-create-change",
+      "kind": "write",
+      "prompt": "Create a standard change to rotate the TLS certificate on the load balancer.",
+      "expected": ["servicenow_create_change"]
+    },
+    {
+      "id": "w-update-change",
+      "kind": "write",
+      "prompt": "Add a backout plan to change request sys_id 46e18c0fa9fe19810066a0083f76bd56: 'restore the previous cert'.",
+      "expected": ["servicenow_update_change"],
+      "args": { "sys_id": "46e18c0fa9fe19810066a0083f76bd56" }
+    },
+    {
+      "id": "w-update-ci",
+      "kind": "write",
+      "prompt": "Change the IP address of CI 53958ff0c0a801640171ecc5b4a4d6c1 to 10.0.4.17.",
+      "expected": ["servicenow_update_ci"],
+      "args": { "sys_id": "53958ff0c0a801640171ecc5b4a4d6c1" }
+    },
+    {
+      "id": "w-send-email",
+      "kind": "write",
+      "prompt": "Send an email to ops@acme.example with subject 'Maintenance done' and body 'All services are back.'",
+      "expected": ["servicenow_send_email"],
+      "args": { "to": "ops@acme.example" }
+    },
+    {
+      "id": "w-order-item",
+      "kind": "write",
+      "prompt": "Order catalog item 060f3afa3731300054b6a3549dbe5d3e for me, quantity one.",
+      "expected": ["servicenow_order_catalog_item"],
+      "args": { "sys_id": "060f3afa3731300054b6a3549dbe5d3e" }
+    },
+    {
+      "id": "w-upsert-artifact",
+      "kind": "write",
+      "prompt": "Upsert a system property artifact named x_acme.feature_flag with value true in the x_acme scope.",
+      "expected": ["servicenow_upsert_artifact", "servicenow_set_property"]
+    },
+    {
+      "id": "w-insert-import",
+      "kind": "write",
+      "prompt": "Insert a row into import set table u_imp_assets with asset_tag P1000123 and model 'ThinkPad T14'.",
+      "expected": ["servicenow_insert_import_set_row"],
+      "args": { "table": "u_imp_assets" }
+    },
+    {
+      "id": "w-run-atf-test",
+      "kind": "write",
+      "prompt": "Run ATF test sys_id 1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b.",
+      "expected": ["servicenow_run_atf_test"],
+      "args": { "sys_id": "1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b" }
+    },
+    {
+      "id": "w-revert-write",
+      "kind": "write",
+      "prompt": "Revert journal entry w-20261005-0007.",
+      "expected": ["servicenow_revert_write"],
+      "args": { "entry_id": "w-20261005-0007" }
+    },
+    {
+      "id": "w-batch",
+      "kind": "write",
+      "prompt": "In one batch request, close incidents INC0010001, INC0010002 and INC0010003.",
+      "expected": ["servicenow_batch", "servicenow_update_record"]
+    },
+
+    {
+      "id": "neg-general-knowledge",
+      "kind": "negative",
+      "prompt": "What is the capital of Bulgaria?",
+      "expected": []
+    },
+    {
+      "id": "neg-write-code",
+      "kind": "negative",
+      "prompt": "Write a Python function that reverses a linked list.",
+      "expected": []
+    },
+    {
+      "id": "neg-explain-concept",
+      "kind": "negative",
+      "prompt": "In general terms, what is the difference between a business rule and a client script in ServiceNow?",
+      "expected": []
+    },
+    {
+      "id": "neg-other-system",
+      "kind": "negative",
+      "prompt": "Create a Jira ticket in project OPS for the printer issue.",
+      "expected": []
+    },
+    {
+      "id": "neg-translate",
+      "kind": "negative",
+      "prompt": "Translate 'the change was approved' into German.",
+      "expected": []
+    },
+    {
+      "id": "neg-math",
+      "kind": "negative",
+      "prompt": "What is 17 percent of 2350?",
+      "expected": []
+    },
+    {
+      "id": "neg-chitchat",
+      "kind": "negative",
+      "prompt": "Thanks, that is all for today.",
+      "expected": []
+    },
+    {
+      "id": "neg-other-cloud",
+      "kind": "negative",
+      "prompt": "Restart the EC2 instance i-0abc123 in AWS.",
+      "expected": []
+    }
+  ]
+}

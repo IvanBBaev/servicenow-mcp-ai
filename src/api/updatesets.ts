@@ -5,6 +5,7 @@ import { RECORD_SECTIONS } from "./snapshot.js";
 import { assertProfile, readSnapshotJson, COMPARE_CAVEATS } from "./compare.js";
 import { snString, assertNoCaret, expectResult } from "./shared.js";
 import { snRequest } from "../core/http.js";
+import { uibCompleteness } from "./uib-completeness.js";
 import { ServiceNowError } from "../core/errors.js";
 import { activeProfile, getCredentials } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
@@ -400,6 +401,14 @@ export async function getUpdateSet(
     }
     return entry;
   });
+  // N-28 (UX-09): pages the set touches, and their records it does not carry.
+  const uib = rows.some((r) => s(r, "name").startsWith("sys_ux_"))
+    ? await uibCompleteness(
+        set.sys_id,
+        rows.map((r) => s(r, "name")),
+        { partial: truncated || !!opts.type },
+      )
+    : undefined;
   return {
     update_set: set,
     count: updates.length,
@@ -408,6 +417,7 @@ export async function getUpdateSet(
     by_type: countBy(rows, "type"),
     by_action: countBy(rows, "action"),
     updates,
+    ...(uib ? { uib_completeness: uib } : {}),
   };
 }
 

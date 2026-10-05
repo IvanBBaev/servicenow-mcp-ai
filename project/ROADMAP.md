@@ -1,9 +1,9 @@
 # servicenow-mcp — Roadmap
 
-Date: 2026-09-02 · Status: **v2.0 — trust + depth + reach** shipped (406/406 tests, coverage 95.41/84.94/98.58, full REST coverage, every auth method, Phases 1–9 + DX; see [ROADMAP-V2.md](ROADMAP-V2.md)) · **Next: v3.0 proposed** — execution tracker in [ROADMAP-V3.md](ROADMAP-V3.md), findings in [DEEP-REVIEW-2026-09.md](DEEP-REVIEW-2026-09.md) and the 2026-09-09 second pass [GAP-ANALYSIS-2026-09.md](GAP-ANALYSIS-2026-09.md); the 2026-09-23 instance-documentation pass [INSTANCE-DOCS-ANALYSIS-2026-09.md](INSTANCE-DOCS-ANALYSIS-2026-09.md) added S-14 … S-16; its 2026-09-25 second pass [INSTANCE-DOCS-ANALYSIS-2026-09-25.md](INSTANCE-DOCS-ANALYSIS-2026-09-25.md) reassessed ID-01 … ID-17 and added ID-18 … ID-29 (`document_table` / `document_app` unblocked on 2.x).
+Date: 2026-09-02 · Status: **v2.0 — trust + depth + reach** shipped (406/406 tests, coverage 95.41/84.94/98.58, full REST coverage, every auth method, Phases 1–9 + DX; see [ROADMAP-V2.md](archive/ROADMAP-V2.md)) · **Next: v3.0 proposed** — execution tracker in [ROADMAP-V3.md](ROADMAP-V3.md), findings in [DEEP-REVIEW-2026-09.md](archive/DEEP-REVIEW-2026-09.md) and the 2026-09-09 second pass [GAP-ANALYSIS-2026-09.md](archive/GAP-ANALYSIS-2026-09.md); the 2026-09-23 instance-documentation pass [INSTANCE-DOCS-ANALYSIS-2026-09.md](archive/INSTANCE-DOCS-ANALYSIS-2026-09.md) added S-14 … S-16; its 2026-09-25 second pass [INSTANCE-DOCS-ANALYSIS-2026-09-25.md](archive/INSTANCE-DOCS-ANALYSIS-2026-09-25.md) reassessed ID-01 … ID-17 and added ID-18 … ID-29 (`document_table` / `document_app` unblocked on 2.x).
 This is the forward-looking view. Full task specifications live in
-[IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md); completed work with commit refs is in
-[DONE.md](DONE.md); the current state is in [PRODUCT-STATE.md](PRODUCT-STATE.md).
+[IMPLEMENTATION-PLAN.md](archive/IMPLEMENTATION-PLAN.md); completed work with commit refs is in
+[DONE.md](DONE.md); the current state is in [PRODUCT-STATE.md](archive/PRODUCT-STATE.md).
 
 ## Where we are
 
@@ -63,7 +63,7 @@ v2.0 is **tagged and published**: npm `servicenow-mcp-ai@2.0.0` (the `latest` ta
 > instance), and FT-7 (`search_code` uses `sn_codesearch` when `SN_CODESEARCH=true`, LIKE fallback).
 > 12 new tools (65 total, 18 packages), 22 new tests (219 total), gate green. New packages are
 > **not** in the default `core` profile — enable with `SN_TOOL_PACKAGES`. Full specs:
-> [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) §8.
+> [IMPLEMENTATION-PLAN.md](archive/IMPLEMENTATION-PLAN.md) §8.
 
 Recommended order (highest value first):
 
@@ -179,18 +179,18 @@ Recommended order (highest value first):
 
 > **v1.x = breadth, v2.0 = trust + depth + reach, v3.0 = correctness + governance + reach at
 > scale.** Derived from five read-only audits (MCP protocol, ServiceNow coverage, security,
-> DX/distribution, engineering) documented in [DEEP-REVIEW-2026-09.md](DEEP-REVIEW-2026-09.md);
+> DX/distribution, engineering) documented in [DEEP-REVIEW-2026-09.md](archive/DEEP-REVIEW-2026-09.md);
 > the sequenced tracker with a definition of done per item is [ROADMAP-V3.md](ROADMAP-V3.md).
 > **H-1** landed 2026-09-03 (green gate) and **H-2** (credential host binding: `CREDENTIALS_INCOMPLETE`,
 > fail-closed confirmation, `SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE`) on 2026-09-09, **E-9** (crash handlers, `dispose()`, LRU schema cache `SN_SCHEMA_CACHE_MAX`) on
 > 2026-09-10 and **H-10** (HTTP client resilience + identity: proxy / TLS without a client cert, `User-Agent`, `SN_DEADLINE_MS`, bounded queue, error codes) , **S-1** (inherited + global business rules in the trace and the table-flow diagram) and **H-9** (CI + version hygiene: SHA-pinned actions, least-privilege workflow permissions, tarball guard, one-version sync) on 2026-09-23 — all uncommitted; next H-8; everything else is 🔴. A second, narrower pass
-> on 2026-09-09 ([GAP-ANALYSIS-2026-09.md](GAP-ANALYSIS-2026-09.md) — nine lenses, 67 findings, 9 high) added
+> on 2026-09-09 ([GAP-ANALYSIS-2026-09.md](archive/GAP-ANALYSIS-2026-09.md) — nine lenses, 67 findings, 9 high) added
 > **H-10, H-11, S-13, M-9, D-9, E-9**, the breaking entries B11–B13 and extended 27 definitions of done. A third,
-> focused pass on 2026-09-23 ([INSTANCE-DOCS-ANALYSIS-2026-09.md](INSTANCE-DOCS-ANALYSIS-2026-09.md) — instance documentation: the docs store,
+> focused pass on 2026-09-23 ([INSTANCE-DOCS-ANALYSIS-2026-09.md](archive/INSTANCE-DOCS-ANALYSIS-2026-09.md) — instance documentation: the docs store,
 > the Mermaid generators, the `document_table` prompt, the missing table / app / instance documents; 17 findings) added
 > **S-14, S-15, S-16** (docs store v2 + generator depth, document generators, native discovery) and refined nine
 > definitions of done; S-14 joins the must-have cut. A fourth pass on 2026-09-25
-> ([INSTANCE-DOCS-ANALYSIS-2026-09-25.md](INSTANCE-DOCS-ANALYSIS-2026-09-25.md) — the second on instance documentation, against
+> ([INSTANCE-DOCS-ANALYSIS-2026-09-25.md](archive/INSTANCE-DOCS-ANALYSIS-2026-09-25.md) — the second on instance documentation, against
 > the batch-6 tree) closed seven of the 17 findings, added **ID-18 … ID-29** and refined S-15 (registry-driven `document_app` over
 > P-5's `listArtifacts`, the `security` kind from S-3, named E-7 collectors), S-16, M-4, M-8, S-7, E-6 and E-7.
 

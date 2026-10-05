@@ -34,6 +34,7 @@ import {
 import { getExplainer, type Explanation } from "./explainers.js";
 import type { SnRecord } from "./table.js";
 import { snString } from "./shared.js";
+import { recordDomain } from "./domain-separation.js";
 
 /** Trigger fields used when a descriptor declares no `whenFields`. */
 const DEFAULT_WHEN_FIELDS = [
@@ -226,6 +227,9 @@ function summarize(
   if (scope?.scope ?? scope?.sys_id) {
     parts.push(`scope ${scope.scope ?? scope.sys_id}`);
   }
+  // N-12: a domain-specific record says so (absent without domain separation).
+  const { domain } = recordDomain(record);
+  if (domain) parts.push(`domain ${domain}`);
   if (childCount) {
     parts.push(`${childCount} child record(s) in ${childTables} table(s)`);
   }
@@ -424,6 +428,7 @@ export async function explainArtifactFor(
       decoded,
     ),
     when: Object.keys(when).length ? when : null,
+    ...recordDomain(record),
     fields,
     ...(truncatedFields.length ? { truncatedFields } : {}),
     ...(explanation ? { explanation } : {}),

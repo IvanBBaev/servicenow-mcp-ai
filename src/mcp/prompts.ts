@@ -234,6 +234,7 @@ export function registerPrompts(
   );
 
   registerWhyIsItSlow(gated(server, on, { all: ["ops"] }));
+  registerSecurityPosture(gated(server, on, { all: ["codecheck"] }));
   registerInstanceOverview(gated(server, on, {}));
 }
 
@@ -367,6 +368,73 @@ function registerWhyIsItSlow(server: McpServer): void {
                       `8. If the symptom names a table or form, repeat with that table: ${TOOLS.trace_table_event} and ${TOOLS.lint_table}.`,
                     ]),
                 "9. Report the most likely causes ranked by evidence (instance-wide vs table-specific), the data behind each, what could not be read, and concrete next steps (e.g. stats.do / transaction logs on the node for what these tools cannot see).",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/**
+ * N-19: "security posture" — the S-3 ACL scan and the N-13 hardening table
+ * (both in check_code_health), the instance security document, then (with a
+ * scope) the N-14 cross-scope access of one app. The docs steps need the
+ * docs package; the prompt itself is gated on codecheck only.
+ */
+function registerSecurityPosture(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_security_posture",
+    {
+      title: "Review the security posture of a ServiceNow instance",
+      description:
+        "Guide the assistant through a security review: the ACL scan and hardening compliance (the 'codecheck' " +
+        "package), the instance security document, then the cross-scope access of a named app (the 'docs' package).",
+      argsSchema: {
+        scope: z
+          .string()
+          .max(ARG_MAX)
+          .optional()
+          .describe(
+            "Scoped app to review for cross-scope access, e.g. 'x_acme_app'.",
+          ),
+        profile: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .optional()
+            .describe("Instance profile; omit for the active one."),
+          (value = "") => completeProfile(value),
+        ),
+      },
+    },
+    (args) => {
+      const scope = args.scope ? inlineArg(args.scope) : undefined;
+      const profile = inlineArg(args.profile ?? "current");
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Review the security posture of the ServiceNow instance for profile ${profile}. Use the servicenow_* tools; the documents need the 'docs' package (SN_TOOL_PACKAGES). Base every finding on values read from the instance.`,
+                "",
+                `1. ${TOOLS.check_code_health} with no scope: read "## Security — ACL scan" — open, public, scripted and elevated ACLs, public REST resources and UI pages, tables without an ACL — and "## Security — hardening": the hardening rule table checked against sys_properties (pass / fail by severity / not set).`,
+                "2. For every failed hardening rule, state the property, its value, the expected value and the rationale. A rule that is not set relies on the platform default: flag it only when the default does not meet the rule. An unreadable sys_properties means unknown, not compliant — say so.",
+                `3. ${TOOLS.document_instance} with kinds ['security'] (write false) for the full security document; use it to cross-check step 1 and to list what could not be read (caveats).`,
+                ...(scope
+                  ? [
+                      `4. For ${scope}: ${TOOLS.document_app} with scope ${scope}, detail true and write false. Read "## Cross-scope access": an outbound call with status missing or denied fails at runtime or depends on a runtime grant; requested needs an admin decision; inbound grants show who may call into the app. Detection is static (scope-qualified calls and GlideRecord tables), so dynamic calls are not seen.`,
+                    ]
+                  : [
+                      `4. If a scoped app is in question, repeat with it: ${TOOLS.document_app} with that scope and detail true to read its cross-scope access.`,
+                    ]),
+                "5. Report the findings ranked by severity (high first), the evidence behind each, what could not be read, and concrete remediation steps. Do not change any property, ACL or privilege: this review is read-only.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
             },

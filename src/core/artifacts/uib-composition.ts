@@ -18,6 +18,13 @@
  * that looks like a composition (an array of objects with an `elementId`); any
  * other shape comes back raw with `decoded:false`. All shapes are unverified
  * until gate O-5 (a PDI) confirms them.
+ *
+ * N-26 adds opt-in depth on top of the same walk: element props / config /
+ * overrides with their binding expressions (`compositionTree(v, {props:
+ * true})`), and structured event handlers (`eventMappings`). The prop and
+ * handler shapes (`propertyValues`, `{type: "STATE_BINDING", binding:
+ * {address}}`, `{type, definition, targetId, operationName, parameters}`) are
+ * modelled on UI Builder exports and are verified:false until O-5.
  */
 
 /** Elements walked per composition (the rest are counted, not listed). */
@@ -34,6 +41,39 @@ const isObj = (v: unknown): v is Obj =>
 const text = (v: unknown): string | undefined =>
   typeof v === "string" && v ? v : undefined;
 
+/** Props read per element (the rest are counted in `propsOmitted`). */
+export const ELEMENT_MAX_PROPS = 50;
+
+/** Characters of a literal prop value kept (longer values are cut). */
+const LITERAL_MAX = 200;
+
+/**
+ * How a prop gets its value (N-26, UX-02): bound to a data resource output
+ * (`@data.*`), client state (`@state.*`), page context (`@context.*`) or an
+ * event payload (`@payload.*`); a literal; a client transform script; or an
+ * `expression` that mixes literals with one or more bindings.
+ */
+export type UibBindingKind =
+  | "data"
+  | "state"
+  | "context"
+  | "payload"
+  | "literal"
+  | "script"
+  | "expression";
+
+/** One prop of an element (N-26). verified:false until O-5. */
+export interface UibProp {
+  name: string;
+  /** Where the prop sits: `propertyValues` / `props`, `config` or `overrides`. */
+  source: "props" | "config" | "overrides";
+  kind: UibBindingKind;
+  /** Binding expressions, normalised to `@data.a.b` / `@state.x` / … */
+  bindings?: string[];
+  /** A literal value (cut to 200 characters when long). */
+  value?: unknown;
+}
+
 /** One element of the component tree. */
 export interface UibElement {
   elementId: string;
@@ -43,7 +83,148 @@ export interface UibElement {
   type?: string;
   label?: string;
   hidden?: true;
+  /** N-26: props, config and overrides (only with `{props: true}`). */
+  props?: UibProp[];
+  /** N-26: props past ELEMENT_MAX_PROPS. */
+  propsOmitted?: number;
   slots: { name: string; elements: UibElement[] }[];
+}
+
+/** Options of {@link compositionTree}. */
+export interface CompositionOptions {
+  /** N-26: keep element props, config, overrides and bindings. */
+  props?: boolean;
+}
+
+const BINDING_KINDS = ["data", "state", "context", "payload"] as const;
+
+const EXPRESSION =
+  /@(data|state|context|payload)\.([A-Za-z0-9_$-]+(?:\.[A-Za-z0-9_$-]+|\[[^\]]{0,40}\])*)/g;
+
+/** The binding kind a typed value object names (`STATE_BINDING`, …). */
+function typedKind(type: string): UibBindingKind | undefined {
+  const t = type.toUpperCase();
+  if (/DATA(_OUTPUT)?_BINDING|^DATA_?BROKER/.test(t)) return "data";
+  if (/STATE_BINDING|CLIENT_STATE/.test(t)) return "state";
+  if (/CONTEXT_BINDING/.test(t)) return "context";
+  if (/PAYLOAD_BINDING|EVENT_PAYLOAD/.test(t)) return "payload";
+  if (/SCRIPT|TRANSFORM/.test(t)) return "script";
+  if (/LITERAL/.test(t)) return "literal";
+  return undefined;
+}
+
+/** `@kind.a.b` from a binding `address` (array or dotted string). */
+function addressExpr(kind: string, binding: unknown): string | undefined {
+  const b = isObj(binding) ? (binding.address ?? binding.path) : binding;
+  const parts = Array.isArray(b)
+    ? b.filter((p) => typeof p === "string" || typeof p === "number")
+    : typeof b === "string" && b
+      ? [b.replace(/^@\w+\./, "")]
+      : [];
+  return parts.length ? `@${kind}.${parts.join(".")}` : undefined;
+}
+
+/** Binding expressions anywhere inside a value, bounded. */
+function bindingsIn(v: unknown, out: Set<string>, depth = 0): void {
+  if (depth > 6 || out.size >= 20) return;
+  if (typeof v === "string") {
+    for (const m of v.matchAll(EXPRESSION)) out.add(`@${m[1]}.${m[2]}`);
+  } else if (Array.isArray(v)) {
+    for (const x of v) bindingsIn(x, out, depth + 1);
+  } else if (isObj(v)) {
+    const kind = text(v.type) ? typedKind(v.type as string) : undefined;
+    if (kind && (BINDING_KINDS as readonly string[]).includes(kind)) {
+      const expr = addressExpr(kind, v.binding ?? v.value);
+      if (expr) out.add(expr);
+      return;
+    }
+    for (const x of Object.values(v)) bindingsIn(x, out, depth + 1);
+  }
+}
+
+function literal(v: unknown): unknown {
+  if (v === null || typeof v === "number" || typeof v === "boolean") return v;
+  const s = typeof v === "string" ? v : JSON.stringify(v);
+  if (s === undefined) return undefined;
+  if (s.length <= LITERAL_MAX) return v;
+  return `${s.slice(0, LITERAL_MAX - 3)}...`;
+}
+
+/** Classify one prop value (N-26). Never throws. */
+export function classifyProp(v: unknown): Omit<UibProp, "name" | "source"> {
+  if (typeof v === "string") {
+    const whole = /^\s*@(data|state|context|payload)\.[^\s]+\s*$/.exec(v);
+    const found = new Set<string>();
+    bindingsIn(v, found);
+    if (whole && found.size === 1) {
+      return { kind: whole[1] as UibBindingKind, bindings: [...found] };
+    }
+    if (found.size) return { kind: "expression", bindings: [...found] };
+    return { kind: "literal", value: literal(v) };
+  }
+  if (isObj(v) && text(v.type)) {
+    const kind = typedKind(v.type as string);
+    if (kind && (BINDING_KINDS as readonly string[]).includes(kind)) {
+      const expr = addressExpr(kind, v.binding ?? v.value);
+      return { kind, ...(expr ? { bindings: [expr] } : {}) };
+    }
+    if (kind === "script") return { kind };
+    if (kind === "literal") {
+      const inner = classifyProp(v.value);
+      return inner.kind === "literal"
+        ? {
+            kind,
+            ...(v.value !== undefined ? { value: literal(v.value) } : {}),
+          }
+        : inner;
+    }
+  }
+  const found = new Set<string>();
+  bindingsIn(v, found);
+  if (found.size) return { kind: "expression", bindings: [...found] };
+  const value = literal(v);
+  return { kind: "literal", ...(value !== undefined ? { value } : {}) };
+}
+
+/** The props of one element: `propertyValues` / `props`, `config`, `overrides`. */
+function propsOf(item: Obj): { props: UibProp[]; omitted: number } {
+  const all: UibProp[] = [];
+  const add = (source: UibProp["source"], name: string, v: unknown): void => {
+    all.push({ name, source, ...classifyProp(v) });
+  };
+  const bag = isObj(item.propertyValues)
+    ? item.propertyValues
+    : isObj(item.props)
+      ? item.props
+      : undefined;
+  if (bag) for (const [k, v] of Object.entries(bag)) add("props", k, v);
+  if (isObj(item.config)) {
+    for (const [k, v] of Object.entries(item.config)) add("config", k, v);
+  }
+  if (isObj(item.overrides)) {
+    for (const [k, v] of Object.entries(item.overrides)) {
+      const inner = isObj(v)
+        ? isObj(v.propertyValues)
+          ? v.propertyValues
+          : isObj(v.props)
+            ? v.props
+            : undefined
+        : undefined;
+      if (inner) {
+        for (const [p, pv] of Object.entries(inner)) {
+          add("overrides", `${k}.${p}`, pv);
+        }
+      } else add("overrides", k, v);
+    }
+  }
+  // A bound visibility answers "why is this element hidden?".
+  if (item.isHidden !== undefined && typeof item.isHidden !== "boolean") {
+    add("props", "isHidden", item.isHidden);
+  }
+  return {
+    props: all.slice(0, ELEMENT_MAX_PROPS),
+    omitted: Math.max(0, all.length - ELEMENT_MAX_PROPS),
+  };
 }
 
 export interface CompositionTree {
@@ -107,7 +288,10 @@ function countAll(items: unknown[], depth = 0): number {
  * The component tree of a decoded `composition`, bounded by
  * COMPOSITION_MAX_ELEMENTS and COMPOSITION_MAX_DEPTH.
  */
-export function compositionTree(value: unknown): CompositionTree {
+export function compositionTree(
+  value: unknown,
+  opts: CompositionOptions = {},
+): CompositionTree {
   const tree: CompositionTree = {
     elements: [],
     count: 0,
@@ -137,6 +321,11 @@ export function compositionTree(value: unknown): CompositionTree {
         ...(item.isHidden === true ? { hidden: true as const } : {}),
         slots: [],
       };
+      if (opts.props) {
+        const { props, omitted } = propsOf(item);
+        if (props.length) el.props = props;
+        if (omitted) el.propsOmitted = omitted;
+      }
       for (const [name, sub] of slotsOf(item)) {
         if (depth + 1 >= COMPOSITION_MAX_DEPTH) {
           tree.omitted += countAll(sub);
@@ -247,14 +436,17 @@ function handlersOf(v: unknown): string[] {
 }
 
 /**
- * The event wiring of a decoded `internal_event_mappings`; `null` when the
- * shape is unknown. Accepts `{source: [handlers]}`, `{source: {event:
+ * Walk a decoded `internal_event_mappings` with a handler reader; `null` when
+ * the shape is unknown. Accepts `{source: [handlers]}`, `{source: {event:
  * [handlers]}}` and `[{sourceElementId|elementId, event|eventName,
  * handlers|targets}]`.
  */
-export function eventWiring(value: unknown): UibEventWiring[] | null {
+function walkMappings<H>(
+  value: unknown,
+  read: (v: unknown) => H[],
+): { source: string; event?: string; handlers: H[] }[] | null {
   if (value === null || value === undefined) return [];
-  const out: UibEventWiring[] = [];
+  const out: { source: string; event?: string; handlers: H[] }[] = [];
   if (Array.isArray(value)) {
     for (const item of value) {
       if (!isObj(item)) continue;
@@ -265,21 +457,118 @@ export function eventWiring(value: unknown): UibEventWiring[] | null {
       out.push({
         source,
         ...(event ? { event } : {}),
-        handlers: handlersOf(item.handlers ?? item.targets),
+        handlers: read(item.handlers ?? item.targets),
       });
     }
   } else if (isObj(value)) {
     for (const [source, v] of Object.entries(value)) {
       if (isObj(v) && !("definition" in v)) {
         for (const [event, handlers] of Object.entries(v)) {
-          out.push({ source, event, handlers: handlersOf(handlers) });
+          out.push({ source, event, handlers: read(handlers) });
         }
       } else {
-        out.push({ source, handlers: handlersOf(v) });
+        out.push({ source, handlers: read(v) });
       }
     }
   } else {
     return null;
   }
   return out.slice(0, COMPOSITION_MAX_ELEMENTS);
+}
+
+/**
+ * The event wiring of a decoded `internal_event_mappings`; `null` when the
+ * shape is unknown. Accepts `{source: [handlers]}`, `{source: {event:
+ * [handlers]}}` and `[{sourceElementId|elementId, event|eventName,
+ * handlers|targets}]`.
+ */
+export function eventWiring(value: unknown): UibEventWiring[] | null {
+  return walkMappings(value, handlersOf);
+}
+
+/**
+ * One event handler with the fields that say what it targets (N-26, UX-03).
+ * verified:false until O-5: the field names are modelled on UI Builder
+ * exports (`definition`, `type`, `targetId`, `operationName`, `parameters`).
+ */
+export interface UibEventHandler {
+  /** The short name {@link eventWiring} reports. */
+  name?: string;
+  /** `type` (or `definition.type`), e.g. CLIENT_SCRIPT, DATABROKER_OP. */
+  type?: string;
+  /** `definition.id` — a client script / event sys_id or a built-in id. */
+  definitionId?: string;
+  /** The element or data resource the handler acts on. */
+  targetId?: string;
+  /** A data resource operation (`operationName`). */
+  operation?: string;
+  /** A client state property the handler sets. */
+  property?: string;
+  /** Parameter names passed to the handler. */
+  params?: string[];
+}
+
+/** One wired event with structured handlers (N-26). */
+export interface UibEventMapping {
+  source: string;
+  event?: string;
+  handlers: UibEventHandler[];
+}
+
+function structuredHandler(h: unknown): UibEventHandler | undefined {
+  if (typeof h === "string") return h ? { name: h } : undefined;
+  if (!isObj(h)) return undefined;
+  const def = isObj(h.definition) ? h.definition : {};
+  const params = isObj(h.parameters)
+    ? h.parameters
+    : isObj(h.params)
+      ? h.params
+      : undefined;
+  const param = (k: string): string | undefined => {
+    const v = params?.[k];
+    if (typeof v === "string") return v || undefined;
+    if (isObj(v)) return text(v.value);
+    return undefined;
+  };
+  const name = handlerName(h);
+  const type = text(h.type) ?? text(def.type);
+  const definitionId = text(def.id);
+  const targetId =
+    text(h.targetId) ??
+    text(h.target) ??
+    text(h.elementId) ??
+    text(h.dataResourceId);
+  const operation =
+    text(h.operationName) ?? text(h.operation) ?? param("operationName");
+  const property =
+    text(h.propName) ??
+    text(h.stateName) ??
+    text(h.statePropertyName) ??
+    param("propName") ??
+    param("name");
+  const out: UibEventHandler = {
+    ...(name ? { name } : {}),
+    ...(type ? { type } : {}),
+    ...(definitionId ? { definitionId } : {}),
+    ...(targetId ? { targetId } : {}),
+    ...(operation ? { operation } : {}),
+    ...(property ? { property } : {}),
+    ...(params && Object.keys(params).length
+      ? { params: Object.keys(params).slice(0, 20) }
+      : {}),
+  };
+  return Object.keys(out).length ? out : undefined;
+}
+
+function structuredHandlersOf(v: unknown): UibEventHandler[] {
+  const list = Array.isArray(v) ? v : v === undefined ? [] : [v];
+  return list.map(structuredHandler).filter((h): h is UibEventHandler => !!h);
+}
+
+/**
+ * The event wiring of a decoded `internal_event_mappings` with structured
+ * handlers (N-26); same shapes and bounds as {@link eventWiring}.
+ */
+export function eventMappings(value: unknown): UibEventMapping[] | null {
+  return walkMappings(value, structuredHandlersOf);
 }

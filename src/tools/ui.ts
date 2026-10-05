@@ -7,6 +7,8 @@ import {
 } from "../api/portal.js";
 import {
   explainUiExperience,
+  UI_EXPERIENCE_DETAILS,
+  uiExperienceEventMermaid,
   uiExperienceMarkdown,
   uiExperienceMermaid,
 } from "../api/ui-experience.js";
@@ -141,7 +143,15 @@ export const specs: AnyToolSpec[] = [
       format: args.format,
     }),
     handler: async ({ sys_id, path, format }) => {
-      const result = await explainUiExperience({ sys_id, path });
+      // N-26: the file format carries the full depth (element props and
+      // bindings, event chains, component resolution, script bodies) — it
+      // lands in exports/, not in the context. A `detail` input waits for the
+      // tools/list budget (O-10).
+      const result = await explainUiExperience({
+        sys_id,
+        path,
+        ...(format === "file" ? { detail: UI_EXPERIENCE_DETAILS } : {}),
+      });
       const name = `ui-experience-${path ?? sys_id}`;
       if (format === "json" || format === undefined) {
         return deliverJson(result, name, "json");
@@ -164,7 +174,17 @@ export const specs: AnyToolSpec[] = [
           markdown: uiExperienceMarkdown(result, mermaid),
         });
       }
-      return deliverJson({ ...result, ...signal, mermaid }, name, "file");
+      const events = uiExperienceEventMermaid(result);
+      return deliverJson(
+        {
+          ...result,
+          ...signal,
+          mermaid,
+          ...(events.mermaid ? { eventMermaid: events.mermaid } : {}),
+        },
+        name,
+        "file",
+      );
     },
   }),
 ];

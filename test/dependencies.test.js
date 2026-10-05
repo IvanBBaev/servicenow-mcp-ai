@@ -605,3 +605,145 @@ test("N-8: an absent pa_indicators table answers an empty graph, not an error", 
   assert.equal(res.degraded.status, 400);
   assert.equal(res.available, false);
 });
+
+// -- N-28: UI Builder composition, data brokers, client script imports --------
+
+const MP_PAGE = id("4");
+const MP_CARD = id("5");
+const BROKER = id("6");
+const CS = id("7");
+const INCLUDE = id("8");
+
+function uibFixture() {
+  return {
+    sys_ux_macroponent: [
+      {
+        sys_id: MP_PAGE,
+        name: "Home page",
+        sys_scope: "global",
+        composition: JSON.stringify([
+          {
+            elementId: "card_1",
+            definition: { id: MP_CARD, type: "MACROPONENT" },
+          },
+          {
+            elementId: "btn",
+            definition: { id: "now-button", type: "COMPONENT" },
+          },
+        ]),
+        data: JSON.stringify([
+          {
+            elementId: "lookup",
+            definition: { id: BROKER, type: "TRANSFORM" },
+          },
+        ]),
+      },
+      {
+        sys_id: MP_CARD,
+        name: "Card",
+        sys_scope: "global",
+        composition: "[]",
+        data: "[]",
+      },
+    ],
+    sys_ux_data_broker_transform: [
+      { sys_id: BROKER, name: "Lookup", sys_scope: "global", script: "" },
+    ],
+    sys_ux_client_script: [
+      {
+        sys_id: CS,
+        name: "On load",
+        macroponent: MP_PAGE,
+        sys_scope: "global",
+        script:
+          "function handler({ imports }) { imports['global.PageUtil'](); }",
+      },
+    ],
+    sys_ux_client_script_include: [
+      {
+        sys_id: INCLUDE,
+        name: "PageUtil",
+        sys_scope: "global",
+        script: "function include() {}",
+      },
+    ],
+  };
+}
+
+test("N-28: a macroponent depends on its composed components and data brokers", async () => {
+  const res = await deps(
+    { artifactType: "uib_macroponent", sys_id: MP_PAGE, direction: "outbound" },
+    instance(uibFixture()),
+  );
+  const edges = edgeSet(res);
+  assert.ok(
+    edges.includes(
+      `sys_ux_macroponent:${MP_PAGE} -> sys_ux_macroponent:${MP_CARD} [composition:composition]`,
+    ),
+    edges.join("\n"),
+  );
+  assert.ok(
+    edges.includes(
+      `sys_ux_macroponent:${MP_PAGE} -> sys_ux_data_broker_transform:${BROKER} [data_broker:data]`,
+    ),
+    edges.join("\n"),
+  );
+  // A built-in component tag is not an edge.
+  assert.ok(!edges.some((e) => e.includes("now-button")));
+  // The client script child row's import becomes an edge to the include.
+  assert.ok(
+    edges.some(
+      (e) =>
+        e.includes("sys_ux_client_script_include:PageUtil") &&
+        e.includes("[script:script]"),
+    ),
+    edges.join("\n"),
+  );
+});
+
+test("N-28: a client script include is used by the page whose client script imports it", async () => {
+  const res = await deps(
+    {
+      artifactType: "uib_client_script_include",
+      sys_id: INCLUDE,
+      direction: "inbound",
+    },
+    instance(uibFixture()),
+  );
+  const edge = res.edges.find(
+    (e) => e.via === "script" && e.source === "sys_ux_client_script",
+  );
+  assert.ok(edge, JSON.stringify(res.edges));
+  assert.equal(edge.from, `sys_ux_macroponent:${MP_PAGE}`);
+});
+
+test("N-28: a data broker and a nested component are used by the page that composes them", async () => {
+  const broker = await deps(
+    {
+      artifactType: "uib_data_broker_transform",
+      sys_id: BROKER,
+      direction: "inbound",
+    },
+    instance(uibFixture()),
+  );
+  assert.ok(
+    broker.edges.some(
+      (e) =>
+        e.from === `sys_ux_macroponent:${MP_PAGE}` && e.via === "data_broker",
+    ),
+    JSON.stringify(broker.edges),
+  );
+  const card = await deps(
+    { artifactType: "uib_macroponent", sys_id: MP_CARD, direction: "inbound" },
+    instance(uibFixture()),
+  );
+  assert.ok(
+    card.edges.some(
+      (e) =>
+        e.from === `sys_ux_macroponent:${MP_PAGE}` && e.via === "composition",
+    ),
+    JSON.stringify(card.edges),
+  );
+  // The page does not count as using itself.
+  assert.ok(!card.edges.some((e) => e.from === e.to));
+});

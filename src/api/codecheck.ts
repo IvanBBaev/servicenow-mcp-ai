@@ -15,6 +15,17 @@ import { activeProfile } from "../core/config.js";
 import { ServiceNowError } from "../core/errors.js";
 import { securityScan, type SecurityScan } from "./security.js";
 import {
+  readInstanceScan,
+  renderInstanceScan,
+  type InstanceScanReport,
+} from "./instance-scan.js";
+import {
+  checkHardening,
+  renderHardening,
+  type HardeningReport,
+  type HardeningResult,
+} from "./hardening.js";
+import {
   calleeOf,
   ecmaModeForScope,
   lineOf,
@@ -23,6 +34,13 @@ import {
   type AstNode,
   type EcmaMode,
 } from "./script-ast.js";
+import {
+  lintUibClientScript,
+  uibFindingsAsGeneric,
+  uibLintContextFromMacroponent,
+  UIB_CLIENT_SCRIPT_TYPES,
+  type UibLintContext,
+} from "./uib-script-lint.js";
 import {
   applyBaseline,
   deltaMarkdown,
@@ -717,19 +735,60 @@ export interface ScriptLint {
   parseError?: string;
 }
 
-/** S-12: one script field linted with the record's ES level. */
+/**
+ * S-12: one script field linted with the record's ES level. N-32: a UI
+ * Builder client script (`uib`) also gets the UIB rules (./uib-script-lint.ts),
+ * checked against its macroponent's contract when one is given.
+ */
 function lintField(
   src: string,
   scope: Scope,
   ecma: EcmaMode,
+  uib?: UibLintContext,
 ): Pick<ScriptLint, "findings" | "engine" | "ecma" | "parseError"> {
   const r = lintSourceDetailed(src, scope, { ecma });
+  const findings = uib
+    ? sortFindings([
+        ...r.findings,
+        ...uibFindingsAsGeneric(
+          lintUibClientScript(src, uib).findings,
+          r.findings,
+        ),
+      ])
+    : r.findings;
   return {
-    findings: r.findings,
+    findings,
     engine: r.engine,
     ...(r.ecma ? { ecma: r.ecma } : {}),
     ...(r.parseError ? { parseError: r.parseError } : {}),
   };
+}
+
+const SYS_ID_RE = /^[0-9a-f]{32}$/;
+
+/**
+ * N-32: the UIB lint context of a client script — its macroponent's declared
+ * state, events and data resources. Empty (the contract rules stay silent)
+ * when the script has no macroponent or the row cannot be read.
+ */
+async function uibContextFor(
+  record: Record<string, unknown>,
+): Promise<UibLintContext> {
+  const id = snString(record.macroponent);
+  if (!SYS_ID_RE.test(id)) return {};
+  try {
+    const res = await queryTable({
+      table: "sys_ux_macroponent",
+      query: `sys_id=${id}`,
+      fields: ["sys_id", "state_properties", "dispatched_events", "data"],
+      limit: 1,
+      displayValue: "false",
+    });
+    const row = res.records[0];
+    return row ? uibLintContextFromMacroponent(row) : {};
+  } catch {
+    return {};
+  }
 }
 
 /** FT-5 — lint one script artefact (all its source fields). */
@@ -750,6 +809,10 @@ export async function lintScript(
   const name = snString(record[descriptor.nameField]);
   // S-12: a global-scope script runs as ES5, a scoped one as ES2021.
   const ecma = ecmaModeForScope(snString(record[scopeField]));
+  // N-32: UIB client scripts get the UIB rules against their macroponent.
+  const uib = UIB_CLIENT_SCRIPT_TYPES.has(type)
+    ? await uibContextFor(record)
+    : undefined;
   const results: ScriptLint[] = [];
   for (const field of descriptor.scriptFields) {
     // Markup (HTML, Jelly XML, CSS, REST endpoint templates) is searchable but
@@ -762,7 +825,7 @@ export async function lintScript(
       sys_id: sysId,
       name,
       field,
-      ...lintField(src, scopeForField(clientFields, field), ecma),
+      ...lintField(src, scopeForField(clientFields, field), ecma, uib),
     });
   }
   return { type, sys_id: sysId, results };
@@ -948,7 +1011,15 @@ export async function lintArtifacts(
           sys_id: sysId,
           name,
           field,
-          ...lintField(src, scopeForField(artifact.clientFields, field), ecma),
+          // N-32: the sweep runs the UIB rules without the macroponent
+          // contract (no extra read per record), so the declared-state /
+          // event / data rules stay silent here.
+          ...lintField(
+            src,
+            scopeForField(artifact.clientFields, field),
+            ecma,
+            UIB_CLIENT_SCRIPT_TYPES.has(type) ? {} : undefined,
+          ),
         };
         opts.onLint?.(lint);
         for (const f of lint.findings) {
@@ -991,6 +1062,12 @@ export interface CodeHealth {
   /** P-19: flow / portal / UI Builder / legacy-workflow rules (`domains`). */
   domains?: DomainAnalysis;
   security?: SecurityScan;
+  /** N-3: the platform's latest Instance Scan result, with the records our lint also flags. */
+  instanceScan?: InstanceScanReport;
+  /** N-13: hardening compliance — the counts plus the failing rules only (the report holds every rule). */
+  hardening?: Omit<HardeningReport, "results"> & {
+    failing: HardeningResult[];
+  };
   /** S-12: new / fixed findings against `<profile>/code-health.baseline.json`. */
   delta?: CodeHealthDelta;
   warnings: string[];
@@ -1145,6 +1222,10 @@ export async function codeHealth(
     }
   }
 
+  // N-13: hardening compliance from the rule table (one sys_properties read).
+  const hardening = await checkHardening();
+  md.push("## Security — hardening", "", ...renderHardening(hardening));
+
   let artifacts: ArtifactLint | undefined;
   const artifactPrints: string[] = [];
   if (opts.extended) {
@@ -1237,6 +1318,15 @@ export async function codeHealth(
     for (const w of domains.warnings) warnings.push(`domain analysers: ${w}`);
   }
 
+  // N-3: the platform's Instance Scan findings next to ours (read-only).
+  const linted = new Set(
+    [...(lint?.results ?? []), ...(artifacts?.results ?? [])]
+      .filter((r) => r.findings.length > 0)
+      .map((r) => r.sys_id),
+  );
+  const instanceScan = await readInstanceScan(linted);
+  md.push("## Instance Scan", "", ...renderInstanceScan(instanceScan));
+
   // S-12: new / fixed findings since the stored baseline.
   const sections: Partial<Record<BaselineSection, SectionFacts>> = {};
   if (lint) {
@@ -1291,6 +1381,8 @@ export async function codeHealth(
         scriptCounts,
         lint,
         security,
+        hardening,
+        instanceScan,
         ...(artifacts ? { artifacts } : {}),
         ...(domains ? { domains } : {}),
         // The report renders the delta, so a moved delta is a new report.
@@ -1314,6 +1406,21 @@ export async function codeHealth(
     ...(artifacts ? { artifacts } : {}),
     ...(domains ? { domains } : {}),
     security,
+    hardening: {
+      rulesVersion: hardening.rulesVersion,
+      available: hardening.available,
+      ...(hardening.unavailableReason
+        ? { unavailableReason: hardening.unavailableReason }
+        : {}),
+      counts: hardening.counts,
+      failed: hardening.failed,
+      failing: hardening.results.filter(
+        (r) =>
+          r.status === "fail" ||
+          (r.status === "not_set" && r.defaultPasses === false),
+      ),
+    },
+    instanceScan,
     ...(delta ? { delta } : {}),
     warnings,
   };

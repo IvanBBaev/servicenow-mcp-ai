@@ -107,7 +107,7 @@ files. The layered model is described in
 [ARCHITECTURE.md § 4 Security model](project/ARCHITECTURE.md#4-security-model-two-axes--network-guards);
 the audit behind the current hardening — findings, verified-good controls and
 open items — is in
-[DEEP-REVIEW-2026-09.md § 3](project/DEEP-REVIEW-2026-09.md#3-security--write-safety-audit).
+[DEEP-REVIEW-2026-09.md § 3](project/archive/DEEP-REVIEW-2026-09.md#3-security--write-safety-audit).
 
 ## Security rails at a glance
 

@@ -7,6 +7,7 @@ import { clearPluginAvailability } from "./plugin.js";
 import {
   clearCapabilityCache,
   probeCapabilityMatrix,
+  probeDomainSeparation,
   MATRIX_GROUPS,
   type MatrixEntry,
   type MatrixGroup,
@@ -117,6 +118,12 @@ export interface CapabilityReport {
   matrix: Partial<Record<MatrixGroup, MatrixEntry>>;
   /** P-3: scopes the local sources declare SDK-managed (additive). */
   sdkManaged: SdkManagedStatus;
+  /**
+   * N-12: whether domain separation is active and the user's domain
+   * (`detail.active`, `detail.domain`). Probed on a full run only — absent
+   * when `groups` narrowed the matrix.
+   */
+  domainSeparation?: MatrixEntry;
 }
 
 export interface CheckCapabilitiesOptions {
@@ -189,9 +196,10 @@ export async function checkCapabilities(
     clearPluginAvailability();
   }
   // The matrix never throws; a table-probe transport error still does.
-  const [probed, matrix] = await Promise.all([
+  const [probed, matrix, domainSeparation] = await Promise.all([
     Promise.all(tables.map(probeTable)),
     probeCapabilityMatrix(opts.groups ?? MATRIX_GROUPS),
+    opts.groups ? undefined : probeDomainSeparation(),
   ]);
   const readable = new Set(
     probed.filter((p) => p.readable).map((p) => p.table),
@@ -226,5 +234,6 @@ export async function checkCapabilities(
     summary,
     matrix,
     sdkManaged: sdkManagedStatus(),
+    ...(domainSeparation ? { domainSeparation } : {}),
   };
 }

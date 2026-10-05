@@ -17,6 +17,7 @@ import {
 } from "./artifacts.js";
 import { MermaidDoc, label, type Arrow, type Shape } from "./mermaid.js";
 import {
+  REFERENCE_SOURCES,
   ajaxScriptNames,
   findStructuralReferences,
   parseRefTarget,
@@ -24,6 +25,13 @@ import {
   scriptTables,
 } from "./references.js";
 import { searchCode } from "./scripts.js";
+import {
+  BROKER_TABLE_NAMES,
+  brokerTable,
+  isSysId,
+  macroponentUses,
+  uibImports,
+} from "./uib-usage.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 
@@ -43,6 +51,15 @@ import { queryTable, type SnRecord } from "./table.js";
  * script include — a script-text search (`searchCode`), a `valuesLIKE` read of
  * the flow step tables re-checked after decoding, and the S-9 structural pass
  * ({@link findStructuralReferences}); for a table, the structural pass.
+ *
+ * N-28 (UX-07, UX-08): a UI Builder macroponent's composition component ids
+ * and data-resource broker ids are outbound edges (`composition`,
+ * `data_broker`), and a UIB client script's `imports['…']` names a client
+ * script include. Inbound, a macroponent, component, data broker or client
+ * script include is used by the macroponents whose composition / data names
+ * it, or whose client scripts import it (bounded LIKE reads, re-checked after
+ * decoding). Walk two levels to reach the screens and routes (pages) that
+ * render those macroponents.
  *
  * The walk is breadth-first per direction with a depth cap, a visited set per
  * direction (the cycle guard) and a node cap. Every source read degrades on
@@ -103,7 +120,11 @@ export type EdgeVia =
   | "json"
   | "script"
   | "flow_step"
-  | "structural";
+  | "structural"
+  /** N-28: a UIB composition element renders the macroponent. */
+  | "composition"
+  /** N-28: a UIB data resource calls the data broker. */
+  | "data_broker";
 
 export interface DependencyNode {
   /** Stable id: `script:<name>`, `table:<name>` or `<table>:<sys_id>`. */
@@ -235,6 +256,10 @@ function canonical(spec: NodeSpec): NodeSpec & { id: string } {
   }
   if (spec.kind === "script") return { ...spec, id: `script:${spec.name}` };
   if (spec.kind === "table") return { ...spec, id: `table:${spec.name}` };
+  // N-28: a record known by name only (a UIB client script include import).
+  if (!spec.sys_id && spec.name) {
+    return { ...spec, id: `${spec.table}:${spec.name}` };
+  }
   return { ...spec, id: `${spec.table}:${spec.sys_id}` };
 }
 
@@ -325,6 +350,7 @@ function rowEdges(
   row: SnRecord,
   self: string | undefined,
   source?: string,
+  table?: string,
 ): FoundEdge[] {
   const out: FoundEdge[] = [];
   const tag = source ? { source } : {};
@@ -349,7 +375,23 @@ function rowEdges(
     for (const other of scriptTargets(snString(row[field]), self)) {
       out.push({ other, via: "script", field, ...tag });
     }
+    if (table === UIB_CLIENT_SCRIPT) {
+      for (const name of uibImports(snString(row[field]))) {
+        out.push({
+          other: {
+            kind: "record",
+            table: UIB_INCLUDE,
+            type: "uib_client_script_include",
+            name,
+          },
+          via: "script",
+          field,
+          ...tag,
+        });
+      }
+    }
   }
+  if (table === UIB_MACROPONENT) out.push(...uibEdges(row, tag));
   for (const jf of shape.jsonFields ?? []) {
     const raw = snString(row[jf.field]);
     if (!raw) continue;
@@ -358,6 +400,51 @@ function rowEdges(
     for (const other of jsonTargets(decoded.value, self)) {
       out.push({ other, via: "json", field: jf.field, ...tag });
     }
+  }
+  return out;
+}
+
+const UIB_MACROPONENT = "sys_ux_macroponent";
+const UIB_CLIENT_SCRIPT = "sys_ux_client_script";
+const UIB_INCLUDE = "sys_ux_client_script_include";
+
+/**
+ * N-28 — the composition component ids and data-resource broker ids of one
+ * sys_ux_macroponent row as edges (pure). Ids that are not sys_ids (tags,
+ * built-in brokers) are not edges.
+ */
+function uibEdges(row: SnRecord, tag: { source?: string }): FoundEdge[] {
+  const out: FoundEdge[] = [];
+  const self = snString(row.sys_id);
+  const uses = macroponentUses(row);
+  for (const c of uses.components) {
+    if (!isSysId(c.id) || c.id === self) continue;
+    out.push({
+      other: {
+        kind: "record",
+        table: UIB_MACROPONENT,
+        type: "uib_macroponent",
+        sys_id: c.id,
+      },
+      via: "composition",
+      field: "composition",
+      ...tag,
+    });
+  }
+  for (const b of uses.brokers) {
+    if (!isSysId(b.id)) continue;
+    const { table, type } = brokerTable(b.type);
+    out.push({
+      other: {
+        kind: "record",
+        table,
+        sys_id: b.id,
+        ...(type ? { type } : {}),
+      },
+      via: "data_broker",
+      field: "data",
+      ...tag,
+    });
   }
   return out;
 }
@@ -371,7 +458,7 @@ export function outboundEdges(
   if (!record) return [];
   const self =
     t.table === "sys_script_include" ? snString(record.name) : undefined;
-  const out = rowEdges(t, record, self);
+  const out = rowEdges(t, record, self, undefined, t.table);
   if (t.appliesToField) {
     const applies = snString(record[t.appliesToField]);
     if (TABLE_NAME.test(applies)) {
@@ -388,7 +475,7 @@ export function outboundEdges(
     );
     if (!desc) continue;
     for (const row of entry.records ?? []) {
-      out.push(...rowEdges(desc, row, self, entry.table));
+      out.push(...rowEdges(desc, row, self, entry.table, entry.table));
     }
   }
   return out;
@@ -481,9 +568,27 @@ async function loadNode(
       return { t, artifact: await getArtifactFor(t, { sys_id: sysId }) };
     }
     // Tables are leaves: their children are dictionary rows, not dependencies.
-    if (node.kind !== "record" || !node.type || !node.sys_id) return undefined;
+    if (node.kind !== "record" || !node.type) return undefined;
     const t = getArtifactType(node.type);
     if (!t) return undefined;
+    if (!node.sys_id) {
+      // N-28: a record known by name only (a UIB client script include).
+      if (!node.name || !t.nameField) return undefined;
+      assertNoCaret(node.name, "name");
+      const res = await queryTable({
+        table: t.table,
+        query: `${t.nameField}=${node.name}`,
+        fields: ["sys_id"],
+        displayValue: "false",
+        limit: 1,
+      });
+      const sysId = snString(res.records[0]?.sys_id);
+      if (!sysId) {
+        node.missing = true;
+        return undefined;
+      }
+      node.sys_id = sysId;
+    }
     const artifact = await getArtifactFor(t, { sys_id: node.sys_id });
     if (artifact.record) node.name = snString(artifact.name) || node.name;
     return { t, artifact };
@@ -643,6 +748,11 @@ async function scriptUsers(
   return out;
 }
 
+/** The S-9 sources minus the N-28 UIB ones (see {@link uibUsers}). */
+const NON_UIB_SOURCES = REFERENCE_SOURCES.filter(
+  (s) => !s.kind.startsWith("uib_"),
+);
+
 /** S-9 structural references to a script or table (inbound). */
 async function structuralUsers(
   node: DependencyNode,
@@ -653,9 +763,8 @@ async function structuralUsers(
   try {
     const res = await findStructuralReferences(
       parseRefTarget(kind, node.name),
-      {
-        limit,
-      },
+      // UIB sources run in uibUsers, against the UIB record itself.
+      { limit, sources: NON_UIB_SOURCES },
     );
     for (const [id, status] of Object.entries(res.sources)) {
       if (!status.available) {
@@ -683,6 +792,125 @@ async function structuralUsers(
   }
 }
 
+/** Tables whose records UIB macroponents use (N-28 inbound). */
+const UIB_USED_TABLES = new Set([
+  UIB_MACROPONENT,
+  "sys_ux_lib_component",
+  ...BROKER_TABLE_NAMES,
+]);
+
+const UIB_CAVEAT =
+  "UI Builder users are read with a LIKE query on the macroponent composition / data and client script text, re-checked after decoding; a component is matched by the id its composition elements carry (assumed to be a sys_ux_macroponent sys_id, unverified until a live instance confirms it).";
+
+/** One bounded LIKE read; failures go to `unavailable`. */
+async function likeRead(
+  node: DependencyNode,
+  table: string,
+  query: string,
+  fields: string[],
+  limit: number,
+  graph: Graph,
+): Promise<SnRecord[]> {
+  try {
+    const res = await queryTable({
+      table,
+      query,
+      fields,
+      displayValue: "false",
+      limit,
+    });
+    return res.records;
+  } catch (error) {
+    graph.fail(node.id, `${table}.${query.split("LIKE")[0]}`, error);
+    return [];
+  }
+}
+
+/**
+ * N-28 — the UIB macroponents that use a macroponent, component or data
+ * broker (composition / data) or import a client script include (inbound).
+ */
+async function uibUsers(
+  node: DependencyNode,
+  limit: number,
+  graph: Graph,
+): Promise<FoundEdge[]> {
+  const out: FoundEdge[] = [];
+  const table = node.table ?? "";
+  if (table === UIB_INCLUDE) {
+    const name = node.name.trim();
+    if (!name) return [];
+    assertNoCaret(name, "name");
+    graph.caveats.add(UIB_CAVEAT);
+    const rows = await likeRead(
+      node,
+      UIB_CLIENT_SCRIPT,
+      `scriptLIKE${name}`,
+      ["sys_id", "name", "macroponent", "script"],
+      limit,
+      graph,
+    );
+    for (const row of rows) {
+      if (!uibImports(snString(row.script)).includes(name)) continue;
+      const macro = snString(row.macroponent);
+      out.push({
+        other: SYS_ID.test(macro)
+          ? {
+              kind: "record",
+              table: UIB_MACROPONENT,
+              type: "uib_macroponent",
+              sys_id: macro,
+            }
+          : {
+              kind: "record",
+              table: UIB_CLIENT_SCRIPT,
+              type: "uib_client_script",
+              sys_id: snString(row.sys_id),
+              name: snString(row.name),
+            },
+        via: "script",
+        field: "script",
+        source: UIB_CLIENT_SCRIPT,
+      });
+    }
+    return out;
+  }
+  if (!UIB_USED_TABLES.has(table) || !node.sys_id) return [];
+  const id = node.sys_id;
+  graph.caveats.add(UIB_CAVEAT);
+  const broker = table !== UIB_MACROPONENT && table !== "sys_ux_lib_component";
+  const column = broker ? "data" : "composition";
+  const rows = await likeRead(
+    node,
+    UIB_MACROPONENT,
+    `${column}LIKE${id}`,
+    ["sys_id", "name", column],
+    limit,
+    graph,
+  );
+  for (const row of rows) {
+    const rowId = snString(row.sys_id);
+    if (!rowId || rowId === id) continue;
+    const uses = macroponentUses(row);
+    const hit = broker
+      ? uses.brokers.some((b) => b.id === id)
+      : uses.components.some((c) => c.id === id);
+    if (!hit) continue;
+    out.push({
+      other: {
+        kind: "record",
+        table: UIB_MACROPONENT,
+        type: "uib_macroponent",
+        sys_id: rowId,
+        ...(snString(row.name) ? { name: snString(row.name) } : {}),
+      },
+      via: broker ? "data_broker" : "composition",
+      field: column,
+    });
+  }
+  return out;
+}
+
 /** Every inbound edge of a node. */
 async function inboundEdges(
   node: DependencyNode,
@@ -690,6 +918,7 @@ async function inboundEdges(
   graph: Graph,
 ): Promise<FoundEdge[]> {
   const out = await reverseEdges(node, limit, graph);
+  out.push(...(await uibUsers(node, limit, graph)));
   if (node.kind === "script" && node.name) {
     out.push(...(await scriptUsers(node, node.name, limit, graph)));
     out.push(...(await structuralUsers(node, "script", limit, graph)));

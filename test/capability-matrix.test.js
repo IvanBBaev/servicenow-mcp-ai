@@ -264,6 +264,28 @@ test("many roles are capped; build tag without a family keeps the raw tag", asyn
   );
 });
 
+test("N-20 EL-1: roles flagged elevated_privilege are listed as elevatable", async () => {
+  freshRuntime();
+  const rows = [
+    { "role.name": "security_admin", "role.elevated_privilege": "true" },
+    { "role.name": "itil", "role.elevated_privilege": "false" },
+    {
+      "role.name": { value: "x_elev" },
+      "role.elevated_privilege": { value: "true" },
+    },
+    { "role.name": "security_admin", "role.elevated_privilege": "true" },
+  ];
+  await withFetch(
+    () => jsonResponse(200, { result: rows }),
+    async (calls) => {
+      const m = await probeCapabilityMatrix(["roles"]);
+      assert.deepEqual(m.roles.detail.elevatable, ["security_admin", "x_elev"]);
+      const fields = new URL(calls[0].url).searchParams.get("sysparm_fields");
+      assert.match(fields, /role\.elevated_privilege/);
+    },
+  );
+});
+
 test("per-user groups are unknown without a usable user name", async () => {
   freshRuntime();
   await withEnv({ SN_USER: "bad^user" }, () =>

@@ -21,6 +21,8 @@ import {
   registerInstanceResources,
   registerArtifactResources,
   registerToolsReferenceResource,
+  registerToolReferenceTemplate,
+  type ToolReferenceDetail,
 } from "./resources.js";
 import { linkToolView, mcpAppsEnabled, registerAppResources } from "./apps.js";
 import { specs as tableSpecs } from "../tools/table.js";
@@ -225,27 +227,60 @@ export interface ToolSchemas {
  * Kept apart from describeAllTools(), which also feeds the status payload.
  */
 export function describeToolSchemas(): ToolSchemas[] {
-  return ALL_TOOLS.map((spec) => {
-    const output = buildOutputSchema(spec);
-    return {
-      name: spec.name,
-      inputSchema: toJsonSchemaCompat(
-        buildInputSchema(spec, { legacy: false }),
-        {
-          strictUnions: true,
-          pipeStrategy: "input",
-        },
-      ),
-      ...(output
-        ? {
-            outputSchema: toJsonSchemaCompat(output, {
-              strictUnions: true,
-              pipeStrategy: "output",
-            }),
-          }
-        : {}),
-    };
-  });
+  return ALL_TOOLS.map(toolSchemas);
+}
+
+/** One tool's JSON Schemas (describeToolSchemas, per spec). */
+function toolSchemas(spec: AnyToolSpec): ToolSchemas {
+  const output = buildOutputSchema(spec);
+  return {
+    name: spec.name,
+    inputSchema: toJsonSchemaCompat(buildInputSchema(spec, { legacy: false }), {
+      strictUnions: true,
+      pipeStrategy: "input",
+    }),
+    ...(output
+      ? {
+          outputSchema: toJsonSchemaCompat(output, {
+            strictUnions: true,
+            pipeStrategy: "output",
+          }),
+        }
+      : {}),
+  };
+}
+
+/** N-37: reference details per tool name, built on the first read. */
+let toolDetails: Map<string, ToolReferenceDetail> | undefined;
+
+/**
+ * N-37: one tool's schemas and naming metadata for
+ * servicenow://reference/tools/{name}; the schemas are converted once.
+ */
+export function describeToolDetail(
+  name: string,
+): ToolReferenceDetail | undefined {
+  if (!toolDetails) {
+    const naming = new Map(describeNaming().tools.map((n) => [n.name, n]));
+    toolDetails = new Map(
+      ALL_TOOLS.map((spec) => {
+        const { inputSchema, outputSchema } = toolSchemas(spec);
+        const { legacyParams, deprecatedParams, overlap } =
+          naming.get(spec.name) ?? {};
+        return [
+          spec.name,
+          {
+            inputSchema,
+            ...(outputSchema ? { outputSchema } : {}),
+            ...(legacyParams ? { legacyParams } : {}),
+            ...(deprecatedParams ? { deprecatedParams } : {}),
+            ...(overlap ? { overlap } : {}),
+          },
+        ];
+      }),
+    );
+  }
+  return toolDetails.get(name);
 }
 
 /** M-7: one tool's naming metadata for the manifest. */
@@ -479,9 +514,16 @@ export function registerResources(server: McpServer): void {
   if (session) enableResourceSubscriptions(server);
   // N-50: the ui:// MCP Apps views, only under SN_MCP_APPS=1.
   if (mcpAppsEnabled()) registerAppResources(server);
-  registerToolsReferenceResource(server, () => ({
+  const reference = () => ({
     tools: describeAllTools(),
     ...effectivePackages(),
     ...(session?.modified() ? { enabled: session.enabledPackages() } : {}),
-  }));
+  });
+  registerToolsReferenceResource(server, reference);
+  // N-37: the full definition of one tool, for lean descriptions to point at.
+  registerToolReferenceTemplate(server, {
+    reference,
+    detail: describeToolDetail,
+    renames: TOOL_RENAMES,
+  });
 }

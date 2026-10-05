@@ -6,8 +6,8 @@ import { currentRuntime, defineRuntimePart } from "./runtime.js";
  * per-tool call statistics, the last rate-limit headers each host sent, and
  * the `node:diagnostics_channel` publish points of the request loop.
  *
- * Memory is bounded: a tool keeps its last TOOL_SAMPLE_SIZE durations in a
- * fixed ring (p50/p95 are computed over that window, the counters are
+ * Memory is bounded: a tool keeps its last TOOL_SAMPLE_SIZE durations and
+ * result sizes in fixed rings (p50/p95 are computed over that window, the counters are
  * cumulative), the tool set is the finite registered manifest, and the
  * rate-limit map holds one entry per host. Both live in the runtime container,
  * so `dispose()` (and `freshRuntime()` in tests) starts them from empty.
@@ -26,6 +26,14 @@ interface ToolSeries {
   samples: Float64Array;
   /** Next write position in `samples`. */
   next: number;
+  /** Cumulative UTF-8 bytes of the text content blocks (N-57). */
+  textBytes: number;
+  /** Cumulative UTF-8 bytes of `structuredContent` as JSON (N-57). */
+  structuredBytes: number;
+  /** Calls whose result size was recorded (a thrown call has none). */
+  sized: number;
+  /** Ring buffer of the most recent result sizes (bytes, both channels). */
+  byteSamples: Float64Array;
 }
 
 const toolStatsPart = defineRuntimePart(
@@ -45,10 +53,61 @@ export interface ToolStats {
   p95: number;
   /** Cumulative duration of every call (ms) — the Prometheus summary sum. */
   totalMs: number;
+  /** Cumulative result bytes, text plus structured content (N-57). */
+  bytesTotal: number;
+  /** Of `bytesTotal`, the text content blocks. */
+  textBytes: number;
+  /** Of `bytesTotal`, `structuredContent` serialized as JSON. */
+  structuredBytes: number;
+  /** Median result size (bytes) over the last TOOL_SAMPLE_SIZE sized calls. */
+  bytesP50: number;
+  /** 95th-percentile result size (bytes) over the same window. */
+  bytesP95: number;
 }
 
-/** Record one finished tool call (an `isError` result counts as an error). */
-export function recordToolCall(tool: string, ms: number, error: boolean): void {
+/** The size of one tool result on the wire, per channel (UTF-8 bytes). */
+export interface ResultBytes {
+  text: number;
+  structured: number;
+}
+
+/**
+ * N-57 (TK-14): what one result costs on the wire. Text blocks count by their
+ * text, `structuredContent` by its JSON; other block types (images,
+ * resource links) are not counted.
+ */
+export function measureResultBytes(result: {
+  content?: unknown;
+  structuredContent?: unknown;
+}): ResultBytes {
+  let text = 0;
+  if (Array.isArray(result.content)) {
+    for (const block of result.content as {
+      type?: unknown;
+      text?: unknown;
+    }[]) {
+      if (block?.type === "text" && typeof block.text === "string") {
+        text += Buffer.byteLength(block.text);
+      }
+    }
+  }
+  const structured =
+    result.structuredContent === undefined
+      ? 0
+      : Buffer.byteLength(JSON.stringify(result.structuredContent));
+  return { text, structured };
+}
+
+/**
+ * Record one finished tool call (an `isError` result counts as an error).
+ * `bytes` is the result's size; a call that threw has none.
+ */
+export function recordToolCall(
+  tool: string,
+  ms: number,
+  error: boolean,
+  bytes?: ResultBytes,
+): void {
   const stats = currentRuntime().get(toolStatsPart);
   let s = stats.get(tool);
   if (!s) {
@@ -58,6 +117,10 @@ export function recordToolCall(tool: string, ms: number, error: boolean): void {
       totalMs: 0,
       samples: new Float64Array(TOOL_SAMPLE_SIZE),
       next: 0,
+      textBytes: 0,
+      structuredBytes: 0,
+      sized: 0,
+      byteSamples: new Float64Array(TOOL_SAMPLE_SIZE),
     };
     stats.set(tool, s);
   }
@@ -66,6 +129,12 @@ export function recordToolCall(tool: string, ms: number, error: boolean): void {
   s.totalMs += ms;
   s.samples[s.next] = ms;
   s.next = (s.next + 1) % TOOL_SAMPLE_SIZE;
+  if (bytes) {
+    s.textBytes += bytes.text;
+    s.structuredBytes += bytes.structured;
+    s.byteSamples[s.sized % TOOL_SAMPLE_SIZE] = bytes.text + bytes.structured;
+    s.sized += 1;
+  }
 }
 
 /** Nearest-rank percentile of an ascending array (0 for an empty one). */
@@ -75,7 +144,7 @@ export function percentile(sorted: ArrayLike<number>, p: number): number {
   return sorted[Math.min(sorted.length, Math.max(1, rank)) - 1] ?? 0;
 }
 
-/** Per-tool `{count, errors, p50, p95, totalMs}`, tools in name order. */
+/** Per-tool call, duration and result-size figures, tools in name order. */
 export function getToolStats(): Record<string, ToolStats> {
   const out: Record<string, ToolStats> = {};
   const entries = [...currentRuntime().get(toolStatsPart)].sort(([a], [b]) =>
@@ -85,33 +154,46 @@ export function getToolStats(): Record<string, ToolStats> {
     const window = s.samples
       .slice(0, Math.min(s.count, TOOL_SAMPLE_SIZE))
       .sort();
+    const sizes = s.byteSamples
+      .slice(0, Math.min(s.sized, TOOL_SAMPLE_SIZE))
+      .sort();
     out[tool] = {
       count: s.count,
       errors: s.errors,
       p50: Math.round(percentile(window, 50)),
       p95: Math.round(percentile(window, 95)),
       totalMs: Math.round(s.totalMs),
+      bytesTotal: s.textBytes + s.structuredBytes,
+      textBytes: s.textBytes,
+      structuredBytes: s.structuredBytes,
+      bytesP50: percentile(sizes, 50),
+      bytesP95: percentile(sizes, 95),
     };
   }
   return out;
 }
 
 /**
- * Time `fn` as one call of `tool` and record it: a resolved result with
- * `isError: true` and a rejection both count as errors.
+ * Time `fn` as one call of `tool` and record it with its result size: a
+ * resolved result with `isError: true` and a rejection both count as errors.
  */
-export async function timeToolCall<T extends { isError?: boolean }>(
-  tool: string,
-  fn: () => Promise<T>,
-): Promise<T> {
+export async function timeToolCall<
+  T extends {
+    isError?: boolean;
+    content?: unknown;
+    structuredContent?: unknown;
+  },
+>(tool: string, fn: () => Promise<T>): Promise<T> {
   const started = performance.now();
   let error = true;
+  let bytes: ResultBytes | undefined;
   try {
     const result = await fn();
     error = result.isError === true;
+    bytes = measureResultBytes(result);
     return result;
   } finally {
-    recordToolCall(tool, performance.now() - started, error);
+    recordToolCall(tool, performance.now() - started, error, bytes);
   }
 }
 

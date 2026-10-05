@@ -12,50 +12,82 @@ import type { ToolResult } from "./result.js";
  * against the tool's output schema, and a cut payload is not JSON. It shrinks
  * the largest array in the JSON object instead — binary search on the number
  * of items kept — and re-serializes, so every key (a `plan_token`, a count, a
- * required field) survives. The payload then says `truncated: true` and a
- * `note` names what was cut; output schemas are loose objects, so the two keys
- * validate without being declared. Error results, non-JSON text (CSV,
- * Markdown) and top-level arrays pass unchanged.
+ * required field) survives. When no array is left to shrink, it shortens the
+ * longest string values: a CSV payload (`format: "csv"`, `content`) keeps its
+ * header and whole rows, any other string keeps a prefix. The payload then
+ * says `truncated: true` and a `note` names what was cut; output schemas are
+ * loose objects, so the two keys validate without being declared.
+ *
+ * A top-level array or non-JSON text (Markdown, CSV) has no object to carry
+ * the note: the array keeps its leading items, the text its leading lines,
+ * and the note follows as a second text block. Error results pass unchanged.
  */
 
-/** Arrays below this depth are not considered (bounded walk). */
+/** Arrays and strings below this depth are not considered (bounded walk). */
 const MAX_DEPTH = 6;
 
-/** At most this many arrays are shrunk before the cap gives up. */
+/** At most this many arrays (then strings) are shrunk before giving up. */
 const MAX_PASSES = 4;
 
-interface ArrayRef {
+/** Strings shorter than this are never shortened (ids, names, tokens). */
+const MIN_STRING = 256;
+
+/**
+ * Keys whose string value is never shortened. A cut `mermaid` diagram does
+ * not render: S-11 returns it whole with a `format:"file"` note instead.
+ */
+const KEEP_STRINGS = new Set(["note", "plan_token", "mermaid"]);
+
+interface Ref<T> {
   path: string;
   holder: Record<string, unknown> | unknown[];
   key: string | number;
-  items: unknown[];
+  value: T;
   size: number;
+}
+
+/** A unit the cap can shorten: `cut(k)` keeps the first k of `total` units. */
+interface Cuttable {
+  path: string;
+  total: number;
+  unit: string;
+  floor: number;
+  cut: (kept: number) => void;
 }
 
 function stringify(data: unknown): string {
   return resultPretty() ? JSON.stringify(data, null, 2) : JSON.stringify(data);
 }
 
-/** Every non-empty array under `root`, the largest (serialized) first. */
-function arraysOf(root: Record<string, unknown>): ArrayRef[] {
-  const found: ArrayRef[] = [];
+/** Every non-empty array and every long string under `root`, largest first. */
+function collect(root: Record<string, unknown>): {
+  arrays: Ref<unknown[]>[];
+  strings: Ref<string>[];
+} {
+  const arrays: Ref<unknown[]>[] = [];
+  const strings: Ref<string>[] = [];
   const walk = (
     value: unknown,
-    holder: ArrayRef["holder"],
+    holder: Ref<unknown>["holder"],
     key: string | number,
     path: string,
     depth: number,
   ): void => {
-    if (depth > MAX_DEPTH || value === null || typeof value !== "object") {
+    if (depth > MAX_DEPTH) return;
+    if (typeof value === "string") {
+      if (value.length >= MIN_STRING && !KEEP_STRINGS.has(String(key))) {
+        strings.push({ path, holder, key, value, size: value.length });
+      }
       return;
     }
+    if (value === null || typeof value !== "object") return;
     if (Array.isArray(value)) {
       if (value.length) {
-        found.push({
+        arrays.push({
           path,
           holder,
           key,
-          items: value,
+          value,
           size: JSON.stringify(value).length,
         });
       }
@@ -75,7 +107,9 @@ function arraysOf(root: Record<string, unknown>): ArrayRef[] {
     }
   };
   for (const [k, v] of Object.entries(root)) walk(v, root, k, k, 1);
-  return found.sort((a, b) => b.size - a.size);
+  const bySize = (a: { size: number }, b: { size: number }): number =>
+    b.size - a.size;
+  return { arrays: arrays.sort(bySize), strings: strings.sort(bySize) };
 }
 
 /** Whether an array holds arrays one level down (directly or in objects). */
@@ -89,8 +123,74 @@ function holdsArrays(items: unknown[]): boolean {
   );
 }
 
-function setAt(ref: ArrayRef, items: unknown[]): void {
-  (ref.holder as Record<string | number, unknown>)[ref.key] = items;
+function setAt(ref: Ref<unknown>, value: unknown): void {
+  (ref.holder as Record<string | number, unknown>)[ref.key] = value;
+}
+
+/**
+ * The end offset of every CSV row (RFC 4180: a newline inside quotes is part
+ * of the cell). Row 0 is the header.
+ */
+export function csvRowEnds(text: string): number[] {
+  const ends: number[] = [];
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') quoted = !quoted;
+    else if (c === "\n" && !quoted) ends.push(i);
+  }
+  ends.push(text.length);
+  return ends;
+}
+
+/** The first `kept` characters, never splitting a surrogate pair. */
+function prefix(text: string, kept: number): string {
+  const code = text.charCodeAt(kept - 1);
+  return text.slice(0, code >= 0xd800 && code <= 0xdbff ? kept - 1 : kept);
+}
+
+/** A string ref as a Cuttable: CSV rows for a CSV payload, else characters. */
+function stringCut(ref: Ref<string>, csv: boolean): Cuttable {
+  if (csv) {
+    const ends = csvRowEnds(ref.value);
+    return {
+      path: ref.path,
+      total: ends.length - 1,
+      unit: "rows",
+      floor: 0,
+      cut: (kept) => setAt(ref, ref.value.slice(0, ends[kept])),
+    };
+  }
+  return {
+    path: ref.path,
+    total: ref.value.length,
+    unit: "chars",
+    floor: 0,
+    cut: (kept) => setAt(ref, prefix(ref.value, kept)),
+  };
+}
+
+/**
+ * Binary search for the most units of `target` that keep `fits()` true, with
+ * `widen` called first so the search runs with the widest note it can print.
+ * Returns the kept count; `target.cut` is left at that count.
+ */
+function shrink(
+  target: Cuttable,
+  fits: () => boolean,
+  widen: () => void,
+): number {
+  widen();
+  let lo = target.floor;
+  let hi = target.total;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    target.cut(mid);
+    if (fits()) lo = mid;
+    else hi = mid - 1;
+  }
+  target.cut(lo);
+  return lo;
 }
 
 const fileFormatCache = new WeakMap<object, boolean>();
@@ -133,49 +233,66 @@ export function capResult(
   const chars = resultChars(result);
   if (chars <= max) return result;
 
+  const cuts: string[] = [];
+  const entry = (t: Cuttable, kept: number): string =>
+    `${t.path}: ${kept} of ${t.total} ${t.unit}`;
+  const noteFor = (prior: string, list: string[]): string =>
+    `${prior}Result too large (${chars} chars > ${max}); kept ${list.join(", ")}. Narrow the request (filters, fields, limit)${options.fileHint ? ' or pass format:"file" to write the full result to a file under SN_DOCS_DIR' : ""}.`;
+
+  const source = result.content[0]!.text;
   let payload: unknown;
   try {
-    payload = JSON.parse(result.content[0]!.text);
+    payload = JSON.parse(source);
   } catch {
-    return result;
+    payload = undefined;
   }
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return result;
+  if (payload === null || typeof payload !== "object") {
+    if (result.structuredContent !== undefined) return result;
+    return capText(result, source, max, noteFor);
   }
+  if (Array.isArray(payload)) {
+    if (result.structuredContent !== undefined) return result;
+    return capTopLevelArray(result, payload, max, noteFor);
+  }
+
   const root = payload as Record<string, unknown>;
   const fits = (): boolean => stringify(root).length <= max;
   const prior = typeof root.note === "string" ? `${root.note} ` : "";
-  const noteFor = (cuts: string[]): string =>
-    `${prior}Result too large (${chars} chars > ${max}); kept ${cuts.join(", ")} items. Narrow the request (filters, fields, limit)${options.fileHint ? ' or pass format:"file" to write the full result to a file under SN_DOCS_DIR' : ""}.`;
-
-  const cuts: string[] = [];
   const done = new Set<string>();
   root.truncated = true;
-  for (let pass = 0; pass < MAX_PASSES; pass++) {
+
+  const pass = (target: Cuttable): boolean => {
+    done.add(target.path);
+    const widest = [...cuts, entry(target, target.total)];
+    const kept = shrink(target, fits, () => {
+      root.note = noteFor(prior, widest);
+    });
+    cuts.push(entry(target, kept));
+    root.note = noteFor(prior, cuts);
+    return fits();
+  };
+
+  let fitted = false;
+  for (let i = 0; i < MAX_PASSES && !fitted; i++) {
     // Re-walk each pass: items cut by the previous pass drop out.
-    const ref = arraysOf(root).find((r) => !done.has(r.path));
+    const ref = collect(root).arrays.find((r) => !done.has(r.path));
     if (!ref) break;
-    done.add(ref.path);
-    const n = ref.items.length;
-    // An array of containers keeps one item, so a self-capped payload
-    // (explain_artifact's `children`) keeps its shape and the next pass
-    // shrinks the nested array instead.
-    const floor = holdsArrays(ref.items) ? 1 : 0;
-    // The search runs with the widest note this pass can print (the kept
-    // count has at most as many digits as n), so the final payload fits.
-    root.note = noteFor([...cuts, `${ref.path}: ${n} of ${n}`]);
-    let lo = floor;
-    let hi = n;
-    while (lo < hi) {
-      const mid = Math.ceil((lo + hi) / 2);
-      setAt(ref, ref.items.slice(0, mid));
-      if (fits()) lo = mid;
-      else hi = mid - 1;
-    }
-    setAt(ref, ref.items.slice(0, lo));
-    cuts.push(`${ref.path}: ${lo} of ${n}`);
-    root.note = noteFor(cuts);
-    if (fits()) break;
+    fitted = pass({
+      path: ref.path,
+      total: ref.value.length,
+      unit: "items",
+      // An array of containers keeps one item, so a self-capped payload
+      // (explain_artifact's `children`) keeps its shape and the next pass
+      // shrinks the nested array instead.
+      floor: holdsArrays(ref.value) ? 1 : 0,
+      cut: (kept) => setAt(ref, ref.value.slice(0, kept)),
+    });
+  }
+  for (let i = 0; i < MAX_PASSES && !fitted; i++) {
+    const ref = collect(root).strings.find((r) => !done.has(r.path));
+    if (!ref) break;
+    const csv = root.format === "csv" && ref.holder === root;
+    fitted = pass(stringCut(ref, csv && ref.key === "content"));
   }
   if (!cuts.length) return result;
 
@@ -187,4 +304,106 @@ export function capResult(
       ? {}
       : { structuredContent: JSON.parse(text) as Record<string, unknown> }),
   };
+}
+
+type NoteFor = (prior: string, list: string[]) => string;
+
+/** The capped body plus the note as a second text block. */
+function withNote(result: ToolResult, body: string, note: string): ToolResult {
+  return {
+    ...result,
+    content: [
+      { type: "text", text: body },
+      { type: "text", text: note },
+    ],
+  };
+}
+
+/** A top-level array keeps its leading items; the note follows it. */
+function capTopLevelArray(
+  result: ToolResult,
+  items: unknown[],
+  max: number,
+  noteFor: NoteFor,
+): ToolResult {
+  let body = "";
+  let note = "";
+  const target: Cuttable = {
+    path: "(array)",
+    total: items.length,
+    unit: "items",
+    floor: 0,
+    cut: (kept) => {
+      body = stringify(items.slice(0, kept));
+    },
+  };
+  const kept = shrink(
+    target,
+    () => body.length + note.length <= max,
+    () => {
+      note = noteFor("", [
+        `${target.path}: ${items.length} of ${items.length} items`,
+      ]);
+    },
+  );
+  note = noteFor("", [`${target.path}: ${kept} of ${items.length} items`]);
+  return withNote(result, body, note);
+}
+
+/** The end offset of every line of `text`. */
+function lineEnds(text: string): number[] {
+  const ends: number[] = [];
+  for (let i = text.indexOf("\n"); i !== -1; i = text.indexOf("\n", i + 1)) {
+    ends.push(i);
+  }
+  ends.push(text.length);
+  return ends;
+}
+
+/**
+ * Non-JSON text keeps its leading lines; a text whose first line alone is too
+ * long keeps a prefix.
+ */
+function capText(
+  result: ToolResult,
+  text: string,
+  max: number,
+  noteFor: NoteFor,
+): ToolResult {
+  let body = "";
+  let note = "";
+  const ends = lineEnds(text);
+  const lines: Cuttable = {
+    path: "(text)",
+    total: ends.length,
+    unit: "lines",
+    floor: 0,
+    cut: (kept) => {
+      body = kept ? text.slice(0, ends[kept - 1]) : "";
+    },
+  };
+  const chars: Cuttable = {
+    path: "(text)",
+    total: text.length,
+    unit: "chars",
+    floor: 0,
+    cut: (kept) => {
+      body = prefix(text, kept);
+    },
+  };
+  const fits = (): boolean => body.length + note.length <= max;
+  let target = lines;
+  let kept = shrink(lines, fits, () => {
+    note = noteFor("", [`(text): ${lines.total} of ${lines.total} lines`]);
+  });
+  if (kept === 0) {
+    target = chars;
+    kept = shrink(chars, fits, () => {
+      note = noteFor("", [`(text): ${chars.total} of ${chars.total} chars`]);
+    });
+  }
+  note = noteFor("", [
+    `${target.path}: ${kept} of ${target.total} ${target.unit}`,
+  ]);
+  return withNote(result, body, note);
 }

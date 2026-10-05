@@ -50,6 +50,7 @@ import {
 import { effectivePackages } from "./registry.js";
 import { currentPackageSession } from "./packages.js";
 import { pluginAvailability } from "../api/plugin.js";
+import { cachedDomainSeparation } from "../api/capability-matrix.js";
 import { getTelemetry } from "../core/http.js";
 import { getSchemaCacheStats } from "../core/cache.js";
 import { getQueueStats } from "../core/http-util.js";
@@ -251,7 +252,17 @@ export function buildStatusPayload() {
     // Per-profile auth mode / write mode / missing keys (`profiles` stays the
     // name list until the O-4 breaking window).
     profileDetails: profilesPayload().profiles,
+    // N-12: only once check_capabilities found domain separation active (no
+    // instance call here), so a non-separated instance's status is unchanged.
+    ...domainStatus(),
   };
+}
+
+function domainStatus(): { domainSeparation?: Record<string, unknown> } {
+  const entry = cachedDomainSeparation();
+  return entry
+    ? { domainSeparation: { ...entry.detail, reason: entry.reason } }
+    : {};
 }
 
 /**

@@ -2,6 +2,7 @@ import { queryTable, getRecord } from "./table.js";
 import { getTableChain } from "./meta.js";
 import { listScripts } from "./scripts.js";
 import { assertNoCaret, snString } from "./shared.js";
+import { DOMAIN_CAVEAT, recordDomain } from "./domain-separation.js";
 import { ServiceNowError } from "../core/errors.js";
 import { label, MermaidDoc } from "./mermaid.js";
 
@@ -105,6 +106,13 @@ export interface ChainEntry {
   inherited_from?: string;
   /** True for a business rule flagged `global=true` (runs on every table). */
   global?: boolean;
+  /**
+   * N-12: the domain a domain-specific rule belongs to (never `global`);
+   * absent on an instance without domain separation.
+   */
+  domain?: string;
+  /** N-12: sys_id of the rule this domain-specific copy overrides. */
+  overrides?: string;
 }
 
 export interface TableEventTrace {
@@ -190,6 +198,10 @@ async function businessRules(
         "filter_condition",
         "collection",
         "global",
+        // N-12: absent without domain separation; the dot-walk is O-5.
+        "sys_domain",
+        "sys_domain.name",
+        "sys_overrides",
       ],
       displayValue: "false",
       limit: 500,
@@ -208,6 +220,7 @@ async function businessRules(
             snString(r.condition) || snString(r.filter_condition) || undefined,
           sys_id: snString(r.sys_id) || undefined,
           ...origin(traced, collection, isGlobal),
+          ...recordDomain(r),
         };
       }),
     );
@@ -833,6 +846,7 @@ export async function traceTableEvent(
   const warnings: string[] = [];
   const tables = await tableChain(t, warnings);
   const chain = await collectChain(t, tables, operation, warnings, lanes);
+  if (chain.some((e) => e.domain)) warnings.push(DOMAIN_CAVEAT);
   const diagram = buildMermaid(t, operation, chain);
 
   return {
@@ -908,6 +922,7 @@ export async function traceTableFlow(
     assertOperation(operation);
     const tables = await tableChain(t, warnings);
     const chain = await collectChain(t, tables, operation, warnings, lanes);
+    if (chain.some((e) => e.domain)) warnings.push(DOMAIN_CAVEAT);
     return {
       table: t,
       tables,
@@ -947,8 +962,10 @@ export async function traceTableFlow(
       order_text: orderText,
       sys_id: rule.sys_id || undefined,
       ...origin(t, collection, isGlobal),
+      ...recordDomain(rule),
     };
   });
+  if (entries.some((e) => e.domain)) warnings.push(DOMAIN_CAVEAT);
   if (lanes.length === 0) {
     return { table: t, tables, entries, count: scripts.length, warnings };
   }

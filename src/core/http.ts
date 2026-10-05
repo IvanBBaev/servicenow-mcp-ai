@@ -9,6 +9,7 @@ import {
   reloadBearerTokenFile,
 } from "./auth.js";
 import { getDispatcher } from "./dispatcher.js";
+import { elevationHint, elevationNeeded } from "./elevation.js";
 import { logger } from "./logging.js";
 import { currentSignal } from "./request-context.js";
 import {
@@ -199,16 +200,33 @@ export async function snRequest<T>({
       }
       return false;
     },
-    makeError: (message, status, detail, options) =>
-      status === 401 &&
-      (!options?.code || options.code === "INSTANCE_HTTP_401") &&
-      getAuthMode() === "token"
+    makeError: (message, status, detail, options) => {
+      if (
+        status === 401 &&
+        (!options?.code || options.code === "INSTANCE_HTTP_401") &&
+        getAuthMode() === "token"
+      ) {
+        return new ServiceNowError(message, status, detail, {
+          ...options,
+          code: "AUTH_EXPIRED",
+          hint: AUTH_EXPIRED_HINT,
+        });
+      }
+      // N-20 EL-2: a 403 on a write the platform gates behind an elevated
+      // role is not a missing ACL — say which role and how to get around it.
+      const elevation =
+        status === 403 &&
+        (!options?.code || options.code === "INSTANCE_HTTP_403")
+          ? elevationNeeded(method, path)
+          : undefined;
+      return elevation
         ? new ServiceNowError(message, status, detail, {
             ...options,
-            code: "AUTH_EXPIRED",
-            hint: AUTH_EXPIRED_HINT,
+            code: "ELEVATION_REQUIRED",
+            hint: elevationHint(elevation),
           })
-        : new ServiceNowError(message, status, detail, options),
+        : new ServiceNowError(message, status, detail, options);
+    },
   });
 
   const total = parseTotalCount(res);

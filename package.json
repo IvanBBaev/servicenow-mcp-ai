@@ -51,12 +51,14 @@
     "scan:surface": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/scan-surface.mjs",
     "tokens:budget": "node scripts/tokens-budget.mjs",
     "tokens:report": "node scripts/tokens-report.mjs",
+    "roadmap:sync": "node scripts/roadmap.mjs",
+    "roadmap:status": "node scripts/roadmap.mjs --status",
     "gen:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/gen-manifest.mjs",
     "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
     "pack:check": "node scripts/pack-check.mjs",
     "mcpb:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/mcpb-manifest.mjs",
     "mcpb:pack": "npm run build && node scripts/mcpb-pack.mjs",
-    "check": "npm run build && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run docs:instructions -- --check && npm run scan:surface && npm run mcpb:manifest -- --check && npm run fluent:actions -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
+    "check": "npm run build && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run roadmap:sync -- --check && npm run docs:instructions -- --check && npm run scan:surface && npm run mcpb:manifest -- --check && npm run fluent:actions -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
     "release:dry": "npm run check && npm publish --dry-run",
     "version:sync": "node scripts/sync-version.mjs",
     "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json mcpb/manifest.json docs/index.html",
@@ -64,7 +66,8 @@
     "fluent:verify": "node scripts/fluent-verify.mjs",
     "fluent:actions": "node scripts/gen-fluent-actions.mjs",
     "eval:skills": "claude plugin eval . --trust-plugin --no-publish",
-    "eval:mocks": "npm run build && node test/evals/record-mocks.js"
+    "eval:mocks": "npm run build && node test/evals/record-mocks.js",
+    "eval:tools": "npm run build && node evals/tool-selection/run.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",

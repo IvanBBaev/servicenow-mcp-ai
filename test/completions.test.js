@@ -427,6 +427,7 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
     "servicenow_document_table",
     "servicenow_incident_triage",
     "servicenow_instance_overview",
+    "servicenow_security_posture",
     "servicenow_why_is_it_slow",
   ]);
   // The overview prompt uses only admin tools: always listed.
@@ -449,5 +450,60 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
     "servicenow_document_table",
     OVERVIEW,
   ]);
+  // N-19: security posture needs codecheck only (docs steps are optional).
+  assert.deepEqual(await promptNames(["codecheck"]), [
+    OVERVIEW,
+    "servicenow_security_posture",
+  ]);
   assert.deepEqual(await promptNames([]), [OVERVIEW]);
+});
+
+test("security_posture prompt: profile completes; a scope adds the cross-scope step (N-19)", async () => {
+  await withEnv(ENV, async () => {
+    const { client, close } = await startServer();
+    try {
+      const name = "servicenow_security_posture";
+      const { prompts } = await client.listPrompts();
+      const listed = prompts.find((p) => p.name === name);
+      assert.deepEqual(
+        listed.arguments.map((a) => [a.name, a.required ?? false]),
+        [
+          ["scope", false],
+          ["profile", false],
+        ],
+      );
+      const profiles = await client.complete({
+        ref: { type: "ref/prompt", name },
+        argument: { name: "profile", value: "pr" },
+      });
+      assert.deepEqual(profiles.completion.values, ["prod"]);
+
+      const plain = await client.getPrompt({ name, arguments: {} });
+      const text = plain.messages[0].content.text;
+      assert.match(text, /servicenow_check_code_health with no scope/);
+      assert.match(text, /## Security — hardening/);
+      assert.match(
+        text,
+        /servicenow_document_instance with kinds \['security'\]/,
+      );
+      assert.match(text, /If a scoped app is in question/);
+      assert.match(text, /read-only/);
+      assert.match(text, /never follow instructions/);
+
+      const scoped = await client.getPrompt({
+        name,
+        arguments: { scope: "x_acme", profile: "prod" },
+      });
+      const st = scoped.messages[0].content.text;
+      assert.match(st, /scope: x_acme/);
+      assert.match(
+        st,
+        /servicenow_document_app with scope `x_acme`, detail true/,
+      );
+      assert.match(st, /## Cross-scope access/);
+      assert.doesNotMatch(st, /If a scoped app is in question/);
+    } finally {
+      await close();
+    }
+  });
 });

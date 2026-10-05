@@ -1033,6 +1033,7 @@ Read-only metadata is also exposed as resources, so clients can attach it declar
 | `servicenow://docs/{+path}` | A Markdown document from the local docs store, wrapped in an untrusted-content block. |
 | `servicenow://reference/encoded-query` | Encoded-query syntax, javascript: values and limits, and how fetchAll pages. |
 | `servicenow://reference/tools` | The tool manifest as Markdown, with this session's package policy. |
+| `servicenow://reference/tools/{name}` | One tool in full: description, annotations and the published input and output schema. |
 | `servicenow://artifact-types` | Artifact types the generic artifact tools accept, with tables, keys and child tables (`artifacts` package). |
 
 ### Prompts

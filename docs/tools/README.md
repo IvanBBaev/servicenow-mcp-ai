@@ -55,6 +55,7 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `DOC_GENERATED` | server | A docs-store write would cross the generated / hand-written line. |
 | `DUPLICATE_CHILD_KEY` | server | Two children of one call share a key. |
 | `DUPLICATE_UNIQUE_FIELD` | server | An instance-wide unique field value already exists or repeats in the plan. |
+| `ELEVATION_REQUIRED` | servicenow | A write to a table that needs an elevated role (security_admin) was refused with 403 — elevate in the UI or deliver it in an update set. |
 | `FIELD_NOT_ALLOWED` | policy | A field outside the artefact type's write allow-list. |
 | `FLOW_ACTIVE_ONLY` | server | An existing flow accepts only {active}. |
 | `INSTANCE_HTML_RESPONSE` | servicenow | The instance answered with an HTML page (hibernating PDI, login page) instead of JSON. |

@@ -150,6 +150,8 @@ test("every source exposes a query only for the kinds it can hold", () => {
     "catalog_variable",
     "report",
     "pa_indicator_source",
+    "uib_macroponent",
+    "uib_client_script",
   ]);
   assert.equal(
     source("list_element").query(f),
@@ -836,6 +838,63 @@ test("a cancelled call fails with CANCELLED instead of degrading", async () => {
         );
         assert.equal(calls.length, 0);
       });
+    },
+  );
+});
+
+// -- N-28: UI Builder sources -------------------------------------------------
+
+test("N-28 uib_macroponent / uib_client_script: compositions, data resources and imports", async () => {
+  const C = "c".repeat(32);
+  const B = "b".repeat(32);
+  const page = {
+    sys_id: "a".repeat(32),
+    name: "Home page",
+    composition: JSON.stringify([
+      { elementId: "hdr", definition: { id: C, type: "MACROPONENT" } },
+    ]),
+    data: JSON.stringify([
+      { elementId: "look", definition: { id: B, type: "TRANSFORM" } },
+    ]),
+  };
+  const script = {
+    sys_id: "s1",
+    name: "On load",
+    script: "function h({ imports }) { imports['global.MyUtil'](); }",
+    macroponent: page.sys_id,
+    "macroponent.name": "Home page",
+  };
+  await withFetch(
+    serve({ sys_ux_macroponent: [page], sys_ux_client_script: [script] }),
+    async (calls) => {
+      const byComponent = await findStructuralReferences(
+        parseRefTarget("script", C),
+      );
+      const comp = byComponent.refs.filter((r) => r.kind === "uib_composition");
+      assert.equal(comp.length, 1);
+      assert.equal(comp[0].sys_id, page.sys_id);
+      assert.equal(comp[0].field, "composition");
+      assert.equal(comp[0].value, "hdr");
+      // The broker ref of the same row does not match a component target.
+      assert.ok(!byComponent.refs.some((r) => r.kind === "uib_data_resource"));
+      const call = calls.find((c) => tableOf(c.url) === "sys_ux_macroponent");
+      assert.equal(queryOf(call.url), `compositionLIKE${C}^ORdataLIKE${C}`);
+
+      const byBroker = await findStructuralReferences(
+        parseRefTarget("script", B),
+      );
+      const data = byBroker.refs.filter((r) => r.kind === "uib_data_resource");
+      assert.equal(data.length, 1);
+      assert.equal(data[0].field, "data");
+
+      const byInclude = await findStructuralReferences(
+        parseRefTarget("script", "MyUtil"),
+      );
+      const imp = byInclude.refs.filter((r) => r.kind === "uib_client_script");
+      assert.equal(imp.length, 1);
+      assert.equal(imp[0].parent, "Home page");
+      assert.equal(imp[0].name, "Home page: On load");
+      assert.equal(imp[0].value, "MyUtil");
     },
   );
 });

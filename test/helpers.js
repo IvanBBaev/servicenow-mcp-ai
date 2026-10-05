@@ -170,6 +170,10 @@ export const METADATA_TABLES = [
   // S-9 structural where-used: list / form layouts and report definitions.
   /^sys_ui_(list|list_element|section|element)$/,
   /^sys_report$/,
+  // N-14 cross-scope report: restricted caller access grants (configuration).
+  /^sys_restricted_caller_access$/,
+  // N-3 Instance Scan read: scan results and findings (check / target refs).
+  /^scan_(result|finding)$/,
 ];
 
 /** Primary and child tables of every registered artefact type. */

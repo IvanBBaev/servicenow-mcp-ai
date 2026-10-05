@@ -2,9 +2,9 @@
 
 Date: 2026-06-21 · Status: **shipped** — v2.0.0 tagged 2026-06-22, republished as 2.0.1
 on 2026-06-27; every DF-/DX- item below is done except the DX-3 screen-capture GIF
-(owner action, tracked in [TODO.md](TODO.md)). Derived from
+(owner action, tracked in [TODO.md](../TODO.md)). Derived from
 [BUSINESS-ANALYSIS-V2.md](BUSINESS-ANALYSIS-V2.md) (the "why" and the sequencing) and
-[ROADMAP.md](ROADMAP.md) (the full DF-/DX- task specs). This file is the **execution
+[ROADMAP.md](../ROADMAP.md) (the full DF-/DX- task specs). This file is the **execution
 tracker**: what shipped in v2.0, in what order, and the definition of done for each.
 The post-ship outcome review is [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md).
 
@@ -108,7 +108,7 @@ green at the 303/303-test gate, with tests in the same change and the README/env
       `servicenow-mcp-ai@2.0.0` (`--provenance`) and the **MCP Registry** listing
       (`io.github.IvanBBaev/servicenow-mcp-ai → 2.0.0`) — DX-1's discovery half.
 - [x] DX-3 hero demo **written** — a "Quick demo" section in both the README
-      ([README.md](../README.md#quick-demo)) and the docs site (`docs/index.html` →
+      ([README.md](../../README.md#quick-demo)) and the docs site (`docs/index.html` →
       `#quick-demo`): find-usages (`servicenow_where_used`), what-runs-on-save
       (`servicenow_trace_table_event`) and dev-vs-prod (`servicenow-mcp-ai drift`).
 - [ ] Record the matching **screen-capture GIF** (a manual capture) and drop it into the

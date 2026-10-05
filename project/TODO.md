@@ -2,10 +2,10 @@
 
 > **2026-09 update.** On 2026-09-02 `npm run check` was **red** on its last step
 > (`npm audit --omit=dev --audit-level=high` — two HIGH transitive advisories via
-> `@modelcontextprotocol/sdk@1.29.0`); the five-lens [DEEP-REVIEW-2026-09.md](DEEP-REVIEW-2026-09.md)
+> `@modelcontextprotocol/sdk@1.29.0`); the five-lens [DEEP-REVIEW-2026-09.md](archive/DEEP-REVIEW-2026-09.md)
 > and the proposed v3.0 tracker [ROADMAP-V3.md](ROADMAP-V3.md) were written that day. On
 > 2026-09-03 **H-1** fixed the gate (green locally, uncommitted). On 2026-09-09 a second-pass
-> gap analysis ([GAP-ANALYSIS-2026-09.md](GAP-ANALYSIS-2026-09.md) — 67 findings) extended the tracker with
+> gap analysis ([GAP-ANALYSIS-2026-09.md](archive/GAP-ANALYSIS-2026-09.md) — 67 findings) extended the tracker with
 > **H-10, H-11, S-13, M-9, D-9, E-9** and B11–B13; see "Active (2026-09-02)" below. H-2
 > (2026-09-09), E-9 (2026-09-10), H-10, S-1, H-8 and H-9 (2026-09-23) are done since (local gate
 > green at 519 tests, uncommitted). On 2026-09-23 the SDK parity epic (P-1…P-29, owner gates
@@ -27,8 +27,8 @@
 > (needs Ivan, not a dev task).
 >
 > Next moves are owner decisions, not dev tasks — see
-> [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §7 + §8.4 (the two-week plan) and
-> [UX-REVIEW-2026-07.md](UX-REVIEW-2026-07.md) §11 (the UX backlog); "Optional" items (Export
+> [BUSINESS-REVIEW-2026-07.md](archive/BUSINESS-REVIEW-2026-07.md) §7 + §8.4 (the two-week plan) and
+> [UX-REVIEW-2026-07.md](archive/UX-REVIEW-2026-07.md) §11 (the UX backlog); "Optional" items (Export
 > API, PDI e2e, vitest) on request. The work chronology is in [WORKLOG.md](../WORKLOG.md).
 
 ## Active (2026-09-02)
@@ -599,7 +599,7 @@
   listing. Live: npm `servicenow-mcp-ai@2.0.0` (the `latest` tag) and MCP Registry
   `io.github.IvanBBaev/servicenow-mcp-ai → 2.0.0`. Repo public, `NPM_TOKEN` bound.
 - 👤 **DX-3 · screen-capture GIF** — the only remaining manual piece; the demo scenario itself
-  already ships in the README and the docs site (see [ROADMAP-V2.md](ROADMAP-V2.md)).
+  already ships in the README and the docs site (see [ROADMAP-V2.md](archive/ROADMAP-V2.md)).
 
 ## Full review (2026-06-18) — architect → dev → qa (3 cycles)
 
@@ -643,7 +643,7 @@
   server's safety contract silently weakens for a whole system. Design decision for the owner
   before the tool layer is built; the docs update belongs to that change, not this review. The
   business framing (options matrix, the bridge-MVP case, the Atlassian comparator) is in
-  [BUSINESS-REVIEW-2026-07.md](BUSINESS-REVIEW-2026-07.md) §5 and §8.2.
+  [BUSINESS-REVIEW-2026-07.md](archive/BUSINESS-REVIEW-2026-07.md) §5 and §8.2.
 
 ### DEV REVIEW (2026-07-01)
 

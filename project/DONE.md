@@ -1,8 +1,8 @@
 # servicenow-mcp — Done
 
-Completed and verified work, moved out of the reviews and the plan. Active, not-yet-done tasks live in [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) and [TODO.md](TODO.md); the work chronology is in [WORKLOG.md](../WORKLOG.md).
+Completed and verified work, moved out of the reviews and the plan. Active, not-yet-done tasks live in [IMPLEMENTATION-PLAN.md](archive/IMPLEMENTATION-PLAN.md) and [TODO.md](TODO.md); the work chronology is in [WORKLOG.md](../WORKLOG.md).
 
-State (2026-07-06): this file is the **historical completion log** — chronological, with commit refs; the current product state lives in [PRODUCT-STATE.md](PRODUCT-STATE.md). Snapshot: clean build · clean ESLint (type-checked) · 406/406 tests (coverage 95.41/84.94/98.58) · `npm audit --omit=dev` 0 · **v2.0.1 published** on npm + MCP Registry + VS Code Marketplace. **2026-09-03 → 23:** v3.0 execution started — H-1, H-2, E-9, H-10, S-1, H-8 and H-9 done (last sections; local gate green at 519/519, uncommitted); the SDK parity epic (P-1…P-29) is planned in [SDK-PARITY.md](SDK-PARITY.md); the tracker is [ROADMAP-V3.md](ROADMAP-V3.md). Per-section numbers below (test counts, coverage) are point-in-time values from when each section was written.
+State (2026-07-06): this file is the **historical completion log** — chronological, with commit refs; the current product state lives in [PRODUCT-STATE.md](archive/PRODUCT-STATE.md). Snapshot: clean build · clean ESLint (type-checked) · 406/406 tests (coverage 95.41/84.94/98.58) · `npm audit --omit=dev` 0 · **v2.0.1 published** on npm + MCP Registry + VS Code Marketplace. **2026-09-03 → 23:** v3.0 execution started — H-1, H-2, E-9, H-10, S-1, H-8 and H-9 done (last sections; local gate green at 519/519, uncommitted); the SDK parity epic (P-1…P-29) is planned in [SDK-PARITY.md](SDK-PARITY.md); the tracker is [ROADMAP-V3.md](ROADMAP-V3.md). Per-section numbers below (test counts, coverage) are point-in-time values from when each section was written.
 
 ## Base functionality
 
@@ -421,7 +421,7 @@ Gate: `npm run check` green — build + ESLint + Prettier, **380 tests** (+17), 
 
 ## v3.0 execution — H-1 (2026-09-03)
 
-The five-lens review of 2026-09-02 ([DEEP-REVIEW-2026-09.md](DEEP-REVIEW-2026-09.md)) found the gate **red** on its last step; the v3.0 tracker ([ROADMAP-V3.md](ROADMAP-V3.md)) sequences H-1 first because nothing else can be verified until the gate is green.
+The five-lens review of 2026-09-02 ([DEEP-REVIEW-2026-09.md](archive/DEEP-REVIEW-2026-09.md)) found the gate **red** on its last step; the v3.0 tracker ([ROADMAP-V3.md](ROADMAP-V3.md)) sequences H-1 first because nothing else can be verified until the gate is green.
 
 - [x] **H-1 · Dependency floor + green audit.** `@modelcontextprotocol/sdk` `^1.12.0` → `^1.30.0` (installed 1.30.0) and `zod` `^3.23.8` → `^3.25.0` (the SDK's peer range; zod 4 stays with E-2 because it is breaking). A lock-only `npm audit fix --omit=dev` — no `overrides` — moved the transitive `fast-uri` 3.1.2 → 3.1.7, `ip-address` 10.2.0 → 10.7.0, `hono` 4.12.25 → 4.13.5, `@hono/node-server` 1.19.14 → 2.1.1, `qs` 6.15.2 → 6.16.0 and `body-parser` 2.2.2 → 2.3.0. No generated file (tool manifest, README tools table) changed. CHANGELOG `[Unreleased]` → Security. The procedure — including the `--omit=dev` dev-tree pruning gotcha — is now in [CONTRIBUTING.md](../CONTRIBUTING.md#dependencies-and-the-audit-gate). Two dev-only HIGH advisories (`brace-expansion`, `js-yaml`) sit outside the production gate and are folded into E-2 / Dependabot. Still open inside the item: cutting 2.1.0 (owner: version bump + tag) and the CI matrix run on the next push.
 

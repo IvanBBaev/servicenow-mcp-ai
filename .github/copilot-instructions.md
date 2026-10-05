@@ -56,12 +56,12 @@ The rules for each area are path-scoped in `.github/instructions/`
 
 - v2.0.1 is the published release. The **v3.0 plan** is `project/ROADMAP-V3.md`
   (ids H/M/S/D/E, owner gates O-1…O-4, breaking register B1–B13); the evidence
-  behind every item is `project/DEEP-REVIEW-2026-09.md` (2026-09-02, five lenses) and
-  `project/GAP-ANALYSIS-2026-09.md` (2026-09-09 second pass, finding ids `L1-01`…`L9-12`,
+  behind every item is `project/archive/DEEP-REVIEW-2026-09.md` (2026-09-02, five lenses) and
+  `project/archive/GAP-ANALYSIS-2026-09.md` (2026-09-09 second pass, finding ids `L1-01`…`L9-12`,
   each with design, acceptance and tests) and
-  `project/INSTANCE-DOCS-ANALYSIS-2026-09.md` (2026-09-23 instance-documentation pass,
+  `project/archive/INSTANCE-DOCS-ANALYSIS-2026-09.md` (2026-09-23 instance-documentation pass,
   ids `ID-01`…`ID-17`, added S-14…S-16) and its second pass
-  `project/INSTANCE-DOCS-ANALYSIS-2026-09-25.md` (2026-09-25, ids `ID-18`…`ID-29`,
+  `project/archive/INSTANCE-DOCS-ANALYSIS-2026-09-25.md` (2026-09-25, ids `ID-18`…`ID-29`,
   refined S-15 / S-16 / M-4 / M-8 / S-7 / E-6 / E-7). Non-breaking items ship
   on the 2.x line; the breaking cluster goes to 3.0.0 (previewed as
   `3.0.0-beta.n` on the npm `next` tag).

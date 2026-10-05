@@ -1,5 +1,5 @@
 {
-  "manifestVersion": 4,
+  "manifestVersion": 5,
   "errorCodes": {
     "AMBIGUOUS_KEY": {
       "description": "An upsert key matches more than one record, or one the user cannot read.",
@@ -64,6 +64,10 @@
     "DUPLICATE_UNIQUE_FIELD": {
       "description": "An instance-wide unique field value already exists or repeats in the plan.",
       "source": "server"
+    },
+    "ELEVATION_REQUIRED": {
+      "description": "A write to a table that needs an elevated role (security_admin) was refused with 403 — elevate in the UI or deliver it in an update set.",
+      "source": "servicenow"
     },
     "FIELD_NOT_ALLOWED": {
       "description": "A field outside the artefact type's write allow-list.",
@@ -384,6 +388,12 @@
         "additionalProperties": {},
         "properties": { "result": {} },
         "type": "object"
+      },
+      "sizes": {
+        "description": 104,
+        "inputSchema": 1517,
+        "paramDescriptions": 282,
+        "outputSchema": 122
       }
     },
     {
@@ -460,6 +470,12 @@
         },
         "required": ["requests"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 153,
+        "inputSchema": 1269,
+        "paramDescriptions": 397,
+        "outputSchema": 0
       }
     },
     {
@@ -521,7 +537,13 @@
         "required": ["degraded", "summary"],
         "type": "object"
       },
-      "overlap": "Kept beside get_status and test_connection: probes which admin tables and features the user can reach; also servicenow://capabilities."
+      "overlap": "Kept beside get_status and test_connection: probes which admin tables and features the user can reach; also servicenow://capabilities.",
+      "sizes": {
+        "description": 200,
+        "inputSchema": 601,
+        "paramDescriptions": 199,
+        "outputSchema": 232
+      }
     },
     {
       "name": "servicenow_check_change_conflicts",
@@ -566,6 +588,12 @@
         },
         "required": ["sys_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 171,
+        "inputSchema": 654,
+        "paramDescriptions": 219,
+        "outputSchema": 0
       }
     },
     {
@@ -627,6 +655,12 @@
         },
         "required": ["scope", "generatedAt", "warnings"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 241,
+        "inputSchema": 869,
+        "paramDescriptions": 398,
+        "outputSchema": 284
       }
     },
     {
@@ -694,6 +728,12 @@
         },
         "required": ["table"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 184,
+        "inputSchema": 1105,
+        "paramDescriptions": 333,
+        "outputSchema": 0
       }
     },
     {
@@ -773,6 +813,12 @@
         },
         "required": ["a", "b"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 175,
+        "inputSchema": 1321,
+        "paramDescriptions": 520,
+        "outputSchema": 0
       }
     },
     {
@@ -891,6 +937,12 @@
           "caveats"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 193,
+        "inputSchema": 758,
+        "paramDescriptions": 288,
+        "outputSchema": 1305
       }
     },
     {
@@ -941,7 +993,13 @@
         "required": ["type"],
         "type": "object"
       },
-      "legacyParams": { "fields": "values" }
+      "legacyParams": { "fields": "values" },
+      "sizes": {
+        "description": 88,
+        "inputSchema": 788,
+        "paramDescriptions": 231,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_create_ci",
@@ -998,7 +1056,13 @@
         "type": "object"
       },
       "legacyParams": { "attributes": "values" },
-      "deprecatedParams": { "class_name": "table" }
+      "deprecatedParams": { "class_name": "table" },
+      "sizes": {
+        "description": 89,
+        "inputSchema": 877,
+        "paramDescriptions": 254,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_create_record",
@@ -1053,7 +1117,13 @@
         "required": ["table", "values"],
         "type": "object"
       },
-      "legacyParams": { "fields": "values" }
+      "legacyParams": { "fields": "values" },
+      "sizes": {
+        "description": 61,
+        "inputSchema": 1097,
+        "paramDescriptions": 488,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_delete_attachment",
@@ -1095,7 +1165,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "attachment_sys_id": "sys_id" }
+      "legacyParams": { "attachment_sys_id": "sys_id" },
+      "sizes": {
+        "description": 37,
+        "inputSchema": 564,
+        "paramDescriptions": 175,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_delete_record",
@@ -1154,6 +1230,12 @@
         },
         "required": ["table", "sys_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 45,
+        "inputSchema": 1128,
+        "paramDescriptions": 472,
+        "outputSchema": 0
       }
     },
     {
@@ -1202,6 +1284,12 @@
         },
         "required": ["table", "count", "columns"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 160,
+        "inputSchema": 440,
+        "paramDescriptions": 113,
+        "outputSchema": 278
       }
     },
     {
@@ -1255,6 +1343,12 @@
           "acls"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 122,
+        "inputSchema": 345,
+        "paramDescriptions": 62,
+        "outputSchema": 425
       }
     },
     {
@@ -1307,6 +1401,12 @@
           "prompts"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 149,
+        "inputSchema": 307,
+        "paramDescriptions": 59,
+        "outputSchema": 402
       }
     },
     {
@@ -1351,6 +1451,12 @@
         },
         "required": ["scope"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 221,
+        "inputSchema": 704,
+        "paramDescriptions": 309,
+        "outputSchema": 0
       }
     },
     {
@@ -1420,6 +1526,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 245,
+        "inputSchema": 1294,
+        "paramDescriptions": 527,
+        "outputSchema": 0
       }
     },
     {
@@ -1470,6 +1582,12 @@
         },
         "required": ["table"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 214,
+        "inputSchema": 767,
+        "paramDescriptions": 267,
+        "outputSchema": 0
       }
     },
     {
@@ -1503,7 +1621,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "attachment_sys_id": "sys_id" }
+      "legacyParams": { "attachment_sys_id": "sys_id" },
+      "sizes": {
+        "description": 104,
+        "inputSchema": 332,
+        "paramDescriptions": 46,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_enable_package",
@@ -1555,6 +1679,12 @@
           "prompts"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 164,
+        "inputSchema": 307,
+        "paramDescriptions": 59,
+        "outputSchema": 402
       }
     },
     {
@@ -1750,6 +1880,12 @@
           "decoded"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 196,
+        "inputSchema": 892,
+        "paramDescriptions": 249,
+        "outputSchema": 2465
       }
     },
     {
@@ -1818,6 +1954,12 @@
         },
         "required": ["kind", "verified"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 219,
+        "inputSchema": 1111,
+        "paramDescriptions": 486,
+        "outputSchema": 223
       }
     },
     {
@@ -1854,6 +1996,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 167,
+        "inputSchema": 386,
+        "paramDescriptions": 58,
+        "outputSchema": 0
       }
     },
     {
@@ -1900,6 +2048,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 182,
+        "inputSchema": 723,
+        "paramDescriptions": 284,
+        "outputSchema": 0
       }
     },
     {
@@ -1955,6 +2109,12 @@
         },
         "required": ["verified"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 194,
+        "inputSchema": 615,
+        "paramDescriptions": 209,
+        "outputSchema": 266
       }
     },
     {
@@ -2013,6 +2173,12 @@
         },
         "required": ["tables"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 211,
+        "inputSchema": 978,
+        "paramDescriptions": 350,
+        "outputSchema": 0
       }
     },
     {
@@ -2144,6 +2310,12 @@
           "files"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 228,
+        "inputSchema": 1324,
+        "paramDescriptions": 443,
+        "outputSchema": 788
       }
     },
     {
@@ -2202,6 +2374,12 @@
         },
         "required": ["table"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 212,
+        "inputSchema": 1000,
+        "paramDescriptions": 397,
+        "outputSchema": 0
       }
     },
     {
@@ -2357,6 +2535,12 @@
         },
         "required": ["artifactType", "table", "verified", "record", "children"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 217,
+        "inputSchema": 892,
+        "paramDescriptions": 249,
+        "outputSchema": 1842
       }
     },
     {
@@ -2533,6 +2717,12 @@
           "count"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 200,
+        "inputSchema": 1363,
+        "paramDescriptions": 436,
+        "outputSchema": 1698
       }
     },
     {
@@ -2575,6 +2765,12 @@
           "status": { "type": "string" }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 97,
+        "inputSchema": 355,
+        "paramDescriptions": 57,
+        "outputSchema": 205
       }
     },
     {
@@ -2608,7 +2804,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "attachment_sys_id": "sys_id" }
+      "legacyParams": { "attachment_sys_id": "sys_id" },
+      "sizes": {
+        "description": 52,
+        "inputSchema": 332,
+        "paramDescriptions": 46,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_get_catalog_item",
@@ -2641,7 +2843,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "item_sys_id": "sys_id" }
+      "legacyParams": { "item_sys_id": "sys_id" },
+      "sizes": {
+        "description": 63,
+        "inputSchema": 334,
+        "paramDescriptions": 48,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_get_change",
@@ -2673,6 +2881,12 @@
         },
         "required": ["sys_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 40,
+        "inputSchema": 336,
+        "paramDescriptions": 50,
+        "outputSchema": 0
       }
     },
     {
@@ -2718,7 +2932,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "deprecatedParams": { "class_name": "table" }
+      "deprecatedParams": { "class_name": "table" },
+      "sizes": {
+        "description": 82,
+        "inputSchema": 564,
+        "paramDescriptions": 95,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_get_cmdb_meta",
@@ -2756,7 +2976,13 @@
         },
         "type": "object"
       },
-      "deprecatedParams": { "class_name": "table" }
+      "deprecatedParams": { "class_name": "table" },
+      "sizes": {
+        "description": 81,
+        "inputSchema": 439,
+        "paramDescriptions": 83,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_get_email",
@@ -2788,6 +3014,12 @@
         },
         "required": ["sys_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 62,
+        "inputSchema": 327,
+        "paramDescriptions": 41,
+        "outputSchema": 0
       }
     },
     {
@@ -2837,6 +3069,12 @@
         },
         "required": ["kind", "sys_id", "name", "steps"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 118,
+        "inputSchema": 438,
+        "paramDescriptions": 85,
+        "outputSchema": 267
       }
     },
     {
@@ -2889,6 +3127,12 @@
         },
         "required": ["count", "runs"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 108,
+        "inputSchema": 500,
+        "paramDescriptions": 84,
+        "outputSchema": 199
       }
     },
     {
@@ -2928,7 +3172,13 @@
         "required": ["table", "sys_id"],
         "type": "object"
       },
-      "legacyParams": { "staging_table": "table" }
+      "legacyParams": { "staging_table": "table" },
+      "sizes": {
+        "description": 46,
+        "inputSchema": 453,
+        "paramDescriptions": 70,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_get_knowledge_article",
@@ -2960,6 +3210,12 @@
         },
         "required": ["sys_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 59,
+        "inputSchema": 329,
+        "paramDescriptions": 43,
+        "outputSchema": 0
       }
     },
     {
@@ -2992,6 +3248,12 @@
         },
         "required": ["mode"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 71,
+        "inputSchema": 372,
+        "paramDescriptions": 43,
+        "outputSchema": 0
       }
     },
     {
@@ -3039,6 +3301,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 188,
+        "inputSchema": 633,
+        "paramDescriptions": 179,
+        "outputSchema": 0
       }
     },
     {
@@ -3093,6 +3361,12 @@
         "additionalProperties": {},
         "properties": {},
         "type": "object"
+      },
+      "sizes": {
+        "description": 50,
+        "inputSchema": 629,
+        "paramDescriptions": 91,
+        "outputSchema": 111
       }
     },
     {
@@ -3163,6 +3437,12 @@
         },
         "required": ["table", "sys_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 186,
+        "inputSchema": 1178,
+        "paramDescriptions": 342,
+        "outputSchema": 0
       }
     },
     {
@@ -3245,6 +3525,12 @@
         },
         "required": ["type", "table"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 70,
+        "inputSchema": 1139,
+        "paramDescriptions": 260,
+        "outputSchema": 201
       }
     },
     {
@@ -3470,7 +3756,13 @@
         ],
         "type": "object"
       },
-      "overlap": "Kept beside test_connection and check_capabilities: local only (no request) — configuration, profile, policy and packages; also servicenow://status."
+      "overlap": "Kept beside test_connection and check_capabilities: local only (no request) — configuration, profile, policy and packages; also servicenow://status.",
+      "sizes": {
+        "description": 153,
+        "inputSchema": 199,
+        "paramDescriptions": 26,
+        "outputSchema": 3801
+      }
     },
     {
       "name": "servicenow_get_update_set",
@@ -3586,6 +3878,12 @@
           "updates"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 207,
+        "inputSchema": 794,
+        "paramDescriptions": 259,
+        "outputSchema": 1072
       }
     },
     {
@@ -3675,6 +3973,12 @@
         },
         "required": ["items"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 174,
+        "inputSchema": 1451,
+        "paramDescriptions": 443,
+        "outputSchema": 0
       }
     },
     {
@@ -3720,7 +4024,13 @@
         "required": ["table", "values"],
         "type": "object"
       },
-      "legacyParams": { "fields": "values", "staging_table": "table" }
+      "legacyParams": { "fields": "values", "staging_table": "table" },
+      "sizes": {
+        "description": 188,
+        "inputSchema": 685,
+        "paramDescriptions": 206,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_lint_script",
@@ -3802,6 +4112,12 @@
         },
         "required": ["type", "sys_id", "results"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 163,
+        "inputSchema": 962,
+        "paramDescriptions": 83,
+        "outputSchema": 239
       }
     },
     {
@@ -3853,6 +4169,12 @@
           "warnings"
         ],
         "type": "object"
+      },
+      "sizes": {
+        "description": 118,
+        "inputSchema": 342,
+        "paramDescriptions": 59,
+        "outputSchema": 349
       }
     },
     {
@@ -3961,6 +4283,12 @@
         },
         "required": ["artifactType", "table", "verified", "count", "artifacts"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 168,
+        "inputSchema": 797,
+        "paramDescriptions": 292,
+        "outputSchema": 1156
       }
     },
     {
@@ -4008,7 +4336,13 @@
         "required": ["count", "suites"],
         "type": "object"
       },
-      "overlap": "Kept beside list_atf_tests: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite)."
+      "overlap": "Kept beside list_atf_tests: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
+      "sizes": {
+        "description": 56,
+        "inputSchema": 404,
+        "paramDescriptions": 67,
+        "outputSchema": 203
+      }
     },
     {
       "name": "servicenow_list_atf_tests",
@@ -4055,7 +4389,13 @@
         "required": ["count", "tests"],
         "type": "object"
       },
-      "overlap": "Kept beside list_atf_suites: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite)."
+      "overlap": "Kept beside list_atf_suites: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
+      "sizes": {
+        "description": 71,
+        "inputSchema": 404,
+        "paramDescriptions": 67,
+        "outputSchema": 201
+      }
     },
     {
       "name": "servicenow_list_attachments",
@@ -4092,6 +4432,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 71,
+        "inputSchema": 427,
+        "paramDescriptions": 74,
+        "outputSchema": 0
       }
     },
     {
@@ -4125,7 +4471,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "catalog_sys_id": "sys_id" }
+      "legacyParams": { "catalog_sys_id": "sys_id" },
+      "sizes": {
+        "description": 47,
+        "inputSchema": 329,
+        "paramDescriptions": 43,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_list_catalog_items",
@@ -4166,6 +4518,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 70,
+        "inputSchema": 489,
+        "paramDescriptions": 70,
+        "outputSchema": 0
       }
     },
     {
@@ -4191,6 +4549,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 76,
+        "inputSchema": 199,
+        "paramDescriptions": 26,
+        "outputSchema": 0
       }
     },
     {
@@ -4242,6 +4606,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 88,
+        "inputSchema": 629,
+        "paramDescriptions": 98,
+        "outputSchema": 0
       }
     },
     {
@@ -4290,6 +4660,12 @@
         },
         "required": ["sys_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 148,
+        "inputSchema": 648,
+        "paramDescriptions": 146,
+        "outputSchema": 0
       }
     },
     {
@@ -4343,7 +4719,13 @@
         },
         "type": "object"
       },
-      "deprecatedParams": { "class_name": "table" }
+      "deprecatedParams": { "class_name": "table" },
+      "sizes": {
+        "description": 85,
+        "inputSchema": 667,
+        "paramDescriptions": 123,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_list_docs",
@@ -4373,6 +4755,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 167,
+        "inputSchema": 310,
+        "paramDescriptions": 78,
+        "outputSchema": 0
       }
     },
     {
@@ -4434,6 +4822,12 @@
         },
         "required": ["kind", "count", "flows"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 112,
+        "inputSchema": 657,
+        "paramDescriptions": 166,
+        "outputSchema": 233
       }
     },
     {
@@ -4469,6 +4863,12 @@
         },
         "required": ["count", "profiles"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 179,
+        "inputSchema": 199,
+        "paramDescriptions": 26,
+        "outputSchema": 207
       }
     },
     {
@@ -4504,6 +4904,12 @@
         },
         "required": ["packages", "enabled"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 170,
+        "inputSchema": 199,
+        "paramDescriptions": 26,
+        "outputSchema": 236
       }
     },
     {
@@ -4612,6 +5018,12 @@
         },
         "required": ["type", "count", "scripts"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 108,
+        "inputSchema": 1627,
+        "paramDescriptions": 430,
+        "outputSchema": 237
       }
     },
     {
@@ -4652,6 +5064,12 @@
         },
         "required": ["count", "tables"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 82,
+        "inputSchema": 299,
+        "paramDescriptions": 68,
+        "outputSchema": 203
       }
     },
     {
@@ -4736,6 +5154,12 @@
         },
         "required": ["count", "truncated", "current_update_set", "update_sets"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 133,
+        "inputSchema": 810,
+        "paramDescriptions": 236,
+        "outputSchema": 605
       }
     },
     {
@@ -4804,6 +5228,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 201,
+        "inputSchema": 983,
+        "paramDescriptions": 303,
+        "outputSchema": 0
       }
     },
     {
@@ -4860,6 +5290,12 @@
         },
         "required": ["kind"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 196,
+        "inputSchema": 839,
+        "paramDescriptions": 256,
+        "outputSchema": 0
       }
     },
     {
@@ -4914,7 +5350,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "item_sys_id": "sys_id" }
+      "legacyParams": { "item_sys_id": "sys_id" },
+      "sizes": {
+        "description": 116,
+        "inputSchema": 824,
+        "paramDescriptions": 237,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_query_table",
@@ -5028,6 +5470,12 @@
           "truncated": { "type": "boolean" }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 225,
+        "inputSchema": 2199,
+        "paramDescriptions": 1004,
+        "outputSchema": 308
       }
     },
     {
@@ -5064,6 +5512,12 @@
         },
         "required": ["path"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 86,
+        "inputSchema": 464,
+        "paramDescriptions": 155,
+        "outputSchema": 0
       }
     },
     {
@@ -5137,6 +5591,12 @@
         },
         "required": ["kind"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 233,
+        "inputSchema": 1159,
+        "paramDescriptions": 388,
+        "outputSchema": 0
       }
     },
     {
@@ -5182,6 +5642,12 @@
         },
         "required": ["entry_id"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 246,
+        "inputSchema": 727,
+        "paramDescriptions": 311,
+        "outputSchema": 0
       }
     },
     {
@@ -5225,7 +5691,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "suite_sys_id": "sys_id" }
+      "legacyParams": { "suite_sys_id": "sys_id" },
+      "sizes": {
+        "description": 186,
+        "inputSchema": 713,
+        "paramDescriptions": 310,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_run_atf_test",
@@ -5268,7 +5740,13 @@
         "required": ["sys_id"],
         "type": "object"
       },
-      "legacyParams": { "test_sys_id": "sys_id" }
+      "legacyParams": { "test_sys_id": "sys_id" },
+      "sizes": {
+        "description": 228,
+        "inputSchema": 707,
+        "paramDescriptions": 304,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_search_code",
@@ -5370,6 +5848,12 @@
         },
         "required": ["count", "matches"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 237,
+        "inputSchema": 1602,
+        "paramDescriptions": 485,
+        "outputSchema": 246
       }
     },
     {
@@ -5415,6 +5899,12 @@
         },
         "required": ["text"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 124,
+        "inputSchema": 618,
+        "paramDescriptions": 208,
+        "outputSchema": 0
       }
     },
     {
@@ -5466,6 +5956,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 97,
+        "inputSchema": 666,
+        "paramDescriptions": 92,
+        "outputSchema": 0
       }
     },
     {
@@ -5554,6 +6050,12 @@
         },
         "required": ["to", "subject", "body"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 195,
+        "inputSchema": 1722,
+        "paramDescriptions": 332,
+        "outputSchema": 0
       }
     },
     {
@@ -5623,6 +6125,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 240,
+        "inputSchema": 1226,
+        "paramDescriptions": 472,
+        "outputSchema": 0
       }
     },
     {
@@ -5663,6 +6171,12 @@
         },
         "required": ["name", "value"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 181,
+        "inputSchema": 556,
+        "paramDescriptions": 198,
+        "outputSchema": 0
       }
     },
     {
@@ -5741,6 +6255,12 @@
           }
         },
         "type": "object"
+      },
+      "sizes": {
+        "description": 212,
+        "inputSchema": 1156,
+        "paramDescriptions": 362,
+        "outputSchema": 0
       }
     },
     {
@@ -5780,7 +6300,13 @@
         "required": ["ok", "status", "latencyMs"],
         "type": "object"
       },
-      "overlap": "Kept beside get_status and check_capabilities: one authenticated round trip that proves the credentials work."
+      "overlap": "Kept beside get_status and check_capabilities: one authenticated round trip that proves the credentials work.",
+      "sizes": {
+        "description": 150,
+        "inputSchema": 199,
+        "paramDescriptions": 26,
+        "outputSchema": 292
+      }
     },
     {
       "name": "servicenow_trace_table_event",
@@ -5846,6 +6372,12 @@
         },
         "required": ["table", "tables", "chain", "mermaid", "warnings"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 219,
+        "inputSchema": 809,
+        "paramDescriptions": 261,
+        "outputSchema": 335
       }
     },
     {
@@ -5891,7 +6423,13 @@
         "required": ["sys_id", "values"],
         "type": "object"
       },
-      "legacyParams": { "fields": "values" }
+      "legacyParams": { "fields": "values" },
+      "sizes": {
+        "description": 46,
+        "inputSchema": 681,
+        "paramDescriptions": 199,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_update_ci",
@@ -5954,7 +6492,13 @@
         "type": "object"
       },
       "legacyParams": { "attributes": "values" },
-      "deprecatedParams": { "class_name": "table" }
+      "deprecatedParams": { "class_name": "table" },
+      "sizes": {
+        "description": 59,
+        "inputSchema": 973,
+        "paramDescriptions": 250,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_update_record",
@@ -6021,7 +6565,13 @@
         "required": ["table", "sys_id", "values"],
         "type": "object"
       },
-      "legacyParams": { "fields": "values" }
+      "legacyParams": { "fields": "values" },
+      "sizes": {
+        "description": 63,
+        "inputSchema": 1377,
+        "paramDescriptions": 574,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_upload_attachment",
@@ -6077,6 +6627,12 @@
         },
         "required": ["table", "sys_id", "file_name", "content_base64"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 78,
+        "inputSchema": 889,
+        "paramDescriptions": 260,
+        "outputSchema": 0
       }
     },
     {
@@ -6217,7 +6773,13 @@
         "required": ["artifactType", "key", "values"],
         "type": "object"
       },
-      "legacyParams": { "fields": "values" }
+      "legacyParams": { "fields": "values" },
+      "sizes": {
+        "description": 224,
+        "inputSchema": 2979,
+        "paramDescriptions": 1184,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_upsert_record",
@@ -6289,7 +6851,13 @@
         "required": ["table", "key", "values"],
         "type": "object"
       },
-      "legacyParams": { "fields": "values" }
+      "legacyParams": { "fields": "values" },
+      "sizes": {
+        "description": 249,
+        "inputSchema": 1719,
+        "paramDescriptions": 791,
+        "outputSchema": 0
+      }
     },
     {
       "name": "servicenow_use_instance",
@@ -6324,6 +6892,12 @@
         },
         "required": ["name"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 78,
+        "inputSchema": 415,
+        "paramDescriptions": 122,
+        "outputSchema": 0
       }
     },
     {
@@ -6389,6 +6963,12 @@
         },
         "required": ["kind", "name", "count", "references", "caveats"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 220,
+        "inputSchema": 841,
+        "paramDescriptions": 334,
+        "outputSchema": 323
       }
     },
     {
@@ -6433,6 +7013,12 @@
         },
         "required": ["path", "content"],
         "type": "object"
+      },
+      "sizes": {
+        "description": 224,
+        "inputSchema": 603,
+        "paramDescriptions": 195,
+        "outputSchema": 0
       }
     }
   ]

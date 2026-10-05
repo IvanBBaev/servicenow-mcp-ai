@@ -24,6 +24,7 @@ import {
   TOOL_SAMPLE_SIZE,
   getRateLimitStats,
   getToolStats,
+  measureResultBytes,
   parseRateLimit,
   percentile,
   recordToolCall,
@@ -262,6 +263,12 @@ test("tool stats count calls and errors; the sample ring stays bounded", async (
     p50: 50,
     p95: 95,
     totalMs: 5050,
+    // No size given: the byte figures stay at zero.
+    bytesTotal: 0,
+    textBytes: 0,
+    structuredBytes: 0,
+    bytesP50: 0,
+    bytesP95: 0,
   });
   assert.equal(stats.a_tool.count, TOOL_SAMPLE_SIZE + 1);
   assert.equal(stats.a_tool.p50, 1000);
@@ -402,6 +409,51 @@ test("a failing request publishes start / error with status and attempts", async
   freshRuntime();
 });
 
+test("measureResultBytes counts text blocks and structuredContent in UTF-8 (N-57)", () => {
+  assert.deepEqual(measureResultBytes({}), { text: 0, structured: 0 });
+  assert.deepEqual(
+    measureResultBytes({
+      content: [
+        { type: "text", text: "ab" },
+        { type: "text", text: "\u00e9" },
+        { type: "image", data: "xxxx", mimeType: "image/png" },
+      ],
+      structuredContent: { a: 1 },
+    }),
+    { text: 4, structured: 7 },
+  );
+});
+
+test("tool stats keep result bytes per channel with size percentiles (N-57)", async () => {
+  freshRuntime();
+  for (let i = 1; i <= 100; i++) {
+    recordToolCall("s_tool", 1, false, { text: i, structured: i % 2 ? 0 : 10 });
+  }
+  const s = getToolStats().s_tool;
+  assert.equal(s.textBytes, 5050);
+  assert.equal(s.structuredBytes, 500);
+  assert.equal(s.bytesTotal, 5550);
+  assert.ok(s.bytesP50 >= 50 && s.bytesP50 <= 60, String(s.bytesP50));
+  assert.ok(s.bytesP95 >= 95 && s.bytesP95 <= 110, String(s.bytesP95));
+
+  await timeToolCall("t_tool", async () => ({
+    content: [{ type: "text", text: "x".repeat(40) }],
+    structuredContent: { k: "v" },
+  }));
+  await assert.rejects(
+    timeToolCall("t_tool", async () => {
+      throw new Error("boom");
+    }),
+  );
+  const t = getToolStats().t_tool;
+  assert.equal(t.count, 2);
+  assert.equal(t.textBytes, 40);
+  assert.equal(t.structuredBytes, 9);
+  // The thrown call has no size, so it does not drag the percentiles to 0.
+  assert.equal(t.bytesP50, 49);
+  freshRuntime();
+});
+
 test("get_status carries the observability block", async () => {
   freshRuntime();
   recordToolCall("servicenow_query_table", 12, false);
@@ -451,6 +503,11 @@ test("renderPrometheus emits the documented families with escaped labels", async
   assert.match(
     text,
     /servicenow_mcp_tool_duration_ms\{tool="odd\\"tool",quantile="0.95"\} 5/,
+  );
+  assert.match(text, /# TYPE servicenow_mcp_tool_result_bytes summary/);
+  assert.match(
+    text,
+    /servicenow_mcp_tool_result_channel_bytes_total\{tool="odd\\"tool",channel="structured"\} 0/,
   );
   assert.match(
     text,

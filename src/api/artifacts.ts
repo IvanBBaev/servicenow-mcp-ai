@@ -35,6 +35,7 @@ import {
 } from "./table.js";
 import { snString } from "./shared.js";
 import { scopeClause } from "./scripts.js";
+import { DOMAIN_FIELDS, keepDomainFields } from "./domain-separation.js";
 
 /** Rows returned per child table before the entry is marked `truncated`. */
 export const CHILD_LIMIT = 200;
@@ -190,6 +191,8 @@ export async function listArtifacts(
       ...described,
       `${t.scopeField}.scope`,
       ...AUDIT_FIELDS,
+      // N-12: absent on an instance without domain separation.
+      ...DOMAIN_FIELDS,
     ]),
   ];
   const limit = Math.min(opts.limit ?? LIST_LIMIT.default, LIST_LIMIT.max);
@@ -250,6 +253,7 @@ export async function listArtifacts(
     ]) {
       if (f in r && !(f in summary)) summary[f] = r[f];
     }
+    keepDomainFields(r, summary);
     artifacts.push(summary);
   }
 

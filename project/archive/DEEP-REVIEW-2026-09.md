@@ -7,14 +7,14 @@ coverage, (3) security and write-safety rails, (4) DX / product / distribution, 
 (runtime, dependencies, architecture, config, tests, packaging, observability, docs-as-code) — plus
 the 2026-07-06 v2.5 scoping notes (local handoff) whose corner cases are carried in §6. Nothing in
 the repo was modified by the audits; `npm install` was not run. The plan that absorbs every finding
-is [ROADMAP-V3.md](ROADMAP-V3.md); this file is the evidence behind it and should be re-run (same
+is [ROADMAP-V3.md](../ROADMAP-V3.md); this file is the evidence behind it and should be re-run (same
 five lenses) as the 3.0.0 exit check. A second, narrower pass on 2026-09-09
 ([GAP-ANALYSIS-2026-09.md](GAP-ANALYSIS-2026-09.md) — nine lenses, 67 findings) covers what these five lenses
 missed and corrects six statements made here (its §1: C-1 … C-6); read both before starting an item.
 
 Legend — **Sev**: high / med / low / info. **VERIFIED** = re-checked in code or by running a
 command; **CLAIM** = ServiceNow platform behaviour asserted from experience, not from this code;
-**UNVERIFIED** = not checkable offline. **→ item** = the [ROADMAP-V3.md](ROADMAP-V3.md) item that
+**UNVERIFIED** = not checkable offline. **→ item** = the [ROADMAP-V3.md](../ROADMAP-V3.md) item that
 absorbs the finding.
 
 ## 0. Executive summary — what we are missing
