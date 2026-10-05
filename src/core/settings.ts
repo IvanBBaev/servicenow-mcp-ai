@@ -790,3 +790,22 @@ export function otelEnabled(): boolean {
 export function otelPropagate(): boolean {
   return readBool("SN_OTEL_PROPAGATE");
 }
+
+/** N-10: record-watch poll interval (SN_RECORD_WATCH_INTERVAL_MS, floor 30 s). */
+export const RECORD_WATCH_FLOOR_MS = 30_000;
+export function getRecordWatchIntervalMs(): number {
+  return Math.max(
+    RECORD_WATCH_FLOOR_MS,
+    positiveInt("SN_RECORD_WATCH_INTERVAL_MS", RECORD_WATCH_FLOOR_MS),
+  );
+}
+
+/** N-10: record watches one session may hold (SN_RECORD_WATCH_MAX_PER_SESSION). */
+export function getRecordWatchMaxPerSession(): number {
+  return positiveInt("SN_RECORD_WATCH_MAX_PER_SESSION", 10);
+}
+
+/** N-10: record watches across the process (SN_RECORD_WATCH_MAX). */
+export function getRecordWatchMax(): number {
+  return positiveInt("SN_RECORD_WATCH_MAX", 50);
+}

@@ -20,7 +20,11 @@ import {
 import { checkCapabilities } from "../api/capabilities.js";
 import { artifactTypeCatalog } from "../api/artifacts.js";
 import { activeProfile, listProfiles } from "../core/config.js";
-import { runWithProfile } from "../core/request-context.js";
+import { runWithCall, runWithProfile } from "../core/request-context.js";
+import { createSecretRegistry } from "../core/secret-columns.js";
+import { redactValue, redactionRules } from "../core/redaction.js";
+import { getRecord } from "../api/table.js";
+import { RECORD_TEMPLATE } from "./record-watch.js";
 import { logger } from "../core/logging.js";
 import {
   errorCodeOf,
@@ -484,6 +488,70 @@ export function registerTableResources(server: McpServer): void {
       ],
     }),
   );
+
+  // N-10: one record, subscribable — the server polls it for changes.
+  server.registerResource(
+    "record",
+    new ResourceTemplate(RECORD_TEMPLATE, {
+      list: undefined,
+      complete: profileSchemaCompletions,
+    }),
+    {
+      title: "ServiceNow record (subscribable)",
+      description:
+        "One record read through the named profile, masked like servicenow_get_record. " +
+        "URI: servicenow://profiles/<profile>/records/<table>/<sys_id>. Subscribe to get " +
+        "resources/updated when its sys_updated_on / sys_mod_count changes (polled, floor 30 s, capped).",
+      mimeType: JSON_MIME,
+    },
+    (uri, variables) => readRecord(uri, variables),
+  );
+}
+
+let recordReads = 0;
+
+/** N-10: read one record through the named profile, redacted (N-21). */
+async function readRecord(
+  uri: URL,
+  variables: Record<string, string | string[]>,
+) {
+  const profile = one(variables.profile)?.toLowerCase();
+  const table = one(variables.table);
+  const sysId = one(variables.sys_id);
+  try {
+    if (!profile || !table || !sysId) {
+      throw badUri(
+        "URI must be servicenow://profiles/<profile>/records/<table>/<sys_id>.",
+      );
+    }
+    if (!listProfiles().includes(profile)) {
+      throw new IntegrationError(
+        `Unknown connection profile "${profile}". Available: ${listProfiles().join(", ") || "(none)"}.`,
+        undefined,
+        undefined,
+        { code: "UNKNOWN_PROFILE" },
+      );
+    }
+    // A call context of its own, so N-21 secret columns are resolved and
+    // masked exactly as on a servicenow_get_record call.
+    const record = await runWithCall(
+      {
+        requestId: `resource-record-${++recordReads}`,
+        tool: "resource:record",
+        profile,
+        secrets: createSecretRegistry(),
+      },
+      () =>
+        runWithProfile(
+          profile,
+          async () =>
+            redactValue(await getRecord(table, sysId), redactionRules()).value,
+        ),
+    );
+    return jsonContents(uri, { profile, table, sys_id: sysId, record });
+  } catch (error) {
+    throw resourceError("record", error, { profile, table, sys_id: sysId });
+  }
 }
 
 /** Tables + per-table schema (schema package). */

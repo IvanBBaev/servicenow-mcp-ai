@@ -766,6 +766,9 @@ The schema reads cache and the capability / plugin-API probes.
 
 | Variable | Required | Default | Since | Description |
 | -------- | :------: | ------- | ----- | ----------- |
+| `SN_RECORD_WATCH_INTERVAL_MS` | no | `30000` | next | N-10: poll interval of a record-watch subscription (`servicenow://profiles/<profile>/records/<table>/<sys_id>`); each poll reads `sys_updated_on` / `sys_mod_count`. Floor 30000. |
+| `SN_RECORD_WATCH_MAX_PER_SESSION` | no | `10` | next | N-10: record-watch subscriptions one client session may hold; one more is refused with `WATCH_LIMIT`. |
+| `SN_RECORD_WATCH_MAX` | no | `50` | next | N-10: record-watch subscriptions across the process (every session); one more is refused with `WATCH_LIMIT`. |
 | `SN_SCHEMA_CACHE_TTL_SEC` | no | `300` | 1.1.0 | TTL for the near-static schema reads cache (`list_tables`, `describe_table`, `get_cmdb_meta`). `0` disables caching. |
 | `SN_SCHEMA_CACHE_MAX` | no | `256` | next | Maximum entries in the schema reads cache; when full, the least-recently-used entry is evicted. Counters (`size`, `hits`, `misses`, `evictions`) appear in `get_status` under `schemaCache`. |
 | `SN_CAPABILITY_TTL_MS` | no | `600000` | next | How long a successful capability probe is cached — the `servicenow_check_capabilities` matrix and the plugin-API availability (CI/CD, Code Search, Batch…). Pass `refresh: true` to re-probe sooner. |

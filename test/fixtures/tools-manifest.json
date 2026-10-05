@@ -225,6 +225,10 @@
       "description": "The error body was an HTML page (proxy, WAF, SSO) rather than an API body.",
       "source": "servicenow"
     },
+    "WATCH_LIMIT": {
+      "description": "A record-watch subscription would exceed SN_RECORD_WATCH_MAX_PER_SESSION or SN_RECORD_WATCH_MAX.",
+      "source": "server"
+    },
     "WRITE_CAP": {
       "description": "A session or batch write cap would be exceeded; nothing was sent.",
       "source": "policy"

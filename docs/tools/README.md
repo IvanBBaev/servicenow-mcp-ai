@@ -95,4 +95,5 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `UPDATE_SET_NOT_FOUND` | server | The named update set does not exist or is not readable. |
 | `UPDATE_SET_NOT_IN_PROGRESS` | server | A write was bound to an update set that is not in progress. |
 | `UPSTREAM_HTML` | servicenow | The error body was an HTML page (proxy, WAF, SSO) rather than an API body. |
+| `WATCH_LIMIT` | server | A record-watch subscription would exceed SN_RECORD_WATCH_MAX_PER_SESSION or SN_RECORD_WATCH_MAX. |
 | `WRITE_CAP` | policy | A session or batch write cap would be exceeded; nothing was sent. |

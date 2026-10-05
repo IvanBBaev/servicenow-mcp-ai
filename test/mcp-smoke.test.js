@@ -353,7 +353,7 @@ test("resources follow the package policy (K-7)", async () => {
   // table package only: no schema, no docs → the always-on admin resources
   // (connection status, the capability preflight, the tool reference and its
   // per-tool template, N-37) and the table package's
-  // encoded-query reference (S-8).
+  // encoded-query reference (S-8) and record watch template (N-10).
   await withEnv({ SN_TOOL_PACKAGES: "table" }, async () => {
     const { client, close } = await startServer();
     try {
@@ -361,6 +361,7 @@ test("resources follow the package policy (K-7)", async () => {
         "capabilities",
         "encoded-query",
         "policy",
+        "record",
         "status",
         "tool-reference",
         "tools-reference",
@@ -384,6 +385,7 @@ test("resources follow the package policy (K-7)", async () => {
         "policy",
         "profile-schema",
         "profile-schema-legacy",
+        "record",
         "schema",
         "status",
         "tables",

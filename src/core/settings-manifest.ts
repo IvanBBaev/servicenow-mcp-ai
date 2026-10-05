@@ -1131,6 +1131,33 @@ const BASE_SETTINGS: SettingSpec[] = [
   }),
 
   // --- caching -------------------------------------------------------------------
+  int(
+    { min: 30_000 },
+    {
+      key: "SN_RECORD_WATCH_INTERVAL_MS",
+      section: "caching",
+      since: NEXT,
+      default: 30_000,
+      description:
+        "N-10: poll interval of a record-watch subscription (`servicenow://profiles/<profile>/records/<table>/<sys_id>`); each poll reads `sys_updated_on` / `sys_mod_count`. Floor 30000.",
+    },
+  ),
+  positive({
+    key: "SN_RECORD_WATCH_MAX_PER_SESSION",
+    section: "caching",
+    since: NEXT,
+    default: 10,
+    description:
+      "N-10: record-watch subscriptions one client session may hold; one more is refused with `WATCH_LIMIT`.",
+  }),
+  positive({
+    key: "SN_RECORD_WATCH_MAX",
+    section: "caching",
+    since: NEXT,
+    default: 50,
+    description:
+      "N-10: record-watch subscriptions across the process (every session); one more is refused with `WATCH_LIMIT`.",
+  }),
   nonNegative({
     key: "SN_SCHEMA_CACHE_TTL_SEC",
     section: "caching",

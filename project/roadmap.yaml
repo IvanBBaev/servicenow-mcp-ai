@@ -842,11 +842,11 @@ items:
     title: "record watch resources"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: "D"
-    done: null
+    done: "2026-10-05"
     gates: []
-    notes: "Phase D. Subscribable `servicenow://profiles/{profile}/records/{table}/{sys_id}`, polled with a floor and per-session caps (NX-10)."
+    notes: "**Done 2026-10-05.** `servicenow://profiles/{profile}/records/{table}/{sys_id}` template (table package; read masked like `get_record`); a subscription polls `sys_updated_on` / `sys_mod_count` every `SN_RECORD_WATCH_INTERVAL_MS` (floor 30 s) and sends resources/updated; per-session / process caps (`SN_RECORD_WATCH_MAX_PER_SESSION` / `_MAX`, `WATCH_LIMIT`); stops on unsubscribe, deletion and session close (`src/mcp/record-watch.ts`). 0 B tools/list (NX-10)."
   - id: "N-7"
     title: "translation coverage"
     pillar: "N"

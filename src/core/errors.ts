@@ -201,6 +201,8 @@ export type ServiceNowErrorCode =
   | "NO_PACKAGE_SESSION"
   /** M-9: the task feature is not available (SN_EXPERIMENTAL_TASKS off, or the call cannot run as a task). */
   | "TASKS_UNAVAILABLE"
+  /** N-10: a record watch would exceed the per-session or per-process cap. */
+  | "WATCH_LIMIT"
   /** M-2: a request was refused for a reason no other code names (the status is kept). */
   | "REQUEST_FAILED"
   /** M-2: an unexpected server-side failure (a bug) — the message says what broke. */
@@ -485,6 +487,11 @@ export const ERROR_CODES: Readonly<Record<ServiceNowErrorCode, ErrorCodeInfo>> =
       source: "server",
       description:
         "MCP tasks are unavailable for this call (SN_EXPERIMENTAL_TASKS).",
+    },
+    WATCH_LIMIT: {
+      source: "server",
+      description:
+        "A record-watch subscription would exceed SN_RECORD_WATCH_MAX_PER_SESSION or SN_RECORD_WATCH_MAX.",
     },
     REQUEST_FAILED: {
       source: "server",

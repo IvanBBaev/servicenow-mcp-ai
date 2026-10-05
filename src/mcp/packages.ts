@@ -13,6 +13,7 @@ import { getDeniedPackages } from "../core/settings.js";
 import { IntegrationError } from "../core/errors.js";
 import { logger } from "../core/logging.js";
 import { defineRuntimePart, currentRuntime } from "../core/runtime.js";
+import { unwatchRecord, watchRecord } from "./record-watch.js";
 
 /**
  * M-5: dynamic packages. Every policy-permitted tool is registered up front;
@@ -361,7 +362,8 @@ const subscriptions = new WeakMap<McpServer, Set<string>>();
 
 /**
  * Declare `resources.subscribe` + `listChanged` and track subscriptions, so a
- * profile switch can push resources/updated for servicenow://status. Must run
+ * profile switch can push resources/updated for servicenow://status, and a
+ * record URI is polled for changes (N-10). Must run
  * before connect (the SDK refuses capability changes afterwards).
  */
 export function enableResourceSubscriptions(server: McpServer): void {
@@ -371,11 +373,14 @@ export function enableResourceSubscriptions(server: McpServer): void {
   server.server.registerCapabilities({
     resources: { subscribe: true, listChanged: true },
   });
-  server.server.setRequestHandler(SubscribeRequestSchema, (request) => {
+  server.server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+    // N-10: a record URI starts a poll (and may be refused at a cap).
+    await watchRecord(server, request.params.uri);
     uris.add(request.params.uri);
     return {};
   });
   server.server.setRequestHandler(UnsubscribeRequestSchema, (request) => {
+    unwatchRecord(server, request.params.uri);
     uris.delete(request.params.uri);
     return {};
   });
