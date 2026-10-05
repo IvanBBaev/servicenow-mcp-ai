@@ -16,8 +16,12 @@ It is round 6 of the 2026-10 gap pass ([GAP-ANALYSIS-2026-10.md](GAP-ANALYSIS-20
 round 5 is [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)). The details are:
 
 - findings `TK-01` … `TK-29` (round 7, §2.5, TK-21 … TK-29: the agent harness and distribution, **P0**);
-- plan items `N-35` … `N-53`, tracked as rows 119–137 in [ROADMAP-V3.md](ROADMAP-V3.md);
+- findings `TK-30` … `TK-33` (round 8, §2.6, 2026-10-05: code mode, telemetry and tool-surface security, **P0**);
+- plan items `N-35` … `N-56`, tracked as rows 119–140 in [ROADMAP-V3.md](ROADMAP-V3.md);
 - new owner gates **O-19** … **O-22**.
+
+Round 9 refines N-36 … N-40 into measured work packages N-57 … N-65 (findings `TK-34` … `TK-51`):
+[TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).
 
 Evidence marker: **verified** means the claim was re-checked during this pass, in code, in
 `node_modules` or in the npm registry. A byte count becomes an approximate token count by
@@ -117,6 +121,23 @@ The repo ships these harness pieces today:
 | TK-27 | **No MCP bundle.** Claude Desktop installs `.mcpb` bundles (formerly DXT) in one click, with a typed settings form that marks secrets as sensitive. The server reaches Claude Desktop only through manual JSON config, `npx` or Smithery.                                                                   | **verified**: no `manifest.json` / `.mcpb`                    | Medium   | N-51   |
 | TK-28 | **Skills reach Claude Code only.** Agent Skills (`SKILL.md`) is an open format that other agents (Copilot in VS Code, Codex) also read. The skills ship only inside the Claude plugin, and the VS Code extension does not offer them.                                                                       | **verified**: `skills/`, `extension/package.json`             | Low      | N-52   |
 | TK-29 | **The docs are not in agent doc indexes.** Coding agents fetch library docs on demand from indexes such as Context7, which a project claims with a `context7.json`. The server's docs are not indexed.                                                                                                      | **verified**: no `context7.json`                              | Low      | N-53   |
+
+### 2.6 Code mode, telemetry and tool-surface security (round 8, P0)
+
+Added 2026-10-05 at the owner's request, with the **highest priority (P0)**, next to N-45 … N-53.
+A trend check against October 2026 practice found three topics that no item covered:
+
+- Clients increasingly call tools from code (Anthropic programmatic tool calling, Cloudflare Code
+  Mode) instead of one model round trip per call. Code can only use a result whose shape it knows.
+- OpenTelemetry moved the GenAI and MCP semantic conventions into a dedicated repository (June 2026) and aligned them with protocol 2026-07-28. Trace context travels in `params._meta`.
+- MCP security incidents in 2026 (tool poisoning, poisoned marketplace skills, the OWASP MCP Top 10) made a scan of the server's own model-facing text a baseline expectation.
+
+| Id    | Finding                                                                                                                                                                                                                                                                                                                 | Evidence                                                                                    | Severity | → Item |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------- | ------ |
+| TK-30 | **Most tools cannot be called from code reliably.** 37 of 97 tools declare an `outputSchema`; the other 60 return free-form JSON in text. A code-mode client has to guess field names, or fall back to one model round trip per call, which loses the token savings code mode exists for.                               | **verified**: `test/fixtures/tools-manifest.json` (`outputSchema`)                          | High     | N-54   |
+| TK-31 | **No OpenTelemetry spans for tool calls.** E-5 publishes HTTP request events on `diagnostics_channel` (`src/core/metrics.ts`), but nothing emits MCP spans (`mcp.method.name`, tool name, session) or reads a `traceparent` from `params._meta`. A client trace stops at the server boundary.                           | **verified**: `src/core/metrics.ts` `DIAGNOSTICS_CHANNELS`; no `_meta` trace read in `src/` | Medium   | N-55   |
+| TK-32 | **The model-facing text is not scanned.** Tool descriptions, parameter descriptions, prompts, server instructions and plugin skills reach the model verbatim. No test checks them for invisible Unicode, hidden instructions or cross-tool directives, which are the tool-poisoning patterns behind the 2026 incidents. | **verified**: `test/`; no scanner in `scripts/`                                             | High     | N-56   |
+| TK-33 | **The security model is not mapped to the OWASP MCP Top 10.** SECURITY.md describes the rails (plan → token → apply, redaction, SSRF guard, M-4 content boundary) but does not say which MCP risk each one covers, or which risks are out of scope.                                                                     | **verified**: `SECURITY.md`                                                                 | Medium   | N-56   |
 
 ## 3. Design principles
 
@@ -369,17 +390,67 @@ The repo ships these harness pieces today:
   - The owner registers the project.
 - **Tests:** none beyond JSON validity; it is checked in `docs:sync`.
 
+### N-54 — Code-mode-ready outputs (M) — P0, `tools/list` bytes with N-0 / O-10
+
+- **Why:** TK-30.
+- **Surface:**
+  - Every tool with a stable result shape gets an `outputSchema` and returns `structuredContent`
+    (the M-6 `okStructured` path). Tools whose shape depends on the instance (`query_table`,
+    `get_record`) declare the envelope (`records`, `count`, `truncated`, `next`) with
+    `additionalProperties: true` records.
+  - Schemas are shared definitions, not per-tool copies, so the `tools/list` cost grows as little
+    as possible. The byte delta is measured and lands with N-37 / N-0, which reclaim definition
+    weight first; a budget raise is an O-10 call.
+  - A `servicenow://reference/tools/{name}` example call per tool (N-37) shows the typed result.
+- **Tests:** every tool in the manifest has an `outputSchema` or is listed as shape-free with a
+  reason; each tool's `structuredContent` validates against its schema on the fetch double; the
+  `tools/list` budget test states the delta.
+
+### N-55 — OpenTelemetry MCP spans (S) — P0, opt-in
+
+- **Why:** TK-31.
+- **Surface:**
+  - A `servicenow-mcp:mcp.tool.call` `diagnostics_channel` pair (start / end / error) around
+    every tool call, beside the E-5 HTTP channels: tool name, package, profile, duration, error
+    `code`, result bytes. No arguments, results or credentials.
+  - The call context reads a W3C `traceparent` / `tracestate` from `params._meta` and carries it
+    to the HTTP channels, so a client trace continues into the ServiceNow requests.
+  - An optional subscriber (`SN_OTEL=1`) maps the channels to spans with the GenAI / MCP semantic
+    convention names. `@opentelemetry/api` is an optional peer dependency, loaded only when the
+    setting is on, so the default install and `pack:check` are unaffected.
+  - **Unverified:** the attribute names. Take them from the `semantic-conventions-genai`
+    repository at implementation time; they are not stable yet.
+- **Tests:** channel payloads carry no arguments or secrets; `traceparent` propagation through a
+  tool call into `rawRequest`; the subscriber is never loaded when off.
+
+### N-56 — Tool-surface security scan and OWASP MCP mapping (S) — P0
+
+- **Why:** TK-32, TK-33.
+- **Surface:**
+  - `npm run scan:surface` (in `npm run check`) walks the model-facing text: tool and parameter
+    descriptions from the manifest, prompts, server instructions, `skills/*/SKILL.md` and the
+    plugin hooks' messages. It fails on invisible or bidirectional Unicode, HTML comments,
+    instruction phrasing aimed at the model ("ignore", "do not tell the user", references to
+    other servers' tools), URLs outside the allowlist, and a description that changes without a
+    manifest `description_sha256` update.
+  - An optional workflow runs an external MCP scanner against the built server; its findings are
+    advisory.
+  - SECURITY.md gains a table: each OWASP MCP Top 10 risk → the rail that covers it (or "out of
+    scope" with the reason) → the test that proves it.
+- **Tests:** the scanner's own fixtures (one per rule, positive and negative); the scan is green
+  on the current surface; a docs check that every OWASP row names an existing test file.
+
 ## 5. Sequencing
 
-| Phase   | Items                                                | Why this order                                                                                              |
-| ------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| R0 (P0) | N-45, N-46, N-47, N-48, N-52, N-49, N-51, N-53, N-50 | Owner priority: harness hygiene first, then cheap harness wins, then distribution, then the one large item. |
-| R       | N-35 step 1 (spike), N-41                            | Know the protocol cost before building more surface; make the docs navigable first.                         |
-| A       | N-40 (metrics part), N-39, N-37                      | Measure response bytes, then cut the duplication and the definition weight.                                 |
-| B       | N-36 (with O-10), N-35 step 2 (O-19), N-38           | Discovery replaces the budget ratchet; protocol migration; cache hints need the new protocol.               |
-| C       | N-40 (rest), N-42, N-43 (O-20), N-44                 | Opt-in compact forms, then the generated docs.                                                              |
+| Phase   | Items                                                                  | Why this order                                                                                                                                  |
+| ------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| R0 (P0) | N-45, N-56, N-46, N-47, N-48, N-55, N-52, N-49, N-51, N-53, N-54, N-50 | Owner priority: harness hygiene and the surface scan first, then cheap harness and telemetry wins, then distribution, then the two large items. |
+| R       | N-35 step 1 (spike), N-41                                              | Know the protocol cost before building more surface; make the docs navigable first.                                                             |
+| A       | N-40 (metrics part), N-39, N-37                                        | Measure response bytes, then cut the duplication and the definition weight.                                                                     |
+| B       | N-36 (with O-10), N-35 step 2 (O-19), N-38                             | Discovery replaces the budget ratchet; protocol migration; cache hints need the new protocol.                                                   |
+| C       | N-40 (rest), N-42, N-43 (O-20), N-44                                   | Opt-in compact forms, then the generated docs.                                                                                                  |
 
-R0 runs before every other N item. N-46's nested `AGENTS.md` waits for O-20, and the N-51 / N-53 publication steps wait for O-22. The rest of R0 has no gate. N-9 does not start until O-19 decides it. N-17 waits for the N-35 spike.
+R0 runs before every other N item. N-54's `tools/list` delta goes through N-0 / O-10 like any other surface change. N-46's nested `AGENTS.md` waits for O-20, and the N-51 / N-53 publication steps wait for O-22. The rest of R0 has no gate. N-9 does not start until O-19 decides it. N-17 waits for the N-35 spike.
 
 ## 6. Owner gates (new)
 
@@ -404,3 +475,9 @@ R0 runs before every other N item. N-46's nested `AGENTS.md` waits for O-20, and
 - [AGENTS.md](https://agents.md/)
 - [Agent Skills](https://agentskills.io/)
 - [Serving Markdown and llms.txt to AI agents](https://www.deployhq.com/blog/making-your-documentation-ai-friendly-serving-markdown-to-ai-coding-assistants)
+- [Anthropic — advanced tool use (Tool Search, programmatic tool calling)](https://www.anthropic.com/engineering/advanced-tool-use)
+- [Anthropic — code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp)
+- [Cloudflare — Code Mode](https://blog.cloudflare.com/code-mode/)
+- [OpenTelemetry — MCP semantic conventions](https://opentelemetry.io/docs/specs/semconv/registry/attributes/mcp/)
+- [OpenTelemetry semantic-conventions-genai — MCP aligned with 2026-07-28](https://github.com/open-telemetry/semantic-conventions-genai/issues/437)
+- [OWASP MCP Top 10 and the 2026 CVEs](https://mcp.directory/blog/mcp-security-200000-exposed-servers-owasp-mcp-top-10-cves)

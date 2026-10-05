@@ -8,7 +8,7 @@ This pass asks a different question from the 2026-09 reviews: v3.0 is close to e
 rows of [ROADMAP-V3.md](ROADMAP-V3.md) are owner-gated: O-1, O-2, O-5, the H-11 policy file, the
 pack ceiling), so **what does the server still not do that a ServiceNow developer or admin asks
 for every week?** Findings carry ids `NX-01` … `NX-35`. The implementation items they produce are
-the **N pillar** (`N-0` … `N-53`), tracked as rows 84–137 in [ROADMAP-V3.md](ROADMAP-V3.md). They
+the **N pillar** (`N-0` … `N-65`), tracked as rows 84–149 in [ROADMAP-V3.md](ROADMAP-V3.md). They
 are post-3.0 work and ship on 3.x minors, like the P epic.
 
 Evidence marker: **verified** = re-checked in code during this pass (a grep over `src/`).
@@ -20,7 +20,7 @@ MCP capabilities. Round 2 (NX-13 … NX-24, §2.2) adds release and verification
 (domains, hardening, cross-scope, indexes), server identity over HTTP and tool-surface quality. Round 3 (NX-25 … NX-29, §2.3) covers
 elevated-privilege roles (`security_admin`). Round 4 (NX-30 … NX-35, §2.4) covers user access:
 role grants, privileged accounts, least privilege and field masking. Round 5 (UI Builder, findings
-`UX-01` … `UX-24`, items N-25 … N-34, owner gate O-18) has its own document, [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md). Round 6 (token economy, AI-facing documentation and MCP 2026-07-28, findings `TK-01` … `TK-20`, items N-35 … N-44, owner gates O-19 … O-21) and round 7 (agent harness and distribution, `TK-21` … `TK-29`, items N-45 … N-53, **P0**, owner gate O-22) are in [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).
+`UX-01` … `UX-24`, items N-25 … N-34, owner gate O-18) has its own document, [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md). Round 6 (token economy, AI-facing documentation and MCP 2026-07-28, findings `TK-01` … `TK-20`, items N-35 … N-44, owner gates O-19 … O-21) and round 7 (agent harness and distribution, `TK-21` … `TK-29`, items N-45 … N-53, **P0**, owner gate O-22) and round 8 (code mode, telemetry, surface security, `TK-30` … `TK-33`, items N-54 … N-56, **P0**) are in [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md). Round 9 (measured token-optimization plan, `TK-34` … `TK-51`, work packages N-57 … N-65, sub-questions on O-4, O-10, O-19 and O-21) is in [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).
 
 ## 1. Method
 
@@ -559,7 +559,7 @@ weeks; phase D ≈ 5–6 weeks after the owner decisions.
 - **O-18** UIB writes (N-33): whether they ship, whether they need an open update set, and
   whether `/api/now/uxf/*` and custom-component deployment stay out. See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md).
 - **O-19** Protocol 2026-07-28 (N-35): SDK v2 migration window, whether it is BREAKING, and the
-  fate of N-9. **O-20** public `AGENTS.md` (N-43). **O-21** response defaults (N-39, N-40). **O-22** external distribution (N-51, N-53). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).
+  fate of N-9. **O-20** public `AGENTS.md` (N-43). **O-21** response defaults (N-39, N-40). **O-22** external distribution (N-51, N-53). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md); round 9 sub-questions on O-10, O-19 and O-21 are in [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md) §7.
 
 All N items also depend on **O-5** (PDI verification) for table and field names, and on **O-2**
 for fixtures.

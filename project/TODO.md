@@ -263,6 +263,14 @@
       constants (about 760 bytes of headroom on `all` after batch 10). (f) M-9 interplay: a task-capable
       tool's output schema has every field optional while `SN_EXPERIMENTAL_TASKS` is on, so the
       task handle validates — accept, or give handles their own result type?
+- [ ] **Owner decisions from round 9 (token-optimization plan, 2026-10-05):** see
+      [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md) §7. O-10 (a) budgets
+      as data with an automatic tightening ratchet; (b) restated targets — `discovery` ≤ 22 KB
+      (stretch 14 KB), `all` ≤ 120 KB (with N-54) non-default — and the N-58 / N-63 wire changes; (c) shallow
+      output schemas (N-60); (d) N-18 eval models and API budget. O-19 (d) per-connection
+      `tools/list` vs M-5 / N-63. O-21 (a) compact-read defaults; (b) 48 k result cap, automatic
+      file result, `list_tables` default limit; (c) Claude Code `_meta` hints; (d) N-39 parked
+      until N-35. O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63); the `list_tables` default limit (N-61) unless ruled a fix.
 - [ ] **Owner decisions from batch 11 (D-4, 2026-09-26):** (a) client syntaxes not verified
       against a live client — Zed `context_servers` (`"source": "custom"` + flat `command` /
       `args`; older Zed builds nest `command: {path, args}`), the JetBrains AI Assistant menu path
