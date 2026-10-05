@@ -1639,9 +1639,10 @@ declaratively instead of calling a tool:
 | `servicenow://reference/encoded-query`  | Encoded-query reference: syntax, `javascript:` values, limits (no `^` escaping, URL length, silently ignored fields, ACL-hidden rows) and how `fetchAll` pages. |
 | `servicenow://reference/tools`          | The tool manifest as Markdown: every tool by package, read / write, and whether this session registered it under the package policy. |
 | `servicenow://reference/tools/{name}`   | One tool in full: description, annotations, the published input and output schema, package and registration state. |
+| `servicenow://profiles/{profile}/records/{table}/{sys_id}` | One record through a named profile, masked like `servicenow_get_record`. Subscribe to get `notifications/resources/updated` when it changes (polled every `SN_RECORD_WATCH_INTERVAL_MS`, floor 30 s; capped per session and per process). |
 
 Resources are package-gated like tools: `status`, `capabilities` and the tool
-reference are always on; `encoded-query` comes with the `table` package, `tables`/`schema` with the `schema` package, `instances`/per-profile
+reference are always on; `encoded-query` and the record template come with the `table` package, `tables`/`schema` with the `schema` package, `instances`/per-profile
 schema with `instance`, and `docs` with the `docs` package.
 
 The three templates support completion and listing: `{table}` completes from
@@ -1661,7 +1662,7 @@ characters) reach the model inside an untrusted-content block, and every prompt
 tells the model to treat instance data as data, not instructions. A prompt is
 listed only when the packages its tools live in are enabled (triage: `table`;
 change impact: `change` or `table`; document table: `docs` and `scripts`;
-why is it slow: `ops`; the instance overview uses admin tools only and is
+why is it slow: `ops`; security posture: `codecheck`; the instance overview uses admin tools only and is
 always listed). The list follows `servicenow_enable_package` /
 `servicenow_disable_package` live, with `notifications/prompts/list_changed`:
 
@@ -1672,6 +1673,7 @@ always listed). The list follows `servicenow_enable_package` /
 | `servicenow_document_table`         | `table`, `profile` | Runs `servicenow_document_table`, then fills the manual Purpose block of `<profile>/tables/<table>.md`; attaches the encoded-query reference. |
 | `servicenow_why_is_it_slow`         | `symptom`, `table` (both optional) | System log, scheduler backlog, email queue and semaphores (`ops`), then the logic on a table → ranked causes. |
 | `servicenow_instance_overview`      | `goal` (optional) | Capability matrix (`servicenow_check_capabilities`), status and the session's packages; treats the profile as production until H-11 adds an environment marker. |
+| `servicenow_security_posture`      | `scope`, `profile` (both optional) | ACL scan and hardening compliance (`check_code_health`), the instance `security` document, then the cross-scope access of one app (`docs` package for the documents). |
 
 ## Project structure
 
