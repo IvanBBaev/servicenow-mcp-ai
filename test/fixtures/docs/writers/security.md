@@ -81,6 +81,12 @@ Scanned 5 row(s), 1 finding(s).
 | --- | --- | --- | --- | --- | --- |
 | info | acl-elevated-privilege | `x_acme_step.u_request` | delete | security_admin | ACL requires the elevated role 'security_admin' — only users who elevate their session pass it; confirm the operation needs it. |
 
+### `ux_data_brokers`
+
+Scanned 0 row(s), 0 finding(s).
+
+_None._
+
 ## Hardening
 
 Rule table v1: 0 pass, 0 fail (high 0, medium 0, low 0), 18 not set, 0 unreadable.

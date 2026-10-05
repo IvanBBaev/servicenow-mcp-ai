@@ -90,6 +90,12 @@
         "unavailableReason": "sys_security_acl_role does not exist on this instance or is not exposed (HTTP 404).",
         "scanned": 0,
         "findings": 0
+      },
+      "ux_data_brokers": {
+        "available": false,
+        "unavailableReason": "sys_security_acl_role does not exist on this instance or is not exposed (HTTP 404).",
+        "scanned": 0,
+        "findings": 0
       }
     }
   },

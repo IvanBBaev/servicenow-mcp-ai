@@ -4,6 +4,11 @@ import type { HardeningReport } from "./hardening.js";
 import { ServiceNowError } from "../core/errors.js";
 import type { Severity } from "./codecheck.js";
 import { scriptCalls, type CallFact } from "./script-ast.js";
+import {
+  BROKER_KIND_BY_TABLE,
+  UIB_BROKER_RULES,
+  brokerMutates,
+} from "./uib-broker-lint.js";
 
 /**
  * DF-1 / S-3 — security scan over the access-control layer, part of the
@@ -23,7 +28,8 @@ export type SecurityFindingKind =
   | "rest_resource"
   | "ui_page"
   | "table"
-  | "role";
+  | "role"
+  | "ux_data_broker";
 
 export interface SecurityFinding {
   sys_id: string;
@@ -60,7 +66,8 @@ export type SecurityCheckName =
   | "public_ui_pages"
   | "tables_without_acl"
   | "admin_overlap_roles"
-  | "elevated_privilege_acls";
+  | "elevated_privilege_acls"
+  | "ux_data_brokers";
 
 export interface SecurityScan {
   /** False when sys_security_acl is unreadable for the connected user (DF-0). */
@@ -193,6 +200,11 @@ export function unreadableReason(table: string, error: unknown): string {
   return `${table} could not be read: ${error instanceof Error ? error.message : String(error)}`;
 }
 
+/** Same rule as the UIB domain (uib-broker-lint.ts), so both name it alike. */
+const MUTATES_NO_ACL_HINT =
+  UIB_BROKER_RULES.find((r) => r.id === "uib-broker-mutates-no-acl")?.hint ??
+  "";
+
 function unavailable(reason: string): SecurityCheck {
   return {
     available: false,
@@ -212,6 +224,8 @@ interface Acl {
   table: string;
   /** True for a record ACL (the only type that guards a table). */
   record: boolean;
+  /** ACL type name (`record`, `ux_data_broker`, …); empty when unknown. */
+  type: string;
 }
 
 function toAcl(r: SnRecord): Acl {
@@ -228,6 +242,7 @@ function toAcl(r: SnRecord): Acl {
     condition: snString(r.condition),
     table: name.split(".")[0]?.trim().toLowerCase() ?? "",
     record,
+    type: /^[0-9a-f]{32}$/.test(typeName) ? "" : typeName,
   };
 }
 
@@ -687,6 +702,111 @@ export async function securityScan(
     }
   }
 
+  // --- N-29 (UX-12): UI Builder data brokers and their ux_data_broker ACLs --
+  // A broker ACL's name is the broker's sys_id. Table and field names
+  // (mutates_server_data, the REST / GraphQL broker tables) are unverified
+  // until O-5.
+  let brokerCheck: SecurityCheck;
+  if (aclUnavailable) {
+    brokerCheck = unavailable("Needs sys_security_acl, which is unreadable.");
+  } else if (!rolesCheck.available) {
+    brokerCheck = unavailable(
+      rolesCheck.unavailableReason ?? "ACL roles are not readable.",
+    );
+  } else {
+    const brokerAcls = new Map<string, Acl[]>();
+    for (const acl of acls) {
+      if (acl.type !== "ux_data_broker") continue;
+      const key = acl.name.trim();
+      brokerAcls.set(key, [...(brokerAcls.get(key) ?? []), acl]);
+    }
+    let scanned = 0;
+    let count = 0;
+    let truncated = aclTruncated || rolesCheck.truncated === true;
+    const unread: string[] = [];
+    const known = new Set<string>();
+    for (const table of Object.keys(BROKER_KIND_BY_TABLE)) {
+      const read = await readAll(
+        table,
+        "ORDERBYname",
+        ["sys_id", "name", "mutates_server_data"],
+        ceiling,
+      );
+      if (!read.ok) {
+        unread.push(read.reason);
+        continue;
+      }
+      if (read.truncated) truncated = true;
+      for (const r of read.res.records) {
+        scanned++;
+        const id = snString(r.sys_id);
+        known.add(id);
+        const name = snString(r.name) || id;
+        const mutates = brokerMutates(r.mutates_server_data) === true;
+        const guards = brokerAcls.get(id) ?? [];
+        if (mutates && guards.length === 0 && !aclTruncated) {
+          count++;
+          add({
+            sys_id: id,
+            name,
+            operation: "execute",
+            kind: "ux_data_broker",
+            rule: "uib-broker-mutates-no-acl",
+            severity: "error",
+            hint: MUTATES_NO_ACL_HINT,
+          });
+        }
+        for (const acl of guards) {
+          const roles = aclRoles.get(acl.sys_id) ?? [];
+          const open = !acl.script.trim() && !acl.condition.trim();
+          const everyone = roles.filter((role) => EVERYONE_ROLES.has(role));
+          if (!(open && roles.length === 0) && everyone.length === 0) continue;
+          count++;
+          add({
+            sys_id: acl.sys_id,
+            name,
+            operation: acl.operation,
+            kind: "ux_data_broker",
+            roles,
+            rule: "ux-broker-acl-open",
+            severity: mutates ? "error" : "warn",
+            hint:
+              everyone.length > 0
+                ? `The broker's ux_data_broker ACL grants the '${everyone.join("', '")}' role — anyone satisfies it; restrict it to the roles that may run the broker.`
+                : "The broker's ux_data_broker ACL has no role, no condition and no script — it lets every authenticated user run the broker.",
+          });
+        }
+      }
+    }
+    if (unread.length === Object.keys(BROKER_KIND_BY_TABLE).length) {
+      brokerCheck = unavailable(unread.join(" "));
+    } else {
+      const orphans = [...brokerAcls.keys()].filter((k) => !known.has(k));
+      const notes = [
+        ...(unread.length
+          ? [`Broker tables not read: ${unread.join(" ")}`]
+          : []),
+        ...(orphans.length
+          ? [
+              `${orphans.length} ux_data_broker ACL(s) name no broker that was read.`,
+            ]
+          : []),
+        ...(aclTruncated
+          ? [
+              "The ACL read was partial, so a broker without an ACL cannot be proven.",
+            ]
+          : []),
+      ];
+      brokerCheck = {
+        available: true,
+        scanned,
+        findings: count,
+        ...(truncated ? { truncated: true } : {}),
+        ...(notes.length ? { note: notes.join(" ") } : {}),
+      };
+    }
+  }
+
   const checks: Record<SecurityCheckName, SecurityCheck> = {
     acl_roles: rolesCheck,
     role_inheritance: inheritCheck,
@@ -695,6 +815,7 @@ export async function securityScan(
     tables_without_acl: tableCheck,
     admin_overlap_roles: overlapCheck,
     elevated_privilege_acls: elevatedCheck,
+    ux_data_brokers: brokerCheck,
   };
 
   if (aclUnavailable) {

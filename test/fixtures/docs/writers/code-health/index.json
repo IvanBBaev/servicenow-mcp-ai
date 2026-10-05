@@ -20,8 +20,8 @@
       "profile": "default",
       "generator": "servicenow_check_code_health",
       "generated_at": "<generatedAt>",
-      "source_hash": "sha256:df2a14d6cf8b709733269d7903cdf365d426f0d5963ba410582529eef14ea4ff",
-      "bytes": 5953,
+      "source_hash": "sha256:23d4365076cec4cbbc7970dc72cdc582ab757b1880122f8e7caa728fd01f7005",
+      "bytes": 6083,
       "headings": [
         "Code health — profile `default`",
         "Script inventory",

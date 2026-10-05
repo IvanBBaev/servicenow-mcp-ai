@@ -6,7 +6,7 @@ sn_kind: code-health
 sn_profile: default
 sn_instance: dev00000.service-now.com
 sn_generated_at: <generatedAt>
-sn_source_hash: sha256:df2a14d6cf8b709733269d7903cdf365d426f0d5963ba410582529eef14ea4ff
+sn_source_hash: sha256:23d4365076cec4cbbc7970dc72cdc582ab757b1880122f8e7caa728fd01f7005
 ---
 
 # Code health — profile `default`
@@ -55,6 +55,7 @@ Generated <generatedAt>.
 | tables_without_acl | ok | 2 | 1 |
 | admin_overlap_roles | unavailable — sys_user_role_contains does not exist on this instance or is not exposed (HTTP 404). | 0 | 0 |
 | elevated_privilege_acls | unavailable — sys_security_acl_role does not exist on this instance or is not exposed (HTTP 404). | 0 | 0 |
+| ux_data_brokers | unavailable — sys_security_acl_role does not exist on this instance or is not exposed (HTTP 404). | 0 | 0 |
 
 | Item | Operation | Rule | Severity |
 | --- | --- | --- | --- |

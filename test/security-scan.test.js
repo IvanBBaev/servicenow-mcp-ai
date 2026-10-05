@@ -497,3 +497,87 @@ test("ID-27: a record-data read during the security scan fails the metadata guar
     /non-metadata table: incident/,
   );
 });
+
+test("UX-12: data brokers without a ux_data_broker ACL, and open broker ACLs", async () => {
+  freshRuntime();
+  const B1 = "b".repeat(32); // mutating, no ACL
+  const B2 = "c".repeat(32); // mutating, open ACL
+  const B3 = "d".repeat(32); // read-only, public-role ACL
+  const B4 = "e".repeat(32); // mutating, guarded by itil
+  const brokerAcl = (sys_id, name, extra = {}) => ({
+    sys_id,
+    name,
+    operation: "execute",
+    script: "",
+    condition: "",
+    "type.name": "ux_data_broker",
+    ...extra,
+  });
+  const base = fixture();
+  await withMetadataFetch(
+    router({
+      ...base,
+      sys_security_acl: [
+        ...base.sys_security_acl,
+        brokerAcl("bacl2", B2),
+        brokerAcl("bacl3", B3),
+        brokerAcl("bacl4", B4),
+        brokerAcl("bacl9", "f".repeat(32), { script: "answer = true;" }),
+      ],
+      sys_security_acl_role: [
+        ...base.sys_security_acl_role,
+        { sys_security_acl: "bacl3", "sys_user_role.name": "public" },
+        { sys_security_acl: "bacl4", "sys_user_role.name": "itil" },
+      ],
+      sys_ux_data_broker_transform: [
+        { sys_id: B1, name: "Save form", mutates_server_data: "true" },
+        { sys_id: B2, name: "Delete row", mutates_server_data: "true" },
+        { sys_id: B3, name: "Lookup", mutates_server_data: "false" },
+      ],
+      sys_ux_data_broker_scriptlet: [
+        { sys_id: B4, name: "Close", mutates_server_data: "true" },
+      ],
+      sys_ux_data_broker_rest: 404,
+    }),
+    async () => {
+      const scan = await securityScan();
+      const c = scan.checks.ux_data_brokers;
+      assert.equal(c.available, true);
+      assert.equal(c.scanned, 4);
+      assert.equal(c.findings, 3);
+      assert.match(c.note, /sys_ux_data_broker_rest does not exist/);
+      assert.match(c.note, /1 ux_data_broker ACL\(s\) name no broker/);
+      assert.deepEqual(
+        byRule(scan, "uib-broker-mutates-no-acl").map((f) => [
+          f.sys_id,
+          f.name,
+          f.kind,
+          f.severity,
+        ]),
+        [[B1, "Save form", "ux_data_broker", "error"]],
+      );
+      assert.deepEqual(
+        byRule(scan, "ux-broker-acl-open").map((f) => [
+          f.sys_id,
+          f.name,
+          f.severity,
+        ]),
+        [
+          ["bacl2", "Delete row", "error"],
+          ["bacl3", "Lookup", "warn"],
+        ],
+      );
+      assert.match(byRule(scan, "ux-broker-acl-open")[1].hint, /'public' role/);
+    },
+  );
+
+  // A partial ACL read cannot prove a broker unguarded; no ACLs → unavailable.
+  freshRuntime();
+  await withMetadataFetch(
+    router({ ...fixture(), sys_security_acl: 403 }),
+    async () => {
+      const scan = await securityScan();
+      assert.equal(scan.checks.ux_data_brokers.available, false);
+    },
+  );
+});

@@ -1466,6 +1466,7 @@ export const SECURITY_CHECK_ORDER: readonly SecurityCheckName[] = [
   "tables_without_acl",
   "admin_overlap_roles",
   "elevated_privilege_acls",
+  "ux_data_brokers",
 ];
 
 /** Which check a finding belongs to; `undefined` for the ACL script rules. */
@@ -1486,6 +1487,9 @@ function checkOf(f: SecurityFinding): SecurityCheckName | undefined {
       return "admin_overlap_roles";
     case "acl-elevated-privilege":
       return "elevated_privilege_acls";
+    case "uib-broker-mutates-no-acl":
+    case "ux-broker-acl-open":
+      return "ux_data_brokers";
     default:
       return undefined;
   }
