@@ -203,28 +203,36 @@ export function okQueryResult(
     return { content: [{ type: "text", text: fullText }] };
   }
 
-  let kept = records.length;
-  while (kept > 0) {
-    kept = Math.floor(kept / 2);
-    const payload = {
+  // N-61: binary search on the row count keeps the most rows that fit (the
+  // old halving loop could keep half as many as fit).
+  const truncatedText = (kept: number): string =>
+    stringify({
       count: records.length,
       ...meta,
       returned: kept,
       truncated: true,
       note: `Result too large (${fullText.length} chars > ${maxChars}). Showing the first ${kept} of ${records.length} records.${capped ? (info?.truncatedReason === "scan_limit" ? " The full set was itself partial (scan limit reached)." : " The full set was itself capped at SN_MAX_RECORDS.") : ""} Narrow the query, select fewer fields, or lower the limit — or pass format:"file" to write the full result to a file under SN_DOCS_DIR.`,
       records: records.slice(0, kept),
-    };
-    const text = stringify(payload);
-    if (text.length <= maxChars) {
-      return { content: [{ type: "text", text }] };
-    }
+    });
+  let lo = 0;
+  let hi = records.length - 1;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (truncatedText(mid).length <= maxChars) lo = mid;
+    else hi = mid - 1;
+  }
+  const text = truncatedText(lo);
+  if (lo > 0 || text.length <= maxChars) {
+    return { content: [{ type: "text", text }] };
   }
 
+  // Even the envelope does not fit: keep the shape, with an empty record set.
   return ok({
     count: records.length,
     ...meta,
     returned: 0,
     truncated: true,
     note: 'Result too large to display. Narrow the query or select fewer fields — or pass format:"file" to write the full result to a file under SN_DOCS_DIR.',
+    records: [],
   });
 }

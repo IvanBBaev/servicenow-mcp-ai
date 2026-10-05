@@ -387,12 +387,16 @@ export async function explainArtifactFor(
     for (const row of records) {
       if (budget.left <= 0) break;
       const cut: string[] = [];
+      const before = budget.left;
       const item: Record<string, unknown> = {
         sys_id: snString(row.sys_id),
         ...compactFields(row, first, skip, budget, cut),
       };
       if (cut.length) item.truncatedFields = cut;
       items.push(item);
+      // Charge the item's serialized size (keys, sys_id, punctuation), not
+      // only its values, so the result fits before runSpec's N-61 cap.
+      budget.spend(JSON.stringify(item).length + 1 - (before - budget.left));
       for (const jf of c?.jsonFields ?? []) {
         const d = decodeOne(entry.table, row, jf, budget);
         if (d) decoded.push(d);

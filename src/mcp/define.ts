@@ -20,6 +20,7 @@ import {
 } from "../core/tracing.js";
 import { createProgressSink, type ProgressNotification } from "./progress.js";
 import { fail, type ToolResult } from "./result.js";
+import { capResult, supportsFileFormat } from "./result-cap.js";
 import { planArgsHash } from "./plan-token.js";
 import { createSecretRegistry } from "../core/secret-columns.js";
 import { confirmDestructiveApply } from "./confirm.js";
@@ -309,7 +310,12 @@ async function runSpecInner(
     const marked = env
       ? { ...result, _meta: { ...result._meta, environment: env } }
       : result;
-    return spec.output ? withStructuredContent(spec, marked) : marked;
+    // N-61: one shape-preserving size cap for every tool, before the
+    // structuredContent step so tools without an output schema are capped too.
+    const capped = capResult(marked, {
+      fileHint: supportsFileFormat(spec.input),
+    });
+    return spec.output ? withStructuredContent(spec, capped) : capped;
   } catch (error) {
     const cancelled = call.signal?.aborted === true;
     logger.warn(`tool ${spec.name} ${cancelled ? "cancelled" : "error"}`, {
@@ -393,7 +399,8 @@ function normalizeParamAliases(
  * M-6: the structuredContent of a tool that declares an output shape. The
  * text content stays as it is (older clients read only that); a success
  * result whose first text block is a JSON object gets that object as
- * structuredContent (it is already redacted and truncated by ok()). An error
+ * structuredContent (it is already redacted by ok() and size-capped by
+ * capResult in runSpecInner). An error
  * result never carries structuredContent — the SDK skips output validation
  * for errors and a client must not mistake an error body for data.
  */

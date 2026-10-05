@@ -45,7 +45,13 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Encoded query (sysparm_query)."),
       fields: fieldList().optional().describe("Columns to return."),
-      limit: z.number().int().positive().max(1000).optional(),
+      limit: z
+        .number()
+        .int()
+        .positive()
+        .max(1000)
+        .optional()
+        .describe("Rows (default 10)."),
       offset: z.number().int().nonnegative().optional(),
     },
     handler: async ({ query, fields, limit, offset }) =>

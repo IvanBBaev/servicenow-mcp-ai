@@ -49,6 +49,8 @@
     "test:full": "npm run build && node --test test/*.test.js",
     "sdk:drift": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/sdk-drift.mjs",
     "scan:surface": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/scan-surface.mjs",
+    "tokens:budget": "node scripts/tokens-budget.mjs",
+    "tokens:report": "node scripts/tokens-report.mjs",
     "gen:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/gen-manifest.mjs",
     "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
     "pack:check": "node scripts/pack-check.mjs",

@@ -67,7 +67,7 @@ test("okQueryResult on 10k records stays fast (perf regression guard, Q2-4)", as
     assert.equal(payload.truncated, true);
     assert.ok(payload.returned > 0);
     // Generous bound: catches a quadratic blow-up, tolerates slow CI runners.
-    assert.ok(elapsed < 2000, `halving took ${elapsed}ms`);
+    assert.ok(elapsed < 2000, `truncation took ${elapsed}ms`);
   });
 });
 
@@ -76,6 +76,7 @@ test("okQueryResult degrades to zero records when even one is too large", async 
     const payload = parse(okQueryResult([{ big: "y".repeat(500) }]));
     assert.equal(payload.truncated, true);
     assert.equal(payload.returned, 0);
-    assert.equal(payload.records, undefined);
+    // N-61: the shape survives (the output schema requires `records`).
+    assert.deepEqual(payload.records, []);
   });
 });

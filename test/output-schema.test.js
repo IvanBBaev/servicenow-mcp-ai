@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { tmpdir } from "node:os";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 
@@ -19,6 +19,7 @@ import {
 import { ok, okStructured, fail } from "../build/mcp/result.js";
 import { currentRuntime } from "../build/core/runtime.js";
 import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+import { listPublishedTools, measureSurface, PROFILES } from "./surface.js";
 
 baselineEnv();
 
@@ -87,26 +88,26 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * enum, required-ness, outputSchema or annotation change) measured 135,881
  * (all, 97 tools; was 150,916) and 32,737 (core; was 36,158). The constants
  * below are unchanged: restating them is owner gate O-10.
- * owner to restate (M-6 budget)
+ * N-57 step 1, 2026-10-05: the budgets moved to
+ * `test/fixtures/token-budgets.json` and were lowered (tightened only, no
+ * wire change) to the measured 135,956 (all) and 32,737 (core), rounded up
+ * to 256 B, so the N-54 outputSchema growth is measured instead of hiding in
+ * ~15 KB of dead headroom. Raising a budget is still owner gate O-10.
+ * N-57, 2026-10-05: one budget per test/surface.js profile (core, all,
+ * all+tasks, all+legacy), measured 32,737 / 135,991 / 137,343 / 154,621;
+ * the tasks and legacy surfaces were not budgeted before. A budget more than
+ * `slackPct` above its measurement fails the ratchet test.
  */
-const TOOLS_LIST_BUDGET_ALL = 151_000;
-const TOOLS_LIST_BUDGET_CORE = 36_500;
+const TOKEN_BUDGETS = JSON.parse(
+  readFileSync(
+    new URL("./fixtures/token-budgets.json", import.meta.url),
+    "utf8",
+  ),
+);
 
-async function listTools(packages) {
-  return withEnv({ SN_TOOL_PACKAGES: packages }, async () => {
-    const server = new McpServer({ name: "budget-test", version: "0.0.0" });
-    registerAllTools(server, currentRuntime());
-    const client = new Client({ name: "budget-client", version: "0.0.0" });
-    const [a, b] = InMemoryTransport.createLinkedPair();
-    await Promise.all([server.connect(b), client.connect(a)]);
-    try {
-      return (await client.listTools()).tools;
-    } finally {
-      await client.close();
-      await server.close();
-    }
-  });
-}
+/** The published tools for a package selection (test/surface.js pins env). */
+const listTools = (packages) =>
+  listPublishedTools({ SN_TOOL_PACKAGES: packages });
 
 async function withClient(fn) {
   const server = new McpServer({ name: "m6-test", version: "0.0.0" });
@@ -155,20 +156,31 @@ test("the automatic instance parameter description is short", () => {
   );
 });
 
-test("tools/list stays within the byte budget (all and core)", async () => {
-  const all = await listTools("all");
-  const core = await listTools(undefined);
-  assert.equal(all.length, ALL_TOOLS.length);
-  const allBytes = JSON.stringify(all).length;
-  const coreBytes = JSON.stringify(core).length;
-  assert.ok(
-    allBytes <= TOOLS_LIST_BUDGET_ALL,
-    `all: ${allBytes} > ${TOOLS_LIST_BUDGET_ALL}`,
+test("tools/list stays within the byte budget of every profile", async () => {
+  assert.deepEqual(
+    Object.keys(TOKEN_BUDGETS.profiles).sort(),
+    Object.keys(PROFILES).sort(),
+    "every measured profile has a budget",
   );
-  assert.ok(
-    coreBytes <= TOOLS_LIST_BUDGET_CORE,
-    `core: ${coreBytes} > ${TOOLS_LIST_BUDGET_CORE}`,
-  );
+  const all = await measureSurface("all");
+  assert.equal(all.tools, ALL_TOOLS.length);
+  for (const [profile, budget] of Object.entries(TOKEN_BUDGETS.profiles)) {
+    const { bytes } = await measureSurface(profile);
+    assert.ok(bytes <= budget, `${profile}: ${bytes} > ${budget} (O-10)`);
+  }
+});
+
+test("tools/list budget is tight (ratchet down)", async () => {
+  // N-57: a saving cannot sit as headroom. Run `npm run tokens:budget --
+  // --write` to lower the fixture after a change that shrinks the surface.
+  const floor = 1 - TOKEN_BUDGETS.slackPct / 100;
+  for (const [profile, budget] of Object.entries(TOKEN_BUDGETS.profiles)) {
+    const { bytes } = await measureSurface(profile);
+    assert.ok(
+      bytes >= Math.floor(budget * floor),
+      `${profile}: ${bytes} is more than ${TOKEN_BUDGETS.slackPct}% under its budget ${budget}; run npm run tokens:budget -- --write`,
+    );
+  }
 });
 
 test("tools with an output shape publish a permissive outputSchema", async () => {

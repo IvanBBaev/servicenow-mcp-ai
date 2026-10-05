@@ -14,6 +14,12 @@ const BASE = "/api/sn_chg_rest/change";
 const LABEL = "Change Management";
 const CHANGE_TABLE = "change_request";
 
+/**
+ * N-61: rows `list_changes` returns without a `limit`. The API's own default
+ * is unbounded in practice, and a Change API row is large.
+ */
+export const DEFAULT_CHANGE_LIST_LIMIT = 10;
+
 export type ChangeType = "normal" | "standard" | "emergency";
 
 export interface ChangeQuery {
@@ -28,7 +34,7 @@ export async function listChanges(opts: ChangeQuery = {}): Promise<unknown> {
   assertTableAllowed(CHANGE_TABLE);
   const params = snParams({
     sysparm_query: opts.query,
-    sysparm_limit: opts.limit,
+    sysparm_limit: opts.limit ?? DEFAULT_CHANGE_LIST_LIMIT,
     sysparm_offset: opts.offset,
     sysparm_fields: opts.fields,
   });
