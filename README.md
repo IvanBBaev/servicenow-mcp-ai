@@ -1043,6 +1043,8 @@ task, tests ship with the change, generated docs).
 
 ## Tools
 
+The full reference — every parameter, the output fields, how each tool writes, and the error codes — is in [docs/tools/](docs/tools/README.md), one page per package. [docs/llms-full.txt](docs/llms-full.txt) bundles this README, SECURITY.md and that reference in one file for LLM context.
+
 <!-- GENERATED:TOOLS:BEGIN (npm run docs:readme) -->
 
 _This table is generated from the tool registrations — edit the tool

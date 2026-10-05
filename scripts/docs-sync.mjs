@@ -10,6 +10,11 @@
 //   .claude-plugin/marketplace.json  "N tools"
 //   docs/index.html                  meta descriptions, hero stats, the tools intro
 //
+// The same run regenerates the tool reference (N-42: docs/tools/, the
+// docs/llms-full.txt bundle, the docs/llms.txt link section, the docs/index.md
+// Markdown alternate of the landing page) and checks
+// context7.json (N-53) — see scripts/tool-docs.mjs.
+//
 // Every pattern must match at least once, so a reworded sentence fails loudly
 // instead of silently dropping out of the sync. Test and coverage counts are
 // not tracked: they change with every test added and only the run knows them.
@@ -22,7 +27,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import { loadToolsFromSource } from "./registry-from-source.mjs";
+import {
+  loadCorePackagesFromSource,
+  loadErrorCodesFromSource,
+  loadToolSchemasFromSource,
+  loadToolsFromSource,
+} from "./registry-from-source.mjs";
+import { checkContext7, generateToolDocs, syncToolDocs } from "./tool-docs.mjs";
 
 /**
  * Each site: a file and its patterns. A pattern's capture groups are named
@@ -128,11 +139,28 @@ if (invokedDirectly) {
   const check = process.argv.includes("--check");
   const root = path.join(import.meta.dirname, "..");
   try {
-    const counts = countTools(await loadToolsFromSource());
-    const drift = syncCounts({ root, counts, check });
+    const tools = await loadToolsFromSource();
+    const counts = countTools(tools);
+    // Counts first: the generated files quote README.md and docs/index.html.
+    const countDrift = syncCounts({ root, counts, check });
+    const files = generateToolDocs({
+      root,
+      tools,
+      schemas: await loadToolSchemasFromSource(),
+      errorCodes: await loadErrorCodesFromSource(),
+      corePackages: await loadCorePackagesFromSource(),
+    });
+    const drift = [...countDrift, ...syncToolDocs({ root, files, check })];
+    const problems = checkContext7(root);
     const label = `${counts.tools} tools, ${counts.packages} packages`;
+    if (problems.length > 0) {
+      console.error(`docs:sync: ${problems.join("\n  ")}`);
+      process.exit(1);
+    }
     if (drift.length === 0) {
-      console.log(`docs:sync: every site says ${label}`);
+      console.log(
+        `docs:sync: every site says ${label}; the tool reference is current`,
+      );
     } else if (check) {
       console.error(
         `docs:sync: ${drift.length} file(s) drift from the registry (${label}):\n` +
@@ -141,7 +169,7 @@ if (invokedDirectly) {
       );
       process.exit(1);
     } else {
-      console.log(`docs:sync: wrote ${label} into ${drift.join(", ")}`);
+      console.log(`docs:sync: wrote ${drift.join(", ")} (${label})`);
     }
   } catch (err) {
     console.error(`docs:sync: ${err instanceof Error ? err.message : err}`);

@@ -5,9 +5,18 @@ import {
   listTables,
   describeTable,
   describeTableDetails,
+  describeTableIndexes,
   getTableChain,
 } from "../build/api/meta.js";
-import { baselineEnv, withEnv, withFetch, jsonResponse } from "./helpers.js";
+import { ALL_TOOLS } from "../build/mcp/registry.js";
+import { runSpec } from "../build/mcp/define.js";
+import {
+  baselineEnv,
+  freshRuntime,
+  withEnv,
+  withFetch,
+  jsonResponse,
+} from "./helpers.js";
 
 baselineEnv();
 
@@ -318,6 +327,105 @@ test("describeTableDetails turns an unreadable table into a warning", async () =
       assert.equal(warnings.length, 1);
       assert.match(warnings[0], /^sys_dictionary_override: unavailable/);
       assert.ok(columns.find((c) => c.element === "state").choices);
+    }),
+  );
+});
+
+/** N-15: the S-7 chain plus sys_index rows on both levels and a row count. */
+function indexHandler({ failIndex = false, failStats = false } = {}) {
+  const details = detailsHandler();
+  return (url) => {
+    const u = new URL(url);
+    const q = u.searchParams.get("sysparm_query") ?? "";
+    if (u.pathname.includes("/table/sys_index")) {
+      if (failIndex) return jsonResponse(403, { error: { message: "no" } });
+      assert.match(q, /^logical_table_nameINu_det,u_base\^ORDERBYname/);
+      return jsonResponse(200, {
+        result: [
+          {
+            name: "u_base_number",
+            logical_table_name: "u_base",
+            col_name: "number",
+            unique_index: "true",
+          },
+          {
+            name: "u_det_state_opened",
+            logical_table_name: "u_det",
+            col_name: "state, opened_at",
+            unique_index: "false",
+          },
+          { name: "empty", logical_table_name: "u_det", col_name: "" },
+        ],
+      });
+    }
+    if (u.pathname.endsWith("/stats/u_det")) {
+      if (failStats) return jsonResponse(403, { error: { message: "no" } });
+      assert.equal(u.searchParams.get("sysparm_count"), "true");
+      return jsonResponse(200, { result: { stats: { count: "12345" } } });
+    }
+    return details(url);
+  };
+}
+
+test("describeTableIndexes reads the chain's indexes and a row estimate (N-15)", async () => {
+  await withEnv({ SN_SCHEMA_CACHE_TTL_SEC: "0" }, () =>
+    withFetch(indexHandler(), async () => {
+      const r = await describeTableIndexes("u_det");
+      assert.deepEqual(r.warnings, []);
+      assert.equal(r.rowEstimate, 12345);
+      assert.deepEqual(r.indexes, [
+        {
+          name: "u_base_number",
+          table: "u_base",
+          fields: ["number"],
+          unique: true,
+        },
+        {
+          name: "u_det_state_opened",
+          table: "u_det",
+          fields: ["state", "opened_at"],
+          unique: false,
+        },
+      ]);
+    }),
+  );
+});
+
+test("describeTableIndexes turns unreadable index / stats reads into warnings", async () => {
+  await withEnv({ SN_SCHEMA_CACHE_TTL_SEC: "0" }, () =>
+    withFetch(indexHandler({ failIndex: true, failStats: true }), async () => {
+      const r = await describeTableIndexes("u_det");
+      assert.deepEqual(r.indexes, []);
+      assert.equal(r.rowEstimate, undefined);
+      assert.equal(r.warnings.length, 2);
+      assert.match(r.warnings[0], /^sys_index: unavailable/);
+      assert.match(r.warnings[1], /^row count: unavailable/);
+    }),
+  );
+  await assert.rejects(describeTableIndexes("u_det^x"), /cannot contain/);
+});
+
+test("describe_table details:true carries indexes and rowEstimate (N-15)", async () => {
+  freshRuntime();
+  const call = (args) =>
+    runSpec(
+      ALL_TOOLS.find((s) => s.name === "servicenow_describe_table"),
+      args,
+    );
+  await withEnv({ SN_SCHEMA_CACHE_TTL_SEC: "0" }, () =>
+    withFetch(indexHandler(), async () => {
+      const lean = JSON.parse((await call({ table: "u_det" })).content[0].text);
+      assert.equal(lean.indexes, undefined);
+      const res = await call({ table: "u_det", details: true });
+      assert.equal(res.isError, undefined);
+      const body = JSON.parse(res.content[0].text);
+      assert.equal(body.rowEstimate, 12345);
+      assert.deepEqual(
+        body.indexes.map((i) => i.name),
+        ["u_base_number", "u_det_state_opened"],
+      );
+      assert.deepEqual(body.warnings, []);
+      assert.equal(res.structuredContent.rowEstimate, 12345);
     }),
   );
 });

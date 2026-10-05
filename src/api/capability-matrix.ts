@@ -111,6 +111,12 @@ const NOTABLE_ROLES = [
   "import_admin",
   "atf_test_admin",
   "web_service_admin",
+  // N-23: the rest of the elevated roles the privilege advice checks.
+  "maint",
+  "user_admin",
+  "oauth_admin",
+  "catalog_admin",
+  "knowledge_admin",
 ];
 
 /** Most role names reported (a user can hold hundreds through containment). */

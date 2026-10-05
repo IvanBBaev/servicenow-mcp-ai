@@ -222,7 +222,11 @@ export interface CliDeps {
 
 async function defaultDeps(): Promise<CliDeps> {
   const { runDoctor } = await import("./api/doctor.js");
-  return { runDoctor };
+  // N-23: the privilege advice needs the package set the server would load.
+  const { effectivePackages } = await import("./mcp/registry.js");
+  return {
+    runDoctor: () => runDoctor({ packages: effectivePackages().enabled }),
+  };
 }
 
 const errorText = (error: unknown) =>
@@ -259,6 +263,7 @@ export async function doctorPayload(
     config: report.config,
     ...(report.connection ? { connection: report.connection } : {}),
     ...(report.capabilities ? { capabilities: report.capabilities } : {}),
+    ...(report.privilege ? { privilege: report.privilege } : {}),
     serverStatus: buildStatusPayload(),
   };
 }

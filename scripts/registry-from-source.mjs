@@ -29,6 +29,11 @@ export function loadToolSchemasFromSource() {
   return loadRegistry().then((m) => m.describeToolSchemas());
 }
 
+/** N-42: the packages of the default `core` profile. */
+export function loadCorePackagesFromSource() {
+  return loadRegistry().then((m) => m.resolveEnabledPackages(["core"]));
+}
+
 /** M-2: the error-code table from the sources (the manifest's errorCodes). */
 export function loadErrorCodesFromSource() {
   return loadRegistry()

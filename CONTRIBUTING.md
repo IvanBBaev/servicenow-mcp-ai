@@ -127,6 +127,10 @@ the SDK's peer range (`^3.25 || ^4.0` — the zod 4 move is a breaking item,
 - The README tools section is **generated** — edit the tool definitions, then
   run `npm run docs:readme`. A drift test fails CI when it is stale; the same
   applies to the tool/package counts in the `package.json` description.
+- The tool reference (`docs/tools/`), `docs/llms-full.txt`, the "Tool
+  reference" section of `docs/llms.txt` and `docs/index.md` (the landing page
+  as Markdown) are **generated** by `npm run docs:sync` (N-42) — rerun it
+  after changing a tool, README.md, SECURITY.md or `docs/index.html`. `docs:sync -- --check` also validates `context7.json` (N-53).
 - Tool names follow `servicenow_<verb>_<noun>` (M-7); add a new tool's name to
   `TOOLS` in `src/mcp/naming.ts` and reference tools through it (prompts, cross-tool
   hints). Renaming a shipped tool or parameter is breaking: add the old name to

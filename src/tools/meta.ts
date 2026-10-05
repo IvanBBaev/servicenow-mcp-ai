@@ -3,6 +3,7 @@ import {
   listTables,
   describeTable,
   describeTableDetails,
+  describeTableIndexes,
 } from "../api/meta.js";
 import { ok } from "../mcp/result.js";
 import {
@@ -70,8 +71,22 @@ export const specs: AnyToolSpec[] = [
         const columns = await describeTable(table);
         return ok({ table, count: columns.length, columns });
       }
-      const { columns, warnings } = await describeTableDetails(table);
-      return ok({ table, count: columns.length, columns, warnings });
+      const [{ columns, warnings }, size] = await Promise.all([
+        describeTableDetails(table),
+        describeTableIndexes(table),
+      ]);
+      // N-15: indexes and the row estimate ride the details read; the output
+      // schema is loose, so they cost no tools/list bytes.
+      return ok({
+        table,
+        count: columns.length,
+        columns,
+        indexes: size.indexes,
+        ...(size.rowEstimate !== undefined
+          ? { rowEstimate: size.rowEstimate }
+          : {}),
+        warnings: [...warnings, ...size.warnings],
+      });
     },
   }),
 ];

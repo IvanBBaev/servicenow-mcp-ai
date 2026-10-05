@@ -9,6 +9,7 @@ import {
 import { credentialWarnings, refreshTokenState } from "../core/auth.js";
 import { testConnection, type ConnectionProbe } from "./diagnostics.js";
 import { checkCapabilities, type CapabilityReport } from "./capabilities.js";
+import { advisePrivilege, type PrivilegeAdvice } from "./privilege.js";
 
 /**
  * UX §11.8 / §4.2 — the `doctor` CLI subcommand.
@@ -57,6 +58,12 @@ export interface DoctorReport {
   connection?: ConnectionProbe;
   /** Capability preflight; omitted when unconfigured or unreachable. */
   capabilities?: CapabilityReport;
+  /**
+   * N-23: missing and excess access for the enabled packages. Present when
+   * the capabilities ran and the caller passed the package set;
+   * informational, it never changes `status`.
+   */
+  privilege?: PrivilegeAdvice;
   /** One-line, human-readable summary of the verdict. */
   summary: string;
   /**
@@ -140,7 +147,14 @@ export function connectionHint(
  * capabilities is turned into a degraded verdict rather than propagated, so the
  * CLI always exits with a meaningful code.
  */
-export async function runDoctor(): Promise<DoctorReport> {
+export interface RunDoctorOptions {
+  /** N-23: the enabled package set; adds the `privilege` section. */
+  packages?: readonly string[];
+}
+
+export async function runDoctor(
+  options: RunDoctorOptions = {},
+): Promise<DoctorReport> {
   const profile = activeProfile();
   const config = inspectConfig(profile);
 
@@ -197,6 +211,9 @@ export async function runDoctor(): Promise<DoctorReport> {
     config,
     connection,
     capabilities,
+    ...(options.packages
+      ? { privilege: advisePrivilege(capabilities, options.packages) }
+      : {}),
     summary,
     ...(status === "degraded" && capabilities.recommendation
       ? { hint: capabilities.recommendation }
@@ -283,6 +300,23 @@ export function formatDoctorReport(report: DoctorReport): string {
           `    ${mark} ${group}: ${m.status}${m.reason ? ` (${m.reason})` : ""}`,
         );
       }
+    }
+  }
+
+  // -- privilege (N-23) ----------------------------------------------------
+  if (report.privilege) {
+    const p = report.privilege;
+    lines.push("");
+    lines.push(
+      `${p.status === "advice" ? WARN : CHECK} Privilege — ${p.summary}`,
+    );
+    for (const m of p.missing) {
+      lines.push(
+        `    ${CROSS} missing ${m.need} (${m.packages.join(", ")}): ${m.reason}`,
+      );
+    }
+    for (const e of p.excess) {
+      lines.push(`    ${WARN} excess ${e.role}: ${e.reason}`);
     }
   }
 

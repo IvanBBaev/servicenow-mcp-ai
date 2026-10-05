@@ -270,7 +270,15 @@ test("doctorPayload omits the stages the report skipped", async () => {
   const payload = await doctorPayload(report());
   assert.equal("connection" in payload, false);
   assert.equal("capabilities" in payload, false);
+  assert.equal("privilege" in payload, false);
   assert.equal(payload.checks.length, 1);
+});
+
+test("doctorPayload carries the N-23 privilege advice", async () => {
+  isolate();
+  const privilege = { status: "least", missing: [], excess: [] };
+  const payload = await doctorPayload(report("healthy", { privilege }));
+  assert.deepEqual(payload.privilege, privilege);
 });
 
 // ---------------------------------------------------------------------------

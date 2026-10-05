@@ -1,0 +1,26 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "servicenow-mcp-ai",
+  "description": "ServiceNow MCP server: tools over the ServiceNow REST surface with multi-instance profiles, plan-and-apply write safety and a two-axis policy model.",
+  "folders": ["docs"],
+  "excludeFolders": [
+    "project",
+    "test",
+    "evals",
+    "docs/ai",
+    "docs/instance",
+    "docs/assets",
+    "src",
+    "scripts",
+    "extension",
+    "build",
+    "node_modules"
+  ],
+  "excludeFiles": ["CHANGELOG.md"],
+  "rules": [
+    "Tool names follow servicenow_<verb>_<noun>; docs/tools/<package>.md lists each tool's parameters and output.",
+    "Write tools return a non-mutating plan preview unless called with apply: true (or SN_WRITE_MODE=apply).",
+    "Only the core profile is on by default; other packages are enabled with SN_TOOL_PACKAGES or servicenow_enable_package.",
+    "Configure credentials with npx servicenow-mcp-ai init and diagnose with npx servicenow-mcp-ai doctor."
+  ]
+}

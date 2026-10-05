@@ -7,6 +7,8 @@ import { cached, peekSchemaCache, schemaCacheScope } from "../core/cache.js";
 export { schemaCacheScope };
 import { assertNoCaret, snString } from "./shared.js";
 import { ServiceNowError } from "../core/errors.js";
+import { aggregate } from "./aggregate.js";
+import type { TableIndex } from "./query-explain.js";
 
 /** Cache key prefix carrying the instance and profile; see schemaCacheScope. */
 const cacheKey = (parts: string[]): string =>
@@ -360,4 +362,82 @@ export async function describeTableDetails(
     });
   }
   return { columns, warnings };
+}
+
+/**
+ * N-15 — sys_index table and fields. Unverified until O-5 (PDI): the reader
+ * tolerates a missing field and turns an unreadable table into a warning.
+ */
+const INDEX_TABLE = "sys_index";
+const INDEX_FIELDS = ["name", "logical_table_name", "col_name", "unique_index"];
+
+/**
+ * N-15 — the indexes of a table's chain (a parent's index serves an extended
+ * table stored with it) and an estimated row count from the Aggregate API.
+ * Both are cached with the schema; either one that cannot be read becomes a
+ * warning, so describe_table never fails on them.
+ */
+export async function describeTableIndexes(table: string): Promise<{
+  indexes: TableIndex[];
+  rowEstimate?: number;
+  warnings: string[];
+}> {
+  assertNoCaret(table, "table");
+  const chain = await getTableChain(table);
+  const warnings: string[] = [];
+  const unavailable = (what: string, e: unknown): void => {
+    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    warnings.push(
+      `${what}: unavailable — ${e instanceof Error ? e.message : String(e)}`,
+    );
+  };
+
+  let indexes: TableIndex[] = [];
+  try {
+    const { records, truncated } = await cached(
+      cacheKey(["indexes", table]),
+      () =>
+        queryTable({
+          table: INDEX_TABLE,
+          query: `logical_table_nameIN${chain.join(",")}^ORDERBYname`,
+          fields: INDEX_FIELDS,
+          displayValue: "false",
+          fetchAll: true,
+        }),
+    );
+    if (truncated)
+      warnings.push(`${INDEX_TABLE}: hit the SN_MAX_RECORDS cap — partial.`);
+    indexes = records
+      .map((r) => ({
+        name: snString(r.name),
+        table: snString(r.logical_table_name),
+        fields: snString(r.col_name)
+          .split(",")
+          .map((f) => f.trim())
+          .filter(Boolean),
+        unique: snString(r.unique_index) === "true",
+      }))
+      .filter((ix) => ix.fields.length > 0);
+  } catch (e) {
+    unavailable(INDEX_TABLE, e);
+  }
+
+  let rowEstimate: number | undefined;
+  try {
+    rowEstimate = await cached(cacheKey(["rowEstimate", table]), async () => {
+      const result = (await aggregate({ table, count: true })) as {
+        stats?: { count?: unknown };
+      };
+      const n = Number(snString(result?.stats?.count));
+      return Number.isFinite(n) ? n : undefined;
+    });
+  } catch (e) {
+    unavailable("row count", e);
+  }
+
+  return {
+    indexes,
+    ...(rowEstimate !== undefined ? { rowEstimate } : {}),
+    warnings,
+  };
 }

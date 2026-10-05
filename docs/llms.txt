@@ -12,6 +12,42 @@ Install it with `npx -y servicenow-mcp-ai`. Run `npx servicenow-mcp-ai init` for
 - [CHANGELOG.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/CHANGELOG.md): release notes
 - [Architecture](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/ARCHITECTURE.md): the layers, ports and adapters, and the request pipeline
 
+<!-- GENERATED:TOOL-REFERENCE:BEGIN (npm run docs:sync) -->
+
+## Tool reference
+
+- [Full documentation in one file](https://ivanbbaev.github.io/servicenow-mcp-ai/llms-full.txt): README, SECURITY and the tool reference
+- [Documentation site as Markdown](https://ivanbbaev.github.io/servicenow-mcp-ai/index.md): the landing page without the markup
+- [Tool reference index](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/README.md): packages and error codes
+- [table](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/table.md): 6 tools
+- [schema](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/schema.md): 2 tools
+- [aggregate](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/aggregate.md): 1 tool
+- [attachment](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/attachment.md): 5 tools
+- [importset](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/importset.md): 2 tools
+- [batch](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/batch.md): 1 tool
+- [catalog](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/catalog.md): 5 tools
+- [change](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/change.md): 5 tools
+- [knowledge](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/knowledge.md): 3 tools
+- [cmdb](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/cmdb.md): 7 tools
+- [scripts](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/scripts.md): 5 tools
+- [flows](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/flows.md): 5 tools
+- [codecheck](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/codecheck.md): 3 tools
+- [docs](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/docs.md): 9 tools
+- [instance](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/instance.md): 2 tools
+- [email](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/email.md): 2 tools
+- [atf](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/atf.md): 5 tools
+- [revert](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/revert.md): 2 tools
+- [artifacts](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/artifacts.md): 6 tools
+- [updatesets](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/updatesets.md): 3 tools
+- [ops](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/ops.md): 2 tools
+- [history](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/history.md): 1 tool
+- [properties](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/properties.md): 2 tools
+- [directory](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/directory.md): 1 tool
+- [ui](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/ui.md): 2 tools
+- [admin](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/admin.md): 10 tools
+
+<!-- GENERATED:TOOL-REFERENCE:END -->
+
 ## Distribution
 
 - [npm package](https://www.npmjs.com/package/servicenow-mcp-ai): `servicenow-mcp-ai`
