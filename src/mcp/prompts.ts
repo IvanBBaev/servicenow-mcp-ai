@@ -235,6 +235,7 @@ export function registerPrompts(
 
   registerWhyIsItSlow(gated(server, on, { all: ["ops"] }));
   registerSecurityPosture(gated(server, on, { all: ["codecheck"] }));
+  registerUibPageReview(gated(server, on, { all: ["ui"] }));
   registerInstanceOverview(gated(server, on, {}));
 }
 
@@ -435,6 +436,69 @@ function registerSecurityPosture(server: McpServer): void {
                       `4. If a scoped app is in question, repeat with it: ${TOOLS.document_app} with that scope and detail true to read its cross-scope access.`,
                     ]),
                 "5. Report the findings ranked by severity (high first), the evidence behind each, what could not be read, and concrete remediation steps. Do not change any property, ACL or privilege: this review is read-only.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/**
+ * N-34 (UX-24): "review a UI Builder page" — the experience explainer first
+ * (`ui` package), then the N-28 impact / where-used, the N-29 broker security
+ * and the N-31 page weight and composition steps. The steps outside `ui`
+ * (artifacts, scripts, codecheck) are optional; the prompt is gated on `ui`.
+ */
+function registerUibPageReview(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_uib_page_review",
+    {
+      title: "Review a UI Builder page",
+      description:
+        "Guide the assistant through a UI Builder page review: explain the experience (the 'ui' package), what a " +
+        "change would touch (dependencies and where-used), data broker security, then page weight and composition.",
+      argsSchema: {
+        experience: z
+          .string()
+          .max(ARG_MAX)
+          .describe(
+            "Experience path (e.g. 'now/sow') or sys_ux_page_registry sys_id.",
+          ),
+        page: z
+          .string()
+          .max(ARG_MAX)
+          .optional()
+          .describe(
+            "Page (macroponent or screen) to focus on, e.g. 'Record page'.",
+          ),
+      },
+    },
+    (args) => {
+      const experience = inlineArg(args.experience);
+      const page = args.page ? inlineArg(args.page) : undefined;
+      const by = /^[0-9a-f]{32}$/i.test(args.experience)
+        ? `sys_id ${experience}`
+        : `path ${experience}`;
+      const focus = page ?? "each page it routes to";
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Review the UI Builder experience ${experience}${page ? `, page ${page}` : ""}. Use the servicenow_* tools; the impact steps need the 'artifacts' and 'scripts' packages, the security sweep the 'codecheck' package and the profile diff the 'instance' package (SN_TOOL_PACKAGES) — skip a step whose package is off and say so. Base every finding on values read from the instance.`,
+                "",
+                `1. Explain the page: ${TOOLS.explain_ui_experience} with ${by} and format 'markdown'. Read the routes → screens → macroponents → data brokers map for ${focus}, the caveats, and whether the result is verified. Use format 'file' when you need element props, bindings, event chains or per-macroponent page metrics.`,
+                `2. Impact (what a change would touch): ${TOOLS.get_artifact_dependencies} for the page's macroponent (artifactType 'uib_macroponent', direction 'both') to see the data brokers, client script includes and components it uses and what uses it. For a client script include or broker named there, ${TOOLS.where_used} kind 'script' with extended true lists its UIB callers. ${TOOLS.get_update_set} reports missing UIB pieces (uib_completeness) when the change travels in an update set.`,
+                `3. Broker security: read the "## Broker hints" section from step 1 (a mutating broker without an ACL, a transform that queries GlideRecord without an ACL check, a broker without an input schema). Then ${TOOLS.check_code_health} with domains true: the ux_data_brokers check of the ACL scan (a mutating broker with no ux_data_broker ACL, an open or public-role broker ACL) and the UI Builder domain findings.`,
+                `4. Page weight and composition: read the "## Page hints" section from step 1 (the uib-page-weight rule: element count, nesting depth, data resources fired on load, data resources without a 'when' condition). To see what changed between two profiles, ${TOOLS.compare_instances} (the 'instance' package) with a, b and types ['uib_macroponent'] reports a per-element composition diff (elementDiff: added, removed, moved, changed).`,
+                "5. Report the page's structure in a few lines, then the findings ranked by severity (security first), the evidence behind each, what a change to the page would touch, what could not be read (verified false, caveats), and concrete next steps. This review is read-only: do not change any record.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
             },

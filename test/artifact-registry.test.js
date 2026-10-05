@@ -648,3 +648,31 @@ test("N-8: reports and PA rows carry the dependency edges and children", () => {
     ],
   );
 });
+
+/**
+ * N-34 (UX-24) — registry lint: one table (and base query) has exactly one
+ * descriptor, so a table name maps back to one artefact type. Types that
+ * split a table by `baseQuery` (flow / subflow) are distinct slices.
+ *
+ * Known exception: sys_ux_form_action is described twice. Merging
+ * workspace_form_action and uib_form_action would change public outputs
+ * (the servicenow://artifact-types catalog, the discovery artefact
+ * document, compare_instances "all", where-used reverse types), so the pair
+ * stays until the owner decides the breaking change (O-4). Remove the entry
+ * here when the merge lands; a new duplicate fails this test.
+ */
+const KNOWN_DUPLICATE_TABLES = {
+  sys_ux_form_action: ["workspace_form_action", "uib_form_action"],
+};
+
+test("registry lint: one descriptor per table, known exceptions documented (N-34)", () => {
+  const byTable = new Map();
+  for (const t of ARTIFACT_TYPES) {
+    const key = t.baseQuery ? `${t.table} [${t.baseQuery}]` : t.table;
+    byTable.set(key, [...(byTable.get(key) ?? []), t.type]);
+  }
+  const duplicates = Object.fromEntries(
+    [...byTable].filter(([, types]) => types.length > 1),
+  );
+  assert.deepEqual(duplicates, KNOWN_DUPLICATE_TABLES);
+});

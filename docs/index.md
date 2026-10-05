@@ -1044,6 +1044,7 @@ Read-only metadata is also exposed as resources, so clients can attach it declar
 | `servicenow_change_impact_analysis` | `change` | Affected CIs, conflicts, go/no-go. |
 | `servicenow_document_table` | `table`, `profile` | Schema + automation + diagrams → saved Markdown. |
 | `servicenow_why_is_it_slow` | `symptom`, `table` (optional) | Syslog, scheduler, email queue, semaphores, then a table's logic → ranked causes. |
+| `servicenow_uib_page_review` | `experience`, `page` (optional) | UI Builder page map, impact, data broker security, page weight. |
 
 ## MCP Apps views
 

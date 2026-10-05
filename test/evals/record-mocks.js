@@ -54,6 +54,8 @@ import {
   UPDATE_SET_SYS_ID,
   BUSINESS_RULE_SYS_ID,
   SCRIPT_INCLUDE_SYS_ID,
+  UX_EXPERIENCE_PATH,
+  UX_PAGE_SYS_ID,
   installFakeInstance,
 } from "./fake-instance.js";
 
@@ -102,6 +104,12 @@ export const RECORDED_CALLS = [
     "servicenow_explain_artifact",
     { artifactType: "business_rule", sys_id: BUSINESS_RULE_SYS_ID },
   ],
+  ["servicenow_explain_ui_experience", { path: UX_EXPERIENCE_PATH }],
+  [
+    "servicenow_get_artifact_dependencies",
+    { artifactType: "uib_macroponent", sys_id: UX_PAGE_SYS_ID },
+  ],
+  ["servicenow_check_code_health", { domains: true }],
   ["servicenow_describe_table", { table: "incident" }],
   ["servicenow_describe_table_logic", { table: "incident" }],
   ["servicenow_where_used", { kind: "field", name: "incident.priority" }],

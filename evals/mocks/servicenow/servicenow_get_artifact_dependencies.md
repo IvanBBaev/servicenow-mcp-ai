@@ -1,0 +1,8 @@
+---
+# Recorded by test/evals/record-mocks.js from the real server against
+# the fake instance (test/evals/fake-instance.js). Do not edit by hand:
+# run `npm run eval:mocks` after a tool's output changes.
+type: fixed
+---
+
+{"artifactType":"uib_macroponent","table":"sys_ux_macroponent","verified":false,"caveat":"This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).","sys_id":"b83a7fce992cd3a07f3a0fcf69785461","name":"Vendor record page","root":"sys_ux_macroponent:b83a7fce992cd3a07f3a0fcf69785461","direction":"both","depth":1,"count":{"nodes":2,"edges":1,"outbound":0,"inbound":1},"nodes":[{"id":"sys_ux_macroponent:b83a7fce992cd3a07f3a0fcf69785461","kind":"record","type":"uib_macroponent","table":"sys_ux_macroponent","sys_id":"b83a7fce992cd3a07f3a0fcf69785461","name":"Vendor record page","depth":0,"reached":"root"},{"id":"sys_ux_screen_type:7a9c4348d971fa3098170cf18ae02bb5","kind":"record","type":"uib_screen_type","table":"sys_ux_screen_type","sys_id":"7a9c4348d971fa3098170cf18ae02bb5","name":"7a9c4348d971fa3098170cf18ae02bb5","depth":1,"reached":"inbound"}],"edges":[{"from":"sys_ux_screen_type:7a9c4348d971fa3098170cf18ae02bb5","to":"sys_ux_macroponent:b83a7fce992cd3a07f3a0fcf69785461","via":"reference","field":"macroponent","source":"sys_ux_screen"}],"caveats":["UI Builder users are read with a LIKE query on the macroponent composition / data and client script text, re-checked after decoding; a component is matched by the id its composition elements carry (assumed to be a sys_ux_macroponent sys_id, unverified until a live instance confirms it)."]}

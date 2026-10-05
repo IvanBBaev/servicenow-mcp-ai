@@ -378,6 +378,7 @@ test("rendered prompts name only real tools", async () => {
       change: "CHG0030001",
       table: "incident",
       symptom: "slow",
+      experience: "now/sow",
     };
     for (const prompt of prompts) {
       const wanted = Object.fromEntries(

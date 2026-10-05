@@ -45,6 +45,12 @@ export const INCIDENT_SYS_ID = sid("incident:INC0010001");
 export const UPDATE_SET_SYS_ID = sid("update_set:Escalation rework");
 export const BUSINESS_RULE_SYS_ID = sid("sys_script:Escalate P1 incidents");
 export const SCRIPT_INCLUDE_SYS_ID = sid("sys_script_include:EscalationUtil");
+/** N-34: one UI Builder experience (page registry → route → screen → page). */
+export const UX_EXPERIENCE_PATH = "acme/vendor";
+export const UX_PAGE_SYS_ID = sid("sys_ux_macroponent:Vendor record page");
+const UX_REGISTRY_SYS_ID = sid("sys_ux_page_registry:acme/vendor");
+const UX_CONFIG_SYS_ID = sid("sys_ux_app_config:Vendor workspace");
+const UX_SCREEN_TYPE_SYS_ID = sid("sys_ux_screen_type:Record");
 
 const ESCALATION_RULE_DEV = [
   "(function executeRule(current, previous) {",
@@ -347,6 +353,58 @@ function devDataset() {
         "list_id.name": "incident",
         "list_id.view": "Default view",
         position: "3",
+      },
+    ],
+    sys_ux_page_registry: [
+      {
+        sys_id: UX_REGISTRY_SYS_ID,
+        title: "Vendor Workspace",
+        path: UX_EXPERIENCE_PATH,
+        root_macroponent: "",
+        admin_panel: UX_CONFIG_SYS_ID,
+        sys_scope: sid("sys_app:x_acme_vendor"),
+        active: "true",
+      },
+    ],
+    sys_ux_app_config: [
+      {
+        sys_id: UX_CONFIG_SYS_ID,
+        name: "Vendor workspace",
+        landing_path: "home",
+      },
+    ],
+    sys_ux_app_route: [
+      {
+        sys_id: sid("sys_ux_app_route:record"),
+        name: "record",
+        route_type: "record",
+        screen_type: UX_SCREEN_TYPE_SYS_ID,
+        parent_macroponent: "",
+        app_config: UX_CONFIG_SYS_ID,
+        order: "100",
+      },
+    ],
+    sys_ux_screen: [
+      {
+        sys_id: sid("sys_ux_screen:Record default"),
+        name: "Record default",
+        screen_type: UX_SCREEN_TYPE_SYS_ID,
+        macroponent: UX_PAGE_SYS_ID,
+        applicability: "",
+        order: "100",
+        active: "true",
+      },
+    ],
+    sys_ux_macroponent: [
+      {
+        sys_id: UX_PAGE_SYS_ID,
+        name: "Vendor record page",
+        category: "page",
+        composition: "[]",
+        data: "[]",
+        state_properties: "[]",
+        internal_event_mappings: "[]",
+        sys_scope: sid("sys_app:x_acme_vendor"),
       },
     ],
     sys_app: [

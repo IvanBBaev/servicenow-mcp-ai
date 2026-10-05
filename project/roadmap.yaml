@@ -1067,11 +1067,11 @@ items:
     title: "UIB guided entry and registry cleanup"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "partial"
     phase: "R"
-    done: null
-    gates: []
-    notes: "Phase R. `uib-page-review` prompt, `sn-uib` plugin skill, one `sys_ux_form_action` descriptor (UX-24). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
+    done: "2026-10-06"
+    gates: ["O-4"]
+    notes: "**Partly done 2026-10-06.** `servicenow_uib_page_review` prompt (listed with the `ui` package): explain_ui_experience, then impact (get_artifact_dependencies, where_used, get_update_set `uib_completeness`), data broker security (`## Broker hints`, check_code_health `domains`) and page weight (`## Page hints`, compare_instances `elementDiff`), skipping steps whose package is off; `sn-uib` plugin skill with N-49 trigger and negative evals (the fake instance gains one UIB experience, three new recorded mocks); registry lint test in `test/artifact-registry.test.js`: one descriptor per table (and base query). 0 B tools/list. Open: merging the duplicate `sys_ux_form_action` descriptor (`workspace_form_action` / `uib_form_action`) changes the artifact-types catalog, the discovery artefact document, compare `all` and where-used reverse types, so it is breaking and waits for O-4; the pair is the lint test's one documented exception (UX-24). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
   - id: "N-35"
     title: "protocol 2026-07-28 alignment"
     pillar: "N"

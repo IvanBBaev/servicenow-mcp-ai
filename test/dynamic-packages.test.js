@@ -384,7 +384,9 @@ test("M-5: the overview prompt names only real tools", async () => {
                 ? { table: "incident" }
                 : name === "servicenow_instance_overview"
                   ? { goal: "review incident rules" }
-                  : {},
+                  : name === "servicenow_uib_page_review"
+                    ? { experience: "now/sow" }
+                    : {},
       });
       const body = prompt.messages.map((m) => m.content.text ?? "").join("\n");
       for (const [tool] of body.matchAll(/servicenow_[a-z_]+/g)) {

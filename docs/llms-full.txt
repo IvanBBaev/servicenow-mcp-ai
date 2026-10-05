@@ -259,7 +259,7 @@ Or a workspace file, `.vscode/mcp.json`:
 /plugin install servicenow-mcp-ai
 ```
 
-The plugin also ships five workflow skills, two read-only subagents and three
+The plugin also ships six workflow skills, two read-only subagents and three
 hooks — see [Plugin skills](#plugin-skills).
 
 **CLI** — `--scope user` makes it available in every project; `--env` sets a
@@ -1381,7 +1381,7 @@ before.
 
 ### Plugin skills
 
-The Claude Code plugin (`/plugin install servicenow-mcp-ai`) ships five skills
+The Claude Code plugin (`/plugin install servicenow-mcp-ai`) ships six skills
 under `skills/`. Each one only orchestrates this server's tools; none holds
 credentials or calls ServiceNow on its own.
 
@@ -1392,6 +1392,7 @@ credentials or calls ServiceNow on its own.
 | `sn-impact` | Assess what a change to a table, field or script would touch (where-used, table logic) |
 | `sn-drift` | Compare two instances or a saved snapshot, or review an update set |
 | `sn-safe-write` | Make a record change with plan-and-apply, the write journal and a revert path |
+| `sn-uib` | Review a UI Builder page: page map, what a change touches, data broker security, page weight |
 
 A test (`test/plugin-skills.test.js`) checks that every `servicenow_*` name in a
 skill exists in the tool manifest. The skills are not part of the npm package.
@@ -1422,7 +1423,7 @@ report); it recommends the scan when a change touches ACLs.
 
 #### Using the skills with other agents
 
-The five skills are portable [Agent Skills](https://agentskills.io): their
+The six skills are portable [Agent Skills](https://agentskills.io): their
 `SKILL.md` frontmatter uses only `name` and `description`, and they name tools
 by their bare MCP name (`servicenow_query_table`), so any client that has this
 server configured can run them. Copy or symlink the folders under `skills/`
@@ -1443,7 +1444,7 @@ cp -R skills/sn-* ~/.agents/skills/   # or: ln -s "$PWD"/skills/sn-* ~/.agents/s
 ```
 
 In VS Code, the extension's **ServiceNow MCP: Add Agent Skills to Workspace**
-command copies the five skills into one of the project folders above (it asks
+command copies the six skills into one of the project folders above (it asks
 before replacing a skill that is already there).
 
 The subagents and hooks are Claude Code plugin features and do not carry over.
@@ -1662,7 +1663,7 @@ characters) reach the model inside an untrusted-content block, and every prompt
 tells the model to treat instance data as data, not instructions. A prompt is
 listed only when the packages its tools live in are enabled (triage: `table`;
 change impact: `change` or `table`; document table: `docs` and `scripts`;
-why is it slow: `ops`; security posture: `codecheck`; the instance overview uses admin tools only and is
+why is it slow: `ops`; security posture: `codecheck`; UIB page review: `ui`; the instance overview uses admin tools only and is
 always listed). The list follows `servicenow_enable_package` /
 `servicenow_disable_package` live, with `notifications/prompts/list_changed`:
 
@@ -1672,6 +1673,7 @@ always listed). The list follows `servicenow_enable_package` /
 | `servicenow_change_impact_analysis` | `change`   | Affected CIs, schedule conflicts and a go/no-go call.            |
 | `servicenow_document_table`         | `table`, `profile` | Runs `servicenow_document_table`, then fills the manual Purpose block of `<profile>/tables/<table>.md`; attaches the encoded-query reference. |
 | `servicenow_why_is_it_slow`         | `symptom`, `table` (both optional) | System log, scheduler backlog, email queue and semaphores (`ops`), then the logic on a table → ranked causes. |
+| `servicenow_uib_page_review`        | `experience`, `page` (optional) | Explains the UI Builder experience (`ui`), then what a change would touch (dependencies, where-used), data broker security and page weight; steps whose package is off are skipped. |
 | `servicenow_instance_overview`      | `goal` (optional) | Capability matrix (`servicenow_check_capabilities`), status and the session's packages; treats the profile as production until H-11 adds an environment marker. |
 | `servicenow_security_posture`      | `scope`, `profile` (both optional) | ACL scan and hardening compliance (`check_code_health`), the instance `security` document, then the cross-scope access of one app (`docs` package for the documents). |
 

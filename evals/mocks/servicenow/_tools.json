@@ -168,6 +168,81 @@
       }
     },
     {
+      "name": "servicenow_check_code_health",
+      "title": "Code health report",
+      "description": "Code-health report: script counts by type, ACL security scan (open, public, scripted, elevated ACLs; public REST/UI pages; tables without ACL), lint for a table, and new/fixed findings vs a stored baseline. Writes <profile>/code-health.md.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "description": "Table to lint; omit for an instance-wide inventory.",
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$"
+          },
+          "extended": {
+            "description": "Also count opt-in types and lint every script type instance-wide (newest `limit`).",
+            "type": "boolean"
+          },
+          "limit": {
+            "description": "Records per type for extended, candidates per rule for domains (default 50).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "domains": {
+            "description": "Also run the flow, portal, UI Builder and legacy-workflow analysers.",
+            "type": "boolean"
+          },
+          "update_baseline": {
+            "description": "Reset the baseline to this run; otherwise new/fixed findings are reported against it.",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "reportFile": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "scope",
+          "generatedAt",
+          "warnings"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "servicenow_compare_instances",
       "title": "Compare two instances",
       "description": "Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app inventory, optional record sections. Writes _compare/<a>-vs-<b>.md.",
@@ -1228,6 +1303,75 @@
       }
     },
     {
+      "name": "servicenow_explain_ui_experience",
+      "title": "Explain a UI Builder experience",
+      "description": "Explain a UI Builder experience/workspace (path or sys_id) as a page map: routes → screens → macroponents → data brokers and ACLs; plus landing, dashboards, lists, form actions. Metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sys_id": {
+            "description": "sys_ux_page_registry sys_id (or 'path').",
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "path": {
+            "description": "Experience path, e.g. 'now/sow' (or 'sys_id').",
+            "type": "string",
+            "maxLength": 200
+          },
+          "format": {
+            "description": "json (default), markdown (report + diagram), mermaid (page map) or file (JSON to exports/).",
+            "type": "string",
+            "enum": [
+              "json",
+              "markdown",
+              "mermaid",
+              "file"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "boolean"
+          },
+          "counts": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "verified"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "servicenow_generate_er_diagram",
       "title": "Generate ER diagram",
       "description": "Mermaid erDiagram from sys_dictionary: an entity per table, a relationship per reference field. columns / max_columns / depth give a detailed view: PK/FK and required markers, extends edges, referenced tables.",
@@ -1555,6 +1699,297 @@
           "verified",
           "record",
           "children"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_artifact_dependencies",
+      "title": "Artifact dependencies",
+      "description": "Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables) and inbound (reverse references, script and flow-step callers). Depth-capped; JSON or Mermaid.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "artifactType": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types."
+          },
+          "sys_id": {
+            "description": "Record sys_id; this or 'key'.",
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "key": {
+            "description": "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'.",
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "direction": {
+            "description": "outbound (uses), inbound (used by), both (default).",
+            "type": "string",
+            "enum": [
+              "outbound",
+              "inbound",
+              "both"
+            ]
+          },
+          "depth": {
+            "description": "Levels to walk (default 1); cycles visited once.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3
+          },
+          "limit": {
+            "description": "Rows per inbound source (default 25).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "format": {
+            "description": "json (default) nodes and edges, or mermaid.",
+            "type": "string",
+            "enum": [
+              "json",
+              "mermaid"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "artifactType"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "artifactType": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "caveat": {
+            "type": "string"
+          },
+          "sys_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "root": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "outbound",
+              "inbound",
+              "both"
+            ]
+          },
+          "depth": {
+            "type": "number"
+          },
+          "count": {
+            "type": "object",
+            "properties": {
+              "nodes": {
+                "type": "number"
+              },
+              "edges": {
+                "type": "number"
+              },
+              "outbound": {
+                "type": "number"
+              },
+              "inbound": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "nodes",
+              "edges",
+              "outbound",
+              "inbound"
+            ],
+            "additionalProperties": false
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "name"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "via": {
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "from",
+                "to",
+                "via",
+                "field"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "node": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "node",
+                "source",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mermaid": {
+            "type": "string"
+          },
+          "mermaidTruncated": {
+            "type": "number"
+          },
+          "degraded": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "number"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "artifactType",
+          "table",
+          "verified",
+          "root",
+          "direction",
+          "depth",
+          "count"
         ],
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
