@@ -16,7 +16,7 @@ import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { ALL_TOOLS } from "../build/mcp/registry.js";
 import { runSpec } from "../build/mcp/define.js";
-import { getCredentials } from "../build/core/config.js";
+import { getCredentials, envFileAclWarning } from "../build/core/config.js";
 import { resolveHost } from "../build/core/host.js";
 import { cached } from "../build/core/cache.js";
 import { getAuthProvider } from "../build/core/auth.js";
@@ -164,6 +164,8 @@ test("H-2: instance + user + password in one call moves the profile to the new h
         password: "***",
         auth: "basic",
         configured: true,
+        // L2-11: set_credentials adds the env-file ACL warning on win32.
+        ...(envFileAclWarning() ? { warnings: [envFileAclWarning()] } : {}),
       });
       const stored = getCredentials();
       assert.equal(stored.instance, "dev99999.service-now.com");

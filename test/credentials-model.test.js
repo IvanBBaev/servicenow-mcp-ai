@@ -47,6 +47,9 @@ import {
 // E-2: Node's env-file parser (dotenv's replacement); a plain object, since
 // Node 26 returns a null-prototype one that deepStrictEqual would reject.
 const parseEnv = (text) => ({ ...parseEnvFile(text) });
+// L2-11: the host platform's env-file ACL warning (only on win32); it is
+// always appended last to the credential warnings.
+const HOST_ACL = envFileAclWarning() ? [ENV_FILE_ACL_WARNING] : [];
 
 baselineEnv();
 
@@ -188,7 +191,7 @@ test("D-2: doctor is method-aware — an API-key profile without a password is c
           const r = await runDoctor();
           assert.equal(r.config.configured, true);
           assert.equal(r.config.auth, "apikey");
-          assert.deepEqual(r.config.warnings, []);
+          assert.deepEqual(r.config.warnings, HOST_ACL);
           const text = formatDoctorReport(r);
           assert.match(text, /auth: {5}apikey/);
           assert.ok(!text.includes("key-1"));
@@ -247,13 +250,13 @@ test("D-2: doctor and get_status carry credential warnings; oauth shows its gran
   );
   await withScratch({ SN_AUTH: "none" }, async () => {
     const warnings = buildStatusPayload().authWarnings;
-    assert.equal(warnings.length, 1);
+    assert.equal(warnings.length, 1 + HOST_ACL.length);
     assert.match(warnings[0], /no client certificate/);
   });
   await withScratch(
     { SN_AUTH: "none", SN_TLS_CLIENT_CERT_FILE: "/c.pem" },
     async () => {
-      assert.deepEqual(buildStatusPayload().authWarnings, []);
+      assert.deepEqual(buildStatusPayload().authWarnings, HOST_ACL);
     },
   );
 });
@@ -882,8 +885,8 @@ test("D-2: set_credentials reports missing material and the win32 ACL warning sh
       const body = payload(res);
       assert.equal(body.configured, false);
       assert.deepEqual(body.missing, ["bearer_token"]);
-      // Not on win32 here: no warnings key at all.
-      assert.equal(body.warnings, undefined);
+      // Off win32 there is no warnings key at all.
+      assert.deepEqual(body.warnings, HOST_ACL.length ? HOST_ACL : undefined);
     },
   );
 });

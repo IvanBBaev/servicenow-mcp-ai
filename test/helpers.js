@@ -56,22 +56,30 @@ export function freshRuntime() {
   return runtime;
 }
 
+/**
+ * Deletes first, then sets: Windows env keys are case-insensitive, so
+ * `{ HTTPS_PROXY: "x", https_proxy: undefined }` applied in order would drop
+ * the value just set.
+ */
+function applyEnv(values) {
+  for (const [key, value] of Object.entries(values)) {
+    if (value === undefined) delete process.env[key];
+  }
+  for (const [key, value] of Object.entries(values)) {
+    if (value !== undefined) process.env[key] = value;
+  }
+}
+
 /** Run `fn` with the given env overrides, restoring the previous values after. */
 export async function withEnv(overrides, fn) {
   const saved = new Map();
-  for (const [key, value] of Object.entries(overrides)) {
-    saved.set(key, process.env[key]);
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
-  }
+  for (const key of Object.keys(overrides)) saved.set(key, process.env[key]);
+  applyEnv(overrides);
   reloadCredentialsFromEnv();
   try {
     return await fn();
   } finally {
-    for (const [key, value] of saved) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
+    applyEnv(Object.fromEntries(saved));
     reloadCredentialsFromEnv();
   }
 }
