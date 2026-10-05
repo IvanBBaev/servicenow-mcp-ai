@@ -248,6 +248,34 @@ test("M-5: disable withdraws tools, resources and prompts; enable restores them"
   );
 });
 
+// N-38: clients cache list results, so the order must not depend on the
+// toggle history: a fresh session and one that toggled packages back list
+// tools, prompts, resources and templates identically.
+test("N-38: list order is stable across sessions and package toggles", async () => {
+  const lists = async (client) => ({
+    tools: (await client.listTools()).tools.map((t) => t.name),
+    prompts: (await client.listPrompts()).prompts.map((p) => p.name),
+    resources: (await client.listResources()).resources.map((r) => r.uri),
+    templates: (await client.listResourceTemplates()).resourceTemplates.map(
+      (t) => t.uriTemplate,
+    ),
+  });
+  const env = { SN_TOOL_PACKAGES: "core" };
+  const fresh = await session(env, ({ client }) => lists(client));
+  assert.ok(fresh.resources.length > 0 && fresh.templates.length > 0);
+  assert.deepEqual(await session(env, ({ client }) => lists(client)), fresh);
+  await session(env, async ({ client, call }) => {
+    for (const name of ["table", "schema"]) {
+      await call("servicenow_disable_package", { name });
+    }
+    for (const name of ["schema", "table", "docs"]) {
+      await call("servicenow_enable_package", { name });
+    }
+    await call("servicenow_disable_package", { name: "docs" });
+    assert.deepEqual(await lists(client), fresh);
+  });
+});
+
 test("M-5: prompts follow their package requirement", async () => {
   await session(
     { SN_TOOL_PACKAGES: "core" },

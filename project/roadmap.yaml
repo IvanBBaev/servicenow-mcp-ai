@@ -1103,11 +1103,11 @@ items:
     title: "cache-friendly listing"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "partial"
     phase: "B"
     done: null
     gates: []
-    notes: "Phase B, after N-35. Deterministic list order, `ttlMs` / `cacheScope`, batched package switches (TK-09). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Deterministic list order done 2026-10-05 (local):** package resources register after the always-on ones in manifest order and re-register in that order on enable, so a disable/enable round trip no longer reorders `resources/list` / templates; a test pins identical tools/prompts/resources/templates across fresh and toggled sessions. Package switches are already batched to one `list_changed` per list by the SDK debounce. Open: `ttlMs` / `cacheScope` wait for N-35 (O-19). Phase B, after N-35. Deterministic list order, `ttlMs` / `cacheScope`, batched package switches (TK-09). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-39"
     title: "one channel per payload"
     pillar: "N"

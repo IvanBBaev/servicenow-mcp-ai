@@ -226,7 +226,7 @@ export class PackageSession {
       for (const handle of this.aliases.get(name) ?? []) {
         if (!handle.enabled) handle.enable();
       }
-      this.registerResources(name);
+      this.syncResources();
       this.applyPrompts();
       logger.info("Package enabled for this session", { package: name });
     }
@@ -303,6 +303,21 @@ export class PackageSession {
     const handles: ResourceHandle[] = [];
     registrar(recording(this.server, (h) => handles.push(h)));
     this.resources.set(pkg, handles);
+  }
+
+  /**
+   * N-38: re-register every enabled package's resources in registration
+   * (manifest) order. The SDK lists resources in insertion order, so
+   * registering only the newly enabled package would append it at the end
+   * and a disable/enable round trip would reorder resources/list, breaking
+   * client-side caching. Package resources are registered after every
+   * always-on resource, so this order matches a fresh session.
+   */
+  private syncResources(): void {
+    for (const pkg of [...this.resources.keys()]) this.removeResources(pkg);
+    for (const pkg of this.registrars.keys()) {
+      if (this.enabled.has(pkg)) this.registerResources(pkg);
+    }
   }
 
   private removeResources(pkg: string): void {

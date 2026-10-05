@@ -503,15 +503,11 @@ export function registerResources(server: McpServer): void {
   const policy = effectivePackages();
   const enabledSet = new Set(policy.enabled);
   const deniedSet = new Set(policy.denied);
+  // N-38: the always-on resources first, the package resources last and in
+  // manifest order, so resources/list keeps one order across package toggles.
   for (const pkg of PACKAGES) {
-    if (!pkg.resources) continue;
-    if (pkg.name === "admin") pkg.resources(server);
-    else if (session) {
-      if (!deniedSet.has(pkg.name))
-        session.addResources(pkg.name, pkg.resources);
-    } else if (enabledSet.has(pkg.name)) pkg.resources(server);
+    if (pkg.name === "admin") pkg.resources?.(server);
   }
-  if (session) enableResourceSubscriptions(server);
   // N-50: the ui:// MCP Apps views, only under SN_MCP_APPS=1.
   if (mcpAppsEnabled()) registerAppResources(server);
   const reference = () => ({
@@ -526,4 +522,12 @@ export function registerResources(server: McpServer): void {
     detail: describeToolDetail,
     renames: TOOL_RENAMES,
   });
+  for (const pkg of PACKAGES) {
+    if (!pkg.resources || pkg.name === "admin") continue;
+    if (session) {
+      if (!deniedSet.has(pkg.name))
+        session.addResources(pkg.name, pkg.resources);
+    } else if (enabledSet.has(pkg.name)) pkg.resources(server);
+  }
+  if (session) enableResourceSubscriptions(server);
 }
