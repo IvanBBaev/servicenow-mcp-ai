@@ -1,0 +1,60 @@
+{
+  "synthetic": true,
+  "cases": {
+    "query_table.incident-100-columns": {
+      "tool": "servicenow_query_table",
+      "textBytes": 3097,
+      "structuredBytes": 3097
+    },
+    "query_table.incident-200-rows": {
+      "tool": "servicenow_query_table",
+      "textBytes": 99195,
+      "structuredBytes": 99195
+    },
+    "get_record.incident-100-columns": {
+      "tool": "servicenow_get_record",
+      "textBytes": 3073,
+      "structuredBytes": 3073
+    },
+    "describe_table.incident": {
+      "tool": "servicenow_describe_table",
+      "textBytes": 12772,
+      "structuredBytes": 12772
+    },
+    "get_artifact.business_rule": {
+      "tool": "servicenow_get_artifact",
+      "textBytes": 1355,
+      "structuredBytes": 1355
+    },
+    "explain_artifact.business_rule": {
+      "tool": "servicenow_explain_artifact",
+      "textBytes": 1372,
+      "structuredBytes": 1372
+    },
+    "aggregate.group_by": {
+      "tool": "servicenow_aggregate",
+      "textBytes": 397,
+      "structuredBytes": 397
+    },
+    "list_update_sets": {
+      "tool": "servicenow_list_update_sets",
+      "textBytes": 15255,
+      "structuredBytes": 15255
+    },
+    "list_flows": {
+      "tool": "servicenow_list_flows",
+      "textBytes": 7518,
+      "structuredBytes": 7518
+    },
+    "list_atf_tests": {
+      "tool": "servicenow_list_atf_tests",
+      "textBytes": 15106,
+      "structuredBytes": 15106
+    },
+    "list_scripts.business_rule": {
+      "tool": "servicenow_list_scripts",
+      "textBytes": 16063,
+      "structuredBytes": 16063
+    }
+  }
+}

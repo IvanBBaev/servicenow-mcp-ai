@@ -7,8 +7,17 @@
 //                                     against test/fixtures/token-budgets.json,
 //                                     plus the N-58 lean projection (not wired)
 //   npm run tokens:report -- --json   the same data as JSON
+//   npm run tokens:report -- --base <ref>
+//                                     also measure <ref> (built in a temporary
+//                                     git worktree) and show the delta per
+//                                     profile; refs from 893f7e2 on (they
+//                                     carry test/surface.js)
 
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { leanToolsList } from "../build/mcp/lean-list.js";
 import { baselineEnv } from "../test/helpers.js";
@@ -20,6 +29,7 @@ import {
 } from "../test/surface.js";
 
 const FIXTURE = new URL("../test/fixtures/token-budgets.json", import.meta.url);
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const COMPONENTS = [
   "description",
   "title",
@@ -52,6 +62,63 @@ function repeatedParamText(tools) {
   };
 }
 
+/** The value after `--base`, or undefined. */
+function baseRef() {
+  const at = process.argv.indexOf("--base");
+  if (at === -1) return undefined;
+  const ref = process.argv[at + 1];
+  if (!ref || ref.startsWith("--")) {
+    console.error("tokens:report: --base needs a git ref");
+    process.exit(2);
+  }
+  return ref;
+}
+
+/**
+ * Build `ref` in a temporary worktree (sharing this checkout's node_modules)
+ * and measure every profile with that ref's own test/surface.js, so the base
+ * is measured the way it measured itself. The worktree is always removed.
+ */
+function measureBase(ref) {
+  const git = (...args) =>
+    execFileSync("git", args, { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"] })
+      .toString()
+      .trim();
+  const sha = git("rev-parse", "--verify", `${ref}^{commit}`);
+  const dir = join(mkdtempSync(join(tmpdir(), "tokens-base-")), "repo");
+  git("worktree", "add", "--detach", dir, sha);
+  try {
+    symlinkSync(join(ROOT, "node_modules"), join(dir, "node_modules"), "dir");
+    execFileSync("npm", ["run", "--silent", "build"], {
+      cwd: dir,
+      stdio: ["ignore", "ignore", "inherit"],
+    });
+    const probe = [
+      'import { baselineEnv } from "./test/helpers.js";',
+      'import { PROFILES, measureSurface } from "./test/surface.js";',
+      "baselineEnv();",
+      "const out = {};",
+      "for (const p of Object.keys(PROFILES)) {",
+      "  const m = await measureSurface(p);",
+      "  out[p] = { bytes: m.bytes, tools: m.tools };",
+      "}",
+      "process.stdout.write(JSON.stringify(out));",
+    ].join("\n");
+    const json = execFileSync(
+      process.execPath,
+      ["--input-type=module", "-e", probe],
+      { cwd: dir, stdio: ["ignore", "pipe", "ignore"] },
+    ).toString();
+    return { ref, sha, profiles: JSON.parse(json) };
+  } finally {
+    git("worktree", "remove", "--force", dir);
+    rmSync(join(dir, ".."), { recursive: true, force: true });
+  }
+}
+
+const ref = baseRef();
+const base = ref === undefined ? undefined : measureBase(ref);
+
 baselineEnv();
 const budgets = JSON.parse(readFileSync(FIXTURE, "utf8")).profiles;
 const tokens = (bytes) => Math.round(bytes / BYTES_PER_TOKEN.schema);
@@ -74,10 +141,17 @@ for (const profile of Object.keys(PROFILES)) {
     lean,
     breakdown,
   };
+  if (base) {
+    const was = base.profiles[profile];
+    profiles[profile].base = was
+      ? { bytes: was.bytes, tools: was.tools, delta: m.bytes - was.bytes }
+      : null;
+  }
 }
 const all = await measureSurface("all");
 const report = {
   bytesPerToken: BYTES_PER_TOKEN.schema,
+  ...(base ? { base: { ref: base.ref, sha: base.sha } } : {}),
   profiles,
   repeatedParamText: repeatedParamText(await listPublishedTools(PROFILES.all)),
   heaviest: all.perTool.slice(0, 15),
@@ -99,6 +173,18 @@ if (process.argv.includes("--json")) {
     );
   }
   console.log("(lean: N-58 serializer, not on the wire until O-10 (b))");
+  if (base) {
+    console.log(
+      `\nagainst ${base.ref} (${base.sha.slice(0, 7)})\n${"profile".padEnd(11)}${n("base")}${n("now")}${n("delta")}${n("tools")}`,
+    );
+    for (const [name, p] of Object.entries(profiles)) {
+      const b = p.base;
+      const tools = b ? `${b.tools}→${p.tools}` : "-";
+      console.log(
+        `${name.padEnd(11)}${n(b?.bytes ?? "-")}${n(p.bytes)}${n(b ? (b.delta > 0 ? `+${b.delta}` : b.delta) : "-")}${n(tools)}`,
+      );
+    }
+  }
   console.log(`\n${"component (bytes)".padEnd(19)}${n("core")}${n("all")}`);
   for (const c of COMPONENTS) {
     console.log(
