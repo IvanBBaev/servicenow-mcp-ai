@@ -40,16 +40,14 @@ import { assertUpsertUnchanged, updateSetInput } from "./table.js";
 const artifactTypeInput = shortText(80)
   .min(1)
   .describe(
-    "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+    "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types.",
   );
 
 const keyValue = z.union([shortText(), z.number(), z.boolean()]);
 
 const artifactRefInput = {
   artifactType: artifactTypeInput,
-  sys_id: sysId()
-    .optional()
-    .describe("sys_id of the record. Pass this or 'key', not both."),
+  sys_id: sysId().optional().describe("Record sys_id; this or 'key'."),
   key: z
     .union([
       keyValue,
@@ -61,7 +59,7 @@ const artifactRefInput = {
     ])
     .optional()
     .describe(
-      "The type's natural key (keyFields in servicenow://artifact-types): a plain value for a single key field, e.g. a portal page id, or an object with every key field. Pass this or 'sys_id', not both.",
+      "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'.",
     ),
 };
 
@@ -183,7 +181,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_artifacts",
     title: "List artifacts",
     description:
-      "List records of any registry artifact type (business rules, UI policies, widgets, flows, catalog items, …) as summaries: sys_id, name, key, scope, active, SDK-managed verdict; no script bodies. verified:false types carry a caveat.",
+      "List records of any registry artifact type as summaries: sys_id, name, key, scope, active, SDK-managed verdict; no script bodies. verified:false types carry a caveat.",
     package: "artifacts",
     annotations: {
       readOnlyHint: true,
@@ -195,20 +193,14 @@ export const specs: AnyToolSpec[] = [
       artifactType: artifactTypeInput,
       scope: shortText()
         .optional()
-        .describe(
-          "Restrict to one application scope: its namespace (e.g. 'global', 'x_acme_app') or its sys_scope sys_id.",
-        ),
+        .describe("One scope: namespace (e.g. 'x_acme_app') or sys_id."),
       query: encodedQuery()
         .optional()
-        .describe(
-          "Extra encoded query ANDed with the type's own filter, e.g. 'nameLIKEincident'.",
-        ),
+        .describe("Encoded query ANDed with the type's filter."),
       active: z
         .boolean()
         .optional()
-        .describe(
-          "Only active (true) or inactive (false) records; refused for types without an active flag.",
-        ),
+        .describe("Filter by active; refused for types without one."),
       limit: z
         .number()
         .int()
@@ -216,7 +208,7 @@ export const specs: AnyToolSpec[] = [
         .max(LIST_LIMIT.max)
         .optional()
         .describe(
-          `Maximum records to return (default ${LIST_LIMIT.default}, max ${LIST_LIMIT.max}).`,
+          `Max records (default ${LIST_LIMIT.default}, max ${LIST_LIMIT.max}).`,
         ),
     },
     output: {
@@ -249,7 +241,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_artifact",
     title: "Get artifact",
     description:
-      "Read one artifact of any registry type in full: the record, its registry child records (e.g. UI policy actions, portal page layout, flow actions), scope and SDK-managed verdict. By sys_id or natural key; denied child tables show as redacted.",
+      "Read one artifact of any registry type in full: the record, its registry children (e.g. UI policy actions, page layout), scope and SDK-managed verdict. By sys_id or natural key; denied child tables show as redacted.",
     package: "artifacts",
     annotations: {
       readOnlyHint: true,
@@ -297,7 +289,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_explain_artifact",
     title: "Explain artifact",
     description:
-      "Explain one artifact of any registry type: summary, trigger fields, non-empty fields, children, referenced records, decoded JSON fields (raw with decoded:false when undecodable) and type-specific readings (state models, policy effects).",
+      "Explain one artifact of any registry type: summary, trigger fields, non-empty fields, children, referenced records, decoded JSON fields and type-specific readings (state models, policy effects).",
     package: "artifacts",
     annotations: {
       readOnlyHint: true,
@@ -360,7 +352,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_artifact_dependencies",
     title: "Artifact dependencies",
     description:
-      "Dependency graph of one artifact: outbound (reference fields, decoded JSON, script calls and GlideRecord tables) and inbound (reverse reference queries, script and flow-step callers, structural refs). Depth-capped; JSON or Mermaid.",
+      "Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables) and inbound (reverse references, script and flow-step callers). Depth-capped; JSON or Mermaid.",
     package: "artifacts",
     annotations: {
       readOnlyHint: true,
@@ -373,9 +365,7 @@ export const specs: AnyToolSpec[] = [
       direction: z
         .enum(["outbound", "inbound", "both"])
         .optional()
-        .describe(
-          "'outbound' what the artifact uses, 'inbound' what uses it, 'both' (default).",
-        ),
+        .describe("outbound (uses), inbound (used by), both (default)."),
       depth: z
         .number()
         .int()
@@ -383,7 +373,7 @@ export const specs: AnyToolSpec[] = [
         .max(DEPENDENCY_DEPTH.max)
         .optional()
         .describe(
-          `Levels to walk from the artifact (default ${DEPENDENCY_DEPTH.default}); cycles are visited once.`,
+          `Levels to walk (default ${DEPENDENCY_DEPTH.default}); cycles visited once.`,
         ),
       limit: z
         .number()
@@ -392,14 +382,12 @@ export const specs: AnyToolSpec[] = [
         .max(DEPENDENCY_LIMIT.max)
         .optional()
         .describe(
-          `Rows kept per inbound source read (default ${DEPENDENCY_LIMIT.default}).`,
+          `Rows per inbound source (default ${DEPENDENCY_LIMIT.default}).`,
         ),
       format: z
         .enum(["json", "mermaid"])
         .optional()
-        .describe(
-          "'json' (default) nodes and edges; 'mermaid' a graph LR diagram with the counts.",
-        ),
+        .describe("json (default) nodes and edges, or mermaid."),
     },
     output: {
       artifactType: z.string(),
@@ -489,7 +477,7 @@ export const specs: AnyToolSpec[] = [
       scope: shortText()
         .optional()
         .describe(
-          "Instead of sys_id/key: every artifact of the type in this scope.",
+          "Instead of sys_id/key: every artifact of the type in a scope.",
         ),
       limit: z
         .number()
@@ -553,29 +541,27 @@ export const specs: AnyToolSpec[] = [
       key: artifactRefInput.key
         .unwrap()
         .describe(
-          "The primary record's key: a plain value for a single key field, or an object of field/value pairs (every key field; a sys_id-keyed type takes any identifying fields, e.g. {table, short_description}). Written on create.",
+          "Primary key: a value for a single key field, or every key field as pairs (sys_id-keyed types: identifying fields, e.g. {table, short_description}). Written on create.",
         ),
       values: fieldsSchema.describe(
-        "Primary-record fields to write (the type's descriptor fields; sys_scope on create only).",
+        "Primary-record fields (the type's descriptor fields; sys_scope on create only).",
       ),
       children: z
         .array(
           z.object({
             table: tableName()
               .optional()
-              .describe(
-                "Child table; defaults to the type's only child table.",
-              ),
+              .describe("Child table (default: the type's only one)."),
             key: z
               .record(z.string(), keyValue)
               .optional()
               .describe(
-                "Identifies the child under the parent; defaults to its name field (e.g. {field: 'state'}).",
+                "Identifies the child under the parent (default: its name field, e.g. {field: 'state'}).",
               ),
             values: fieldsSchema
               .optional()
               .describe(
-                "Child fields to write; the link to the parent is set by the tool. Required.",
+                "Child fields (required); the tool sets the parent link.",
               ),
             fields: fieldsSchema
               .optional()
@@ -595,7 +581,7 @@ export const specs: AnyToolSpec[] = [
         )
         .max(200)
         .optional()
-        .describe("Child records, applied in this order after the parent."),
+        .describe("Child records, applied in order after the parent."),
       expected_action: z
         .enum(["create", "update"])
         .optional()

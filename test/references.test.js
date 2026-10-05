@@ -136,17 +136,20 @@ test("every source exposes a query only for the kinds it can hold", () => {
     "flow_action_input",
     "flow_input",
     "report",
+    "pa_indicator_source",
   ]);
   assert.deepEqual(has(f), [
     "list_element",
     "form_element",
     "catalog_variable",
     "report",
+    "pa_indicator_source",
   ]);
   assert.deepEqual(has(s), [
     "dictionary_reference",
     "catalog_variable",
     "report",
+    "pa_indicator_source",
   ]);
   assert.equal(
     source("list_element").query(f),
@@ -511,6 +514,94 @@ test("report: table, group-by and filter conditions", async () => {
     assert.equal(t.byKind.report, 3);
     assert.ok(t.refs.every((x) => x.kind !== "report" || x.field === "table"));
   });
+});
+
+// N-8; O-5: verify on a live instance (fixture queued for the O-2 corpus).
+test("where_used of a field finds the report and the PA indicator source that filter on it", async () => {
+  await withFetch(
+    serve({
+      sys_report: [
+        {
+          sys_id: "r1",
+          title: "Open P1",
+          table: "incident",
+          field: "",
+          filter: "active=true^priority=1",
+        },
+      ],
+      pa_cubes: [
+        {
+          sys_id: "c1",
+          name: "Open incidents",
+          facts_table: "incident",
+          conditions: "active=true^priorityIN1,2",
+        },
+        // Another table's source: never a match for incident.priority.
+        {
+          sys_id: "c2",
+          name: "Open problems",
+          facts_table: "problem",
+          conditions: "priority=1",
+        },
+      ],
+    }),
+    async (calls) => {
+      const f = await findStructuralReferences(
+        parseRefTarget("field", "incident.priority"),
+      );
+      assert.deepEqual(
+        f.refs.map((x) => [x.kind, x.table, x.sys_id, x.field, x.value]),
+        [
+          ["report", "sys_report", "r1", "filter", "priority=1"],
+          [
+            "pa_indicator_source",
+            "pa_cubes",
+            "c1",
+            "conditions",
+            "priorityIN1,2",
+          ],
+        ],
+      );
+      assert.equal(f.sources.pa_indicator_source.verified, false);
+      assert.ok(
+        calls.some(
+          (c) =>
+            tableOf(c.url) === "pa_cubes" &&
+            queryOf(c.url) === "conditionsLIKEpriority^facts_table=incident",
+        ),
+      );
+      const t = await findStructuralReferences(
+        parseRefTarget("table", "incident"),
+      );
+      assert.deepEqual(
+        t.refs
+          .filter((x) => x.kind === "pa_indicator_source")
+          .map((x) => [x.sys_id, x.field]),
+        [["c1", "facts_table"]],
+      );
+    },
+  );
+});
+
+test("PA unreadable: an absent pa_cubes table degrades to available:false naming the plugin", async () => {
+  await withFetch(
+    (url) =>
+      tableOf(url) === "pa_cubes"
+        ? jsonResponse(400, { error: { message: "Invalid table pa_cubes" } })
+        : jsonResponse(200, { result: [] }),
+    async () => {
+      const r = await findStructuralReferences(
+        parseRefTarget("field", "incident.priority"),
+      );
+      const pa = r.sources.pa_indicator_source;
+      assert.equal(pa.available, false);
+      assert.match(
+        pa.unavailableReason,
+        /pa_cubes does not exist.*400.*requires Performance Analytics \(com\.snc\.pa\)/,
+      );
+      assert.equal(r.sources.report.available, true);
+    },
+  );
 });
 
 // -- degrade path -----------------------------------------------------------------

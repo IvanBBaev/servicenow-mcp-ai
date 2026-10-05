@@ -260,8 +260,25 @@ not verify.
 | APP-3 | customer updates               | sys_update_xml                                   | —   | —   | —   | —   | —   | n/a | — (S-6 plans update sets) | RA     | P0       | S-6, P-3       |
 | APP-4 | instance source control        | sys_repo_config (U)                              | —   | —   | —   | —   | n/a | n/a | —                         | R      | P0       | P-3            |
 
-Totals: **108 rows** — 17 core, 20 server, 9 classic UI, 4 Next Experience APIs, 11 UIB internals, 11
-portal, 12 flow/playbook, 6 legacy workflow, 6 catalog, 5 quality, 3 AI, 4 application. **Artefact-aware
+### 4.13 Reports and Performance Analytics
+
+Added by N-8 (2026-10-03). There is no Fluent API for these artefacts, so the target stops at R and X.
+The registry descriptors are `verified:false` (O-5: verify on a live instance). The `pa_*` rows are
+`licensed` (Performance Analytics, gate O-9), so an absent table degrades to `available:false`.
+
+| Id    | Artefact (no Fluent API) | ServiceNow table(s)                                 | R   | X   | A   | S   | W   | G   | Now (refs)                                 | Target | Phase | Items |
+| ----- | ------------------------ | --------------------------------------------------- | --- | --- | --- | --- | --- | --- | ------------------------------------------ | ------ | ----- | ----- |
+| RPT-1 | report                   | sys_report, sys_report_users_groups                 | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `report`; S-9 `report` where-used | RX     | P1    | N-8   |
+| RPT-2 | report source            | sys_report_source                                   | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `report_source`                   | RX     | P1    | N-8   |
+| PA-1  | PA indicator             | pa_indicators, pa_indicator_breakdowns              | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `pa_indicator` (licensed)         | RX     | P1    | N-8   |
+| PA-2  | PA indicator source      | pa_cubes                                            | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry; where-used `pa_indicator_source` | RX     | P1    | N-8   |
+| PA-3  | PA breakdown             | pa_breakdowns, pa_breakdown_mappings, pa_dimensions | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `pa_breakdown` (licensed)         | RX     | P1    | N-8   |
+| PA-4  | PA script                | pa_scripts                                          | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `pa_script` (not in script tools) | RX     | P1    | N-8   |
+| PA-5  | PA dashboard             | pa_dashboards, pa_m2m_dashboard_tabs, pa_tabs       | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `pa_dashboard` (licensed)         | RX     | P1    | N-8   |
+
+Totals: **115 rows** — 17 core, 20 server, 9 classic UI, 4 Next Experience APIs, 11 UIB internals, 11
+portal, 12 flow/playbook, 6 legacy workflow, 6 catalog, 5 quality, 3 AI, 4 application, 7 reporting
+and Performance Analytics. **Artefact-aware
 coverage today:** R ✅ on 9 rows, ◐ on 16; X ✅ on none; A ✅ on 6; S ✅ on 5; W ✅ only on the
 generic `Record` and attachment rows; G on none.
 

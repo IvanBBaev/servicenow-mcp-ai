@@ -13,7 +13,7 @@ sn_source_hash: <masked>
 
 Every artefact type this server knows (servicenow_artifact_types), with what this scope has of it and, when nothing was collected, why. [Overview](overview.md) · [Applications](apps.md)
 
-- **Types:** 121
+- **Types:** 128
 - **Collected:** 12
 
 ## Types
@@ -140,6 +140,13 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `app_dependency` | application | `sys_scope_dependency` | no | no — no records in this scope |
 | `customer_update` | application | `sys_update_xml` | no | no — no records in this scope |
 | `source_control` | application | `sys_repo_config` | no | no — no records in this scope |
+| `report` | reporting | `sys_report` | no | no — no records in this scope |
+| `report_source` | reporting | `sys_report_source` | no | no — no records in this scope |
+| `pa_indicator` | reporting | `pa_indicators` | no | no — no records in this scope |
+| `pa_indicator_source` | reporting | `pa_cubes` | no | no — no records in this scope |
+| `pa_breakdown` | reporting | `pa_breakdowns` | no | no — no records in this scope |
+| `pa_script` | reporting | `pa_scripts` | no | no — no records in this scope |
+| `pa_dashboard` | reporting | `pa_dashboards` | no | no — no records in this scope |
 | `database_view` | core | `sys_db_view` | no | no — no records in this scope |
 
 ## core

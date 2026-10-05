@@ -15,7 +15,9 @@ profile; nothing here writes to the instance.
    capability explains many "empty" answers.
 2. Symptoms: `servicenow_read_ops` with `kind: "syslog"` and `level: "error"`
    for the last minutes; `kind: "jobs"` with `filter: "overdue"` for stuck
-   scheduled work; `kind: "email_queue"` for mail problems.
+   scheduled work; `kind: "email_queue"` for mail problems;
+   `kind: "transactions"`, `"integrations"` and `"mid"` for slow pages,
+   failing outbound calls and MID / ECC queue trouble.
 3. The record: `servicenow_get_record` for the current state, then
    `servicenow_get_record_history` to see who changed which field and when.
 4. The automation that touches it: `servicenow_describe_table_logic` for the table's

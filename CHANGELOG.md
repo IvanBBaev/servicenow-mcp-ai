@@ -77,6 +77,15 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **`ops` v2: integrations, transactions and MID servers (N-6).** `servicenow_read_ops` gains three `kind` values; no new tool.
+  - `integrations` reads failed (status >= 400) and slow (over 5,000 ms) outbound calls from `sys_outbound_http_log` and groups them by host and REST message, with status counts, the slowest call and up to three sample URLs. URLs keep only origin and path (no credentials, query string or fragment), as under H-6. An empty log carries a `note`: outbound logging may be off, so it is not proof of health.
+  - `transactions` reads slow transactions from `syslog_transaction`, slowest first, grouped by URL with the query string stripped (count, average and maximum response time, distinct users).
+  - `mid` reads `ecc_agent` (status counts, name, version, last refresh, host) and, as a sub-section that degrades on its own, the `ecc_queue` backlog (`state=ready` by agent, the oldest ready entry) and the recent `error` rows by agent.
+  - All three join `overview` as Aggregate API counts. Each section degrades on its own to `available: false` with the reason, and rows stay capped by `limit`.
+  - The filter fields are checked against the dictionary before any count. If a field is missing, the section fails rather than counting every row; if the dictionary is unreadable, the result lists `unverified_fields`.
+  - The `servicenow_why_is_it_slow` prompt now reads the `transactions`, `integrations` and `mid` kinds.
+  - The table, field and state names are not yet checked on a live instance (O-5).
+
 - **Fluent round-trip oracle (P-29, O-7).** `@servicenow/sdk` 4.12.2 is now an exact dev dependency (never a runtime one). `npm run fluent:verify` (`scripts/fluent-verify.mjs`) does two things with every golden in `test/fixtures/fluent/`. It type-checks the golden against the SDK types with strict `tsc` and excess-property checks. It then runs `now-sdk build` offline, in conflict-free projects, and checks that every declared key comes out under its source sys_id, either as its own update XML or nested in its parent's (flow logic, playbook lanes). It also checks that no `DELETE` record is emitted. `test/fluent-sdk-oracle.test.js` runs the oracle and is skipped when the SDK is not installed (`npm ci --omit=dev`).
   - `npm run fluent:actions` (`scripts/gen-fluent-actions.mjs`) generates `src/api/fluent-sdk-actions.ts`, the `action.core` / `actionStep` input table, from the SDK's built-in definitions.
   - `npm run check` runs `fluent:actions -- --check`, which fails when the table is stale after an SDK bump.

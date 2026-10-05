@@ -395,6 +395,31 @@ const CASES = {
       ],
     },
   },
+  // N-8; O-5: verify on a live instance (queued for the O-2 corpus).
+  reporting: {
+    artifactType: "report",
+    tables: {
+      sys_report: {
+        sys_id: "1a".repeat(16),
+        title: "Open P1 incidents by group",
+        table: "incident",
+        type: "bar",
+        field: "assignment_group",
+        aggregate: "COUNT",
+        filter: "active=true^priority=1",
+        is_published: "true",
+        report_source: "4a".repeat(16),
+        sys_scope: APP_ID,
+      },
+      sys_report_users_groups: [
+        {
+          sys_id: "2a".repeat(16),
+          report_id: "1a".repeat(16),
+          group_id: "3a".repeat(16),
+        },
+      ],
+    },
+  },
 };
 
 test("every §4 group with registered types has an explain golden", () => {

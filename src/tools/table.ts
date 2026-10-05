@@ -54,7 +54,7 @@ const inputDisplayValueInput = z
   .boolean()
   .optional()
   .describe(
-    "Treat field values as display values (e.g. a user's name for a reference field, a choice label) that the instance resolves (sysparm_input_display_value). Default false: raw stored values.",
+    "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
   );
 
 /** S-6: the update set an applied customization write is recorded in. */
@@ -62,7 +62,7 @@ export const updateSetInput = shortText(100)
   .min(1)
   .optional()
   .describe(
-    "Record an applied change in this update set (sys_id or exact name; must be 'in progress'). The user's current update set is switched for the write and restored afterwards. Defaults to SN_UPDATE_SET; omit both to leave the current update set alone. Data-row tables are not captured by update sets and are written without switching.",
+    "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
   );
 
 /**
@@ -179,30 +179,26 @@ export const specs: AnyToolSpec[] = [
       rows: z.number().optional(),
     },
     input: {
-      table: tableName().describe(
-        "Table name, e.g. 'incident', 'sys_user', 'change_request'.",
-      ),
+      table: tableName().describe("Table, e.g. 'incident'."),
       query: encodedQuery()
         .optional()
         .describe(
           "Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'.",
         ),
-      fields: fieldList()
-        .optional()
-        .describe("Columns to return. Omit to return all columns."),
+      fields: fieldList().optional().describe("Columns (default all)."),
       limit: z
         .number()
         .int()
         .positive()
         .max(1000)
         .optional()
-        .describe("Maximum number of records to return (default 10)."),
+        .describe("Max records (default 10)."),
       offset: z
         .number()
         .int()
         .nonnegative()
         .optional()
-        .describe("Number of records to skip, for pagination."),
+        .describe("Records to skip (paging)."),
       displayValue: z
         .enum(["true", "false", "all"])
         .optional()
@@ -213,47 +209,39 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe(
-          "When true, page through all matching records (up to the server's SN_MAX_RECORDS cap) instead of a single page. Without an ORDERBY it pages by sys_id cursor (stable while rows change); with one, by offset.",
+          "Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset.",
         ),
       view: shortText()
         .optional()
-        .describe(
-          "UI view whose fields to return (sysparm_view), e.g. 'mobile'. 'fields' takes precedence.",
-        ),
+        .describe("UI view's fields (sysparm_view); 'fields' wins."),
       queryCategory: shortText()
         .optional()
-        .describe(
-          "Query category (sysparm_query_category), e.g. to route the read to a read replica.",
-        ),
+        .describe("sysparm_query_category, e.g. a read replica."),
       noCount: z
         .boolean()
         .optional()
         .describe(
-          "Skip the row count (sysparm_no_count) — faster on very large tables, but 'total' is then unknown.",
+          "Skip the row count (sysparm_no_count): faster on huge tables; 'total' unknown.",
         ),
       queryNoDomain: z
         .boolean()
         .optional()
-        .describe(
-          "On domain-separated instances, query across all domains the user can access (sysparm_query_no_domain).",
-        ),
+        .describe("Query all accessible domains (sysparm_query_no_domain)."),
       suppressPaginationHeader: z
         .boolean()
         .optional()
-        .describe(
-          "Omit the Link paging header from the response (sysparm_suppress_pagination_header).",
-        ),
+        .describe("sysparm_suppress_pagination_header."),
       format: z
         .enum(["json", "csv", "file"])
         .optional()
         .describe(
-          "Output format: 'json' (default), 'csv' for a spreadsheet-friendly export, or 'file' to write the full (redacted) result to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview } — use it when the result would exceed SN_MAX_RESULT_CHARS; with fetchAll only one page is held in memory at a time.",
+          "'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS.",
         ),
       fileFormat: z
         .enum(["csv", "jsonl"])
         .optional()
         .describe(
-          "With format 'file': 'csv' (default; columns are 'fields', or the first page's keys) or 'jsonl' (one JSON record per line, every key kept).",
+          "With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys).",
         ),
     },
     logFields: (args) => ({ table: args.table }),
@@ -294,11 +282,9 @@ export const specs: AnyToolSpec[] = [
     },
     output: {},
     input: {
-      table: tableName().describe("Table name, e.g. 'incident'."),
-      sys_id: sysId().describe("The sys_id of the record to read."),
-      fields: fieldList()
-        .optional()
-        .describe("Columns to return. Omit to return all columns."),
+      table: tableName().describe("Table, e.g. 'incident'."),
+      sys_id: sysId().describe("Record sys_id."),
+      fields: fieldList().optional().describe("Columns (default all)."),
     },
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, sys_id, fields }) =>
@@ -318,9 +304,9 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { fields: "values" },
     input: {
-      table: tableName().describe("Table name, e.g. 'incident'."),
+      table: tableName().describe("Table, e.g. 'incident'."),
       values: fieldsSchema.describe(
-        'Field name/value pairs for the new record, e.g. { "short_description": "Printer down", "urgency": "2" }.',
+        'Field name/value pairs, e.g. { "short_description": "x" }.',
       ),
       inputDisplayValue: inputDisplayValueInput,
       update_set: updateSetInput,
@@ -376,11 +362,9 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { fields: "values" },
     input: {
-      table: tableName().describe("Table name, e.g. 'incident'."),
-      sys_id: sysId().describe("The sys_id of the record to update."),
-      values: fieldsSchema.describe(
-        "Field name/value pairs to change on the record.",
-      ),
+      table: tableName().describe("Table, e.g. 'incident'."),
+      sys_id: sysId().describe("Record sys_id."),
+      values: fieldsSchema.describe("Field name/value pairs to change."),
       inputDisplayValue: inputDisplayValueInput,
       update_set: updateSetInput,
       expected_mod_count: expectedModCountInput,
@@ -450,21 +434,21 @@ export const specs: AnyToolSpec[] = [
           message: "key needs at least one field",
         })
         .describe(
-          "Field/value pairs that identify the record, matched on raw stored values (an empty string matches an empty field). Values cannot contain '^'.",
+          "Field/value pairs identifying the record, matched on raw values ('' matches an empty field); no '^' in values.",
         ),
       values: fieldsSchema.describe(
-        "Field name/value pairs to write. On create the key fields are written too.",
+        "Fields to write (plus the key fields on create).",
       ),
       expected_action: z
         .enum(["create", "update"])
         .optional()
         .describe(
-          "The action the plan decided; with apply, the call is refused (STALE_RECORD) if the key now resolves differently.",
+          "The plan's action; with apply, refused (STALE_RECORD) if the key now resolves differently.",
         ),
       expected_sys_id: sysId()
         .optional()
         .describe(
-          "The sys_id the plan decided to update; with apply, the call is refused (STALE_RECORD) if the key now matches another record or none.",
+          "The plan's sys_id; with apply, refused (STALE_RECORD) if the key now matches another record or none.",
         ),
       inputDisplayValue: inputDisplayValueInput,
       update_set: updateSetInput,
@@ -583,8 +567,8 @@ export const specs: AnyToolSpec[] = [
       }),
     },
     input: {
-      table: tableName().describe("Table name, e.g. 'incident'."),
-      sys_id: sysId().describe("The sys_id of the record to delete."),
+      table: tableName().describe("Table, e.g. 'incident'."),
+      sys_id: sysId().describe("Record sys_id."),
       update_set: updateSetInput,
       expected_mod_count: expectedModCountInput,
       apply: applyInput,

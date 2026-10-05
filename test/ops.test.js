@@ -1,5 +1,6 @@
 // S-10b — the opt-in `ops` package: servicenow_read_ops (syslog, scheduler
-// queue, outbound email queue, semaphores; per-section degradation) and
+// queue, outbound email queue, semaphores; per-section degradation; the N-6
+// kinds live in test/ops-v2.test.js) and
 // servicenow_check_data_health (duplicates, orphaned and stale references), plus the
 // servicenow_why_is_it_slow prompt.
 import test from "node:test";
@@ -62,6 +63,16 @@ const grouped = (field, pairs) => ({
 
 const forbidden = () => jsonResponse(403, { error: { message: "denied" } });
 
+/** Tables the N-6 kinds read, including the dictionary guard's metadata reads. */
+const N6_TABLES = new Set([
+  "sys_outbound_http_log",
+  "syslog_transaction",
+  "ecc_agent",
+  "ecc_queue",
+  "sys_db_object",
+  "sys_dictionary",
+]);
+
 // --- registry / annotations ---------------------------------------------------
 
 test("ops package: two read-only tools with all four hints", () => {
@@ -96,6 +107,8 @@ test("overview: counts from every section; one unreadable table degrades alone",
     (url) => {
       const q = parse(url);
       if (q.table === "sys_semaphore") return forbidden();
+      // N-6 sections (covered below) and their dictionary guard: unreadable here.
+      if (N6_TABLES.has(q.table)) return forbidden();
       if (q.table === "syslog" && q.groupBy === "level")
         return jsonResponse(
           200,
@@ -149,8 +162,15 @@ test("overview: counts from every section; one unreadable table degrades alone",
       assert.equal(semaphores.available, false);
       assert.equal(semaphores.table, "sys_semaphore");
       assert.match(semaphores.unavailableReason, /not readable/);
+      for (const k of ["integrations", "transactions", "mid"])
+        assert.equal(r.sections[k].available, false, k);
       // No row read in the overview: only the Aggregate API.
-      assert.ok(calls.every((c) => parse(c.url).api === "stats"));
+      assert.ok(
+        calls
+          .map((c) => parse(c.url))
+          .filter((q) => !N6_TABLES.has(q.table))
+          .every((q) => q.api === "stats"),
+      );
       // The source summary filters on "warning or worse".
       const src = calls
         .map((c) => parse(c.url))

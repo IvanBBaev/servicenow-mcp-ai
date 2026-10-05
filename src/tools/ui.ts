@@ -30,7 +30,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_explain_portal",
     title: "Explain a Service Portal",
     description:
-      "Explain a Service Portal (url_suffix or sys_id) or one page as a tree: theme, menu, pages, then layout container → row → column → widget instance → widget → dependencies. Metadata only; unreadable tables become caveats.",
+      "Explain a Service Portal (url_suffix or sys_id) or one page as a tree: theme, menu, pages, layout down to widgets and dependencies. Metadata only; unreadable tables become caveats.",
     package: "ui",
     annotations: {
       readOnlyHint: true,
@@ -41,13 +41,11 @@ export const specs: AnyToolSpec[] = [
     input: {
       portal: shortText(100)
         .optional()
-        .describe(
-          "Portal url_suffix (e.g. 'sp', 'esc') or sp_portal sys_id. Pass this or 'page', not both.",
-        ),
+        .describe("Portal url_suffix (e.g. 'esc') or sys_id; this or 'page'."),
       page: shortText(100)
         .optional()
         .describe(
-          "Portal page id (e.g. 'index') or sp_page sys_id: explain that page only. Pass this or 'portal', not both.",
+          "Page id (e.g. 'index') or sp_page sys_id, alone; this or 'portal'.",
         ),
       depth: z
         .number()
@@ -56,13 +54,13 @@ export const specs: AnyToolSpec[] = [
         .max(PORTAL_DEPTH.max)
         .optional()
         .describe(
-          `Levels of nested rows (a row inside a column) to expand (default ${PORTAL_DEPTH.default}).`,
+          `Nested-row levels to expand (default ${PORTAL_DEPTH.default}).`,
         ),
       format: z
         .enum(["json", "markdown", "mermaid", "file"])
         .optional()
         .describe(
-          "'json' (default) the tree; 'markdown' a report with the Mermaid diagram; 'mermaid' the layout diagram only; 'file' the full JSON (diagram included) written to exports/ with a summary returned.",
+          "json (default) tree; markdown report + Mermaid; mermaid layout; file: JSON to exports/.",
         ),
     },
     logFields: (args) => ({
@@ -111,7 +109,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_explain_ui_experience",
     title: "Explain a UI Builder experience",
     description:
-      "Explain a UI Builder experience/workspace (path or sys_id) as a page map: routes → screens → macroponents (components, data, state, events, client scripts) → data brokers and ACLs; plus landing, dashboards, lists, form actions. Metadata only.",
+      "Explain a UI Builder experience/workspace (path or sys_id) as a page map: routes → screens → macroponents → data brokers and ACLs; plus landing, dashboards, lists, form actions. Metadata only.",
     package: "ui",
     annotations: {
       readOnlyHint: true,
@@ -134,7 +132,7 @@ export const specs: AnyToolSpec[] = [
         .enum(["json", "markdown", "mermaid", "file"])
         .optional()
         .describe(
-          "json (default), markdown (report + diagram), mermaid (page map only) or file (full JSON to exports/).",
+          "json (default), markdown (report + diagram), mermaid (page map) or file (JSON to exports/).",
         ),
     },
     logFields: (args) => ({

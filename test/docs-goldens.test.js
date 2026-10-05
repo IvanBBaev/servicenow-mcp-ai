@@ -394,6 +394,9 @@ test("ID-27: the allow-list covers every registry table and the S-3 / S-15 table
     ...t.children.map((c) => c.table),
   ]);
   assert.ok(registry.length >= ARTIFACT_TYPES.length);
+  // N-8: the report and Performance Analytics tables come from the registry.
+  for (const table of ["sys_report", "pa_indicators", "pa_cubes", "pa_tabs"])
+    assert.ok(registry.includes(table), table);
   const named = [
     "sys_security_acl_role",
     "sys_user_role",

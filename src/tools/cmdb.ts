@@ -40,9 +40,7 @@ const ireItems = z
           z.string(),
           z.union([z.string(), z.number(), z.boolean(), z.null()]),
         )
-        .describe(
-          "Identifying and descriptive attributes (name, serial_number, ip_address, ...).",
-        ),
+        .describe("Identifying and descriptive attributes."),
     }),
   )
   .min(1)
@@ -69,7 +67,7 @@ const ireRelations = z
   )
   .max(200)
   .optional()
-  .describe("Relationships between the items (IRE payload `relations`).");
+  .describe("Relationships between the items.");
 
 const attributes = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
@@ -118,8 +116,8 @@ export const specs: AnyToolSpec[] = [
     },
     deprecatedParams: { class_name: "table" },
     input: {
-      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
-      sys_id: sysId().describe("sys_id of the CI."),
+      table: tableName().describe("CI class, e.g. 'cmdb_ci_server'."),
+      sys_id: sysId().describe("CI sys_id."),
     },
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, sys_id }) =>
@@ -141,11 +139,11 @@ export const specs: AnyToolSpec[] = [
     deprecatedParams: { class_name: "table" },
     legacyParams: { attributes: "values" },
     input: {
-      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
+      table: tableName().describe("CI class, e.g. 'cmdb_ci_server'."),
       values: attributes,
       source: shortText()
         .optional()
-        .describe("Discovery source recorded by IRE (e.g. 'ServiceNow')."),
+        .describe("IRE discovery source (e.g. 'ServiceNow')."),
       apply: applyInput,
     },
     logFields: (args) => ({ table: args.table }),
@@ -189,8 +187,8 @@ export const specs: AnyToolSpec[] = [
     deprecatedParams: { class_name: "table" },
     legacyParams: { attributes: "values" },
     input: {
-      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
-      sys_id: sysId().describe("sys_id of the CI."),
+      table: tableName().describe("CI class, e.g. 'cmdb_ci_server'."),
+      sys_id: sysId().describe("CI sys_id."),
       values: attributes,
       source: shortText().optional().describe("Discovery source for IRE."),
       apply: applyInput,
@@ -231,7 +229,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_cmdb_meta",
     title: "Get CMDB class metadata",
     description:
-      "Get the schema/metadata of a CMDB class (attributes, relationship rules) from the CMDB Meta API.",
+      "Schema of a CMDB class (attributes, relationship rules) from the CMDB Meta API.",
     package: "cmdb",
     annotations: {
       readOnlyHint: true,
@@ -241,7 +239,7 @@ export const specs: AnyToolSpec[] = [
     },
     deprecatedParams: { class_name: "table" },
     input: {
-      table: tableName().describe("CMDB class, e.g. 'cmdb_ci_server'."),
+      table: tableName().describe("CI class, e.g. 'cmdb_ci_server'."),
     },
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table }) => ok({ result: await getCmdbMeta(table) }),
@@ -251,7 +249,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_ci_relations",
     title: "List CI relationships",
     description:
-      "List the relationships of one CI from cmdb_rel_ci, each oriented from that CI (outbound = it is the parent, inbound = it is the child) with the related CI's name and class. Filter by direction and relationship type.",
+      "List one CI's relationships (cmdb_rel_ci), outbound = parent, inbound = child, with the related CI's name and class. Filter by direction and type.",
     package: "cmdb",
     annotations: {
       readOnlyHint: true,
@@ -260,25 +258,21 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      sys_id: sysId().describe("sys_id of the CI."),
+      sys_id: sysId().describe("CI sys_id."),
       direction: z
         .enum(["both", "outbound", "inbound"])
         .optional()
-        .describe(
-          "outbound = the CI is the parent, inbound = the child (default both).",
-        ),
+        .describe("Default both."),
       type: relType
         .optional()
-        .describe(
-          "Relationship type name (e.g. 'Depends on::Used by') or its sys_id.",
-        ),
+        .describe("Relationship type name ('Depends on::Used by') or sys_id."),
       limit: z
         .number()
         .int()
         .positive()
         .max(1000)
         .optional()
-        .describe("Maximum relationships (default 100)."),
+        .describe("Max relationships (default 100)."),
     },
     handler: async ({ sys_id, direction, type, limit }) =>
       ok(await listCiRelations({ ci: sys_id, direction, type, limit })),
@@ -288,7 +282,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_identify_reconcile",
     title: "Identify and reconcile CIs (IRE)",
     description:
-      "Send CIs and relationships through the Identification & Reconciliation Engine (/api/now/identifyreconcile), which matches them against CMDB identification rules and inserts or updates them. The plan preview is identify-only.",
+      "Send CIs and relationships through the Identification & Reconciliation Engine: matched by identification rules, then inserted or updated. The plan preview is identify-only.",
     package: "cmdb",
     annotations: {
       readOnlyHint: false,
@@ -301,9 +295,7 @@ export const specs: AnyToolSpec[] = [
       relations: ireRelations,
       data_source: shortText(100)
         .optional()
-        .describe(
-          "Discovery source (sysparm_data_source), default 'ServiceNow'.",
-        ),
+        .describe("sysparm_data_source (default 'ServiceNow')."),
       apply: applyInput,
     },
     logFields: (args) => ({ items: args.items.length }),

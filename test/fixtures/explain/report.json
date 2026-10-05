@@ -1,0 +1,65 @@
+{
+  "artifactType": "report",
+  "table": "sys_report",
+  "verified": false,
+  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "sys_id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+  "name": "Open P1 incidents by group",
+  "key": {
+    "sys_id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a"
+  },
+  "scope": {
+    "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "scope": "x_acme_app"
+  },
+  "sdkManaged": {
+    "managed": "unknown",
+    "unverified": false,
+    "evidence": []
+  },
+  "summary": "report 'Open P1 incidents by group' (sys_report); applies to incident; scope x_acme_app; 1 child record(s) in 1 table(s); unverified type",
+  "when": null,
+  "fields": {
+    "title": "Open P1 incidents by group",
+    "table": "incident",
+    "type": "bar",
+    "field": "assignment_group",
+    "aggregate": "COUNT",
+    "filter": "active=true^priority=1",
+    "is_published": "true",
+    "report_source": "4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a"
+  },
+  "children": [
+    {
+      "table": "sys_report_users_groups",
+      "parentField": "report_id",
+      "verified": false,
+      "count": 1,
+      "items": [
+        {
+          "sys_id": "2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a",
+          "report_id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
+          "group_id": "3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a"
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "field": "report_source",
+      "table": "sys_report_source",
+      "type": "report_source",
+      "sys_id": "4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a4a"
+    },
+    {
+      "field": "group_id",
+      "table": "sys_user_group",
+      "sys_id": "3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a3a",
+      "from": {
+        "table": "sys_report_users_groups",
+        "sys_id": "2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a"
+      }
+    }
+  ],
+  "decoded": []
+}

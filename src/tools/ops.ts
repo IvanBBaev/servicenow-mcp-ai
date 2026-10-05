@@ -40,7 +40,8 @@ const bounded = (b: { default: number; max: number }, what: string) =>
 
 /**
  * S-10b — the opt-in `ops` package: platform health reads (system log,
- * scheduler queue, outbound email queue, semaphores) and the data-quality
+ * scheduler queue, outbound email queue, semaphores; N-6: outbound
+ * integrations, slow transactions, MID servers) and the data-quality
  * twin of servicenow_check_code_health. Read-only; each section degrades to
  * `available:false` when its table is unreadable.
  */
@@ -49,27 +50,24 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_read_ops",
     title: "Read instance operations data",
     description:
-      "Bounded operational views for 'why is it slow' triage: overview (all counts), syslog (recent entries by level/source), jobs (sys_trigger queue), email_queue (backlog, failures), semaphores. An unreadable section reports available:false + why.",
+      "Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC queue). Unreadable section: available:false + why.",
     package: "ops",
     annotations: READ_ONLY,
     input: {
-      kind: z.enum(OPS_KINDS).describe("Which view to read."),
-      minutes: bounded(
-        WINDOW_MINUTES,
-        "Time window in minutes for syslog and email failures",
-      ),
+      kind: z.enum(OPS_KINDS).describe("View to read."),
+      minutes: bounded(WINDOW_MINUTES, "Time window in minutes"),
       level: z
         .enum(SYSLOG_LEVELS)
         .optional()
         .describe("syslog: minimum severity (default 'warning')."),
       source: shortText(100)
         .optional()
-        .describe("syslog: source fragment to match (contains)."),
+        .describe("syslog: source fragment (contains)."),
       filter: z
         .enum(JOB_FILTERS)
         .optional()
         .describe(
-          "jobs: which jobs to list — 'overdue' ready jobs past their next action (default), 'running' or 'queued'.",
+          "jobs: 'overdue' (default; ready, past next action), 'running' or 'queued'.",
         ),
       overdue_minutes: bounded(
         OVERDUE_MINUTES,
@@ -85,7 +83,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_check_data_health",
     title: "Data health report",
     description:
-      "Data-quality counts for one table (twin of check_code_health): duplicate groups over key_fields, and orphaned or stale (inactive target) references per reference field, each with the query listing the rows. Unreadable checks: available:false.",
+      "Data-quality counts for one table: duplicate groups over key_fields, orphaned or stale references per field, each with the query listing the rows. Unreadable checks: available:false.",
     package: "ops",
     annotations: READ_ONLY,
     input: {
@@ -93,16 +91,14 @@ export const specs: AnyToolSpec[] = [
       key_fields: fieldList(MAX_KEY_FIELDS)
         .optional()
         .describe(
-          "Columns that should be unique together, e.g. ['email']; omit to skip the duplicate check.",
+          "Columns unique together, e.g. ['email']; omit to skip duplicates.",
         ),
       reference_fields: fieldList(MAX_REFERENCE_FIELDS)
         .optional()
-        .describe("Reference columns to check (default: auto, first 10)."),
+        .describe("Reference columns (default: first 10)."),
       query: encodedQuery()
         .optional()
-        .describe(
-          "Encoded query that scopes every check, e.g. 'active=true' (no ^NQ or ORDERBY).",
-        ),
+        .describe("Encoded query scoping every check (no ^NQ or ORDERBY)."),
       stale: z
         .boolean()
         .optional()

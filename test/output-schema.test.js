@@ -83,6 +83,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * tools) measured 150,916 (all) and 36,158 (core): within the budget. The
  * legacy alias tools (SN_LEGACY_TOOL_NAMES=1, off by default and not
  * budgeted) add about 20 KB to `all`.
+ * N-0 option (b), 2026-10-03: description-text byte reclaim (no name, type,
+ * enum, required-ness, outputSchema or annotation change) measured 135,881
+ * (all, 97 tools; was 150,916) and 32,737 (core; was 36,158). The constants
+ * below are unchanged: restating them is owner gate O-10.
  * owner to restate (M-6 budget)
  */
 const TOOLS_LIST_BUDGET_ALL = 151_000;

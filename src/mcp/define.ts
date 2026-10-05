@@ -453,7 +453,7 @@ export function recipients(max = 50) {
 /** The automatic `instance` (connection profile) parameter (MI-3). */
 export const instanceParam = shortText(128)
   .optional()
-  .describe("Profile name (default: active)");
+  .describe("Profile (default active)");
 
 /**
  * H-3: the automatic `plan_token` parameter of a destructive-apply tool. Its
@@ -461,7 +461,7 @@ export const instanceParam = shortText(128)
  */
 export const planTokenParam = shortText(64)
   .optional()
-  .describe("Token from the plan preview (apply:true)");
+  .describe("Plan preview token (apply:true)");
 
 /**
  * The registered input schema of a spec: its own shape plus the automatic

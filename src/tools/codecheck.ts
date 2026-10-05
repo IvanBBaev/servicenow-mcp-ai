@@ -31,7 +31,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_lint_script",
     title: "Lint a script",
     description:
-      "Run deterministic code-quality rules over one script artefact (hard-coded sys_ids/URLs, unbounded or in-loop GlideRecord, eval, gs.sleep, setWorkflow(false), client-side GlideRecord, …). Returns findings with rule, severity, line and fix hint.",
+      "Run deterministic code-quality rules on one script (hard-coded sys_ids, unbounded or in-loop GlideRecord, eval, …): findings with rule, severity, line, fix hint.",
     package: "codecheck",
     annotations: {
       readOnlyHint: true,
@@ -46,7 +46,7 @@ export const specs: AnyToolSpec[] = [
     },
     input: {
       type: scriptType.describe("Script type (default and opt-in types)."),
-      sys_id: sysId().describe("sys_id of the script record."),
+      sys_id: sysId().describe("Script sys_id."),
     },
     logFields: (args) => ({ type: args.type }),
     handler: ({ type, sys_id }) => lintScript(type, sys_id).then(ok),
@@ -56,8 +56,8 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_lint_table",
     title: "Lint a table's scripts",
     description:
-      "Lint every active business rule, client script and UI policy of a table (via describe_table_logic), " +
-      "returning per-script findings and a severity summary.",
+      "Lint every active business rule, client script and UI policy of a table: " +
+      "per-script findings and a severity summary.",
     package: "codecheck",
     annotations: {
       readOnlyHint: true,
@@ -83,7 +83,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_check_code_health",
     title: "Code health report",
     description:
-      "Code-health report: script counts by type, ACL security scan (open, public-role, scripted, elevated ACLs, public REST/UI pages, tables without ACL), lint for a table, and new/fixed findings vs a stored baseline. Writes <profile>/code-health.md.",
+      "Code-health report: script counts by type, ACL security scan (open, public, scripted, elevated ACLs; public REST/UI pages; tables without ACL), lint for a table, and new/fixed findings vs a stored baseline. Writes <profile>/code-health.md.",
     package: "codecheck",
     annotations: {
       readOnlyHint: false,
@@ -100,14 +100,12 @@ export const specs: AnyToolSpec[] = [
     input: {
       scope: tableName()
         .optional()
-        .describe(
-          "Table to lint in depth, e.g. 'incident'. Omit for an instance-wide inventory.",
-        ),
+        .describe("Table to lint; omit for an instance-wide inventory."),
       extended: z
         .boolean()
         .optional()
         .describe(
-          "Also count the opt-in types and lint every registry script type instance-wide (newest `limit` per type).",
+          "Also count opt-in types and lint every script type instance-wide (newest `limit`).",
         ),
       limit: z
         .number()
@@ -122,13 +120,13 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe(
-          "Also run the flow, Service Portal, UI Builder and legacy-workflow analysers (run-as-System on protected tables, unused subflows/actions, unguarded integration steps, long waits, public data widgets, orphans, route-map loops, UIB routes without a screen, screens without audience, brokers without ACL, workflows to migrate).",
+          "Also run the flow, portal, UI Builder and legacy-workflow analysers.",
         ),
       update_baseline: z
         .boolean()
         .optional()
         .describe(
-          "Reset the baseline (<profile>/code-health.baseline.json) to this run; otherwise the first run records it and later runs report new/fixed findings against it.",
+          "Reset the baseline to this run; otherwise new/fixed findings are reported against it.",
         ),
     },
     logFields: (args) => ({ scope: args.scope ?? "instance" }),

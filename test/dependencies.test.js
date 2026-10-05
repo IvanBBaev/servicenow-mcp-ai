@@ -529,3 +529,79 @@ test("dependencyMermaid reports nodes dropped by the diagram cap", async () => {
     assert.match(mermaid, /more_nodes/);
   });
 });
+
+// N-8; O-5: verify on a live instance (fixture queued for the O-2 corpus).
+test("N-8: a PA indicator depends on its indicator source, script and breakdowns", async () => {
+  const IND = id("3");
+  const CUBE = id("4");
+  const PAS = id("5");
+  const BRK = id("6");
+  const tables = {
+    pa_indicators: [
+      {
+        sys_id: IND,
+        name: "Open incidents",
+        sys_scope: "global",
+        active: "true",
+        cube: CUBE,
+        script: PAS,
+      },
+    ],
+    pa_cubes: [
+      {
+        sys_id: CUBE,
+        name: "Incidents.Open",
+        sys_scope: "global",
+        facts_table: "incident",
+      },
+    ],
+    pa_scripts: [{ sys_id: PAS, name: "Age", sys_scope: "global", script: "" }],
+    pa_indicator_breakdowns: [
+      { sys_id: "ib1", indicator: IND, breakdown: BRK },
+    ],
+    pa_breakdowns: [{ sys_id: BRK, name: "Priority", sys_scope: "global" }],
+  };
+  const out = await deps(
+    { artifactType: "pa_indicator", sys_id: IND, direction: "outbound" },
+    instance(tables),
+  );
+  const edges = edgeSet(out);
+  const has = (re) =>
+    assert.ok(
+      edges.some((e) => re.test(e)),
+      `${re} not in ${edges.join(" | ")}`,
+    );
+  has(new RegExp(`-> pa_cubes:${CUBE} \\[reference:cube\\]`));
+  has(new RegExp(`-> pa_scripts:${PAS} \\[reference:script\\]`));
+  has(new RegExp(`-> pa_breakdowns:${BRK} \\[reference:breakdown\\]`));
+
+  // Inbound: the indicator source is used by the indicator.
+  const inbound = await deps(
+    {
+      artifactType: "pa_indicator_source",
+      sys_id: CUBE,
+      direction: "inbound",
+    },
+    instance(tables),
+  );
+  assert.ok(
+    inbound.edges.some(
+      (e) =>
+        e.from === `pa_indicators:${IND}` &&
+        e.to === `pa_cubes:${CUBE}` &&
+        e.field === "cube",
+    ),
+    JSON.stringify(inbound.edges),
+  );
+});
+
+test("N-8: an absent pa_indicators table answers an empty graph, not an error", async () => {
+  const res = await deps(
+    { artifactType: "pa_indicator", sys_id: id("3") },
+    instance({ sys_db_object: [] }, { pa_indicators: 400 }),
+  );
+  assert.equal(res.root, null);
+  assert.deepEqual(res.edges, []);
+  assert.equal(res.degraded.status, 400);
+  assert.equal(res.available, false);
+});

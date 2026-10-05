@@ -19,7 +19,7 @@ const formatInput = z
   .enum(["json", "file"])
   .optional()
   .describe(
-    "Result delivery: 'json' (default, inline) or 'file' — write the full (redacted) result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview } plus a summary. An inline result over SN_MAX_RESULT_CHARS carries a note (or is written to a file with SN_OVERSIZE_TO_FILE).",
+    "'json' (default) or 'file': write the full (redacted) JSON to <profile>/exports/, return { path, bytes, preview } + summary.",
   );
 
 /**
@@ -45,7 +45,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_snapshot_instance",
     title: "Snapshot instance metadata",
     description:
-      "Download structural metadata to SN_DOCS_DIR/<profile>/ as Markdown + JSON: tables, schema/<table>.md, plugins, apps, script stats, properties (secrets redacted), choices, ACLs, notifications, flows, catalog, roles. resume:true resumes.",
+      "Download structural metadata to SN_DOCS_DIR/<profile>/ as Markdown + JSON: tables, schemas, plugins, apps, script stats, properties (secrets redacted), choices, ACLs, flows, catalog, roles. resume:true resumes.",
     package: "instance",
     annotations: {
       readOnlyHint: false,
@@ -56,23 +56,17 @@ export const specs: AnyToolSpec[] = [
     input: {
       tables: tableList(1000)
         .optional()
-        .describe(
-          "Tables to document in detail as schema/<table>.md, e.g. ['incident', 'change_request']. Omit for none.",
-        ),
+        .describe("Tables to write as schema/<table>.md."),
       sections: z
         .array(z.enum(SNAPSHOT_SECTIONS))
         .min(1)
         .max(SNAPSHOT_SECTIONS.length)
         .optional()
-        .describe(
-          `Sections to collect (default all): ${SNAPSHOT_SECTIONS.join(", ")}.`,
-        ),
+        .describe("Sections to collect (default all)."),
       resume: z
         .boolean()
         .optional()
-        .describe(
-          "Continue an interrupted snapshot: skip the sections whose files still carry the recorded source hash (default false).",
-        ),
+        .describe("Skip sections whose files carry the recorded source hash."),
       types: artifactTypesInput,
       scope: artifactScopeInput,
       format: formatInput,
@@ -94,7 +88,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_compare_instances",
     title: "Compare two instances",
     description:
-      "Diff two profiles: tables in only one, column type/mandatory/reference differences, scripts missing/renamed/changed (live, unified diff), plugin/app inventory, optional record sections. Writes _compare/<a>-vs-<b>.md; from_snapshot reads snapshots.",
+      "Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app inventory, optional record sections. Writes _compare/<a>-vs-<b>.md.",
     package: "instance",
     annotations: {
       readOnlyHint: false,
@@ -103,13 +97,13 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      a: shortText(128).describe("First connection profile, e.g. 'dev'."),
-      b: shortText(128).describe("Second connection profile, e.g. 'prod'."),
+      a: shortText(128).describe("First profile, e.g. 'dev'."),
+      b: shortText(128).describe("Second profile, e.g. 'prod'."),
       from_snapshot: z
         .boolean()
         .optional()
         .describe(
-          "Prefer the stored servicenow_snapshot_instance JSON files for tables/plugins/apps when present (default false: everything live). Also applies to record sections.",
+          "Prefer stored snapshot JSON over live reads (default false).",
         ),
       sections: z
         .array(z.enum(Object.keys(RECORD_SECTIONS) as [RecordSectionId]))
@@ -117,7 +111,7 @@ export const specs: AnyToolSpec[] = [
         .max(Object.keys(RECORD_SECTIONS).length)
         .optional()
         .describe(
-          `Also compare these snapshot record sections, matched by sys_id then name: ${Object.keys(RECORD_SECTIONS).join(", ")}. Default none.`,
+          "Snapshot record sections to compare too, matched by sys_id then name (default none).",
         ),
       types: artifactTypesInput,
       scope: artifactScopeInput,
@@ -125,7 +119,7 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe(
-          "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid text (live). Default false.",
+          "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid (live).",
         ),
       format: formatInput,
     },

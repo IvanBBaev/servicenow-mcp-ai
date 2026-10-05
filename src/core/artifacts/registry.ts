@@ -32,6 +32,14 @@
  * rows carry `licensed`: on an instance without the plugin they answer
  * `available:false` instead of an error.
  *
+ * N-8 added reports and Performance Analytics (the `reporting` group): report
+ * definitions and report sources, PA indicators, indicator sources, breakdowns,
+ * PA scripts and PA dashboards, all read-only (R + X) seeds with reference
+ * fields, so `list_artifacts`, `explain_artifact`, `artifact_dependencies`,
+ * `document_app` and snapshot / compare cover them without new tools. The PA
+ * rows carry `licensed` (gate O-9). PA scripts hold a script field but are not
+ * script-tools types, so no tool enum grows.
+ *
  * `verified:false` means gate O-5 has not confirmed the table and field names on
  * a live instance; names come from the 2026-09-23 SDK coverage inventory, and
  * anything the inventory marked (U) is unverified by definition.
@@ -151,7 +159,7 @@ export type SdkApi =
 export const DECODER_IDS = ["json", "flow-values", "uib-composition"] as const;
 export type DecoderId = (typeof DECODER_IDS)[number];
 
-/** Gap-matrix groups (SDK-PARITY.md §4.1 … §4.12). */
+/** Gap-matrix groups (SDK-PARITY.md §4.1 … §4.13). */
 export const ARTIFACT_GROUPS = [
   "core",
   "server",
@@ -165,6 +173,7 @@ export const ARTIFACT_GROUPS = [
   "quality",
   "ai",
   "application",
+  "reporting",
 ] as const;
 export type ArtifactGroup = (typeof ARTIFACT_GROUPS)[number];
 
@@ -550,6 +559,12 @@ const SCAN_CHECKS: [string, string, SdkApi, string[]][] = [
   ],
   ["table_check", "scan_table_check", "TableCheck", ["table", "conditions"]],
 ];
+
+/**
+ * N-8 (gate O-9): the licensed plugin behind the `pa_*` tables. On an instance
+ * without it, PA reads answer `available:false` and name it as `requires`.
+ */
+export const PERFORMANCE_ANALYTICS = "Performance Analytics (com.snc.pa)";
 
 /** P-8 (AI-1, AI-2): the licensed store app behind the `sn_aia_*` tables. */
 const AI_AGENTS_APP = "Now Assist AI Agents (sn_aia)";
@@ -3283,6 +3298,217 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
     tiers: READ_TIER,
     verified: false,
     metaFields: ["url", "branch", "application"],
+  },
+  // -- N-8: reports and Performance Analytics (SDK-PARITY §4.13) -----------
+  // Read-only seeds. O-5: verify on a live instance — every table and field
+  // below comes from the SDK table schemas (`sys_report`, `pa_dashboards`) or
+  // the platform documentation (the other `pa_*` tables) and is unverified.
+  {
+    ...BASE,
+    type: "report",
+    group: "reporting",
+    // The Fluent `Record()` fallback only; no report API on the baseline.
+    sdkApi: "none",
+    sdkSince: null,
+    // O-5: verify on a live instance (sys_report, sys_report_users_groups).
+    table: "sys_report",
+    children: [
+      {
+        table: "sys_report_users_groups",
+        parentField: "report_id",
+        refFields: [
+          { field: "user_id", table: "sys_user" },
+          { field: "group_id", table: "sys_user_group" },
+        ],
+      },
+    ],
+    nameField: "title",
+    scriptFields: [],
+    // O-5: verify on a live instance.
+    refFields: [
+      {
+        field: "report_source",
+        table: "sys_report_source",
+        type: "report_source",
+      },
+      { field: "report_drilldown", table: "sys_report_drill" },
+      { field: "list_ui_view", table: "sys_ui_view" },
+      { field: "group", table: "sys_user_group" },
+    ],
+    tiers: SEED_TIERS,
+    verified: false,
+    appliesToField: "table",
+    // O-5: verify on a live instance (`type` is not in the SDK schema).
+    metaFields: [
+      "table",
+      "type",
+      "field",
+      "aggregate",
+      "filter",
+      "field_list",
+      "is_published",
+      "roles",
+    ],
+  },
+  {
+    ...BASE,
+    type: "report_source",
+    group: "reporting",
+    sdkApi: "none",
+    sdkSince: null,
+    // O-5: verify on a live instance.
+    table: "sys_report_source",
+    nameField: "name",
+    scriptFields: [],
+    tiers: SEED_TIERS,
+    verified: false,
+    appliesToField: "table",
+    metaFields: ["table", "filter"],
+  },
+  {
+    ...BASE,
+    type: "pa_indicator",
+    group: "reporting",
+    sdkApi: "none",
+    sdkSince: null,
+    // O-5: verify on a live instance (pa_indicators, pa_indicator_breakdowns).
+    table: "pa_indicators",
+    children: [
+      {
+        table: "pa_indicator_breakdowns",
+        parentField: "indicator",
+        refFields: [
+          { field: "breakdown", table: "pa_breakdowns", type: "pa_breakdown" },
+        ],
+      },
+    ],
+    nameField: "name",
+    activeField: "active",
+    scriptFields: [],
+    // O-5: verify on a live instance.
+    refFields: [
+      { field: "cube", table: "pa_cubes", type: "pa_indicator_source" },
+      { field: "script", table: "pa_scripts", type: "pa_script" },
+    ],
+    tiers: SEED_TIERS,
+    verified: false,
+    licensed: PERFORMANCE_ANALYTICS,
+    metaFields: [
+      "type",
+      "cube",
+      "aggregate",
+      "field",
+      "conditions",
+      "frequency",
+      "formula",
+      "active",
+    ],
+  },
+  {
+    ...BASE,
+    type: "pa_indicator_source",
+    group: "reporting",
+    sdkApi: "none",
+    sdkSince: null,
+    // O-5: verify on a live instance.
+    table: "pa_cubes",
+    nameField: "name",
+    scriptFields: [],
+    tiers: SEED_TIERS,
+    verified: false,
+    licensed: PERFORMANCE_ANALYTICS,
+    appliesToField: "facts_table",
+    metaFields: ["facts_table", "conditions", "frequency"],
+  },
+  {
+    ...BASE,
+    type: "pa_breakdown",
+    group: "reporting",
+    sdkApi: "none",
+    sdkSince: null,
+    // O-5: verify on a live instance (pa_breakdowns, pa_breakdown_mappings).
+    table: "pa_breakdowns",
+    children: [
+      {
+        table: "pa_breakdown_mappings",
+        parentField: "breakdown",
+        refFields: [
+          { field: "script", table: "pa_scripts", type: "pa_script" },
+        ],
+      },
+    ],
+    nameField: "name",
+    activeField: "active",
+    scriptFields: [],
+    // O-5: verify on a live instance.
+    refFields: [{ field: "dimension", table: "pa_dimensions" }],
+    tiers: SEED_TIERS,
+    verified: false,
+    licensed: PERFORMANCE_ANALYTICS,
+    metaFields: ["dimension", "active"],
+  },
+  {
+    ...BASE,
+    type: "pa_script",
+    group: "reporting",
+    sdkApi: "none",
+    sdkSince: null,
+    // O-5: verify on a live instance. A script field, but not a script-tools
+    // type: list_scripts / search_code do not sweep it (no enum growth).
+    table: "pa_scripts",
+    nameField: "name",
+    scriptFields: ["script"],
+    tiers: SEED_TIERS,
+    verified: false,
+    licensed: PERFORMANCE_ANALYTICS,
+    appliesToField: "facts_table",
+    metaFields: ["facts_table", "fields"],
+  },
+  {
+    ...BASE,
+    type: "pa_dashboard",
+    group: "reporting",
+    sdkApi: "none",
+    sdkSince: null,
+    // O-5: verify on a live instance (pa_m2m_dashboard_tabs, pa_tabs).
+    table: "pa_dashboards",
+    children: [
+      {
+        table: "pa_m2m_dashboard_tabs",
+        parentField: "dashboard",
+        orderField: "order",
+      },
+      {
+        table: "pa_tabs",
+        parentField: "sys_id",
+        parentTable: "pa_m2m_dashboard_tabs",
+        parentKey: "tab",
+        nameField: "name",
+      },
+    ],
+    nameField: "name",
+    activeField: "active",
+    scriptFields: [],
+    // From the SDK `pa_dashboards` schema; O-5: verify on a live instance.
+    refFields: [
+      {
+        field: "experience_dashboard",
+        table: "par_dashboard",
+        type: "dashboard",
+      },
+      {
+        field: "managed_breakdown",
+        table: "pa_breakdowns",
+        type: "pa_breakdown",
+      },
+      { field: "breakdown_source", table: "pa_dimensions" },
+      { field: "group", table: "pa_dashboards_group" },
+      { field: "owner", table: "sys_user" },
+    ],
+    tiers: SEED_TIERS,
+    verified: false,
+    licensed: PERFORMANCE_ANALYTICS,
+    metaFields: ["description", "group", "owner", "active"],
   },
   // -- next-only (SDK 4.13.0 on npm `next`; SDK-PARITY CORE-3) -------------
   // The API page returned 404 at inventory time: the tables are unverified.

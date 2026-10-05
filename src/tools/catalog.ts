@@ -46,7 +46,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { catalog_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("sys_id of the catalog."),
+      sys_id: sysId().describe("Catalog sys_id."),
     },
     handler: async ({ sys_id }) =>
       ok({ result: await listCatalogCategories(sys_id) }),
@@ -66,9 +66,7 @@ export const specs: AnyToolSpec[] = [
     },
     input: {
       text: shortText(1000).optional().describe("Free-text search filter."),
-      category: shortText()
-        .optional()
-        .describe("Restrict to a category sys_id."),
+      category: shortText().optional().describe("Category sys_id."),
       limit: z.number().int().positive().max(100).optional(),
       offset: z.number().int().nonnegative().optional(),
     },
@@ -90,7 +88,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { item_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("sys_id of the catalog item."),
+      sys_id: sysId().describe("Catalog item sys_id."),
     },
     handler: async ({ sys_id }) => ok({ result: await getCatalogItem(sys_id) }),
   }),
@@ -116,7 +114,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { item_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("sys_id of the catalog item."),
+      sys_id: sysId().describe("Catalog item sys_id."),
       quantity: z
         .number()
         .int()
@@ -126,7 +124,7 @@ export const specs: AnyToolSpec[] = [
       variables: z
         .record(z.string(), z.unknown())
         .optional()
-        .describe("Variable name/value pairs for the item."),
+        .describe("Variable name/value pairs."),
       apply: applyInput,
     },
     handler: async ({ sys_id, quantity, variables, apply }) => {

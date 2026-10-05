@@ -29,9 +29,7 @@ export const specs: AnyToolSpec[] = [
     },
     input: {
       search: shortText(1000).optional().describe("Free-text search terms."),
-      query: encodedQuery()
-        .optional()
-        .describe("Encoded query for additional filtering."),
+      query: encodedQuery().optional().describe("Extra encoded query."),
       fields: fieldList().optional().describe("Fields to return."),
       limit: z.number().int().positive().max(100).optional(),
       offset: z.number().int().nonnegative().optional(),
@@ -54,7 +52,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      sys_id: sysId().describe("sys_id of the knowledge article."),
+      sys_id: sysId().describe("Article sys_id."),
     },
     handler: async ({ sys_id }) =>
       ok({ result: await getKnowledgeArticle(sys_id) }),
@@ -73,9 +71,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      mode: z
-        .enum(["featured", "most_viewed"])
-        .describe("Which highlight list to return."),
+      mode: z.enum(["featured", "most_viewed"]).describe("Highlight list."),
       limit: z.number().int().positive().max(100).optional(),
     },
     logFields: (args) => ({ mode: args.mode }),

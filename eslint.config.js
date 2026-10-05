@@ -16,6 +16,8 @@ export default tseslint.config(
       "docs/",
       "extension/out/",
       "extension/node_modules/",
+      // Local agent worktrees are full repo copies on other branches.
+      ".claude/",
     ],
   },
   js.configs.recommended,

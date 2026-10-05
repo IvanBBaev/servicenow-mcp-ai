@@ -26,7 +26,7 @@ const READ_ONLY = {
 const updateSetInput = shortText(100)
   .min(1)
   .describe(
-    "The update set: its sys_id or exact name (a name shared by several sets resolves to the single one in progress).",
+    "Update set sys_id or exact name (a shared name resolves to the one in progress).",
   );
 
 const limit = (bounds: { default: number; max: number }, what: string) =>
@@ -36,9 +36,7 @@ const limit = (bounds: { default: number; max: number }, what: string) =>
     .min(1)
     .max(bounds.max)
     .optional()
-    .describe(
-      `Maximum ${what} to return (default ${bounds.default}, max ${bounds.max}).`,
-    );
+    .describe(`Max ${what} (default ${bounds.default}, max ${bounds.max}).`);
 
 const setOutput = z
   .object({
@@ -55,7 +53,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_update_sets",
     title: "List update sets",
     description:
-      "List update sets (sys_update_set), newest first, with state, application scope and whether each is the user's current update set. Filter by state, name fragment or application.",
+      "List update sets, newest first, with state, scope and whether each is the user's current one. Filter by state, name or application.",
     package: "updatesets",
     annotations: READ_ONLY,
     input: {
@@ -63,14 +61,10 @@ export const specs: AnyToolSpec[] = [
         .enum(UPDATE_SET_STATES)
         .optional()
         .describe("Only sets in this state."),
-      name: shortText()
-        .optional()
-        .describe("Name fragment to match (contains)."),
+      name: shortText().optional().describe("Name fragment (contains)."),
       application: shortText(100)
         .optional()
-        .describe(
-          "Application scope namespace (e.g. 'x_acme_app'), 'global', or a sys_scope sys_id.",
-        ),
+        .describe("Scope namespace (e.g. 'x_acme_app') or sys_id."),
       query: encodedQuery()
         .optional()
         .describe("Extra encoded query ANDed with the filters."),
@@ -81,7 +75,7 @@ export const specs: AnyToolSpec[] = [
         .min(0)
         .max(100_000)
         .optional()
-        .describe("Rows to skip, for paging."),
+        .describe("Rows to skip (paging)."),
     },
     output: {
       count: z.number(),
@@ -97,28 +91,26 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_update_set",
     title: "Get update set",
     description:
-      "Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target name, action, table — with counts by type and action. include_payload adds the parsed field values, each capped, secret-looking fields masked.",
+      "Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target, action, table — with counts. include_payload adds the parsed field values, capped, secret-looking fields masked.",
     package: "updatesets",
     annotations: READ_ONLY,
     input: {
       update_set: updateSetInput,
       type: shortText(100)
         .optional()
-        .describe("Only updates of this type label, e.g. 'Business Rule'."),
+        .describe("Only this type label, e.g. 'Business Rule'."),
       limit: limit(GET_LIMIT, "updates"),
       include_payload: z
         .boolean()
         .optional()
-        .describe(
-          "Include each update's parsed payload fields (default false).",
-        ),
+        .describe("Add parsed payload fields."),
       payload_max_chars: z
         .number()
         .int()
         .min(20)
         .max(20_000)
         .optional()
-        .describe("Cap per payload field value, in characters (default 500)."),
+        .describe("Chars per payload field (default 500)."),
     },
     output: {
       update_set: setOutput,
@@ -147,20 +139,18 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_compare_update_set",
     title: "Compare update set",
     description:
-      "Compare an update set's artefacts with another profile (live) or a stored snapshot: per artefact same / different (field names) / missing / not_comparable / not_covered / unknown, plus a summary. Only payload fields compared; audit columns ignored.",
+      "Compare an update set's artefacts with another profile (live) or a stored snapshot: a status per artefact (same, different with field names, missing, …) plus a summary. Audit columns ignored.",
     package: "updatesets",
     annotations: READ_ONLY,
     input: {
       update_set: updateSetInput,
       with_profile: shortText(64)
         .optional()
-        .describe(
-          "Connection profile to compare against, read live. Pass this or with_snapshot.",
-        ),
+        .describe("Profile to compare against live; this or with_snapshot."),
       with_snapshot: shortText(64)
         .optional()
         .describe(
-          "Profile whose saved snapshot to compare against (record sections only). Pass this or with_profile.",
+          "Profile snapshot to compare with (record sections); this or with_profile.",
         ),
       limit: limit(COMPARE_LIMIT, "updates to compare"),
     },

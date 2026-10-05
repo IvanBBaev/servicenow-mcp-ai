@@ -26,7 +26,7 @@ const waitSeconds = z
   .max(300)
   .optional()
   .describe(
-    "Wait up to this many seconds for the run to finish, polling its progress (default 0: return at once). On timeout the result has wait.state 'running' and wait.tracker, the id to poll with servicenow_get_atf_result.",
+    "Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result.",
   );
 
 /** Return the run as is, or waited on when `wait_seconds` is set. */
@@ -45,7 +45,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_atf_tests",
     title: "List ATF tests",
     description:
-      "List Automated Test Framework tests (sys_atf_test) as metadata: name, active flag, description.",
+      "List ATF tests (sys_atf_test) as metadata: name, active, description.",
     package: "atf",
     annotations: {
       readOnlyHint: true,
@@ -55,7 +55,7 @@ export const specs: AnyToolSpec[] = [
     },
     output: { count: z.number(), tests: z.array(z.unknown()) },
     input: {
-      active: z.boolean().optional().describe("Filter by the active flag."),
+      active: z.boolean().optional().describe("Filter by active."),
       query: encodedQuery().optional().describe("Extra encoded query."),
       limit: z.number().int().positive().max(1000).optional(),
     },
@@ -66,8 +66,7 @@ export const specs: AnyToolSpec[] = [
   defineTool({
     name: "servicenow_list_atf_suites",
     title: "List ATF suites",
-    description:
-      "List Automated Test Framework test suites (sys_atf_test_suite) as metadata.",
+    description: "List ATF test suites (sys_atf_test_suite) as metadata.",
     package: "atf",
     annotations: {
       readOnlyHint: true,
@@ -77,7 +76,7 @@ export const specs: AnyToolSpec[] = [
     },
     output: { count: z.number(), suites: z.array(z.unknown()) },
     input: {
-      active: z.boolean().optional().describe("Filter by the active flag."),
+      active: z.boolean().optional().describe("Filter by active."),
       query: encodedQuery().optional().describe("Extra encoded query."),
       limit: z.number().int().positive().max(1000).optional(),
     },
@@ -101,7 +100,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { test_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("sys_id of the ATF test (sys_atf_test)."),
+      sys_id: sysId().describe("sys_atf_test sys_id."),
       wait_seconds: waitSeconds,
       apply: applyInput,
     },
@@ -141,9 +140,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { suite_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe(
-        "sys_id of the ATF test suite (sys_atf_test_suite).",
-      ),
+      sys_id: sysId().describe("sys_atf_test_suite sys_id."),
       wait_seconds: waitSeconds,
       apply: applyInput,
     },
@@ -186,9 +183,7 @@ export const specs: AnyToolSpec[] = [
       percentComplete: z.number().optional(),
     },
     input: {
-      execution_id: sysId().describe(
-        "The execution/progress id returned by a run tool.",
-      ),
+      execution_id: sysId().describe("Execution id from a run tool."),
     },
     handler: ({ execution_id }) => getAtfResult(execution_id).then(ok),
   }),

@@ -683,3 +683,90 @@ test("licensed families: an agent whose child tables are absent degrades those c
   assert.equal(child("sn_aia_tool").count, 1);
   assert.equal(child("sn_aia_tool").items[0].name, "Lookup");
 });
+
+// -- N-8: reports and Performance Analytics -------------------------------------
+// O-5: verify on a live instance (fixtures queued for the O-2 corpus).
+
+const PA_TYPES = [
+  "pa_indicator",
+  "pa_indicator_source",
+  "pa_breakdown",
+  "pa_script",
+  "pa_dashboard",
+];
+
+test("N-8 PA unreadable: absent pa_* tables answer available:false naming the plugin (O-9)", async () => {
+  for (const type of PA_TYPES) {
+    const t = getArtifactType(type);
+    const absent = { [t.table]: invalidTable(t.table), sys_db_object: [] };
+    const list = await run("servicenow_list_artifacts", absent, {
+      artifactType: type,
+    });
+    assert.equal(list.error, undefined, `${type}: ${list.error}`);
+    assert.equal(list.count, 0, type);
+    assert.equal(list.available, false, type);
+    assert.equal(list.requires, t.licensed, type);
+    assert.match(list.requires, /Performance Analytics/, type);
+
+    const ex = await run(
+      "servicenow_explain_artifact",
+      { sys_db_object: [] },
+      { artifactType: type, sys_id: id("1") },
+    );
+    assert.equal(ex.error, undefined, `${type}: ${ex.error}`);
+    assert.equal(ex.available, false, type);
+    assert.equal(ex.requires, t.licensed, type);
+  }
+});
+
+test("N-8: reports list without a license gate; a PA dashboard explains its tabs", async () => {
+  const reports = await run(
+    "servicenow_list_artifacts",
+    {
+      sys_report: [
+        {
+          sys_id: id("1a"),
+          title: "Open P1",
+          table: "incident",
+          filter: "priority=1",
+          sys_scope: APP_ID,
+        },
+      ],
+    },
+    { artifactType: "report" },
+  );
+  assert.equal(reports.error, undefined, reports.error);
+  assert.equal(reports.count, 1);
+  assert.equal(reports.requires, undefined);
+
+  const DASH = id("1d");
+  const TAB = id("3d");
+  const ex = await run(
+    "servicenow_explain_artifact",
+    {
+      pa_dashboards: {
+        sys_id: DASH,
+        name: "Service desk",
+        active: "true",
+        experience_dashboard: id("9d"),
+        sys_scope: APP_ID,
+      },
+      pa_m2m_dashboard_tabs: [
+        { sys_id: id("2d"), dashboard: DASH, tab: TAB, order: "100" },
+      ],
+      pa_tabs: [{ sys_id: TAB, name: "Overview" }],
+      sys_db_object: [{ name: "pa_dashboards" }],
+    },
+    { artifactType: "pa_dashboard", sys_id: DASH },
+  );
+  assert.equal(ex.error, undefined, ex.error);
+  assert.equal(ex.verified, false);
+  const child = (table) => ex.children.find((c) => c.table === table);
+  assert.equal(child("pa_m2m_dashboard_tabs").count, 1);
+  assert.equal(child("pa_tabs").items[0].name, "Overview");
+  assert.ok(
+    ex.references.some(
+      (r) => r.field === "experience_dashboard" && r.type === "dashboard",
+    ),
+  );
+});

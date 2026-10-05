@@ -20,7 +20,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_record_history",
     title: "Get record history",
     description:
-      "Read a record's change history: sys_audit field changes and sys_journal_field entries (comments, work_notes), newest first — use it for journal fields, which read back empty via the Table API. Each source degrades separately (ACL, policy).",
+      "Read a record's history: sys_audit changes and journal entries (comments, work_notes), newest first — journal fields read back empty via the Table API. Each source degrades separately.",
     package: "history",
     annotations: {
       readOnlyHint: true,
@@ -29,8 +29,8 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      table: tableName().describe("Table of the record, e.g. 'incident'."),
-      sys_id: sysId().describe("sys_id of the record."),
+      table: tableName().describe("Record table, e.g. 'incident'."),
+      sys_id: sysId().describe("Record sys_id."),
       source: z
         .enum(["all", "audit", "journal"])
         .optional()
@@ -44,25 +44,21 @@ export const specs: AnyToolSpec[] = [
         ),
       since: shortText(19)
         .optional()
-        .describe(
-          "Only entries at or after this instant: 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'.",
-        ),
+        .describe("Only entries at or after 'YYYY-MM-DD[ HH:MM:SS]'."),
       limit: z
         .number()
         .int()
         .positive()
         .max(1000)
         .optional()
-        .describe("Maximum entries after merging (default 100)."),
+        .describe("Max entries after merging (default 100)."),
       value_max_chars: z
         .number()
         .int()
         .positive()
         .max(100_000)
         .optional()
-        .describe(
-          "Truncate each value to this many characters (default 2000).",
-        ),
+        .describe("Chars per value (default 2000)."),
     },
     logFields: (args) => ({ table: args.table, source: args.source ?? "all" }),
     handler: async ({

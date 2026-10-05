@@ -289,7 +289,7 @@
       "package": "aggregate",
       "title": "Aggregate ServiceNow records",
       "since": "2.0.1",
-      "description_sha256": "483c9e8a59a83464721e26f917985a60ccfa5de6e61818a072ff8da141979815",
+      "description_sha256": "4d3a7129847f8db8c48c416a4550d7558c6f88f57e46db957835ae390aeeb8ed",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -311,7 +311,7 @@
             "type": "array"
           },
           "count": {
-            "description": "Include a record count (sysparm_count).",
+            "description": "Include a count (sysparm_count).",
             "type": "boolean"
           },
           "group_by": {
@@ -325,17 +325,17 @@
             "type": "array"
           },
           "having": {
-            "description": "HAVING clause to filter groups (sysparm_having).",
+            "description": "HAVING clause (sysparm_having).",
             "maxLength": 8000,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "max_fields": {
-            "description": "Fields to take the maximum of.",
+            "description": "Fields to take the max of.",
             "items": {
               "maxLength": 255,
               "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
@@ -345,7 +345,7 @@
             "type": "array"
           },
           "min_fields": {
-            "description": "Fields to take the minimum of.",
+            "description": "Fields to take the min of.",
             "items": {
               "maxLength": 255,
               "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
@@ -355,7 +355,7 @@
             "type": "array"
           },
           "query": {
-            "description": "Encoded query to filter rows before aggregating.",
+            "description": "Encoded query filtering the rows.",
             "maxLength": 8000,
             "type": "string"
           },
@@ -370,7 +370,7 @@
             "type": "array"
           },
           "table": {
-            "description": "Table name, e.g. 'incident'.",
+            "description": "Table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -391,7 +391,7 @@
       "package": "batch",
       "title": "Run a ServiceNow batch",
       "since": "2.0.1",
-      "description_sha256": "cf323dc5eea2138dddd98945dfaaf2d18240b189470a0686d59b9951955a72ba",
+      "description_sha256": "13dd2fcbd7a9eb33eca2ce6bbbcb07222cfccc9efa1daf01e8038f9892a93b5c",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -403,28 +403,26 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           },
           "requests": {
-            "description": "The sub-requests to run together.",
+            "description": "Sub-requests to run.",
             "items": {
               "properties": {
-                "body": {
-                  "description": "JSON body for write methods; encoded into the batch payload."
-                },
+                "body": { "description": "JSON body for write methods." },
                 "headers": {
-                  "description": "Extra headers. Accept and Content-Type are added automatically.",
+                  "description": "Extra headers (Accept and Content-Type are automatic).",
                   "items": {
                     "properties": {
                       "name": { "maxLength": 255, "type": "string" },
@@ -437,12 +435,12 @@
                   "type": "array"
                 },
                 "id": {
-                  "description": "Optional id echoed back in the matching result.",
+                  "description": "Id echoed in the matching result.",
                   "maxLength": 255,
                   "type": "string"
                 },
                 "method": {
-                  "description": "HTTP method for this sub-request.",
+                  "description": "HTTP method.",
                   "enum": ["GET", "POST", "PATCH", "PUT", "DELETE"],
                   "type": "string"
                 },
@@ -469,7 +467,7 @@
       "package": "admin",
       "title": "Check achievable capabilities",
       "since": "2.0.1",
-      "description_sha256": "07c275e66b3ca7b65f9e459ae68bc8f00931b8d21fa3f88da9e253e45793dc4e",
+      "description_sha256": "9321dfc04dc16d804d264c4c4f3ce424380f01a84a5507893fd82f54c15f308e",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -481,7 +479,7 @@
         "additionalProperties": false,
         "properties": {
           "groups": {
-            "description": "Matrix groups to probe (default: all), one read-only probe each; status is available / unavailable / plan-only / read-only / unknown. update_sets adds canRead / canSet (inferred) and SN_UPDATE_SET. The sys_* table preflight always runs.",
+            "description": "Groups to probe (default all), one read-only probe each; update_sets adds canRead / canSet (inferred). The sys_* preflight always runs.",
             "items": {
               "enum": [
                 "writes",
@@ -500,12 +498,12 @@
             "type": "array"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "refresh": {
-            "description": "Discard cached capability and plugin-availability results (SN_CAPABILITY_TTL_MS / SN_PLUGIN_NEGATIVE_TTL_MS) and probe again.",
+            "description": "Discard the cache and probe again.",
             "type": "boolean"
           }
         },
@@ -542,25 +540,25 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "calculate": {
-            "description": "When true, recalculate conflicts (POST) instead of reading.",
+            "description": "Recalculate (POST) instead of reading.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the change request.",
+            "description": "Change request sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -575,7 +573,7 @@
       "package": "codecheck",
       "title": "Code health report",
       "since": "2.0.1",
-      "description_sha256": "7a0cbf7c6935d387ee66176c4f6813a189394d8baa1ed37020f5fd87056e31e8",
+      "description_sha256": "fd08e3d296cef59fb7716b8ee9c52a704048ac88e154c372fa212285873afece",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -587,15 +585,15 @@
         "additionalProperties": false,
         "properties": {
           "domains": {
-            "description": "Also run the flow, Service Portal, UI Builder and legacy-workflow analysers (run-as-System on protected tables, unused subflows/actions, unguarded integration steps, long waits, public data widgets, orphans, route-map loops, UIB routes without a screen, screens without audience, brokers without ACL, workflows to migrate).",
+            "description": "Also run the flow, portal, UI Builder and legacy-workflow analysers.",
             "type": "boolean"
           },
           "extended": {
-            "description": "Also count the opt-in types and lint every registry script type instance-wide (newest `limit` per type).",
+            "description": "Also count opt-in types and lint every script type instance-wide (newest `limit`).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -606,13 +604,13 @@
             "type": "integer"
           },
           "scope": {
-            "description": "Table to lint in depth, e.g. 'incident'. Omit for an instance-wide inventory.",
+            "description": "Table to lint; omit for an instance-wide inventory.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "update_baseline": {
-            "description": "Reset the baseline (<profile>/code-health.baseline.json) to this run; otherwise the first run records it and later runs report new/fixed findings against it.",
+            "description": "Reset the baseline to this run; otherwise new/fixed findings are reported against it.",
             "type": "boolean"
           }
         },
@@ -636,7 +634,7 @@
       "package": "ops",
       "title": "Data health report",
       "since": "2.0.1",
-      "description_sha256": "cdcc12cc4c28328e571e6a372dccdd91895dda8344fff2be6dba2470e0de3cd5",
+      "description_sha256": "a571593c47e25864e891cbd8fdf1ddf9e8fe153024e8f118001e725253628963",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -648,12 +646,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "key_fields": {
-            "description": "Columns that should be unique together, e.g. ['email']; omit to skip the duplicate check.",
+            "description": "Columns unique together, e.g. ['email']; omit to skip duplicates.",
             "items": {
               "maxLength": 255,
               "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
@@ -669,12 +667,12 @@
             "type": "integer"
           },
           "query": {
-            "description": "Encoded query that scopes every check, e.g. 'active=true' (no ^NQ or ORDERBY).",
+            "description": "Encoded query scoping every check (no ^NQ or ORDERBY).",
             "maxLength": 8000,
             "type": "string"
           },
           "reference_fields": {
-            "description": "Reference columns to check (default: auto, first 10).",
+            "description": "Reference columns (default: first 10).",
             "items": {
               "maxLength": 255,
               "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
@@ -703,7 +701,7 @@
       "package": "instance",
       "title": "Compare two instances",
       "since": "2.0.1",
-      "description_sha256": "868534969bb5a5fc5ac002034f418bbba02017df68d1bc701ade62d2cbbf7aea",
+      "description_sha256": "69e887a4f2061145b1161d0ca206fd804ba11e8e10c7205ee15d4edd6d8f7f03",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -715,31 +713,31 @@
         "additionalProperties": false,
         "properties": {
           "a": {
-            "description": "First connection profile, e.g. 'dev'.",
+            "description": "First profile, e.g. 'dev'.",
             "maxLength": 128,
             "type": "string"
           },
           "b": {
-            "description": "Second connection profile, e.g. 'prod'.",
+            "description": "Second profile, e.g. 'prod'.",
             "maxLength": 128,
             "type": "string"
           },
           "format": {
-            "description": "Result delivery: 'json' (default, inline) or 'file' — write the full (redacted) result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview } plus a summary. An inline result over SN_MAX_RESULT_CHARS carries a note (or is written to a file with SN_OVERSIZE_TO_FILE).",
+            "description": "'json' (default) or 'file': write the full (redacted) JSON to <profile>/exports/, return { path, bytes, preview } + summary.",
             "enum": ["json", "file"],
             "type": "string"
           },
           "from_snapshot": {
-            "description": "Prefer the stored servicenow_snapshot_instance JSON files for tables/plugins/apps when present (default false: everything live). Also applies to record sections.",
+            "description": "Prefer stored snapshot JSON over live reads (default false).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "mermaid": {
-            "description": "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid text (live). Default false.",
+            "description": "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid (live).",
             "type": "boolean"
           },
           "scope": {
@@ -748,7 +746,7 @@
             "type": "string"
           },
           "sections": {
-            "description": "Also compare these snapshot record sections, matched by sys_id then name: properties, choices, acls, notifications, flows, catalog, roles. Default none.",
+            "description": "Snapshot record sections to compare too, matched by sys_id then name (default none).",
             "items": {
               "enum": [
                 "properties",
@@ -782,7 +780,7 @@
       "package": "updatesets",
       "title": "Compare update set",
       "since": "2.0.1",
-      "description_sha256": "b4c1984ab8bfe94aa958ab57a5c2e8ca0cc224731deb441d9c6130b12b508bfb",
+      "description_sha256": "82117cdb7a36e334a13e61e80fd63b43978edc431b49087a22f7ad73b2f58b2d",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -794,29 +792,29 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum updates to compare to return (default 100, max 500).",
+            "description": "Max updates to compare (default 100, max 500).",
             "maximum": 500,
             "minimum": 1,
             "type": "integer"
           },
           "update_set": {
-            "description": "The update set: its sys_id or exact name (a name shared by several sets resolves to the single one in progress).",
+            "description": "Update set sys_id or exact name (a shared name resolves to the one in progress).",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
           },
           "with_profile": {
-            "description": "Connection profile to compare against, read live. Pass this or with_snapshot.",
+            "description": "Profile to compare against live; this or with_snapshot.",
             "maxLength": 64,
             "type": "string"
           },
           "with_snapshot": {
-            "description": "Profile whose saved snapshot to compare against (record sections only). Pass this or with_profile.",
+            "description": "Profile snapshot to compare with (record sections); this or with_profile.",
             "maxLength": 64,
             "type": "string"
           }
@@ -912,16 +910,16 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "template_id": {
-            "description": "Standard change template sys_id (required for standard).",
+            "description": "Template sys_id (required for standard).",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -935,7 +933,7 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Change field name/value pairs, e.g. { \"short_description\": \"Patch DB\", \"risk\": \"low\" }.",
+            "description": "Field name/value pairs, e.g. { \"risk\": \"low\" }.",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -962,7 +960,7 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "class_name": {
@@ -972,17 +970,17 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "source": {
-            "description": "Discovery source recorded by IRE (e.g. 'ServiceNow').",
+            "description": "IRE discovery source (e.g. 'ServiceNow').",
             "maxLength": 255,
             "type": "string"
           },
           "table": {
-            "description": "CMDB class, e.g. 'cmdb_ci_server'.",
+            "description": "CI class, e.g. 'cmdb_ci_server'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -1019,26 +1017,26 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "inputDisplayValue": {
-            "description": "Treat field values as display values (e.g. a user's name for a reference field, a choice label) that the instance resolves (sysparm_input_display_value). Default false: raw stored values.",
+            "description": "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "table": {
-            "description": "Table name, e.g. 'incident'.",
+            "description": "Table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "update_set": {
-            "description": "Record an applied change in this update set (sys_id or exact name; must be 'in progress'). The user's current update set is switched for the write and restored afterwards. Defaults to SN_UPDATE_SET; omit both to leave the current update set alone. Data-row tables are not captured by update sets and are written without switching.",
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -1047,7 +1045,7 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Field name/value pairs for the new record, e.g. { \"short_description\": \"Printer down\", \"urgency\": \"2\" }.",
+            "description": "Field name/value pairs, e.g. { \"short_description\": \"x\" }.",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -1074,21 +1072,21 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           },
           "sys_id": {
-            "description": "The sys_id of the attachment to delete.",
+            "description": "Attachment sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -1116,7 +1114,7 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "expected_mod_count": {
@@ -1126,29 +1124,29 @@
             "type": "integer"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           },
           "sys_id": {
-            "description": "The sys_id of the record to delete.",
+            "description": "Record sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Table name, e.g. 'incident'.",
+            "description": "Table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "update_set": {
-            "description": "Record an applied change in this update set (sys_id or exact name; must be 'in progress'). The user's current update set is switched for the write and restored afterwards. Defaults to SN_UPDATE_SET; omit both to leave the current update set alone. Data-row tables are not captured by update sets and are written without switching.",
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -1163,7 +1161,7 @@
       "package": "schema",
       "title": "Describe ServiceNow table",
       "since": "2.0.1",
-      "description_sha256": "b044945a5f64c125519b810b07709c4b43e77b65eea25116960487c97cb3794c",
+      "description_sha256": "6abf55510de0d8c47924299c488f7427c003d7db400b46e8310471e5a65c4f76",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1175,16 +1173,16 @@
         "additionalProperties": false,
         "properties": {
           "details": {
-            "description": "Also return choice lists and dictionary overrides per column (two extra reads). Default false.",
+            "description": "Add choice lists and dictionary overrides (two extra reads).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "table": {
-            "description": "Table name to describe, e.g. 'incident'.",
+            "description": "Table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -1211,7 +1209,7 @@
       "package": "scripts",
       "title": "Explain ServiceNow table logic",
       "since": "2.0.1",
-      "description_sha256": "d779a2f62e92e1f0090abbb4607a0c6295b596b7ce90d28cd3688bde7d46aa08",
+      "description_sha256": "4586ddc3cad7773b81a9a7f5eec443fc07bfabc49c2079e1ad32f224be3581ff",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1223,7 +1221,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -1276,12 +1274,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "name": {
-            "description": "Package name, e.g. 'codecheck' (see servicenow_list_packages).",
+            "description": "Package name, e.g. 'codecheck'.",
             "maxLength": 64,
             "type": "string"
           }
@@ -1316,7 +1314,7 @@
       "package": "docs",
       "title": "Document an application",
       "since": "2.0.1",
-      "description_sha256": "fe5dbfb0b0cbe30ee712f3625955d5ac621157255a3354fb9d3c75635a4ab32b",
+      "description_sha256": "ac790322205f927a76d961bc32b826b81548060db6ca76acc5d9768a9f96359f",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1328,26 +1326,26 @@
         "additionalProperties": false,
         "properties": {
           "detail": {
-            "description": "Also a Mermaid diagram per flow/subflow/workflow/portal/UI Builder experience, a dependency graph and a lint summary (bounded).",
+            "description": "Add a Mermaid diagram per flow/subflow/workflow/portal/UIB experience, a dependency graph and a lint summary (bounded).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "profile": {
-            "description": "Profile to read and write for: 'current' (default) or a profile name; the document lands in that profile's docs folder.",
+            "description": "Profile: 'current' (default) or a name; writes to its docs folder.",
             "maxLength": 128,
             "type": "string"
           },
           "scope": {
-            "description": "Application scope namespace (e.g. 'x_acme_app') or its sys_id.",
+            "description": "Scope namespace (e.g. 'x_acme_app') or sys_id.",
             "maxLength": 128,
             "type": "string"
           },
           "write": {
-            "description": "Write the files (default true); false returns the Markdown without writing.",
+            "description": "false returns the Markdown, writing nothing.",
             "type": "boolean"
           }
         },
@@ -1372,28 +1370,28 @@
         "additionalProperties": false,
         "properties": {
           "apps": {
-            "description": "Application scopes to document as apps/<scope>.md (as document_app).",
+            "description": "Scopes to write as apps/<scope>.md.",
             "items": { "maxLength": 128, "type": "string" },
             "maxItems": 50,
             "type": "array"
           },
           "depth": {
-            "description": "Discovery tier under discovery/: 'overview' (overview.md), 'apps' (+ apps.md, tables-<scope>.md), 'artefacts' (+ artifacts-<scope>.md). Scopes: apps, else every sys_app scope.",
+            "description": "Discovery tier under discovery/: overview, apps (+ per-scope tables), artefacts (+ per-scope artefacts); for 'apps', else every scope.",
             "enum": ["overview", "apps", "artefacts"],
             "type": "string"
           },
           "format": {
-            "description": "Result delivery: 'json' (default, inline) or 'file' — write the result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview } instead.",
+            "description": "'json' (default) or 'file': write the result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview }.",
             "enum": ["json", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "kinds": {
-            "description": "Instance-wide documents to add: 'security' (security.md), 'catalog' (catalog.md), 'integrations' (integrations.md).",
+            "description": "Instance-wide documents to add, each as <kind>.md.",
             "items": {
               "enum": ["security", "catalog", "integrations"],
               "type": "string"
@@ -1402,12 +1400,12 @@
             "type": "array"
           },
           "profile": {
-            "description": "Profile to read and write for: 'current' (default) or a profile name; the document lands in that profile's docs folder.",
+            "description": "Profile: 'current' (default) or a name; writes to its docs folder.",
             "maxLength": 128,
             "type": "string"
           },
           "tables": {
-            "description": "Tables to document as tables/<name>.md (as document_table).",
+            "description": "Tables to write as tables/<name>.md.",
             "items": {
               "maxLength": 80,
               "pattern": "^[A-Za-z0-9_]{1,80}$",
@@ -1417,7 +1415,7 @@
             "type": "array"
           },
           "write": {
-            "description": "Write the files (default true); false returns the Markdown without writing.",
+            "description": "false returns the Markdown, writing nothing.",
             "type": "boolean"
           }
         },
@@ -1429,7 +1427,7 @@
       "package": "docs",
       "title": "Document a table",
       "since": "2.0.1",
-      "description_sha256": "1072180c827c6af398dfcea881376ed972f9bfa7d533a1cd0b62eb30f9e9f963",
+      "description_sha256": "5c98799f7b8df76a29f9bafa59ca5c3f121a67c0f139754bf613d1591ac30755",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1446,16 +1444,16 @@
             "type": "string"
           },
           "diagrams": {
-            "description": "Include the ER and table-flow diagrams (default true).",
+            "description": "ER and table-flow diagrams (default true).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "profile": {
-            "description": "Profile to read and write for: 'current' (default) or a profile name; the document lands in that profile's docs folder.",
+            "description": "Profile: 'current' (default) or a name; writes to its docs folder.",
             "maxLength": 128,
             "type": "string"
           },
@@ -1466,7 +1464,7 @@
             "type": "string"
           },
           "write": {
-            "description": "Write the files (default true); false returns the Markdown without writing.",
+            "description": "false returns the Markdown, writing nothing.",
             "type": "boolean"
           }
         },
@@ -1491,12 +1489,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "The sys_id of the attachment to download.",
+            "description": "Attachment sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -1512,7 +1510,7 @@
       "package": "admin",
       "title": "Enable a tool package",
       "since": "2.0.1",
-      "description_sha256": "29cf9a69cd264a73793b161e3111e7c0d3721ddebe183c39e544c00c9769055e",
+      "description_sha256": "6da9efe39ac04dc7ab9a0cb21db072136fe5532a43da63210b8ce6a405118097",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -1524,12 +1522,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "name": {
-            "description": "Package name, e.g. 'codecheck' (see servicenow_list_packages).",
+            "description": "Package name, e.g. 'codecheck'.",
             "maxLength": 64,
             "type": "string"
           }
@@ -1564,7 +1562,7 @@
       "package": "artifacts",
       "title": "Explain artifact",
       "since": "2.0.1",
-      "description_sha256": "e32fb4831224b5272c52d072c3f04ed991d1a77ed20d1edad750730ef7a17b54",
+      "description_sha256": "a9c842f68dad6e1e3b66e757f9b4ad09c4221c6120ff3b592059005d36d591ca",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1576,13 +1574,13 @@
         "additionalProperties": false,
         "properties": {
           "artifactType": {
-            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types.",
             "maxLength": 80,
             "minLength": 1,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -1607,10 +1605,10 @@
                 "type": "object"
               }
             ],
-            "description": "The type's natural key (keyFields in servicenow://artifact-types): a plain value for a single key field, e.g. a portal page id, or an object with every key field. Pass this or 'sys_id', not both."
+            "description": "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'."
           },
           "sys_id": {
-            "description": "sys_id of the record. Pass this or 'key', not both.",
+            "description": "Record sys_id; this or 'key'.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -1771,38 +1769,38 @@
         "additionalProperties": false,
         "properties": {
           "depth": {
-            "description": "Flow/subflow: levels of subflow/action calls to expand (0 = none). Default 1.",
+            "description": "Flow/subflow: call levels to expand (default 1; 0 none).",
             "maximum": 3,
             "minimum": 0,
             "type": "integer"
           },
           "format": {
-            "description": "'json' (default) the tree; 'markdown' a report with the Mermaid diagram; 'mermaid' the diagram only; 'file' the full JSON (diagram included) written to exports/ with a summary returned.",
+            "description": "json (default) tree; markdown report + Mermaid; mermaid only; file: JSON to exports/.",
             "enum": ["json", "markdown", "mermaid", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "kind": {
-            "description": "'flow' (default), 'subflow', 'action' (custom action), 'workflow' (legacy) or 'playbook' (PAD).",
+            "description": "Default 'flow'; 'action' is a custom action, 'workflow' legacy, 'playbook' PAD.",
             "enum": ["flow", "subflow", "action", "workflow", "playbook"],
             "type": "string"
           },
           "migration": {
-            "description": "Workflow only: report catalog items / SLA definitions that reference it and running contexts.",
+            "description": "Workflow: migration report (catalog items, SLAs, running contexts).",
             "type": "boolean"
           },
           "runs": {
-            "description": "Latest runs to include (sys_flow_context + sys_flow_log errors, wf_context or sys_pd_context). Default 0.",
+            "description": "Latest runs to include, with errors (default 0).",
             "maximum": 20,
             "minimum": 0,
             "type": "integer"
           },
           "sys_id": {
-            "description": "sys_hub_flow (flow/subflow), sys_hub_action_type_definition (action), wf_workflow (workflow) or sys_pd_process_definition (playbook) sys_id. Required unless kind:'workflow' with migration:true.",
+            "description": "sys_id of the flow, action, workflow or playbook (per kind). Required unless kind:'workflow' with migration:true.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -1827,7 +1825,7 @@
       "package": "admin",
       "title": "Explain ServiceNow access policy",
       "since": "2.0.1",
-      "description_sha256": "a1018612a8fe6943d050d0c28cd1d3bee0838c1728d68eec910ec13a93451bea",
+      "description_sha256": "444c2aa7ad162bf96b93c365024badc3d2fca8d31b612bc3ecd72f115c55f746",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1844,7 +1842,7 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -1863,7 +1861,7 @@
       "package": "ui",
       "title": "Explain a Service Portal",
       "since": "2.0.1",
-      "description_sha256": "7ab62cba22f6fa1e4378db677200199de72f6e531399ebb45dc05af5946a68a5",
+      "description_sha256": "1b9ad3bc9c2509902bdc194536bb5568fc99b0f4c2956bcec6708e7742f44a9a",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1875,28 +1873,28 @@
         "additionalProperties": false,
         "properties": {
           "depth": {
-            "description": "Levels of nested rows (a row inside a column) to expand (default 3).",
+            "description": "Nested-row levels to expand (default 3).",
             "maximum": 6,
             "minimum": 1,
             "type": "integer"
           },
           "format": {
-            "description": "'json' (default) the tree; 'markdown' a report with the Mermaid diagram; 'mermaid' the layout diagram only; 'file' the full JSON (diagram included) written to exports/ with a summary returned.",
+            "description": "json (default) tree; markdown report + Mermaid; mermaid layout; file: JSON to exports/.",
             "enum": ["json", "markdown", "mermaid", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "page": {
-            "description": "Portal page id (e.g. 'index') or sp_page sys_id: explain that page only. Pass this or 'portal', not both.",
+            "description": "Page id (e.g. 'index') or sp_page sys_id, alone; this or 'portal'.",
             "maxLength": 100,
             "type": "string"
           },
           "portal": {
-            "description": "Portal url_suffix (e.g. 'sp', 'esc') or sp_portal sys_id. Pass this or 'page', not both.",
+            "description": "Portal url_suffix (e.g. 'esc') or sys_id; this or 'page'.",
             "maxLength": 100,
             "type": "string"
           }
@@ -1909,7 +1907,7 @@
       "package": "ui",
       "title": "Explain a UI Builder experience",
       "since": "2.0.1",
-      "description_sha256": "774fbea98cda096d1a2ce11f356950491734d94823297bc879c4be416e9354ff",
+      "description_sha256": "bc66b8584b115834216e721661949e0258bfb3cb0e4feb6a62127249ae13923e",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1921,12 +1919,12 @@
         "additionalProperties": false,
         "properties": {
           "format": {
-            "description": "json (default), markdown (report + diagram), mermaid (page map only) or file (full JSON to exports/).",
+            "description": "json (default), markdown (report + diagram), mermaid (page map) or file (JSON to exports/).",
             "enum": ["json", "markdown", "mermaid", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -1964,7 +1962,7 @@
       "package": "docs",
       "title": "Generate ER diagram",
       "since": "2.0.1",
-      "description_sha256": "1ea1766847f5e82012ae6581f99c13951ce804244be68869d5cab9c2958db2ba",
+      "description_sha256": "158e3bd629e9c7d021668cb0dec2e63a35e3e44a9d6e495d805116b1c51e4a58",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1976,27 +1974,27 @@
         "additionalProperties": false,
         "properties": {
           "columns": {
-            "description": "all: every column of the chain; own: columns defined on the table; keys: sys_id, references and mandatory columns.",
+            "description": "all: whole chain; own: the table's own; keys: sys_id, references, mandatory.",
             "enum": ["all", "own", "keys"],
             "type": "string"
           },
           "depth": {
-            "description": "Follow references this many levels, adding each target table (0).",
+            "description": "Reference levels to follow, adding targets (0).",
             "enum": [0, 1, 2],
             "type": "number"
           },
           "format": {
-            "description": "Result delivery: 'inline' (default, Mermaid in the result) or 'file' — write the diagram to <SN_DOCS_DIR>/<profile>/diagrams/<name>.mmd and return { path, bytes, preview } instead. An inline result over SN_MAX_RESULT_CHARS carries a note (or is written to the file with SN_OVERSIZE_TO_FILE).",
+            "description": "'inline' (default) or 'file': write <profile>/diagrams/<name>.mmd, return { path, bytes, preview }.",
             "enum": ["inline", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "max_columns": {
-            "description": "Columns per entity before the rest fold into '+N' (40).",
+            "description": "Columns per entity before '+N' folding (40).",
             "exclusiveMinimum": 0,
             "maximum": 9007199254740991,
             "type": "integer"
@@ -2034,7 +2032,7 @@
         "additionalProperties": false,
         "properties": {
           "artifactType": {
-            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types.",
             "maxLength": 80,
             "minLength": 1,
             "type": "string"
@@ -2045,7 +2043,7 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -2070,7 +2068,7 @@
                 "type": "object"
               }
             ],
-            "description": "The type's natural key (keyFields in servicenow://artifact-types): a plain value for a single key field, e.g. a portal page id, or an object with every key field. Pass this or 'sys_id', not both."
+            "description": "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'."
           },
           "limit": {
             "description": "Scope mode cap (default 25).",
@@ -2083,12 +2081,12 @@
             "type": "boolean"
           },
           "scope": {
-            "description": "Instead of sys_id/key: every artifact of the type in this scope.",
+            "description": "Instead of sys_id/key: every artifact of the type in a scope.",
             "maxLength": 255,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the record. Pass this or 'key', not both.",
+            "description": "Record sys_id; this or 'key'.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2153,7 +2151,7 @@
       "package": "docs",
       "title": "Generate table flow",
       "since": "2.0.1",
-      "description_sha256": "a454c4b33fb885e561c31984ac5a9e75b4e7253458278199aa934b88bbb3451d",
+      "description_sha256": "812444910431ba6a00a54aeda10bda73ed49223f0631ebd01b21717df05aeb02",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2165,17 +2163,17 @@
         "additionalProperties": false,
         "properties": {
           "format": {
-            "description": "Result delivery: 'inline' (default, Mermaid in the result) or 'file' — write the diagram to <SN_DOCS_DIR>/<profile>/diagrams/<name>.mmd and return { path, bytes, preview } instead. An inline result over SN_MAX_RESULT_CHARS carries a note (or is written to the file with SN_OVERSIZE_TO_FILE).",
+            "description": "'inline' (default) or 'file': write <profile>/diagrams/<name>.mmd, return { path, bytes, preview }.",
             "enum": ["inline", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "lanes": {
-            "description": "Opt-in extra lanes: transform_map (maps targeting the table), scheduled_job (script jobs naming the table — a text match), client (client scripts + UI policies), data_policy, sla (SLA definitions), event_script (script actions of the table's registered events). Omit for business rules, flows, workflows and notifications only.",
+            "description": "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script.",
             "items": {
               "enum": [
                 "transform_map",
@@ -2191,7 +2189,7 @@
             "type": "array"
           },
           "operation": {
-            "description": "Diagram one operation, including flows, workflows and notifications.",
+            "description": "One operation, with flows, workflows and notifications.",
             "enum": ["insert", "update", "delete", "query"],
             "type": "string"
           },
@@ -2211,7 +2209,7 @@
       "package": "artifacts",
       "title": "Get artifact",
       "since": "2.0.1",
-      "description_sha256": "3d2eaffc350a0d3f251634b2069f1683fe7d39f01257185f3bc0ef4068985e89",
+      "description_sha256": "c835224374bbb10fbad10bb91af10c9834e4d7110422f58fc4c2e7f782f6d9fd",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2223,13 +2221,13 @@
         "additionalProperties": false,
         "properties": {
           "artifactType": {
-            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types.",
             "maxLength": 80,
             "minLength": 1,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -2254,10 +2252,10 @@
                 "type": "object"
               }
             ],
-            "description": "The type's natural key (keyFields in servicenow://artifact-types): a plain value for a single key field, e.g. a portal page id, or an object with every key field. Pass this or 'sys_id', not both."
+            "description": "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'."
           },
           "sys_id": {
-            "description": "sys_id of the record. Pass this or 'key', not both.",
+            "description": "Record sys_id; this or 'key'.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2366,7 +2364,7 @@
       "package": "artifacts",
       "title": "Artifact dependencies",
       "since": "2.0.1",
-      "description_sha256": "628d9887249772b3f179dd26ba3eb0b11973a2dec32e4fc440b24a55fd6b24f1",
+      "description_sha256": "1364a2a887790cb75be5100287e29f02be300d111213cb46aa938673597f8888",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2378,29 +2376,29 @@
         "additionalProperties": false,
         "properties": {
           "artifactType": {
-            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types.",
             "maxLength": 80,
             "minLength": 1,
             "type": "string"
           },
           "depth": {
-            "description": "Levels to walk from the artifact (default 1); cycles are visited once.",
+            "description": "Levels to walk (default 1); cycles visited once.",
             "maximum": 3,
             "minimum": 1,
             "type": "integer"
           },
           "direction": {
-            "description": "'outbound' what the artifact uses, 'inbound' what uses it, 'both' (default).",
+            "description": "outbound (uses), inbound (used by), both (default).",
             "enum": ["outbound", "inbound", "both"],
             "type": "string"
           },
           "format": {
-            "description": "'json' (default) nodes and edges; 'mermaid' a graph LR diagram with the counts.",
+            "description": "json (default) nodes and edges, or mermaid.",
             "enum": ["json", "mermaid"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -2425,16 +2423,16 @@
                 "type": "object"
               }
             ],
-            "description": "The type's natural key (keyFields in servicenow://artifact-types): a plain value for a single key field, e.g. a portal page id, or an object with every key field. Pass this or 'sys_id', not both."
+            "description": "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'."
           },
           "limit": {
-            "description": "Rows kept per inbound source read (default 25).",
+            "description": "Rows per inbound source (default 25).",
             "maximum": 100,
             "minimum": 1,
             "type": "integer"
           },
           "sys_id": {
-            "description": "sys_id of the record. Pass this or 'key', not both.",
+            "description": "Record sys_id; this or 'key'.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2554,13 +2552,13 @@
         "additionalProperties": false,
         "properties": {
           "execution_id": {
-            "description": "The execution/progress id returned by a run tool.",
+            "description": "Execution id from a run tool.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           }
@@ -2596,12 +2594,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "The sys_id of the attachment record.",
+            "description": "Attachment sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2629,12 +2627,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the catalog item.",
+            "description": "Catalog item sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2662,12 +2660,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the change request.",
+            "description": "Change request sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2700,18 +2698,18 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the CI.",
+            "description": "CI sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "CMDB class, e.g. 'cmdb_ci_server'.",
+            "description": "CI class, e.g. 'cmdb_ci_server'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -2727,7 +2725,7 @@
       "package": "cmdb",
       "title": "Get CMDB class metadata",
       "since": "2.0.1",
-      "description_sha256": "0b7f10a384138817538661e29c308c545eb9b5d440681eb7947f93c270cf647e",
+      "description_sha256": "949617eb74e0e0cf7569965da496f3d73b40cdde9244f521071c076f23b4a68c",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2745,12 +2743,12 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "table": {
-            "description": "CMDB class, e.g. 'cmdb_ci_server'.",
+            "description": "CI class, e.g. 'cmdb_ci_server'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -2777,12 +2775,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the email record.",
+            "description": "Email sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2797,7 +2795,7 @@
       "package": "flows",
       "title": "Get flow detail",
       "since": "2.0.1",
-      "description_sha256": "e69d7536f60ce11af130c65aa7fcd38e479b2ae61da1de7e5156a1e8f8e6a87a",
+      "description_sha256": "6c134c0aaf2e1570ce0ea648965db4319b0bc8575466d32ff1d101f4165e4fd0",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2809,7 +2807,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -2819,7 +2817,7 @@
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the flow or workflow.",
+            "description": "Flow or workflow sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2846,7 +2844,7 @@
       "package": "flows",
       "title": "Get flow run history",
       "since": "2.0.1",
-      "description_sha256": "5a7c333e5b338ed8debcab58b5e5b3d3ee26e7c5ceebf055ae89432a8c024853",
+      "description_sha256": "5ddd5a1514b1547620a3386509c7b1cfa56ca60c3513a40244ae5e616ef0a537",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2858,13 +2856,13 @@
         "additionalProperties": false,
         "properties": {
           "flow": {
-            "description": "Flow sys_id to scope by.",
+            "description": "Flow sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -2874,7 +2872,7 @@
             "type": "integer"
           },
           "record": {
-            "description": "Record sys_id the flow ran against (document_id).",
+            "description": "Record the flow ran against (document_id).",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2898,7 +2896,7 @@
       "package": "importset",
       "title": "Get ServiceNow import set row result",
       "since": "2.0.1",
-      "description_sha256": "349f5a0d6c7ea936357ffa2b6dccdf8ad8e5fd4eb9bebfc5bccf2248968dc5ba",
+      "description_sha256": "1fbe01ea304467d7490a6d0d313f9db47718ec1287057c34c0c2f1cff4dada26",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2910,18 +2908,18 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the staging row.",
+            "description": "Staging row sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Import staging table name.",
+            "description": "Import staging table.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -2949,12 +2947,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the knowledge article.",
+            "description": "Article sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -2981,13 +2979,13 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": { "exclusiveMinimum": 0, "maximum": 100, "type": "integer" },
           "mode": {
-            "description": "Which highlight list to return.",
+            "description": "Highlight list.",
             "enum": ["featured", "most_viewed"],
             "type": "string"
           }
@@ -3001,7 +2999,7 @@
       "package": "properties",
       "title": "Get system properties",
       "since": "2.0.1",
-      "description_sha256": "eddbb84c06101fbbba10c3299e061dbaae61f2e7517254b39b5775b839a70f8d",
+      "description_sha256": "f45d8cac774bd56c09e38d5b0ca1d8c15b46fbb8506d9364d03caa6175868b62",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3013,12 +3011,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum properties (default 50).",
+            "description": "Max properties (default 50).",
             "exclusiveMinimum": 0,
             "maximum": 500,
             "type": "integer"
@@ -3034,7 +3032,7 @@
             "type": "string"
           },
           "value_max_chars": {
-            "description": "Truncate each value to this many characters (default 4000).",
+            "description": "Chars per value (default 4000).",
             "exclusiveMinimum": 0,
             "maximum": 100000,
             "type": "integer"
@@ -3060,7 +3058,7 @@
         "additionalProperties": false,
         "properties": {
           "fields": {
-            "description": "Columns to return. Omit to return all columns.",
+            "description": "Columns (default all).",
             "items": {
               "maxLength": 255,
               "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
@@ -3070,18 +3068,18 @@
             "type": "array"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "The sys_id of the record to read.",
+            "description": "Record sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Table name, e.g. 'incident'.",
+            "description": "Table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -3102,7 +3100,7 @@
       "package": "history",
       "title": "Get record history",
       "since": "2.0.1",
-      "description_sha256": "2be4d6f7ff57473bf3a439707001242e73f6685ab82e5d646fcbabde1de3f931",
+      "description_sha256": "2ba97e1b0b5a289dfbb8b5ce37e00395c70ace3f972701bf343461cd2124f3bf",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3124,18 +3122,18 @@
             "type": "array"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum entries after merging (default 100).",
+            "description": "Max entries after merging (default 100).",
             "exclusiveMinimum": 0,
             "maximum": 1000,
             "type": "integer"
           },
           "since": {
-            "description": "Only entries at or after this instant: 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'.",
+            "description": "Only entries at or after 'YYYY-MM-DD[ HH:MM:SS]'.",
             "maxLength": 19,
             "type": "string"
           },
@@ -3145,19 +3143,19 @@
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the record.",
+            "description": "Record sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Table of the record, e.g. 'incident'.",
+            "description": "Record table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "value_max_chars": {
-            "description": "Truncate each value to this many characters (default 2000).",
+            "description": "Chars per value (default 2000).",
             "exclusiveMinimum": 0,
             "maximum": 100000,
             "type": "integer"
@@ -3172,7 +3170,7 @@
       "package": "scripts",
       "title": "Get ServiceNow script",
       "since": "2.0.1",
-      "description_sha256": "190d907631d778287ed3241120a32f50a4bdee83654f3e5127b8d4d26255530e",
+      "description_sha256": "4ed3a08d4a9f9adce2cb38c35a5bfb4cc14a893cf62729b2e7c62ae443bcc5b9",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3184,18 +3182,18 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the script record.",
+            "description": "Script sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "type": {
-            "description": "Script type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl, script_action, transform_map, transform_entry, fix_script, email_script, processor, data_source, rest_message_fn, ui_script, ui_page, ui_macro, validation_script, sp_widget, catalog_client_script, dictionary_script; opt-in (read only on request): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "Script type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
             "enum": [
               "business_rule",
               "script_include",
@@ -3266,7 +3264,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           }
@@ -3479,7 +3477,7 @@
       "package": "updatesets",
       "title": "Get update set",
       "since": "2.0.1",
-      "description_sha256": "e7f5fe69cd5d22ce05429137fb14b5373f2ad71c026f201c0334bac87a74853c",
+      "description_sha256": "e09311d1871c5f7cba8dfe1886064a9839b283c2439de311f7317f59fbb0f68f",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3491,33 +3489,33 @@
         "additionalProperties": false,
         "properties": {
           "include_payload": {
-            "description": "Include each update's parsed payload fields (default false).",
+            "description": "Add parsed payload fields.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum updates to return (default 200, max 1000).",
+            "description": "Max updates (default 200, max 1000).",
             "maximum": 1000,
             "minimum": 1,
             "type": "integer"
           },
           "payload_max_chars": {
-            "description": "Cap per payload field value, in characters (default 500).",
+            "description": "Chars per payload field (default 500).",
             "maximum": 20000,
             "minimum": 20,
             "type": "integer"
           },
           "type": {
-            "description": "Only updates of this type label, e.g. 'Business Rule'.",
+            "description": "Only this type label, e.g. 'Business Rule'.",
             "maxLength": 100,
             "type": "string"
           },
           "update_set": {
-            "description": "The update set: its sys_id or exact name (a name shared by several sets resolves to the single one in progress).",
+            "description": "Update set sys_id or exact name (a shared name resolves to the one in progress).",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -3595,7 +3593,7 @@
       "package": "cmdb",
       "title": "Identify and reconcile CIs (IRE)",
       "since": "2.0.1",
-      "description_sha256": "eac1e21d06623d9f08f0042e510eaa270da0282dde5568d2e8c1deeb9a015307",
+      "description_sha256": "e746a14737d99c75bca85180260387b108ab742234940220f91bef8d59fa2683",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3607,16 +3605,16 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "data_source": {
-            "description": "Discovery source (sysparm_data_source), default 'ServiceNow'.",
+            "description": "sysparm_data_source (default 'ServiceNow').",
             "maxLength": 100,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -3634,7 +3632,7 @@
                   "additionalProperties": {
                     "type": ["string", "number", "boolean", "null"]
                   },
-                  "description": "Identifying and descriptive attributes (name, serial_number, ip_address, ...).",
+                  "description": "Identifying and descriptive attributes.",
                   "propertyNames": { "type": "string" },
                   "type": "object"
                 }
@@ -3647,7 +3645,7 @@
             "type": "array"
           },
           "relations": {
-            "description": "Relationships between the items (IRE payload `relations`).",
+            "description": "Relationships between the items.",
             "items": {
               "properties": {
                 "child": {
@@ -3684,7 +3682,7 @@
       "package": "importset",
       "title": "Insert ServiceNow import set row",
       "since": "2.0.1",
-      "description_sha256": "5a6d5e59657f246a819561e8cd020b61d43743b5d1345e769e917c91eba00e8e",
+      "description_sha256": "bf04485d476ef98297211d45cec225ab3b339a579fe8246d3c150104b1585a22",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -3696,11 +3694,11 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -3714,7 +3712,7 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Column name/value pairs for the staging row.",
+            "description": "Staging row column name/value pairs.",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -3729,7 +3727,7 @@
       "package": "codecheck",
       "title": "Lint a script",
       "since": "2.0.1",
-      "description_sha256": "f82a3de19d836260ec153aab0de84f5674985c025c909d975b795d533bf80899",
+      "description_sha256": "1cef0bbb82352c5d3f3a475255d12b8bb36ef13fd6e617cfd5e7e9498b04b19e",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3741,12 +3739,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the script record.",
+            "description": "Script sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -3811,7 +3809,7 @@
       "package": "codecheck",
       "title": "Lint a table's scripts",
       "since": "2.0.1",
-      "description_sha256": "d5dd5cefbfc95a22417b85114654fa77d1a8017f000b001bfc3d4dadc5408aea",
+      "description_sha256": "0b8209c5d00c4797d6ad722fb971a26a8104cc8b2303fe90329ef6b57cbb391e",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3823,7 +3821,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -3862,7 +3860,7 @@
       "package": "artifacts",
       "title": "List artifacts",
       "since": "2.0.1",
-      "description_sha256": "826ba85599ae89c03a69f999823456049727d143e1e344b34c406356457f9f05",
+      "description_sha256": "e6ee997ff89e493e986d0380f0f25213249a269d72f0012041184e63832b3b68",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3874,33 +3872,33 @@
         "additionalProperties": false,
         "properties": {
           "active": {
-            "description": "Only active (true) or inactive (false) records; refused for types without an active flag.",
+            "description": "Filter by active; refused for types without one.",
             "type": "boolean"
           },
           "artifactType": {
-            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types.",
             "maxLength": 80,
             "minLength": 1,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum records to return (default 50, max 1000).",
+            "description": "Max records (default 50, max 1000).",
             "maximum": 1000,
             "minimum": 1,
             "type": "integer"
           },
           "query": {
-            "description": "Extra encoded query ANDed with the type's own filter, e.g. 'nameLIKEincident'.",
+            "description": "Encoded query ANDed with the type's filter.",
             "maxLength": 8000,
             "type": "string"
           },
           "scope": {
-            "description": "Restrict to one application scope: its namespace (e.g. 'global', 'x_acme_app') or its sys_scope sys_id.",
+            "description": "One scope: namespace (e.g. 'x_acme_app') or sys_id.",
             "maxLength": 255,
             "type": "string"
           }
@@ -3970,7 +3968,7 @@
       "package": "atf",
       "title": "List ATF suites",
       "since": "2.0.1",
-      "description_sha256": "183dfd46edeedecfa003cd1f06229d8807250efc380df329a21d1510c2adc886",
+      "description_sha256": "aa93252075412940607736ec348d34170115d10307298707d2ce263f40f8e6d8",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3981,12 +3979,9 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
-          "active": {
-            "description": "Filter by the active flag.",
-            "type": "boolean"
-          },
+          "active": { "description": "Filter by active.", "type": "boolean" },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -4020,7 +4015,7 @@
       "package": "atf",
       "title": "List ATF tests",
       "since": "2.0.1",
-      "description_sha256": "05c852e7d8eaf9bc3c0e0bef981f0614b1f7b71edb3f5dcfcc8806ee99962a6a",
+      "description_sha256": "da8ffa596fd0d3777c92eed5198515dc79eb115c387319cc6b77a625bb8dc3e0",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4031,12 +4026,9 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
-          "active": {
-            "description": "Filter by the active flag.",
-            "type": "boolean"
-          },
+          "active": { "description": "Filter by active.", "type": "boolean" },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -4070,7 +4062,7 @@
       "package": "attachment",
       "title": "List ServiceNow attachments",
       "since": "2.0.1",
-      "description_sha256": "98f99b90def1cec47130635e5bf29cd996273ab6441335674ee36bb3ac0f535b",
+      "description_sha256": "3320ea7af9a4a3d6c4734accea27be0afe913002d2b90f69b682772773cc0658",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4082,18 +4074,18 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the record whose attachments to list.",
+            "description": "Record sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Table the record belongs to, e.g. 'incident'.",
+            "description": "Record table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -4119,12 +4111,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the catalog.",
+            "description": "Catalog sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -4152,12 +4144,12 @@
         "additionalProperties": false,
         "properties": {
           "category": {
-            "description": "Restrict to a category sys_id.",
+            "description": "Category sys_id.",
             "maxLength": 255,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -4193,7 +4185,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           }
@@ -4206,7 +4198,7 @@
       "package": "change",
       "title": "List change requests",
       "since": "2.0.1",
-      "description_sha256": "0bd2cd7c9bb63a7ea699d6823063c9c160b252248ae513334f42d3ec431a7070",
+      "description_sha256": "e2661103dab51d7b164e875d57d272e1f21ebd7bfe978342c1fd6f48a746a1b8",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4228,7 +4220,7 @@
             "type": "array"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -4256,7 +4248,7 @@
       "package": "cmdb",
       "title": "List CI relationships",
       "since": "2.0.1",
-      "description_sha256": "8f90ecf39d73d2fa3d8d1639010fde75fd15bf6048418e19574d6bacc8a977a7",
+      "description_sha256": "00fc1b2d880bbbf2adced0f6fcca2bda9c1950594c5b2bd0697e70c914ecc08d",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4268,29 +4260,29 @@
         "additionalProperties": false,
         "properties": {
           "direction": {
-            "description": "outbound = the CI is the parent, inbound = the child (default both).",
+            "description": "Default both.",
             "enum": ["both", "outbound", "inbound"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum relationships (default 100).",
+            "description": "Max relationships (default 100).",
             "exclusiveMinimum": 0,
             "maximum": 1000,
             "type": "integer"
           },
           "sys_id": {
-            "description": "sys_id of the CI.",
+            "description": "CI sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "type": {
-            "description": "Relationship type name (e.g. 'Depends on::Used by') or its sys_id.",
+            "description": "Relationship type name ('Depends on::Used by') or sys_id.",
             "maxLength": 200,
             "type": "string"
           }
@@ -4322,7 +4314,7 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -4357,7 +4349,7 @@
       "package": "docs",
       "title": "List instance docs",
       "since": "2.0.1",
-      "description_sha256": "ac88f797e99f165fddd79afd374e4578c7ad612f4b17a117217967790c3a0b36",
+      "description_sha256": "8ac06fce3e552e4e1abb8273ff9171dbe2db4d5b20af17e5fb91c0ac6a060531",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4369,12 +4361,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "profile": {
-            "description": "Scope to one profile's folder: 'current' for the active profile or a profile name. Omit for the whole docs folder (paths relative to its root).",
+            "description": "Profile folder: 'current' or a name; omit for all.",
             "maxLength": 128,
             "type": "string"
           }
@@ -4387,7 +4379,7 @@
       "package": "flows",
       "title": "List flows",
       "since": "2.0.1",
-      "description_sha256": "fc2c6e60f2f6f37d36c41011258d15dd9bfe0501aab0632bd2e34c580bb8a4c6",
+      "description_sha256": "d0858fb4f6f3dfd5f060d52bbc90e821a669c30129fa36d7a20be2a326763218",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4403,12 +4395,12 @@
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "kind": {
-            "description": "'flow' (Flow Designer, default) or 'workflow' (legacy).",
+            "description": "'flow' (default) or 'workflow' (legacy).",
             "enum": ["flow", "workflow"],
             "type": "string"
           },
@@ -4418,7 +4410,7 @@
             "type": "integer"
           },
           "name": {
-            "description": "Case-insensitive fragment to match in the name.",
+            "description": "Case-insensitive name fragment.",
             "maxLength": 255,
             "type": "string"
           },
@@ -4448,7 +4440,7 @@
       "package": "admin",
       "title": "List connection profiles",
       "since": "2.0.1",
-      "description_sha256": "ebc13041999ba052880485c0d97fa5c9a1a4cdafb8377787ddbf3eee715d3fbe",
+      "description_sha256": "5505df158f9afcdc9afcc570e45b830b5155c639d134d1b339a7e89d17c5f6c2",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4460,7 +4452,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           }
@@ -4483,7 +4475,7 @@
       "package": "admin",
       "title": "List tool packages",
       "since": "2.0.1",
-      "description_sha256": "d1006279a4e3285812ca341c7585cbaf0ae8674ca8dd00471c30d3ad14d26358",
+      "description_sha256": "9e4fa0b0a0b364c99d31429cc75da83ad1412fb362c7e2d169e79d5fe2d232dc",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4495,7 +4487,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           }
@@ -4518,7 +4510,7 @@
       "package": "scripts",
       "title": "List ServiceNow scripts",
       "since": "2.0.1",
-      "description_sha256": "d92953be3eac75a50f9a802c062a44e4fcc25c8885510fc782160fba01cb3799",
+      "description_sha256": "ace29003061c1ff1dba3c6064f4ca2a826c4061d16eda2e6203c225190b60794",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4534,40 +4526,40 @@
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum rows to return (default 50).",
+            "description": "Max rows (default 50).",
             "exclusiveMinimum": 0,
             "maximum": 9007199254740991,
             "type": "integer"
           },
           "name": {
-            "description": "Case-insensitive fragment to match in the name.",
+            "description": "Case-insensitive name fragment.",
             "maxLength": 255,
             "type": "string"
           },
           "offset": {
-            "description": "Row offset for paging.",
+            "description": "Rows to skip (paging).",
             "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
           },
           "query": {
-            "description": "Extra raw encoded query, ANDed with the other filters.",
+            "description": "Encoded query ANDed with the filters.",
             "maxLength": 8000,
             "type": "string"
           },
           "table": {
-            "description": "Table the script applies to (e.g. 'incident'); ignored for types with no table.",
+            "description": "Applied table (types that have one).",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "type": {
-            "description": "Script type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl, script_action, transform_map, transform_entry, fix_script, email_script, processor, data_source, rest_message_fn, ui_script, ui_page, ui_macro, validation_script, sp_widget, catalog_client_script, dictionary_script; opt-in (read only on request): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "Script type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
             "enum": [
               "business_rule",
               "script_include",
@@ -4638,12 +4630,12 @@
         "additionalProperties": false,
         "properties": {
           "filter": {
-            "description": "Case-insensitive fragment to match in name or label.",
+            "description": "Case-insensitive name or label fragment.",
             "maxLength": 255,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           }
@@ -4666,7 +4658,7 @@
       "package": "updatesets",
       "title": "List update sets",
       "since": "2.0.1",
-      "description_sha256": "5e39594b577069695a00ce516b8687befcac39abd847211e138e2e137161437f",
+      "description_sha256": "bad717877de78c90332f8d45111484d00465a22ccc20752e4892018d6ddf037b",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4678,28 +4670,28 @@
         "additionalProperties": false,
         "properties": {
           "application": {
-            "description": "Application scope namespace (e.g. 'x_acme_app'), 'global', or a sys_scope sys_id.",
+            "description": "Scope namespace (e.g. 'x_acme_app') or sys_id.",
             "maxLength": 100,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum update sets to return (default 50, max 500).",
+            "description": "Max update sets (default 50, max 500).",
             "maximum": 500,
             "minimum": 1,
             "type": "integer"
           },
           "name": {
-            "description": "Name fragment to match (contains).",
+            "description": "Name fragment (contains).",
             "maxLength": 255,
             "type": "string"
           },
           "offset": {
-            "description": "Rows to skip, for paging.",
+            "description": "Rows to skip (paging).",
             "maximum": 100000,
             "minimum": 0,
             "type": "integer"
@@ -4750,7 +4742,7 @@
       "package": "revert",
       "title": "List journaled writes",
       "since": "2.0.1",
-      "description_sha256": "ec84e867b391ef591ed295594c4e26cc3363b4d62de45fe24f0c995d6d20a55d",
+      "description_sha256": "38842af6c1bf9612328246f558f23b8a2a972fcca34d9536740f2dad71628114",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4774,18 +4766,18 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum entries to return (default 50, max 500).",
+            "description": "Max entries (default 50, max 500).",
             "maximum": 500,
             "minimum": 1,
             "type": "integer"
           },
           "profile": {
-            "description": "Profile whose journal to read. Defaults to the active one.",
+            "description": "Profile whose journal to read (default: active).",
             "maxLength": 128,
             "type": "string"
           },
@@ -4795,7 +4787,7 @@
             "type": "string"
           },
           "since": {
-            "description": "Only writes at or after this ISO 8601 date/time, e.g. '2026-09-01' or '2026-09-01T12:00:00Z'.",
+            "description": "Only writes at or after this ISO 8601 time.",
             "maxLength": 64,
             "type": "string"
           },
@@ -4806,7 +4798,7 @@
             "type": "string"
           },
           "verbose": {
-            "description": "Return the full journal lines (fields, before) instead of summaries.",
+            "description": "Full journal lines (fields, before) instead of summaries.",
             "type": "boolean"
           }
         },
@@ -4818,7 +4810,7 @@
       "package": "directory",
       "title": "Look up users, groups and roles",
       "since": "2.0.1",
-      "description_sha256": "c13c634b6491dcc665501d0534570b533d3da7952514a987e9dc82cfdd0cc5aa",
+      "description_sha256": "298322a6935c1610f54cf1fc7f649f4a25c3d658fac868428090d4b90ab58595",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4830,15 +4822,15 @@
         "additionalProperties": false,
         "properties": {
           "active": {
-            "description": "Only active (true) or inactive (false) users / groups.",
+            "description": "Filter users / groups by active.",
             "type": "boolean"
           },
           "include_details": {
-            "description": "Add roles, groups and members when exactly one record matches.",
+            "description": "Add roles, groups, members when one record matches.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -4848,19 +4840,19 @@
             "type": "string"
           },
           "limit": {
-            "description": "Maximum records (default 20).",
+            "description": "Max records (default 20).",
             "exclusiveMinimum": 0,
             "maximum": 200,
             "type": "integer"
           },
           "sys_id": {
-            "description": "Exact sys_id of the record.",
+            "description": "Exact sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "term": {
-            "description": "Search term: user_name / email prefix or name fragment (users), name fragment (groups, roles).",
+            "description": "user_name / email prefix or name fragment (users); name fragment (groups, roles).",
             "maxLength": 100,
             "type": "string"
           }
@@ -4886,16 +4878,16 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           },
@@ -4906,14 +4898,14 @@
             "type": "integer"
           },
           "sys_id": {
-            "description": "sys_id of the catalog item.",
+            "description": "Catalog item sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "variables": {
             "additionalProperties": {},
-            "description": "Variable name/value pairs for the item.",
+            "description": "Variable name/value pairs.",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -4945,11 +4937,11 @@
             "type": "string"
           },
           "fetchAll": {
-            "description": "When true, page through all matching records (up to the server's SN_MAX_RECORDS cap) instead of a single page. Without an ORDERBY it pages by sys_id cursor (stable while rows change); with one, by offset.",
+            "description": "Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset.",
             "type": "boolean"
           },
           "fields": {
-            "description": "Columns to return. Omit to return all columns.",
+            "description": "Columns (default all).",
             "items": {
               "maxLength": 255,
               "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
@@ -4959,32 +4951,32 @@
             "type": "array"
           },
           "fileFormat": {
-            "description": "With format 'file': 'csv' (default; columns are 'fields', or the first page's keys) or 'jsonl' (one JSON record per line, every key kept).",
+            "description": "With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys).",
             "enum": ["csv", "jsonl"],
             "type": "string"
           },
           "format": {
-            "description": "Output format: 'json' (default), 'csv' for a spreadsheet-friendly export, or 'file' to write the full (redacted) result to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview } — use it when the result would exceed SN_MAX_RESULT_CHARS; with fetchAll only one page is held in memory at a time.",
+            "description": "'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS.",
             "enum": ["json", "csv", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum number of records to return (default 10).",
+            "description": "Max records (default 10).",
             "exclusiveMinimum": 0,
             "maximum": 1000,
             "type": "integer"
           },
           "noCount": {
-            "description": "Skip the row count (sysparm_no_count) — faster on very large tables, but 'total' is then unknown.",
+            "description": "Skip the row count (sysparm_no_count): faster on huge tables; 'total' unknown.",
             "type": "boolean"
           },
           "offset": {
-            "description": "Number of records to skip, for pagination.",
+            "description": "Records to skip (paging).",
             "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
@@ -4995,26 +4987,26 @@
             "type": "string"
           },
           "queryCategory": {
-            "description": "Query category (sysparm_query_category), e.g. to route the read to a read replica.",
+            "description": "sysparm_query_category, e.g. a read replica.",
             "maxLength": 255,
             "type": "string"
           },
           "queryNoDomain": {
-            "description": "On domain-separated instances, query across all domains the user can access (sysparm_query_no_domain).",
+            "description": "Query all accessible domains (sysparm_query_no_domain).",
             "type": "boolean"
           },
           "suppressPaginationHeader": {
-            "description": "Omit the Link paging header from the response (sysparm_suppress_pagination_header).",
+            "description": "sysparm_suppress_pagination_header.",
             "type": "boolean"
           },
           "table": {
-            "description": "Table name, e.g. 'incident', 'sys_user', 'change_request'.",
+            "description": "Table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "view": {
-            "description": "UI view whose fields to return (sysparm_view), e.g. 'mobile'. 'fields' takes precedence.",
+            "description": "UI view's fields (sysparm_view); 'fields' wins.",
             "maxLength": 255,
             "type": "string"
           }
@@ -5042,7 +5034,7 @@
       "package": "docs",
       "title": "Read instance doc",
       "since": "2.0.1",
-      "description_sha256": "8b5d471c3aa333fbcf3219f7e3c570b55e55f98c969ac93d6ba3282d944e6dd9",
+      "description_sha256": "58727659bbcb557cbfecb670ac862f6c9577dc81b739a615d90108e689f7b908",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5054,17 +5046,17 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "path": {
-            "description": "Document path relative to the docs folder (or to the profile's folder with 'profile'), e.g. 'tables/incident.md'.",
+            "description": "Path relative to the docs (or 'profile') folder, e.g. 'tables/incident.md'.",
             "maxLength": 1024,
             "type": "string"
           },
           "profile": {
-            "description": "Scope to one profile's folder: 'current' for the active profile or a profile name. Omit for the whole docs folder (paths relative to its root).",
+            "description": "Profile folder: 'current' or a name; omit for all.",
             "maxLength": 128,
             "type": "string"
           }
@@ -5078,7 +5070,7 @@
       "package": "ops",
       "title": "Read instance operations data",
       "since": "2.0.1",
-      "description_sha256": "956d4fb3bb2b8bd3fb5a4f99316cf6cd77eb23d395197b4cbd1d47fb506199e0",
+      "description_sha256": "42a052828b077a79bbd085bd6c5a2eba3d032acfcdb8820972d708b613f6c71a",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5090,18 +5082,27 @@
         "additionalProperties": false,
         "properties": {
           "filter": {
-            "description": "jobs: which jobs to list — 'overdue' ready jobs past their next action (default), 'running' or 'queued'.",
+            "description": "jobs: 'overdue' (default; ready, past next action), 'running' or 'queued'.",
             "enum": ["overdue", "running", "queued"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "kind": {
-            "description": "Which view to read.",
-            "enum": ["overview", "syslog", "jobs", "email_queue", "semaphores"],
+            "description": "View to read.",
+            "enum": [
+              "overview",
+              "syslog",
+              "jobs",
+              "email_queue",
+              "semaphores",
+              "integrations",
+              "transactions",
+              "mid"
+            ],
             "type": "string"
           },
           "level": {
@@ -5116,7 +5117,7 @@
             "type": "integer"
           },
           "minutes": {
-            "description": "Time window in minutes for syslog and email failures (default 60, max 1440).",
+            "description": "Time window in minutes (default 60, max 1440).",
             "maximum": 1440,
             "minimum": 1,
             "type": "integer"
@@ -5128,7 +5129,7 @@
             "type": "integer"
           },
           "source": {
-            "description": "syslog: source fragment to match (contains).",
+            "description": "syslog: source fragment (contains).",
             "maxLength": 100,
             "type": "string"
           }
@@ -5154,26 +5155,26 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "entry_id": {
-            "description": "Journal entry id (ULID) to revert, from servicenow_list_writes.",
+            "description": "Journal entry id (ULID) from servicenow_list_writes.",
             "maxLength": 128,
             "minLength": 1,
             "type": "string"
           },
           "force": {
-            "description": "Revert even when the record changed after the journaled write (or the change cannot be verified). Overwrites those later changes.",
+            "description": "Revert even if the record changed since (or that cannot be verified), overwriting the later changes.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           }
@@ -5199,22 +5200,22 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the ATF test suite (sys_atf_test_suite).",
+            "description": "sys_atf_test_suite sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "wait_seconds": {
-            "description": "Wait up to this many seconds for the run to finish, polling its progress (default 0: return at once). On timeout the result has wait.state 'running' and wait.tracker, the id to poll with servicenow_get_atf_result.",
+            "description": "Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result.",
             "maximum": 300,
             "minimum": 0,
             "type": "integer"
@@ -5242,22 +5243,22 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the ATF test (sys_atf_test).",
+            "description": "sys_atf_test sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "wait_seconds": {
-            "description": "Wait up to this many seconds for the run to finish, polling its progress (default 0: return at once). On timeout the result has wait.state 'running' and wait.tracker, the id to poll with servicenow_get_atf_result.",
+            "description": "Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result.",
             "maximum": 300,
             "minimum": 0,
             "type": "integer"
@@ -5285,38 +5286,38 @@
         "additionalProperties": false,
         "properties": {
           "extended": {
-            "description": "Without 'type': also search the opt-in types (UI Builder client scripts and data brokers, portal Angular providers, templates, themes, CSS, search sources) after the default ones. Default false.",
+            "description": "Without 'type': also search the opt-in types after the default ones (default false).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "limit": {
-            "description": "Maximum matches across all types (default 50).",
+            "description": "Max matches over all types (default 50).",
             "exclusiveMinimum": 0,
             "maximum": 9007199254740991,
             "type": "integer"
           },
           "scope": {
-            "description": "Restrict to one application scope: its namespace (e.g. 'global', 'x_acme_app') or its sys_scope sys_id.",
+            "description": "One scope: namespace (e.g. 'x_acme_app') or sys_id.",
             "maxLength": 255,
             "type": "string"
           },
           "table": {
-            "description": "Restrict to scripts applied to this table.",
+            "description": "Only scripts applied to this table.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "text": {
-            "description": "Substring to search for in script source.",
+            "description": "Substring to search for.",
             "maxLength": 1000,
             "type": "string"
           },
           "type": {
-            "description": "Restrict to one type. One of: business_rule, script_include, client_script, ui_policy, ui_action, scheduled_job, transform, rest_operation, acl, script_action, transform_map, transform_entry, fix_script, email_script, processor, data_source, rest_message_fn, ui_script, ui_page, ui_macro, validation_script, sp_widget, catalog_client_script, dictionary_script; opt-in (read only on request): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "One type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
             "enum": [
               "business_rule",
               "script_include",
@@ -5375,7 +5376,7 @@
       "package": "docs",
       "title": "Search instance docs",
       "since": "2.0.1",
-      "description_sha256": "8c229b7f96b59acd55754989ac86b2b7b3d35c99ce5660cb546b3a471114455d",
+      "description_sha256": "a1441b3d3087325422fb6ffcec18c1a144492f289bc164959a26de1924146228",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5387,26 +5388,26 @@
         "additionalProperties": false,
         "properties": {
           "generated": {
-            "description": "true: only generated documents; false: only hand-written ones.",
+            "description": "true: only generated; false: only hand-written.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "kind": {
-            "description": "Only generated documents of this kind, e.g. 'tables', 'schema', 'compare'.",
+            "description": "Only generated documents of this kind, e.g. 'tables'.",
             "maxLength": 64,
             "type": "string"
           },
           "profile": {
-            "description": "Scope to one profile's folder: 'current' for the active profile or a profile name. Omit for the whole docs folder (paths relative to its root).",
+            "description": "Profile folder: 'current' or a name; omit for all.",
             "maxLength": 128,
             "type": "string"
           },
           "text": {
-            "description": "Substring to search for across all documents.",
+            "description": "Substring to search for.",
             "maxLength": 1000,
             "type": "string"
           }
@@ -5442,7 +5443,7 @@
             "type": "array"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -5453,7 +5454,7 @@
             "type": "integer"
           },
           "query": {
-            "description": "Encoded query for additional filtering.",
+            "description": "Extra encoded query.",
             "maxLength": 8000,
             "type": "string"
           },
@@ -5471,7 +5472,7 @@
       "package": "email",
       "title": "Send ServiceNow email",
       "since": "2.0.1",
-      "description_sha256": "df2b02441e8b2aedcb5e1245fae14d6c265c1ce9583e3281f07cf52454f3866b",
+      "description_sha256": "8397fd1dfc9bd0478aeb7a88840c61da3c4e5c2641b002857357f2b94c1a0afc",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5483,7 +5484,7 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "bcc": {
@@ -5512,12 +5513,12 @@
             "type": "array"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           },
@@ -5527,13 +5528,13 @@
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the record to associate the email with.",
+            "description": "sys_id of the record to associate.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Table of the record to associate the email with.",
+            "description": "Table of the record to associate.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -5571,12 +5572,12 @@
         "additionalProperties": false,
         "properties": {
           "auth": {
-            "description": "Auth method to store as SN_AUTH (default: inferred from the configured keys).",
+            "description": "Stored as SN_AUTH (default: inferred).",
             "enum": ["basic", "oauth", "apikey", "token", "none"],
             "type": "string"
           },
           "instance": {
-            "description": "Instance host, e.g. 'dev12345' or 'dev12345.service-now.com'. Changing it needs the new host's auth in the same call (user + password for Basic, else CREDENTIALS_INCOMPLETE) and client confirmation through elicitation unless SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1.",
+            "description": "Instance host, e.g. 'dev12345'. A change needs the new host's auth in the same call (Basic: user + password, else CREDENTIALS_INCOMPLETE) and elicitation confirmation unless SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1.",
             "maxLength": 255,
             "type": "string"
           },
@@ -5586,7 +5587,7 @@
             "type": "string"
           },
           "oauth_grant": {
-            "description": "OAuth grant to store as SN_OAUTH_GRANT.",
+            "description": "Stored as SN_OAUTH_GRANT.",
             "enum": [
               "password",
               "client_credentials",
@@ -5601,12 +5602,12 @@
             "type": "string"
           },
           "profile": {
-            "description": "Connection profile to write (default: the active one). Use a new name to create a profile.",
+            "description": "Profile (default active); a new name creates one.",
             "maxLength": 128,
             "type": "string"
           },
           "request_secrets": {
-            "description": "Secrets to enter through an elicitation prompt (never as arguments): 'api_key', 'oauth_client_secret'.",
+            "description": "Secrets to enter through elicitation (never as arguments).",
             "items": {
               "enum": ["api_key", "oauth_client_secret"],
               "type": "string"
@@ -5628,7 +5629,7 @@
       "package": "properties",
       "title": "Set system property",
       "since": "2.0.1",
-      "description_sha256": "ec84be9c1fdaa4acd830b308eb057744bb676dd264e0a2a7ca30534f5c3544a8",
+      "description_sha256": "e39ff4183ba506f9c060a0ec5528c442e76f5c071772abaeef0bf897e2bb6e97",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5640,11 +5641,11 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -5654,7 +5655,7 @@
             "type": "string"
           },
           "value": {
-            "description": "The new value (as a string).",
+            "description": "New value (string).",
             "maxLength": 65536,
             "type": "string"
           }
@@ -5668,7 +5669,7 @@
       "package": "instance",
       "title": "Snapshot instance metadata",
       "since": "2.0.1",
-      "description_sha256": "9ca63bb377867dda4a77c198ada45c249037142058866d774f5d07cf96e41ec7",
+      "description_sha256": "d297f85114a44a443f83fc1f3d741e6e156ddf39b11748944240ad49a79183e1",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5680,17 +5681,17 @@
         "additionalProperties": false,
         "properties": {
           "format": {
-            "description": "Result delivery: 'json' (default, inline) or 'file' — write the full (redacted) result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview } plus a summary. An inline result over SN_MAX_RESULT_CHARS carries a note (or is written to a file with SN_OVERSIZE_TO_FILE).",
+            "description": "'json' (default) or 'file': write the full (redacted) JSON to <profile>/exports/, return { path, bytes, preview } + summary.",
             "enum": ["json", "file"],
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "resume": {
-            "description": "Continue an interrupted snapshot: skip the sections whose files still carry the recorded source hash (default false).",
+            "description": "Skip sections whose files carry the recorded source hash.",
             "type": "boolean"
           },
           "scope": {
@@ -5699,7 +5700,7 @@
             "type": "string"
           },
           "sections": {
-            "description": "Sections to collect (default all): tables, plugins, apps, automation, properties, choices, acls, notifications, flows, catalog, roles.",
+            "description": "Sections to collect (default all).",
             "items": {
               "enum": [
                 "tables",
@@ -5721,7 +5722,7 @@
             "type": "array"
           },
           "tables": {
-            "description": "Tables to document in detail as schema/<table>.md, e.g. ['incident', 'change_request']. Omit for none.",
+            "description": "Tables to write as schema/<table>.md.",
             "items": {
               "maxLength": 80,
               "pattern": "^[A-Za-z0-9_]{1,80}$",
@@ -5746,7 +5747,7 @@
       "package": "admin",
       "title": "Test ServiceNow connection",
       "since": "2.0.1",
-      "description_sha256": "f35ff5ebffd5abebaeb5b03b2ce5598bb0e8def76b62985632ec00137f2444a5",
+      "description_sha256": "3be411c5714ab84ea7ae4ee462381090aa04fc67a0fd1b933de55de479cb6c58",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5758,7 +5759,7 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           }
@@ -5785,7 +5786,7 @@
       "package": "flows",
       "title": "Trace a table event",
       "since": "2.0.1",
-      "description_sha256": "0d02174da89fb3ab2bfa93ee599d44d3b187d1d87bf4b03e8e998d7ae8cca10d",
+      "description_sha256": "8a77421e42c4a2d33d8a7e7205769eccbe406696f73bb0a0e55338c3acc1ff6d",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5797,12 +5798,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "lanes": {
-            "description": "Opt-in extra lanes: transform_map (maps targeting the table), scheduled_job (script jobs naming the table — a text match), client (client scripts + UI policies), data_policy, sla (SLA definitions), event_script (script actions of the table's registered events). Omit for business rules, flows, workflows and notifications only.",
+            "description": "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script.",
             "items": {
               "enum": [
                 "transform_map",
@@ -5818,7 +5819,7 @@
             "type": "array"
           },
           "operation": {
-            "description": "The database operation to simulate.",
+            "description": "Operation to simulate.",
             "enum": ["insert", "update", "delete", "query"],
             "type": "string"
           },
@@ -5863,16 +5864,16 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the change request.",
+            "description": "Change request sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
@@ -5881,7 +5882,7 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Change field name/value pairs, e.g. { \"short_description\": \"Patch DB\", \"risk\": \"low\" }.",
+            "description": "Field name/value pairs, e.g. { \"risk\": \"low\" }.",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -5908,7 +5909,7 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "class_name": {
@@ -5918,7 +5919,7 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -5928,13 +5929,13 @@
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the CI.",
+            "description": "CI sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "CMDB class, e.g. 'cmdb_ci_server'.",
+            "description": "CI class, e.g. 'cmdb_ci_server'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -5971,7 +5972,7 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "expected_mod_count": {
@@ -5981,28 +5982,28 @@
             "type": "integer"
           },
           "inputDisplayValue": {
-            "description": "Treat field values as display values (e.g. a user's name for a reference field, a choice label) that the instance resolves (sysparm_input_display_value). Default false: raw stored values.",
+            "description": "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "The sys_id of the record to update.",
+            "description": "Record sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Table name, e.g. 'incident'.",
+            "description": "Table, e.g. 'incident'.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
           "update_set": {
-            "description": "Record an applied change in this update set (sys_id or exact name; must be 'in progress'). The user's current update set is switched for the write and restored afterwards. Defaults to SN_UPDATE_SET; omit both to leave the current update set alone. Data-row tables are not captured by update sets and are written without switching.",
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -6011,7 +6012,7 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Field name/value pairs to change on the record.",
+            "description": "Field name/value pairs to change.",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -6038,7 +6039,7 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "content_base64": {
@@ -6046,28 +6047,28 @@
             "type": "string"
           },
           "content_type": {
-            "description": "MIME type, e.g. 'text/plain'. Defaults to octet-stream.",
+            "description": "MIME type (default application/octet-stream).",
             "maxLength": 255,
             "type": "string"
           },
           "file_name": {
-            "description": "File name to store, e.g. 'log.txt'.",
+            "description": "File name, e.g. 'log.txt'.",
             "maxLength": 255,
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "sys_id": {
-            "description": "sys_id of the record to attach to.",
+            "description": "Record sys_id.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
-            "description": "Table the record belongs to.",
+            "description": "Record table.",
             "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
@@ -6094,17 +6095,17 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "artifactType": {
-            "description": "Artifact type id from the registry, e.g. 'business_rule', 'ui_policy', 'sp_widget', 'flow'. Read the servicenow://artifact-types resource for every type with its table and key fields.",
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types.",
             "maxLength": 80,
             "minLength": 1,
             "type": "string"
           },
           "children": {
-            "description": "Child records, applied in this order after the parent.",
+            "description": "Child records, applied in order after the parent.",
             "items": {
               "properties": {
                 "fields": {
@@ -6123,7 +6124,7 @@
                       { "type": "boolean" }
                     ]
                   },
-                  "description": "Identifies the child under the parent; defaults to its name field (e.g. {field: 'state'}).",
+                  "description": "Identifies the child under the parent (default: its name field, e.g. {field: 'state'}).",
                   "propertyNames": { "type": "string" },
                   "type": "object"
                 },
@@ -6134,7 +6135,7 @@
                   "type": "integer"
                 },
                 "table": {
-                  "description": "Child table; defaults to the type's only child table.",
+                  "description": "Child table (default: the type's only one).",
                   "maxLength": 80,
                   "pattern": "^[A-Za-z0-9_]{1,80}$",
                   "type": "string"
@@ -6143,7 +6144,7 @@
                   "additionalProperties": {
                     "type": ["string", "number", "boolean", "null"]
                   },
-                  "description": "Child fields to write; the link to the parent is set by the tool. Required.",
+                  "description": "Child fields (required); the tool sets the parent link.",
                   "propertyNames": { "type": "string" },
                   "type": "object"
                 }
@@ -6165,7 +6166,7 @@
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
@@ -6190,15 +6191,15 @@
                 "type": "object"
               }
             ],
-            "description": "The primary record's key: a plain value for a single key field, or an object of field/value pairs (every key field; a sys_id-keyed type takes any identifying fields, e.g. {table, short_description}). Written on create."
+            "description": "Primary key: a value for a single key field, or every key field as pairs (sys_id-keyed types: identifying fields, e.g. {table, short_description}). Written on create."
           },
           "plan_token": {
-            "description": "Token from the plan preview (apply:true)",
+            "description": "Plan preview token (apply:true)",
             "maxLength": 64,
             "type": "string"
           },
           "update_set": {
-            "description": "Record an applied change in this update set (sys_id or exact name; must be 'in progress'). The user's current update set is switched for the write and restored afterwards. Defaults to SN_UPDATE_SET; omit both to leave the current update set alone. Data-row tables are not captured by update sets and are written without switching.",
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -6207,7 +6208,7 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Primary-record fields to write (the type's descriptor fields; sys_scope on create only).",
+            "description": "Primary-record fields (the type's descriptor fields; sys_scope on create only).",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -6234,32 +6235,32 @@
         "additionalProperties": false,
         "properties": {
           "apply": {
-            "description": "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
           "expected_action": {
-            "description": "The action the plan decided; with apply, the call is refused (STALE_RECORD) if the key now resolves differently.",
+            "description": "The plan's action; with apply, refused (STALE_RECORD) if the key now resolves differently.",
             "enum": ["create", "update"],
             "type": "string"
           },
           "expected_sys_id": {
-            "description": "The sys_id the plan decided to update; with apply, the call is refused (STALE_RECORD) if the key now matches another record or none.",
+            "description": "The plan's sys_id; with apply, refused (STALE_RECORD) if the key now matches another record or none.",
             "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "inputDisplayValue": {
-            "description": "Treat field values as display values (e.g. a user's name for a reference field, a choice label) that the instance resolves (sysparm_input_display_value). Default false: raw stored values.",
+            "description": "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "key": {
             "additionalProperties": { "type": ["string", "number", "boolean"] },
-            "description": "Field/value pairs that identify the record, matched on raw stored values (an empty string matches an empty field). Values cannot contain '^'.",
+            "description": "Field/value pairs identifying the record, matched on raw values ('' matches an empty field); no '^' in values.",
             "propertyNames": { "type": "string" },
             "type": "object"
           },
@@ -6270,7 +6271,7 @@
             "type": "string"
           },
           "update_set": {
-            "description": "Record an applied change in this update set (sys_id or exact name; must be 'in progress'). The user's current update set is switched for the write and restored afterwards. Defaults to SN_UPDATE_SET; omit both to leave the current update set alone. Data-row tables are not captured by update sets and are written without switching.",
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -6279,7 +6280,7 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Field name/value pairs to write. On create the key fields are written too.",
+            "description": "Fields to write (plus the key fields on create).",
             "propertyNames": { "type": "string" },
             "type": "object"
           }
@@ -6306,12 +6307,12 @@
         "additionalProperties": false,
         "properties": {
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "name": {
-            "description": "Profile to activate, e.g. 'default' or 'dev'.",
+            "description": "Profile to activate, e.g. 'dev'.",
             "maxLength": 128,
             "type": "string"
           },
@@ -6329,7 +6330,7 @@
       "package": "scripts",
       "title": "Where used",
       "since": "2.0.1",
-      "description_sha256": "1c1f6fcc73eb64bd728aec47515cc04fc10599d1ac9ab838c6d4ac6f2c69cc51",
+      "description_sha256": "717d5821b3c8f7de89044c73a16eac90d417524ebf331096367afdd8b1c2a336",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -6341,16 +6342,16 @@
         "additionalProperties": false,
         "properties": {
           "extended": {
-            "description": "Also search the opt-in UI Builder / portal script types.",
+            "description": "Also search the opt-in UIB / portal script types.",
             "type": "boolean"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "kind": {
-            "description": "What to look up: a table, a field, or a script/script-include name.",
+            "description": "A table, a field, or a script/script-include name.",
             "enum": ["table", "field", "script"],
             "type": "string"
           },
@@ -6359,16 +6360,16 @@
             "type": "boolean"
           },
           "name": {
-            "description": "The table/field/script name to find usages of.",
+            "description": "Name to find usages of (table, table.field or script).",
             "type": "string"
           },
           "scope": {
-            "description": "Restrict to one application scope: its namespace (e.g. 'global', 'x_acme_app') or its sys_scope sys_id.",
+            "description": "One scope: namespace (e.g. 'x_acme_app') or sys_id.",
             "maxLength": 255,
             "type": "string"
           },
           "structural": {
-            "description": "Also search configuration structurally (dictionary references, layouts, catalog variables, flow inputs, reports). Default true; false skips those reads.",
+            "description": "Also search configuration structurally (default true).",
             "type": "boolean"
           }
         },
@@ -6394,7 +6395,7 @@
       "package": "docs",
       "title": "Write instance doc",
       "since": "2.0.1",
-      "description_sha256": "13c17d1254edf37267b30efb48aa794d3e46ed5fb559d3e2c37daf118755d076",
+      "description_sha256": "50e82b631d40e57661c3723e7aeed65cb1c2a66d54cfbcf068671f443abdd6f1",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
@@ -6406,25 +6407,25 @@
         "additionalProperties": false,
         "properties": {
           "content": {
-            "description": "Full Markdown content to write.",
+            "description": "Full Markdown content.",
             "type": "string"
           },
           "instance": {
-            "description": "Profile name (default: active)",
+            "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
           "overwrite": {
-            "description": "Replace a generated document (default false).",
+            "description": "Replace a generated document.",
             "type": "boolean"
           },
           "path": {
-            "description": "Target document path relative to the docs folder, e.g. 'tables/incident.md'.",
+            "description": "Path relative to the docs folder, e.g. 'tables/incident.md'.",
             "maxLength": 1024,
             "type": "string"
           },
           "profile": {
-            "description": "Scope to one profile's folder: 'current' for the active profile or a profile name. Omit for the whole docs folder (paths relative to its root).",
+            "description": "Profile folder: 'current' or a name; omit for all.",
             "maxLength": 128,
             "type": "string"
           }

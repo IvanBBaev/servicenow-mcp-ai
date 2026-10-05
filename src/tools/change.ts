@@ -25,16 +25,14 @@ import { journaledWrite } from "../core/write-journal.js";
 
 const changeFields = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
-  .describe(
-    'Change field name/value pairs, e.g. { "short_description": "Patch DB", "risk": "low" }.',
-  );
+  .describe('Field name/value pairs, e.g. { "risk": "low" }.');
 
 export const specs: AnyToolSpec[] = [
   defineTool({
     name: "servicenow_list_changes",
     title: "List change requests",
     description:
-      "List change requests through the Change Management API. Supports an encoded query, field selection and paging.",
+      "List change requests (Change Management API) with an encoded query, fields and paging.",
     package: "change",
     annotations: {
       readOnlyHint: true,
@@ -66,7 +64,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      sys_id: sysId().describe("sys_id of the change request."),
+      sys_id: sysId().describe("Change request sys_id."),
     },
     handler: async ({ sys_id }) => ok({ result: await getChange(sys_id) }),
   }),
@@ -90,7 +88,7 @@ export const specs: AnyToolSpec[] = [
         .describe("Change type."),
       template_id: sysId()
         .optional()
-        .describe("Standard change template sys_id (required for standard)."),
+        .describe("Template sys_id (required for standard)."),
       values: changeFields.optional(),
       apply: applyInput,
     },
@@ -139,7 +137,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { fields: "values" },
     input: {
-      sys_id: sysId().describe("sys_id of the change request."),
+      sys_id: sysId().describe("Change request sys_id."),
       values: changeFields,
       apply: applyInput,
     },
@@ -182,13 +180,11 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      sys_id: sysId().describe("sys_id of the change request."),
+      sys_id: sysId().describe("Change request sys_id."),
       calculate: z
         .boolean()
         .optional()
-        .describe(
-          "When true, recalculate conflicts (POST) instead of reading.",
-        ),
+        .describe("Recalculate (POST) instead of reading."),
       apply: applyInput,
     },
     // H-3 / H-4: recalculation replaces the change's conflict rows.

@@ -502,6 +502,16 @@
   - A resource `McpError` reaches clients as `MCP error -32602: MCP error -32602: …` (the SDK's
     `McpError` prefixes its message on the server and again when the client rebuilds it) — SDK
     behaviour, not fixed.
+- [ ] **Open items from N-6 (`ops` v2, 2026-10-03, uncommitted).**
+  - O-5 on a PDI: `sys_outbound_http_log` (`url`, `http_method`, `response_status`,
+    `response_time`, `rest_message`; is the log on by default, and what is its retention?),
+    `syslog_transaction` (`url`, `response_time`), `ecc_agent` (`status`, `version`,
+    `last_refreshed`, `host_name`) and `ecc_queue` (`agent` = `mid.server.<name>`, the `ready` /
+    `error` state values, `error_string`).
+  - The slow threshold is a fixed 5,000 ms (`SLOW_MS`); make it an argument? (It would cost
+    `tools/list` bytes; N-0 / O-10.)
+  - The filter-field dictionary guard adds two cached metadata reads each for `integrations` and
+    `transactions`, also in `overview`.
 - [ ] **Owner decisions from batch 17 (2026-10-01, uncommitted).**
   - P-29: `SPPage`, flow variables, stages, action inputs / outputs and process inputs take no `$id`
     in SDK 4.12.2, so `now-sdk build` mints new sys_ids — installing generated Fluent on the

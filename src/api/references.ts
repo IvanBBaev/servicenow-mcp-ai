@@ -3,12 +3,13 @@ import { assertNoCaret, snString } from "./shared.js";
 import { scopeClause } from "./scripts.js";
 import { ServiceNowError } from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
+import { PERFORMANCE_ANALYTICS } from "../core/artifacts/registry.js";
 
 /**
  * S-9 — structural reference extractor. Finds where a table, field or script
  * is referenced by configuration rather than by script text: reference-field
  * dictionary entries, list and form layouts, catalog variables, flow action
- * inputs and report conditions.
+ * inputs, report conditions and (N-8) Performance Analytics indicator sources.
  *
  * Two layers, so P-17 (`get_artifact_dependencies`) can reuse the first one:
  *
@@ -35,7 +36,8 @@ export type StructuralRefKind =
   | "form_layout"
   | "catalog_variable"
   | "flow_input"
-  | "report";
+  | "report"
+  | "pa_indicator_source";
 
 /** What a structural reference points at. */
 export type RefTargetValue =
@@ -82,6 +84,11 @@ export interface ReferenceSource {
   scopeField: string;
   /** Whether the table and field names are confirmed on a live instance (gate O-5). */
   verified: boolean;
+  /**
+   * The licensed plugin that owns the table (N-8, gate O-9): named in the
+   * unavailable reason when the table is absent.
+   */
+  licensed?: string;
   /** Fields to read (`sysparm_fields`); dot-walks are returned as flat keys. */
   fields: string[];
   /** Encoded query for a target; `undefined` when the source cannot hold one of its kind. */
@@ -545,6 +552,60 @@ const report: ReferenceSource = {
   },
 };
 
+/**
+ * N-8 — Performance Analytics indicator sources (`pa_cubes`): the facts table
+ * and the conditions every indicator built on the source inherits. Licensed
+ * (O-9); O-5: verify on a live instance.
+ */
+const paIndicatorSource: ReferenceSource = {
+  id: "pa_indicator_source",
+  kind: "pa_indicator_source",
+  table: "pa_cubes",
+  scopeField: "sys_scope",
+  verified: false,
+  licensed: PERFORMANCE_ANALYTICS,
+  fields: ["sys_id", "name", "facts_table", "conditions"],
+  query: (t) => {
+    if (t.kind === "table") return `facts_table=${t.name}`;
+    if (t.kind === "field") {
+      if (!t.element) return undefined;
+      const q = `conditionsLIKE${t.element}`;
+      return t.table ? `${q}^facts_table=${t.table}` : q;
+    }
+    return `conditionsLIKE${t.name}`;
+  },
+  extract(r) {
+    const table = snString(r.facts_table);
+    const base = origin(this, r, snString(r.name) || snString(r.sys_id));
+    const out: StructuralRef[] = [];
+    if (table) {
+      out.push({
+        ...base,
+        field: "facts_table",
+        target: { kind: "table", table },
+        value: table,
+      });
+    }
+    const conditions = snString(r.conditions);
+    for (const { path, term } of encodedQueryFields(conditions)) {
+      out.push({
+        ...base,
+        field: "conditions",
+        target: {
+          kind: "field",
+          element: firstSegment(path),
+          ...(table ? { table } : {}),
+        },
+        value: term,
+      });
+    }
+    if (conditions.includes("javascript:")) {
+      out.push(...scriptRefs(base, "conditions", conditions));
+    }
+    return out;
+  },
+};
+
 /** Every source of the structural pass, in read order. */
 export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   dictionaryReference,
@@ -556,6 +617,7 @@ export const REFERENCE_SOURCES: readonly ReferenceSource[] = [
   flowInputSource("flow_action_input", "sys_hub_action_input"),
   flowInputSource("flow_input", "sys_hub_flow_input"),
   report,
+  paIndicatorSource,
 ];
 
 /**
@@ -628,13 +690,17 @@ export interface StructuralRefs {
   sources: Record<string, SourceStatus>;
 }
 
-function unreadableReason(table: string, error: unknown): string {
+function unreadableReason(source: ReferenceSource, error: unknown): string {
+  const { table } = source;
   if (error instanceof ServiceNowError) {
     if (error.status === 401 || error.status === 403) {
       return `${table} is not readable for this user (HTTP ${error.status}): ${error.message}`;
     }
     if (error.status === 400 || error.status === 404) {
-      return `${table} does not exist on this instance or is not exposed (HTTP ${error.status}).`;
+      const requires = source.licensed
+        ? ` It requires ${source.licensed}.`
+        : "";
+      return `${table} does not exist on this instance or is not exposed (HTTP ${error.status}).${requires}`;
     }
   }
   return `${table} could not be read: ${error instanceof Error ? error.message : String(error)}`;
@@ -684,7 +750,7 @@ export async function findStructuralReferences(
         if (error instanceof ServiceNowError && error.code === "CANCELLED") {
           throw error;
         }
-        return { source, reason: unreadableReason(source.table, error) };
+        return { source, reason: unreadableReason(source, error) };
       }
     }),
   );

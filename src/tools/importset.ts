@@ -29,7 +29,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_insert_import_set_row",
     title: "Insert ServiceNow import set row",
     description:
-      "Insert one row into a staging table and run its transform map. Returns the transform result, the transform run (sys_import_set_run: state, completion code, insert/update/error counts) and the table's transform maps, used ones marked.",
+      "Insert one row into a staging table and run its transform map. Returns the transform result, the run (sys_import_set_run: state, counts) and the table's transform maps, used ones marked.",
     package: "importset",
     annotations: {
       readOnlyHint: false,
@@ -43,7 +43,7 @@ export const specs: AnyToolSpec[] = [
         "Import staging table, e.g. 'u_imp_incident'.",
       ),
       values: importFieldsSchema.describe(
-        "Column name/value pairs for the staging row.",
+        "Staging row column name/value pairs.",
       ),
       apply: applyInput,
     },
@@ -74,8 +74,7 @@ export const specs: AnyToolSpec[] = [
   defineTool({
     name: "servicenow_get_import_set_row",
     title: "Get ServiceNow import set row result",
-    description:
-      "Read the transform outcome for a previously inserted staging row by its sys_id.",
+    description: "Read the transform outcome of a staging row.",
     package: "importset",
     annotations: {
       readOnlyHint: true,
@@ -85,8 +84,8 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { staging_table: "table" },
     input: {
-      table: tableName().describe("Import staging table name."),
-      sys_id: sysId().describe("sys_id of the staging row."),
+      table: tableName().describe("Import staging table."),
+      sys_id: sysId().describe("Staging row sys_id."),
     },
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, sys_id }) =>

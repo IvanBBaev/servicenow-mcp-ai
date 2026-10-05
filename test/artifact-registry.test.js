@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  ARTIFACT_GROUPS,
   ARTIFACT_TYPES,
+  PERFORMANCE_ANALYTICS,
   SDK_BASELINE,
   SDK_APIS,
   SDK_NEXT_APIS,
@@ -521,4 +523,92 @@ test("P-9: script-bearing rows are opt-in script types, never in the default vie
   assert.deepEqual(getArtifactType("sp_ng_template").markupFields, [
     "template",
   ]);
+});
+
+/**
+ * N-8 — reports and Performance Analytics (SDK-PARITY §4.13): read-only
+ * seeds in the `reporting` group. O-5: verify on a live instance.
+ */
+const N8_TYPES = {
+  report: ["sys_report", undefined],
+  report_source: ["sys_report_source", undefined],
+  pa_indicator: ["pa_indicators", PERFORMANCE_ANALYTICS],
+  pa_indicator_source: ["pa_cubes", PERFORMANCE_ANALYTICS],
+  pa_breakdown: ["pa_breakdowns", PERFORMANCE_ANALYTICS],
+  pa_script: ["pa_scripts", PERFORMANCE_ANALYTICS],
+  pa_dashboard: ["pa_dashboards", PERFORMANCE_ANALYTICS],
+};
+
+test("N-8: every report / PA row is an unverified R + X reporting type", () => {
+  assert.ok(ARTIFACT_GROUPS.includes("reporting"));
+  assert.deepEqual(
+    ARTIFACT_TYPES.filter((t) => t.group === "reporting")
+      .map((t) => t.type)
+      .sort(),
+    Object.keys(N8_TYPES).sort(),
+  );
+  for (const [type, [table, licensed]] of Object.entries(N8_TYPES)) {
+    const t = getArtifactType(type);
+    assert.ok(t, type);
+    assert.equal(t.table, table, type);
+    assert.equal(t.group, "reporting", type);
+    assert.equal(t.sdkApi, "none", type);
+    assert.equal(t.sdkSince, null, type);
+    assert.equal(t.verified, false, type);
+    assert.deepEqual(t.tiers, ["R", "X"], type);
+    assert.equal(t.licensed, licensed, type);
+    // No script-tools enum grows (tools/list budget).
+    assert.equal(t.scriptTools, undefined, type);
+    assert.equal(t.scriptToolsOptIn, undefined, type);
+    assert.ok(!SCRIPT_TYPE_NAMES.includes(type), type);
+    assert.ok(!OPT_IN_SCRIPT_TYPE_NAMES.includes(type), type);
+  }
+  assert.match(PERFORMANCE_ANALYTICS, /com\.snc\.pa/);
+  assert.deepEqual(validateArtifactTypes(), []);
+});
+
+test("N-8: reports and PA rows carry the dependency edges and children", () => {
+  const refs = (type) =>
+    Object.fromEntries(
+      getArtifactType(type).refFields.map((r) => [r.field, r.type ?? r.table]),
+    );
+  const report = getArtifactType("report");
+  assert.equal(report.nameField, "title");
+  assert.equal(report.appliesToField, "table");
+  assert.ok(report.metaFields.includes("filter"));
+  assert.equal(refs("report").report_source, "report_source");
+  assert.deepEqual(
+    report.children.map((c) => [c.table, c.parentField]),
+    [["sys_report_users_groups", "report_id"]],
+  );
+  assert.equal(refs("pa_indicator").cube, "pa_indicator_source");
+  assert.equal(refs("pa_indicator").script, "pa_script");
+  assert.equal(
+    getArtifactType("pa_indicator").children[0].refFields[0].type,
+    "pa_breakdown",
+  );
+  assert.equal(
+    getArtifactType("pa_indicator_source").appliesToField,
+    "facts_table",
+  );
+  assert.deepEqual(getArtifactType("pa_script").scriptFields, ["script"]);
+  assert.equal(
+    getArtifactType("pa_breakdown").children[0].refFields[0].type,
+    "pa_script",
+  );
+  // The PA dashboard links to its Next Experience twin (the P-9 `dashboard`).
+  assert.equal(refs("pa_dashboard").experience_dashboard, "dashboard");
+  assert.equal(refs("pa_dashboard").managed_breakdown, "pa_breakdown");
+  assert.deepEqual(
+    getArtifactType("pa_dashboard").children.map((c) => [
+      c.table,
+      c.parentField,
+      c.parentTable,
+      c.parentKey,
+    ]),
+    [
+      ["pa_m2m_dashboard_tabs", "dashboard", undefined, undefined],
+      ["pa_tabs", "sys_id", "pa_m2m_dashboard_tabs", "tab"],
+    ],
+  );
 });

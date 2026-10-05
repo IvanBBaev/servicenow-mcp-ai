@@ -18,7 +18,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_lookup_directory",
     title: "Look up users, groups and roles",
     description:
-      "Find users (user_name, email prefix or name), groups or roles by search term or sys_id. With include_details and exactly one match: a user's roles and groups, a group's members and roles, or a role's contained roles and granting groups.",
+      "Find users, groups or roles by search term or sys_id. With include_details and one match: a user's roles and groups, a group's members and roles, or a role's contained roles and granting groups.",
     package: "directory",
     annotations: {
       readOnlyHint: true,
@@ -31,26 +31,24 @@ export const specs: AnyToolSpec[] = [
       term: shortText(100)
         .optional()
         .describe(
-          "Search term: user_name / email prefix or name fragment (users), name fragment (groups, roles).",
+          "user_name / email prefix or name fragment (users); name fragment (groups, roles).",
         ),
-      sys_id: sysId().optional().describe("Exact sys_id of the record."),
+      sys_id: sysId().optional().describe("Exact sys_id."),
       active: z
         .boolean()
         .optional()
-        .describe("Only active (true) or inactive (false) users / groups."),
+        .describe("Filter users / groups by active."),
       include_details: z
         .boolean()
         .optional()
-        .describe(
-          "Add roles, groups and members when exactly one record matches.",
-        ),
+        .describe("Add roles, groups, members when one record matches."),
       limit: z
         .number()
         .int()
         .positive()
         .max(200)
         .optional()
-        .describe("Maximum records (default 20)."),
+        .describe("Max records (default 20)."),
     },
     logFields: (args) => ({ kind: args.kind }),
     handler: async ({ kind, term, sys_id, active, include_details, limit }) =>

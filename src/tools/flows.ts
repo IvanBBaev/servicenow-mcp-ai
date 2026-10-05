@@ -32,10 +32,8 @@ export const lanesArg = z
   .max(TRACE_LANES.length)
   .optional()
   .describe(
-    "Opt-in extra lanes: transform_map (maps targeting the table), scheduled_job (script jobs " +
-      "naming the table — a text match), client (client scripts + UI policies), data_policy, " +
-      "sla (SLA definitions), event_script (script actions of the table's registered events). " +
-      "Omit for business rules, flows, workflows and notifications only.",
+    "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job " +
+      "(text match), client (client scripts + UI policies), data_policy, sla, event_script.",
   );
 
 /**
@@ -48,7 +46,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_trace_table_event",
     title: "Trace a table event",
     description:
-      "Trace what would run for a table operation, in order, without executing: display/before/after/async business rules (inherited and global too), flows, workflows, notifications, with conditions and a Mermaid flowchart. 'lanes' adds more.",
+      "Trace what would run for a table operation, in order, without executing: business rules by phase (inherited and global too), flows, workflows, notifications, with conditions and a Mermaid flowchart. 'lanes' adds more.",
     package: "flows",
     annotations: {
       readOnlyHint: true,
@@ -67,7 +65,7 @@ export const specs: AnyToolSpec[] = [
       table: tableName().describe("Table to trace, e.g. 'incident'."),
       operation: z
         .enum(["insert", "update", "delete", "query"])
-        .describe("The database operation to simulate."),
+        .describe("Operation to simulate."),
       lanes: lanesArg,
     },
     logFields: (args) => ({
@@ -83,8 +81,8 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_flows",
     title: "List flows",
     description:
-      "List Flow Designer flows (sys_hub_flow) or legacy workflows (kind: 'workflow') as compact " +
-      "metadata. Filter by applied table, active flag or a name fragment.",
+      "List flows (sys_hub_flow) or legacy workflows (kind: 'workflow') as metadata. " +
+      "Filter by table, active or name.",
     package: "flows",
     annotations: {
       readOnlyHint: true,
@@ -101,14 +99,12 @@ export const specs: AnyToolSpec[] = [
       kind: z
         .enum(["flow", "workflow"])
         .optional()
-        .describe("'flow' (Flow Designer, default) or 'workflow' (legacy)."),
+        .describe("'flow' (default) or 'workflow' (legacy)."),
       table: tableName()
         .optional()
         .describe("Only flows triggered on this table."),
       active: z.boolean().optional().describe("Filter by the active flag."),
-      name: shortText()
-        .optional()
-        .describe("Case-insensitive fragment to match in the name."),
+      name: shortText().optional().describe("Case-insensitive name fragment."),
       limit: z.number().int().positive().max(1000).optional(),
     },
     logFields: (args) => ({ kind: args.kind ?? "flow" }),
@@ -119,8 +115,8 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_flow",
     title: "Get flow detail",
     description:
-      "Get a structured view of one flow or workflow: its trigger (table/condition/when) and ordered " +
-      "steps. Not a full decompilation — enough to reason about the logic.",
+      "Structured view of one flow or workflow: trigger (table/condition/when) and ordered steps; " +
+      "not a full decompilation.",
     package: "flows",
     annotations: {
       readOnlyHint: true,
@@ -135,7 +131,7 @@ export const specs: AnyToolSpec[] = [
       steps: z.array(z.unknown()),
     },
     input: {
-      sys_id: sysId().describe("sys_id of the flow or workflow."),
+      sys_id: sysId().describe("Flow or workflow sys_id."),
       kind: z
         .enum(["flow", "workflow"])
         .optional()
@@ -149,8 +145,8 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_flow_runs",
     title: "Get flow run history",
     description:
-      "Read flow execution evidence from sys_flow_context — by flow sys_id or by the record (document) " +
-      "it ran against: when it started, its state and the outcome.",
+      "Flow runs from sys_flow_context, by flow sys_id or by the record it ran against: start, " +
+      "state and outcome.",
     package: "flows",
     annotations: {
       readOnlyHint: true,
@@ -160,10 +156,10 @@ export const specs: AnyToolSpec[] = [
     },
     output: { count: z.number(), runs: z.array(z.unknown()) },
     input: {
-      flow: sysId().optional().describe("Flow sys_id to scope by."),
+      flow: sysId().optional().describe("Flow sys_id."),
       record: sysId()
         .optional()
-        .describe("Record sys_id the flow ran against (document_id)."),
+        .describe("Record the flow ran against (document_id)."),
       limit: z.number().int().positive().max(1000).optional(),
     },
     handler: (args) => getFlowRuns(args).then(ok),
@@ -190,13 +186,13 @@ export const specs: AnyToolSpec[] = [
       sys_id: sysId()
         .optional()
         .describe(
-          "sys_hub_flow (flow/subflow), sys_hub_action_type_definition (action), wf_workflow (workflow) or sys_pd_process_definition (playbook) sys_id. Required unless kind:'workflow' with migration:true.",
+          "sys_id of the flow, action, workflow or playbook (per kind). Required unless kind:'workflow' with migration:true.",
         ),
       kind: z
         .enum(["flow", "subflow", "action", "workflow", "playbook"])
         .optional()
         .describe(
-          "'flow' (default), 'subflow', 'action' (custom action), 'workflow' (legacy) or 'playbook' (PAD).",
+          "Default 'flow'; 'action' is a custom action, 'workflow' legacy, 'playbook' PAD.",
         ),
       runs: z
         .number()
@@ -204,29 +200,25 @@ export const specs: AnyToolSpec[] = [
         .min(0)
         .max(EXPLAIN_FLOW_RUNS.max)
         .optional()
-        .describe(
-          "Latest runs to include (sys_flow_context + sys_flow_log errors, wf_context or sys_pd_context). Default 0.",
-        ),
+        .describe("Latest runs to include, with errors (default 0)."),
       depth: z
         .number()
         .int()
         .min(0)
         .max(EXPLAIN_FLOW_DEPTH.max)
         .optional()
-        .describe(
-          "Flow/subflow: levels of subflow/action calls to expand (0 = none). Default 1.",
-        ),
+        .describe("Flow/subflow: call levels to expand (default 1; 0 none)."),
       migration: z
         .boolean()
         .optional()
         .describe(
-          "Workflow only: report catalog items / SLA definitions that reference it and running contexts.",
+          "Workflow: migration report (catalog items, SLAs, running contexts).",
         ),
       format: z
         .enum(["json", "markdown", "mermaid", "file"])
         .optional()
         .describe(
-          "'json' (default) the tree; 'markdown' a report with the Mermaid diagram; 'mermaid' the diagram only; 'file' the full JSON (diagram included) written to exports/ with a summary returned.",
+          "json (default) tree; markdown report + Mermaid; mermaid only; file: JSON to exports/.",
         ),
     },
     logFields: (args) => ({

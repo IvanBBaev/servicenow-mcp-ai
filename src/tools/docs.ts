@@ -30,31 +30,26 @@ import {
 /** Optional per-profile scope shared by the docs tools (S-14). */
 const profileArg = shortText(128)
   .optional()
-  .describe(
-    "Scope to one profile's folder: 'current' for the active profile or a profile name. " +
-      "Omit for the whole docs folder (paths relative to its root).",
-  );
+  .describe("Profile folder: 'current' or a name; omit for all.");
 /** S-11 / ID-14: `format` for the Mermaid generators. */
 const diagramFormat = z
   .enum(["inline", "file"])
   .optional()
   .describe(
-    "Result delivery: 'inline' (default, Mermaid in the result) or 'file' — write the diagram to <SN_DOCS_DIR>/<profile>/diagrams/<name>.mmd and return { path, bytes, preview } instead. An inline result over SN_MAX_RESULT_CHARS carries a note (or is written to the file with SN_OVERSIZE_TO_FILE).",
+    "'inline' (default) or 'file': write <profile>/diagrams/<name>.mmd, return { path, bytes, preview }.",
   );
 
 /** S-15: which profile a generated document belongs to (and reads). */
 const docProfileArg = shortText(128)
   .optional()
   .describe(
-    "Profile to read and write for: 'current' (default) or a profile name; the document lands in that profile's docs folder.",
+    "Profile: 'current' (default) or a name; writes to its docs folder.",
   );
 /** S-15: write the files (default) or return the Markdown. */
 const writeArg = z
   .boolean()
   .optional()
-  .describe(
-    "Write the files (default true); false returns the Markdown without writing.",
-  );
+  .describe("false returns the Markdown, writing nothing.");
 
 /**
  * A written document already answers with { path, bytes, preview } (S-11);
@@ -71,9 +66,8 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_docs",
     title: "List instance docs",
     description:
-      "List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR), " +
-      "with per-file metadata: generated or hand-written, generator, generated_at, profile, " +
-      "kind, bytes and stale (generated more than SN_DOCS_STALE_DAYS ago).",
+      "List the Markdown docs in SN_DOCS_DIR with metadata: generated or hand-written, generator, " +
+      "generated_at, profile, kind, bytes, stale (older than SN_DOCS_STALE_DAYS).",
     package: "docs",
     annotations: {
       readOnlyHint: true,
@@ -89,8 +83,8 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_read_doc",
     title: "Read instance doc",
     description:
-      "Read one Markdown document or generated .json companion from the local " +
-      "instance-documentation folder; the result carries its mimeType.",
+      "Read one local Markdown doc or its .json companion; " +
+      "the result carries its mimeType.",
     package: "docs",
     annotations: {
       readOnlyHint: true,
@@ -100,7 +94,7 @@ export const specs: AnyToolSpec[] = [
     },
     input: {
       path: shortText(1024).describe(
-        "Document path relative to the docs folder (or to the profile's folder with 'profile'), e.g. 'tables/incident.md'.",
+        "Path relative to the docs (or 'profile') folder, e.g. 'tables/incident.md'.",
       ),
       profile: profileArg,
     },
@@ -112,8 +106,8 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_search_docs",
     title: "Search instance docs",
     description:
-      "Search the local instance documentation for a substring; returns a snippet and the " +
-      "nearest heading per match (at most SN_DOCS_SEARCH_MAX, flagged 'truncated' past it).",
+      "Search the local docs for a substring: a snippet and nearest heading per match " +
+      "(max SN_DOCS_SEARCH_MAX, then 'truncated').",
     package: "docs",
     annotations: {
       readOnlyHint: true,
@@ -122,21 +116,15 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: false,
     },
     input: {
-      text: shortText(1000).describe(
-        "Substring to search for across all documents.",
-      ),
+      text: shortText(1000).describe("Substring to search for."),
       profile: profileArg,
       kind: shortText(64)
         .optional()
-        .describe(
-          "Only generated documents of this kind, e.g. 'tables', 'schema', 'compare'.",
-        ),
+        .describe("Only generated documents of this kind, e.g. 'tables'."),
       generated: z
         .boolean()
         .optional()
-        .describe(
-          "true: only generated documents; false: only hand-written ones.",
-        ),
+        .describe("true: only generated; false: only hand-written."),
     },
     logFields: (args) => ({
       textLength: args.text.length,
@@ -152,7 +140,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_write_doc",
     title: "Write instance doc",
     description:
-      "Create or overwrite a Markdown document in the local docs folder and refresh index.md. A generated document (sn_generated) is refused with DOC_GENERATED unless overwrite:true; annotate one inside <!-- sn:manual:start --> … <!-- sn:manual:end -->.",
+      "Create or overwrite a local Markdown doc and refresh index.md. A generated document (sn_generated) is refused with DOC_GENERATED unless overwrite:true; annotate one inside <!-- sn:manual:start --> … <!-- sn:manual:end -->.",
     package: "docs",
     // M-8 (L4-07): overwrites an existing document — destructive for that file.
     annotations: {
@@ -163,14 +151,14 @@ export const specs: AnyToolSpec[] = [
     },
     input: {
       path: shortText(1024).describe(
-        "Target document path relative to the docs folder, e.g. 'tables/incident.md'.",
+        "Path relative to the docs folder, e.g. 'tables/incident.md'.",
       ),
-      content: z.string().describe("Full Markdown content to write."),
+      content: z.string().describe("Full Markdown content."),
       profile: profileArg,
       overwrite: z
         .boolean()
         .optional()
-        .describe("Replace a generated document (default false)."),
+        .describe("Replace a generated document."),
     },
     logFields: (args) => ({
       path: args.path,
@@ -185,7 +173,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_generate_er_diagram",
     title: "Generate ER diagram",
     description:
-      "Build a Mermaid erDiagram from sys_dictionary: an entity per table, a relationship per reference field. columns / max_columns / depth switch to a detailed view: PK/FK and required markers, inherited comments, extends edges, referenced tables.",
+      "Mermaid erDiagram from sys_dictionary: an entity per table, a relationship per reference field. columns / max_columns / depth give a detailed view: PK/FK and required markers, extends edges, referenced tables.",
     package: "docs",
     annotations: {
       readOnlyHint: true,
@@ -201,21 +189,18 @@ export const specs: AnyToolSpec[] = [
         .enum(["all", "own", "keys"])
         .optional()
         .describe(
-          "all: every column of the chain; own: columns defined on the table; " +
-            "keys: sys_id, references and mandatory columns.",
+          "all: whole chain; own: the table's own; keys: sys_id, references, mandatory.",
         ),
       max_columns: z
         .number()
         .int()
         .positive()
         .optional()
-        .describe("Columns per entity before the rest fold into '+N' (40)."),
+        .describe("Columns per entity before '+N' folding (40)."),
       depth: z
         .literal([0, 1, 2])
         .optional()
-        .describe(
-          "Follow references this many levels, adding each target table (0).",
-        ),
+        .describe("Reference levels to follow, adding targets (0)."),
       format: diagramFormat,
     },
     logFields: (args) => ({ tables: args.tables, depth: args.depth }),
@@ -231,7 +216,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_generate_table_flow",
     title: "Generate table flow",
     description:
-      "Mermaid flowchart of a record's lifecycle on a table: active business rules by phase (display/before/after/async), inherited and global rules in own lanes. 'operation' adds the event trace (flows, workflows, notifications); 'lanes' adds opt-in lanes.",
+      "Mermaid flowchart of a record's lifecycle: active business rules by phase, inherited and global rules in own lanes. 'operation' adds the event trace (flows, workflows, notifications); 'lanes' adds opt-in lanes.",
     package: "docs",
     annotations: {
       readOnlyHint: true,
@@ -244,9 +229,7 @@ export const specs: AnyToolSpec[] = [
       operation: z
         .enum(["insert", "update", "delete", "query"])
         .optional()
-        .describe(
-          "Diagram one operation, including flows, workflows and notifications.",
-        ),
+        .describe("One operation, with flows, workflows and notifications."),
       lanes: lanesArg,
       format: diagramFormat,
     },
@@ -267,7 +250,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_document_table",
     title: "Document a table",
     description:
-      "Write <profile>/tables/<table>.md + .json from metadata only: inheritance, columns, referencing columns, ER and flow diagrams, business rules, client scripts, UI policies/actions, ACLs with roles, caveats. A Purpose manual block survives re-runs.",
+      "Write <profile>/tables/<table>.md + .json from metadata: inheritance, columns, references, ER and flow diagrams, rules, client scripts, UI policies/actions, ACLs, caveats. A Purpose manual block survives re-runs.",
     package: "docs",
     annotations: {
       readOnlyHint: false,
@@ -282,7 +265,7 @@ export const specs: AnyToolSpec[] = [
       diagrams: z
         .boolean()
         .optional()
-        .describe("Include the ER and table-flow diagrams (default true)."),
+        .describe("ER and table-flow diagrams (default true)."),
       columns: z
         .enum(["all", "own", "keys"])
         .optional()
@@ -304,7 +287,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_document_app",
     title: "Document an application",
     description:
-      "Write <profile>/apps/<scope>.md + .json for one scoped app: its record, tables with an ER diagram, roles, cross-scope privileges and every registry artefact type by group, with caveats. Not for 'global'. write:false returns the Markdown instead.",
+      "Write <profile>/apps/<scope>.md + .json for one scoped app: record, tables with an ER diagram, roles, cross-scope privileges, artefacts by type group, caveats. Not for 'global'. write:false returns the Markdown instead.",
     package: "docs",
     annotations: {
       readOnlyHint: false,
@@ -314,7 +297,7 @@ export const specs: AnyToolSpec[] = [
     },
     input: {
       scope: shortText(128).describe(
-        "Application scope namespace (e.g. 'x_acme_app') or its sys_id.",
+        "Scope namespace (e.g. 'x_acme_app') or sys_id.",
       ),
       profile: docProfileArg,
       write: writeArg,
@@ -322,7 +305,7 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe(
-          "Also a Mermaid diagram per flow/subflow/workflow/portal/UI Builder experience, a dependency graph and a lint summary (bounded).",
+          "Add a Mermaid diagram per flow/subflow/workflow/portal/UIB experience, a dependency graph and a lint summary (bounded).",
         ),
     },
     logFields: (args) => ({
@@ -356,35 +339,29 @@ export const specs: AnyToolSpec[] = [
       profile: docProfileArg,
       tables: tableList(INSTANCE_TARGETS_MAX)
         .optional()
-        .describe(
-          "Tables to document as tables/<name>.md (as document_table).",
-        ),
+        .describe("Tables to write as tables/<name>.md."),
       apps: z
         .array(shortText(128))
         .max(INSTANCE_TARGETS_MAX)
         .optional()
-        .describe(
-          "Application scopes to document as apps/<scope>.md (as document_app).",
-        ),
+        .describe("Scopes to write as apps/<scope>.md."),
       kinds: z
         .array(z.enum(INSTANCE_DOC_KINDS))
         .max(INSTANCE_DOC_KINDS.length)
         .optional()
-        .describe(
-          "Instance-wide documents to add: 'security' (security.md), 'catalog' (catalog.md), 'integrations' (integrations.md).",
-        ),
+        .describe("Instance-wide documents to add, each as <kind>.md."),
       depth: z
         .enum(DISCOVERY_DEPTHS)
         .optional()
         .describe(
-          "Discovery tier under discovery/: 'overview' (overview.md), 'apps' (+ apps.md, tables-<scope>.md), 'artefacts' (+ artifacts-<scope>.md). Scopes: apps, else every sys_app scope.",
+          "Discovery tier under discovery/: overview, apps (+ per-scope tables), artefacts (+ per-scope artefacts); for 'apps', else every scope.",
         ),
       write: writeArg,
       format: z
         .enum(["json", "file"])
         .optional()
         .describe(
-          "Result delivery: 'json' (default, inline) or 'file' — write the result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview } instead.",
+          "'json' (default) or 'file': write the result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview }.",
         ),
     },
     logFields: (args) => ({

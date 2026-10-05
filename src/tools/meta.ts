@@ -29,7 +29,7 @@ export const specs: AnyToolSpec[] = [
     input: {
       filter: shortText()
         .optional()
-        .describe("Case-insensitive fragment to match in name or label."),
+        .describe("Case-insensitive name or label fragment."),
     },
     handler: async ({ filter }) => {
       const tables = await listTables(filter);
@@ -41,7 +41,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_describe_table",
     title: "Describe ServiceNow table",
     description:
-      "List a table's columns from sys_dictionary (name, label, type, mandatory, reference, default, read-only/unique/display flags). details:true adds each column's choice list and dictionary overrides along the inheritance chain.",
+      "List a table's columns from sys_dictionary (name, label, type, mandatory, reference, default, flags). details:true adds choice lists and dictionary overrides.",
     package: "schema",
     annotations: {
       readOnlyHint: true,
@@ -56,12 +56,12 @@ export const specs: AnyToolSpec[] = [
       warnings: z.array(z.unknown()).optional(),
     },
     input: {
-      table: tableName().describe("Table name to describe, e.g. 'incident'."),
+      table: tableName().describe("Table, e.g. 'incident'."),
       details: z
         .boolean()
         .optional()
         .describe(
-          "Also return choice lists and dictionary overrides per column (two extra reads). Default false.",
+          "Add choice lists and dictionary overrides (two extra reads).",
         ),
     },
     logFields: (args) => ({ table: args.table, details: args.details }),

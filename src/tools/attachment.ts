@@ -30,7 +30,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_attachments",
     title: "List ServiceNow attachments",
     description:
-      "List attachment metadata, optionally scoped to a specific record (table + sys_id).",
+      "List attachment metadata, optionally for one record (table + sys_id).",
     package: "attachment",
     annotations: {
       readOnlyHint: true,
@@ -39,12 +39,8 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      table: tableName()
-        .optional()
-        .describe("Table the record belongs to, e.g. 'incident'."),
-      sys_id: sysId()
-        .optional()
-        .describe("sys_id of the record whose attachments to list."),
+      table: tableName().optional().describe("Record table, e.g. 'incident'."),
+      sys_id: sysId().optional().describe("Record sys_id."),
     },
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, sys_id }) => {
@@ -66,7 +62,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { attachment_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("The sys_id of the attachment record."),
+      sys_id: sysId().describe("Attachment sys_id."),
     },
     handler: async ({ sys_id }) => ok(await getAttachmentMeta(sys_id)),
   }),
@@ -85,7 +81,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { attachment_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("The sys_id of the attachment to download."),
+      sys_id: sysId().describe("Attachment sys_id."),
     },
     handler: async ({ sys_id }) => ok(await downloadAttachment(sys_id)),
   }),
@@ -103,13 +99,13 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      table: tableName().describe("Table the record belongs to."),
-      sys_id: sysId().describe("sys_id of the record to attach to."),
-      file_name: shortText().describe("File name to store, e.g. 'log.txt'."),
+      table: tableName().describe("Record table."),
+      sys_id: sysId().describe("Record sys_id."),
+      file_name: shortText().describe("File name, e.g. 'log.txt'."),
       content_base64: z.string().describe("File contents, base64-encoded."),
       content_type: shortText()
         .optional()
-        .describe("MIME type, e.g. 'text/plain'. Defaults to octet-stream."),
+        .describe("MIME type (default application/octet-stream)."),
       apply: applyInput,
     },
     logFields: (args) => ({ table: args.table, file_name: args.file_name }),
@@ -182,7 +178,7 @@ export const specs: AnyToolSpec[] = [
     },
     legacyParams: { attachment_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("The sys_id of the attachment to delete."),
+      sys_id: sysId().describe("Attachment sys_id."),
       apply: applyInput,
     },
     handler: async ({ sys_id, apply }) => {

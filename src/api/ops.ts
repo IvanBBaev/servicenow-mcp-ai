@@ -11,6 +11,9 @@ import { ServiceNowError } from "../core/errors.js";
  * (`syslog`), the scheduler queue (`sys_trigger`), the outbound email queue
  * (`sys_email`) and semaphores — plus `check_data_health`, the data-side twin of
  * `servicenow_check_code_health` (duplicates, orphaned and stale references).
+ * N-6 (ops v2) adds the views past the instance boundary: failed and slow
+ * outbound calls (`sys_outbound_http_log`), slow transactions
+ * (`syslog_transaction`) and MID-server health (`ecc_agent` + `ecc_queue`).
  *
  * Every section reads its own table and degrades on its own to
  * `available:false` with the reason (ACL, policy, missing table): an
@@ -24,6 +27,9 @@ export const OPS_KINDS = [
   "jobs",
   "email_queue",
   "semaphores",
+  "integrations",
+  "transactions",
+  "mid",
 ] as const;
 export type OpsKind = (typeof OPS_KINDS)[number];
 
@@ -38,13 +44,26 @@ export const OPS_LIMIT = { default: 25, max: 200 };
 export const WINDOW_MINUTES = { default: 60, max: 1440 };
 export const OVERDUE_MINUTES = { default: 5, max: 1440 };
 
-/** The table behind each kind (O-5: `sys_semaphore` is unverified). */
+/**
+ * The table behind each kind (O-5: `sys_semaphore`, `sys_outbound_http_log`,
+ * `syslog_transaction` and `ecc_agent` are unverified — verify on a live
+ * instance). `mid` also reads `ecc_queue` (OPS_ECC_QUEUE) as its own sub-section.
+ */
 export const OPS_TABLES = {
   syslog: "syslog",
   jobs: "sys_trigger",
   email_queue: "sys_email",
   semaphores: "sys_semaphore",
+  integrations: "sys_outbound_http_log",
+  transactions: "syslog_transaction",
+  mid: "ecc_agent",
 } as const;
+
+/** N-6: the ECC queue behind the `mid` backlog (O-5: verify on a live instance). */
+export const OPS_ECC_QUEUE = "ecc_queue";
+
+/** N-6: response time (ms) above which an outbound call or a transaction counts as slow. */
+export const SLOW_MS = 5000;
 
 /** syslog.level stored values (O-5: verify on a live instance). */
 const LEVEL_VALUE: Record<SyslogLevel, string> = {
@@ -356,6 +375,348 @@ async function readSemaphores(
   };
 }
 
+// --- N-6: integrations, transactions, MID ----------------------------------------
+
+/** sys_outbound_http_log fields (O-5: verify on a live instance — the log may be off by default). */
+const HTTP_LOG = {
+  url: "url",
+  method: "http_method",
+  status: "response_status",
+  ms: "response_time",
+  message: "rest_message",
+} as const;
+
+/** syslog_transaction fields (O-5: verify on a live instance). */
+const TXN = {
+  url: "url",
+  ms: "response_time",
+  user: "sys_created_by",
+} as const;
+
+/** ecc_agent fields and ecc_queue fields / state values (O-5: verify on a live instance). */
+const AGENT_FIELDS = [
+  "sys_id",
+  "name",
+  "status",
+  "version",
+  "last_refreshed",
+  "host_name",
+];
+const ECC = {
+  agent: "agent",
+  ready: "state=ready",
+  error: "state=error",
+  error_text: "error_string",
+} as const;
+/** ecc_queue.agent is `mid.server.<ecc_agent.name>`. */
+const AGENT_PREFIX = "mid.server.";
+
+/** Groups listed per section, and sample URLs kept per group. */
+const TOP_GROUPS = 20;
+const SAMPLE_URLS = 3;
+
+/**
+ * H-6 rules for a logged URL: no credentials, no query string, no fragment —
+ * the same shape as the client's own `safeUrl` (origin + path).
+ */
+export function redactUrl(raw: string): string {
+  const text = raw.trim();
+  if (!text) return "";
+  try {
+    const u = new URL(text);
+    return clip(`${u.protocol}//${u.host}${u.pathname}`, 300);
+  } catch {
+    const bare = text.split(/[?#]/)[0] ?? "";
+    return clip(bare.replace(/\/\/[^/@]*@/, "//"), 300);
+  }
+}
+
+const hostOf = (raw: string): string => {
+  try {
+    return new URL(raw.trim()).host || "(unknown)";
+  } catch {
+    return "(unknown)";
+  }
+};
+
+const ms = (r: SnRecord, f: string): number => {
+  const n = Number(s(r, f));
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * O-5 guard: an unknown field in an encoded query is ignored by the instance,
+ * which would turn "failed calls" into "every call". Filter fields not yet
+ * verified on a live instance are checked against the dictionary first; a
+ * missing one fails the section. Returns the fields left unchecked when the
+ * dictionary itself is unreadable.
+ */
+async function requireFields(
+  table: string,
+  fields: string[],
+): Promise<string[]> {
+  let columns: ColumnInfo[];
+  try {
+    columns = await describeTable(table);
+  } catch {
+    return fields;
+  }
+  if (columns.length === 0) return fields;
+  const known = new Set(columns.map((c) => c.element));
+  const missing = fields.filter((f) => !known.has(f));
+  if (missing.length) {
+    throw new Error(
+      `field ${missing.join(", ")} not found in the dictionary (O-5: the field names are unverified on this release).`,
+    );
+  }
+  return [];
+}
+
+const unverified = (fields: string[]): Record<string, unknown> =>
+  fields.length ? { unverified_fields: fields } : {};
+
+async function readIntegrations(
+  o: Resolved,
+  rows: boolean,
+): Promise<Record<string, unknown>> {
+  const table = OPS_TABLES.integrations;
+  const unchecked = await requireFields(table, [HTTP_LOG.status, HTTP_LOG.ms]);
+  const win = `sys_created_on>${since(o.minutes)}`;
+  const failedQ = `${HTTP_LOG.status}>=400`;
+  const slowQ = `${HTTP_LOG.ms}>${SLOW_MS}`;
+  const [calls, failed, slow] = await Promise.all([
+    count(table, win),
+    count(table, `${win}^${failedQ}`),
+    count(table, `${win}^${slowQ}`),
+  ]);
+  const out: Record<string, unknown> = {
+    calls,
+    failed,
+    slow,
+    slow_ms: SLOW_MS,
+    ...unverified(unchecked),
+    ...(calls === 0
+      ? {
+          note: "No outbound calls logged in the window: outbound HTTP logging may be off or its retention short — this is not proof of health.",
+        }
+      : {}),
+  };
+  if (!rows) return out;
+  const res = await queryTable({
+    table,
+    query: `${win}^${failedQ}^OR${slowQ}^ORDERBYDESCsys_created_on`,
+    fields: ["sys_created_on", ...Object.values(HTTP_LOG)],
+    displayValue: "false",
+    limit: o.limit,
+    noCount: true,
+  });
+  const groups = new Map<
+    string,
+    {
+      host: string;
+      rest_message: string;
+      calls: number;
+      failed: number;
+      slow: number;
+      max_ms: number;
+      statuses: Record<string, number>;
+      urls: Set<string>;
+      last_seen: string;
+    }
+  >();
+  for (const r of res.records) {
+    const raw = s(r, HTTP_LOG.url);
+    const host = hostOf(raw);
+    const message = s(r, HTTP_LOG.message);
+    const key = `${host}\u0000${message}`;
+    let g = groups.get(key);
+    if (!g) {
+      g = {
+        host,
+        rest_message: message,
+        calls: 0,
+        failed: 0,
+        slow: 0,
+        max_ms: 0,
+        statuses: {},
+        urls: new Set(),
+        last_seen: s(r, "sys_created_on"),
+      };
+      groups.set(key, g);
+    }
+    const status = s(r, HTTP_LOG.status) || "(none)";
+    const time = ms(r, HTTP_LOG.ms);
+    g.calls += 1;
+    if (Number(status) >= 400) g.failed += 1;
+    if (time > SLOW_MS) g.slow += 1;
+    g.max_ms = Math.max(g.max_ms, time);
+    g.statuses[status] = (g.statuses[status] ?? 0) + 1;
+    if (g.urls.size < SAMPLE_URLS && raw) g.urls.add(redactUrl(raw));
+  }
+  const sorted = [...groups.values()].sort((a, b) => b.calls - a.calls);
+  return {
+    ...out,
+    rows_read: res.records.length,
+    truncated: res.records.length >= o.limit,
+    groups: sorted.slice(0, TOP_GROUPS).map(({ urls, ...g }) => ({
+      ...g,
+      urls: [...urls],
+    })),
+  };
+}
+
+async function readTransactions(
+  o: Resolved,
+  rows: boolean,
+): Promise<Record<string, unknown>> {
+  const table = OPS_TABLES.transactions;
+  const unchecked = await requireFields(table, [TXN.ms]);
+  const slowQ = `sys_created_on>${since(o.minutes)}^${TXN.ms}>${SLOW_MS}`;
+  const out: Record<string, unknown> = {
+    slow: await count(table, slowQ),
+    slow_ms: SLOW_MS,
+    ...unverified(unchecked),
+  };
+  if (!rows) return out;
+  const res = await queryTable({
+    table,
+    query: `${slowQ}^ORDERBYDESC${TXN.ms}`,
+    fields: ["sys_created_on", ...Object.values(TXN)],
+    displayValue: "false",
+    limit: o.limit,
+    noCount: true,
+  });
+  const groups = new Map<
+    string,
+    { count: number; total: number; max_ms: number; users: Set<string> }
+  >();
+  for (const r of res.records) {
+    // A transaction URL is a path (`/incident.do?sys_id=…`): drop the query.
+    const url = clip(s(r, TXN.url).split(/[?#]/)[0] ?? "", 300) || "(empty)";
+    const time = ms(r, TXN.ms);
+    let g = groups.get(url);
+    if (!g) {
+      g = { count: 0, total: 0, max_ms: 0, users: new Set() };
+      groups.set(url, g);
+    }
+    g.count += 1;
+    g.total += time;
+    g.max_ms = Math.max(g.max_ms, time);
+    const user = s(r, TXN.user);
+    if (user) g.users.add(user);
+  }
+  return {
+    ...out,
+    rows_read: res.records.length,
+    truncated: res.records.length >= o.limit,
+    by_url: [...groups.entries()]
+      .map(([url, g]) => ({
+        url,
+        count: g.count,
+        avg_ms: Math.round(g.total / g.count),
+        max_ms: g.max_ms,
+        users: g.users.size,
+      }))
+      .sort((a, b) => b.count - a.count || b.max_ms - a.max_ms)
+      .slice(0, TOP_GROUPS),
+  };
+}
+
+/** The `mid` ECC queue sub-section: ready backlog and errors, by agent. */
+async function readEccQueue(
+  o: Resolved,
+  rows: boolean,
+): Promise<Record<string, unknown>> {
+  const table = OPS_ECC_QUEUE;
+  const errorQ = `${ECC.error}^sys_created_on>${since(o.minutes)}`;
+  const agentName = (v: string): string =>
+    v.startsWith(AGENT_PREFIX) ? v.slice(AGENT_PREFIX.length) : v;
+  const [ready, errors] = await Promise.all([
+    countBy(table, ECC.ready, ECC.agent),
+    countBy(table, errorQ, ECC.agent),
+  ]);
+  const total = (g: Group[]): number => g.reduce((n, x) => n + x.count, 0);
+  const out: Record<string, unknown> = {
+    ready: total(ready),
+    errors_in_window: total(errors),
+    ready_by_agent: tally(ready.slice(0, TOP_GROUPS), ECC.agent, agentName),
+    errors_by_agent: tally(errors.slice(0, TOP_GROUPS), ECC.agent, agentName),
+  };
+  if (!rows) return out;
+  const oldest = total(ready)
+    ? await queryTable({
+        table,
+        query: `${ECC.ready}^ORDERBYsys_created_on`,
+        fields: ["sys_created_on"],
+        displayValue: "false",
+        limit: 1,
+        noCount: true,
+      })
+    : undefined;
+  const res = await queryTable({
+    table,
+    query: `${errorQ}^ORDERBYDESCsys_created_on`,
+    fields: [
+      "sys_id",
+      "sys_created_on",
+      ECC.agent,
+      "queue",
+      "topic",
+      "name",
+      ECC.error_text,
+    ],
+    displayValue: "false",
+    limit: o.limit,
+    noCount: true,
+  });
+  return {
+    ...out,
+    ...(oldest?.records[0]
+      ? { oldest_ready: s(oldest.records[0], "sys_created_on") }
+      : {}),
+    truncated: res.records.length >= o.limit,
+    errors: res.records.map((r) => ({
+      sys_id: s(r, "sys_id"),
+      created_on: s(r, "sys_created_on"),
+      agent: agentName(s(r, ECC.agent)),
+      queue: s(r, "queue"),
+      topic: s(r, "topic"),
+      name: clip(s(r, "name"), 200),
+      error: clip(s(r, ECC.error_text)),
+    })),
+  };
+}
+
+/** MID servers (`ecc_agent`) plus the ECC queue, each degrading on its own. */
+async function readMid(
+  o: Resolved,
+  rows: boolean,
+): Promise<Record<string, unknown>> {
+  const table = OPS_TABLES.mid;
+  const queue = section(OPS_ECC_QUEUE, () => readEccQueue(o, rows));
+  const byStatus = tally(await countBy(table, "", "status"), "status");
+  const out: Record<string, unknown> = { by_status: byStatus };
+  if (rows) {
+    const res = await queryTable({
+      table,
+      query: "ORDERBYname",
+      fields: AGENT_FIELDS,
+      displayValue: "false",
+      limit: o.limit,
+    });
+    out.agents = res.records.map((r) => ({
+      sys_id: s(r, "sys_id"),
+      name: s(r, "name"),
+      status: s(r, "status"),
+      version: s(r, "version"),
+      last_refreshed: s(r, "last_refreshed"),
+      host_name: s(r, "host_name"),
+    }));
+    out.truncated = (res.total ?? 0) > res.records.length;
+  }
+  return { ...out, queue: await queue };
+}
+
 const READERS: Record<
   Exclude<OpsKind, "overview">,
   (o: Resolved, rows: boolean) => Promise<Record<string, unknown>>
@@ -364,6 +725,18 @@ const READERS: Record<
   jobs: readJobs,
   email_queue: readEmailQueue,
   semaphores: readSemaphores,
+  integrations: readIntegrations,
+  transactions: readTransactions,
+  mid: readMid,
+};
+
+const OVERVIEW_N6_CAVEAT = `integrations and transactions count calls and transactions over ${SLOW_MS} ms (and outbound status >= 400); mid counts MID servers by status and the ecc_queue backlog. Their field names are unverified (O-5).`;
+
+/** Per-kind caveats added to the shared ones (N-6). */
+const KIND_CAVEATS: Partial<Record<OpsKind, string>> = {
+  integrations: `Outbound calls are read from sys_outbound_http_log (failed: status >= 400, slow: over ${SLOW_MS} ms); groups come from the newest \`limit\` matching rows; URLs keep only origin and path. Field names are unverified (O-5).`,
+  transactions: `Slow transactions (over ${SLOW_MS} ms) are read from syslog_transaction, slowest first; groups come from those \`limit\` rows. Field names are unverified (O-5).`,
+  mid: "MID status comes from ecc_agent; the backlog and errors from ecc_queue (state ready / error). Field and state names are unverified (O-5).",
 };
 
 /**
@@ -390,17 +763,18 @@ export async function opsRead(args: OpsReadArgs): Promise<unknown> {
       kind: "overview",
       window_minutes: o.minutes,
       sections: Object.fromEntries(kinds.map((k, i) => [k, sections[i]])),
-      caveats: OPS_CAVEATS,
+      caveats: [...OPS_CAVEATS, OVERVIEW_N6_CAVEAT],
     };
   }
   const kind = args.kind;
   const result = await section(OPS_TABLES[kind], () => READERS[kind](o, true));
+  const extra = KIND_CAVEATS[kind];
   return {
     kind,
     window_minutes: o.minutes,
     ...result,
     table: OPS_TABLES[kind],
-    caveats: OPS_CAVEATS,
+    caveats: extra ? [...OPS_CAVEATS, extra] : OPS_CAVEATS,
   };
 }
 

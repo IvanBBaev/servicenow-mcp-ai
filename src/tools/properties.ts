@@ -30,7 +30,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_properties",
     title: "Get system properties",
     description:
-      "Read system properties (sys_properties) by exact name or name prefix: value, type, description, read/write roles, scope and last update. Password-type and secret-looking values are masked; long values are truncated.",
+      "Read system properties (sys_properties) by name or prefix: value, type, description, roles, scope, last update. Password-type and secret-looking values are masked; long values truncated.",
     package: "properties",
     annotations: {
       readOnlyHint: true,
@@ -51,16 +51,14 @@ export const specs: AnyToolSpec[] = [
         .positive()
         .max(500)
         .optional()
-        .describe("Maximum properties (default 50)."),
+        .describe("Max properties (default 50)."),
       value_max_chars: z
         .number()
         .int()
         .positive()
         .max(100_000)
         .optional()
-        .describe(
-          "Truncate each value to this many characters (default 4000).",
-        ),
+        .describe("Chars per value (default 4000)."),
     },
     handler: async ({ name, prefix, limit, value_max_chars }) =>
       ok(
@@ -77,7 +75,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_set_property",
     title: "Set system property",
     description:
-      "Set the value of one existing system property (sys_properties) by name. The plan preview shows the current and the new value; the applied write is journaled and revertible (except for secret properties, whose values are never journaled).",
+      "Set one existing system property by name. The plan shows current and new value; the write is journaled and revertible (except secret properties, whose values are never journaled).",
     package: "properties",
     annotations: {
       readOnlyHint: false,
@@ -89,7 +87,7 @@ export const specs: AnyToolSpec[] = [
       name: shortText().describe(
         "Exact property name, e.g. 'glide.ui.session_timeout'.",
       ),
-      value: longText(65_536).describe("The new value (as a string)."),
+      value: longText(65_536).describe("New value (string)."),
       apply: applyInput,
     },
     logFields: (args) => ({ name: args.name }),

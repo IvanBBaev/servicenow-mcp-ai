@@ -309,7 +309,8 @@ function registerInstanceOverview(server: McpServer): void {
 
 /**
  * S-10b: "why is it slow" — instance-wide signals from the `ops` package
- * first, then (with a table) what runs on that table's writes.
+ * first (N-6: slow transactions, outbound integrations and MID servers too),
+ * then (with a table) what runs on that table's writes.
  */
 function registerWhyIsItSlow(server: McpServer): void {
   server.registerPrompt(
@@ -317,8 +318,9 @@ function registerWhyIsItSlow(server: McpServer): void {
     {
       title: "Diagnose a slow ServiceNow instance",
       description:
-        "Guide the assistant through a slowness diagnosis: system log errors, scheduler backlog, email queue and " +
-        "semaphores (the 'ops' package), then the logic that runs on a named table.",
+        "Guide the assistant through a slowness diagnosis: slow transactions, system log errors, scheduler backlog, " +
+        "outbound integrations, MID servers, email queue and semaphores (the 'ops' package), then the logic that runs " +
+        "on a named table.",
       argsSchema: {
         symptom: z
           .string()
@@ -350,19 +352,21 @@ function registerWhyIsItSlow(server: McpServer): void {
                 "",
                 "Diagnose why this ServiceNow instance is slow. Use the servicenow_* tools; the ops tools need the 'ops' package (SN_TOOL_PACKAGES). Base every conclusion on values read from the instance.",
                 "",
-                `1. ${TOOLS.read_ops} kind 'overview' (minutes 60): note error/warning volume, the scheduler backlog (overdue ready jobs), the send-ready email backlog and semaphore count. A section with available:false is unknown, not healthy — say so.`,
-                `2. If errors or warnings are high: ${TOOLS.read_ops} kind 'syslog' (level 'warning', narrow with source from top_sources) and group the messages by cause (slow queries, script timeouts, integration failures).`,
-                `3. ${TOOLS.read_ops} kind 'jobs' with filter 'overdue', then 'running': many overdue jobs mean the scheduler workers are saturated; a job running for long on one node (claimed_by / system_id) is a suspect.`,
-                `4. ${TOOLS.read_ops} kind 'email_queue': a growing send-ready backlog or repeated failures point at the email job or the SMTP connection.`,
-                `5. ${TOOLS.read_ops} kind 'semaphores': many rows held for long suggest long transactions blocking others.`,
+                `1. ${TOOLS.read_ops} kind 'overview' (minutes 60): note error/warning volume, the scheduler backlog (overdue ready jobs), slow transactions, failed or slow outbound calls, MID servers by status and the ECC backlog, the send-ready email backlog and semaphore count. A section with available:false is unknown, not healthy — say so.`,
+                `2. ${TOOLS.read_ops} kind 'transactions': the slowest URLs (count, avg/max ms, users). One URL for many users points at its form, list or script; many URLs at once point instance-wide (scheduler, integrations, semaphores).`,
+                `3. If errors or warnings are high: ${TOOLS.read_ops} kind 'syslog' (level 'warning', narrow with source from top_sources) and group the messages by cause (slow queries, script timeouts, integration failures).`,
+                `4. ${TOOLS.read_ops} kind 'jobs' with filter 'overdue', then 'running': many overdue jobs mean the scheduler workers are saturated; a job running for long on one node (claimed_by / system_id) is a suspect.`,
+                `5. ${TOOLS.read_ops} kind 'integrations': failed or slow outbound calls by host and REST message — a slow endpoint called synchronously from a business rule slows every save. Then kind 'mid' if MID servers are down or the ECC backlog grows. An empty integrations log may mean logging is off, not that all is well.`,
+                `6. ${TOOLS.read_ops} kind 'email_queue': a growing send-ready backlog or repeated failures point at the email job or the SMTP connection.`,
+                `7. ${TOOLS.read_ops} kind 'semaphores': many rows held for long suggest long transactions blocking others.`,
                 ...(table
                   ? [
-                      `6. For ${table}: ${TOOLS.trace_table_event} ${table} with operation 'update' (and 'insert') to see every business rule, flow and notification a save runs, then ${TOOLS.lint_table} ${table} for query-in-loop and unbounded GlideRecord queries; ${TOOLS.get_flow_runs} shows slow or failing flow runs. ${TOOLS.check_data_health} ${table} can reveal duplicate or orphaned data that makes lookups expensive.`,
+                      `8. For ${table}: ${TOOLS.trace_table_event} ${table} with operation 'update' (and 'insert') to see every business rule, flow and notification a save runs, then ${TOOLS.lint_table} ${table} for query-in-loop and unbounded GlideRecord queries; ${TOOLS.get_flow_runs} shows slow or failing flow runs. ${TOOLS.check_data_health} ${table} can reveal duplicate or orphaned data that makes lookups expensive.`,
                     ]
                   : [
-                      `6. If the symptom names a table or form, repeat with that table: ${TOOLS.trace_table_event} and ${TOOLS.lint_table}.`,
+                      `8. If the symptom names a table or form, repeat with that table: ${TOOLS.trace_table_event} and ${TOOLS.lint_table}.`,
                     ]),
-                "7. Report the most likely causes ranked by evidence (instance-wide vs table-specific), the data behind each, what could not be read, and concrete next steps (e.g. stats.do / transaction logs on the node for what these tools cannot see).",
+                "9. Report the most likely causes ranked by evidence (instance-wide vs table-specific), the data behind each, what could not be read, and concrete next steps (e.g. stats.do / transaction logs on the node for what these tools cannot see).",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
             },

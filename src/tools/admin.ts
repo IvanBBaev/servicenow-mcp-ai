@@ -327,35 +327,29 @@ export const specs: AnyToolSpec[] = [
       instance: shortText()
         .optional()
         .describe(
-          "Instance host, e.g. 'dev12345' or 'dev12345.service-now.com'. Changing it needs the new host's auth in the same call (user + password for Basic, else CREDENTIALS_INCOMPLETE) and client confirmation through elicitation unless SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1.",
+          "Instance host, e.g. 'dev12345'. A change needs the new host's auth in the same call (Basic: user + password, else CREDENTIALS_INCOMPLETE) and elicitation confirmation unless SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1.",
         ),
       user: shortText().optional().describe("ServiceNow username."),
       password: shortText(1024).optional().describe("ServiceNow password."),
       auth: z
         .enum(["basic", "oauth", "apikey", "token", "none"])
         .optional()
-        .describe(
-          "Auth method to store as SN_AUTH (default: inferred from the configured keys).",
-        ),
+        .describe("Stored as SN_AUTH (default: inferred)."),
       oauth_client_id: shortText(1024)
         .optional()
         .describe("OAuth client id (not a secret)."),
       oauth_grant: z
         .enum(["password", "client_credentials", "refresh_token", "jwt_bearer"])
         .optional()
-        .describe("OAuth grant to store as SN_OAUTH_GRANT."),
+        .describe("Stored as SN_OAUTH_GRANT."),
       request_secrets: z
         .array(z.enum(["api_key", "oauth_client_secret"]))
         .max(10)
         .optional()
-        .describe(
-          "Secrets to enter through an elicitation prompt (never as arguments): 'api_key', 'oauth_client_secret'.",
-        ),
+        .describe("Secrets to enter through elicitation (never as arguments)."),
       profile: shortText(128)
         .optional()
-        .describe(
-          "Connection profile to write (default: the active one). Use a new name to create a profile.",
-        ),
+        .describe("Profile (default active); a new name creates one."),
     },
     handler: async (args) => {
       const profile = args.profile?.trim().toLowerCase() || activeProfile();
@@ -479,7 +473,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_instances",
     title: "List connection profiles",
     description:
-      "List the configured ServiceNow connection profiles (instances): name, host, user, auth method (and OAuth grant), refresh-token state, read-only flag, write mode and whether credentials are complete for that method. Secrets are never included.",
+      "List the connection profiles: name, host, user, auth method (and OAuth grant), refresh-token state, read-only flag, write mode, credentials complete. Secrets are never included.",
     package: "admin",
     annotations: {
       readOnlyHint: true,
@@ -505,9 +499,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: false,
     },
     input: {
-      name: shortText(128).describe(
-        "Profile to activate, e.g. 'default' or 'dev'.",
-      ),
+      name: shortText(128).describe("Profile to activate, e.g. 'dev'."),
       persist: z
         .boolean()
         .optional()
@@ -585,7 +577,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_explain_policy",
     title: "Explain ServiceNow access policy",
     description:
-      "Say whether a table may be read or written under the active policy and which rule decides (the guards' own evaluator), or, without a table, return the effective policy. Local; no instance call.",
+      "Say whether a table may be read or written under the active policy and which rule decides, or, without a table, return the effective policy. Local; no instance call.",
     package: "admin",
     annotations: {
       readOnlyHint: true,
@@ -689,7 +681,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_test_connection",
     title: "Test ServiceNow connection",
     description:
-      "Verify that the configured credentials actually work: reads one sys_user record and reports ok/status/latency. Auth and connectivity problems are returned structurally (ok:false), not as errors.",
+      "Verify the credentials work: reads one sys_user record, reports ok/status/latency. Auth and connectivity problems come back as ok:false, not errors.",
     package: "admin",
     annotations: {
       readOnlyHint: true,
@@ -715,7 +707,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_check_capabilities",
     title: "Check achievable capabilities",
     description:
-      "Preflight which sys_* tables the user can read and which capabilities (schema, script intelligence, ACL audit) work — run it before scripts/flows/codecheck on a governed instance. 'groups' picks matrix probes; results are cached (refresh:true).",
+      "Preflight which sys_* tables are readable and which capabilities work — run it before scripts/flows/codecheck on a governed instance. 'groups' picks matrix probes; results are cached (refresh:true).",
     package: "admin",
     annotations: {
       readOnlyHint: true,
@@ -735,14 +727,12 @@ export const specs: AnyToolSpec[] = [
         .max(50)
         .optional()
         .describe(
-          "Matrix groups to probe (default: all), one read-only probe each; status is available / unavailable / plan-only / read-only / unknown. update_sets adds canRead / canSet (inferred) and SN_UPDATE_SET. The sys_* table preflight always runs.",
+          "Groups to probe (default all), one read-only probe each; update_sets adds canRead / canSet (inferred). The sys_* preflight always runs.",
         ),
       refresh: z
         .boolean()
         .optional()
-        .describe(
-          "Discard cached capability and plugin-availability results (SN_CAPABILITY_TTL_MS / SN_PLUGIN_NEGATIVE_TTL_MS) and probe again.",
-        ),
+        .describe("Discard the cache and probe again."),
     },
     logFields: (args) => ({
       groups: args.groups?.join(","),
@@ -756,7 +746,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_list_packages",
     title: "List tool packages",
     description:
-      "List the tool packages with their state for this session: enabled, configured (SN_TOOL_PACKAGES), denied, read-only and tool count. Toggle one with servicenow_enable_package / servicenow_disable_package.",
+      "List tool packages with their session state: enabled, configured, denied, read-only, tool count. Toggle one with servicenow_enable_package / servicenow_disable_package.",
     package: "admin",
     annotations: {
       readOnlyHint: true,
@@ -783,13 +773,11 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_enable_package",
     title: "Enable a tool package",
     description:
-      "Enable a tool package for this session: its tools, resources and prompts appear (list_changed is sent). Denied packages are refused; a read-only package brings only its read tools. Ends with the session.",
+      "Enable a tool package for this session (list_changed is sent). Denied packages are refused; a read-only package brings only its read tools. Ends with the session.",
     package: "admin",
     annotations: TOGGLE_ANNOTATIONS,
     input: {
-      name: shortText(64).describe(
-        "Package name, e.g. 'codecheck' (see servicenow_list_packages).",
-      ),
+      name: shortText(64).describe("Package name, e.g. 'codecheck'."),
     },
     output: TOGGLE_OUTPUT,
     logFields: (args) => ({ name: args.name }),
@@ -804,9 +792,7 @@ export const specs: AnyToolSpec[] = [
     package: "admin",
     annotations: TOGGLE_ANNOTATIONS,
     input: {
-      name: shortText(64).describe(
-        "Package name, e.g. 'codecheck' (see servicenow_list_packages).",
-      ),
+      name: shortText(64).describe("Package name, e.g. 'codecheck'."),
     },
     output: TOGGLE_OUTPUT,
     logFields: (args) => ({ name: args.name }),

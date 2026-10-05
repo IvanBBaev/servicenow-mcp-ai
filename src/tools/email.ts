@@ -43,7 +43,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_send_email",
     title: "Send ServiceNow email",
     description:
-      "Send an email through the Email API (plugin must be active), optionally tied to a record (table + sys_id). Recipients must match SN_EMAIL_ALLOWED_DOMAINS or, when that is unset, be users of the instance (sys_user.email).",
+      "Send an email (Email API plugin), optionally tied to a record (table + sys_id). Recipients must match SN_EMAIL_ALLOWED_DOMAINS or, when that is unset, be users of the instance (sys_user.email).",
     package: "email",
     annotations: {
       readOnlyHint: false,
@@ -66,10 +66,8 @@ export const specs: AnyToolSpec[] = [
       bcc: z.array(email()).max(50).optional().describe("BCC addresses."),
       table: tableName()
         .optional()
-        .describe("Table of the record to associate the email with."),
-      sys_id: sysId()
-        .optional()
-        .describe("sys_id of the record to associate the email with."),
+        .describe("Table of the record to associate."),
+      sys_id: sysId().optional().describe("sys_id of the record to associate."),
       apply: applyInput,
     },
     logFields: (args) => ({ recipients: args.to.length, table: args.table }),
@@ -122,7 +120,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {
-      sys_id: sysId().describe("sys_id of the email record."),
+      sys_id: sysId().describe("Email sys_id."),
     },
     handler: async ({ sys_id }) => ok({ result: await getEmail(sys_id) }),
   }),

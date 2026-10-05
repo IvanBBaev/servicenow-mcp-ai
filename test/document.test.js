@@ -1447,6 +1447,8 @@ test("discovery: artifacts-<scope>.md says why each type was not collected", asy
       sysevent_script_action: 404,
       // Licensed family whose plugin is not installed.
       sn_aia_agent: 404,
+      // N-8: Performance Analytics not installed (O-9).
+      pa_indicators: 404,
       // More rows than one listing returns.
       sys_script_include: Array.from({ length: 1001 }, (_, i) => script(i)),
     }),
@@ -1478,6 +1480,11 @@ test("discovery: artifacts-<scope>.md says why each type was not collected", asy
         row("ai_agent"),
         /no — package off: `Now Assist AI Agents \(sn_aia\)` not installed/,
       );
+      assert.match(
+        row("pa_indicator"),
+        /no — package off: `Performance Analytics \(com\.snc\.pa\)` not installed/,
+      );
+      assert.match(row("report"), /no — no records in this scope/);
       assert.match(row("fix_script"), /no — no records in this scope/);
       assert.match(row("table"), /see \[tables-x_acme\.md\]/);
       assert.match(md, /script_include: 1000 of 1001 records listed/);

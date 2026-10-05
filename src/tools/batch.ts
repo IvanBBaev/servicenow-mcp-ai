@@ -19,26 +19,19 @@ import {
 } from "../core/write-journal.js";
 
 const subRequestSchema = z.object({
-  id: shortText()
-    .optional()
-    .describe("Optional id echoed back in the matching result."),
+  id: shortText().optional().describe("Id echoed in the matching result."),
   method: z
     .enum(["GET", "POST", "PATCH", "PUT", "DELETE"])
-    .describe("HTTP method for this sub-request."),
+    .describe("HTTP method."),
   url: shortText(16_384).describe(
     "API path under the instance origin, e.g. '/api/now/table/incident?sysparm_limit=1'.",
   ),
-  body: z
-    .unknown()
-    .optional()
-    .describe("JSON body for write methods; encoded into the batch payload."),
+  body: z.unknown().optional().describe("JSON body for write methods."),
   headers: z
     .array(z.object({ name: shortText(), value: shortText(8192) }))
     .max(50)
     .optional()
-    .describe(
-      "Extra headers. Accept and Content-Type are added automatically.",
-    ),
+    .describe("Extra headers (Accept and Content-Type are automatic)."),
 });
 
 const METHOD_ACTION: Record<BatchSubRequest["method"], WriteAction> = {
@@ -167,7 +160,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_batch",
     title: "Run a ServiceNow batch",
     description:
-      "Execute several ServiceNow REST sub-requests in a single HTTP round-trip via the Batch API. Each sub-request runs through the same read-only and table-access policy as a direct call.",
+      "Run several REST sub-requests in one round-trip (Batch API). Each sub-request runs through the same read-only and table-access policy as a direct call.",
     package: "batch",
     annotations: {
       // A batch may contain writes, so it is not flagged read-only.
@@ -188,7 +181,7 @@ export const specs: AnyToolSpec[] = [
         .array(subRequestSchema)
         .min(1)
         .max(1000)
-        .describe("The sub-requests to run together."),
+        .describe("Sub-requests to run."),
       apply: applyInput,
     },
     logFields: (args) => ({ count: args.requests.length }),

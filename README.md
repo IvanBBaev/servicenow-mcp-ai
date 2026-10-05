@@ -1014,22 +1014,22 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `table` | `servicenow_upsert_record` | no | Create or update one record matched by an exact key of field/value pairs: no match creates, one updates, se… |
 | `table` | `servicenow_delete_record` | no | Delete a record from a table by its sys_id |
 | `schema` | `servicenow_list_tables` | yes | List tables from sys_db_object, optionally filtered by a name or label fragment |
-| `schema` | `servicenow_describe_table` | yes | List a table's columns from sys_dictionary (name, label, type, mandatory, reference, default, read-only/uni… |
-| `aggregate` | `servicenow_aggregate` | yes | Compute server-side aggregates (count, avg, min, max, sum) over a table via the Stats API, with optional gr… |
-| `attachment` | `servicenow_list_attachments` | yes | List attachment metadata, optionally scoped to a specific record (table + sys_id) |
+| `schema` | `servicenow_describe_table` | yes | List a table's columns from sys_dictionary (name, label, type, mandatory, reference, default, flags) |
+| `aggregate` | `servicenow_aggregate` | yes | Server-side aggregates (count, avg, min, max, sum) over a table via the Stats API, optionally grouped |
+| `attachment` | `servicenow_list_attachments` | yes | List attachment metadata, optionally for one record (table + sys_id) |
 | `attachment` | `servicenow_get_attachment` | yes | Read a single attachment's metadata by its sys_id |
 | `attachment` | `servicenow_download_attachment` | yes | Download an attachment's bytes, returned as base64 |
 | `attachment` | `servicenow_upload_attachment` | no | Attach a file (provided as base64) to a record identified by table + sys_id |
 | `attachment` | `servicenow_delete_attachment` | no | Delete an attachment by its sys_id |
 | `importset` | `servicenow_insert_import_set_row` | no | Insert one row into a staging table and run its transform map |
-| `importset` | `servicenow_get_import_set_row` | yes | Read the transform outcome for a previously inserted staging row by its sys_id |
-| `batch` | `servicenow_batch` | no | Execute several ServiceNow REST sub-requests in a single HTTP round-trip via the Batch API |
+| `importset` | `servicenow_get_import_set_row` | yes | Read the transform outcome of a staging row |
+| `batch` | `servicenow_batch` | no | Run several REST sub-requests in one round-trip (Batch API) |
 | `catalog` | `servicenow_list_catalogs` | yes | List the Service Catalogs available on the instance (Service Catalog API) |
 | `catalog` | `servicenow_list_catalog_categories` | yes | List the categories within a service catalog |
 | `catalog` | `servicenow_list_catalog_items` | yes | Search/list orderable catalog items, optionally by text or category |
 | `catalog` | `servicenow_get_catalog_item` | yes | Get a catalog item, including its order variables, by sys_id |
 | `catalog` | `servicenow_order_catalog_item` | no | Order a catalog item directly ('order now') |
-| `change` | `servicenow_list_changes` | yes | List change requests through the Change Management API |
+| `change` | `servicenow_list_changes` | yes | List change requests (Change Management API) with an encoded query, fields and paging |
 | `change` | `servicenow_get_change` | yes | Get a single change request by sys_id |
 | `change` | `servicenow_create_change` | no | Create a normal, standard or emergency change |
 | `change` | `servicenow_update_change` | no | Update fields on a change request by sys_id |
@@ -1041,68 +1041,68 @@ definitions in `src/tools/`, then run `npm run docs:readme`._
 | `cmdb` | `servicenow_get_ci` | yes | Get a CI with its attributes and inbound/outbound relations by class and sys_id |
 | `cmdb` | `servicenow_create_ci` | no | Create a CI via the CMDB Instance API (routed through Identification & Reconciliation) |
 | `cmdb` | `servicenow_update_ci` | no | Update a CI's attributes via the CMDB Instance API (IRE) |
-| `cmdb` | `servicenow_get_cmdb_meta` | yes | Get the schema/metadata of a CMDB class (attributes, relationship rules) from the CMDB Meta API |
-| `cmdb` | `servicenow_list_ci_relations` | yes | List the relationships of one CI from cmdb_rel_ci, each oriented from that CI (outbound = it is the parent,… |
-| `cmdb` | `servicenow_identify_reconcile` | no | Send CIs and relationships through the Identification & Reconciliation Engine (/api/now/identifyreconcile),… |
-| `scripts` | `servicenow_list_scripts` | yes | List script artefacts of one type as compact metadata (no source code); 'type' lists the standard and opt-i… |
-| `scripts` | `servicenow_get_script` | yes | Read one script artefact in full, including its source code and execution context |
+| `cmdb` | `servicenow_get_cmdb_meta` | yes | Schema of a CMDB class (attributes, relationship rules) from the CMDB Meta API |
+| `cmdb` | `servicenow_list_ci_relations` | yes | List one CI's relationships (cmdb_rel_ci), outbound = parent, inbound = child, with the related CI's name a… |
+| `cmdb` | `servicenow_identify_reconcile` | no | Send CIs and relationships through the Identification & Reconciliation Engine: matched by identification ru… |
+| `scripts` | `servicenow_list_scripts` | yes | List script artefacts of one type as metadata (no source) |
+| `scripts` | `servicenow_get_script` | yes | Read one script artefact in full: source code and execution context |
 | `scripts` | `servicenow_search_code` | yes | Search script source for a literal substring across one or all script types |
-| `scripts` | `servicenow_describe_table_logic` | yes | Assemble the automation that runs on a table: business rules (ordered by when+order), client scripts, UI po… |
-| `scripts` | `servicenow_where_used` | yes | Find references to a table, field (table.field) or script: matching lines in script sources, rules/ACLs att… |
-| `flows` | `servicenow_trace_table_event` | yes | Trace what would run for a table operation, in order, without executing: display/before/after/async busines… |
-| `flows` | `servicenow_list_flows` | yes | List Flow Designer flows (sys_hub_flow) or legacy workflows (kind: 'workflow') as compact metadata |
-| `flows` | `servicenow_get_flow` | yes | Get a structured view of one flow or workflow: its trigger (table/condition/when) and ordered steps |
-| `flows` | `servicenow_get_flow_runs` | yes | Read flow execution evidence from sys_flow_context — by flow sys_id or by the record (document) it ran agai… |
+| `scripts` | `servicenow_describe_table_logic` | yes | The automation on a table: business rules (by when+order), client scripts, UI policies, UI actions, ACLs |
+| `scripts` | `servicenow_where_used` | yes | Find references to a table, field (table.field) or script: matching script lines, rules/ACLs on a table, st… |
+| `flows` | `servicenow_trace_table_event` | yes | Trace what would run for a table operation, in order, without executing: business rules by phase (inherited… |
+| `flows` | `servicenow_list_flows` | yes | List flows (sys_hub_flow) or legacy workflows (kind: 'workflow') as metadata |
+| `flows` | `servicenow_get_flow` | yes | Structured view of one flow or workflow: trigger (table/condition/when) and ordered steps; not a full decom… |
+| `flows` | `servicenow_get_flow_runs` | yes | Flow runs from sys_flow_context, by flow sys_id or by the record it ran against: start, state and outcome |
 | `flows` | `servicenow_explain_flow` | yes | Explain a flow/subflow (trigger, step tree, decoded inputs and pills, calls expanded), a custom action (inp… |
-| `codecheck` | `servicenow_lint_script` | yes | Run deterministic code-quality rules over one script artefact (hard-coded sys_ids/URLs, unbounded or in-loo… |
-| `codecheck` | `servicenow_lint_table` | yes | Lint every active business rule, client script and UI policy of a table (via describe_table_logic), returni… |
-| `codecheck` | `servicenow_check_code_health` | no | Code-health report: script counts by type, ACL security scan (open, public-role, scripted, elevated ACLs, p… |
-| `docs` | `servicenow_list_docs` | yes | List the Markdown documents in the local instance-documentation folder (SN_DOCS_DIR), with per-file metadat… |
-| `docs` | `servicenow_read_doc` | yes | Read one Markdown document or generated .json companion from the local instance-documentation folder; the r… |
-| `docs` | `servicenow_search_docs` | yes | Search the local instance documentation for a substring; returns a snippet and the nearest heading per matc… |
-| `docs` | `servicenow_write_doc` | no | Create or overwrite a Markdown document in the local docs folder and refresh index.md |
-| `docs` | `servicenow_generate_er_diagram` | yes | Build a Mermaid erDiagram from sys_dictionary: an entity per table, a relationship per reference field |
-| `docs` | `servicenow_generate_table_flow` | yes | Mermaid flowchart of a record's lifecycle on a table: active business rules by phase (display/before/after/… |
-| `docs` | `servicenow_document_table` | no | Write <profile>/tables/<table>.md + .json from metadata only: inheritance, columns, referencing columns, ER… |
-| `docs` | `servicenow_document_app` | no | Write <profile>/apps/<scope>.md + .json for one scoped app: its record, tables with an ER diagram, roles, c… |
+| `codecheck` | `servicenow_lint_script` | yes | Run deterministic code-quality rules on one script (hard-coded sys_ids, unbounded or in-loop GlideRecord, e… |
+| `codecheck` | `servicenow_lint_table` | yes | Lint every active business rule, client script and UI policy of a table: per-script findings and a severity… |
+| `codecheck` | `servicenow_check_code_health` | no | Code-health report: script counts by type, ACL security scan (open, public, scripted, elevated ACLs; public… |
+| `docs` | `servicenow_list_docs` | yes | List the Markdown docs in SN_DOCS_DIR with metadata: generated or hand-written, generator, generated_at, pr… |
+| `docs` | `servicenow_read_doc` | yes | Read one local Markdown doc or its .json companion; the result carries its mimeType |
+| `docs` | `servicenow_search_docs` | yes | Search the local docs for a substring: a snippet and nearest heading per match (max SN_DOCS_SEARCH_MAX, the… |
+| `docs` | `servicenow_write_doc` | no | Create or overwrite a local Markdown doc and refresh index.md |
+| `docs` | `servicenow_generate_er_diagram` | yes | Mermaid erDiagram from sys_dictionary: an entity per table, a relationship per reference field |
+| `docs` | `servicenow_generate_table_flow` | yes | Mermaid flowchart of a record's lifecycle: active business rules by phase, inherited and global rules in ow… |
+| `docs` | `servicenow_document_table` | no | Write <profile>/tables/<table>.md + .json from metadata: inheritance, columns, references, ER and flow diag… |
+| `docs` | `servicenow_document_app` | no | Write <profile>/apps/<scope>.md + .json for one scoped app: record, tables with an ER diagram, roles, cross… |
 | `docs` | `servicenow_document_instance` | no | Write <profile>/README.md (version, counts, apps, plugins, automation, update sets) and artifact-types.md, … |
-| `instance` | `servicenow_snapshot_instance` | no | Download structural metadata to SN_DOCS_DIR/<profile>/ as Markdown + JSON: tables, schema/<table>.md, plugi… |
-| `instance` | `servicenow_compare_instances` | no | Diff two profiles: tables in only one, column type/mandatory/reference differences, scripts missing/renamed… |
-| `email` | `servicenow_send_email` | no | Send an email through the Email API (plugin must be active), optionally tied to a record (table + sys_id) |
+| `instance` | `servicenow_snapshot_instance` | no | Download structural metadata to SN_DOCS_DIR/<profile>/ as Markdown + JSON: tables, schemas, plugins, apps, … |
+| `instance` | `servicenow_compare_instances` | no | Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app i… |
+| `email` | `servicenow_send_email` | no | Send an email (Email API plugin), optionally tied to a record (table + sys_id) |
 | `email` | `servicenow_get_email` | yes | Read a sent/received email record by its sys_id (Email API) |
-| `atf` | `servicenow_list_atf_tests` | yes | List Automated Test Framework tests (sys_atf_test) as metadata: name, active flag, description |
-| `atf` | `servicenow_list_atf_suites` | yes | List Automated Test Framework test suites (sys_atf_test_suite) as metadata |
+| `atf` | `servicenow_list_atf_tests` | yes | List ATF tests (sys_atf_test) as metadata: name, active, description |
+| `atf` | `servicenow_list_atf_suites` | yes | List ATF test suites (sys_atf_test_suite) as metadata |
 | `atf` | `servicenow_run_atf_test` | no | Run one ATF test through the CI/CD API |
 | `atf` | `servicenow_run_atf_suite` | no | Run an ATF test suite through the CI/CD API |
 | `atf` | `servicenow_get_atf_result` | yes | Poll an ATF run by its execution id: status, percent complete and message (CI/CD progress API) |
-| `revert` | `servicenow_list_writes` | yes | List the local write journal (newest first): every create/update/delete/execute this server made, with its … |
+| `revert` | `servicenow_list_writes` | yes | List the local write journal (newest first): every write this server made, with entry id, outcome and wheth… |
 | `revert` | `servicenow_revert_write` | no | Undo one applied write from the local journal: an update restores its before values, a create is deleted, a… |
-| `artifacts` | `servicenow_list_artifacts` | yes | List records of any registry artifact type (business rules, UI policies, widgets, flows, catalog items, …) … |
-| `artifacts` | `servicenow_get_artifact` | yes | Read one artifact of any registry type in full: the record, its registry child records (e.g |
+| `artifacts` | `servicenow_list_artifacts` | yes | List records of any registry artifact type as summaries: sys_id, name, key, scope, active, SDK-managed verd… |
+| `artifacts` | `servicenow_get_artifact` | yes | Read one artifact of any registry type in full: the record, its registry children (e.g |
 | `artifacts` | `servicenow_explain_artifact` | yes | Explain one artifact of any registry type: summary, trigger fields, non-empty fields, children, referenced … |
-| `artifacts` | `servicenow_get_artifact_dependencies` | yes | Dependency graph of one artifact: outbound (reference fields, decoded JSON, script calls and GlideRecord ta… |
+| `artifacts` | `servicenow_get_artifact_dependencies` | yes | Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables) and… |
 | `artifacts` | `servicenow_generate_fluent` | yes | Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope |
 | `artifacts` | `servicenow_upsert_artifact` | no | Create or update a registry artifact and its children (UI policy actions, portal page layout, catalog varia… |
-| `updatesets` | `servicenow_list_update_sets` | yes | List update sets (sys_update_set), newest first, with state, application scope and whether each is the user… |
-| `updatesets` | `servicenow_get_update_set` | yes | Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target name, action, t… |
-| `updatesets` | `servicenow_compare_update_set` | yes | Compare an update set's artefacts with another profile (live) or a stored snapshot: per artefact same / dif… |
-| `ops` | `servicenow_read_ops` | yes | Bounded operational views for 'why is it slow' triage: overview (all counts), syslog (recent entries by lev… |
-| `ops` | `servicenow_check_data_health` | yes | Data-quality counts for one table (twin of check_code_health): duplicate groups over key_fields, and orphan… |
-| `history` | `servicenow_get_record_history` | yes | Read a record's change history: sys_audit field changes and sys_journal_field entries (comments, work_notes… |
-| `properties` | `servicenow_get_properties` | yes | Read system properties (sys_properties) by exact name or name prefix: value, type, description, read/write … |
-| `properties` | `servicenow_set_property` | no | Set the value of one existing system property (sys_properties) by name |
-| `directory` | `servicenow_lookup_directory` | yes | Find users (user_name, email prefix or name), groups or roles by search term or sys_id |
-| `ui` | `servicenow_explain_portal` | yes | Explain a Service Portal (url_suffix or sys_id) or one page as a tree: theme, menu, pages, then layout cont… |
-| `ui` | `servicenow_explain_ui_experience` | yes | Explain a UI Builder experience/workspace (path or sys_id) as a page map: routes → screens → macroponents (… |
+| `updatesets` | `servicenow_list_update_sets` | yes | List update sets, newest first, with state, scope and whether each is the user's current one |
+| `updatesets` | `servicenow_get_update_set` | yes | Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target, action, table … |
+| `updatesets` | `servicenow_compare_update_set` | yes | Compare an update set's artefacts with another profile (live) or a stored snapshot: a status per artefact (… |
+| `ops` | `servicenow_read_ops` | yes | Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, semaphore… |
+| `ops` | `servicenow_check_data_health` | yes | Data-quality counts for one table: duplicate groups over key_fields, orphaned or stale references per field… |
+| `history` | `servicenow_get_record_history` | yes | Read a record's history: sys_audit changes and journal entries (comments, work_notes), newest first — journ… |
+| `properties` | `servicenow_get_properties` | yes | Read system properties (sys_properties) by name or prefix: value, type, description, roles, scope, last update |
+| `properties` | `servicenow_set_property` | no | Set one existing system property by name |
+| `directory` | `servicenow_lookup_directory` | yes | Find users, groups or roles by search term or sys_id |
+| `ui` | `servicenow_explain_portal` | yes | Explain a Service Portal (url_suffix or sys_id) or one page as a tree: theme, menu, pages, layout down to w… |
+| `ui` | `servicenow_explain_ui_experience` | yes | Explain a UI Builder experience/workspace (path or sys_id) as a page map: routes → screens → macroponents →… |
 | `admin` | `servicenow_set_credentials` | no | Save connection credentials to the env file for later requests (any subset; auth / oauth_client_id / oauth_… |
-| `admin` | `servicenow_list_instances` | yes | List the configured ServiceNow connection profiles (instances): name, host, user, auth method (and OAuth gr… |
+| `admin` | `servicenow_list_instances` | yes | List the connection profiles: name, host, user, auth method (and OAuth grant), refresh-token state, read-on… |
 | `admin` | `servicenow_use_instance` | no | Switch the connection profile (over HTTP: this session only unless persist) |
-| `admin` | `servicenow_explain_policy` | yes | Say whether a table may be read or written under the active policy and which rule decides (the guards' own … |
+| `admin` | `servicenow_explain_policy` | yes | Say whether a table may be read or written under the active policy and which rule decides, or, without a ta… |
 | `admin` | `servicenow_get_status` | yes | Show instance, auth, missing credentials, per-profile write mode, policy, limits, TLS, queue, write counter… |
-| `admin` | `servicenow_test_connection` | yes | Verify that the configured credentials actually work: reads one sys_user record and reports ok/status/latency |
-| `admin` | `servicenow_check_capabilities` | yes | Preflight which sys_* tables the user can read and which capabilities (schema, script intelligence, ACL aud… |
-| `admin` | `servicenow_list_packages` | yes | List the tool packages with their state for this session: enabled, configured (SN_TOOL_PACKAGES), denied, r… |
-| `admin` | `servicenow_enable_package` | no | Enable a tool package for this session: its tools, resources and prompts appear (list_changed is sent) |
+| `admin` | `servicenow_test_connection` | yes | Verify the credentials work: reads one sys_user record, reports ok/status/latency |
+| `admin` | `servicenow_check_capabilities` | yes | Preflight which sys_* tables are readable and which capabilities work — run it before scripts/flows/codeche… |
+| `admin` | `servicenow_list_packages` | yes | List tool packages with their session state: enabled, configured, denied, read-only, tool count |
+| `admin` | `servicenow_enable_package` | no | Enable a tool package for this session (list_changed is sent) |
 | `admin` | `servicenow_disable_package` | no | Disable a tool package for this session: its tools, resources and prompts are withdrawn (list_changed is sent) |
 
 <!-- GENERATED:TOOLS:END -->

@@ -11,7 +11,7 @@ export const applyInput = z
   .boolean()
   .optional()
   .describe(
-    "Execute the change. In the default plan mode, omitting this returns a non-mutating before/after preview; set true to apply. SN_WRITE_MODE=apply makes execution the default.",
+    "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
   );
 
 /**
