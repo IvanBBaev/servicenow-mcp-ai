@@ -20,6 +20,11 @@ import { checkCapabilities } from "../build/api/capabilities.js";
 import { buildStatusPayload } from "../build/mcp/status.js";
 import { listScripts } from "../build/api/scripts.js";
 import { traceTableEvent } from "../build/api/flows.js";
+import {
+  artefactsByDomain,
+  renderApp,
+  renderTable,
+} from "../build/api/document.js";
 import { explainArtifactFor } from "../build/api/explain-artifact.js";
 import { getArtifactType } from "../build/core/artifacts/registry.js";
 import { clearSchemaCache } from "../build/core/cache.js";
@@ -329,4 +334,191 @@ test("explain_artifact names a record's domain only when it has one", async () =
       assert.match(scoped.summary, new RegExp(`domain ${DOMAIN_ID}`));
     },
   );
+});
+
+/** An insert trace of incident with one flow, workflow and notification. */
+function laneHandler(extra) {
+  return (url) => {
+    const table = tableOf(url);
+    const fields = paramsOf(url).get("sysparm_fields") ?? "";
+    if (table === "sys_db_object") {
+      return jsonResponse(200, {
+        result: [{ name: "incident", "super_class.name": "" }],
+      });
+    }
+    if (table === "sys_hub_trigger_instance") {
+      assert.ok(fields.split(",").includes("flow.sys_domain"));
+      return jsonResponse(200, {
+        result: [
+          {
+            flow: "f1",
+            "flow.name": "Notify",
+            table_name: "incident",
+            trigger_type: "record_create",
+            ...extra.flow,
+          },
+        ],
+      });
+    }
+    if (table === "wf_workflow") {
+      assert.ok(fields.split(",").includes("sys_domain"));
+      return jsonResponse(200, {
+        result: [{ sys_id: "w1", name: "Legacy", ...extra.workflow }],
+      });
+    }
+    if (table === "sysevent_email_action") {
+      assert.ok(fields.split(",").includes("sys_overrides"));
+      return jsonResponse(200, {
+        result: [
+          {
+            sys_id: "n1",
+            name: "Mail",
+            collection: "incident",
+            action_insert: "true",
+            ...extra.notification,
+          },
+        ],
+      });
+    }
+    return jsonResponse(200, { result: [] });
+  };
+}
+
+test("trace: flows, workflows and notifications carry their domain", async () => {
+  await withFetch(
+    laneHandler({
+      flow: {
+        "flow.sys_domain": DOMAIN_ID,
+        "flow.sys_domain.name": "ACME",
+        // The trigger's own domain is not the flow's.
+        sys_domain: "global",
+      },
+      workflow: { sys_domain: DOMAIN_ID },
+      notification: { "sys_domain.name": "ACME", sys_overrides: "n0" },
+    }),
+    async () => {
+      const trace = await traceTableEvent("incident", "insert");
+      const by = (id) => trace.chain.find((e) => e.sys_id === id);
+      assert.equal(by("f1").domain, "ACME");
+      assert.equal(by("w1").domain, DOMAIN_ID);
+      assert.equal(by("n1").domain, "ACME");
+      assert.equal(by("n1").overrides, "n0");
+      assert.equal(trace.warnings.filter((w) => w === DOMAIN_CAVEAT).length, 1);
+    },
+  );
+  clearSchemaCache();
+  await withFetch(
+    laneHandler({ flow: {}, workflow: {}, notification: {} }),
+    async () => {
+      const trace = await traceTableEvent("incident", "insert");
+      assert.equal(trace.chain.length, 4, "database write + three lanes");
+      assert.ok(!JSON.stringify(trace).includes("domain"));
+    },
+  );
+});
+
+const TABLE_DOC = (rule) => ({
+  table: "incident",
+  chain: ["incident"],
+  columns: { incident: [] },
+  referencedBy: [],
+  logic: {
+    businessRules: [
+      {
+        sys_id: "b1",
+        name: "A",
+        when: "before",
+        order: "100",
+        active: "true",
+        condition: "",
+        ...rule,
+      },
+      {
+        sys_id: "b2",
+        name: "B",
+        when: "after",
+        order: "200",
+        active: "true",
+        condition: "",
+      },
+    ],
+    clientScripts: [],
+    uiPolicies: [],
+    uiActions: [],
+    acls: [],
+  },
+  unreadable: [],
+  caveats: [],
+});
+
+test("table document: a Domain column only when a logic entry has one", () => {
+  const ctx = { profile: "default" };
+  const plain = renderTable(TABLE_DOC({}), ctx);
+  assert.doesNotMatch(plain, /Domain/);
+  const scoped = renderTable(TABLE_DOC({ domain: "ACME" }), ctx);
+  assert.match(
+    scoped,
+    /\| Name \| When \| Order \| Active \| Condition \| Domain \|/,
+  );
+  assert.match(scoped, /\| A \| before \| 100 \| true \| {2}\| ACME \|/);
+  assert.match(scoped, /\| B \| after \| 200 \| true \| {2}\| {2}\|/);
+});
+
+const APP_DOC = (artefacts) => ({
+  app: {
+    table: "sys_app",
+    sys_id: "s1",
+    name: "App",
+    scope: "x_app",
+    version: "1.0.0",
+    vendor: "",
+    short_description: "",
+  },
+  tables: [],
+  artefacts,
+  degraded: [],
+  unreadable: [],
+  caveats: [],
+});
+
+const brRow = (id, extra = {}) => ({
+  sys_id: id,
+  name: `Rule ${id}`,
+  key: { sys_id: id },
+  active: true,
+  sdkManaged: "no",
+  ...extra,
+});
+
+test("app document: a domain column and a Domains section only when needed", () => {
+  const ctx = { profile: "default" };
+  const plain = renderApp(
+    APP_DOC({
+      business_rule: [brRow("1"), brRow("2", { sys_domain: "global" })],
+    }),
+    ctx,
+  );
+  assert.doesNotMatch(plain, /## Domains|\| domain \|/);
+
+  const artefacts = {
+    business_rule: [brRow("1", { sys_domain: DOMAIN_ID }), brRow("2")],
+    script_include: [
+      { ...brRow("3", { sys_domain: DOMAIN_ID }), name: "Util" },
+      { ...brRow("4", { sys_domain: "e".repeat(32) }), name: "Other" },
+    ],
+  };
+  assert.deepEqual(artefactsByDomain(artefacts), [
+    { domain: DOMAIN_ID, count: 2, types: ["business_rule", "script_include"] },
+    { domain: "e".repeat(32), count: 1, types: ["script_include"] },
+  ]);
+  const md = renderApp(APP_DOC(artefacts), ctx);
+  assert.match(md, /## Domains/);
+  assert.ok(md.includes(DOMAIN_CAVEAT));
+  assert.match(
+    md,
+    new RegExp(
+      `\\| ${DOMAIN_ID} \\| 2 \\| \`business_rule\`, \`script_include\` \\|`,
+    ),
+  );
+  assert.match(md, /\| domain \|/);
 });

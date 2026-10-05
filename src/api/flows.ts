@@ -2,7 +2,11 @@ import { queryTable, getRecord } from "./table.js";
 import { getTableChain } from "./meta.js";
 import { listScripts } from "./scripts.js";
 import { assertNoCaret, snString } from "./shared.js";
-import { DOMAIN_CAVEAT, recordDomain } from "./domain-separation.js";
+import {
+  DOMAIN_CAVEAT,
+  domainTraceFields,
+  recordDomain,
+} from "./domain-separation.js";
 import { ServiceNowError } from "../core/errors.js";
 import { label, MermaidDoc } from "./mermaid.js";
 
@@ -199,9 +203,7 @@ async function businessRules(
         "collection",
         "global",
         // N-12: absent without domain separation; the dot-walk is O-5.
-        "sys_domain",
-        "sys_domain.name",
-        "sys_overrides",
+        ...domainTraceFields(),
       ],
       displayValue: "false",
       limit: 500,
@@ -268,7 +270,15 @@ async function flowsForTable(
     const { records } = await queryTable({
       table: "sys_hub_trigger_instance",
       query: `table_nameIN${tables.join(",")}^flow.active=true`,
-      fields: ["flow", "flow.name", "table_name", "condition", "trigger_type"],
+      fields: [
+        "flow",
+        "flow.name",
+        "table_name",
+        "condition",
+        "trigger_type",
+        // N-12: the flow's domain (the trigger's own is not what runs).
+        ...domainTraceFields("flow."),
+      ],
       displayValue: "false",
       limit: 100,
     });
@@ -281,6 +291,7 @@ async function flowsForTable(
         condition: snString(r.condition) || undefined,
         sys_id: snString(r.flow) || undefined,
         ...origin(traced, snString(r.table_name)),
+        ...recordDomain(r, "flow."),
       }));
   } catch (e) {
     warnings.push(
@@ -304,7 +315,7 @@ async function workflowsForTable(
     const { records } = await queryTable({
       table: "wf_workflow",
       query: `table=${table}^active=true`,
-      fields: ["sys_id", "name", "condition"],
+      fields: ["sys_id", "name", "condition", ...domainTraceFields()],
       displayValue: "false",
       limit: 100,
     });
@@ -315,6 +326,7 @@ async function workflowsForTable(
       condition: snString(r.condition) || undefined,
       sys_id: snString(r.sys_id) || undefined,
       table,
+      ...recordDomain(r),
     }));
   } catch (e) {
     warnings.push(`workflows: ${e instanceof Error ? e.message : String(e)}`);
@@ -360,6 +372,7 @@ async function notificationsForTable(
         "collection",
         "action_insert",
         "action_update",
+        ...domainTraceFields(),
       ],
       displayValue: "false",
       limit: 100,
@@ -375,6 +388,7 @@ async function notificationsForTable(
           (snString(r.event_name) ? `on ${snString(r.event_name)}` : undefined),
         sys_id: snString(r.sys_id) || undefined,
         ...origin(traced, snString(r.collection)),
+        ...recordDomain(r),
       }));
   } catch (e) {
     warnings.push(

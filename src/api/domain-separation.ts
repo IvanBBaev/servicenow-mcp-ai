@@ -22,6 +22,18 @@ import { snString } from "./shared.js";
 /** Fields a list read requests so a record can be attributed to its domain. */
 export const DOMAIN_FIELDS = ["sys_domain", "sys_overrides"] as const;
 
+/**
+ * Fields a trace lane requests to attribute an entry to its domain, read
+ * through `prefix` (a reference dot-walk) when given.
+ */
+export function domainTraceFields(prefix = ""): string[] {
+  return [
+    `${prefix}sys_domain`,
+    `${prefix}sys_domain.name`,
+    `${prefix}sys_overrides`,
+  ];
+}
+
 /** The sys_id (and default name) of the top-level domain. */
 export const GLOBAL_DOMAIN = "global";
 
@@ -44,18 +56,23 @@ export interface RecordDomain {
  * The domain attribution of a row: the domain when it is set and not the
  * global one, and the overridden record when there is one. A row read with
  * `sysparm_display_value=all` prefers the display value; a `sys_domain.name`
- * dot-walk wins over a bare sys_id.
+ * dot-walk wins over a bare sys_id. `prefix` reads the fields through a
+ * reference (e.g. `flow.` on a trigger row: the flow's domain, not the
+ * trigger's).
  */
-export function recordDomain(row: Record<string, unknown>): RecordDomain {
-  const raw = row.sys_domain;
+export function recordDomain(
+  row: Record<string, unknown>,
+  prefix = "",
+): RecordDomain {
+  const raw = row[`${prefix}sys_domain`];
   const display =
     raw && typeof raw === "object" && "display_value" in raw
       ? snString((raw as { display_value?: unknown }).display_value)
       : "";
   const value = snString(raw);
-  const name = snString(row["sys_domain.name"]);
+  const name = snString(row[`${prefix}sys_domain.name`]);
   const domain = name || display || value;
-  const overrides = snString(row.sys_overrides);
+  const overrides = snString(row[`${prefix}sys_overrides`]);
   const out: RecordDomain = {};
   const isGlobal = [value, domain].some(
     (v) => v.toLowerCase() === GLOBAL_DOMAIN,

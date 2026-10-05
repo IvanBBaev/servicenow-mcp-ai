@@ -55,6 +55,7 @@ import {
   type DocWriteStatus,
 } from "./docs.js";
 import { describeTable, getTableChain, type ColumnInfo } from "./meta.js";
+import { DOMAIN_CAVEAT, recordDomain } from "./domain-separation.js";
 import { tableLogic, scopeClause, type ScriptSummary } from "./scripts.js";
 import {
   securityScan,
@@ -238,6 +239,9 @@ function pick(entry: ScriptSummary, fields: string[]): Record<string, string> {
     name: entry.name,
   };
   for (const f of fields) out[f] = cell(entry[f]);
+  // N-12: absent on an instance without domain separation.
+  const { domain } = recordDomain(entry);
+  if (domain) out.domain = cell(domain);
   return out;
 }
 
@@ -396,6 +400,18 @@ export async function collectTable(
     };
   }
 
+  // N-12: one caveat when a logic entry is domain-specific.
+  if (
+    [
+      ...logic.businessRules,
+      ...logic.clientScripts,
+      ...logic.uiPolicies,
+      ...logic.uiActions,
+    ].some((e) => recordDomain(e).domain)
+  ) {
+    caveats.push(DOMAIN_CAVEAT);
+  }
+
   return {
     table: t,
     chain,
@@ -515,10 +531,21 @@ export function renderTable(data: TableDocData, ctx: RenderContext): string {
   }
   const l = data.logic;
   // An unreadable definition table is not "none": say so in place.
-  const logicTable = (type: string, header: string[], rows: string[][]) =>
+  // N-12: a Domain column only when an entry is domain-specific.
+  const logicTable = (
+    type: string,
+    header: string[],
+    rows: string[][],
+    entries: readonly { domain?: string }[] = [],
+  ) =>
     data.unreadable.includes(type)
       ? "_Not readable for this user — see Caveats._"
-      : tableOrNone(header, rows);
+      : entries.some((e) => e.domain)
+        ? tableOrNone(
+            [...header, "Domain"],
+            rows.map((r, i) => [...r, entries[i]?.domain ?? ""]),
+          )
+        : tableOrNone(header, rows);
   lines.push(
     "## Logic",
     "",
@@ -534,6 +561,7 @@ export function renderTable(data: TableDocData, ctx: RenderContext): string {
         r.active ?? "",
         r.condition ?? "",
       ]),
+      l.businessRules,
     ),
     "",
     "### Client scripts",
@@ -548,6 +576,7 @@ export function renderTable(data: TableDocData, ctx: RenderContext): string {
         r.ui_type ?? "",
         r.active ?? "",
       ]),
+      l.clientScripts,
     ),
     "",
     "### UI policies",
@@ -560,6 +589,7 @@ export function renderTable(data: TableDocData, ctx: RenderContext): string {
         r.active ?? "",
         r.run_scripts ?? "",
       ]),
+      l.uiPolicies,
     ),
     "",
     "### UI actions",
@@ -574,6 +604,7 @@ export function renderTable(data: TableDocData, ctx: RenderContext): string {
         r.client ?? "",
         r.active ?? "",
       ]),
+      l.uiActions,
     ),
     "",
     "### ACLs",
@@ -932,10 +963,43 @@ function artifactCell(a: ArtifactSummary, col: string): string {
 
 function artifactTable(t: ArtifactType, rows: ArtifactSummary[]): string {
   const cols = artifactColumns(t);
+  // N-12: a domain column only when a row is domain-specific.
+  const domains = rows.map((a) => recordDomain(a).domain);
+  const withDomain = domains.some(Boolean);
   return mdTable(
-    cols,
-    rows.map((a) => cols.map((c) => artifactCell(a, c))),
+    withDomain ? [...cols, "domain"] : cols,
+    rows.map((a, i) => [
+      ...cols.map((c) => artifactCell(a, c)),
+      ...(withDomain ? [cell(domains[i] ?? "")] : []),
+    ]),
   );
+}
+
+/**
+ * N-12: artefacts per domain, for the rows that are domain-specific; empty
+ * on an instance without domain separation.
+ */
+export function artefactsByDomain(
+  artefacts: Record<string, ArtifactSummary[]>,
+): { domain: string; count: number; types: string[] }[] {
+  const by = new Map<string, { count: number; types: Set<string> }>();
+  for (const [type, rows] of Object.entries(artefacts)) {
+    for (const a of rows) {
+      const { domain } = recordDomain(a);
+      if (!domain) continue;
+      const entry = by.get(domain) ?? { count: 0, types: new Set<string>() };
+      entry.count++;
+      entry.types.add(type);
+      by.set(domain, entry);
+    }
+  }
+  return [...by.entries()]
+    .sort((a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0]))
+    .map(([domain, e]) => ({
+      domain,
+      count: e.count,
+      types: [...e.types].sort(),
+    }));
 }
 
 async function appRecord(scope: string): Promise<AppDocRecord> {
@@ -1340,6 +1404,25 @@ export function renderApp(data: AppDocData, ctx: RenderContext): string {
     }
   }
   if (!any) lines.push("_None._", "");
+
+  const domains = artefactsByDomain(data.artefacts);
+  if (domains.length) {
+    lines.push(
+      "## Domains",
+      "",
+      DOMAIN_CAVEAT,
+      "",
+      mdTable(
+        ["Domain", "Artefacts", "Types"],
+        domains.map((d) => [
+          cell(d.domain),
+          String(d.count),
+          d.types.map(code).join(", "),
+        ]),
+      ),
+      "",
+    );
+  }
 
   if (data.detail) lines.push(...renderAppDetail(data.detail));
 
