@@ -1496,6 +1496,10 @@ mkdir -p ~/.agents/skills
 cp -R skills/sn-* ~/.agents/skills/   # or: ln -s "$PWD"/skills/sn-* ~/.agents/skills/
 ```
 
+In VS Code, the extension's **ServiceNow MCP: Add Agent Skills to Workspace**
+command copies the five skills into one of the project folders above (it asks
+before replacing a skill that is already there).
+
 The subagents and hooks are Claude Code plugin features and do not carry over.
 
 ### Service Portal tree

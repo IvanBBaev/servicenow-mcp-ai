@@ -17,6 +17,12 @@ import {
 } from "./config";
 import { serverLaunch, summarizeDoctor, type DoctorSummary } from "./doctor";
 import { HttpServerProcess } from "./http-process";
+import {
+  copySkills,
+  planSkillCopy,
+  SKILL_TARGETS,
+  skillsSource,
+} from "./skills";
 
 const PROVIDER_ID = "servicenow-mcp-ai";
 const SERVER_LABEL = "ServiceNow";
@@ -411,6 +417,69 @@ export function activate(context: vscode.ExtensionContext): void {
     });
   };
 
+  /** N-52: copy the bundled Agent Skills into a workspace skills folder. */
+  const addSkills = async (): Promise<void> => {
+    const source = skillsSource(context.extensionPath);
+    if (!source) {
+      void vscode.window.showErrorMessage(
+        "ServiceNow MCP: this build of the extension carries no skills.",
+      );
+      return;
+    }
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    if (folders.length === 0) {
+      void vscode.window.showWarningMessage(
+        "ServiceNow MCP: open a folder first; the skills are copied into the workspace.",
+      );
+      return;
+    }
+    if (!vscode.workspace.isTrusted) {
+      void vscode.window.showWarningMessage(
+        "ServiceNow MCP: trust the workspace before adding skills to it.",
+      );
+      return;
+    }
+    const folder =
+      folders.length === 1
+        ? folders[0]
+        : await vscode.window.showWorkspaceFolderPick({
+            placeHolder: "Workspace folder to add the skills to",
+          });
+    if (!folder) return;
+    const pick = await vscode.window.showQuickPick(
+      SKILL_TARGETS.map((t) => ({
+        label: t.folder,
+        description: `read by ${t.description}`,
+      })),
+      { title: "ServiceNow MCP: skills folder", ignoreFocusOut: true },
+    );
+    if (!pick) return;
+    const target = vscode.Uri.joinPath(folder.uri, pick.label).fsPath;
+    const plan = planSkillCopy(source, target);
+    let overwrite = false;
+    if (plan.existing.length > 0) {
+      const replace = "Replace";
+      const keep = "Keep Mine";
+      const choice = await vscode.window.showWarningMessage(
+        `${plan.existing.join(", ")} already exist in ${pick.label}.`,
+        { modal: true },
+        replace,
+        keep,
+      );
+      if (!choice) return;
+      overwrite = choice === replace;
+    }
+    const written = copySkills(source, target, overwrite);
+    output.appendLine(
+      `[${new Date().toISOString()}] skills -> ${target}: ${written.join(", ") || "none"}`,
+    );
+    void vscode.window.showInformationMessage(
+      written.length > 0
+        ? `ServiceNow MCP: added ${written.length} skills to ${pick.label}.`
+        : `ServiceNow MCP: ${pick.label} already has every skill.`,
+    );
+  };
+
   context.subscriptions.push(
     output,
     didChange,
@@ -428,6 +497,7 @@ export function activate(context: vscode.ExtensionContext): void {
       "servicenowMcp.tryFirstPrompt",
       tryFirstPrompt,
     ),
+    vscode.commands.registerCommand("servicenowMcp.addSkills", addSkills),
     vscode.commands.registerCommand("servicenowMcp.showOutput", () =>
       output.show(),
     ),

@@ -7,8 +7,9 @@ dist/
 out/
 *.tsbuildinfo
 
-# VS Code extension package
+# VS Code extension package (and the skills bundled into it, N-52)
 *.vsix
+extension/skills/
 
 # Credentials & environment (every .env variant, incl. per-profile .env.<profile>
 # and the .env.tmp-* files the credential updater writes; only the example is tracked)

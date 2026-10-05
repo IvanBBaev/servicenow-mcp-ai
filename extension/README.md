@@ -75,14 +75,15 @@ Output**).
 
 ## Commands
 
-| Command                                | What it does                                               |
-| -------------------------------------- | ---------------------------------------------------------- |
-| ServiceNow MCP: Sign In                | Store the instance and a secret in SecretStorage.          |
-| ServiceNow MCP: Sign Out               | Remove the stored secret.                                  |
-| ServiceNow MCP: Choose Tool Packages   | Pick packages and profiles for `servicenowMcp.packages`.   |
-| ServiceNow MCP: Run Doctor             | Check configuration, connectivity and capabilities.        |
-| ServiceNow MCP: Try a First Prompt     | Open Copilot Chat in agent mode with a read-only question. |
-| ServiceNow MCP: Show Output            | Show the extension's output channel.                       |
+| Command                                       | What it does                                                                                                                                           |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ServiceNow MCP: Sign In                       | Store the instance and a secret in SecretStorage.                                                                                                      |
+| ServiceNow MCP: Sign Out                      | Remove the stored secret.                                                                                                                              |
+| ServiceNow MCP: Choose Tool Packages          | Pick packages and profiles for `servicenowMcp.packages`.                                                                                               |
+| ServiceNow MCP: Run Doctor                    | Check configuration, connectivity and capabilities.                                                                                                    |
+| ServiceNow MCP: Try a First Prompt            | Open Copilot Chat in agent mode with a read-only question.                                                                                             |
+| ServiceNow MCP: Add Agent Skills to Workspace | Copy the five `sn-*` workflow skills into `.agents/skills/`, `.github/skills/` or `.claude/skills/`; existing ones are kept unless you choose Replace. |
+| ServiceNow MCP: Show Output                   | Show the extension's output channel.                                                                                                                   |
 
 ## After install
 

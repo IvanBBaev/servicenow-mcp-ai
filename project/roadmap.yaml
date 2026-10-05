@@ -1229,11 +1229,11 @@ items:
     title: "skills beyond Claude Code"
     pillar: "N"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: null
     done: "2026-10-05"
     gates: []
-    notes: "**P0. Done 2026-10-05 (75e34b2) bar the extension copy command.** Portable skills frontmatter checked in `test/plugin-skills.test.js`, install docs for other agents in README (TK-28). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05.** Portable skills frontmatter checked in `test/plugin-skills.test.js`, install docs for other agents in README (75e34b2, TK-28); the VS Code extension bundles the skills and its **Add Agent Skills to Workspace** command copies them into `.agents/skills/`, `.github/skills/` or `.claude/skills/` (`extension/src/skills.ts`). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-53"
     title: "agent documentation index"
     pillar: "N"

@@ -67,6 +67,11 @@
         "category": "ServiceNow MCP"
       },
       {
+        "command": "servicenowMcp.addSkills",
+        "title": "Add Agent Skills to Workspace",
+        "category": "ServiceNow MCP"
+      },
+      {
         "command": "servicenowMcp.showOutput",
         "title": "Show Output",
         "category": "ServiceNow MCP"
@@ -231,7 +236,7 @@
     "lint": "eslint .",
     "watch": "tsc -watch -p ./",
     "test": "npm run compile && node --test \"out/test/*.test.js\"",
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && node scripts/bundle-skills.mjs",
     "package": "vsce package",
     "publish": "vsce publish"
   },
