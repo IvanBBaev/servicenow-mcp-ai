@@ -30,8 +30,8 @@ see the [README](README.md#configure-credentials) for the resolution order.
 ```bash
 npm run check      # the full gate: build, lint, format check, tests with
                    # coverage thresholds (lines 94 / branches 82 / functions 97),
-                   # Fluent action table check, tarball guard
-                   # (pack:check), prod audit
+                   # Fluent action table check, tool-surface scan
+                   # (scan:surface), tarball guard (pack:check), prod audit
 npm run verify     # the same minus coverage/audit — the fast inner loop
 npm test           # unit tests only (node:test; needs a prior build)
 ```
@@ -49,6 +49,17 @@ versus the registry's `sdkApi` values. It needs the network, so it is **not**
 part of `npm run check`; the weekly `sdk-drift` workflow runs it and keeps one
 "SDK drift tracking" issue up to date.
 
+`npm run scan:surface` (N-56) scans every text the server hands a model — the
+tool, parameter, prompt and resource text of an in-process server with every
+package on, the server instructions, and `skills/`, `agents/`, `hooks/` and
+`.claude-plugin/` — for invisible or bidirectional Unicode, HTML comments,
+hidden instructions, cross-tool directives (including a `servicenow_*` name
+the server does not have, or a qualified `mcp__…` name other than the
+plugin's own `mcp__plugin_servicenow-mcp-ai_servicenow__<tool>`) and URLs off the allowlist, and checks each tool
+description against the manifest's `description_sha256`. It exits 1 on a
+finding; `--json` prints the findings. An intended finding is excused in
+`ALLOWLIST` in `scripts/scan-surface.mjs`, with a reason, as a reviewed edit.
+
 `npm run fluent:verify` (P-29) is the Fluent round-trip oracle. It type-checks
 every golden in `test/fixtures/fluent/` against the pinned `@servicenow/sdk`
 dev dependency (exactly 4.12.2, owner gate O-7) and builds the goldens offline
@@ -58,6 +69,31 @@ the SDK (`npm ci --omit=dev`) it is skipped. After an SDK bump, regenerate the
 flow emitter's `action.core` input table with `npm run fluent:actions`.
 `npm run check` runs `fluent:actions -- --check`, which fails while that table
 is stale.
+
+`npm run eval:skills` (N-49) runs the `claude plugin eval` suite in `evals/`:
+for every plugin skill, one case whose prompt must load the skill and one whose
+prompt must not, each with graders for the expected tool calls. It calls a
+model, so it is **not** part of `npm run check`; it needs Claude Code
+(≥ 2.1.283) on `PATH` and `ANTHROPIC_API_KEY`. Extra flags pass through, for
+example `npm run eval:skills -- --model claude-sonnet-5 --max-cost-usd 5`.
+Run output lands in `evals/results/`, which is git-ignored.
+
+The suite never contacts a ServiceNow instance. Every MCP tool the skills call
+answers from a fixed mock in `evals/mocks/servicenow/` (plus `_tools.json`, the
+`tools/list` answer); a tool without a mock is unavailable to the model. The
+mocks are recorded by `npm run eval:mocks`, which drives the built server
+in-process against the fetch double in `test/evals/fake-instance.js`. That
+double only serves the `*.eval-double.invalid` hosts and throws on any other
+host, and it lives under `test/`, which is not in the published package.
+`npm run eval:mocks -- --check` fails when the committed mocks are stale (for
+example after a tool's output changes). `test/skill-evals.test.js` checks the
+suite's structure, that every skill has a trigger and a negative case, and that
+the mocks are current, without a model.
+
+The `Skill evals` workflow runs the suite on demand (`workflow_dispatch` only)
+with the model, judge model, threshold and spend ceiling as inputs. It needs the
+`ANTHROPIC_API_KEY` repository secret and fails at once without it; the JSON
+report goes to the job summary.
 
 ## Dependencies and the audit gate
 
@@ -133,6 +169,16 @@ taken). Publishing happens **from CI on a version tag**, never from a laptop.
    publishes with `--provenance`. It needs an `NPM_TOKEN` repository secret
    (an automation/2FA token).
 
+5. MCP bundle (N-51): `npm run mcpb:pack` builds
+   `dist/mcpb/servicenow-mcp-ai-<version>.mcpb` from `build/`, the production
+   dependencies and the generated `mcpb/manifest.json` (`npm run mcpb:manifest`
+   regenerates it after a settings or tool change; `--check` is part of the
+   gate). Add `-- --validate` to run the official validator via `npx`. The
+   `mcpb-asset` job in `publish.yml` attaches the bundle to the GitHub Release,
+   but only when the repository variable `MCPB_RELEASE` is `true` (Settings →
+   Secrets and variables → Actions → Variables). Until the owner enables
+   publication (O-22), leave it unset and the job is skipped.
+
 SemVer: patch = fixes, minor = new tools/back-compatible additions, major =
 a breaking tool/contract change.
 
@@ -142,8 +188,8 @@ a breaking tool/contract change.
 `version` lifecycle script runs [scripts/sync-version.mjs](scripts/sync-version.mjs),
 which copies the new `package.json` version into every other file that carries
 one — `package-lock.json`, `server.json`, `extension/package.json`,
-`extension/package-lock.json`, `.claude-plugin/plugin.json` and
-`docs/index.html` — and stages them, so a single commit and tag carry a single
+`extension/package-lock.json`, `.claude-plugin/plugin.json`,
+`mcpb/manifest.json` and `docs/index.html` — and stages them, so a single commit and tag carry a single
 version. `test/version-sync.test.js` fails CI on any skew (by hand:
 `node scripts/sync-version.mjs --check`; `npm run version:sync` rewrites). Never
 edit a version field directly.

@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { TraceContext } from "./tracing.js";
 
 /**
  * Per-request profile context (MI-3). The manifest layer wraps a tool call in
@@ -88,6 +89,31 @@ export interface CallContext {
    * and, once an apply was confirmed, the consumed token (journaled).
    */
   plan?: { argsHash: string; token?: string };
+  /**
+   * N-55: the process-unique id of the call's diagnostics_channel events
+   * (tracing.ts); the HTTP request events of the call carry it as `callId`.
+   */
+  callId?: number;
+  /** N-55: the W3C Trace Context the client sent in `params._meta`. */
+  trace?: TraceContext;
+  /**
+   * N-21: the secret columns and values this call read or sent (see
+   * core/secret-columns.ts). Created with the context, so a copied context
+   * (collectors' `within`) shares it and the result boundary sees every read.
+   */
+  secrets?: SecretRegistry;
+}
+
+/**
+ * N-21: what the result boundary and the write journal must mask for one call
+ * — field names whose dictionary type is secret (any depth), and the secret
+ * values themselves (wherever they end up in the result).
+ */
+export interface SecretRegistry {
+  fields: Set<string>;
+  values: Set<string>;
+  /** Bumped on every change, so a compiled matcher can be reused. */
+  version: number;
 }
 
 const callAls = new AsyncLocalStorage<CallContext>();

@@ -30,3 +30,7 @@ coverage/
 
 # Local instance docs and the write journal (SN_DOCS_DIR default)
 docs/instance/
+*.mcpb
+
+# Skill-eval run output (`claude plugin eval`, N-49)
+evals/results/

@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { connectTransport, closeHttpTransport } from "./mcp/transport.js";
 import { installCrashHandlers } from "./core/lifecycle.js";
+import { startOtelSubscriber } from "./core/otel.js";
 import { hasCredentials } from "./core/config.js";
 import { getTransport } from "./core/settings.js";
 import {
@@ -62,6 +63,9 @@ export async function startServer(runtime: Runtime): Promise<void> {
   // structured error line (pid, uptime, transport, error) and exits 1 after
   // flushing stderr — a possibly corrupt process must not keep serving.
   installCrashHandlers();
+  // N-55: SN_OTEL=1 maps the diagnostics_channel events to OpenTelemetry
+  // spans (optional peer dependency; off = never imported).
+  await startOtelSubscriber();
 
   const http = getTransport() === "http";
   let server: McpServer | undefined;

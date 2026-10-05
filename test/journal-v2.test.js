@@ -501,8 +501,10 @@ test("redaction applies deeply at the ok / okStructured / fail boundary", async 
     const failed = fail(new ServiceNowError("nope", 400, { password: "leak" }));
     assert.ok(!failed.content[0].text.includes("leak"), failed.content[0].text);
   });
-  // Redaction off: same data passes through untouched.
-  assert.ok(ok({ password: "visible" }).content[0].text.includes("visible"));
+  // SN_REDACT_FIELDS off: other data passes through untouched…
+  assert.ok(ok({ u_note: "visible" }).content[0].text.includes("visible"));
+  // …but an OOTB secret name is masked always (N-21).
+  assert.ok(!ok({ password: "hidden" }).content[0].text.includes("hidden"));
 });
 
 test("write tools echo records through the redaction boundary", async () => {

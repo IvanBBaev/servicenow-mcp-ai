@@ -142,7 +142,14 @@ test("redaction: PII mode leaves no email/phone/id pattern in any string, and wi
     () => {
       fc.assert(
         fc.property(
-          fc.array(fc.dictionary(fc.constantFrom(...KEYS), leaf)),
+          // N-21: `password` is an OOTB secret name, masked always — so
+          // only the other keys can pass untouched.
+          fc.array(
+            fc.dictionary(
+              fc.constantFrom(...KEYS.filter((k) => k !== "password")),
+              leaf,
+            ),
+          ),
           (records) => {
             const r = redactRecords(records);
             assert.equal(r.records, records);

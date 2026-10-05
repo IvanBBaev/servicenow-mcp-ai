@@ -36,6 +36,7 @@ test("version-sync: every version-bearing file agrees with package.json", () => 
   const extension = json("extension/package.json");
   const extensionLock = json("extension/package-lock.json");
   const plugin = json(".claude-plugin/plugin.json");
+  const bundle = json("mcpb/manifest.json");
   const site = read("docs/index.html");
 
   assert.ok(server.packages.length > 0, "server.json lists no packages");
@@ -54,6 +55,7 @@ test("version-sync: every version-bearing file agrees with package.json", () => 
     'extension/package-lock.json packages[""].version':
       extensionLock.packages[""].version,
     ".claude-plugin/plugin.json version": plugin.version,
+    "mcpb/manifest.json version": bundle.version,
   };
   for (const [where, version] of Object.entries(seen)) {
     assert.equal(version, rootVersion, `${where} drifts from package.json`);
@@ -171,6 +173,11 @@ function fixture(t, { next, stale }) {
   );
   writeFixture(
     dir,
+    "mcpb/manifest.json",
+    `{\n  "name": "x",\n  "version": "${stale}",\n  "args": ["a"]\n}\n`,
+  );
+  writeFixture(
+    dir,
     "docs/index.html",
     `<script type="application/ld+json">{ "softwareVersion": "${stale}", "x": "${stale}" }</script>\n` +
       `<span class="ver-pill">v${stale}</span> v${stale}\n`,
@@ -228,6 +235,7 @@ test("sync-version: writes the root version into every follower, then is a no-op
     "plugin.json was reflowed",
   );
   assert.ok(plugin.includes('"mcpServers": { "x": { "command": "npx" } }'));
+  assert.equal(JSON.parse(at("mcpb/manifest.json")).version, "3.1.0");
 
   const site = at("docs/index.html");
   assert.ok(site.includes('"softwareVersion": "3.1.0"'));

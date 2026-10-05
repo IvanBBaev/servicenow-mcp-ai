@@ -14,6 +14,16 @@ const known = new Set(manifest.tools.map((t) => t.name));
 
 const TOOL_NAME = /\bservicenow_[a-z0-9_]+\b/g;
 
+/** The top-level frontmatter keys of the Agent Skills spec (agentskills.io). */
+const PORTABLE_KEYS = new Set([
+  "name",
+  "description",
+  "license",
+  "compatibility",
+  "metadata",
+  "allowed-tools",
+]);
+
 function frontmatter(text) {
   const m = /^---\n([\s\S]*?)\n---\n/.exec(text);
   if (!m) return undefined;
@@ -83,6 +93,31 @@ for (const doc of docs) {
       );
       assert.ok(fm.description.length <= 1024, "description stays short");
     });
+
+    // N-52: the skills are portable Agent Skills (agentskills.io) — VS Code
+    // Copilot, Codex and Cursor load the same SKILL.md, so the frontmatter
+    // stays inside the open spec and the body names tools by their bare MCP
+    // name, never by a Claude-Code-only `mcp__…` prefix.
+    test(`skill ${doc.name} stays a portable Agent Skill`, () => {
+      const text = readFileSync(doc.file, "utf8");
+      const fm = frontmatter(text);
+      assert.ok(fm.name.length <= 64, "name is at most 64 characters");
+      assert.match(
+        fm.name,
+        /^[a-z0-9]+(-[a-z0-9]+)*$/,
+        "name is lowercase letters, digits and single hyphens",
+      );
+      for (const key of Object.keys(fm))
+        assert.ok(
+          PORTABLE_KEYS.has(key),
+          `frontmatter key "${key}" is not in the Agent Skills spec`,
+        );
+      assert.doesNotMatch(
+        text,
+        /\bmcp__/,
+        "name tools without a client prefix",
+      );
+    });
   }
 }
 
@@ -105,8 +140,8 @@ test("plugin.json stays consistent with package.json", () => {
   assert.equal(plugin.name, pkg.name);
   assert.equal(plugin.version, pkg.version);
   assert.deepEqual(plugin.mcpServers.servicenow.args, ["-y", pkg.name]);
-  // D-8: the PreToolUse hook ships at the default location, hooks/hooks.json
-  // (auto-discovered from the plugin root; test/plugin-hook.test.js covers it).
+  // D-8 / N-48: the hooks ship at the default location, hooks/hooks.json
+  // (auto-discovered from the plugin root; test/plugin-hook*.test.js cover it).
   assert.equal(existsSync(join(root, "hooks/hooks.json")), true);
   assert.equal(plugin.hooks, undefined);
 });

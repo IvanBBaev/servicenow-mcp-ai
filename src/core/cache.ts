@@ -1,5 +1,6 @@
 import { getSchemaCacheTtlMs, getSchemaCacheMax } from "./settings.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
+import { activeProfile, getCredentials } from "./config.js";
 
 /**
  * Tiny TTL + LRU cache for near-static reads (table lists, schemas, CMDB class
@@ -151,3 +152,12 @@ export function clearSchemaCache(): void {
 export function resetSchemaCacheStats(): void {
   zero(state().counters);
 }
+
+/**
+ * The schema-cache scope of a profile: its instance plus the profile name
+ * (H-7). The cache is shared by every HTTP session, and two profiles on one
+ * instance can authenticate as users with different read ACLs — a dictionary
+ * read cached for one must never answer (or complete) for the other.
+ */
+export const schemaCacheScope = (profile: string = activeProfile()): string =>
+  `${getCredentials(profile).instance}#${profile}`;

@@ -16,6 +16,7 @@ import {
 import { getAttachmentMeta } from "./attachment.js";
 import { ServiceNowError } from "../core/errors.js";
 import { reportProgress } from "../core/progress.js";
+import { noteSecretRecords } from "./secret-columns.js";
 
 /**
  * ServiceNow Batch API (`/api/now/v1/batch`): run several REST calls in a
@@ -261,6 +262,23 @@ function hasHeader(headers: { name: string }[], name: string): boolean {
   return headers.some((h) => h.name.toLowerCase() === name.toLowerCase());
 }
 
+/** `/api/now/table/<table>…` — the Table API sub-requests N-21 masks by type. */
+const TABLE_API = /^\/api\/now\/(?:v\d+\/)?table\/([^/?#]+)/i;
+
+/**
+ * N-21: register the secret columns (and values) of a Table API sub-request's
+ * body or answer, so the batch result and the journal mask them by type like a
+ * direct read. Other REST surfaces are masked by the OOTB names only.
+ */
+async function noteTableBody(url: string, body: unknown): Promise<void> {
+  const table = TABLE_API.exec(pathOf(url))?.[1];
+  if (!table || body === null || typeof body !== "object") return;
+  const result = (body as { result?: unknown }).result;
+  const records = result !== undefined ? result : body;
+  if (records === null || typeof records !== "object") return;
+  await noteSecretRecords(decodeURIComponent(table), records);
+}
+
 function decodeBody(encoded: string | undefined): unknown {
   if (!encoded) return undefined;
   const text = Buffer.from(encoded, "base64").toString("utf8");
@@ -383,6 +401,7 @@ export async function runBatch(
   for (const [index, req] of requests.entries()) {
     await assertAttachmentScope(req, index, tablesForSubRequest(req));
   }
+  for (const req of requests) await noteTableBody(req.url, req.body);
 
   // M-3: the Batch API is one round-trip, so progress is two coarse steps —
   // validated and sent, then answered — counted in sub-requests.
@@ -405,6 +424,12 @@ export async function runBatch(
     headers: r.headers,
     executionTime: r.execution_time,
   }));
+
+  const urlById = new Map(restRequests.map((r) => [r.id, r.url]));
+  for (const r of results) {
+    const url = urlById.get(r.id);
+    if (url) await noteTableBody(url, r.body);
+  }
 
   for (const u of data.unserviced_requests ?? []) {
     results.push({

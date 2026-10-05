@@ -1,0 +1,3851 @@
+{
+  "tools": [
+    {
+      "name": "servicenow_batch",
+      "title": "Run a ServiceNow batch",
+      "description": "Run several REST sub-requests in one round-trip (Batch API). Each sub-request runs through the same read-only and table-access policy as a direct call.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "requests": {
+            "minItems": 1,
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Id echoed in the matching result.",
+                  "type": "string",
+                  "maxLength": 255
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PATCH",
+                    "PUT",
+                    "DELETE"
+                  ],
+                  "description": "HTTP method."
+                },
+                "url": {
+                  "type": "string",
+                  "maxLength": 16384,
+                  "description": "API path under the instance origin, e.g. '/api/now/table/incident?sysparm_limit=1'."
+                },
+                "body": {
+                  "description": "JSON body for write methods."
+                },
+                "headers": {
+                  "description": "Extra headers (Accept and Content-Type are automatic).",
+                  "maxItems": 50,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "value": {
+                        "type": "string",
+                        "maxLength": 8192
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "method",
+                "url"
+              ]
+            },
+            "description": "Sub-requests to run."
+          },
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          },
+          "plan_token": {
+            "description": "Plan preview token (apply:true)",
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "requests"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_check_capabilities",
+      "title": "Check achievable capabilities",
+      "description": "Preflight which sys_* tables are readable and which capabilities work — run it before scripts/flows/codecheck on a governed instance. 'groups' picks matrix probes; results are cached (refresh:true).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "groups": {
+            "description": "Groups to probe (default all), one read-only probe each; update_sets adds canRead / canSet (inferred). The sys_* preflight always runs.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "writes",
+                "update_sets",
+                "attachments",
+                "aggregate",
+                "import_sets",
+                "email",
+                "atf",
+                "version",
+                "roles"
+              ]
+            }
+          },
+          "refresh": {
+            "description": "Discard the cache and probe again.",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "degraded": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "capabilities": {},
+          "matrix": {}
+        },
+        "required": [
+          "degraded",
+          "summary"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_compare_instances",
+      "title": "Compare two instances",
+      "description": "Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app inventory, optional record sections. Writes _compare/<a>-vs-<b>.md.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "First profile, e.g. 'dev'."
+          },
+          "b": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Second profile, e.g. 'prod'."
+          },
+          "from_snapshot": {
+            "description": "Prefer stored snapshot JSON over live reads (default false).",
+            "type": "boolean"
+          },
+          "sections": {
+            "description": "Snapshot record sections to compare too, matched by sys_id then name (default none).",
+            "minItems": 1,
+            "maxItems": 7,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "properties",
+                "choices",
+                "acls",
+                "notifications",
+                "flows",
+                "catalog",
+                "roles"
+              ]
+            }
+          },
+          "types": {
+            "description": "Registry types (with children) or ['all']; default none.",
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          "scope": {
+            "description": "Scope for types.",
+            "type": "string",
+            "maxLength": 128
+          },
+          "mermaid": {
+            "description": "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid (live).",
+            "type": "boolean"
+          },
+          "format": {
+            "description": "'json' (default) or 'file': write the full (redacted) JSON to <profile>/exports/, return { path, bytes, preview } + summary.",
+            "type": "string",
+            "enum": [
+              "json",
+              "file"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_compare_update_set",
+      "title": "Compare update set",
+      "description": "Compare an update set's artefacts with another profile (live) or a stored snapshot: a status per artefact (same, different with field names, missing, …) plus a summary. Audit columns ignored.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "update_set": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Update set sys_id or exact name (a shared name resolves to the one in progress)."
+          },
+          "with_profile": {
+            "description": "Profile to compare against live; this or with_snapshot.",
+            "type": "string",
+            "maxLength": 64
+          },
+          "with_snapshot": {
+            "description": "Profile snapshot to compare with (record sections); this or with_profile.",
+            "type": "string",
+            "maxLength": 64
+          },
+          "limit": {
+            "description": "Max updates to compare (default 100, max 500).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "update_set"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "update_set": {
+            "type": "object",
+            "properties": {
+              "sys_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "application": {
+                "type": "string"
+              },
+              "application_name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "sys_id",
+              "name",
+              "state",
+              "application"
+            ],
+            "additionalProperties": {}
+          },
+          "against": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "count": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "artefacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "sys_id": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "same",
+                    "different",
+                    "missing",
+                    "not_comparable",
+                    "not_covered",
+                    "unknown"
+                  ]
+                },
+                "fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "table",
+                "sys_id",
+                "action",
+                "status"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "update_set",
+          "against",
+          "count",
+          "truncated",
+          "summary",
+          "artefacts",
+          "caveats"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_create_record",
+      "title": "Create ServiceNow record",
+      "description": "Create a new record in a table with the given field values.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table, e.g. 'incident'."
+          },
+          "values": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "description": "Field name/value pairs, e.g. { \"short_description\": \"x\" }."
+          },
+          "inputDisplayValue": {
+            "description": "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
+            "type": "boolean"
+          },
+          "update_set": {
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table",
+          "values"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_delete_record",
+      "title": "Delete ServiceNow record",
+      "description": "Delete a record from a table by its sys_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table, e.g. 'incident'."
+          },
+          "sys_id": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Record sys_id."
+          },
+          "update_set": {
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "expected_mod_count": {
+            "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          },
+          "plan_token": {
+            "description": "Plan preview token (apply:true)",
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "table",
+          "sys_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_describe_table",
+      "title": "Describe ServiceNow table",
+      "description": "List a table's columns from sys_dictionary (name, label, type, mandatory, reference, default, flags). details:true adds choice lists and dictionary overrides.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table, e.g. 'incident'."
+          },
+          "details": {
+            "description": "Add choice lists and dictionary overrides (two extra reads).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "columns": {
+            "type": "array",
+            "items": {}
+          },
+          "warnings": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "table",
+          "count",
+          "columns"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_describe_table_logic",
+      "title": "Explain ServiceNow table logic",
+      "description": "The automation on a table: business rules (by when+order), client scripts, UI policies, UI actions, ACLs. Metadata only.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table to analyse, e.g. 'incident'."
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "businessRules": {
+            "type": "array",
+            "items": {}
+          },
+          "clientScripts": {
+            "type": "array",
+            "items": {}
+          },
+          "uiPolicies": {
+            "type": "array",
+            "items": {}
+          },
+          "uiActions": {
+            "type": "array",
+            "items": {}
+          },
+          "acls": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "table",
+          "businessRules",
+          "clientScripts",
+          "uiPolicies",
+          "uiActions",
+          "acls"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_document_app",
+      "title": "Document an application",
+      "description": "Write <profile>/apps/<scope>.md + .json for one scoped app: record, tables with an ER diagram, roles, cross-scope privileges, artefacts by type group, caveats. Not for 'global'. write:false returns the Markdown instead.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Scope namespace (e.g. 'x_acme_app') or sys_id."
+          },
+          "profile": {
+            "description": "Profile: 'current' (default) or a name; writes to its docs folder.",
+            "type": "string",
+            "maxLength": 128
+          },
+          "write": {
+            "description": "false returns the Markdown, writing nothing.",
+            "type": "boolean"
+          },
+          "detail": {
+            "description": "Add a Mermaid diagram per flow/subflow/workflow/portal/UIB experience, a dependency graph and a lint summary (bounded).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "scope"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_document_instance",
+      "title": "Document the instance",
+      "description": "Write <profile>/README.md (version, counts, apps, plugins, automation, update sets) and artifact-types.md, plus one document per named table, app and kind (security, catalog, integrations); depth adds discovery/. A cancel keeps finished files.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "description": "Profile: 'current' (default) or a name; writes to its docs folder.",
+            "type": "string",
+            "maxLength": 128
+          },
+          "tables": {
+            "description": "Tables to write as tables/<name>.md.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "pattern": "^[A-Za-z0-9_]{1,80}$"
+            }
+          },
+          "apps": {
+            "description": "Scopes to write as apps/<scope>.md.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 128
+            }
+          },
+          "kinds": {
+            "description": "Instance-wide documents to add, each as <kind>.md.",
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "security",
+                "catalog",
+                "integrations"
+              ]
+            }
+          },
+          "depth": {
+            "description": "Discovery tier under discovery/: overview, apps (+ per-scope tables), artefacts (+ per-scope artefacts); for 'apps', else every scope.",
+            "type": "string",
+            "enum": [
+              "overview",
+              "apps",
+              "artefacts"
+            ]
+          },
+          "write": {
+            "description": "false returns the Markdown, writing nothing.",
+            "type": "boolean"
+          },
+          "format": {
+            "description": "'json' (default) or 'file': write the result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview }.",
+            "type": "string",
+            "enum": [
+              "json",
+              "file"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_document_table",
+      "title": "Document a table",
+      "description": "Write <profile>/tables/<table>.md + .json from metadata: inheritance, columns, references, ER and flow diagrams, rules, client scripts, UI policies/actions, ACLs, caveats. A Purpose manual block survives re-runs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table to document, e.g. 'incident'."
+          },
+          "profile": {
+            "description": "Profile: 'current' (default) or a name; writes to its docs folder.",
+            "type": "string",
+            "maxLength": 128
+          },
+          "write": {
+            "description": "false returns the Markdown, writing nothing.",
+            "type": "boolean"
+          },
+          "diagrams": {
+            "description": "ER and table-flow diagrams (default true).",
+            "type": "boolean"
+          },
+          "columns": {
+            "description": "Columns the ER entity shows (default 'own').",
+            "type": "string",
+            "enum": [
+              "all",
+              "own",
+              "keys"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_explain_artifact",
+      "title": "Explain artifact",
+      "description": "Explain one artifact of any registry type: summary, trigger fields, non-empty fields, children, referenced records, decoded JSON fields and type-specific readings (state models, policy effects).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "artifactType": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types."
+          },
+          "sys_id": {
+            "description": "Record sys_id; this or 'key'.",
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "key": {
+            "description": "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'.",
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "artifactType"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "artifactType": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "caveat": {
+            "type": "string"
+          },
+          "sys_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "object",
+            "properties": {
+              "sys_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scope": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "sys_id",
+              "scope"
+            ],
+            "additionalProperties": false
+          },
+          "sdkManaged": {
+            "type": "object",
+            "properties": {
+              "managed": {
+                "type": "string",
+                "enum": [
+                  "yes",
+                  "no",
+                  "unknown"
+                ]
+              },
+              "unverified": {
+                "type": "boolean"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {}
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "managed",
+              "unverified",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "missingFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "when": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fields": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "truncatedFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "explanation": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "lines": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "kind",
+              "lines"
+            ],
+            "additionalProperties": {}
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "table": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "number"
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "omitted": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "table",
+                "count",
+                "items"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                },
+                "sys_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "field",
+                "table",
+                "sys_id"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "decoded": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "field": {
+                  "type": "string"
+                },
+                "decoder": {
+                  "type": "string"
+                },
+                "decoded": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "source",
+                "field",
+                "decoder",
+                "decoded"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "degraded": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "number"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "artifactType",
+          "table",
+          "verified",
+          "summary",
+          "when",
+          "fields",
+          "children",
+          "references",
+          "decoded"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_generate_er_diagram",
+      "title": "Generate ER diagram",
+      "description": "Mermaid erDiagram from sys_dictionary: an entity per table, a relationship per reference field. columns / max_columns / depth give a detailed view: PK/FK and required markers, extends edges, referenced tables.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tables": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "pattern": "^[A-Za-z0-9_]{1,80}$"
+            },
+            "description": "Tables to include, e.g. ['incident', 'problem']."
+          },
+          "columns": {
+            "description": "all: whole chain; own: the table's own; keys: sys_id, references, mandatory.",
+            "type": "string",
+            "enum": [
+              "all",
+              "own",
+              "keys"
+            ]
+          },
+          "max_columns": {
+            "description": "Columns per entity before '+N' folding (40).",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "depth": {
+            "description": "Reference levels to follow, adding targets (0).",
+            "type": "number",
+            "enum": [
+              0,
+              1,
+              2
+            ]
+          },
+          "format": {
+            "description": "'inline' (default) or 'file': write <profile>/diagrams/<name>.mmd, return { path, bytes, preview }.",
+            "type": "string",
+            "enum": [
+              "inline",
+              "file"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "tables"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_artifact",
+      "title": "Get artifact",
+      "description": "Read one artifact of any registry type in full: the record, its registry children (e.g. UI policy actions, page layout), scope and SDK-managed verdict. By sys_id or natural key; denied child tables show as redacted.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "artifactType": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Registry type id, e.g. 'business_rule'; all types: servicenow://artifact-types."
+          },
+          "sys_id": {
+            "description": "Record sys_id; this or 'key'.",
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "key": {
+            "description": "Natural key (keyFields): a value for a single key field, else an object of every key field; this or 'sys_id'.",
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "artifactType"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "artifactType": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "caveat": {
+            "type": "string"
+          },
+          "sys_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "key": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "scope": {
+            "type": "object",
+            "properties": {
+              "sys_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scope": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "sys_id",
+              "scope"
+            ],
+            "additionalProperties": false
+          },
+          "sdkManaged": {
+            "type": "object",
+            "properties": {
+              "managed": {
+                "type": "string",
+                "enum": [
+                  "yes",
+                  "no",
+                  "unknown"
+                ]
+              },
+              "unverified": {
+                "type": "boolean"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {}
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "managed",
+              "unverified",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "record": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "table": {
+                  "type": "string"
+                },
+                "parentField": {
+                  "type": "string"
+                },
+                "parentTable": {
+                  "type": "string"
+                },
+                "verified": {
+                  "type": "boolean"
+                },
+                "count": {
+                  "type": "number"
+                },
+                "truncated": {
+                  "type": "boolean"
+                },
+                "records": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "redacted": {
+                  "type": "boolean"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "error": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "table",
+                "parentField",
+                "verified",
+                "count",
+                "records"
+              ],
+              "additionalProperties": {}
+            }
+          },
+          "missingFields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "degraded": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "number"
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "reason"
+            ],
+            "additionalProperties": false
+          },
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "artifactType",
+          "table",
+          "verified",
+          "record",
+          "children"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_flow_runs",
+      "title": "Get flow run history",
+      "description": "Flow runs from sys_flow_context, by flow sys_id or by the record it ran against: start, state and outcome.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "flow": {
+            "description": "Flow sys_id.",
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "record": {
+            "description": "Record the flow ran against (document_id).",
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "limit": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "runs": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "count",
+          "runs"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_record",
+      "title": "Get ServiceNow record",
+      "description": "Read a single record from a table by its sys_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table, e.g. 'incident'."
+          },
+          "sys_id": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Record sys_id."
+          },
+          "fields": {
+            "description": "Columns (default all).",
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$"
+            }
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table",
+          "sys_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {},
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_record_history",
+      "title": "Get record history",
+      "description": "Read a record's history: sys_audit changes and journal entries (comments, work_notes), newest first — journal fields read back empty via the Table API. Each source degrades separately.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Record table, e.g. 'incident'."
+          },
+          "sys_id": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Record sys_id."
+          },
+          "source": {
+            "description": "all (default), audit (field changes) or journal (comments / work notes).",
+            "type": "string",
+            "enum": [
+              "all",
+              "audit",
+              "journal"
+            ]
+          },
+          "fields": {
+            "description": "Only these fields / journal elements, e.g. ['state','work_notes'].",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$"
+            }
+          },
+          "since": {
+            "description": "Only entries at or after 'YYYY-MM-DD[ HH:MM:SS]'.",
+            "type": "string",
+            "maxLength": 19
+          },
+          "limit": {
+            "description": "Max entries after merging (default 100).",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000
+          },
+          "value_max_chars": {
+            "description": "Chars per value (default 2000).",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 100000
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table",
+          "sys_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_script",
+      "title": "Get ServiceNow script",
+      "description": "Read one script artefact in full: source code and execution context.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "business_rule",
+              "script_include",
+              "client_script",
+              "ui_policy",
+              "ui_action",
+              "scheduled_job",
+              "transform",
+              "rest_operation",
+              "acl",
+              "script_action",
+              "transform_map",
+              "transform_entry",
+              "fix_script",
+              "email_script",
+              "processor",
+              "data_source",
+              "rest_message_fn",
+              "ui_script",
+              "ui_page",
+              "ui_macro",
+              "validation_script",
+              "sp_widget",
+              "catalog_client_script",
+              "dictionary_script",
+              "uib_client_script",
+              "uib_client_script_include",
+              "uib_data_broker_transform",
+              "uib_data_broker_scriptlet",
+              "sp_ng_template",
+              "sp_angular_provider",
+              "sp_theme",
+              "sp_css",
+              "sp_search_source"
+            ],
+            "description": "Script type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source."
+          },
+          "sys_id": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Script sys_id."
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "type",
+          "sys_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "table": {
+            "type": "string"
+          },
+          "record": {}
+        },
+        "required": [
+          "type",
+          "table"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_status",
+      "title": "Get ServiceNow connection status",
+      "description": "Show instance, auth, missing credentials, per-profile write mode, policy, limits, TLS, queue, write counters, version, uptime. Secrets are never shown.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "activeProfile": {
+            "type": "string"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "instance": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "passwordSet": {
+            "type": "boolean"
+          },
+          "authMode": {
+            "type": "string"
+          },
+          "authWarnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "readOnly": {
+            "type": "boolean"
+          },
+          "allowedTables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "deniedTables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "enabledPackages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "deniedPackages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "readOnlyPackages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pluginApis": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "telemetry": {
+            "type": "object",
+            "properties": {
+              "requests": {
+                "type": "number"
+              },
+              "retries": {
+                "type": "number"
+              },
+              "errors": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "number"
+                }
+              },
+              "totalMs": {
+                "type": "number"
+              },
+              "perHost": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "requests": {
+                      "type": "number"
+                    },
+                    "retries": {
+                      "type": "number"
+                    },
+                    "errors": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {
+                        "type": "number"
+                      }
+                    },
+                    "totalMs": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "requests",
+                    "retries",
+                    "errors",
+                    "totalMs"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "requests",
+              "retries",
+              "errors",
+              "totalMs",
+              "perHost"
+            ],
+            "additionalProperties": false
+          },
+          "http": {
+            "type": "object",
+            "properties": {
+              "userAgent": {
+                "type": "string"
+              },
+              "proxy": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string"
+                      },
+                      "host": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "host"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "tls": {
+                "type": "object",
+                "properties": {
+                  "ca": {
+                    "type": "string"
+                  },
+                  "clientCert": {
+                    "type": "boolean"
+                  },
+                  "verify": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "ca",
+                  "clientCert",
+                  "verify"
+                ],
+                "additionalProperties": false
+              },
+              "queue": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "active": {
+                      "type": "number"
+                    },
+                    "queued": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "active",
+                    "queued"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "userAgent",
+              "proxy",
+              "tls",
+              "queue"
+            ],
+            "additionalProperties": false
+          },
+          "sdkManaged": {
+            "type": "object",
+            "properties": {
+              "authority": {
+                "type": "string"
+              },
+              "declared": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "projectDirs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "scopes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "scope": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "scopeId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "sources": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "scope",
+                    "scopeId",
+                    "sources"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "authority",
+              "declared",
+              "projectDirs",
+              "scopes",
+              "truncated",
+              "warnings"
+            ],
+            "additionalProperties": false
+          },
+          "server": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string"
+              },
+              "uptimeSec": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "version",
+              "uptimeSec"
+            ],
+            "additionalProperties": false
+          },
+          "policy": {
+            "type": "object",
+            "properties": {
+              "writeMode": {
+                "type": "string"
+              },
+              "summary": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "writeMode",
+              "summary"
+            ],
+            "additionalProperties": false
+          },
+          "writes": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {}
+          },
+          "profileDetails": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "configured",
+          "activeProfile",
+          "profiles",
+          "instance",
+          "user",
+          "passwordSet",
+          "authMode",
+          "authWarnings",
+          "readOnly",
+          "allowedTables",
+          "deniedTables",
+          "enabledPackages",
+          "deniedPackages",
+          "readOnlyPackages",
+          "pluginApis",
+          "telemetry",
+          "http",
+          "sdkManaged",
+          "server",
+          "policy",
+          "writes",
+          "profileDetails"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_get_update_set",
+      "title": "Get update set",
+      "description": "Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target, action, table — with counts. include_payload adds the parsed field values, capped, secret-looking fields masked.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "update_set": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Update set sys_id or exact name (a shared name resolves to the one in progress)."
+          },
+          "type": {
+            "description": "Only this type label, e.g. 'Business Rule'.",
+            "type": "string",
+            "maxLength": 100
+          },
+          "limit": {
+            "description": "Max updates (default 200, max 1000).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "include_payload": {
+            "description": "Add parsed payload fields.",
+            "type": "boolean"
+          },
+          "payload_max_chars": {
+            "description": "Chars per payload field (default 500).",
+            "type": "integer",
+            "minimum": 20,
+            "maximum": 20000
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "update_set"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "update_set": {
+            "type": "object",
+            "properties": {
+              "sys_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "application": {
+                "type": "string"
+              },
+              "application_name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "sys_id",
+              "name",
+              "state",
+              "application"
+            ],
+            "additionalProperties": {}
+          },
+          "count": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "by_type": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "by_action": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sys_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "target_name": {
+                  "type": "string"
+                },
+                "action": {
+                  "type": "string"
+                },
+                "table": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sys_id",
+                "name",
+                "type",
+                "target_name",
+                "action",
+                "table"
+              ],
+              "additionalProperties": {}
+            }
+          }
+        },
+        "required": [
+          "update_set",
+          "count",
+          "truncated",
+          "by_type",
+          "by_action",
+          "updates"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_lint_script",
+      "title": "Lint a script",
+      "description": "Run deterministic code-quality rules on one script (hard-coded sys_ids, unbounded or in-loop GlideRecord, eval, …): findings with rule, severity, line, fix hint.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "business_rule",
+              "script_include",
+              "client_script",
+              "ui_policy",
+              "ui_action",
+              "scheduled_job",
+              "transform",
+              "rest_operation",
+              "acl",
+              "script_action",
+              "transform_map",
+              "transform_entry",
+              "fix_script",
+              "email_script",
+              "processor",
+              "data_source",
+              "rest_message_fn",
+              "ui_script",
+              "ui_page",
+              "ui_macro",
+              "validation_script",
+              "sp_widget",
+              "catalog_client_script",
+              "dictionary_script",
+              "uib_client_script",
+              "uib_client_script_include",
+              "uib_data_broker_transform",
+              "uib_data_broker_scriptlet",
+              "sp_ng_template",
+              "sp_angular_provider",
+              "sp_theme",
+              "sp_css",
+              "sp_search_source"
+            ],
+            "description": "Script type (default and opt-in types)."
+          },
+          "sys_id": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Script sys_id."
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "type",
+          "sys_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "sys_id": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "type",
+          "sys_id",
+          "results"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_list_instances",
+      "title": "List connection profiles",
+      "description": "List the connection profiles: name, host, user, auth method (and OAuth grant), refresh-token state, read-only flag, write mode, credentials complete. Secrets are never included.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "profiles": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "count",
+          "profiles"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_list_update_sets",
+      "title": "List update sets",
+      "description": "List update sets, newest first, with state, scope and whether each is the user's current one. Filter by state, name or application.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "description": "Only sets in this state.",
+            "type": "string",
+            "enum": [
+              "in progress",
+              "complete",
+              "ignore"
+            ]
+          },
+          "name": {
+            "description": "Name fragment (contains).",
+            "type": "string",
+            "maxLength": 255
+          },
+          "application": {
+            "description": "Scope namespace (e.g. 'x_acme_app') or sys_id.",
+            "type": "string",
+            "maxLength": 100
+          },
+          "query": {
+            "description": "Extra encoded query ANDed with the filters.",
+            "type": "string",
+            "maxLength": 8000
+          },
+          "limit": {
+            "description": "Max update sets (default 50, max 500).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "offset": {
+            "description": "Rows to skip (paging).",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "current_update_set": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "update_sets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "sys_id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "application": {
+                  "type": "string"
+                },
+                "application_name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sys_id",
+                "name",
+                "state",
+                "application"
+              ],
+              "additionalProperties": {}
+            }
+          }
+        },
+        "required": [
+          "count",
+          "truncated",
+          "current_update_set",
+          "update_sets"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_list_writes",
+      "title": "List journaled writes",
+      "description": "List the local write journal (newest first): every write this server made, with entry id, outcome and whether servicenow_revert_write can invert it. Filter by profile, table, since, result or action.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "description": "Profile whose journal to read (default: active).",
+            "type": "string",
+            "maxLength": 128
+          },
+          "table": {
+            "description": "Only writes to this table.",
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$"
+          },
+          "since": {
+            "description": "Only writes at or after this ISO 8601 time.",
+            "type": "string",
+            "maxLength": 64
+          },
+          "result": {
+            "description": "Only writes with this outcome.",
+            "type": "string",
+            "enum": [
+              "applied",
+              "failed",
+              "refused"
+            ]
+          },
+          "action": {
+            "description": "Only writes of this kind.",
+            "type": "string",
+            "enum": [
+              "create",
+              "update",
+              "delete",
+              "execute",
+              "local_write",
+              "config"
+            ]
+          },
+          "limit": {
+            "description": "Max entries (default 50, max 500).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "verbose": {
+            "description": "Full journal lines (fields, before) instead of summaries.",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_query_table",
+      "title": "Query ServiceNow table",
+      "description": "Read records from any table (Table API): encoded query, fields, paging, fetchAll. '^' cannot be escaped inside a value; very long queries can hit HTTP 414 — split them. See the servicenow://reference/encoded-query resource.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table, e.g. 'incident'."
+          },
+          "query": {
+            "description": "Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'.",
+            "type": "string",
+            "maxLength": 8000
+          },
+          "fields": {
+            "description": "Columns (default all).",
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$"
+            }
+          },
+          "limit": {
+            "description": "Max records (default 10).",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000
+          },
+          "offset": {
+            "description": "Records to skip (paging).",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "displayValue": {
+            "description": "Return display values ('true'), raw values ('false', default) or both ('all').",
+            "type": "string",
+            "enum": [
+              "true",
+              "false",
+              "all"
+            ]
+          },
+          "fetchAll": {
+            "description": "Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset.",
+            "type": "boolean"
+          },
+          "view": {
+            "description": "UI view's fields (sysparm_view); 'fields' wins.",
+            "type": "string",
+            "maxLength": 255
+          },
+          "queryCategory": {
+            "description": "sysparm_query_category, e.g. a read replica.",
+            "type": "string",
+            "maxLength": 255
+          },
+          "noCount": {
+            "description": "Skip the row count (sysparm_no_count): faster on huge tables; 'total' unknown.",
+            "type": "boolean"
+          },
+          "queryNoDomain": {
+            "description": "Query all accessible domains (sysparm_query_no_domain).",
+            "type": "boolean"
+          },
+          "suppressPaginationHeader": {
+            "description": "sysparm_suppress_pagination_header.",
+            "type": "boolean"
+          },
+          "format": {
+            "description": "'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS.",
+            "type": "string",
+            "enum": [
+              "json",
+              "csv",
+              "file"
+            ]
+          },
+          "fileFormat": {
+            "description": "With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys).",
+            "type": "string",
+            "enum": [
+              "csv",
+              "jsonl"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "truncated": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string"
+          },
+          "records": {
+            "type": "array",
+            "items": {}
+          },
+          "format": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "number"
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_read_doc",
+      "title": "Read instance doc",
+      "description": "Read one local Markdown doc or its .json companion; the result carries its mimeType.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "maxLength": 1024,
+            "description": "Path relative to the docs (or 'profile') folder, e.g. 'tables/incident.md'."
+          },
+          "profile": {
+            "description": "Profile folder: 'current' or a name; omit for all.",
+            "type": "string",
+            "maxLength": 128
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_read_ops",
+      "title": "Read instance operations data",
+      "description": "Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC queue). Unreadable section: available:false + why.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "overview",
+              "syslog",
+              "jobs",
+              "email_queue",
+              "semaphores",
+              "integrations",
+              "transactions",
+              "mid"
+            ],
+            "description": "View to read."
+          },
+          "minutes": {
+            "description": "Time window in minutes (default 60, max 1440).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "level": {
+            "description": "syslog: minimum severity (default 'warning').",
+            "type": "string",
+            "enum": [
+              "error",
+              "warning",
+              "info",
+              "debug"
+            ]
+          },
+          "source": {
+            "description": "syslog: source fragment (contains).",
+            "type": "string",
+            "maxLength": 100
+          },
+          "filter": {
+            "description": "jobs: 'overdue' (default; ready, past next action), 'running' or 'queued'.",
+            "type": "string",
+            "enum": [
+              "overdue",
+              "running",
+              "queued"
+            ]
+          },
+          "overdue_minutes": {
+            "description": "jobs: minutes past next_action before a ready job counts as overdue (default 5, max 1440).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440
+          },
+          "limit": {
+            "description": "Maximum rows to return (default 25, max 200).",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_revert_write",
+      "title": "Revert a journaled write",
+      "description": "Undo one applied write from the local journal: an update restores its before values, a create is deleted, a delete is re-created. Refused if the record changed since (unless force:true) or the line is not invertible (NOT_REVERTIBLE). Journaled.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "entry_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Journal entry id (ULID) from servicenow_list_writes."
+          },
+          "force": {
+            "description": "Revert even if the record changed since (or that cannot be verified), overwriting the later changes.",
+            "type": "boolean"
+          },
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          },
+          "plan_token": {
+            "description": "Plan preview token (apply:true)",
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "entry_id"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_search_code",
+      "title": "Search ServiceNow code",
+      "description": "Search script source for a literal substring across one or all script types. One entry per artefact: a snippet plus matching lines with one line of context (max 20; hitCount is the total), not whole scripts. Answers 'where is X used?'.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Substring to search for."
+          },
+          "type": {
+            "description": "One type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "type": "string",
+            "enum": [
+              "business_rule",
+              "script_include",
+              "client_script",
+              "ui_policy",
+              "ui_action",
+              "scheduled_job",
+              "transform",
+              "rest_operation",
+              "acl",
+              "script_action",
+              "transform_map",
+              "transform_entry",
+              "fix_script",
+              "email_script",
+              "processor",
+              "data_source",
+              "rest_message_fn",
+              "ui_script",
+              "ui_page",
+              "ui_macro",
+              "validation_script",
+              "sp_widget",
+              "catalog_client_script",
+              "dictionary_script",
+              "uib_client_script",
+              "uib_client_script_include",
+              "uib_data_broker_transform",
+              "uib_data_broker_scriptlet",
+              "sp_ng_template",
+              "sp_angular_provider",
+              "sp_theme",
+              "sp_css",
+              "sp_search_source"
+            ]
+          },
+          "table": {
+            "description": "Only scripts applied to this table.",
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$"
+          },
+          "scope": {
+            "description": "One scope: namespace (e.g. 'x_acme_app') or sys_id.",
+            "type": "string",
+            "maxLength": 255
+          },
+          "limit": {
+            "description": "Max matches over all types (default 50).",
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "extended": {
+            "description": "Without 'type': also search the opt-in types after the default ones (default false).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "matches": {
+            "type": "array",
+            "items": {}
+          },
+          "unreadable": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "count",
+          "matches"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_search_docs",
+      "title": "Search instance docs",
+      "description": "Search the local docs for a substring: a snippet and nearest heading per match (max SN_DOCS_SEARCH_MAX, then 'truncated').",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Substring to search for."
+          },
+          "profile": {
+            "description": "Profile folder: 'current' or a name; omit for all.",
+            "type": "string",
+            "maxLength": 128
+          },
+          "kind": {
+            "description": "Only generated documents of this kind, e.g. 'tables'.",
+            "type": "string",
+            "maxLength": 64
+          },
+          "generated": {
+            "description": "true: only generated; false: only hand-written.",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_set_credentials",
+      "title": "Set ServiceNow credentials",
+      "description": "Save connection credentials to the env file for later requests (any subset; auth / oauth_client_id / oauth_grant pick the method). Secrets are never arguments: list them in request_secrets for elicitation. See 'instance' for host changes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "instance": {
+            "description": "Instance host, e.g. 'dev12345'. A change needs the new host's auth in the same call (Basic: user + password, else CREDENTIALS_INCOMPLETE) and elicitation confirmation unless SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1.",
+            "type": "string",
+            "maxLength": 255
+          },
+          "user": {
+            "description": "ServiceNow username.",
+            "type": "string",
+            "maxLength": 255
+          },
+          "password": {
+            "description": "ServiceNow password.",
+            "type": "string",
+            "maxLength": 1024
+          },
+          "auth": {
+            "description": "Stored as SN_AUTH (default: inferred).",
+            "type": "string",
+            "enum": [
+              "basic",
+              "oauth",
+              "apikey",
+              "token",
+              "none"
+            ]
+          },
+          "oauth_client_id": {
+            "description": "OAuth client id (not a secret).",
+            "type": "string",
+            "maxLength": 1024
+          },
+          "oauth_grant": {
+            "description": "Stored as SN_OAUTH_GRANT.",
+            "type": "string",
+            "enum": [
+              "password",
+              "client_credentials",
+              "refresh_token",
+              "jwt_bearer"
+            ]
+          },
+          "request_secrets": {
+            "description": "Secrets to enter through elicitation (never as arguments).",
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "api_key",
+                "oauth_client_secret"
+              ]
+            }
+          },
+          "profile": {
+            "description": "Profile (default active); a new name creates one.",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_snapshot_instance",
+      "title": "Snapshot instance metadata",
+      "description": "Download structural metadata to SN_DOCS_DIR/<profile>/ as Markdown + JSON: tables, schemas, plugins, apps, script stats, properties (secrets redacted), choices, ACLs, flows, catalog, roles. resume:true resumes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tables": {
+            "description": "Tables to write as schema/<table>.md.",
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "pattern": "^[A-Za-z0-9_]{1,80}$"
+            }
+          },
+          "sections": {
+            "description": "Sections to collect (default all).",
+            "minItems": 1,
+            "maxItems": 11,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "tables",
+                "plugins",
+                "apps",
+                "automation",
+                "properties",
+                "choices",
+                "acls",
+                "notifications",
+                "flows",
+                "catalog",
+                "roles"
+              ]
+            }
+          },
+          "resume": {
+            "description": "Skip sections whose files carry the recorded source hash.",
+            "type": "boolean"
+          },
+          "types": {
+            "description": "Registry types (with children) or ['all']; default none.",
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 80
+            }
+          },
+          "scope": {
+            "description": "Scope for types.",
+            "type": "string",
+            "maxLength": 128
+          },
+          "format": {
+            "description": "'json' (default) or 'file': write the full (redacted) JSON to <profile>/exports/, return { path, bytes, preview } + summary.",
+            "type": "string",
+            "enum": [
+              "json",
+              "file"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_test_connection",
+      "title": "Test ServiceNow connection",
+      "description": "Verify the credentials work: reads one sys_user record, reports ok/status/latency. Auth and connectivity problems come back as ok:false, not errors.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "latencyMs": {
+            "type": "number"
+          },
+          "user": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "status",
+          "latencyMs"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_trace_table_event",
+      "title": "Trace a table event",
+      "description": "Trace what would run for a table operation, in order, without executing: business rules by phase (inherited and global too), flows, workflows, notifications, with conditions and a Mermaid flowchart. 'lanes' adds more.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table to trace, e.g. 'incident'."
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "insert",
+              "update",
+              "delete",
+              "query"
+            ],
+            "description": "Operation to simulate."
+          },
+          "lanes": {
+            "description": "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script.",
+            "maxItems": 6,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "transform_map",
+                "scheduled_job",
+                "client",
+                "data_policy",
+                "sla",
+                "event_script"
+              ]
+            }
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table",
+          "operation"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string"
+          },
+          "tables": {
+            "type": "array",
+            "items": {}
+          },
+          "chain": {
+            "type": "array",
+            "items": {}
+          },
+          "mermaid": {
+            "type": "string"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "table",
+          "tables",
+          "chain",
+          "mermaid",
+          "warnings"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_update_record",
+      "title": "Update ServiceNow record",
+      "description": "Update fields on an existing record identified by its sys_id.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table, e.g. 'incident'."
+          },
+          "sys_id": {
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "description": "Record sys_id."
+          },
+          "values": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "description": "Field name/value pairs to change."
+          },
+          "inputDisplayValue": {
+            "description": "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
+            "type": "boolean"
+          },
+          "update_set": {
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "expected_mod_count": {
+            "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table",
+          "sys_id",
+          "values"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_upsert_record",
+      "title": "Upsert ServiceNow record",
+      "description": "Create or update one record matched by an exact key of field/value pairs: no match creates, one updates, several are refused (AMBIGUOUS_KEY). Pass the plan's expected_action / expected_sys_id with apply:true; a changed decision gives STALE_RECORD.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "maxLength": 80,
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table name, e.g. 'cmdb_ci_server'."
+          },
+          "key": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "description": "Field/value pairs identifying the record, matched on raw values ('' matches an empty field); no '^' in values."
+          },
+          "values": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "null"
+              ]
+            },
+            "description": "Fields to write (plus the key fields on create)."
+          },
+          "expected_action": {
+            "description": "The plan's action; with apply, refused (STALE_RECORD) if the key now resolves differently.",
+            "type": "string",
+            "enum": [
+              "create",
+              "update"
+            ]
+          },
+          "expected_sys_id": {
+            "description": "The plan's sys_id; with apply, refused (STALE_RECORD) if the key now matches another record or none.",
+            "type": "string",
+            "maxLength": 32,
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "inputDisplayValue": {
+            "description": "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
+            "type": "boolean"
+          },
+          "update_set": {
+            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "table",
+          "key",
+          "values"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_use_instance",
+      "title": "Switch connection profile",
+      "description": "Switch the connection profile (over HTTP: this session only unless persist).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 128,
+            "description": "Profile to activate, e.g. 'dev'."
+          },
+          "persist": {
+            "description": "Write the env file (journaled). Default: stdio yes, HTTP no.",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "servicenow_where_used",
+      "title": "Where used",
+      "description": "Find references to a table, field (table.field) or script: matching script lines, rules/ACLs on a table, structural config (reference fields, layouts, variables, flow inputs, reports). Optional scope and Mermaid graph.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "table",
+              "field",
+              "script"
+            ],
+            "description": "A table, a field, or a script/script-include name."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name to find usages of (table, table.field or script)."
+          },
+          "mermaid": {
+            "description": "Also render a Mermaid reference graph.",
+            "type": "boolean"
+          },
+          "scope": {
+            "description": "One scope: namespace (e.g. 'x_acme_app') or sys_id.",
+            "type": "string",
+            "maxLength": 255
+          },
+          "structural": {
+            "description": "Also search configuration structurally (default true).",
+            "type": "boolean"
+          },
+          "extended": {
+            "description": "Also search the opt-in UIB / portal script types.",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "references": {
+            "type": "array",
+            "items": {}
+          },
+          "caveats": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "count",
+          "references",
+          "caveats"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ]
+}

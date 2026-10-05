@@ -1,0 +1,78 @@
+name: Skill evals
+
+# N-49: runs the `claude plugin eval` suite under evals/ — one trigger and one
+# negative case per plugin skill — against the recorded MCP mocks in
+# evals/mocks/servicenow/ (no ServiceNow instance is contacted). It calls a
+# model and costs money, so it is manual only and never part of
+# `npm run check`. Needs the ANTHROPIC_API_KEY repository secret.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model for the agent under test
+        default: claude-sonnet-5
+      judge_model:
+        description: Judge model (llm graders and agent mocks)
+        default: claude-haiku-4-5
+      threshold:
+        description: Minimum per-case score for a green run
+        default: "0.8"
+      max_cost_usd:
+        description: Spend ceiling for the whole run
+        default: "10"
+      claude_code_version:
+        description: "@anthropic-ai/claude-code version (plugin eval needs >= 2.1.283)"
+        default: latest
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skill-evals
+  cancel-in-progress: false
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Install Claude Code
+        env:
+          VERSION: ${{ inputs.claude_code_version }}
+        run: npm install -g "@anthropic-ai/claude-code@$VERSION"
+      - name: Run the skill evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODEL: ${{ inputs.model }}
+          JUDGE_MODEL: ${{ inputs.judge_model }}
+          THRESHOLD: ${{ inputs.threshold }}
+          MAX_COST_USD: ${{ inputs.max_cost_usd }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "The ANTHROPIC_API_KEY secret is not set; nothing to run." >&2
+            exit 1
+          fi
+          claude plugin eval . \
+            --trust-plugin \
+            --no-publish \
+            --json skill-evals.json \
+            --threshold "$THRESHOLD" \
+            --model "$MODEL" \
+            --judge-model "$JUDGE_MODEL" \
+            --max-cost-usd "$MAX_COST_USD"
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f skill-evals.json ]; then
+            {
+              echo "## Skill evals"
+              echo
+              echo '```json'
+              cat skill-evals.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

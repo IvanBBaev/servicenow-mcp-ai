@@ -11,9 +11,17 @@ import {
   runWithCall,
   type CallContext,
 } from "../core/request-context.js";
+import {
+  nextCallId,
+  publishToolCallEvent,
+  resultBytes,
+  resultErrorCode,
+  traceContextFromMeta,
+} from "../core/tracing.js";
 import { createProgressSink, type ProgressNotification } from "./progress.js";
 import { fail, type ToolResult } from "./result.js";
 import { planArgsHash } from "./plan-token.js";
+import { createSecretRegistry } from "../core/secret-columns.js";
 import { confirmDestructiveApply } from "./confirm.js";
 import type { JournalInput } from "../core/write-journal.js";
 import { EMAIL_ADDRESS_RE } from "../api/shared.js";
@@ -133,7 +141,15 @@ export interface CallExtra {
   requestId?: string | number;
   /** Aborted when the client sends notifications/cancelled for the call. */
   signal?: AbortSignal;
-  _meta?: { progressToken?: string | number };
+  /**
+   * The request's `params._meta`: the progress token (M-3) and the W3C Trace
+   * Context the client propagates (N-55).
+   */
+  _meta?: {
+    progressToken?: string | number;
+    traceparent?: unknown;
+    tracestate?: unknown;
+  };
   sendNotification?: (notification: ProgressNotification) => Promise<void>;
 }
 
@@ -161,6 +177,7 @@ export async function runSpec(
     token !== undefined && extra.sendNotification
       ? createProgressSink(token, extra.sendNotification)
       : undefined;
+  const trace = traceContextFromMeta(extra._meta);
   const call: CallContext = {
     requestId:
       extra.requestId === undefined
@@ -168,18 +185,78 @@ export async function runSpec(
         : String(extra.requestId),
     ...(extra.sessionId ? { sessionId: extra.sessionId } : {}),
     tool: spec.name,
+    secrets: createSecretRegistry(),
     ...(extra.signal ? { signal: extra.signal } : {}),
     ...(progress ? { progress: progress.sink } : {}),
+    callId: nextCallId(),
+    ...(trace ? { trace } : {}),
   };
+  // N-55: the diagnostics_channel envelope of the call (tracing.ts) — built
+  // lazily, so an unobserved call pays only the hasSubscribers checks.
+  const started = Date.now();
+  publishToolCallEvent("start", () => toolCallMessage(spec, call));
+  let result: ToolResult;
   try {
-    return await runWithCall(call, () =>
+    result = await runWithCall(call, () =>
       runWithClient(extra.sessionId, () =>
         runWithTool(spec.name, () => runSpecInner(spec, args, call)),
       ),
     );
+  } catch (error) {
+    // runSpecInner maps every failure to a result; this is the safety net.
+    publishToolCallEvent("error", () => ({
+      ...toolCallMessage(spec, call),
+      outcome: call.signal?.aborted ? "cancelled" : "error",
+      ms: Date.now() - started,
+      errorName: error instanceof Error ? error.name : typeof error,
+    }));
+    throw error;
   } finally {
     progress?.flush();
   }
+  const outcome = result.isError
+    ? call.signal?.aborted
+      ? "cancelled"
+      : "error"
+    : "ok";
+  publishToolCallEvent(result.isError ? "error" : "end", () => {
+    const code = result.isError ? resultErrorCode(result) : undefined;
+    return {
+      ...toolCallMessage(spec, call),
+      outcome,
+      ms: Date.now() - started,
+      ...(code ? { code } : {}),
+      resultBytes: resultBytes(result),
+    };
+  });
+  return result;
+}
+
+/**
+ * N-55: the metadata every tool-call event carries — never the arguments,
+ * the result or a credential. `profile` is the alias the call resolved to
+ * (absent on `start`, which runs before the `instance` argument is read).
+ */
+function toolCallMessage(
+  spec: AnyToolSpec,
+  call: CallContext,
+): Record<string, unknown> {
+  return {
+    id: call.callId,
+    tool: spec.name,
+    package: spec.package,
+    requestId: call.requestId,
+    ...(call.sessionId ? { sessionId: call.sessionId } : {}),
+    ...(call.profile ? { profile: call.profile } : {}),
+    ...(call.trace
+      ? {
+          traceparent: call.trace.traceparent,
+          ...(call.trace.tracestate
+            ? { tracestate: call.trace.tracestate }
+            : {}),
+        }
+      : {}),
+  };
 }
 
 async function runSpecInner(

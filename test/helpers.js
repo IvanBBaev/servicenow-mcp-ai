@@ -76,10 +76,28 @@ export async function withEnv(overrides, fn) {
   }
 }
 
+/**
+ * N-21: the secret-column index read (one sys_dictionary query per profile,
+ * see api/secret-columns.ts) that every Table API read may trigger. The fetch
+ * doubles answer it themselves — an empty index, i.e. "unresolved", so the
+ * OOTB secret names apply — and leave it out of `calls`, so request-shape
+ * tests keep their counts. Pass `{ maskingLookup: true }` to see and answer it.
+ */
+export function isMaskingLookup(url) {
+  const u = new URL(String(url));
+  return (
+    /\/api\/now\/table\/sys_dictionary$/.test(u.pathname) &&
+    (u.searchParams.get("sysparm_query") ?? "").startsWith("internal_typeIN")
+  );
+}
+
+const emptyIndex = () => jsonResponse(200, { result: [] });
+
 /** Run `fn` with `globalThis.fetch` replaced by `handler`, then restore it. */
-export async function withFetch(handler, fn) {
+export async function withFetch(handler, fn, { maskingLookup = false } = {}) {
   const calls = [];
   globalThis.fetch = async (url, init) => {
+    if (!maskingLookup && isMaskingLookup(url)) return emptyIndex();
     calls.push({ url: String(url), init });
     return handler(String(url), init, calls.length);
   };
@@ -333,7 +351,7 @@ async function specResponse(spec, signal) {
  * mock timers). A request no route matches gets a 501 and is listed in
  * `unmatched`, so a missing route fails loudly instead of hanging.
  */
-export function createFetchDouble({ fallback } = {}) {
+export function createFetchDouble({ fallback, maskingLookup = false } = {}) {
   const routes = [];
   const calls = [];
   const unmatched = [];
@@ -346,6 +364,7 @@ export function createFetchDouble({ fallback } = {}) {
 
   const fetchImpl = async (input, init = {}) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (!maskingLookup && isMaskingLookup(url)) return emptyIndex();
     const parsed = new URL(url);
     const method = String(init.method ?? "GET").toUpperCase();
     const call = {

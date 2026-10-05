@@ -9,21 +9,17 @@ safety.
 
 ## Architecture (layered — boundaries are ESLint-enforced)
 
-- `src/core/` — instance-agnostic plumbing: `config.ts` (env-file ConfigStore),
-  `settings.ts` (every `SN_*` knob), `policy.ts` (two-axis table/package
-  policy), `http.ts` + `http-util.ts` (retry matrix, per-host semaphore,
-  telemetry), `auth.ts`/`oauth-login.ts`/`jwt.ts`/`mtls.ts` (all auth methods),
-  `host.ts` (SSRF guard + host allow-list), `write-journal.ts`, `errors.ts`.
-- `src/api/` — one module per ServiceNow REST area (table, aggregate, cmdb,
-  catalog, change, flows, codecheck, atf…), all over mock-testable `fetch`.
-- `src/mcp/` — server wiring: `registry.ts` (declarative tool manifest — a
-  package is a plug-in), `define.ts`, result shaping, `redact.ts` (DF-5),
-  prompts and resources.
-- `src/tools/` — the per-package tool definitions consumed by the registry.
-- `src/core/jira/` + `src/api/jira/` — Jira Cloud client scaffolding; **no
-  Jira tools are exposed yet** (pending the ARCH-14 decision in project/TODO.md).
-- `bin/` — entry points; `src/index.ts` is the server entry (stdio by default,
-  Streamable HTTP with `SN_TRANSPORT=http`).
+`src/core/` (plumbing) ← `src/api/` (one module per REST area) ← `src/mcp/`
+(server wiring, registry) ← `src/tools/` (tool definitions as data). `bin/`
+holds the CommonJS launcher; `src/index.ts` is the server entry (stdio by
+default, Streamable HTTP with `SN_TRANSPORT=http`). `src/core/jira/` +
+`src/api/jira/` are Jira Cloud scaffolding — **no Jira tools are exposed**
+(ARCH-14).
+
+The rules for each area are path-scoped in `.github/instructions/`
+(`<area>.instructions.md`, applied by `applyTo` glob). They are generated from
+`.github/agent-instructions/<area>.md` — edit the source, then run
+`npm run docs:instructions`.
 
 ## Credentials & policy
 
@@ -41,10 +37,11 @@ safety.
   JSON logs go to stderr via `core/logging.ts`.
 - ES modules with `.js` import specifiers (Node16 module resolution);
   TypeScript strict + `noUncheckedIndexedAccess`.
-- Tool input schemas are `zod` raw shapes; handlers must not throw — catch and
-  return `{ isError: true }` results.
-- Every `SN_*` variable read in `src/` must be documented in the README env
-  reference **and** `.env.example` (a sync test fails the build otherwise).
+- Tool input schemas are `zod` raw shapes; a handler may throw — `runSpec`
+  turns the error into an `isError` result with the flat error contract.
+- Every `SN_*` variable is declared in `src/core/settings-manifest.ts`;
+  `npm run docs:env` regenerates the README env reference, `.env.example` and
+  `server.json` from it (a sync test fails the build otherwise).
 - The README tools table is generated: `npm run docs:readme`.
 
 ## Build & run

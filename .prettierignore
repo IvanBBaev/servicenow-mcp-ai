@@ -9,6 +9,12 @@ docs/assets/
 coverage/
 # Writer goldens (E-7): byte-for-byte generator output, never reformatted
 test/fixtures/docs/writers/
+# MCP Apps view snapshots (N-50): rendered HTML, byte-for-byte
+test/fixtures/apps/
+# Skill-eval mocks (N-49): recorded tool answers, rewritten by
+# `npm run eval:mocks` and compared byte-for-byte by its --check
+evals/mocks/
+evals/results/
 
 # Local-only AI-harness files (git-excluded; not part of the shared gate)
 CLAUDE.md

@@ -45,23 +45,37 @@
     "docs:readme": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/readme-tools.mjs",
     "docs:env": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/env-docs.mjs",
     "docs:sync": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/docs-sync.mjs",
+    "docs:instructions": "node scripts/agent-instructions.mjs",
     "test:full": "npm run build && node --test test/*.test.js",
     "sdk:drift": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/sdk-drift.mjs",
+    "scan:surface": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/scan-surface.mjs",
     "gen:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/gen-manifest.mjs",
     "verify": "npm run build && npm run lint && npm run format:check && node --test test/*.test.js",
     "pack:check": "node scripts/pack-check.mjs",
-    "check": "npm run build && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run fluent:actions -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
+    "mcpb:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/mcpb-manifest.mjs",
+    "mcpb:pack": "npm run build && node scripts/mcpb-pack.mjs",
+    "check": "npm run build && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run docs:instructions -- --check && npm run scan:surface && npm run mcpb:manifest -- --check && npm run fluent:actions -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
     "release:dry": "npm run check && npm publish --dry-run",
     "version:sync": "node scripts/sync-version.mjs",
-    "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json docs/index.html",
+    "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json mcpb/manifest.json docs/index.html",
     "prepublishOnly": "npm run check",
     "fluent:verify": "node scripts/fluent-verify.mjs",
-    "fluent:actions": "node scripts/gen-fluent-actions.mjs"
+    "fluent:actions": "node scripts/gen-fluent-actions.mjs",
+    "eval:skills": "claude plugin eval . --trust-plugin --no-publish",
+    "eval:mocks": "npm run build && node test/evals/record-mocks.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",
     "acorn": "^8.18.0",
     "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

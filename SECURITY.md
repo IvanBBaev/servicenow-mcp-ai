@@ -123,6 +123,10 @@ open items — is in
   ([README → Undo a write](README.md#undo-a-write-journal-based-revert)).
 - **Redaction** — `SN_REDACT_FIELDS` / `SN_REDACT_PII` apply to every tool
   result and to the journal (see the hardened defaults below).
+- **Secret columns are always masked** — a column whose dictionary type is
+  `password`, `password2` or `glide_encrypted` is masked as `[redacted]` in
+  every tool result and in the journal, whatever `SN_REDACT_FIELDS` says; it
+  cannot be turned off (N-21, see the hardened defaults below).
 - **Host guard** — only `*.service-now.com` without `SN_ALLOWED_HOSTS`; an SSRF
   guard for internal and loopback addresses; no redirects; capped bodies
   ([README → Security notes](README.md#security-notes)).
@@ -219,7 +223,10 @@ conservative defaults win, and both are now enforced in code (with tests):
   (`SN_IMPORT_SET_TABLES=*` opts out); and the write caps are on — 100 deletes
   per session, 50 write sub-requests per batch, 500 writes per HTTP session
   (`0` lifts a cap). The Claude Code plugin also ships a `PreToolUse` hook
-  that refuses a token-less destructive apply at the client.
+  that refuses a token-less destructive apply at the client. Its
+  `SessionStart` hook reads only an allowlist of non-secret keys from the
+  local env file (no network call) and never prints a user name, password or
+  token; its two subagents are limited to read-only tools.
 - **Host must be `*.service-now.com`** unless `SN_ALLOWED_HOSTS` is set
   (`host.ts`). Set `SN_ALLOWED_HOSTS` to opt in a custom or sovereign-cloud
   domain; the SSRF guard and X-2 elicitation confirmation still apply on top.
@@ -266,6 +273,22 @@ conservative defaults win, and both are now enforced in code (with tests):
   `sysparm_display_value=all` or reference links, PII is masked in every
   string of a `{ value, display_value, link }` field object, not only in
   plain string fields.
+- **Type-based secret masking** (`api/secret-columns.ts`,
+  `core/secret-columns.ts`, N-21): every Table API read and write (direct or
+  in a batch) resolves which of its columns are secret from a cached
+  `sys_dictionary` index (`internal_type` `password`, `password2`,
+  `glide_encrypted`) and the table's inheritance chain. Those columns are
+  masked as `[redacted]` at the result boundary and in the write journal,
+  dot-walked keys and `{ value, display_value }` pairs included, and their
+  values are masked wherever a tool re-embeds them in the same call (a diff,
+  a document, an export). Password-type system properties are masked the same
+  way. When the dictionary cannot be read (ACL, policy, error) the read is
+  never blocked: a list of OOTB secret column names (`password`,
+  `user_password`, `client_secret`, …) applies, as it always does as a floor.
+  No setting turns this off. Limits: other REST surfaces (CMDB, import set,
+  plugin APIs) are masked by those names only; values shorter than four
+  characters are masked by their key only; catalog `masked` variables are not
+  dictionary columns and are out of scope.
 
 ## Supply chain
 
@@ -292,6 +315,28 @@ conservative defaults win, and both are now enforced in code (with tests):
 - `npm run pack:check` (part of the gate and of CI) fails when the tarball would
   contain anything outside `build/`, `bin/`, `README.md`, `LICENSE` and
   `package.json` — source maps, tests and the dark Jira client never ship.
+
+## OWASP MCP Top 10 mapping
+
+How each risk in the
+[OWASP MCP Top 10 (2025)](https://owasp.org/www-project-mcp-top-10/) is met by
+controls in this repository, the tests that pin them, and what is still open.
+"Out of scope" marks a risk that belongs to the MCP client or the host
+environment rather than to this server. `test/scan-surface.test.js` checks that
+the table names all ten risks and that every file cited here exists.
+
+| Risk                                                       | Controls in this repository                                                                                                                                                                                                                                                                                                                                                                                                                    | Tests                                                                                                                                                | Gaps / out of scope                                                                                                                                                                                         |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP01 Token Mismanagement & Secret Exposure                | Secrets come from the env file or `*_FILE` secret files (`src/core/secret-files.ts`, `src/core/config.ts`), never from tool arguments except the confirmed admin credentials tool; field and PII redaction on every result and in the journal (`src/core/redaction.ts`, `src/mcp/redact.ts`); credentials are bound to their instance host (`src/core/host.ts`).                                                                               | `test/secret-files.test.js`, `test/redact.test.js`, `test/support-bundle.test.js`, `test/admin-credentials.test.js`                                  | Secrets at rest in the env file are protected only by file permissions; no OS keychain integration.                                                                                                         |
+| MCP02 Privilege Escalation via Scope Creep                 | Two-axis policy — tables and packages, read-only modes (`src/core/policy.ts`, `src/mcp/packages.ts`); plan mode by default and a single-use `plan_token` for destructive applies (`src/mcp/write-mode.ts`, `src/mcp/plan-token.ts`).                                                                                                                                                                                                           | `test/policy.test.js`, `test/dynamic-packages.test.js`, `test/write-mode.test.js`, `test/plan-token.test.js`                                         | The server acts with the configured ServiceNow user's rights; least privilege on the instance (roles, ACLs) is the operator's job.                                                                          |
+| MCP03 Tool Poisoning                                       | `npm run scan:surface` (`scripts/scan-surface.mjs`, N-56) scans every tool, parameter, prompt and resource text plus `skills/`, `agents/`, `hooks/` and `.claude-plugin/` for invisible Unicode, hidden instructions, cross-tool directives and unlisted URLs, and checks descriptions against the pinned `description_sha256`; the manifest snapshot pins the whole surface.                                                                  | `test/scan-surface.test.js`, `test/manifest-snapshot.test.js`, `test/plugin-skills.test.js`, `test/plugin-hook.test.js`                              | No third-party scanner (for example mcp-scan) runs in CI yet; the rules are pattern based and cannot judge intent.                                                                                          |
+| MCP04 Software Supply Chain Attacks & Dependency Tampering | Three runtime dependencies; `npm audit` in the gate; Dependabot and CodeQL (`.github/dependabot.yml`, `.github/workflows/codeql.yml`); SHA-pinned actions with least-privilege permissions (`.github/workflows/ci.yml`); provenance publishes (`.github/workflows/publish.yml`); tarball allow-list (`scripts/pack-check.mjs`). See [Supply chain](#supply-chain).                                                                             | `test/dependencies.test.js`, `test/security-scan.test.js`                                                                                            | No SBOM is published; the VS Code extension is a separate dependency tree.                                                                                                                                  |
+| MCP05 Command Injection & Execution                        | No `eval` or dynamic code: instance scripts are only parsed (`src/api/script-ast.ts`, acorn). The two child processes use argument arrays, not a shell — the OAuth browser open (`src/core/oauth-login.ts`) and the support bundle's `npm ls` (`src/api/support-bundle.ts`, a shell on Windows only, with fixed arguments).                                                                                                                    | `test/scripts.test.js`, `test/oauth.test.js`, `test/support-bundle.test.js`                                                                          | On Windows the browser open runs `cmd /c start` with the authorization URL as an argument; cmd.exe may split a URL at `&`. Not exploitable from tool input (the URL is built locally), but worth hardening. |
+| MCP06 Prompt Injection via Contextual Payloads             | Instance data reaching the model through prompts, resources and server info is wrapped in an untrusted-content boundary (`src/mcp/boundary.ts`); writes cannot mutate without plan → token → apply, so an injected write still needs the preview's token (`src/mcp/plan-token.ts`).                                                                                                                                                            | `test/server-info.test.js`, `test/completions.test.js`, `test/plan-token.test.js`                                                                    | Tool results (record fields) are returned as data without a boundary marker; the client and model remain the last line of defence.                                                                          |
+| MCP07 Insufficient Authentication & Authorization          | stdio by default; the HTTP transport binds to loopback, requires a constant-time-checked bearer token (`SN_HTTP_TOKEN`) for any non-loopback bind, checks `Host` against an allow-list (DNS rebinding) and isolates sessions (`src/mcp/transport.ts`, `src/mcp/http-sessions.ts`); outbound requests go only to allowed instance hosts, with an SSRF guard and no redirects (`src/core/host.ts`); credential changes need client confirmation. | `test/transport.test.js`, `test/http-transport-v2.test.js`, `test/auth.test.js`, `test/outbound-hardening.test.js`, `test/admin-credentials.test.js` | The HTTP token is one shared secret, not per-user authorization (no OAuth resource-server role); the server cannot tell MCP clients apart.                                                                  |
+| MCP08 Lack of Audit and Telemetry                          | Hash-chained, redacted write journal with revert (`src/core/write-journal.ts`); structured JSON logs and metrics (`src/core/logging.ts`, `src/core/metrics.ts`, `src/mcp/observability.ts`).                                                                                                                                                                                                                                                   | `test/write-journal.test.js`, `test/journal-v2.test.js`, `test/observability.test.js`                                                                | Reads are logged but not journaled; OpenTelemetry spans are pending (N-55).                                                                                                                                 |
+| MCP09 Shadow MCP Servers                                   | Mostly out of scope (inventory of servers is the client's and the organisation's job). The server is published under one name with provenance and a registry entry (`.github/workflows/publish-mcp.yml`, `server.json`), so an installed copy can be traced to its source.                                                                                                                                                                     | `test/distribution.test.js`, `test/version-sync.test.js`                                                                                             | No runtime self-attestation (for example a signed server identity) beyond the npm provenance.                                                                                                               |
+| MCP10 Context Injection & Over-Sharing                     | Field and PII redaction (`src/core/redaction.ts`); capped response bodies and paged results; table deny-lists keep excluded data out of the context (`src/core/policy.ts`); HTTP sessions do not share state (`src/mcp/http-sessions.ts`).                                                                                                                                                                                                     | `test/redact.test.js`, `test/policy.test.js`, `test/http-transport-v2.test.js`                                                                       | What a granted read returns is still visible to the model; redaction is opt-in beyond the default secret fields.                                                                                            |
 
 ## Trademark
 

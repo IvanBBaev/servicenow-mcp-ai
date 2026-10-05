@@ -1,17 +1,12 @@
 import { queryTable, type SnRecord } from "./table.js";
-import { getCredentials, activeProfile } from "../core/config.js";
-import { cached, peekSchemaCache } from "../core/cache.js";
+import { activeProfile } from "../core/config.js";
+import { cached, peekSchemaCache, schemaCacheScope } from "../core/cache.js";
+
+// H-7: the scope helper moved to core/cache.ts (N-21 needs it below api/);
+// re-exported so existing importers keep working.
+export { schemaCacheScope };
 import { assertNoCaret, snString } from "./shared.js";
 import { ServiceNowError } from "../core/errors.js";
-
-/**
- * The schema-cache scope of a profile: its instance plus the profile name
- * (H-7). The cache is shared by every HTTP session, and two profiles on one
- * instance can authenticate as users with different read ACLs — a dictionary
- * read cached for one must never answer (or complete) for the other.
- */
-export const schemaCacheScope = (profile: string = activeProfile()): string =>
-  `${getCredentials(profile).instance}#${profile}`;
 
 /** Cache key prefix carrying the instance and profile; see schemaCacheScope. */
 const cacheKey = (parts: string[]): string =>

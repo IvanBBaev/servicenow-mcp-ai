@@ -6,6 +6,7 @@
 //   extension/package.json        version
 //   extension/package-lock.json   version + packages[""].version
 //   .claude-plugin/plugin.json    version
+//   mcpb/manifest.json            version (N-51 bundle manifest)
 //   docs/index.html               "softwareVersion": "<v>"  and  <span class="ver-pill">v<v></span>
 //
 // It is wired into `npm version` through the "version" lifecycle script, so a
@@ -45,6 +46,7 @@ export const FOLLOWERS = [
   { file: "extension/package.json", kind: "json", apply: setTopLevel },
   { file: "extension/package-lock.json", kind: "json", apply: setLockfile },
   { file: ".claude-plugin/plugin.json", kind: "json", apply: setTopLevel },
+  { file: "mcpb/manifest.json", kind: "json", apply: setTopLevel },
   { file: "docs/index.html", kind: "html" },
 ];
 

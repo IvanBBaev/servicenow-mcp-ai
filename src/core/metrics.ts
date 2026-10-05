@@ -209,11 +209,18 @@ const channels = {
  * Node itself isolates subscribers: one that throws does not interrupt the
  * publish (the error surfaces as an `uncaughtException` on the next tick), so
  * a subscriber must handle its own errors.
+ *
+ * Returns the published message (undefined when nobody listens), so the
+ * request loop can read what a `start` subscriber set on it — the outbound
+ * trace context of N-55 (tracing.ts outboundTraceHeaders).
  */
 export function publishRequestEvent(
   kind: keyof typeof channels,
   message: () => Record<string, unknown>,
-): void {
+): Record<string, unknown> | undefined {
   const ch = channels[kind];
-  if (ch.hasSubscribers) ch.publish(message());
+  if (!ch.hasSubscribers) return undefined;
+  const built = message();
+  ch.publish(built);
+  return built;
 }

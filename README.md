@@ -243,7 +243,8 @@ Or a workspace file, `.vscode/mcp.json`:
 /plugin install servicenow-mcp-ai
 ```
 
-The plugin also ships five workflow skills — see [Plugin skills](#plugin-skills).
+The plugin also ships five workflow skills, two read-only subagents and three
+hooks — see [Plugin skills](#plugin-skills).
 
 **CLI** — `--scope user` makes it available in every project; `--env` sets a
 non-secret variable (the instance host) and leaves the secrets in the env file. A value set
@@ -383,6 +384,15 @@ Prefer a global install (`npm install -g servicenow-mcp-ai`)? Replace
 The one-click links are generated from `package.json` by `scripts/install-links.mjs`
 (`node scripts/install-links.mjs` prints them); `test/install-links.test.js` fails if
 this README or the docs site drift from the generated strings.
+
+### Install via MCP bundle (.mcpb)
+
+An [MCP bundle](https://github.com/modelcontextprotocol/mcpb) is one `.mcpb` file with the
+server and its dependencies; Claude Desktop (or any MCPB host) installs it in one click, with
+no `npm` / `npx`. Its form asks for the connection keys (only `SN_INSTANCE` is required) and
+`SN_TOOL_PACKAGES`; secrets are marked sensitive (kept in the OS keychain). An empty field
+falls back to the env file. Not published yet (O-22) — build it with `npm run mcpb:pack`
+(`dist/mcpb/`; `-- --validate` runs the official validator).
 
 ### Docker
 
@@ -701,6 +711,7 @@ Which tools are registered. The admin tools (set_credentials, get_status, use_in
 | `SN_PACKAGES_READONLY` | no | — | 1.0.0 | Comma/space-separated packages whose write tools are not registered; their read tools stay. Per-package complement to the global `SN_READONLY`. |
 | `SN_CODESEARCH` | no | `false` | 1.1.0 | Opt in to the Code Search API (`sn_codesearch`) for `servicenow_search_code` (FT-7). When `true` and the plugin is active it replaces the LIKE iteration; falls back to LIKE on any failure. |
 | `SN_EXPERIMENTAL_TASKS` | no | `0` | next | M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `check_code_health` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK's experimental task API. |
+| `SN_MCP_APPS` | no | `0` | next | N-50, MCP Apps (SEP-1865): `1` registers four self-contained `ui://servicenow-mcp/…` HTML views (`text/html;profile=mcp-app`: plan diff, Mermaid diagram, flow explainer, UI Builder page tree) and links the write tools with `apply`, the Mermaid generators, `explain_flow` and `explain_ui_experience` to them through `_meta.ui.resourceUri` — only for a client that advertises the `io.modelcontextprotocol/ui` extension. The views render the tool's own result (no network, strict CSP). Off: `tools/list`, resources and every result unchanged. |
 | `SN_LEGACY_TOOL_NAMES` | no | `0` | next | M-7 (B2), **deprecated bridge for one minor cycle**: `1` registers every tool name and parameter name renamed by the v3 naming convention as an alias of its new name (the alias dispatches to the new tool and logs a one-time deprecation warning). Off: the old names do not exist and are absent from `tools/list`. See the rename table in the README. |
 
 #### Access policy and write safety
@@ -801,6 +812,8 @@ The stderr log, the optional log file and the log lines mirrored to the MCP clie
 | `SN_LOG_FILE` | no | — | next | E-5: also append every log line (JSON Lines, redacted, mode 0600) to this file, with size-based rotation (`<file>.1` … `<file>.5`). Stderr keeps working. |
 | `SN_LOG_FILE_MAX_BYTES` | no | `10485760` | next | E-5: rotation threshold for `SN_LOG_FILE` (bytes). |
 | `SN_LOG_NOTIFY_RATE` | no | `20` | next | M-8: log notifications per second and client session over the MCP logging capability (burst 50, or the rate if larger). Lines over it are counted and reported in one "N log messages suppressed" warning per minute; stderr is never throttled. `0` = no limit. |
+| `SN_OTEL` | no | off | next | N-55: map the tool-call and HTTP `diagnostics_channel` events to OpenTelemetry spans (MCP / GenAI semantic conventions). Needs the optional peer dependency `@opentelemetry/api` and an OpenTelemetry SDK registered in the process (e.g. `node --import`); without the package one warning is logged and nothing else changes. |
+| `SN_OTEL_PROPAGATE` | no | off | next | N-55: send W3C `traceparent` / `tracestate` headers on outbound ServiceNow REST requests — the HTTP client span's context when `SN_OTEL` is on, otherwise the context the client sent in `params._meta`. Off: trace ids never leave the server. |
 
 #### Settings validation
 
@@ -878,20 +891,50 @@ patterns. Ask
   switches from JSON lines to a human-readable format; `SN_LOG_FILE` also appends
   JSON lines to a size-rotated file. Credential-named fields (`password`, `token`,
   `authorization`, …) are masked in every sink, and the `SN_REDACT_FIELDS` /
-  `SN_REDACT_PII` rules apply on top.
-- **Tracing hooks.** The request loop publishes on
+  `SN_REDACT_PII` rules and the secret-column masking apply on top.
+- **Tracing hooks.** Every tool call and the request loop publish on
   [`node:diagnostics_channel`](https://nodejs.org/api/diagnostics_channel.html), so an
-  OpenTelemetry (or any) subscriber can attach without a dependency on this server:
+  OpenTelemetry (or any) subscriber can attach without a dependency on this server.
+  Messages are built only while a channel has a subscriber:
 
   | Channel                             | When                                           | Message fields                                                                                                        |
   | ----------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-  | `servicenow-mcp:http.request.start` | a logical request begins                       | `id`, `system`, `method`, `host`, `telemetryKey`, `url`, and `profile` / `requestId` / `sessionId` / `tool` in a call |
+  | `servicenow-mcp:mcp.tool.call.start` | a tool call begins | `id`, `tool`, `package`, `requestId`, and `sessionId` / `traceparent` / `tracestate` when known |
+  | `servicenow-mcp:mcp.tool.call.end` | it returned a successful result | the start fields plus `profile`, `outcome` (`ok`), `ms`, `resultBytes` |
+  | `servicenow-mcp:mcp.tool.call.error` | it returned an error result or threw | the start fields plus `profile`, `outcome` (`error` / `cancelled`), `ms`, and `code` / `resultBytes` or `errorName` |
+  | `servicenow-mcp:http.request.start` | a logical request begins                       | `id`, `system`, `method`, `host`, `telemetryKey`, `url`, and `profile` / `requestId` / `sessionId` / `tool` / `callId` / `traceparent` / `tracestate` in a call |
   | `servicenow-mcp:http.request.end`   | it resolved with an OK response                | the start fields plus `status`, `attempts`, `ms`                                                                      |
   | `servicenow-mcp:http.request.error` | it failed                                      | the start fields plus `attempts`, `ms`, `status`, `code`, `errorName`, `errorMessage`                                 |
   | `servicenow-mcp:http.request.retry` | an attempt is replayed (backoff, 401 re-auth) | `id`, `system`, `method`, `host`, `url`, `attempt`, `reason`, `waitMs`                                               |
 
   `url` never includes the query string; headers, bodies and credentials are never
   published, and `errorMessage` passes through the redaction rules.
+
+  Tool arguments and results are never published (only the result's byte count).
+  `callId` on an HTTP message is the `id` of the tool call that made it.
+  `traceparent` / `tracestate` are the W3C Trace Context the client sent in the call's
+  `params._meta`; a malformed value is dropped.
+
+- **OpenTelemetry spans.** `SN_OTEL=1` maps those channels to spans through
+  [`@opentelemetry/api`](https://www.npmjs.com/package/@opentelemetry/api), an optional
+  peer dependency (`npm install @opentelemetry/api` next to the server, plus your SDK
+  and exporter registered with `node --import`). Without the package the server logs one
+  warning and runs without spans; with `SN_OTEL` off the package is never loaded.
+  - Each tool call is a `SERVER` span named `tools/call <tool>`, a child of the client's
+    `traceparent` when it sent one. Attributes: `mcp.method.name`,
+    `gen_ai.operation.name` (`execute_tool`), `gen_ai.tool.name`, `jsonrpc.request.id`,
+    `mcp.session.id`, `network.transport`, `error.type`, plus `servicenow_mcp.package`
+    / `.profile` / `.outcome` / `.result.bytes`.
+  - Each outbound request is a `CLIENT` span named after the method, a child of its tool
+    span: `http.request.method`, `server.address`, `url.full` (no query string),
+    `http.response.status_code`, `http.request.resend_count`, `error.type`, and one
+    `retry` event per replay.
+  - The MCP and GenAI semantic conventions are still in development, so these names
+    are provisional and may follow the spec when it changes.
+  - `SN_OTEL_PROPAGATE=1` (off by default) also sends `traceparent` / `tracestate`
+    headers on requests to the ServiceNow instance: the HTTP span's context when
+    `SN_OTEL` is on, otherwise the client's context unchanged. It is opt-in because it
+    hands trace ids to the instance; the OAuth token endpoint never gets them.
 
 - **Prometheus.** With the HTTP transport, `SN_METRICS=1` and `SN_HTTP_TOKEN` set,
   `GET /metrics` (same bearer token) serves the same figures in the Prometheus text
@@ -1400,6 +1443,54 @@ credentials or calls ServiceNow on its own.
 A test (`test/plugin-skills.test.js`) checks that every `servicenow_*` name in a
 skill exists in the tool manifest. The skills are not part of the npm package.
 
+#### Subagents
+
+Two read-only subagents ship under `agents/`. Their `tools` allowlist names
+only this server's read-only tools (`readOnlyHint`), so neither can plan,
+apply, revert or switch the instance; `test/plugin-agents.test.js` enforces it.
+
+| Agent | Use it to |
+| --- | --- |
+| `sn-investigator` | Answer a question about the instance (a record, a table's automation, where something is used, a failed flow) and return a short report with its evidence instead of raw records |
+| `sn-change-reviewer` | Review a plan preview or an update set before it is applied — target records, table logic, where-used, lint, policy, history — and return a go / hold verdict |
+
+The change reviewer has no `servicenow_check_code_health` (it writes a local
+report); it recommends the scan when a change touches ACLs.
+
+#### Hooks
+
+`hooks/hooks.json` registers three plain Node scripts (no dependencies):
+
+| Event | Script | What it does |
+| --- | --- | --- |
+| `SessionStart` | `session-context.mjs` | Adds the active profile, its instance host, the write mode (plan / apply, read-only, a held prod profile), the tool packages and the other profile names to the session. It reads only the environment and the local env file (`SN_ENV_FILE` or `~/.config/servicenow-mcp-ai/.env`) — no network call, no credential in the output — and prints nothing when either is missing or unreadable. The server the client launches may see a different environment, so `servicenow_get_status` stays authoritative. |
+| `PreToolUse` | `require-plan-token.mjs` | Refuses a destructive `apply:true` without a `plan_token` (D-8). |
+| `PostToolUse` | `truncation-hint.mjs` | When a ServiceNow result says `truncated: true`, adds one line naming the knobs that tool has (`fields`, `offset`, `limit`, `format: "file"`). Silent otherwise. |
+
+#### Using the skills with other agents
+
+The five skills are portable [Agent Skills](https://agentskills.io): their
+`SKILL.md` frontmatter uses only `name` and `description`, and they name tools
+by their bare MCP name (`servicenow_query_table`), so any client that has this
+server configured can run them. Copy or symlink the folders under `skills/`
+into a directory the client scans:
+
+| Client | Project | Personal |
+| --- | --- | --- |
+| VS Code (GitHub Copilot) | `.github/skills/`, `.agents/skills/` or `.claude/skills/` | `~/.copilot/skills/`, `~/.agents/skills/` or `~/.claude/skills/` |
+| OpenAI Codex | `.agents/skills/` (in the working directory or any parent up to the repository root) | `~/.agents/skills/` |
+| Cursor | `.agents/skills/` or `.cursor/skills/` | `~/.agents/skills/` or `~/.cursor/skills/` |
+
+`.agents/skills/` works in all three. For example, from a clone of this
+repository:
+
+```bash
+mkdir -p ~/.agents/skills
+cp -R skills/sn-* ~/.agents/skills/   # or: ln -s "$PWD"/skills/sn-* ~/.agents/skills/
+```
+
+The subagents and hooks are Claude Code plugin features and do not carry over.
+
 ### Service Portal tree
 
 `servicenow_explain_portal` (`ui`, opt-in) explains a Service Portal (`portal`:
@@ -1666,6 +1757,15 @@ always listed). The list follows `servicenow_enable_package` /
 - The server uses the stdio transport and only logs to `stderr`; secrets and raw
   encoded queries are never logged.
 - The password/token is never returned by any tool.
+- **Secret columns are always masked.** A column whose dictionary type is
+  `password`, `password2` or `glide_encrypted` comes back as `[redacted]` from
+  every record-returning tool (`query_table`, `get_record`, batch, compare,
+  exports, …) and is never stored in the write journal, whatever
+  `SN_REDACT_FIELDS` says. The types are read once per profile from
+  `sys_dictionary` and cached like other schema (`SN_SCHEMA_CACHE_TTL_SEC`);
+  when the dictionary is not readable, a list of OOTB secret column names
+  (`password`, `user_password`, `client_secret`, …) applies instead, and the
+  read goes on. This masking cannot be turned off.
 - Hosts are restricted: without `SN_ALLOWED_HOSTS`, only `*.service-now.com`
   instances are contacted (internal/loopback blocked unless an allow-list entry
   names the host exactly), so a mistyped host cannot silently receive

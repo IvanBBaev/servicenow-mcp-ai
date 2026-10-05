@@ -45,6 +45,11 @@ jobs:
       # a fixed top-level allow-list and a size ceiling. Runs once on ubuntu/Node 22.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
         run: npm run pack:check
+      # N-51: the MCP bundle (.mcpb) builds — production deps only, outside the
+      # npm tarball (dist/mcpb/, ignored). Publication waits for O-22.
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        name: MCP bundle builds
+        run: npm run mcpb:pack
       # L9-07: only .env.example may ever be tracked — per-profile .env.<profile>
       # files hold credentials and are git-ignored; a tracked one fails the build.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'

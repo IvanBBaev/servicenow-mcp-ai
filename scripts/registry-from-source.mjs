@@ -40,3 +40,21 @@ export function loadErrorCodesFromSource() {
 export function loadNamingFromSource() {
   return loadRegistry().then((m) => m.describeNaming());
 }
+
+/**
+ * N-56: the server builder and the runtime factory, for an in-process server
+ * whose model-facing surface scan:surface reads over an in-memory client.
+ */
+export function loadServerFromSource() {
+  return loadRegistry().then(async () => {
+    const [server, runtime] = await Promise.all([
+      import("../src/server.ts"),
+      import("../src/core/runtime.ts"),
+    ]);
+    return {
+      buildMcpServer: server.buildMcpServer,
+      createRuntime: runtime.createRuntime,
+      installRuntime: runtime.installRuntime,
+    };
+  });
+}

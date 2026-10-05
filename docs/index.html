@@ -335,6 +335,7 @@
         <nav>
           <a href="#tools">Tools</a>
           <a href="#resources">Resources &amp; prompts</a>
+          <a href="#mcp-apps">MCP Apps views</a>
         </nav>
         <h4>Guides</h4>
         <nav>
@@ -2216,6 +2217,45 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </div>
         </section>
 
+        <!-- MCP APPS -->
+        <section id="mcp-apps">
+          <h2>MCP Apps views</h2>
+          <p>
+            With <code>SN_MCP_APPS=1</code> the server implements the MCP Apps
+            extension (<code>io.modelcontextprotocol/ui</code>, SEP-1865): a
+            host that supports it renders an interactive view next to the tool
+            call instead of only the JSON text. The text and structured result
+            of every tool stay exactly the same, and with the flag off (the
+            default) nothing changes &mdash; not even <code>tools/list</code>.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>View (<code>text/html;profile=mcp-app</code>)</th><th>Linked tools</th><th>Shows</th></tr></thead>
+              <tbody>
+                <tr><td><code>ui://servicenow-mcp/plan-diff</code></td><td>Every write tool with <code>apply</code> (record CRUD, attachments, batch, change, CMDB, catalog order, email, ATF runs, revert, artifacts, properties)</td><td>The plan: action, target, per-field before/after (added / changed / removed) and the plan token.</td></tr>
+                <tr><td><code>ui://servicenow-mcp/mermaid</code></td><td><code>servicenow_generate_er_diagram</code>, <code>servicenow_generate_table_flow</code>, <code>servicenow_trace_table_event</code>, <code>servicenow_get_artifact_dependencies</code>, <code>servicenow_explain_portal</code></td><td>Entities with their columns, the labelled edge list, and the Mermaid source.</td></tr>
+                <tr><td><code>ui://servicenow-mcp/flow</code></td><td><code>servicenow_explain_flow</code></td><td>Trigger, the nested step tree (with called subflows), inputs/outputs, legacy activities and transitions, playbook lanes, runs.</td></tr>
+                <tr><td><code>ui://servicenow-mcp/uib-tree</code></td><td><code>servicenow_explain_ui_experience</code></td><td>Shell, routes &rarr; screens &rarr; macroponent composition tree, data resources, data brokers.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            The link (<code>_meta.ui.resourceUri</code> on the tool) is only
+            published to a client whose <code>initialize</code> declares the
+            extension with that MIME type; the four <code>ui://</code>
+            resources are listed whenever the flag is on. Each view is one
+            static, self-contained HTML document (inline script and style, a
+            few kilobytes): it loads nothing from the network, receives the
+            tool result from the host over the <code>ui/*</code> postMessage
+            channel, and treats every value as untrusted &mdash; all data is
+            HTML-escaped into text nodes. Its own Content-Security-Policy
+            (<code>default-src 'none'</code>, script and style pinned by hash,
+            <code>connect-src 'none'</code>, no eval) applies on top of the
+            host's sandbox. Mermaid diagrams are shown as tables plus source,
+            not drawn, so no diagram library is shipped.
+          </p>
+        </section>
+
         <!-- SECURITY -->
         <section id="security">
           <h2>Security &amp; governance</h2>
@@ -2255,6 +2295,24 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
                 When the client supports it, a credential change asks for
                 explicit confirmation (MCP elicitation) before anything is
                 written.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Secret columns masked</h3>
+              <p>
+                Columns whose dictionary type is <code>password</code>,
+                <code>password2</code> or <code>glide_encrypted</code> are
+                masked in every tool result and in the write journal, whatever
+                the redaction settings.
+              </p>
+            </div>
+            <div class="card">
+              <h3>Scanned tool surface</h3>
+              <p>
+                Every tool description, prompt, skill and hook is scanned in CI
+                for invisible Unicode, hidden instructions, cross-tool
+                directives and unlisted URLs; SECURITY.md maps the server to
+                the OWASP MCP Top 10.
               </p>
             </div>
           </div>
@@ -2486,6 +2544,18 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               <code>stderr</code> logging (no secrets, no raw queries), and ask
               for <code>servicenow_get_status</code> to see the live config,
               policy and per-host telemetry.
+            </p>
+          </div>
+          <div class="callout">
+            <span class="c-ico">📈</span>
+            <p>
+              Every tool call and ServiceNow request is published on
+              <code>node:diagnostics_channel</code>
+              (<code>servicenow-mcp:mcp.tool.call.*</code>). Set
+              <code>SN_OTEL=1</code> and install
+              <code>@opentelemetry/api</code> to turn them into OpenTelemetry
+              spans; <code>SN_OTEL_PROPAGATE=1</code> also sends
+              <code>traceparent</code> to the instance.
             </p>
           </div>
         </section>

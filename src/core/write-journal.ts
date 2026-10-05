@@ -22,7 +22,8 @@ import {
 } from "./settings.js";
 import { activeProfile } from "./config.js";
 import { currentCall, currentClient, currentTool } from "./request-context.js";
-import { redactValue } from "./redaction.js";
+import { redactValue, redactionRules } from "./redaction.js";
+import { peekSecretColumns } from "./secret-index.js";
 import { ServiceNowError } from "./errors.js";
 import { logger } from "./logging.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
@@ -271,12 +272,21 @@ function renderMarkdown(dir: string, profile: string): void {
   writeFileSync(path.join(dir, MARKDOWN), md);
 }
 
-/** Mask the value-carrying fields with the tool-result redaction rules. */
+/**
+ * Mask the value-carrying fields with the tool-result redaction rules. N-21:
+ * plus the secret columns of the entry's table the schema cache already holds
+ * (password / password2 / glide_encrypted, else the OOTB names), so a before
+ * or after image never stores a secret even when the line is written outside
+ * the call that read it. The journal never reads the instance to find out.
+ */
 function redactEntry(entry: JournalInput): JournalInput {
   const out = { ...entry };
-  if (out.fields !== undefined) out.fields = redactValue(out.fields).value;
-  if (out.before !== undefined) out.before = redactValue(out.before).value;
-  if (out.error !== undefined) out.error = redactValue(out.error).value;
+  const rules = redactionRules(peekSecretColumns(entry.table));
+  if (out.fields !== undefined)
+    out.fields = redactValue(out.fields, rules).value;
+  if (out.before !== undefined)
+    out.before = redactValue(out.before, rules).value;
+  if (out.error !== undefined) out.error = redactValue(out.error, rules).value;
   return out;
 }
 

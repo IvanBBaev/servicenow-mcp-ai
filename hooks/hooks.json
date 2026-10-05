@@ -1,6 +1,17 @@
 {
-  "description": "D-8: block a destructive ServiceNow apply:true that carries no plan_token before it reaches the server.",
+  "description": "D-8: block a destructive ServiceNow apply:true that carries no plan_token before it reaches the server. N-48: inject the active profile and write mode at session start (local config only), and hint how to narrow a truncated ServiceNow result.",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-context.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "mcp__.*__servicenow_.*",
@@ -8,6 +19,18 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/require-plan-token.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*__servicenow_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/truncation-hint.mjs\"",
             "timeout": 10
           }
         ]

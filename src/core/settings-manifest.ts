@@ -800,6 +800,20 @@ const BASE_SETTINGS: SettingSpec[] = [
   ),
   bool(
     {
+      key: "SN_MCP_APPS",
+      section: "packages",
+      since: NEXT,
+      default: false,
+      defaultText: "`0`",
+      example: "0",
+      description:
+        "N-50, MCP Apps (SEP-1865): `1` registers four self-contained `ui://servicenow-mcp/…` HTML views (`text/html;profile=mcp-app`: plan diff, Mermaid diagram, flow explainer, UI Builder page tree) and links the write tools with `apply`, the Mermaid generators, `explain_flow` and `explain_ui_experience` to them through `_meta.ui.resourceUri` — only for a client that advertises the `io.modelcontextprotocol/ui` extension. The views render the tool's own result (no network, strict CSP). Off: `tools/list`, resources and every result unchanged.",
+    },
+    ["1", "true"],
+    ["0", "false"],
+  ),
+  bool(
+    {
       key: "SN_LEGACY_TOOL_NAMES",
       section: "packages",
       since: NEXT,
@@ -1330,6 +1344,26 @@ const BASE_SETTINGS: SettingSpec[] = [
     default: 20,
     description:
       'M-8: log notifications per second and client session over the MCP logging capability (burst 50, or the rate if larger). Lines over it are counted and reported in one "N log messages suppressed" warning per minute; stderr is never throttled. `0` = no limit.',
+  }),
+  bool({
+    key: "SN_OTEL",
+    section: "logging",
+    since: NEXT,
+    default: false,
+    defaultText: "off",
+    example: "0",
+    description:
+      "N-55: map the tool-call and HTTP `diagnostics_channel` events to OpenTelemetry spans (MCP / GenAI semantic conventions). Needs the optional peer dependency `@opentelemetry/api` and an OpenTelemetry SDK registered in the process (e.g. `node --import`); without the package one warning is logged and nothing else changes.",
+  }),
+  bool({
+    key: "SN_OTEL_PROPAGATE",
+    section: "logging",
+    since: NEXT,
+    default: false,
+    defaultText: "off",
+    example: "0",
+    description:
+      "N-55: send W3C `traceparent` / `tracestate` headers on outbound ServiceNow REST requests — the HTTP client span's context when `SN_OTEL` is on, otherwise the context the client sent in `params._meta`. Off: trace ids never leave the server.",
   }),
 
   // --- validation ------------------------------------------------------------------------

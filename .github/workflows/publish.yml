@@ -4,7 +4,10 @@ name: Publish
 # `npm run check` gate runs here, and `prepublishOnly` runs it again as a
 # backstop, so a red build cannot reach the registry. After a successful
 # publish, D-6: a GitHub Release for the tag whose notes are that version's
-# CHANGELOG section (scripts/release-notes.mjs).
+# CHANGELOG section (scripts/release-notes.mjs). N-51: the MCP bundle
+# (.mcpb) is attached to that release only once the owner enables it (O-22) by
+# setting the repository variable MCPB_RELEASE to "true"; until then the
+# mcpb-asset job is skipped.
 on:
   push:
     tags: ["v*"]
@@ -56,3 +59,25 @@ jobs:
             gh release create "$GITHUB_REF_NAME" --verify-tag \
               --title "$GITHUB_REF_NAME" --notes-file release-notes.md
           fi
+
+  # N-51 / TK-27: the MCP bundle as a release asset. Dormant until O-22 —
+  # Settings → Secrets and variables → Actions → Variables → MCPB_RELEASE=true.
+  mcpb-asset:
+    needs: github-release
+    if: ${{ vars.MCPB_RELEASE == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # upload the asset to the release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Pack the MCP bundle
+        run: npm run mcpb:pack -- --validate
+      - name: Attach the bundle to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/mcpb/*.mcpb --clobber

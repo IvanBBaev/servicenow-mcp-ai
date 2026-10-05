@@ -17,6 +17,7 @@ import {
   expectResultArray,
   snString,
 } from "./shared.js";
+import { noteSecretRecords } from "./secret-columns.js";
 
 // Re-exported so existing imports and host/SSRF unit tests keep working.
 export { ServiceNowError } from "../core/errors.js";
@@ -145,7 +146,11 @@ async function queryPage(
     params,
     signal: opts.signal,
   });
-  return { records: expectResultArray(data, "Table API"), total };
+  const records = expectResultArray(data, "Table API");
+  // N-21: every page (fetchAll and onPage streaming included) registers its
+  // secret columns before a caller can see it.
+  await noteSecretRecords(opts.table, records);
+  return { records, total };
 }
 
 /**
@@ -382,7 +387,9 @@ export async function getRecord(
     path: recordPath(table, sysId),
     params,
   });
-  return expectResult(data, "Table API");
+  const record = expectResult(data, "Table API");
+  await noteSecretRecords(table, record); // N-21
+  return record;
 }
 
 /** `sysparm_input_display_value` for a write, when requested. */
@@ -399,13 +406,18 @@ export async function createRecord(
 ): Promise<SnRecord> {
   assertTableWriteAllowed(table); // H-11: read rules + protected tables
   assertWriteAllowed("create");
+  // N-21: a secret value being written is masked in the result, an error
+  // echo and the journal like one that was read.
+  await noteSecretRecords(table, fields);
   const { data } = await snRequest<{ result: SnRecord }>({
     method: "POST",
     path: tablePath(table),
     params: writeParams(options),
     body: fields,
   });
-  return expectResult(data, "Table API");
+  const record = expectResult(data, "Table API");
+  await noteSecretRecords(table, record);
+  return record;
 }
 
 /** Update an existing record by sys_id. */
@@ -417,13 +429,16 @@ export async function updateRecord(
 ): Promise<SnRecord> {
   assertTableWriteAllowed(table); // H-11: read rules + protected tables
   assertWriteAllowed("update");
+  await noteSecretRecords(table, fields); // N-21, as in createRecord
   const { data } = await snRequest<{ result: SnRecord }>({
     method: "PATCH",
     path: recordPath(table, sysId),
     params: writeParams(options),
     body: fields,
   });
-  return expectResult(data, "Table API");
+  const record = expectResult(data, "Table API");
+  await noteSecretRecords(table, record);
+  return record;
 }
 
 /** Delete a record by sys_id. */

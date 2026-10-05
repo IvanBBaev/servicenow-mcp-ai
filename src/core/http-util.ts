@@ -9,7 +9,8 @@ import { userAgent } from "./identity.js";
 import { logger } from "./logging.js";
 import { publishRequestEvent, recordRateLimit } from "./metrics.js";
 import { redactValue } from "./redaction.js";
-import { logContext } from "./request-context.js";
+import { currentCall, logContext } from "./request-context.js";
+import { outboundTraceHeaders } from "./tracing.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
 import {
   getBreakerResetMs,
@@ -22,6 +23,7 @@ import {
   getQueueTimeoutMs,
   getRetryAfterMaxMs,
   getTimeoutMs,
+  otelPropagate,
 } from "./settings.js";
 
 /**
@@ -682,6 +684,9 @@ export async function rawRequest(opts: RawRequestOptions): Promise<Response> {
     started: Date.now(),
     attempts: 0,
   };
+  // N-55: the tool call's id and W3C Trace Context ride along, so a
+  // subscriber parents the request on the call's span.
+  const call = currentCall();
   const base = (): Record<string, unknown> => ({
     id: obs.id,
     system: opts.system,
@@ -690,8 +695,22 @@ export async function rawRequest(opts: RawRequestOptions): Promise<Response> {
     telemetryKey: opts.telemetryKey ?? opts.host,
     url: opts.safeUrl,
     ...(logContext() ?? {}),
+    ...(call?.callId !== undefined ? { callId: call.callId } : {}),
+    ...(call?.trace
+      ? {
+          traceparent: call.trace.traceparent,
+          ...(call.trace.tracestate
+            ? { tracestate: call.trace.tracestate }
+            : {}),
+        }
+      : {}),
   });
-  publishRequestEvent("start", base);
+  const startMessage = publishRequestEvent("start", base);
+  // N-55: trace headers go to the ServiceNow REST API only (never the OAuth
+  // token endpoint or Jira), and only under SN_OTEL_PROPAGATE.
+  if (opts.system === "ServiceNow" && otelPropagate()) {
+    obs.traceHeaders = outboundTraceHeaders(startMessage, call?.trace);
+  }
   try {
     const res = await rawRequestInner(opts, obs);
     publishRequestEvent("end", () => ({
@@ -729,6 +748,8 @@ interface RequestObservation {
   started: number;
   /** Attempts sent so far (a fetch that reached the network or failed). */
   attempts: number;
+  /** N-55: `traceparent` / `tracestate` for every attempt (SN_OTEL_PROPAGATE). */
+  traceHeaders?: Record<string, string> | undefined;
 }
 
 async function rawRequestInner(
@@ -843,6 +864,7 @@ async function rawRequestInner(
     // request to the same host and must not wait on the slot it would need).
     const headers: Record<string, string> = {
       "User-Agent": ua,
+      ...obs.traceHeaders,
       ...(await opts.headers()),
     };
     if (remaining() <= 0) throw deadlineError(attempt, "budget exhausted");

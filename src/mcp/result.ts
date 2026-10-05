@@ -34,8 +34,9 @@ function asText(data: unknown): ToolResult {
 /**
  * H-5 — the one redaction boundary for every tool result. `SN_REDACT_FIELDS`
  * and `SN_REDACT_PII` are applied (deep) to whatever a handler returns through
- * ok()/okStructured()/fail(), not only to query_table records; a no-op, same
- * reference, when redaction is off.
+ * ok()/okStructured()/fail(), not only to query_table records. N-21: secret
+ * columns (OOTB names, dictionary-typed columns and their values the call
+ * read) are masked here always.
  */
 function safe<T>(data: T): T {
   return redactValue(data).value;

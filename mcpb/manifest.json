@@ -1,0 +1,518 @@
+{
+  "manifest_version": "0.3",
+  "name": "servicenow-mcp-ai",
+  "display_name": "ServiceNow MCP",
+  "version": "2.0.1",
+  "description": "ServiceNow MCP server: 97 tools in 26 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
+  "author": { "name": "Ivan Baev", "email": "ivanbbaev@gmail.com" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IvanBBaev/servicenow-mcp-ai.git"
+  },
+  "homepage": "https://github.com/IvanBBaev/servicenow-mcp-ai#readme",
+  "documentation": "https://ivanbbaev.github.io/servicenow-mcp-ai/",
+  "support": "https://github.com/IvanBBaev/servicenow-mcp-ai/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "build/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/build/index.js"],
+      "env": {
+        "SN_INSTANCE": "${user_config.instance}",
+        "SN_USER": "${user_config.user}",
+        "SN_PASSWORD": "${user_config.password}",
+        "SN_AUTH": "${user_config.auth}",
+        "SN_API_KEY": "${user_config.api_key}",
+        "SN_BEARER_TOKEN": "${user_config.bearer_token}",
+        "SN_TOKEN_FILE": "${user_config.token_file}",
+        "SN_TOKEN_EXPIRES_AT": "${user_config.token_expires_at}",
+        "SN_OAUTH_CLIENT_ID": "${user_config.oauth_client_id}",
+        "SN_OAUTH_CLIENT_SECRET": "${user_config.oauth_client_secret}",
+        "SN_OAUTH_GRANT": "${user_config.oauth_grant}",
+        "SN_OAUTH_REFRESH_TOKEN": "${user_config.oauth_refresh_token}",
+        "SN_OAUTH_REDIRECT_URI": "${user_config.oauth_redirect_uri}",
+        "SN_OAUTH_SCOPE": "${user_config.oauth_scope}",
+        "SN_OAUTH_JWT_KEY": "${user_config.oauth_jwt_key}",
+        "SN_OAUTH_JWT_KEY_FILE": "${user_config.oauth_jwt_key_file}",
+        "SN_OAUTH_JWT_ISS": "${user_config.oauth_jwt_iss}",
+        "SN_OAUTH_JWT_SUB": "${user_config.oauth_jwt_sub}",
+        "SN_OAUTH_JWT_AUD": "${user_config.oauth_jwt_aud}",
+        "SN_OAUTH_JWT_KID": "${user_config.oauth_jwt_kid}",
+        "SN_OAUTH_JWT_EXP_SEC": "${user_config.oauth_jwt_exp_sec}",
+        "SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE": "${user_config.allow_unconfirmed_credential_change}",
+        "SN_TOOL_PACKAGES": "${user_config.tool_packages}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "servicenow_aggregate",
+      "description": "Aggregate ServiceNow records"
+    },
+    { "name": "servicenow_batch", "description": "Run a ServiceNow batch" },
+    {
+      "name": "servicenow_check_capabilities",
+      "description": "Check achievable capabilities"
+    },
+    {
+      "name": "servicenow_check_change_conflicts",
+      "description": "Change schedule conflicts"
+    },
+    {
+      "name": "servicenow_check_code_health",
+      "description": "Code health report"
+    },
+    {
+      "name": "servicenow_check_data_health",
+      "description": "Data health report"
+    },
+    {
+      "name": "servicenow_compare_instances",
+      "description": "Compare two instances"
+    },
+    {
+      "name": "servicenow_compare_update_set",
+      "description": "Compare update set"
+    },
+    {
+      "name": "servicenow_create_change",
+      "description": "Create change request"
+    },
+    {
+      "name": "servicenow_create_ci",
+      "description": "Create configuration item"
+    },
+    {
+      "name": "servicenow_create_record",
+      "description": "Create ServiceNow record"
+    },
+    {
+      "name": "servicenow_delete_attachment",
+      "description": "Delete ServiceNow attachment"
+    },
+    {
+      "name": "servicenow_delete_record",
+      "description": "Delete ServiceNow record"
+    },
+    {
+      "name": "servicenow_describe_table",
+      "description": "Describe ServiceNow table"
+    },
+    {
+      "name": "servicenow_describe_table_logic",
+      "description": "Explain ServiceNow table logic"
+    },
+    {
+      "name": "servicenow_disable_package",
+      "description": "Disable a tool package"
+    },
+    {
+      "name": "servicenow_document_app",
+      "description": "Document an application"
+    },
+    {
+      "name": "servicenow_document_instance",
+      "description": "Document the instance"
+    },
+    { "name": "servicenow_document_table", "description": "Document a table" },
+    {
+      "name": "servicenow_download_attachment",
+      "description": "Download ServiceNow attachment"
+    },
+    {
+      "name": "servicenow_enable_package",
+      "description": "Enable a tool package"
+    },
+    {
+      "name": "servicenow_explain_artifact",
+      "description": "Explain artifact"
+    },
+    {
+      "name": "servicenow_explain_flow",
+      "description": "Explain a flow or workflow"
+    },
+    {
+      "name": "servicenow_explain_policy",
+      "description": "Explain ServiceNow access policy"
+    },
+    {
+      "name": "servicenow_explain_portal",
+      "description": "Explain a Service Portal"
+    },
+    {
+      "name": "servicenow_explain_ui_experience",
+      "description": "Explain a UI Builder experience"
+    },
+    {
+      "name": "servicenow_generate_er_diagram",
+      "description": "Generate ER diagram"
+    },
+    { "name": "servicenow_generate_fluent", "description": "Generate Fluent" },
+    {
+      "name": "servicenow_generate_table_flow",
+      "description": "Generate table flow"
+    },
+    { "name": "servicenow_get_artifact", "description": "Get artifact" },
+    {
+      "name": "servicenow_get_artifact_dependencies",
+      "description": "Artifact dependencies"
+    },
+    {
+      "name": "servicenow_get_atf_result",
+      "description": "Get ATF run result"
+    },
+    {
+      "name": "servicenow_get_attachment",
+      "description": "Get ServiceNow attachment metadata"
+    },
+    {
+      "name": "servicenow_get_catalog_item",
+      "description": "Get catalog item"
+    },
+    { "name": "servicenow_get_change", "description": "Get change request" },
+    { "name": "servicenow_get_ci", "description": "Get configuration item" },
+    {
+      "name": "servicenow_get_cmdb_meta",
+      "description": "Get CMDB class metadata"
+    },
+    { "name": "servicenow_get_email", "description": "Get ServiceNow email" },
+    { "name": "servicenow_get_flow", "description": "Get flow detail" },
+    {
+      "name": "servicenow_get_flow_runs",
+      "description": "Get flow run history"
+    },
+    {
+      "name": "servicenow_get_import_set_row",
+      "description": "Get ServiceNow import set row result"
+    },
+    {
+      "name": "servicenow_get_knowledge_article",
+      "description": "Get knowledge article"
+    },
+    {
+      "name": "servicenow_get_knowledge_highlights",
+      "description": "Featured / most-viewed knowledge"
+    },
+    {
+      "name": "servicenow_get_properties",
+      "description": "Get system properties"
+    },
+    { "name": "servicenow_get_record", "description": "Get ServiceNow record" },
+    {
+      "name": "servicenow_get_record_history",
+      "description": "Get record history"
+    },
+    { "name": "servicenow_get_script", "description": "Get ServiceNow script" },
+    {
+      "name": "servicenow_get_status",
+      "description": "Get ServiceNow connection status"
+    },
+    { "name": "servicenow_get_update_set", "description": "Get update set" },
+    {
+      "name": "servicenow_identify_reconcile",
+      "description": "Identify and reconcile CIs (IRE)"
+    },
+    {
+      "name": "servicenow_insert_import_set_row",
+      "description": "Insert ServiceNow import set row"
+    },
+    { "name": "servicenow_lint_script", "description": "Lint a script" },
+    {
+      "name": "servicenow_lint_table",
+      "description": "Lint a table's scripts"
+    },
+    { "name": "servicenow_list_artifacts", "description": "List artifacts" },
+    { "name": "servicenow_list_atf_suites", "description": "List ATF suites" },
+    { "name": "servicenow_list_atf_tests", "description": "List ATF tests" },
+    {
+      "name": "servicenow_list_attachments",
+      "description": "List ServiceNow attachments"
+    },
+    {
+      "name": "servicenow_list_catalog_categories",
+      "description": "List catalog categories"
+    },
+    {
+      "name": "servicenow_list_catalog_items",
+      "description": "List catalog items"
+    },
+    {
+      "name": "servicenow_list_catalogs",
+      "description": "List service catalogs"
+    },
+    {
+      "name": "servicenow_list_changes",
+      "description": "List change requests"
+    },
+    {
+      "name": "servicenow_list_ci_relations",
+      "description": "List CI relationships"
+    },
+    {
+      "name": "servicenow_list_cis",
+      "description": "List configuration items"
+    },
+    { "name": "servicenow_list_docs", "description": "List instance docs" },
+    { "name": "servicenow_list_flows", "description": "List flows" },
+    {
+      "name": "servicenow_list_instances",
+      "description": "List connection profiles"
+    },
+    { "name": "servicenow_list_packages", "description": "List tool packages" },
+    {
+      "name": "servicenow_list_scripts",
+      "description": "List ServiceNow scripts"
+    },
+    {
+      "name": "servicenow_list_tables",
+      "description": "List ServiceNow tables"
+    },
+    {
+      "name": "servicenow_list_update_sets",
+      "description": "List update sets"
+    },
+    {
+      "name": "servicenow_list_writes",
+      "description": "List journaled writes"
+    },
+    {
+      "name": "servicenow_lookup_directory",
+      "description": "Look up users, groups and roles"
+    },
+    {
+      "name": "servicenow_order_catalog_item",
+      "description": "Order catalog item"
+    },
+    {
+      "name": "servicenow_query_table",
+      "description": "Query ServiceNow table"
+    },
+    { "name": "servicenow_read_doc", "description": "Read instance doc" },
+    {
+      "name": "servicenow_read_ops",
+      "description": "Read instance operations data"
+    },
+    {
+      "name": "servicenow_revert_write",
+      "description": "Revert a journaled write"
+    },
+    { "name": "servicenow_run_atf_suite", "description": "Run an ATF suite" },
+    { "name": "servicenow_run_atf_test", "description": "Run an ATF test" },
+    {
+      "name": "servicenow_search_code",
+      "description": "Search ServiceNow code"
+    },
+    { "name": "servicenow_search_docs", "description": "Search instance docs" },
+    {
+      "name": "servicenow_search_knowledge",
+      "description": "Search knowledge articles"
+    },
+    { "name": "servicenow_send_email", "description": "Send ServiceNow email" },
+    {
+      "name": "servicenow_set_credentials",
+      "description": "Set ServiceNow credentials"
+    },
+    { "name": "servicenow_set_property", "description": "Set system property" },
+    {
+      "name": "servicenow_snapshot_instance",
+      "description": "Snapshot instance metadata"
+    },
+    {
+      "name": "servicenow_test_connection",
+      "description": "Test ServiceNow connection"
+    },
+    {
+      "name": "servicenow_trace_table_event",
+      "description": "Trace a table event"
+    },
+    {
+      "name": "servicenow_update_change",
+      "description": "Update change request"
+    },
+    {
+      "name": "servicenow_update_ci",
+      "description": "Update configuration item"
+    },
+    {
+      "name": "servicenow_update_record",
+      "description": "Update ServiceNow record"
+    },
+    {
+      "name": "servicenow_upload_attachment",
+      "description": "Upload ServiceNow attachment"
+    },
+    { "name": "servicenow_upsert_artifact", "description": "Upsert artifact" },
+    {
+      "name": "servicenow_upsert_record",
+      "description": "Upsert ServiceNow record"
+    },
+    {
+      "name": "servicenow_use_instance",
+      "description": "Switch connection profile"
+    },
+    { "name": "servicenow_where_used", "description": "Where used" },
+    { "name": "servicenow_write_doc", "description": "Write instance doc" }
+  ],
+  "prompts_generated": true,
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "servicenow",
+    "llm",
+    "ai",
+    "rest"
+  ],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": { "node": ">=22.12" }
+  },
+  "user_config": {
+    "instance": {
+      "type": "string",
+      "title": "Instance",
+      "description": "Instance name, host, or https:// URL (dev12345, dev12345.service-now.com). (SN_INSTANCE)",
+      "required": true
+    },
+    "user": {
+      "type": "string",
+      "title": "User",
+      "description": "ServiceNow username for Basic auth. (SN_USER)",
+      "required": false
+    },
+    "password": {
+      "type": "string",
+      "title": "Password",
+      "description": "ServiceNow password. Never logged or returned by any tool. (SN_PASSWORD)",
+      "required": false,
+      "sensitive": true
+    },
+    "auth": {
+      "type": "string",
+      "title": "Auth",
+      "description": "Auth method: basic, oauth, apikey, token or none (cert-only mTLS). Auto-detected from the keys present (API key → bearer → OAuth → Basic). Default: auto. (SN_AUTH)",
+      "required": false
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API key",
+      "description": "ServiceNow Inbound API Key, sent as the x-sn-apikey header (enables apikey mode). (SN_API_KEY)",
+      "required": false,
+      "sensitive": true
+    },
+    "bearer_token": {
+      "type": "string",
+      "title": "Bearer token",
+      "description": "A pre-obtained bearer token, sent verbatim as Authorization: Bearer … (enables token mode). (SN_BEARER_TOKEN)",
+      "required": false,
+      "sensitive": true
+    },
+    "token_file": {
+      "type": "file",
+      "title": "Token file",
+      "description": "File holding the bearer token (enables token mode; wins over SN_BEARER_TOKEN). Re-read once when the instance rejects the token with 401, so an external issuer can rotate it; otherwise the call fails with AUTH_EXPIRED. (SN_TOKEN_FILE)",
+      "required": false
+    },
+    "token_expires_at": {
+      "type": "string",
+      "title": "Token expires at",
+      "description": "ISO 8601 expiry of the bearer token. get_status / doctor warn when less than 24 h remain, when it has passed, or when it cannot be parsed. (SN_TOKEN_EXPIRES_AT)",
+      "required": false
+    },
+    "oauth_client_id": {
+      "type": "string",
+      "title": "OAuth client ID",
+      "description": "OAuth client id (its presence enables OAuth). (SN_OAUTH_CLIENT_ID)",
+      "required": false
+    },
+    "oauth_client_secret": {
+      "type": "string",
+      "title": "OAuth client secret",
+      "description": "OAuth client secret. (SN_OAUTH_CLIENT_SECRET)",
+      "required": false,
+      "sensitive": true
+    },
+    "oauth_grant": {
+      "type": "string",
+      "title": "OAuth grant",
+      "description": "OAuth grant: password (deprecated — ROPC), client_credentials, refresh_token or jwt_bearer. The login command sets this to refresh_token for you. Any other value fails every OAuth request. Default: password. (SN_OAUTH_GRANT)",
+      "required": false
+    },
+    "oauth_refresh_token": {
+      "type": "string",
+      "title": "OAuth refresh token",
+      "description": "Refresh token for the refresh_token grant. Obtained automatically by npx servicenow-mcp-ai login (Authorization Code + PKCE). (SN_OAUTH_REFRESH_TOKEN)",
+      "required": false,
+      "sensitive": true
+    },
+    "oauth_redirect_uri": {
+      "type": "string",
+      "title": "OAuth redirect URI",
+      "description": "Loopback redirect URL for the PKCE login flow. Must match the redirect registered on the OAuth endpoint. Default: http://localhost:53682/callback. (SN_OAUTH_REDIRECT_URI)",
+      "required": false
+    },
+    "oauth_scope": {
+      "type": "string",
+      "title": "OAuth scope",
+      "description": "Optional OAuth scope requested during login. (SN_OAUTH_SCOPE)",
+      "required": false
+    },
+    "oauth_jwt_key": {
+      "type": "string",
+      "title": "OAuth JWT key",
+      "description": "PEM private key for the jwt_bearer grant (or SN_OAUTH_JWT_KEY_FILE); the public certificate is registered on the ServiceNow JWT provider. (SN_OAUTH_JWT_KEY)",
+      "required": false,
+      "sensitive": true
+    },
+    "oauth_jwt_key_file": {
+      "type": "file",
+      "title": "OAuth JWT key file",
+      "description": "Path to the PEM private key for the jwt_bearer grant. (SN_OAUTH_JWT_KEY_FILE)",
+      "required": false
+    },
+    "oauth_jwt_iss": {
+      "type": "string",
+      "title": "OAuth JWT iss",
+      "description": "iss claim of the JWT-bearer assertion. Default: client id. (SN_OAUTH_JWT_ISS)",
+      "required": false
+    },
+    "oauth_jwt_sub": {
+      "type": "string",
+      "title": "OAuth JWT sub",
+      "description": "sub claim (the user) of the JWT-bearer assertion. Default: SN_USER. (SN_OAUTH_JWT_SUB)",
+      "required": false
+    },
+    "oauth_jwt_aud": {
+      "type": "string",
+      "title": "OAuth JWT aud",
+      "description": "aud claim of the JWT-bearer assertion. Default: https://<host>/oauth_token.do. (SN_OAUTH_JWT_AUD)",
+      "required": false
+    },
+    "oauth_jwt_kid": {
+      "type": "string",
+      "title": "OAuth JWT kid",
+      "description": "kid header of the JWT-bearer assertion, when the provider requires one. (SN_OAUTH_JWT_KID)",
+      "required": false
+    },
+    "oauth_jwt_exp_sec": {
+      "type": "number",
+      "title": "OAuth JWT exp (seconds)",
+      "description": "Lifetime of the JWT-bearer assertion in seconds. Default: 300. (SN_OAUTH_JWT_EXP_SEC)",
+      "required": false
+    },
+    "allow_unconfirmed_credential_change": {
+      "type": "boolean",
+      "title": "Allow unconfirmed credential change",
+      "description": "H-2: operator opt-out — lets servicenow_set_credentials proceed on MCP clients without elicitation support (no confirmation prompt, no live server). An explicit decline is still refused. Off by default. Default: false. (SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE)",
+      "required": false
+    },
+    "tool_packages": {
+      "type": "string",
+      "title": "Tool packages",
+      "description": "Comma/space-separated tool packages or profiles to enable. Profiles: core (default), all and the presets reader | developer | admin (see Presets). Packages: table, schema, aggregate, attachment, importset, batch, catalog, change, knowledge, cmdb, scripts, flows, codecheck, docs, instance, email, atf, revert, artifacts, updatesets, ops, history, properties, directory, ui. The admin tools are always on. atf runs tests on the instance — enable it only on a non-production instance. Default: core. (SN_TOOL_PACKAGES)",
+      "required": false
+    }
+  }
+}

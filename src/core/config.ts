@@ -72,8 +72,26 @@ export interface ServiceNowCredentials {
   password: string;
 }
 
+const UNSET_USER_CONFIG = /^\$\{user_config\.[^}]+\}$/;
+
+/** N-51: drop `${user_config.*}` left unsubstituted by an MCPB host (empty field). */
+export function dropUnsetBundleValues(
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
+  const dropped: string[] = [];
+  for (const [key, value] of Object.entries(env)) {
+    if (value !== undefined && UNSET_USER_CONFIG.test(value)) {
+      delete env[key];
+      dropped.push(key);
+    }
+  }
+  return dropped;
+}
+
 /** Load the env file into process.env. Safe to call when the file is missing. */
 export function loadEnv(): void {
+  // Before the env file, so a placeholder does not shadow a value from it.
+  dropUnsetBundleValues();
   const { path, source } = envFileChoice();
   if (source === "project" && !projectEnvWarned) {
     projectEnvWarned = true;

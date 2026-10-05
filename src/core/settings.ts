@@ -772,3 +772,21 @@ export function getLogFileMaxBytes(): number {
 export function metricsEnabled(): boolean {
   return readBool("SN_METRICS");
 }
+
+/**
+ * N-55 — opt-in OpenTelemetry subscriber (`SN_OTEL`, truthy = on): the
+ * diagnostics_channel events become spans through the optional peer
+ * dependency `@opentelemetry/api` (core/otel.ts).
+ */
+export function otelEnabled(): boolean {
+  return readBool("SN_OTEL");
+}
+
+/**
+ * N-55 — opt-in W3C `traceparent` / `tracestate` headers on outbound
+ * ServiceNow REST requests (`SN_OTEL_PROPAGATE`, truthy = on). Off by
+ * default: the client's trace ids are not sent to the instance.
+ */
+export function otelPropagate(): boolean {
+  return readBool("SN_OTEL_PROPAGATE");
+}

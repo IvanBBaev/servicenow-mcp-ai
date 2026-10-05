@@ -22,6 +22,7 @@ import {
   registerArtifactResources,
   registerToolsReferenceResource,
 } from "./resources.js";
+import { linkToolView, mcpAppsEnabled, registerAppResources } from "./apps.js";
 import { specs as tableSpecs } from "../tools/table.js";
 import { specs as metaSpecs } from "../tools/meta.js";
 import { specs as aggregateSpecs } from "../tools/aggregate.js";
@@ -373,6 +374,8 @@ export function registerAllTools(server: McpServer, runtime: Runtime): void {
   activeToolSpecs(true);
 
   const legacy = legacyToolNames();
+  // N-50: under SN_MCP_APPS=1 the tools with a view link to it (_meta.ui).
+  const apps = mcpAppsEnabled();
   const register = (
     spec: AnyToolSpec,
     name: string,
@@ -414,6 +417,7 @@ export function registerAllTools(server: McpServer, runtime: Runtime): void {
   for (const spec of ALL_TOOLS) {
     if (!policyPermits(spec, deniedSet, readOnlySet)) continue;
     const handle = register(spec, spec.name, spec.title, spec.description);
+    if (apps) linkToolView(server, spec, handle);
     session.addTool(spec.package, spec.name, handle);
   }
 
@@ -439,6 +443,7 @@ export function registerAllTools(server: McpServer, runtime: Runtime): void {
           );
         },
       );
+      if (apps) linkToolView(server, spec, handle);
       session.addAlias(spec.package, handle);
     }
   }
@@ -472,6 +477,8 @@ export function registerResources(server: McpServer): void {
     } else if (enabledSet.has(pkg.name)) pkg.resources(server);
   }
   if (session) enableResourceSubscriptions(server);
+  // N-50: the ui:// MCP Apps views, only under SN_MCP_APPS=1.
+  if (mcpAppsEnabled()) registerAppResources(server);
   registerToolsReferenceResource(server, () => ({
     tools: describeAllTools(),
     ...effectivePackages(),

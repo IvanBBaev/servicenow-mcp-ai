@@ -12,6 +12,8 @@ import type { SnRecord } from "../api/table.js";
  * `{ value, display_value, link }` field (H-8 C-4) or any nested object is
  * walked, and a named field is masked at any depth. The same primitive runs at
  * the ok()/fail() boundary for every tool result and on journal fields.
+ *
+ * N-21: type-based masking rides on the same rules — see core/secret-columns.ts.
  */
 
 export interface RedactionResult {
@@ -21,14 +23,12 @@ export interface RedactionResult {
 }
 
 /**
- * Mask sensitive values in a record set. Returns the (possibly new) records and
- * the number of redactions. A no-op — same array, `redacted: 0` — when neither
- * `SN_REDACT_FIELDS` nor `SN_REDACT_PII` is configured, so the default path pays
- * nothing.
+ * Mask sensitive values in a record set. Returns the records (the same
+ * reference when nothing was masked) and the number of redactions. N-21:
+ * secret columns (by dictionary type, or by OOTB name on a schema miss) are
+ * masked whatever `SN_REDACT_FIELDS` / `SN_REDACT_PII` say.
  */
 export function redactRecords(records: SnRecord[]): RedactionResult {
-  const rules = redactionRules();
-  if (!rules) return { records, redacted: 0 };
-  const r = redactValue(records, rules);
+  const r = redactValue(records, redactionRules());
   return { records: r.value, redacted: r.redacted };
 }
