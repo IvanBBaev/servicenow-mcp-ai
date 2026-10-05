@@ -172,7 +172,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_generate_fluent
 
-**Generate Fluent.** Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope. Secrets become placeholders; types without an emitter use Record() and are listed in unsupported. SDK target not type-checked.
+**Generate Fluent.** Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope. Secrets become placeholders; types without an emitter use Record() and are listed in unsupported.
 
 **Writes:** Read-only.
 
@@ -205,7 +205,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_upsert_artifact
 
-**Upsert artifact.** Create or update a registry artifact and its children (UI policy actions, portal page layout, catalog variables) as one journaled, revertible plan, parent first, with SDK pre-flight. Flows: {active} only (unverified, O-5).
+**Upsert artifact.** Create or update a registry artifact and its children (UI policy actions, portal page layout, catalog variables) as one journaled, revertible plan, parent first, with SDK pre-flight. Flows: {active} only (unverified).
 
 **Writes:** Write, idempotent. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`). Under `SN_DESTRUCTIVE_CONFIRM=token|elicit` an apply needs the `plan_token` of a matching preview.
 

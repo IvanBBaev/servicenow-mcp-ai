@@ -1292,11 +1292,11 @@ items:
     title: "shared parameters and description hygiene"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "partial"
     phase: "T1"
     done: null
     gates: []
-    notes: "Phase T1 (stale text) then T2 behind the N-18 eval (TK-41, TK-42). `src/mcp/params.ts`, short safety-bearing parameter text, heaviest descriptions rewritten, mechanics to the N-37 reference resource. `all` ≈ −6 KB. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: "Phase T1 done 2026-10-06: the stale `generate_fluent` text and the internal gate id O-5 in `upsert_artifact` removed (`all` −34 B). Open: phase T2 behind the N-18 eval (TK-41, TK-42) — `src/mcp/params.ts`, short safety-bearing parameter text, heaviest descriptions rewritten, mechanics to the N-37 reference resource. `all` ≈ −6 KB. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-60"
     title: "shallow output schemas"
     pillar: "N"

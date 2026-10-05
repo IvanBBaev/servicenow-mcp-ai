@@ -464,7 +464,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_generate_fluent",
     title: "Generate Fluent",
     description:
-      "Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope. Secrets become placeholders; types without an emitter use Record() and are listed in unsupported. SDK target not type-checked.",
+      "Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope. Secrets become placeholders; types without an emitter use Record() and are listed in unsupported.",
     package: "artifacts",
     annotations: {
       readOnlyHint: true,
@@ -517,7 +517,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_upsert_artifact",
     title: "Upsert artifact",
     description:
-      "Create or update a registry artifact and its children (UI policy actions, portal page layout, catalog variables) as one journaled, revertible plan, parent first, with SDK pre-flight. Flows: {active} only (unverified, O-5).",
+      "Create or update a registry artifact and its children (UI policy actions, portal page layout, catalog variables) as one journaled, revertible plan, parent first, with SDK pre-flight. Flows: {active} only (unverified).",
     package: "artifacts",
     annotations: {
       readOnlyHint: false,

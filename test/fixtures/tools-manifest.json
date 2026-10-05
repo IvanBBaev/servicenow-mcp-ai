@@ -2190,7 +2190,7 @@
       "package": "artifacts",
       "title": "Generate Fluent",
       "since": "2.0.1",
-      "description_sha256": "ffaf59b9901a63d5ef314585b8deaef2e53c7e7e1f1db3d3879b534cd29beda6",
+      "description_sha256": "a7e9a80dd0304d0ad7a4af6063574383ef18778d2ffa07a3c2ae5fafb20fb91e",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2316,7 +2316,7 @@
         "type": "object"
       },
       "sizes": {
-        "description": 228,
+        "description": 199,
         "inputSchema": 1324,
         "paramDescriptions": 443,
         "outputSchema": 788
@@ -6644,7 +6644,7 @@
       "package": "artifacts",
       "title": "Upsert artifact",
       "since": "2.0.1",
-      "description_sha256": "88db1b536217939d774b117d6eaa9c7a20f6fbe0a41e2fa4fe404ed4d435cd7d",
+      "description_sha256": "35d30b75b30da79138ad41ec24bfcb47463b1a855197add4c26d357618570b5e",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -6779,7 +6779,7 @@
       },
       "legacyParams": { "fields": "values" },
       "sizes": {
-        "description": 224,
+        "description": 219,
         "inputSchema": 2979,
         "paramDescriptions": 1184,
         "outputSchema": 0
