@@ -1,5 +1,5 @@
 {
-  "description": "D-8: block a destructive ServiceNow apply:true that carries no plan_token before it reaches the server. N-48: inject the active profile and write mode at session start (local config only), and hint how to narrow a truncated ServiceNow result.",
+  "description": "D-8: stop a destructive ServiceNow write before it reaches the server — deny an apply:true without a plan_token in plan mode, ask the user in apply mode. The PreToolUse matcher names only the destructive tools (and their v2 names); test/plugin-hook.test.js pins it to the hook. N-48: inject the active profile and write mode at session start (local config only), and hint how to narrow a truncated ServiceNow result.",
   "hooks": {
     "SessionStart": [
       {
@@ -14,7 +14,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "mcp__.*__servicenow_.*",
+        "matcher": "^mcp__.+__servicenow_(?:batch|change_conflicts|check_change_conflicts|delete_attachment|delete_record|order_catalog_item|revert_write|send_email|upsert_artifact)$",
         "hooks": [
           {
             "type": "command",

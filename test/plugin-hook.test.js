@@ -80,10 +80,31 @@ test("the hook's legacy names are exactly the manifest's renames of destructive 
 test("hooks.json registers the script as a PreToolUse hook on the server's tools", () => {
   const cfg = JSON.parse(readFileSync(join(root, "hooks/hooks.json"), "utf8"));
   const [entry] = cfg.hooks.PreToolUse;
-  const matcher = new RegExp(`^(?:${entry.matcher})$`);
-  assert.ok(matcher.test(`${PREFIX}servicenow_delete_record`));
-  assert.ok(matcher.test("mcp__servicenow__servicenow_batch"));
-  assert.ok(!matcher.test("Bash"));
+  // PH-9: the matcher names exactly the gated tools (v3 and v2 names) — under
+  // an anchored and an unanchored reading of the pattern alike.
+  const gated = new Set([
+    ...Object.keys(DESTRUCTIVE_TOOLS),
+    ...Object.keys(LEGACY_TOOL_NAMES),
+  ]);
+  const names = new Set([
+    ...manifest.tools.map((t) => t.name),
+    ...manifest.toolRenames.map((r) => r.from),
+  ]);
+  for (const matcher of [
+    new RegExp(`^(?:${entry.matcher})$`),
+    new RegExp(entry.matcher),
+  ]) {
+    for (const name of names)
+      assert.equal(
+        matcher.test(`${PREFIX}${name}`),
+        gated.has(name),
+        `${name}: matcher and hook disagree`,
+      );
+    assert.ok(matcher.test("mcp__servicenow__servicenow_batch"));
+    assert.ok(!matcher.test("servicenow_delete_record"));
+    assert.ok(!matcher.test(`${PREFIX}servicenow_delete_record_x`));
+    assert.ok(!matcher.test("Bash"));
+  }
   assert.match(
     entry.hooks[0].command,
     /\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\/require-plan-token\.mjs/,
