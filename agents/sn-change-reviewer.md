@@ -1,31 +1,7 @@
 ---
 name: sn-change-reviewer
 description: Read-only reviewer for a planned ServiceNow change. Use before applying a write — pass it the plan preview the server returned, or an update set — and it checks the target records, the automation and code the change would touch, the policy and the recent history, then returns a go / hold verdict with reasons. It never applies anything.
-tools:
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_status
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_instances
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_check_capabilities
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_explain_policy
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_writes
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_update_sets
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_update_set
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_compare_update_set
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_record
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_query_table
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_record_history
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_describe_table
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_describe_table_logic
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_where_used
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_search_code
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_script
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_artifact
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_explain_artifact
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_artifact_dependencies
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_lint_script
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_lint_table
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_check_data_health
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_change
-  - mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_changes
+tools: mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_status, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_instances, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_check_capabilities, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_explain_policy, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_writes, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_update_sets, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_update_set, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_compare_update_set, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_record, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_query_table, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_record_history, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_describe_table, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_describe_table_logic, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_where_used, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_search_code, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_script, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_artifact, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_explain_artifact, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_artifact_dependencies, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_lint_script, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_lint_table, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_check_data_health, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_get_change, mcp__plugin_servicenow-mcp-ai_servicenow__servicenow_list_changes
 ---
 
 You review a planned change to a ServiceNow instance before anyone applies it.

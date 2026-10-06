@@ -63,6 +63,13 @@ test("plugin.json leaves agents/ to the default scan", () => {
 for (const file of agents) {
   const text = readFileSync(join(agentsDir, file), "utf8");
   const fm = frontmatter(text);
+  const allowlist =
+    typeof fm?.tools === "string"
+      ? fm.tools
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : [];
 
   test(`agent ${file} has valid frontmatter`, () => {
     assert.ok(fm, "an agent needs a frontmatter block");
@@ -81,13 +88,20 @@ for (const file of agents) {
     assert.ok(body.length > 200, "an agent needs a system prompt");
   });
 
-  test(`agent ${file} allowlists only read-only tools of this server`, () => {
-    assert.ok(
-      Array.isArray(fm.tools) && fm.tools.length > 0,
-      "tools must be an explicit allowlist",
+  test(`agent ${file} declares tools as a comma-separated string`, () => {
+    // SF-6: Claude Code's documented subagent format is `tools: a, b, c`.
+    assert.equal(
+      typeof fm.tools,
+      "string",
+      "tools must be one comma-separated line, not a YAML list",
     );
-    assert.equal(new Set(fm.tools).size, fm.tools.length, "duplicate tools");
-    for (const entry of fm.tools) {
+    assert.match(fm.tools, /^[A-Za-z0-9_-]+(, [A-Za-z0-9_-]+)*$/);
+  });
+
+  test(`agent ${file} allowlists only read-only tools of this server`, () => {
+    assert.ok(allowlist.length > 0, "tools must be an explicit allowlist");
+    assert.equal(new Set(allowlist).size, allowlist.length, "duplicate tools");
+    for (const entry of allowlist) {
       assert.ok(entry.startsWith(PREFIX), `${entry} is not a plugin MCP tool`);
       const name = entry.slice(PREFIX.length);
       const tool = tools.get(name);
@@ -101,7 +115,7 @@ for (const file of agents) {
   });
 
   test(`agent ${file} names only allowlisted tools in its prompt`, () => {
-    const allowed = new Set(fm.tools.map((t) => t.slice(PREFIX.length)));
+    const allowed = new Set(allowlist.map((t) => t.slice(PREFIX.length)));
     const named = new Set(text.match(/\bservicenow_[a-z0-9_]+\b/g) ?? []);
     for (const name of named) {
       assert.ok(tools.has(name), `${name} is not a registered tool`);

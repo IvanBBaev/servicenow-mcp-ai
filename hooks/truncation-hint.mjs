@@ -3,6 +3,7 @@
 // says `truncated: true`, add one short hint naming the knobs that tool
 // really has (fields, offset, format:"file") so the assistant narrows the
 // next call instead of reasoning over a partial set as if it were complete.
+// Inside a subagent (`agent_id` in the hook input) format:"file" is left out.
 //
 // It only reads the tool result the client hands it — no network, no
 // dependency, no file access — and only the top-level `truncated`, `returned`
@@ -124,9 +125,14 @@ export function truncationHint(event) {
   if (FIELDS_TOOLS.includes(name)) knobs.push("select fewer `fields`");
   knobs.push("tighten the filter or lower `limit`");
   if (OFFSET_TOOLS.includes(name)) knobs.push("page with `offset`");
-  const file = FILE_FORMAT_TOOLS.includes(name)
-    ? ' — or pass `format: "file"` to write the full result to a file'
-    : "";
+  // SF-6: a subagent (Claude Code sets `agent_id` only inside one) cannot
+  // hand a file it writes back to its caller, and the plugin's subagents are
+  // told never to use format:"file" — so it is not suggested there.
+  const subagent = typeof event?.agent_id === "string" && event.agent_id !== "";
+  const file =
+    FILE_FORMAT_TOOLS.includes(name) && !subagent
+      ? ' — or pass `format: "file"` to write the full result to a file'
+      : "";
   return (
     `${name} returned a truncated result${size}; do not treat it as complete. ` +
     `To see the rest: ${knobs.join(", ")}${file}.`
