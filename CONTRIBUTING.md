@@ -105,7 +105,11 @@ call satisfies (a required input typed wrong, such as `table: number`), so the
 first call aborts the run with score 0. With the default 3 runs one aborted
 run caps the case at 0.67, below the workflow's 0.8 threshold. The test checks
 that every guard really rejects every valid call and that no write-tool ban
-weighs less than 1.
+weighs less than 1. The only other case mock allowed is a `type: agent` mock
+for a contract a fixed answer cannot play, such as the plan -> token -> apply
+flow of `sn-safe-write-destructive`; it must quote the recorded suite answer
+verbatim in a fenced `json` block, so it fails the test when that answer
+drifts.
 
 The `Skill evals` workflow runs the suite on demand (`workflow_dispatch` only)
 with the model, judge model, threshold and spend ceiling as inputs. It needs the

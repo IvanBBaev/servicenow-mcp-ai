@@ -254,18 +254,33 @@ for (const dir of cases) {
 
   const guards = guardMocks(dir);
   if (guards.length === 0) continue;
-  test(`eval case ${rel} guard mocks abort every call of their tool`, () => {
+  test(`eval case ${rel} mocks are guards or quote the recorded answer`, () => {
     const listed = new Map(
       JSON.parse(readFileSync(join(MOCK_DIR, "_tools.json"), "utf8")).tools.map(
         (t) => [t.name, t.inputSchema],
       ),
     );
     for (const { file, name, text } of guards) {
-      assert.ok(file.endsWith(".md"), `${file}: a guard is a .md mock`);
+      assert.ok(file.endsWith(".md"), `${file}: a case mock is a .md mock`);
       assert.ok(mockedNames.has(name), `${name} has no suite mock`);
       const { fields, body } = frontmatter(text);
-      assert.equal(fields.type, "fixed", name);
       assert.ok(!body.includes("{{"), `${name} contains a template marker`);
+      if (fields.type === "agent") {
+        // An agent mock plays a contract a fixed answer cannot (plan ->
+        // token -> apply); the answer it quotes is the recorded one.
+        const recorded = JSON.parse(
+          frontmatter(readFileSync(join(MOCK_DIR, file), "utf8")).body,
+        );
+        const quoted = /```json\n([\s\S]*?)\n```/.exec(body)?.[1];
+        assert.ok(quoted, `${name}: quote the recorded answer in a json block`);
+        assert.deepEqual(
+          JSON.parse(quoted),
+          recorded,
+          `${name}: re-quote the recorded mock`,
+        );
+        continue;
+      }
+      assert.equal(fields.type, "fixed", name);
       const expect = Object.entries(expectBlock(text));
       assert.ok(expect.length > 0, `${name}: a guard needs an expect block`);
       // Each guarded field is one every valid call sends, typed so that no
