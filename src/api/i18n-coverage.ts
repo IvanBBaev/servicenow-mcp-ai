@@ -14,6 +14,8 @@ import { queryTable, type SnRecord } from "./table.js";
  * - `labels`: field and table labels (`sys_documentation`) of the scope's tables;
  * - `choices`: choice values (`sys_choice`) of the scope's tables;
  * - `translatedText`: `sys_translated_text` values of the scope's tables;
+ * - `translatedFields`: `sys_translated` values (translated_field columns) of
+ *   the scope's tables, keyed by table, field and source value;
  * - `uibStrings`: the user-facing strings of each macroponent's composition
  *   plus its declared `required_translations` (N-31 `requiredTranslations`),
  *   matched against `sys_ui_message` keys in any scope.
@@ -46,6 +48,7 @@ export const I18N_CATEGORIES = [
   "labels",
   "choices",
   "translatedText",
+  "translatedFields",
   "uibStrings",
 ] as const;
 export type I18nCategory = (typeof I18N_CATEGORIES)[number];
@@ -115,7 +118,7 @@ export interface I18nRow {
 }
 
 export const I18N_CAVEAT =
-  "Translation coverage (N-7) is unverified (gate O-5): sys_ui_message (key, language), sys_documentation (name, element, language), sys_choice (name, element, value, language), sys_translated_text (tablename, fieldname, documentkey, language), sys_language (id, name, active) and the UIB message-key convention (the English string is the sys_ui_message key) are assumptions. The keys of a category are those seen in any language, so a value never translated into any language is not counted; sys_translated (translated-field values) is not read.";
+  "Translation coverage (N-7) is unverified (gate O-5): sys_ui_message (key, language), sys_documentation (name, element, language), sys_choice (name, element, value, language), sys_translated_text (tablename, fieldname, documentkey, language), sys_translated (name, element, value, language), sys_language (id, name, active) and the UIB message-key convention (the English string is the sys_ui_message key) are assumptions. The keys of a category are those seen in any language, so a value never translated into any language is not counted.";
 
 const SYS_ID = /^[0-9a-f]{32}$/i;
 const LANGUAGE = /^[a-z]{2,3}([_-][a-z0-9]{2,8})*$/i;
@@ -425,6 +428,7 @@ async function readScopeSources(
     ["labels", "sys_documentation"],
     ["choices", "sys_choice"],
     ["translatedText", "sys_translated_text"],
+    ["translatedFields", "sys_translated"],
   ];
   if (!scope) return SOURCES.map(([c, t]) => skipped(c, t));
   const out: SourceRead[] = [
@@ -453,7 +457,7 @@ async function readScopeSources(
       });
     }
     caveats.push(
-      "i18n: without the scope's tables (sys_db_object) labels, choices and translated text are not checked.",
+      "i18n: without the scope's tables (sys_db_object) labels, choices, translated text and translated fields are not checked.",
     );
     return out;
   }
@@ -488,6 +492,14 @@ async function readScopeSources(
       ["tablename", "fieldname", "documentkey", "language"],
       (r) =>
         `${str(r, "tablename")}.${str(r, "fieldname")}.${str(r, "documentkey")}`,
+      caveats,
+    ),
+    await readSource(
+      "translatedFields",
+      "sys_translated",
+      inClauses("name"),
+      ["name", "element", "value", "language"],
+      (r) => `${str(r, "name")}.${str(r, "element")}.${str(r, "value")}`,
       caveats,
     ),
   );
@@ -615,6 +627,7 @@ const CATEGORY_LABEL: Record<I18nCategory, string> = {
   labels: "Field labels",
   choices: "Choices",
   translatedText: "Translated text",
+  translatedFields: "Translated fields",
   uibStrings: "UIB strings",
 };
 

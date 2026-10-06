@@ -1,5 +1,5 @@
 // N-7 — translation coverage per language: messages, labels, choices,
-// translated text and UIB strings.
+// translated text, translated fields and UIB strings.
 import test from "node:test";
 import assert from "node:assert/strict";
 import fc from "fast-check";
@@ -123,6 +123,20 @@ const tables = (overrides = {}) => ({
       language: "fr",
     },
   ],
+  sys_translated: [
+    {
+      name: "x_acme_request",
+      element: "u_category",
+      value: "Hardware",
+      language: "de",
+    },
+    {
+      name: "x_acme_request",
+      element: "u_category",
+      value: "Software",
+      language: "fr",
+    },
+  ],
   sys_language: [
     { id: "en", name: "English" },
     { id: "de", name: "German" },
@@ -176,14 +190,20 @@ test("a partial de translation lists exactly the missing keys per category (done
     assert.deepEqual(de.translatedText.sample, [
       `x_acme_request.short_description.${"c".repeat(32)}`,
     ]);
+    assert.deepEqual(de.translatedFields.sample, [
+      "x_acme_request.u_category.Software",
+    ]);
     assert.deepEqual(de.uibStrings.sample, ["Declared only", "Save record"]);
     assert.equal(de.uibStrings.total, 3);
     assert.equal(de.uibStrings.translated, 1);
     const l = r.languages[0];
     assert.equal(l.translated + l.missing, l.total);
-    assert.equal(l.total, 2 + 2 + 2 + 1 + 3);
+    assert.equal(l.total, 2 + 2 + 2 + 1 + 2 + 3);
     const fr = byCat(r.languages[1]);
     assert.equal(fr.translatedText.missing, 0);
+    assert.deepEqual(fr.translatedFields.sample, [
+      "x_acme_request.u_category.Hardware",
+    ]);
     assert.deepEqual(fr.messages.sample, ["Hello"]);
     assert.ok(r.sources.every((s) => s.status === "read"));
     assert.ok(r.caveats.includes(I18N_CAVEAT));
@@ -212,7 +232,7 @@ test("given languages override sys_language; macroponents alone skip the scope s
       const skipped = r.sources.filter((s) => s.status === "skipped");
       assert.deepEqual(
         skipped.map((s) => s.category),
-        ["messages", "labels", "choices", "translatedText"],
+        ["messages", "labels", "choices", "translatedText", "translatedFields"],
       );
       const c = r.languages[0].categories;
       assert.equal(c.length, 1);
@@ -259,7 +279,7 @@ test("unreadable tables degrade per category with caveats", async () => {
   );
 });
 
-test("an unreadable sys_db_object leaves labels, choices and translated text unreadable", async () => {
+test("an unreadable sys_db_object leaves labels, choices, translated text and translated fields unreadable", async () => {
   freshRuntime();
   await withMetadataFetch(route(tables({ sys_db_object: 403 })), async () => {
     const r = await i18nCoverage({ scope: "x_acme", languages: ["de"] });
@@ -270,6 +290,7 @@ test("an unreadable sys_db_object leaves labels, choices and translated text unr
     assert.equal(status.labels, "unreadable");
     assert.equal(status.choices, "unreadable");
     assert.equal(status.translatedText, "unreadable");
+    assert.equal(status.translatedFields, "unreadable");
     assert.equal(status.uibStrings, "read");
     assert.ok(r.caveats.some((c) => /sys_db_object/.test(c)));
   });
@@ -286,7 +307,7 @@ test("i18nCoverageMarkdown: sources, a coverage table and the missing samples", 
     const md = i18nCoverageMarkdown(r);
     assert.match(md, /^# Translation coverage/);
     assert.match(md, /## Sources/);
-    assert.match(md, /\| de \(German\) \| \d+ \| \d+ \| 10 \| \d+ % \|/);
+    assert.match(md, /\| de \(German\) \| \d+ \| \d+ \| 12 \| \d+ % \|/);
     assert.match(md, /## Missing: de/);
     assert.match(md, /- UIB strings: 2 of 3 — `Declared only`, `Save record`/);
     assert.match(md, /## Caveats/);
