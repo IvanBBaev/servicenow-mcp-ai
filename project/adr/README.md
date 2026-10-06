@@ -45,6 +45,7 @@ and the open questions behind them wait in [TODO.md](../TODO.md).
 | [0003](0003-acorn-runtime-parser.md)                        | `acorn` as a runtime parser dependency (S-12)                 | accepted 2026-10-01             | ROADMAP-V3.md §S-12, TODO.md, DONE.md       |
 | [0004](0004-twin-http-clients.md)                           | Twin HTTP clients and the parity drift guard (ARCH-10)        | proposed (interim rule applies) | TODO.md, ARCHITECTURE.md §11                |
 | [0005](0005-jira-surface.md)                                | The dark Jira Cloud surface (ARCH-14, O-1)                    | proposed (deferred 2026-10-01)  | TODO.md, ARCHITECTURE.md §11, ROADMAP E-8   |
+| [0006](0006-tools-list-budget-ratchet.md)                   | `tools/list` budgets as data; restated targets (O-10 (a)+(b)) | accepted 2026-10-06 (part)      | ROADMAP-V3.md §O, TOKEN-OPTIMIZATION-PLAN §7 |
 
-Open gates without a record (as of 2026-10-05): O-1 (see 0005 for the deferral), O-2, O-3,
-O-5, O-6, O-8 … O-22.
+Open gates without a record (as of 2026-10-06): O-1 (see 0005 for the deferral), O-2, O-3,
+O-5, O-6, O-8, O-9, O-11 … O-22; O-10 (c) and (d) stay open under 0006.
