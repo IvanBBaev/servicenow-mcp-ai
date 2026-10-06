@@ -23,11 +23,16 @@ const manifest = JSON.parse(
 const PREFIX = "mcp__plugin_servicenow-mcp-ai_servicenow__";
 const on = { SN_DESTRUCTIVE_CONFIRM: undefined };
 
+/** A spawned hook sees no SN_* from the developer's shell and no env file. */
 function runHook(event, env = {}) {
-  const childEnv = { ...process.env, ...env };
-  if (!("SN_DESTRUCTIVE_CONFIRM" in env)) {
-    delete childEnv.SN_DESTRUCTIVE_CONFIRM;
-  }
+  const childEnv = {};
+  for (const [k, v] of Object.entries(process.env))
+    if (!k.startsWith("SN_")) childEnv[k] = v;
+  Object.assign(
+    childEnv,
+    { SN_ENV_FILE: join(root, "test", "fixtures", "no-such-hook.env") },
+    env,
+  );
   return spawnSync(process.execPath, [script], {
     input: typeof event === "string" ? event : JSON.stringify(event),
     env: childEnv,

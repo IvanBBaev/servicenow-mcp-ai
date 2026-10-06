@@ -11,54 +11,19 @@
 // the client launches may run with a different environment, so the context
 // says that `servicenow_get_status` is authoritative. Any error — a missing or
 // unreadable file, a malformed value — prints nothing and exits 0.
-import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { parseEnv } from "node:util";
 import { pathToFileURL } from "node:url";
 
-const TRUTHY = new Set(["1", "true", "yes", "on"]);
-const PROFILE_RE = /^[a-z0-9_]+$/;
-const ENVIRONMENTS = new Set(["prod", "test", "dev"]);
-const PROD_WRITES_ACK = "I_UNDERSTAND";
+import {
+  activeProfile,
+  clean,
+  envFilePath,
+  profileNames,
+  readEnvFile,
+  setting,
+  writePolicy,
+} from "./sn-config.mjs";
 
-/** The env file the server reads (SN_ENV_FILE, else the XDG path). */
-export function envFilePath(env = process.env) {
-  const explicit = env.SN_ENV_FILE?.trim();
-  if (explicit) return explicit;
-  const base = env.XDG_CONFIG_HOME?.trim() || join(homedir(), ".config");
-  return join(base, "servicenow-mcp-ai", ".env");
-}
-
-/** The parsed env file, or `{}` when it is missing or unreadable. */
-export function readEnvFile(path) {
-  try {
-    if (!path || !existsSync(path)) return {};
-    return parseEnv(readFileSync(path, "utf8"));
-  } catch {
-    return {};
-  }
-}
-
-function clean(value) {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-/**
- * A setting as the server resolves it for `profile`. `override`: a non-default
- * profile's SN_PROFILE_<NAME>_<X> wins, else SN_<X>. `isolated`: the default
- * profile reads only SN_<X>, any other profile only SN_PROFILE_<NAME>_<X>.
- */
-function setting(config, suffix, profile, scope) {
-  const scoped =
-    profile === "default"
-      ? undefined
-      : clean(config[`SN_PROFILE_${profile.toUpperCase()}_${suffix}`]);
-  if (scope === "isolated") {
-    return profile === "default" ? clean(config[`SN_${suffix}`]) : scoped;
-  }
-  return scoped ?? clean(config[`SN_${suffix}`]);
-}
+export { envFilePath, profileNames, readEnvFile };
 
 /** The bare host of an instance value (`dev1`, a host, or a URL); no userinfo. */
 export function instanceHost(raw) {
@@ -88,17 +53,6 @@ function packageList(raw) {
   return names.length > 0 ? names.join(", ") : undefined;
 }
 
-/** The profile names the config defines (`default` when SN_INSTANCE is set). */
-export function profileNames(config) {
-  const names = new Set();
-  if (clean(config.SN_INSTANCE)) names.add("default");
-  for (const key of Object.keys(config)) {
-    const m = /^SN_PROFILE_([A-Z0-9_]+)_INSTANCE$/.exec(key);
-    if (m && clean(config[key])) names.add(m[1].toLowerCase());
-  }
-  return [...names].sort();
-}
-
 /**
  * The context line for the session, or `undefined` when there is no
  * ServiceNow config at all. `env` wins over `fileEnv`, as in the server.
@@ -108,29 +62,14 @@ export function sessionContext(env = {}, fileEnv = {}) {
   const config = { ...fileEnv, ...env };
   if (!Object.keys(config).some((k) => k.startsWith("SN_"))) return undefined;
 
-  const requested = clean(config.SN_ACTIVE_PROFILE)?.toLowerCase();
-  const profile =
-    requested && PROFILE_RE.test(requested) ? requested : "default";
+  const profile = activeProfile(config);
   const host = instanceHost(setting(config, "INSTANCE", profile, "isolated"));
-  const environment = setting(
-    config,
-    "ENV",
-    profile,
-    "isolated",
-  )?.toLowerCase();
-  const marked = ENVIRONMENTS.has(environment) ? environment : undefined;
-  const configured =
-    setting(config, "WRITE_MODE", profile, "override")?.toLowerCase() ===
-    "apply"
-      ? "apply"
-      : "plan";
-  const held =
-    configured === "apply" &&
-    marked === "prod" &&
-    setting(config, "PROD_WRITES", profile, "isolated") !== PROD_WRITES_ACK;
-  const readonly = TRUTHY.has(
-    setting(config, "READONLY", profile, "override")?.toLowerCase() ?? "",
-  );
+  const {
+    environment: marked,
+    configured,
+    held,
+    readonly,
+  } = writePolicy(config, profile);
 
   const parts = [
     `active profile \`${profile}\`` +
