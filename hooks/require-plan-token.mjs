@@ -17,8 +17,9 @@
 //   hook asks the user (`permissionDecision: "ask"`) and says so.
 // - SN_READONLY, a profile the local config does not define, or an
 //   `instance` value the server would refuse: silent — the server decides.
-// Anything it does not understand passes through, so a broken hook can
-// never block a call the server would allow. The server may run with a
+// Anything it does not understand passes through, and any error prints
+// nothing and exits 0 (fail open), so a broken hook can never block a call
+// the server would allow. The server may run with a
 // different environment than the client; it stays authoritative.
 //
 // Escape hatch: SN_DESTRUCTIVE_CONFIRM=off (the same opt-out the server
@@ -182,5 +183,9 @@ if (
   process.argv[1] &&
   pathToFileURL(process.argv[1]).href === import.meta.url
 ) {
-  await main();
+  try {
+    await main();
+  } catch {
+    // fail open: print nothing and exit 0, so the server decides the call
+  }
 }
