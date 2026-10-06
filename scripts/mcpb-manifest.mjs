@@ -41,6 +41,13 @@ export const MCPB_MANIFEST_VERSION = "0.3";
 /** The bundle's entry point, relative to the bundle root. */
 export const ENTRY_POINT = "build/index.js";
 
+/**
+ * MC-7: the Claude Desktop versions the bundle supports (semver range): the
+ * release line that installs MCPB 0.3 bundles with `user_config`
+ * substitution and `sensitive` (keychain) fields.
+ */
+export const CLAUDE_DESKTOP_RANGE = ">=0.10.0";
+
 /** The icon file at the bundle root (copied from extension/icon.png). */
 export const ICON = "icon.png";
 
@@ -201,10 +208,15 @@ export function buildMcpbManifest({ pkg, settings, tools }) {
     tools: [...tools]
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((t) => ({ name: t.name, description: t.title })),
+    // MC-7: the session's tool list follows SN_TOOL_PACKAGES and
+    // servicenow_enable_package, so the list above is the full catalogue, not
+    // what a given session exposes; hosts ask the server (tools/list).
+    tools_generated: true,
     prompts_generated: true,
     keywords: pkg.keywords ?? [],
     license: pkg.license,
     compatibility: {
+      claude_desktop: CLAUDE_DESKTOP_RANGE,
       platforms: ["darwin", "win32", "linux"],
       runtimes: { node: pkg.engines.node },
     },

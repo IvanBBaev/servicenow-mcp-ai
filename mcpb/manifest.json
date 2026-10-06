@@ -355,6 +355,7 @@
     { "name": "servicenow_where_used", "description": "Where used" },
     { "name": "servicenow_write_doc", "description": "Write instance doc" }
   ],
+  "tools_generated": true,
   "prompts_generated": true,
   "keywords": [
     "mcp",
@@ -366,6 +367,7 @@
   ],
   "license": "MIT",
   "compatibility": {
+    "claude_desktop": ">=0.10.0",
     "platforms": ["darwin", "win32", "linux"],
     "runtimes": { "node": ">=22.12" }
   },

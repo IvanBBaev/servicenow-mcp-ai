@@ -70,6 +70,10 @@ test("N-51: identity comes from package.json", () => {
     email: "ivanbbaev@gmail.com",
   });
   assert.equal(manifest.compatibility.runtimes.node, pkg.engines.node);
+  // MC-7: hosts ask the server for the live lists; the Desktop range is set.
+  assert.equal(manifest.tools_generated, true);
+  assert.equal(manifest.prompts_generated, true);
+  assert.match(manifest.compatibility.claude_desktop, /^>=\d+\.\d+\.\d+$/);
   assert.doesNotMatch(manifest.repository.url, /^git\+/);
 });
 
