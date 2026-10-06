@@ -346,3 +346,66 @@ test("an unreadable ACL table or unknown user degrades; bad input throws", async
     await assert.rejects(explainAccess(input), { status: 400 });
   }
 });
+
+test("N-12: domain-specific ACLs are attributed, grouped by domain and add the caveat", async () => {
+  freshRuntime();
+  await withFetch(
+    instance({
+      sys_security_acl: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: "acme",
+              name: "incident",
+              sys_domain: "d1",
+              "sys_domain.name": "ACME",
+              sys_overrides: "base",
+            },
+            {
+              sys_id: "base",
+              name: "incident",
+              sys_domain: "global",
+              "sys_domain.name": "global",
+            },
+          ],
+        }),
+      sys_security_acl_role: () => jsonResponse(200, { result: [] }),
+    }),
+    async (calls) => {
+      const r = await explainAccess({
+        user: USER,
+        table: "incident",
+        operation: "read",
+      });
+      const [acme, base] = r.checks[0].acls;
+      assert.equal(acme.domain, "ACME");
+      assert.match(acme.notes.join(";"), /overrides base in its domain/);
+      assert.equal(base.domain, undefined);
+      assert.match(r.notes.join("\n"), /Domain separation:/);
+      const fields = calls
+        .map((c) => new URL(c.url))
+        .find((u) => u.pathname.endsWith("/sys_security_acl"))
+        .searchParams.get("sysparm_fields");
+      assert.match(fields, /sys_domain\.name/);
+
+      const md = renderAccessExplanation(r).join("\n");
+      assert.match(md, /\| ACL \| Domain \| Roles \|/);
+      // Grouped by domain: global first.
+      assert.ok(md.indexOf("| global |") < md.indexOf("| ACME |"));
+    },
+  );
+});
+
+test("N-12: without domain separation the output has no Domain column or caveat", async () => {
+  freshRuntime();
+  await withFetch(instance(), async () => {
+    const r = await explainAccess({
+      user: USER,
+      table: "incident",
+      operation: "read",
+    });
+    assert.ok(r.checks[0].acls.every((a) => !("domain" in a)));
+    const md = renderAccessExplanation(r).join("\n");
+    assert.doesNotMatch(md, /Domain/);
+  });
+});

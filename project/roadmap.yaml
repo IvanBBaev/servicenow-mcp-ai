@@ -801,7 +801,7 @@ items:
     phase: "B"
     done: "2026-10-06"
     gates: ["O-13"]
-    notes: "**Partly done 2026-10-06.** `src/api/access-explain.ts` `explainAccess()`: user roles, row and field ACL chain with first-level match, role / condition (record query as the connected user) / script (undetermined) parts, admin overrides and elevation notes, Markdown renderer; code-only, 0 B tools/list. Open: the tool and a Mermaid decision diagram (O-10, O-13), per-domain grouping (N-12), PDI check (O-5). Phase B flagship. `servicenow_explain_access`: static ACL-chain evaluation for one user, operation and target; scripts → `undetermined`. Placement and privacy wait for O-13 (NX-02)."
+    notes: "**Partly done 2026-10-06.** `src/api/access-explain.ts` `explainAccess()`: user roles, row and field ACL chain with first-level match, role / condition (record query as the connected user) / script (undetermined) parts, admin overrides and elevation notes, Markdown renderer; code-only, 0 B tools/list. Per-domain grouping (N-12) done 2026-10-06: ACL domain attribution, a Domain column grouped by domain, the domain caveat. Open: the tool and a Mermaid decision diagram (O-10, O-13), PDI check (O-5). Phase B flagship. `servicenow_explain_access`: static ACL-chain evaluation for one user, operation and target; scripts → `undetermined`. Placement and privacy wait for O-13 (NX-02)."
   - id: "N-5"
     title: "task context: approvals + SLAs"
     pillar: "N"
@@ -873,7 +873,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-5", "O-10"]
-    notes: "**Partly done 2026-10-05.** Cached probe (`src/api/domain-separation.ts`, capability matrix) in `check_capabilities` / `get_status`; artefact and script lists, `explain_artifact` and the trace (business rules, flows, workflows, notifications) keep `sys_domain` / `sys_overrides` with one caveat; table documents add a Domain column to logic tables and app documents a per-domain Domains section (`artefactsByDomain`). 0 B tools/list. Open: per-domain grouping in N-2, a `domain` query scope (tools/list bytes, O-10); fields unverified (O-5) (NX-16)."
+    notes: "**Partly done 2026-10-05.** Cached probe (`src/api/domain-separation.ts`, capability matrix) in `check_capabilities` / `get_status`; artefact and script lists, `explain_artifact` and the trace (business rules, flows, workflows, notifications) keep `sys_domain` / `sys_overrides` with one caveat; table documents add a Domain column to logic tables and app documents a per-domain Domains section (`artefactsByDomain`). 0 B tools/list. Per-domain grouping in N-2 done 2026-10-06 (`access-explain.ts`). Open: a `domain` query scope (tools/list bytes, O-10); fields unverified (O-5) (NX-16)."
   - id: "N-13"
     title: "hardening compliance"
     pillar: "N"

@@ -1,4 +1,9 @@
 import { ServiceNowError } from "../core/errors.js";
+import {
+  DOMAIN_CAVEAT,
+  domainTraceFields,
+  recordDomain,
+} from "./domain-separation.js";
 import { getTableChain } from "./meta.js";
 import { unreadableReason } from "./security.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
@@ -29,6 +34,10 @@ import { isSysId } from "./uib-usage.js";
  * (PDI): inherited sys_user_has_role rows and their `state`, `admin_overrides`,
  * the field-ACL fallback order and the default when no ACL matches (deny, as
  * in high-security mode).
+ *
+ * N-12: on a domain-separated instance each ACL carries the domain it belongs
+ * to; the evaluation and the rendered table group by it and the result adds
+ * the domain caveat. Without domain separation the output is unchanged.
  */
 
 export const ACCESS_OPERATIONS = ["read", "write", "create", "delete"] as const;
@@ -57,6 +66,10 @@ export interface AclRule {
   advanced: boolean;
   /** An admin passes the ACL without evaluating it (platform default true). */
   adminOverrides: boolean;
+  /** N-12: the ACL's domain when it is not global. */
+  domain?: string;
+  /** N-12: sys_id of the ACL this one overrides in its domain. */
+  overrides?: string;
 }
 
 export interface AclEvaluation {
@@ -68,6 +81,8 @@ export interface AclEvaluation {
   script: PartResult;
   result: AccessDecision;
   notes: string[];
+  /** N-12: the ACL's domain when it is not global. */
+  domain?: string;
 }
 
 export interface AccessCheck {
@@ -173,7 +188,9 @@ export function evaluateAcl(
     script,
     result: combine([role, condition, script]),
     notes,
+    ...(acl.domain ? { domain: acl.domain } : {}),
   });
+  if (acl.overrides) notes.push(`overrides ${acl.overrides} in its domain`);
   if (admin && acl.adminOverrides) {
     notes.push("admin overrides this ACL");
     return out("pass", "n/a", "n/a");
@@ -311,6 +328,7 @@ async function readAcls(
       "script",
       "advanced",
       "admin_overrides",
+      ...domainTraceFields(),
     ],
     displayValue: "false",
     limit: ACL_LIMIT,
@@ -323,6 +341,7 @@ async function readAcls(
     script: snString(r.script),
     advanced: flag(r.advanced, false),
     adminOverrides: flag(r.admin_overrides, true),
+    ...recordDomain(r),
   }));
   if (acls.length === 0) return acls;
   const roleRows = await queryTable({
@@ -445,6 +464,9 @@ export async function explainAccess(
   if (input.field) {
     checks.push(await runCheck("field", fields, acls.value, roles, match));
   }
+  if (checks.some((c) => c.acls.some((a) => a.domain))) {
+    notes.push(DOMAIN_CAVEAT);
+  }
   for (const c of checks) {
     if (c.matched === undefined) {
       notes.push(
@@ -484,12 +506,30 @@ export function renderAccessExplanation(e: AccessExplanation): string[] {
       `Matched: ${c.matched ? `\`${c.matched}\`` : "no ACL"} (tried ${c.candidates.map((n) => `\`${n}\``).join(" → ")})`,
     );
     if (c.acls.length) {
+      // N-12: a Domain column, rows grouped by domain (global first), only
+      // when an ACL is domain-specific.
+      const domains = c.acls.some((a) => a.domain);
+      const acls = domains
+        ? [...c.acls].sort((a, b) =>
+            (a.domain ?? "").localeCompare(b.domain ?? ""),
+          )
+        : c.acls;
       out.push(
         "",
         ...mdTable(
-          ["ACL", "Roles", "Role", "Condition", "Script", "Result", "Notes"],
-          c.acls.map((a) => [
+          [
+            "ACL",
+            ...(domains ? ["Domain"] : []),
+            "Roles",
+            "Role",
+            "Condition",
+            "Script",
+            "Result",
+            "Notes",
+          ],
+          acls.map((a) => [
             a.sys_id === c.decidingAcl ? `**${a.sys_id}**` : a.sys_id,
+            ...(domains ? [a.domain ?? "global"] : []),
             a.roles.join(", ") || "—",
             a.role,
             a.condition,
