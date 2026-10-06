@@ -9,13 +9,38 @@ import { join } from "node:path";
 
 const root = join(import.meta.dirname, "..");
 
+// CLAUDE.md / CLAUDE.local.md are flagged at any depth: a nested memory file
+// (packages/x/CLAUDE.md, extension/CLAUDE.md) is just as local as the root one.
 const HARNESS = [
-  /^CLAUDE\.md$/,
-  /^CLAUDE\.local\.md$/,
+  /(^|\/)CLAUDE(\.local)?\.md$/,
   /^WORKLOG\.md$/,
   /^\.claude\//,
   /^docs\/ai\//,
 ];
+
+const isHarness = (file) => HARNESS.some((re) => re.test(file));
+
+test("the harness patterns match nested memory files, not look-alikes", () => {
+  for (const file of [
+    "CLAUDE.md",
+    "CLAUDE.local.md",
+    "extension/CLAUDE.md",
+    "src/api/CLAUDE.local.md",
+    "WORKLOG.md",
+    ".claude/settings.json",
+    "docs/ai/HANDOFF.md",
+  ]) {
+    assert.ok(isHarness(file), `${file} should be flagged`);
+  }
+  for (const file of [
+    "MY-CLAUDE.md",
+    "docs/CLAUDE.md.txt",
+    "skills/sn-uib/SKILL.md",
+    "src/WORKLOG.md",
+  ]) {
+    assert.ok(!isHarness(file), `${file} should not be flagged`);
+  }
+});
 
 function trackedFiles() {
   try {
@@ -36,7 +61,7 @@ test(
   () => {
     const files = trackedFiles();
     if (!files) return;
-    const tracked = files.filter((f) => HARNESS.some((re) => re.test(f)));
+    const tracked = files.filter(isHarness);
     assert.deepEqual(
       tracked,
       [],
