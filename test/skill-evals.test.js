@@ -253,6 +253,23 @@ for (const dir of cases) {
   });
 
   const guards = guardMocks(dir);
+  const tags = frontmatter(readFileSync(join(dir, "prompt.md"), "utf8")).fields
+    .tags;
+  if (/\bnegative\b/.test(tags ?? "")) {
+    test(`eval case ${rel} guards every write tool it bans outright`, () => {
+      const guarded = new Set(
+        guards.filter((g) => g.text.includes("\nexpect:")).map((g) => g.name),
+      );
+      for (const g of graders(dir)) {
+        if (g.fields?.type !== "tool_used" || g.fields.max !== "0") continue;
+        if (g.fields.input_match) continue;
+        const tool = g.fields.tool?.slice(MCP_PREFIX.length);
+        if (!WRITE_TOOLS.has(tool)) continue;
+        assert.ok(guarded.has(tool), `${g.name}: add a guard mock for ${tool}`);
+      }
+    });
+  }
+
   if (guards.length === 0) continue;
   test(`eval case ${rel} mocks are guards or quote the recorded answer`, () => {
     const listed = new Map(

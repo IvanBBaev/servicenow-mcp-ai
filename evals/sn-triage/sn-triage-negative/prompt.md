@@ -1,6 +1,6 @@
 ---
 description: A request to survey an instance is discovery, not triage.
-expected_outcome: sn-triage does not load and the operational logs are not read.
+expected_outcome: sn-triage does not load, the operational logs are not read, and no write tool is called.
 tags: [sn-triage, negative]
 plugins: ["../../.."]
 max_turns: 20

@@ -1,6 +1,6 @@
 ---
 description: A conceptual ServiceNow question needs no instance survey.
-expected_outcome: sn-discover does not load and no discovery document is generated.
+expected_outcome: sn-discover does not load, no discovery document is generated, and no write tool is called.
 tags: [sn-discover, negative]
 plugins: ["../../.."]
 max_turns: 20

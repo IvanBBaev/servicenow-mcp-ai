@@ -104,8 +104,9 @@ the case's own `mocks/servicenow/<tool>.md`: an `expect:` block that no valid
 call satisfies (a required input typed wrong, such as `table: number`), so the
 first call aborts the run with score 0. With the default 3 runs one aborted
 run caps the case at 0.67, below the workflow's 0.8 threshold. The test checks
-that every guard really rejects every valid call and that no write-tool ban
-weighs less than 1. The only other case mock allowed is a `type: agent` mock
+that every guard really rejects every valid call, that no write-tool ban
+weighs less than 1, and that a `negative` case guards every write tool it bans
+outright (every read-only negative bans them all). The only other case mock allowed is a `type: agent` mock
 for a contract a fixed answer cannot play, such as the plan -> token -> apply
 flow of `sn-safe-write-destructive`; it must quote the recorded suite answer
 verbatim in a fenced `json` block, so it fails the test when that answer

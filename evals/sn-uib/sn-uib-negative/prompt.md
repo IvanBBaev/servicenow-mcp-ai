@@ -1,6 +1,6 @@
 ---
 description: A question about a field's dependants is impact analysis, not a UI Builder page review.
-expected_outcome: sn-uib does not load and no UI Builder experience is explained.
+expected_outcome: sn-uib does not load, no UI Builder experience is explained, and no write tool is called.
 tags: [sn-uib, negative]
 plugins: ["../../.."]
 max_turns: 20

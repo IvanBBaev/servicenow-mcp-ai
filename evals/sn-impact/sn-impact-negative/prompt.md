@@ -1,6 +1,6 @@
 ---
 description: A live breakage on the instance is triage, not a blast-radius estimate.
-expected_outcome: sn-impact does not load and no where-used search runs.
+expected_outcome: sn-impact does not load, no where-used search runs, and no write tool is called.
 tags: [sn-impact, negative]
 plugins: ["../../.."]
 max_turns: 20
