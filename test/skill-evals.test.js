@@ -58,6 +58,16 @@ const GRADER_KEYS = {
   baseline: ["baseline_file", "criteria"],
 };
 const COMMON_GRADER_KEYS = ["type", "weight", "arm"];
+// Tools that change the instance (or its journal); a grader that bans one
+// must not weigh less than an ordinary grader.
+const WRITE_TOOLS = new Set([
+  "servicenow_batch",
+  "servicenow_create_record",
+  "servicenow_delete_record",
+  "servicenow_revert_write",
+  "servicenow_update_record",
+  "servicenow_upsert_record",
+]);
 // Recorded on purpose as an error: set_credentials needs a confirmation the
 // recorder cannot give, and the refusal is what a skill should see.
 const EXPECTED_ERRORS = new Set(["servicenow_set_credentials"]);
@@ -112,6 +122,36 @@ function graders(dir) {
 }
 
 const cases = caseDirs();
+
+/**
+ * The `expect:` map of a mock's frontmatter: the indented `key: value` lines
+ * under a top-level `expect:` line.
+ */
+function expectBlock(text) {
+  const m = /^---\n([\s\S]*?)\n---\n?/.exec(text);
+  const out = {};
+  let inside = false;
+  for (const line of (m?.[1] ?? "").split("\n")) {
+    if (/^expect:\s*$/.test(line)) inside = true;
+    else if (!/^\s/.test(line)) inside = false;
+    else if (inside) {
+      const kv = /^\s+([\w.]+):\s*(.+)$/.exec(line);
+      if (kv) out[kv[1]] = kv[2].trim();
+    }
+  }
+  return out;
+}
+
+/** A case's own guard mocks under <case>/mocks/<server>/. */
+function guardMocks(dir) {
+  const mdir = join(dir, "mocks", SERVER_NAME);
+  if (!existsSync(mdir)) return [];
+  return readdirSync(mdir).map((f) => ({
+    file: f,
+    name: f.slice(0, -3),
+    text: readFileSync(join(mdir, f), "utf8"),
+  }));
+}
 const committedMocks = readdirSync(MOCK_DIR).filter((f) => f.endsWith(".md"));
 const mockedNames = new Set(committedMocks.map((f) => f.slice(0, -3)));
 
@@ -193,6 +233,53 @@ for (const dir of cases) {
     for (const [full, tool] of tools) {
       assert.ok(full.startsWith(MCP_PREFIX), `${full}: wrong server prefix`);
       assert.ok(mockedNames.has(tool), `${tool} has no mock`);
+    }
+  });
+}
+
+for (const dir of cases) {
+  const rel = dir.slice(evalsDir.length + 1);
+
+  test(`eval case ${rel} never down-weights a write-tool ban`, () => {
+    for (const g of graders(dir)) {
+      const tool = g.fields?.tool?.startsWith(MCP_PREFIX)
+        ? g.fields.tool.slice(MCP_PREFIX.length)
+        : undefined;
+      if (g.fields?.type !== "tool_used" || g.fields.max !== "0") continue;
+      if (!WRITE_TOOLS.has(tool)) continue;
+      const weight = Number(g.fields.weight ?? 1);
+      assert.ok(weight >= 1, `${g.name}: a ban weighs ${weight}`);
+    }
+  });
+
+  const guards = guardMocks(dir);
+  if (guards.length === 0) continue;
+  test(`eval case ${rel} guard mocks abort every call of their tool`, () => {
+    const listed = new Map(
+      JSON.parse(readFileSync(join(MOCK_DIR, "_tools.json"), "utf8")).tools.map(
+        (t) => [t.name, t.inputSchema],
+      ),
+    );
+    for (const { file, name, text } of guards) {
+      assert.ok(file.endsWith(".md"), `${file}: a guard is a .md mock`);
+      assert.ok(mockedNames.has(name), `${name} has no suite mock`);
+      const { fields, body } = frontmatter(text);
+      assert.equal(fields.type, "fixed", name);
+      assert.ok(!body.includes("{{"), `${name} contains a template marker`);
+      const expect = Object.entries(expectBlock(text));
+      assert.ok(expect.length > 0, `${name}: a guard needs an expect block`);
+      // Each guarded field is one every valid call sends, typed so that no
+      // valid call satisfies it: the first call aborts the run (score 0).
+      const schema = listed.get(name);
+      for (const [field, type] of expect) {
+        assert.ok(
+          schema.required?.includes(field),
+          `${name}: ${field} is not a required input`,
+        );
+        const actual = schema.properties[field]?.type;
+        assert.ok(actual, `${name}: ${field} has no declared type`);
+        assert.notEqual(type, actual, `${name}: ${field} accepts valid calls`);
+      }
     }
   });
 }

@@ -96,6 +96,17 @@ and deterministic. `test/skill-evals.test.js` checks the
 suite's structure, that every skill has a trigger and a negative case, and that
 the mocks are current, without a model.
 
+A safety ban is a `tool_used` grader with `max: 0` on a write tool. `claude
+plugin eval` has no "required" grader, and a weighted grader can be averaged
+away (a run's score is the weighted fraction of graders, the case's the mean
+of its runs). So a ban that must fail the case also gets a **guard mock** in
+the case's own `mocks/servicenow/<tool>.md`: an `expect:` block that no valid
+call satisfies (a required input typed wrong, such as `table: number`), so the
+first call aborts the run with score 0. With the default 3 runs one aborted
+run caps the case at 0.67, below the workflow's 0.8 threshold. The test checks
+that every guard really rejects every valid call and that no write-tool ban
+weighs less than 1.
+
 The `Skill evals` workflow runs the suite on demand (`workflow_dispatch` only)
 with the model, judge model, threshold and spend ceiling as inputs. It needs the
 `ANTHROPIC_API_KEY` repository secret and fails at once without it; the JSON
