@@ -30,7 +30,8 @@ see the [README](README.md#configure-credentials) for the resolution order.
 ```bash
 npm run check      # the full gate: build, lint, format check, tests with
                    # coverage thresholds (lines 94 / branches 82 / functions 97),
-                   # Fluent action table check, tool-surface scan
+                   # Fluent action table check, eval mock drift
+                   # (eval:mocks:check), tool-surface scan
                    # (scan:surface), tarball guard (pack:check), prod audit
 npm run verify     # the same minus coverage/audit — the fast inner loop
 npm test           # unit tests only (node:test; needs a prior build)
@@ -85,8 +86,13 @@ mocks are recorded by `npm run eval:mocks`, which drives the built server
 in-process against the fetch double in `test/evals/fake-instance.js`. That
 double only serves the `*.eval-double.invalid` hosts and throws on any other
 host, and it lives under `test/`, which is not in the published package.
-`npm run eval:mocks -- --check` fails when the committed mocks are stale (for
-example after a tool's output changes). `test/skill-evals.test.js` checks the
+`npm run eval:mocks:check` (a step of `npm run check`, after the build) fails
+when the committed mocks are stale, for example after a tool's output changes;
+re-record with `npm run eval:mocks`. The recorder pins every run-specific
+value (temp dir, pid, timings, uptime, per-tool byte counters, timestamps,
+plan tokens, journal ids, the server and Node versions and the user agent),
+so a re-recording on any machine is byte-identical and the check is offline
+and deterministic. `test/skill-evals.test.js` checks the
 suite's structure, that every skill has a trigger and a negative case, and that
 the mocks are current, without a model.
 

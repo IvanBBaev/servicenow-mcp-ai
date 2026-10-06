@@ -246,8 +246,8 @@ test("the recorder covers every mocked tool against the fake instance only", asy
   for (const [name, answer] of recorded.answers) {
     assert.equal(answer.isError, EXPECTED_ERRORS.has(name), name);
   }
-  // The recorder rewrites exactly the committed file set (contents may drift
-  // with tool output; `npm run eval:mocks -- --check` compares them).
+  // The recorder rewrites exactly the committed file set (the contents are
+  // compared by `npm run eval:mocks:check`, a step of `npm run check`).
   assert.deepEqual(
     [...mockFiles(recorded).keys()].sort(),
     [...committedMocks, "_tools.json"].sort(),
@@ -269,6 +269,23 @@ test("normalize replaces run-specific values with stable stand-ins", () => {
   // The same id keeps its stand-in; a new one gets the next.
   assert.match(normalize("01M45ZDBJZ722X42GMD7DQ977P", "/tmp/x", ids), /0001$/);
   assert.match(normalize("01M45ZDC2JSZ4AAET6GZ2MGSNY", "/tmp/x", ids), /0002$/);
+});
+
+test("normalize pins the server identity, uptime and byte counters", () => {
+  const text =
+    '{"server":{"name":"servicenow-mcp-ai","version":"2.3.4","uptimeSec":17,' +
+    '"node":"24.1.0","transport":"stdio"},"http":{"userAgent":' +
+    '"servicenow-mcp-ai/2.3.4 (node/24; stdio; unknown)"},"tools":{"t":' +
+    '{"bytesTotal":854,"textBytes":427,"structuredBytes":427,"bytesP50":854,' +
+    '"bytesP95":854}},"version":{"status":"unknown"}}';
+  assert.equal(
+    normalize(text, "/tmp/x"),
+    '{"server":{"name":"servicenow-mcp-ai","version":"0.0.0-eval","uptimeSec":0,' +
+      '"node":"22.0.0-eval","transport":"stdio"},"http":{"userAgent":' +
+      '"servicenow-mcp-ai/0.0.0-eval (node/22; stdio; unknown)"},"tools":{"t":' +
+      '{"bytesTotal":0,"textBytes":0,"structuredBytes":0,"bytesP50":0,' +
+      '"bytesP95":0}},"version":{"status":"unknown"}}',
+  );
 });
 
 test("runQuery evaluates encoded-query operators", () => {

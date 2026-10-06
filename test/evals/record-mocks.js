@@ -69,6 +69,10 @@ export const MOCK_DIR = join(ROOT, "evals", "mocks", SERVER_NAME);
 const DIR_PLACEHOLDER = "/home/eval";
 const FIXED_TIME = "2026-10-01T09:30:00.000Z";
 const PLAN_TOKEN = "pt-recorded-plan-token";
+/** The server and Node versions change with a release or a runner image. */
+const SERVER_VERSION_PLACEHOLDER = "0.0.0-eval";
+const NODE_VERSION_PLACEHOLDER = "22.0.0-eval";
+const NODE_MAJOR_PLACEHOLDER = "22";
 
 /**
  * One call per tool the skills name, in the order a session would make
@@ -235,8 +239,9 @@ async function withIsolatedEnv(env, fn) {
 }
 
 /**
- * Replace run-specific values (the temp dir, process id, timings,
- * wall-clock timestamps, plan tokens, journal ids) with stable stand-ins.
+ * Replace run-specific values (the temp dir, process id, timings, uptime,
+ * byte counters, wall-clock timestamps, plan tokens, journal ids, server and
+ * Node versions, user agent) with stable stand-ins.
  * `ids` maps each journal id seen so far to its stand-in, so one entry keeps
  * one id across answers.
  */
@@ -248,9 +253,25 @@ export function normalize(text, dir, ids = new Map()) {
     out = out.split(path).join(DIR_PLACEHOLDER);
   }
   out = out.replace(/"pid":\s*\d+/g, '"pid":0');
+  // Timings, the process uptime, and the per-tool byte counters (they sum
+  // earlier answers, so one changed answer would ripple into get_status).
   out = out.replace(
-    /"(latencyMs|ms|durationMs|elapsedMs|totalMs|p50|p95|took_ms|tookMs)":\s*\d+(\.\d+)?/g,
+    /"(latencyMs|ms|durationMs|elapsedMs|totalMs|p50|p95|took_ms|tookMs|uptimeSec|bytesTotal|textBytes|structuredBytes|bytesP50|bytesP95)":\s*\d+(\.\d+)?/g,
     '"$1":0',
+  );
+  // The server identity: its version, the Node version and the user agent
+  // that carries both.
+  out = out.replace(
+    /("name":"servicenow-mcp-ai","version":)"[^"]*"/g,
+    `$1"${SERVER_VERSION_PLACEHOLDER}"`,
+  );
+  out = out.replace(
+    /"node":"\d+\.\d+\.\d+[^"]*"/g,
+    `"node":"${NODE_VERSION_PLACEHOLDER}"`,
+  );
+  out = out.replace(
+    /servicenow-mcp-ai\/[0-9A-Za-z.+-]+ \(node\/\d+;/g,
+    `servicenow-mcp-ai/${SERVER_VERSION_PLACEHOLDER} (node/${NODE_MAJOR_PLACEHOLDER};`,
   );
   out = out.replace(
     /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z/g,

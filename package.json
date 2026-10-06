@@ -58,7 +58,7 @@
     "pack:check": "node scripts/pack-check.mjs",
     "mcpb:manifest": "node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/mcpb-manifest.mjs",
     "mcpb:pack": "npm run build && node scripts/mcpb-pack.mjs",
-    "check": "npm run build && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run roadmap:sync -- --check && npm run docs:instructions -- --check && npm run scan:surface && npm run mcpb:manifest -- --check && npm run fluent:actions -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
+    "check": "npm run build && npm run eval:mocks:check && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run roadmap:sync -- --check && npm run docs:instructions -- --check && npm run scan:surface && npm run mcpb:manifest -- --check && npm run fluent:actions -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
     "release:dry": "npm run check && npm publish --dry-run",
     "version:sync": "node scripts/sync-version.mjs",
     "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json mcpb/manifest.json docs/index.html",
@@ -67,6 +67,7 @@
     "fluent:actions": "node scripts/gen-fluent-actions.mjs",
     "eval:skills": "claude plugin eval . --trust-plugin --no-publish",
     "eval:mocks": "npm run build && node test/evals/record-mocks.js",
+    "eval:mocks:check": "node test/evals/record-mocks.js --check",
     "eval:tools": "npm run build && node evals/tool-selection/run.mjs"
   },
   "dependencies": {
