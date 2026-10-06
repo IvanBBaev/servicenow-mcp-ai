@@ -401,3 +401,228 @@ export function renderAccessReview(review: AccessReview): string[] {
   );
   return lines;
 }
+
+/** Role rows read per user history (newest first). */
+export const ROLE_HISTORY_LIMIT = 500;
+
+/** One grant or revoke in a user's role history. */
+export interface RoleHistoryEvent {
+  action: "granted" | "revoked";
+  /** Role name; a deleted row whose payload has no display value gives the role sys_id. */
+  role: string;
+  /** The sys_user_has_role row. */
+  rowId: string;
+  /** Grant path (granted only). */
+  path?: GrantPath;
+  via?: string;
+  /** A grant row's state when it is not active (e.g. `pending`, `requested`). */
+  state?: string;
+  by: string;
+  on: string;
+}
+
+export interface RoleHistory {
+  available: boolean;
+  unavailableReason?: string;
+  user: string;
+  /** Grants and revokes, newest first. */
+  events: RoleHistoryEvent[];
+  /** True when the grant read hit ROLE_HISTORY_LIMIT. */
+  truncated: boolean;
+  /** Days of revokes looked back on. */
+  revokeDays: number;
+  revokes: { available: boolean; unavailableReason?: string };
+}
+
+const SYS_ID = /^[0-9a-f]{32}$/;
+
+const xmlText = (s: string): string =>
+  s
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&quot;", '"')
+    .replaceAll("&apos;", "'")
+    .replaceAll("&amp;", "&");
+
+/** One element of a deleted record's XML payload: its value and display value. */
+function payloadField(
+  payload: string,
+  name: string,
+): { value: string; display?: string } | undefined {
+  const m = new RegExp(`<${name}(\\s[^>]*)?>([^<]*)</${name}>`).exec(payload);
+  if (!m) return undefined;
+  const display = /\bdisplay_value="([^"]*)"/.exec(m[1] ?? "")?.[1];
+  return {
+    value: xmlText(m[2]!.trim()),
+    ...(display ? { display: xmlText(display) } : {}),
+  };
+}
+
+/**
+ * The user and role of a deleted sys_user_has_role row, read from its
+ * sys_audit_delete XML payload (`<user>…</user>`, `<role display_value="…">…</role>`).
+ * The payload format is unverified until O-5 (PDI).
+ */
+export function deletedRoleRow(payload: string): {
+  user?: string;
+  role?: string;
+} {
+  const user = payloadField(payload, "user")?.value;
+  const role = payloadField(payload, "role");
+  const name = role?.display || role?.value;
+  return { ...(user ? { user } : {}), ...(name ? { role: name } : {}) };
+}
+
+/**
+ * Read one user's role history: every sys_user_has_role row of the user as a
+ * grant (creator and date, path, a non-active state), and the user's deleted
+ * rows from sys_audit_delete as revokes (the last `days` days). Newest first.
+ *
+ * Not wired to a tool yet: it becomes `lookup_directory` kind `user`
+ * `role_history` once O-10 clears the tools/list change (NX-33). Degrades like
+ * the review: an unreadable sys_user_has_role is `available:false`, an
+ * unreadable audit only `revokes.available:false`. The revoke filter matches
+ * the user sys_id in the payload text, then checks the parsed `user` element.
+ */
+export async function readRoleHistory({
+  user,
+  now = Date.now(),
+  days = REVOKE_DAYS,
+}: {
+  user: string;
+  now?: number;
+  days?: number;
+}): Promise<RoleHistory> {
+  if (!SYS_ID.test(user)) {
+    throw new ServiceNowError("Give the user's sys_id.", 400);
+  }
+  const base = {
+    user,
+    revokeDays: days,
+    events: [] as RoleHistoryEvent[],
+    truncated: false,
+  };
+  let grants: Record<string, unknown>[];
+  try {
+    const res = await queryTable({
+      table: "sys_user_has_role",
+      query: `user=${user}^ORDERBYDESCsys_created_on`,
+      fields: [
+        "sys_id",
+        "role.name",
+        "inherited",
+        "granted_by.name",
+        "included_in_role.name",
+        "state",
+        "sys_created_by",
+        "sys_created_on",
+      ],
+      displayValue: "false",
+      limit: ROLE_HISTORY_LIMIT,
+    });
+    grants = res.records;
+  } catch (e) {
+    if (isCancel(e)) throw e;
+    return {
+      ...base,
+      available: false,
+      unavailableReason: unreadableReason("sys_user_has_role", e),
+      revokes: { available: false },
+    };
+  }
+
+  const events: RoleHistoryEvent[] = grants.map((r) => {
+    const g = grantOf(r);
+    const state = snString(r.state);
+    return {
+      action: "granted",
+      role: g.role,
+      rowId: snString(r.sys_id),
+      path: g.path,
+      ...(g.via ? { via: g.via } : {}),
+      ...(state && state !== "active" ? { state } : {}),
+      by: g.grantedBy ?? "",
+      on: g.grantedOn ?? "",
+    };
+  });
+
+  const since = new Date(now - days * 86_400_000)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+  let revokes: RoleHistory["revokes"];
+  try {
+    const { records } = await queryTable({
+      table: "sys_audit_delete",
+      query: `tablename=sys_user_has_role^payloadLIKE${user}^sys_created_on>=${since}^ORDERBYDESCsys_created_on`,
+      fields: ["documentkey", "payload", "sys_created_by", "sys_created_on"],
+      displayValue: "false",
+      limit: REVOKE_LIMIT,
+    });
+    for (const r of records) {
+      const row = deletedRoleRow(snString(r.payload));
+      if (row.user !== user) continue;
+      events.push({
+        action: "revoked",
+        role: row.role ?? "",
+        rowId: snString(r.documentkey),
+        by: snString(r.sys_created_by),
+        on: snString(r.sys_created_on),
+      });
+    }
+    revokes = { available: true };
+  } catch (e) {
+    if (isCancel(e)) throw e;
+    revokes = {
+      available: false,
+      unavailableReason: unreadableReason("sys_audit_delete", e),
+    };
+  }
+
+  // Platform date-times sort as text; a revoke sorts before a grant at the same second.
+  events.sort(
+    (a, b) =>
+      b.on.localeCompare(a.on) ||
+      Number(b.action === "revoked") - Number(a.action === "revoked"),
+  );
+  return {
+    ...base,
+    available: true,
+    events,
+    truncated: grants.length >= ROLE_HISTORY_LIMIT,
+    revokes,
+  };
+}
+
+/** Markdown for one user's role history (the future `role_history` section). */
+export function renderRoleHistory(history: RoleHistory): string[] {
+  if (!history.available) {
+    return [
+      `Unavailable: ${history.unavailableReason ?? "sys_user_has_role could not be read."}`,
+      "",
+    ];
+  }
+  const esc = (s: string): string => s.replaceAll("|", "\\|");
+  const granted = history.events.filter((e) => e.action === "granted").length;
+  const revoked = history.events.length - granted;
+  const lines = [
+    `${granted} role grant(s)${history.truncated ? ` (the read stopped at ${ROLE_HISTORY_LIMIT} rows)` : ""}; ${history.revokes.available ? `${revoked} revoke(s) in the last ${history.revokeDays} days` : `revokes unavailable: ${history.revokes.unavailableReason ?? "sys_audit_delete could not be read."}`}.`,
+    "",
+  ];
+  if (history.events.length) {
+    lines.push(
+      "| On | Action | Role | Path | Via | State | By |",
+      "| --- | --- | --- | --- | --- | --- | --- |",
+      ...history.events.map(
+        (e) =>
+          `| ${e.on} | ${e.action} | ${esc(e.role)} | ${e.path ?? ""} | ${esc(e.via ?? "")} | ${esc(e.state ?? "")} | ${esc(e.by)} |`,
+      ),
+      "",
+    );
+  }
+  lines.push(
+    "A grant's by / on are the role row's creator and creation date; a revoke is a deleted role row from sys_audit_delete. The payload format and field names are unverified until O-5 (PDI).",
+    "",
+  );
+  return lines;
+}
