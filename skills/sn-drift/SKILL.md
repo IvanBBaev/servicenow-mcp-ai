@@ -7,6 +7,16 @@ description: Find configuration drift between two ServiceNow instances or agains
 
 Read-only against the instances; snapshots are written locally.
 
+## When not to use
+
+- A question about one instance only — use sn-triage, sn-impact or the
+  `sn-investigator` subagent.
+- Promoting, committing or applying anything — this skill only reads; a
+  change goes through sn-safe-write.
+- Hand-off: to judge whether an update set is safe to promote, pass its name
+  or `sys_id` to the `sn-change-reviewer` subagent (where the client has it)
+  and report its go / hold verdict next to the diff.
+
 ## Steps
 
 1. Packages: this skill calls tools from `instance`, `updatesets` and

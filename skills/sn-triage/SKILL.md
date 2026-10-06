@@ -8,6 +8,16 @@ description: Triage a ServiceNow incident or a failing behaviour — instance he
 Read-only. Every call goes through the ServiceNow MCP server with the active
 profile; nothing here writes to the instance.
 
+## When not to use
+
+- Assessing a planned change — use sn-impact; comparing environments — use
+  sn-drift.
+- Fixing the problem — once the cause is known, the fix goes through
+  sn-safe-write.
+- Hand-off: a long, read-heavy dig (many records, flows or scripts) goes to
+  the `sn-investigator` subagent (where the client has it), so the main
+  conversation keeps only its report.
+
 ## Steps
 
 1. Packages: this skill calls tools from `ops`, `history`, `scripts`, `flows`

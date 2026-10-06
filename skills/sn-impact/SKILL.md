@@ -7,6 +7,16 @@ description: Estimate the blast radius of changing a ServiceNow table, field or 
 
 Read-only analysis through the ServiceNow MCP server.
 
+## When not to use
+
+- Something is already broken — start with sn-triage.
+- Making the change itself — use sn-safe-write once the impact is known.
+- A UI Builder page or experience — use sn-uib.
+- Hand-offs (where the client has the plugin's subagents): a wide sweep over
+  many dependants goes to the `sn-investigator` subagent, which returns the
+  evidence without flooding the conversation; once the change is planned,
+  pass the plan preview to the `sn-change-reviewer` subagent.
+
 ## Steps
 
 1. Packages: this skill calls tools from `scripts`, `artifacts`, `flows` and

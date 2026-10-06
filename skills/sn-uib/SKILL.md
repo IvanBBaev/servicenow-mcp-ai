@@ -8,6 +8,16 @@ description: Review a ServiceNow UI Builder (UIB) experience or workspace page �
 Read-only review through the ServiceNow MCP server. The same walk is
 available as the server's "Review a UI Builder page" MCP prompt.
 
+## When not to use
+
+- Classic forms, Service Portal pages or a single record — use sn-triage or
+  the `sn-investigator` subagent.
+- Changing the page — this review writes nothing; a change goes through
+  sn-safe-write.
+- Hand-off: when the page change travels in an update set, pass the update
+  set to the `sn-change-reviewer` subagent (where the client has it) for a
+  go / hold verdict.
+
 ## Steps
 
 1. Packages: this skill calls tools from `ui`, `artifacts`, `scripts`,

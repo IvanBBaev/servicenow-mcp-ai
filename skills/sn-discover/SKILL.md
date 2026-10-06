@@ -12,6 +12,14 @@ makes no HTTP calls of its own — the server's profile, table policy,
 redaction, capability preflight and write journal apply to every read and
 file.
 
+## When not to use
+
+- A question about one record, table or script — answer it directly, or hand
+  it to the `sn-investigator` subagent (where the client has it) so the raw
+  records stay out of the conversation.
+- Comparing instances or reviewing an update set — use sn-drift.
+- Any change to the instance — use sn-safe-write.
+
 ## Steps
 
 1. Packages: this skill calls tools from `docs`, which the default `core`

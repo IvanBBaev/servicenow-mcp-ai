@@ -10,6 +10,19 @@ changes nothing **only while the server is in plan mode** (the default). In
 apply mode (`SN_WRITE_MODE=apply`) the same call executes at once. So the
 first step is always to learn the mode — never send a write call before it.
 
+## When not to use
+
+- Reading, investigating or explaining — use sn-triage, sn-impact or the
+  `sn-investigator` subagent; this skill is for changes only.
+- Changing credentials — `servicenow_set_credentials` has its own
+  confirmation.
+- Unattended bulk writes in apply mode — those need an operator decision, not
+  a skill.
+- Hand-off: for a non-trivial plan (scripts, ACLs, configuration records,
+  more than one record, or a prod profile) pass the plan preview to the
+  `sn-change-reviewer` subagent (where the client has it) and apply only on a
+  `go` verdict the user accepts.
+
 ## Steps
 
 1. Check the mode and the target: `servicenow_get_status` — `writeMode`,
