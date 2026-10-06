@@ -86,17 +86,10 @@
         "required": [
           "requests"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "destructiveHint": false
       }
     },
     {
@@ -135,7 +128,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -154,17 +146,12 @@
           "degraded",
           "summary"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -177,7 +164,6 @@
           "scope": {
             "description": "Table to lint; omit for an instance-wide inventory.",
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$"
           },
           "extended": {
@@ -204,7 +190,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -229,17 +214,11 @@
           "generatedAt",
           "warnings"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -318,17 +297,11 @@
           "a",
           "b"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -369,7 +342,6 @@
         "required": [
           "update_set"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -404,9 +376,6 @@
           },
           "against": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "string"
             }
@@ -422,9 +391,6 @@
           },
           "summary": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "number"
             }
@@ -499,17 +465,12 @@
           "artefacts",
           "caveats"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -521,15 +482,11 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table, e.g. 'incident'."
           },
           "values": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": [
                 "string",
@@ -564,17 +521,10 @@
           "table",
           "values"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "destructiveHint": false
       }
     },
     {
@@ -586,13 +536,11 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table, e.g. 'incident'."
           },
           "sys_id": {
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "description": "Record sys_id."
           },
@@ -605,8 +553,7 @@
           "expected_mod_count": {
             "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
             "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+            "minimum": 0
           },
           "apply": {
             "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
@@ -627,17 +574,10 @@
           "table",
           "sys_id"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -649,7 +589,6 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table, e.g. 'incident'."
           },
@@ -666,7 +605,6 @@
         "required": [
           "table"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -692,17 +630,12 @@
           "count",
           "columns"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -714,7 +647,6 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table to analyse, e.g. 'incident'."
           },
@@ -727,7 +659,6 @@
         "required": [
           "table"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -765,17 +696,12 @@
           "uiActions",
           "acls"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -812,17 +738,11 @@
         "required": [
           "scope"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -843,7 +763,6 @@
             "type": "array",
             "items": {
               "type": "string",
-              "maxLength": 80,
               "pattern": "^[A-Za-z0-9_]{1,80}$"
             }
           },
@@ -896,17 +815,11 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -918,7 +831,6 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table to document, e.g. 'incident'."
           },
@@ -953,17 +865,11 @@
         "required": [
           "table"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -982,7 +888,6 @@
           "sys_id": {
             "description": "Record sys_id; this or 'key'.",
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "key": {
@@ -1004,9 +909,6 @@
               },
               {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {
                   "anyOf": [
                     {
@@ -1033,7 +935,6 @@
         "required": [
           "artifactType"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -1059,9 +960,6 @@
           },
           "key": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "string"
             }
@@ -1133,9 +1031,6 @@
             "anyOf": [
               {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {}
               },
               {
@@ -1145,9 +1040,6 @@
           },
           "fields": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {}
           },
           "truncatedFields": {
@@ -1190,9 +1082,6 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
                     "additionalProperties": {}
                   }
                 },
@@ -1289,17 +1178,12 @@
           "references",
           "decoded"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -1312,7 +1196,6 @@
           "sys_id": {
             "description": "sys_ux_page_registry sys_id (or 'path').",
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "path": {
@@ -1336,7 +1219,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -1347,9 +1229,6 @@
           },
           "counts": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "number"
             }
@@ -1358,17 +1237,12 @@
         "required": [
           "verified"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -1384,7 +1258,6 @@
             "type": "array",
             "items": {
               "type": "string",
-              "maxLength": 80,
               "pattern": "^[A-Za-z0-9_]{1,80}$"
             },
             "description": "Tables to include, e.g. ['incident', 'problem']."
@@ -1401,8 +1274,7 @@
           "max_columns": {
             "description": "Columns per entity before '+N' folding (40).",
             "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
+            "exclusiveMinimum": 0
           },
           "depth": {
             "description": "Reference levels to follow, adding targets (0).",
@@ -1430,17 +1302,12 @@
         "required": [
           "tables"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -1459,7 +1326,6 @@
           "sys_id": {
             "description": "Record sys_id; this or 'key'.",
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "key": {
@@ -1481,9 +1347,6 @@
               },
               {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {
                   "anyOf": [
                     {
@@ -1510,7 +1373,6 @@
         "required": [
           "artifactType"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -1536,9 +1398,6 @@
           },
           "key": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "string"
             }
@@ -1601,9 +1460,6 @@
             "anyOf": [
               {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {}
               },
               {
@@ -1638,9 +1494,6 @@
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
                     "additionalProperties": {}
                   }
                 },
@@ -1700,17 +1553,12 @@
           "record",
           "children"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -1729,7 +1577,6 @@
           "sys_id": {
             "description": "Record sys_id; this or 'key'.",
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "key": {
@@ -1751,9 +1598,6 @@
               },
               {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {
                   "anyOf": [
                     {
@@ -1809,7 +1653,6 @@
         "required": [
           "artifactType"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -1991,17 +1834,12 @@
           "depth",
           "count"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -2014,13 +1852,11 @@
           "flow": {
             "description": "Flow sys_id.",
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "record": {
             "description": "Record the flow ran against (document_id).",
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "limit": {
@@ -2034,7 +1870,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -2052,17 +1887,12 @@
           "count",
           "runs"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -2074,13 +1904,11 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table, e.g. 'incident'."
           },
           "sys_id": {
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "description": "Record sys_id."
           },
@@ -2104,23 +1932,17 @@
           "table",
           "sys_id"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
         "type": "object",
         "properties": {},
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -2132,13 +1954,11 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Record table, e.g. 'incident'."
           },
           "sys_id": {
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "description": "Record sys_id."
           },
@@ -2188,17 +2008,12 @@
           "table",
           "sys_id"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -2249,7 +2064,6 @@
           },
           "sys_id": {
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "description": "Script sys_id."
           },
@@ -2263,7 +2077,6 @@
           "type",
           "sys_id"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -2281,17 +2094,12 @@
           "type",
           "table"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -2307,7 +2115,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -2378,9 +2185,6 @@
           },
           "pluginApis": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "string"
             }
@@ -2396,9 +2200,6 @@
               },
               "errors": {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {
                   "type": "number"
                 }
@@ -2408,9 +2209,6 @@
               },
               "perHost": {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
@@ -2422,9 +2220,6 @@
                     },
                     "errors": {
                       "type": "object",
-                      "propertyNames": {
-                        "type": "string"
-                      },
                       "additionalProperties": {
                         "type": "number"
                       }
@@ -2503,9 +2298,6 @@
               },
               "queue": {
                 "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
@@ -2636,9 +2428,6 @@
           },
           "writes": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {}
           },
           "profileDetails": {
@@ -2681,7 +2470,6 @@
           "writes",
           "profileDetails"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
@@ -2689,9 +2477,6 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -2737,7 +2522,6 @@
         "required": [
           "update_set"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -2781,18 +2565,12 @@
           },
           "by_type": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "number"
             }
           },
           "by_action": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": "number"
             }
@@ -2841,17 +2619,12 @@
           "by_action",
           "updates"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -2902,7 +2675,6 @@
           },
           "sys_id": {
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "description": "Script sys_id."
           },
@@ -2916,7 +2688,6 @@
           "type",
           "sys_id"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -2938,17 +2709,12 @@
           "sys_id",
           "results"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -2964,7 +2730,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -2982,7 +2747,6 @@
           "count",
           "profiles"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
@@ -2990,9 +2754,6 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -3044,7 +2805,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -3102,17 +2862,12 @@
           "current_update_set",
           "update_sets"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -3130,7 +2885,6 @@
           "table": {
             "description": "Only writes to this table.",
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$"
           },
           "since": {
@@ -3175,7 +2929,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
@@ -3183,9 +2936,6 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -3197,7 +2947,6 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table, e.g. 'incident'."
           },
@@ -3225,8 +2974,7 @@
           "offset": {
             "description": "Records to skip (paging).",
             "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+            "minimum": 0
           },
           "displayValue": {
             "description": "Return display values ('true'), raw values ('false', default) or both ('all').",
@@ -3289,7 +3037,6 @@
         "required": [
           "table"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -3318,17 +3065,12 @@
             "type": "number"
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -3357,7 +3099,6 @@
         "required": [
           "path"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
@@ -3365,9 +3106,6 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -3442,17 +3180,12 @@
         "required": [
           "kind"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -3490,17 +3223,7 @@
         "required": [
           "entry_id"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
-      },
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -3557,7 +3280,6 @@
           "table": {
             "description": "Only scripts applied to this table.",
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$"
           },
           "scope": {
@@ -3568,8 +3290,7 @@
           "limit": {
             "description": "Max matches over all types (default 50).",
             "type": "integer",
-            "exclusiveMinimum": 0,
-            "maximum": 9007199254740991
+            "exclusiveMinimum": 0
           },
           "extended": {
             "description": "Without 'type': also search the opt-in types after the default ones (default false).",
@@ -3584,7 +3305,6 @@
         "required": [
           "text"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -3606,17 +3326,12 @@
           "count",
           "matches"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -3654,7 +3369,6 @@
         "required": [
           "text"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
@@ -3662,9 +3376,6 @@
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -3733,17 +3444,12 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -3759,7 +3465,6 @@
             "type": "array",
             "items": {
               "type": "string",
-              "maxLength": 80,
               "pattern": "^[A-Za-z0-9_]{1,80}$"
             }
           },
@@ -3818,17 +3523,11 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -3844,7 +3543,6 @@
             "maxLength": 128
           }
         },
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -3874,17 +3572,12 @@
           "status",
           "latencyMs"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -3896,7 +3589,6 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table to trace, e.g. 'incident'."
           },
@@ -3936,7 +3628,6 @@
           "table",
           "operation"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -3968,17 +3659,12 @@
           "mermaid",
           "warnings"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -3990,21 +3676,16 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table, e.g. 'incident'."
           },
           "sys_id": {
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "description": "Record sys_id."
           },
           "values": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": [
                 "string",
@@ -4028,8 +3709,7 @@
           "expected_mod_count": {
             "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
             "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
+            "minimum": 0
           },
           "apply": {
             "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
@@ -4046,17 +3726,11 @@
           "sys_id",
           "values"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -4068,15 +3742,11 @@
         "properties": {
           "table": {
             "type": "string",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "description": "Table name, e.g. 'cmdb_ci_server'."
           },
           "key": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": [
                 "string",
@@ -4088,9 +3758,6 @@
           },
           "values": {
             "type": "object",
-            "propertyNames": {
-              "type": "string"
-            },
             "additionalProperties": {
               "type": [
                 "string",
@@ -4112,7 +3779,6 @@
           "expected_sys_id": {
             "description": "The plan's sys_id; with apply, refused (STALE_RECORD) if the key now matches another record or none.",
             "type": "string",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "inputDisplayValue": {
@@ -4140,17 +3806,11 @@
           "key",
           "values"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     },
     {
@@ -4178,17 +3838,12 @@
         "required": [
           "name"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "annotations": {
-        "readOnlyHint": false,
         "destructiveHint": false,
         "idempotentHint": true,
         "openWorldHint": false
-      },
-      "execution": {
-        "taskSupport": "forbidden"
       }
     },
     {
@@ -4238,7 +3893,6 @@
           "kind",
           "name"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false
       },
       "outputSchema": {
@@ -4269,17 +3923,12 @@
           "references",
           "caveats"
         ],
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "execution": {
-        "taskSupport": "forbidden"
+        "idempotentHint": true
       }
     }
   ]
