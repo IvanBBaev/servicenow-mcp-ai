@@ -549,7 +549,8 @@ A global/`npx` install therefore writes to your user config rather than into
 
 At `initialize` the server sends `instructions` built from the live configuration: the enabled
 packages and tool count, the write mode, the active profile and, when nothing is configured,
-what is missing and how to fix it. Until then every instance tool fails with
+what is missing and how to fix it — plus pointers to the prompts, the reference resources
+and large-result handling (paging, `format "file"`). Until then every instance tool fails with
 `code: "NOT_CONFIGURED"` and a hint naming `servicenow_set_credentials`. A first session
 with an empty env file looks like this (abridged):
 

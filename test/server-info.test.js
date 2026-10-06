@@ -36,6 +36,7 @@ import {
   ServiceNowError,
 } from "../build/core/errors.js";
 import { fail } from "../build/mcp/result.js";
+import { TOOL_REFERENCE_TEMPLATE } from "../build/mcp/resources.js";
 import { testConnection } from "../build/api/diagnostics.js";
 import { baselineEnv, freshRuntime, withEnv } from "./helpers.js";
 
@@ -107,6 +108,12 @@ test("instructions (configured): version, profile, auth, packages, tool count, w
         /More via SN_TOOL_PACKAGES or servicenow_enable_package/,
       );
       assert.match(text, /Writes: plan/);
+      // MC-5: pointers to prompts, reference resources and large results.
+      assert.match(text, /servicenow_instance_overview is always there/);
+      assert.ok(text.includes(TOOL_REFERENCE_TEMPLATE), text);
+      assert.match(text, /servicenow:\/\/reference\/encoded-query/);
+      assert.match(text, /SN_MAX_RECORDS and flag truncated/);
+      assert.match(text, /format "file"/);
       assert.match(text, /untrusted content/);
       assert.doesNotMatch(text, /NOT configured/);
     },
