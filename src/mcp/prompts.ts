@@ -5,7 +5,12 @@ import type {
 import { completable } from "@modelcontextprotocol/sdk/server/completable.js";
 import { z } from "zod";
 import { activeProfile } from "../core/config.js";
-import { getProfileEnv } from "../core/settings.js";
+import { isReadOnly } from "../core/policy.js";
+import {
+  getProfileEnv,
+  getWriteMode,
+  writeModeHold,
+} from "../core/settings.js";
 import { inlineArg, untrusted } from "./boundary.js";
 import { TOOLS } from "./naming.js";
 import {
@@ -237,6 +242,11 @@ export function registerPrompts(
   registerSecurityPosture(gated(server, on, { all: ["codecheck"] }));
   registerUibPageReview(gated(server, on, { all: ["ui"] }));
   registerInstanceOverview(gated(server, on, {}));
+  // MC-3: the plugin skills as prompts, for clients without the plugin.
+  registerSafeWrite(gated(server, on, { all: ["table"] }));
+  registerDriftReview(gated(server, on, { all: ["instance"] }));
+  registerSchemaImpact(gated(server, on, { all: ["scripts"] }));
+  registerDiscoverInstance(gated(server, on, { all: ["docs"] }));
 }
 
 /**
@@ -499,6 +509,293 @@ function registerUibPageReview(server: McpServer): void {
                 `3. Broker security: read the "## Broker hints" section from step 1 (a mutating broker without an ACL, a transform that queries GlideRecord without an ACL check, a broker without an input schema). Then ${TOOLS.check_code_health} with domains true: the ux_data_brokers check of the ACL scan (a mutating broker with no ux_data_broker ACL, an open or public-role broker ACL) and the UI Builder domain findings.`,
                 `4. Page weight and composition: read the "## Page hints" section from step 1 (the uib-page-weight rule: element count, nesting depth, data resources fired on load, data resources without a 'when' condition). To see what changed between two profiles, ${TOOLS.compare_instances} (the 'instance' package) with a, b and types ['uib_macroponent'] reports a per-element composition diff (elementDiff: added, removed, moved, changed).`,
                 "5. Report the page's structure in a few lines, then the findings ranked by severity (security first), the evidence behind each, what a change to the page would touch, what could not be read (verified false, caveats), and concrete next steps. This review is read-only: do not change any record.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/**
+ * MC-3: the write-mode lines of the safe-write prompt, read when the prompt is
+ * fetched. In apply mode a write tool executes on the first call with no
+ * preview, so the model must ask the user before every write call; a prod
+ * profile adds the environment caution.
+ */
+export function writeModeGuidance(profile: string = activeProfile()): string {
+  const lines: string[] = [];
+  if (isReadOnly(profile)) {
+    lines.push(
+      "Writes are disabled (SN_READONLY): every write tool is refused. Read the current state, describe the change the user would need, and stop.",
+    );
+  } else if (getWriteMode(profile) === "apply") {
+    lines.push(
+      "Write mode is APPLY (SN_WRITE_MODE=apply): a write tool executes on its first call — there is no preview. Before EVERY write call, show the user the exact call (tool, table, sys_id, the values that change, before and after from step 2) and ask for confirmation; make the call only after the user explicitly agrees to it.",
+    );
+  } else {
+    const hold = writeModeHold(profile);
+    lines.push(
+      (hold ? `Write mode is plan (${hold}) ` : "Write mode is plan: ") +
+        "a write tool called without apply:true returns a before/after preview and changes nothing. Pass apply:true only after the user approves that preview.",
+    );
+  }
+  if (getProfileEnv(profile) === "prod") {
+    lines.push(
+      `The active profile "${profile}" is marked PRODUCTION: prefer reads, keep the change minimal, and confirm the target instance with the user before any write.`,
+    );
+  }
+  return lines.join("\n");
+}
+
+/** MC-3 (skill sn-safe-write): plan, review, apply, verify, revert path. */
+function registerSafeWrite(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_safe_write",
+    {
+      title: "Change ServiceNow data safely",
+      description:
+        "Guide the assistant through a safe write: check the write mode, read the current state, plan, apply only " +
+        "after the user approves, verify, and name the revert path.",
+      argsSchema: {
+        change: z
+          .string()
+          .max(ARG_MAX)
+          .describe("The change to make, e.g. 'set priority 2 on INC0012345'."),
+        table: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .optional()
+            .describe("Table the change touches, e.g. 'incident'."),
+          (value = "") => completeTable(value),
+        ),
+      },
+    },
+    (args) => {
+      const change = inlineArg(args.change);
+      const table = args.table ? inlineArg(args.table) : "the target table";
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Make this ServiceNow change safely: ${change}. Use the servicenow_* tools and read every value from the instance.`,
+                "",
+                writeModeGuidance(),
+                "",
+                `1. ${TOOLS.get_status}: the active profile, its environment and the write mode. Never switch profiles or write modes silently.`,
+                `2. Read the current state of every row you will touch on ${table}: ${TOOLS.get_record} or ${TOOLS.query_table}.`,
+                `3. Plan (plan mode only): ${TOOLS.create_record}, ${TOOLS.update_record}, ${TOOLS.upsert_record} or ${TOOLS.delete_record} without apply. Show the user the fields that change, before and after.`,
+                `4. Apply only after the user approves this exact change. A destructive apply (${TOOLS.delete_record}, a writing ${TOOLS.batch}, ${TOOLS.revert_write}) also needs the plan_token from the preview. For configuration records pass update_set so the change is captured.`,
+                `5. Verify: read the record back with ${TOOLS.get_record} and compare it with the plan.`,
+                `6. Undo path: ${TOOLS.list_writes} shows the local write journal; ${TOOLS.revert_write} (the 'revert' package) plans the inverse of an entry.`,
+                `One approval covers one call: a changed payload needs a new plan. Bulk changes go through ${TOOLS.batch} only after a single-record run succeeded. Never put credentials in values.`,
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/** MC-3 (skill sn-drift): instance vs instance, vs snapshot, or an update set. */
+function registerDriftReview(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_drift_review",
+    {
+      title: "Review configuration drift between ServiceNow instances",
+      description:
+        "Guide the assistant through a drift review: snapshot a reference instance, compare two profiles or a " +
+        "profile with its snapshot, and review what an update set would change (the 'instance' package).",
+      argsSchema: {
+        a: completable(
+          z.string().max(ARG_MAX).describe("Reference profile, e.g. 'dev'."),
+          (value = "") => completeProfile(value),
+        ),
+        b: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .optional()
+            .describe(
+              "Profile to compare with; omit to compare a with its saved snapshot.",
+            ),
+          (value = "") => completeProfile(value),
+        ),
+        update_set: z
+          .string()
+          .max(ARG_MAX)
+          .optional()
+          .describe("Update set name or sys_id to review as well."),
+      },
+    },
+    (args) => {
+      const a = inlineArg(args.a);
+      const b = args.b ? inlineArg(args.b) : undefined;
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Review the configuration drift of profile ${a}${b ? ` against ${b}` : " against its saved snapshot"}. Use the servicenow_* tools; this review is read-only against the instances (snapshots are written locally).`,
+                "",
+                `1. ${TOOLS.list_instances}: both sides must be configured profiles.`,
+                `2. Baseline: ${TOOLS.snapshot_instance} on ${a} (limit it with sections or tables if the user named an area). A cancelled or failed snapshot resumes with resume.`,
+                b
+                  ? `3. Compare: ${TOOLS.compare_instances} with a ${a} and b ${b}. Use format 'file' for a large result.`
+                  : `3. Compare: ${TOOLS.compare_instances} with from_snapshot against the live ${a}. Use format 'file' for a large result.`,
+                args.update_set
+                  ? `4. Update set ${inlineArg(args.update_set)}: ${TOOLS.get_update_set} for its records (the 'updatesets' package), then ${TOOLS.compare_update_set} with with_profile or with_snapshot to see what it would change on the target.`
+                  : `4. If an update set is in question: ${TOOLS.list_update_sets}, then ${TOOLS.compare_update_set} and ${TOOLS.get_update_set} (the 'updatesets' package).`,
+                `5. Drill into a difference with ${TOOLS.get_artifact} or ${TOOLS.explain_artifact} on each side (the 'artifacts' package).`,
+                "6. Report the differences as added / removed / changed per artefact type, security-relevant items (ACLs, roles, cross-scope privileges) first, and name the update set or manual change that would reconcile each. Skip a step whose package is off and say so.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/**
+ * Prompt arguments travel as strings (and the surface scan renders every one
+ * with a placeholder), so the choice-like arguments are completable strings
+ * normalised here rather than enums.
+ */
+const IMPACT_KINDS = ["table", "field", "script"] as const;
+const DISCOVERY_DEPTHS = ["overview", "apps", "artefacts"] as const;
+
+function pick(options: readonly string[], value: string): string[] {
+  return options.filter((o) => o.startsWith(value.toLowerCase()));
+}
+
+function oneOf<T extends string>(
+  options: readonly T[],
+  value: string | undefined,
+): T | undefined {
+  const v = value?.trim().toLowerCase();
+  return options.find((o) => o === v);
+}
+
+/** MC-3 (skill sn-impact): who depends on a table, field or script. */
+function registerSchemaImpact(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_schema_impact",
+    {
+      title: "Estimate the impact of a ServiceNow schema or script change",
+      description:
+        "Guide the assistant through the blast radius of changing a table, field or script: where it is used, " +
+        "text references and the automation that runs around it (the 'scripts' package).",
+      argsSchema: {
+        kind: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .describe("What changes: table, field or script."),
+          (value = "") => pick(IMPACT_KINDS, value),
+        ),
+        name: z
+          .string()
+          .max(ARG_MAX)
+          .describe(
+            "Table name, table.field, or script include / business rule name.",
+          ),
+      },
+    },
+    (args) => {
+      const name = inlineArg(args.name);
+      const kind = oneOf(IMPACT_KINDS, args.kind) ?? "table, field or script";
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Estimate the impact of changing the ${kind} ${name}. Use the servicenow_* tools; this analysis is read-only. Base every finding on values read from the instance.`,
+                "",
+                `1. Identify the target exactly: ${TOOLS.describe_table} for a table or field (type, reference, inheritance; the 'schema' package); ${TOOLS.get_artifact} or ${TOOLS.explain_artifact} for a script (the 'artifacts' package).`,
+                `2. Where it is used: ${TOOLS.where_used} with kind ${kind} and name ${name}. Set structural true to add dictionary references, and scope to stay inside one application.`,
+                `3. Text references the structural pass cannot see: ${TOOLS.search_code} with the name.`,
+                `4. What runs on the table: ${TOOLS.describe_table_logic} and, for the operation that will change, ${TOOLS.trace_table_event} (the 'flows' package).`,
+                `5. Optional picture: ${TOOLS.generate_er_diagram} for the table and its neighbours (the 'docs' package).`,
+                "6. Report the dependants grouped by kind (reference fields, scripts, automation, flows) with where each lives (scope, table, sys_id), and a risk call: safe, needs coordination, or breaking. Say which sources were unreadable or which steps were skipped because a package is off — an absent dependant is not proof there is none.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/** MC-3 (skill sn-discover): the native discovery generator. */
+function registerDiscoverInstance(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_discover_instance",
+    {
+      title: "Discover a ServiceNow instance",
+      description:
+        "Guide the assistant through mapping an instance into Markdown with the discovery generator: version and " +
+        "counts, custom applications, per-scope tables and artefacts (the 'docs' package).",
+      argsSchema: {
+        depth: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .optional()
+            .describe(
+              "Discovery tier (cumulative): overview, apps or artefacts. Default overview.",
+            ),
+          (value = "") => pick(DISCOVERY_DEPTHS, value),
+        ),
+        profile: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .optional()
+            .describe("Instance profile; omit for the active one."),
+          (value = "") => completeProfile(value),
+        ),
+      },
+    },
+    (args) => {
+      const depth = oneOf(DISCOVERY_DEPTHS, args.depth) ?? "overview";
+      const profile = inlineArg(args.profile ?? "current");
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Map the ServiceNow instance for profile ${profile} at depth ${depth}. Use the servicenow_* tools; the generator reads the instance and writes local Markdown only.`,
+                "",
+                `1. Confirm the target: ${TOOLS.list_instances}, then ${TOOLS.test_connection} for that profile. Switch with ${TOOLS.use_instance} only if the user asked for another instance.`,
+                `2. ${TOOLS.document_instance} with depth ${depth}: overview writes discovery/overview.md (version, counts, automation); apps adds apps.md and tables-<scope>.md per custom application; artefacts adds artifacts-<scope>.md per scope. Pass apps to limit the scopes (at most 50 per run), or write false for a dry run.`,
+                `3. Read the result back with ${TOOLS.read_doc} (e.g. <profile>/discovery/overview.md) and summarise the counts, the largest scopes and every Caveats line — a caveat is where the map is incomplete.`,
+                `4. For one scope in depth, follow up with ${TOOLS.document_app} or ${TOOLS.document_table}; ${TOOLS.search_docs} finds text across the written documents.`,
+                "Report the tool's failed entries verbatim; do not retry a scope blindly. Hand-written text inside sn:manual blocks survives re-runs.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
             },

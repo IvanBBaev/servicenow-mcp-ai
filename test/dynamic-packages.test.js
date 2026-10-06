@@ -286,12 +286,14 @@ test("M-5: prompts follow their package requirement", async () => {
         "servicenow_change_impact_analysis",
         "servicenow_incident_triage",
         "servicenow_instance_overview",
+        "servicenow_safe_write",
       ]);
       const result = await call("servicenow_enable_package", { name: "ops" });
       assert.deepEqual(result.structuredContent.prompts, [
         "servicenow_change_impact_analysis",
         "servicenow_incident_triage",
         "servicenow_instance_overview",
+        "servicenow_safe_write",
         "servicenow_why_is_it_slow",
       ]);
       assert.equal(seen.prompts, 1);
@@ -386,7 +388,13 @@ test("M-5: the overview prompt names only real tools", async () => {
                   ? { goal: "review incident rules" }
                   : name === "servicenow_uib_page_review"
                     ? { experience: "now/sow" }
-                    : {},
+                    : name === "servicenow_safe_write"
+                      ? { change: "set priority 2 on INC0010001" }
+                      : name === "servicenow_drift_review"
+                        ? { a: "dev", update_set: "Fix" }
+                        : name === "servicenow_schema_impact"
+                          ? { kind: "field", name: "incident.priority" }
+                          : {},
       });
       const body = prompt.messages.map((m) => m.content.text ?? "").join("\n");
       for (const [tool] of body.matchAll(/servicenow_[a-z_]+/g)) {

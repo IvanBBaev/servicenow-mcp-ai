@@ -133,7 +133,9 @@ with the model and client of your choice.
   deterministic Mermaid generators (ER diagrams from references, record-lifecycle
   flowcharts from business rules) so the server builds durable, reusable context.
 - **Prompts**: ready-made workflows (incident triage, change impact analysis,
-  document a table, diagnose a slow instance) that orchestrate the tools.
+  document a table, diagnose a slow instance, safe write, drift review, schema
+  impact, instance discovery) that orchestrate the tools; every plugin skill
+  has a prompt twin for clients without the plugin.
 - **Tool packages**: load only the tool groups you need via `SN_TOOL_PACKAGES`
   (default profile `core`; `all` enables everything).
 - **Basic** or **OAuth 2.0** authentication over HTTPS; the password/token is
@@ -1647,8 +1649,13 @@ characters) reach the model inside an untrusted-content block, and every prompt
 tells the model to treat instance data as data, not instructions. A prompt is
 listed only when the packages its tools live in are enabled (triage: `table`;
 change impact: `change` or `table`; document table: `docs` and `scripts`;
-why is it slow: `ops`; security posture: `codecheck`; UIB page review: `ui`; the instance overview uses admin tools only and is
-always listed). The list follows `servicenow_enable_package` /
+why is it slow: `ops`; security posture: `codecheck`; UIB page review: `ui`;
+safe write: `table`; drift review: `instance`; schema impact: `scripts`;
+discover instance: `docs`; the instance overview uses admin tools only and is
+always listed). The safe-write, drift-review, schema-impact and
+discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
+`sn-impact` and `sn-discover` (triage and UIB review mirror `sn-triage` and
+`sn-uib`). The list follows `servicenow_enable_package` /
 `servicenow_disable_package` live, with `notifications/prompts/list_changed`:
 
 | Prompt                              | Argument   | Purpose                                                          |
@@ -1660,6 +1667,10 @@ always listed). The list follows `servicenow_enable_package` /
 | `servicenow_uib_page_review`        | `experience`, `page` (optional) | Explains the UI Builder experience (`ui`), then what a change would touch (dependencies, where-used), data broker security and page weight; steps whose package is off are skipped. |
 | `servicenow_instance_overview`      | `goal` (optional) | Capability matrix (`servicenow_check_capabilities`), status and the session's packages; treats the profile as production until H-11 adds an environment marker. |
 | `servicenow_security_posture`      | `scope`, `profile` (both optional) | ACL scan and hardening compliance (`check_code_health`), the instance `security` document, then the cross-scope access of one app (`docs` package for the documents). |
+| `servicenow_safe_write`             | `change`, `table` (optional) | Write mode first, then read → plan → apply after approval → verify → revert path. In apply mode (`SN_WRITE_MODE=apply`) there is no preview, so the model must ask the user before every write call; a prod profile adds a caution. |
+| `servicenow_drift_review`           | `a`, `b`, `update_set` (last two optional) | Snapshot the reference profile, compare two profiles (or one with its snapshot), review an update set, then drill into differences; security-relevant drift first. |
+| `servicenow_schema_impact`          | `kind` (`table` / `field` / `script`), `name` | Where-used (structural and text), the logic and events on the table, an optional ER diagram → dependants and a risk call. |
+| `servicenow_discover_instance`      | `depth` (`overview` / `apps` / `artefacts`), `profile` (both optional) | Runs `servicenow_document_instance` at that depth, reads the result back and summarises counts, scopes and caveats. |
 
 ## Project structure
 

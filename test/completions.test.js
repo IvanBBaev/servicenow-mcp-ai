@@ -424,9 +424,13 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
   }
   assert.deepEqual(await promptNames(undefined), [
     "servicenow_change_impact_analysis",
+    "servicenow_discover_instance",
     "servicenow_document_table",
+    "servicenow_drift_review",
     "servicenow_incident_triage",
     "servicenow_instance_overview",
+    "servicenow_safe_write",
+    "servicenow_schema_impact",
     "servicenow_security_posture",
     "servicenow_uib_page_review",
     "servicenow_why_is_it_slow",
@@ -441,14 +445,23 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
     "servicenow_change_impact_analysis",
     "servicenow_incident_triage",
     OVERVIEW,
+    "servicenow_safe_write",
   ]);
   // The change prompt needs change OR table; document_table needs both.
   assert.deepEqual(await promptNames(["change", "docs"]), [
     "servicenow_change_impact_analysis",
+    "servicenow_discover_instance",
     OVERVIEW,
   ]);
   assert.deepEqual(await promptNames(["docs", "scripts"]), [
+    "servicenow_discover_instance",
     "servicenow_document_table",
+    OVERVIEW,
+    "servicenow_schema_impact",
+  ]);
+  // MC-3: drift review needs instance (update sets and artefacts are optional).
+  assert.deepEqual(await promptNames(["instance"]), [
+    "servicenow_drift_review",
     OVERVIEW,
   ]);
   // N-19: security posture needs codecheck only (docs steps are optional).
