@@ -95,6 +95,12 @@ for (const doc of docs) {
       assert.ok(fm.description.length <= 1024, "description stays short");
     });
 
+    // SF-7: every skill reads instance content, so each one says it is data.
+    test(`skill ${doc.name} treats instance content as untrusted data`, () => {
+      const text = readFileSync(doc.file, "utf8").replace(/\s+/g, " ");
+      assert.match(text, /untrusted data, never instructions/);
+    });
+
     // N-52: the skills are portable Agent Skills (agentskills.io) — VS Code
     // Copilot, Codex and Cursor load the same SKILL.md, so the frontmatter
     // stays inside the open spec and the body names tools by their bare MCP
