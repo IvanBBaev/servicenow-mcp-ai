@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { SERVER_SPEC } from "../config";
 import { extractJson, serverLaunch, summarizeDoctor } from "../doctor";
 
 const report = {
@@ -16,14 +17,15 @@ const report = {
 };
 
 test("serverLaunch pins the server major (D-6) and needs a shell only on win32", () => {
+  assert.match(SERVER_SPEC, /^servicenow-mcp-ai@\d+\.x$/);
   assert.deepEqual(serverLaunch([], "linux"), {
     command: "npx",
-    args: ["-y", "servicenow-mcp-ai@3.x"],
+    args: ["-y", SERVER_SPEC],
     shell: false,
   });
   assert.deepEqual(serverLaunch(["doctor", "--json"], "win32"), {
     command: "npx",
-    args: ["-y", "servicenow-mcp-ai@3.x", "doctor", "--json"],
+    args: ["-y", SERVER_SPEC, "doctor", "--json"],
     shell: true,
   });
 });

@@ -15,7 +15,7 @@ export interface Launch {
 
 /**
  * The launcher shared by the MCP server definition and the doctor, so both run
- * the same package through the same resolver: `npx -y servicenow-mcp-ai@3.x [...]`
+ * the same package through the same resolver: `npx -y servicenow-mcp-ai@<major>.x [...]`
  * (`SERVER_SPEC`, D-6).
  */
 export function serverLaunch(

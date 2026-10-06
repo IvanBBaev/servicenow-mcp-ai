@@ -13,14 +13,17 @@ export const SERVER_PACKAGE = "servicenow-mcp-ai";
  * D-6 (B9): the server major the extension launches. `npx -y` resolves the
  * newest release inside this range, so a new server major never reaches an
  * installed extension silently — it ships with an extension that raises the
- * pin. Every launcher (MCP definition, doctor, http transport) goes through
- * `SERVER_SPEC`; `test/distribution.test.js` keeps it that way.
+ * pin. The extension is versioned in lockstep with the server
+ * (`npm run version:sync`), so the range is always the `package.json` major:
+ * `test/distribution.test.js` fails a major bump that leaves it behind (the
+ * 3.0.0 bump raises it to `3.x`). Every launcher (MCP definition, doctor,
+ * http transport) goes through `SERVER_SPEC`; the same test keeps it that way.
  *
- * Written `3.x` rather than `^3`: npm treats both as `>=3.0.0 <4.0.0-0`, but on
- * Windows `npx` is spawned through `cmd.exe`, where `^` is the escape
+ * Written `N.x` rather than `^N`: npm treats both as `>=N.0.0 <N+1.0.0-0`, but
+ * on Windows `npx` is spawned through `cmd.exe`, where `^` is the escape
  * character and would be stripped or mangled.
  */
-export const SERVER_VERSION_RANGE = "3.x";
+export const SERVER_VERSION_RANGE = "2.x";
 
 /** The npm spec every launcher passes to `npx -y`. */
 export const SERVER_SPEC = `${SERVER_PACKAGE}@${SERVER_VERSION_RANGE}`;

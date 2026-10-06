@@ -21,7 +21,7 @@ Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email), plus:
 ## Setup
 
 1. Install this extension. The **ServiceNow** MCP server is registered for Copilot
-   Chat (it runs via `npx -y servicenow-mcp-ai@3.x` — pinned to the server major
+   Chat (it runs via `npx -y servicenow-mcp-ai@2.x` — pinned to the server major
    this extension was built for — so Node.js 22.12+ is required).
 2. Open the **Get started with ServiceNow MCP** walkthrough (Command Palette →
    _Welcome: Open Walkthrough..._). It takes you through four steps: sign in,

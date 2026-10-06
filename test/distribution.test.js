@@ -25,7 +25,16 @@ test("D-6: the extension pins the server major in one constant", () => {
   assert.ok(range, "SERVER_VERSION_RANGE is not declared in config.ts");
   // `N.x` — a whole major, and caret-free so cmd.exe cannot mangle it.
   assert.match(range[1], /^\d+\.x$/);
-  assert.equal(range[1], "3.x", "B9: the 3.0 extension launches server 3.x");
+  // MC-2: the extension follows package.json (version:sync), so the pin is the
+  // package.json major — a major bump that leaves it behind fails here (B9:
+  // the 3.0.0 bump raises it to 3.x together with the version).
+  const major = json("package.json").version.split(".")[0];
+  assert.equal(
+    range[1],
+    `${major}.x`,
+    `the extension must launch the server major it ships with (package.json ${major}.x)`,
+  );
+  assert.equal(json("extension/package.json").version.split(".")[0], major);
   assert.match(
     config,
     /export const SERVER_SPEC = `\$\{SERVER_PACKAGE\}@\$\{SERVER_VERSION_RANGE\}`;/,

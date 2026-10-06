@@ -32,7 +32,7 @@ const DOCTOR_TIMEOUT_MS = 180_000;
 /**
  * Registers the `servicenow-mcp-ai` MCP server with VS Code so it appears in
  * Copilot Chat (agent mode) the moment the extension is installed — no manual
- * `.vscode/mcp.json`. The server runs via `npx -y servicenow-mcp-ai@3.x`
+ * `.vscode/mcp.json`. The server runs via `npx -y servicenow-mcp-ai@<major>.x`
  * (`SERVER_SPEC` in `config.ts`, the pinned major — D-6).
  *
  * Credentials come from, in order of precedence: the SecretStorage sign-in
