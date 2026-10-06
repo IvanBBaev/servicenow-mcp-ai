@@ -14,24 +14,30 @@ file.
 
 ## Steps
 
-1. Confirm the target: `servicenow_list_instances`, then
+1. Packages: this skill calls tools from `docs`, which the default `core`
+   profile leaves off. Read `enabledPackages` in `servicenow_get_status`; for a
+   missing package, enable it with the server's `enable_package` admin tool and
+   tell the user, or ask the operator to add it to `SN_TOOL_PACKAGES`. A
+   package listed in `deniedPackages` cannot be enabled — skip the steps that
+   need it and report them as not checked.
+2. Confirm the target: `servicenow_list_instances`, then
    `servicenow_test_connection` for the profile you will document. Switch with
    `servicenow_use_instance` only if the user asked for another instance.
-2. Pick the tier (cumulative):
+3. Pick the tier (cumulative):
    - `overview` — `discovery/overview.md`: version, counts, automation.
    - `apps` — adds `discovery/apps.md` and `discovery/tables-<scope>.md` per
      custom application (tables and their own dictionary columns).
    - `artefacts` — adds `discovery/artifacts-<scope>.md` per scope: every
      artefact type the server knows, with "collected / not collected and why"
      (no records, unverified, unreadable, package off, cap).
-3. Call `servicenow_document_instance({ depth })`. Pass `apps: [...]` to limit
+4. Call `servicenow_document_instance({ depth })`. Pass `apps: [...]` to limit
    the scopes; without it every `sys_app` scope is covered (at most 50 per run
    — the rest are listed as a caveat). Add `write: false` for a dry run that
    returns the Markdown instead of writing it.
-4. Read the result back with `servicenow_read_doc` (for example
+5. Read the result back with `servicenow_read_doc` (for example
    `default/discovery/overview.md`) and summarise: counts, the largest scopes,
    and every Caveats line — a caveat is where the map is incomplete.
-5. For one scope in depth, follow up with `servicenow_document_app` or
+6. For one scope in depth, follow up with `servicenow_document_app` or
    `servicenow_document_table`; `servicenow_search_docs` finds text across the
    written documents.
 

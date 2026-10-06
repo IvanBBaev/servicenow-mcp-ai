@@ -10,22 +10,29 @@ profile; nothing here writes to the instance.
 
 ## Steps
 
-1. Health first: `servicenow_get_status` (profile, packages, write mode) and
+1. Packages: this skill calls tools from `ops`, `history`, `scripts`, `flows`
+   and `codecheck`, which the default `core` profile leaves off. Read
+   `enabledPackages` in `servicenow_get_status`; for a missing package, enable
+   it with the server's `enable_package` admin tool and tell the user, or ask
+   the operator to add it to `SN_TOOL_PACKAGES`. A package listed in
+   `deniedPackages` cannot be enabled — skip the steps that need it and report
+   them as not checked.
+2. Health: the same `servicenow_get_status` answer (profile, write mode) and
    `servicenow_check_capabilities` (what this user can read). A missing
    capability explains many "empty" answers.
-2. Symptoms: `servicenow_read_ops` with `kind: "syslog"` and `level: "error"`
+3. Symptoms: `servicenow_read_ops` with `kind: "syslog"` and `level: "error"`
    for the last minutes; `kind: "jobs"` with `filter: "overdue"` for stuck
    scheduled work; `kind: "email_queue"` for mail problems;
    `kind: "transactions"`, `"integrations"` and `"mid"` for slow pages,
    failing outbound calls and MID / ECC queue trouble.
-3. The record: `servicenow_get_record` for the current state, then
+4. The record: `servicenow_get_record` for the current state, then
    `servicenow_get_record_history` to see who changed which field and when.
-4. The automation that touches it: `servicenow_describe_table_logic` for the table's
+5. The automation that touches it: `servicenow_describe_table_logic` for the table's
    business rules, client scripts, UI policies, UI actions and ACLs, and
    `servicenow_trace_table_event` (`operation: "update"` or `"insert"`) for the
    order they run in. `servicenow_get_flow_runs` shows flow executions for the
    record.
-5. Suspect code: `servicenow_get_script` and `servicenow_lint_script` on the
+6. Suspect code: `servicenow_get_script` and `servicenow_lint_script` on the
    script the trace points at; `servicenow_search_code` for an error message
    text.
 

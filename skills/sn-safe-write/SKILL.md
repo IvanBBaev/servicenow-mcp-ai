@@ -51,8 +51,11 @@ first step is always to learn the mode — never send a write call before it.
    captured.
 6. Verify: read the record back with `servicenow_get_record`.
 7. Undo path: `servicenow_list_writes` shows the local write journal;
-   `servicenow_revert_write` (the opt-in `revert` package) plans the inverse
-   of an entry and applies it with `apply: true`.
+   `servicenow_revert_write` plans the inverse of an entry and applies it with
+   `apply: true`. Both live in the opt-in `revert` package and
+   `servicenow_batch` in the `batch` package: when `enabledPackages` in the
+   step 1 answer lacks one, enable it with the server's `enable_package` admin
+   tool and tell the user. The record tools are in `table` (part of `core`).
 
 ## Rules
 
