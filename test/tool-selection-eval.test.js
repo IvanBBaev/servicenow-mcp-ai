@@ -1,7 +1,10 @@
 // N-18: the tool-selection eval harness (evals/tool-selection/). Offline only:
 // the case loader, the surface builder, scoring, the lexical and recorded
-// backends, and the Anthropic backend against a stubbed fetch. No test here
-// fails on description drift or eval accuracy; that is the runner's job.
+// backends, and the Anthropic backend against a stubbed fetch. Eval accuracy
+// is the runner's job, but description drift fails here: every tool the
+// cases expect must still have the description hash recorded in
+// evals/tool-selection/description-hashes.json (TOKEN-OPTIMIZATION-PLAN N-57
+// gate). After a fresh eval, `npm run eval:tools -- --write-hashes` updates it.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -9,12 +12,16 @@ import { readFileSync } from "node:fs";
 
 import {
   PACKAGE_RESCUE,
+  PROFILE_ENV,
   buildSurface,
+  caseToolNames,
   compareToBaseline,
   createAnthropicBackend,
   createLexicalBackend,
   createRecordedBackend,
   descriptionDrift,
+  descriptionDriftMessage,
+  descriptionHashFixture,
   descriptionHashes,
   effectiveExpected,
   evaluate,
@@ -25,8 +32,13 @@ import {
   validateCases,
 } from "../evals/tool-selection/lib.mjs";
 import { describeAllTools } from "../build/mcp/registry.js";
+import { listPublishedTools } from "./surface.js";
 
 const CASES = new URL("../evals/tool-selection/cases.json", import.meta.url);
+const HASHES = new URL(
+  "../evals/tool-selection/description-hashes.json",
+  import.meta.url,
+);
 const KNOWN = new Set(describeAllTools().map((t) => t.name));
 
 const tool = (name, extra = {}) => ({
@@ -415,4 +427,60 @@ test("the offline baseline, when present, is a lexical baseline", () => {
   for (const profile of Object.values(baseline.profiles)) {
     assert.equal(typeof profile.top1, "number");
   }
+});
+
+test("caseToolNames, the hash fixture and the drift message", () => {
+  const cases = [
+    { id: "a", expected: ["servicenow_query_table"] },
+    { id: "b", expected: ["servicenow_list_cis", "servicenow_query_table"] },
+    { id: "c", expected: [] },
+  ];
+  const names = caseToolNames(cases);
+  assert.deepEqual(names, ["servicenow_list_cis", "servicenow_query_table"]);
+  const { all } = fixture();
+  const hashes = descriptionHashFixture(all, names, {
+    backend: "lexical",
+    model: "m",
+  });
+  assert.deepEqual(hashes.eval, { backend: "lexical", model: "m" });
+  assert.deepEqual(Object.keys(hashes.descriptions), names);
+  assert.match(hashes.note, /--write-hashes/);
+
+  assert.equal(
+    descriptionDriftMessage({ changed: [], added: [], removed: [] }),
+    "",
+  );
+  const msg = descriptionDriftMessage({
+    changed: ["servicenow_list_cis"],
+    added: ["servicenow_new"],
+    removed: ["servicenow_old"],
+  });
+  assert.match(msg, /descriptions changed: servicenow_list_cis/);
+  assert.match(msg, /tools not hashed yet: servicenow_new/);
+  assert.match(msg, /hashed tools gone: servicenow_old/);
+  assert.match(msg, /npm run eval:tools -- --write-hashes/);
+});
+
+test("every eval tool keeps the description hash of the last tool-selection eval", async () => {
+  const { cases } = loadCases(CASES, KNOWN);
+  const recorded = JSON.parse(readFileSync(HASHES, "utf8"));
+  assert.equal(recorded.schema, 1);
+  const names = new Set(caseToolNames(cases));
+  const published = (await listPublishedTools(PROFILE_ENV.all)).filter((t) =>
+    names.has(t.name),
+  );
+  const drift = descriptionDrift(
+    recorded.descriptions,
+    descriptionHashes(published),
+  );
+  // A tool the cases expect but the server no longer publishes is "gone".
+  for (const name of names) {
+    if (
+      !published.some((t) => t.name === name) &&
+      !drift.removed.includes(name)
+    )
+      drift.removed.push(name);
+  }
+  const message = descriptionDriftMessage(drift);
+  assert.equal(message, "", message);
 });

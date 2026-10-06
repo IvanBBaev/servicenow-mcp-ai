@@ -573,6 +573,43 @@ export function descriptionDrift(before = {}, after = {}) {
   return { changed, added, removed };
 }
 
+/** Every tool a case expects, sorted: the tools the eval measures. */
+export function caseToolNames(cases) {
+  return [...new Set(cases.flatMap((c) => c.expected ?? []))].sort();
+}
+
+/**
+ * The description-hash fixture (`description-hashes.json`): the sha256 of
+ * the published description of every tool the cases expect, as of the last
+ * tool-selection eval run. The hash is the manifest's `description_sha256`.
+ * `test/tool-selection-eval.test.js` fails when a description drifts from
+ * it, so a description change cannot land without a fresh eval.
+ */
+export function descriptionHashFixture(tools, names, { backend, model }) {
+  const wanted = new Set(names);
+  return {
+    schema: 1,
+    note: "sha256 of each published tool description the tool-selection eval last ran against. A description change needs a fresh eval: run `npm run eval:tools` (and the model backend for a wording change that matters), review the report, then `npm run eval:tools -- --write-hashes` to record the new hashes.",
+    eval: { backend, model },
+    descriptions: descriptionHashes(tools.filter((t) => wanted.has(t.name))),
+  };
+}
+
+/** The test failure text for a description drift; empty when none. */
+export function descriptionDriftMessage({ changed, added, removed }) {
+  const parts = [];
+  if (changed.length) parts.push(`descriptions changed: ${changed.join(", ")}`);
+  if (added.length) parts.push(`tools not hashed yet: ${added.join(", ")}`);
+  if (removed.length) parts.push(`hashed tools gone: ${removed.join(", ")}`);
+  if (!parts.length) return "";
+  return (
+    `tool descriptions drifted from evals/tool-selection/description-hashes.json (${parts.join("; ")}). ` +
+    "A description change needs a fresh tool-selection eval: run `npm run eval:tools` " +
+    "(plus `-- --backend anthropic` for a wording change that can move model picks), " +
+    "review the report, then record the new hashes with `npm run eval:tools -- --write-hashes`."
+  );
+}
+
 /** Per-profile top-1 delta (points) and the cases that flipped. */
 export function compareToBaseline(baseline, run) {
   const out = {};

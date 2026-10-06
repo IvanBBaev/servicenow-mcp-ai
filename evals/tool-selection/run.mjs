@@ -23,6 +23,9 @@
  *   --concurrency <n>                      parallel model calls (default 4 for anthropic)
  *   --baseline <file>                      baseline to compare with (default per backend)
  *   --write-baseline                       write the baseline file for this backend
+ *   --write-hashes                         record the description hashes this run
+ *                                          used (description-hashes.json; the
+ *                                          drift test in npm test reads it)
  *   --max-drop <points>                    exit 1 when top-1 drops more than this
  *   --json                                 print the full run as JSON
  *
@@ -39,11 +42,13 @@ import {
   PROFILE_ENV,
   SURFACE_PROFILES,
   buildSurface,
+  caseToolNames,
   compareToBaseline,
   createAnthropicBackend,
   createLexicalBackend,
   createRecordedBackend,
   descriptionDrift,
+  descriptionHashFixture,
   descriptionHashes,
   evaluate,
   loadCases,
@@ -52,6 +57,7 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
 const RESULTS_DIR = join(ROOT, "evals", "results", "tool-selection");
+const hashesPath = join(HERE, "description-hashes.json");
 
 const { values: opts } = parseArgs({
   options: {
@@ -65,6 +71,7 @@ const { values: opts } = parseArgs({
     concurrency: { type: "string" },
     baseline: { type: "string" },
     "write-baseline": { type: "boolean", default: false },
+    "write-hashes": { type: "boolean", default: false },
     "max-drop": { type: "string" },
     json: { type: "boolean", default: false },
     help: { type: "boolean", short: "h", default: false },
@@ -200,6 +207,18 @@ writeFileSync(
 if (opts.record) {
   writeFileSync(opts.record, JSON.stringify(recorded, null, 2) + "\n");
 }
+if (opts["write-hashes"]) {
+  if (opts.filter) {
+    console.error("refusing to write description hashes from a filtered run");
+    process.exit(2);
+  }
+  const fixture = descriptionHashFixture(
+    published.all,
+    caseToolNames(allCases),
+    { backend: run.backend, model: run.model },
+  );
+  writeFileSync(hashesPath, JSON.stringify(fixture, null, 2) + "\n");
+}
 if (opts["write-baseline"]) {
   if (opts.filter) {
     console.error("refusing to write a baseline from a filtered run");
@@ -311,6 +330,9 @@ if (opts.json) {
   }
   if (opts["write-baseline"]) {
     console.log(`\nwrote ${relative(ROOT, baselinePath)}`);
+  }
+  if (opts["write-hashes"]) {
+    console.log(`\nwrote ${relative(ROOT, hashesPath)}`);
   }
 }
 

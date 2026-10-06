@@ -117,7 +117,14 @@ cluster, the confusion pairs, plan-first compliance and argument validity;
 picks and the sha256 of every tool description; later runs print the delta,
 the flipped cases and a stale-baseline warning when a description changed,
 and `--max-drop <points>` turns the delta into an exit code.
-`test/tool-selection-eval.test.js` covers the harness without a model.
+`test/tool-selection-eval.test.js` covers the harness without a model, and
+it is the "description change needs a fresh eval" gate:
+`evals/tool-selection/description-hashes.json` holds the `description_sha256`
+of every tool the cases expect, as of the last eval run, and the test fails
+(naming the tools) when a published description no longer matches. After a
+description change, run `npm run eval:tools` (with `-- --backend anthropic`
+when the wording can move model picks), review the report, then record the
+new hashes with `npm run eval:tools -- --write-hashes`.
 
 ## Dependencies and the audit gate
 
