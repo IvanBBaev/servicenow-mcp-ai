@@ -17,7 +17,17 @@ import { queryTable } from "./table.js";
  *   (skipped, cancelled, running, waiting) is neither and does not enter the
  *   pass rate or the flip count. A run is `flaky` when the window holds both
  *   a pass and a fail and the outcome flips at least {@link FLAKY_MIN_FLIPS}
- *   times (oldest to newest) — one flip is a plain break or fix.
+ *   times (oldest to newest) — one flip is a plain break or fix;
+ * - unchanged test (the NX-20 refinement): the test / suite records'
+ *   `sys_updated_on` and `sys_mod_count` are read in one more bounded
+ *   `sys_idIN…` query. Flips and `flaky` count only the runs that started at
+ *   or after the definition's last update, so a fail → edit → pass sequence
+ *   is a fix, not flakiness. The pass rate and the last result still use the
+ *   whole window. A result row does not carry the definition's
+ *   `sys_mod_count` at run time, so the comparison is `start_time` against
+ *   `sys_updated_on`; `sys_mod_count` is reported alongside. When that read
+ *   fails (or a field is empty) the summary falls back to the whole window,
+ *   the behaviour before the refinement.
  *
  * Not wired to a tool yet: `with_results:true` on `servicenow_list_atf_tests`
  * / `servicenow_list_atf_suites` grows tools/list (O-10). Wiring is
@@ -27,8 +37,10 @@ import { queryTable } from "./table.js";
  * degrades to `available:false` with a reason, per section. Table, field and
  * choice names (sys_atf_test_result test / parent / run_time,
  * sys_atf_test_suite_result test_suite, the status values) are unverified
- * until O-5 (PDI). "Unchanged test" (a stable sys_mod_count across the
- * window, the NX-20 refinement) is not checked yet.
+ * until O-5 (PDI). So are, for the unchanged-test check, sys_atf_test /
+ * sys_atf_test_suite `sys_updated_on` / `sys_mod_count` as a definition
+ * version: whether editing a step (sys_atf_step) or a suite's membership
+ * (sys_atf_test_suite_test) bumps the parent record is not verified either.
  */
 
 /** Runs per test or suite looked at, by default. */
@@ -76,11 +88,34 @@ export interface AtfResultSummary {
   other: number;
   /** passed / (passed + failed); null when no run passed or failed. */
   passRate: number | null;
-  /** Pass ↔ fail changes, oldest to newest, ignoring `other` runs. */
+  /**
+   * Pass ↔ fail changes, oldest to newest, ignoring `other` runs; only runs
+   * of the unchanged definition (see `stableRuns`) count.
+   */
   flips: number;
   flaky: boolean;
+  /**
+   * Runs in the window that started at or after the definition's last
+   * update — the ones `flips` and `flaky` look at. Equals `runs` when the
+   * definition is unknown or did not change inside the window.
+   */
+  stableRuns: number;
+  /** The test's or suite's record version, when it could be read. */
+  definition?: AtfDefinition;
   /** The newest run; absent when there is none. */
   last?: AtfLastResult;
+}
+
+export interface AtfDefinition {
+  /** The record's `sys_updated_on` (UTC, `YYYY-MM-DD HH:MM:SS`). */
+  updatedOn: string;
+  /** The record's `sys_mod_count`, when it is a number. */
+  modCount?: number;
+}
+
+export interface SummariseOptions {
+  /** The definition record; runs before `updatedOn` do not count as flips. */
+  definition?: AtfDefinition;
 }
 
 export interface Unavailable {
@@ -96,6 +131,12 @@ export interface AtfHistorySection {
   scanned: number;
   /** True when the read hit its row limit: older runs may be missing. */
   truncated: boolean;
+  /**
+   * Whether the definition records were read for the unchanged-test check.
+   * False (with a reason) falls back to flips over the whole window.
+   */
+  definitionsChecked: boolean;
+  definitionsUnavailableReason?: string;
 }
 
 export interface AtfResultHistory {
@@ -131,24 +172,38 @@ export function clampWindow(window: number | undefined): number {
 /**
  * Summarise one test's or suite's runs. `rows` may come in any order; they
  * are sorted newest first by start time and only the newest `window` count.
+ * With a `definition`, flips and `flaky` only look at the runs that started
+ * at or after its `updatedOn` (the unchanged test); an empty `updatedOn`
+ * means unknown and keeps the whole window.
  */
 export function summariseResults(
   rows: readonly AtfResultRow[],
   window: number = DEFAULT_WINDOW,
+  { definition }: SummariseOptions = {},
 ): AtfResultSummary {
   const recent = [...rows]
     .sort((a, b) => b.startTime.localeCompare(a.startTime))
     .slice(0, clampWindow(window));
+  const since = definition?.updatedOn ?? "";
   let passed = 0;
   let failed = 0;
+  let stableRuns = 0;
+  let stablePassed = 0;
+  let stableFailed = 0;
   let flips = 0;
   let previous: AtfOutcome | undefined;
   // Oldest to newest, so a flip reads as "was X, became Y".
   for (let i = recent.length - 1; i >= 0; i--) {
-    const outcome = outcomeOf(recent[i]!.status);
+    const row = recent[i]!;
+    const stable = row.startTime >= since;
+    if (stable) stableRuns++;
+    const outcome = outcomeOf(row.status);
     if (outcome === "other") continue;
     if (outcome === "pass") passed++;
     else failed++;
+    if (!stable) continue;
+    if (outcome === "pass") stablePassed++;
+    else stableFailed++;
     if (previous && previous !== outcome) flips++;
     previous = outcome;
   }
@@ -161,7 +216,9 @@ export function summariseResults(
     other: recent.length - decided,
     passRate: decided === 0 ? null : passed / decided,
     flips,
-    flaky: passed > 0 && failed > 0 && flips >= FLAKY_MIN_FLIPS,
+    flaky: stablePassed > 0 && stableFailed > 0 && flips >= FLAKY_MIN_FLIPS,
+    stableRuns,
+    ...(definition ? { definition } : {}),
     ...(newest
       ? {
           last: {
@@ -179,6 +236,8 @@ export function summariseResults(
 
 interface SectionSpec {
   table: string;
+  /** The test or suite table, read for the unchanged-test check. */
+  definitionTable: string;
   /** The reference field to the test or suite. */
   key: string;
   /** Extra fields read. */
@@ -188,6 +247,7 @@ interface SectionSpec {
 
 const TEST_SPEC: SectionSpec = {
   table: "sys_atf_test_result",
+  definitionTable: "sys_atf_test",
   key: "test",
   fields: ["parent"],
   toRow: (r) => ({
@@ -198,6 +258,7 @@ const TEST_SPEC: SectionSpec = {
 
 const SUITE_SPEC: SectionSpec = {
   table: "sys_atf_test_suite_result",
+  definitionTable: "sys_atf_test_suite",
   key: "test_suite",
   fields: [],
   toRow: (r) => baseRow(r),
@@ -223,6 +284,42 @@ function cleanIds(ids: readonly string[]): string[] | string {
   return out;
 }
 
+/**
+ * The definition records (`sys_updated_on`, `sys_mod_count`) of `ids`, or
+ * the reason they could not be read. A record with no `sys_updated_on` is
+ * left out (its runs keep the whole window).
+ */
+async function readDefinitions(
+  table: string,
+  ids: readonly string[],
+): Promise<Map<string, AtfDefinition> | string> {
+  let records: Record<string, unknown>[];
+  try {
+    ({ records } = await queryTable({
+      table,
+      query: `sys_idIN${ids.join(",")}`,
+      fields: ["sys_id", "sys_updated_on", "sys_mod_count"],
+      displayValue: "false",
+      limit: ids.length,
+    }));
+  } catch (e) {
+    if (isCancel(e)) throw e;
+    return unreadableReason(table, e);
+  }
+  const out = new Map<string, AtfDefinition>();
+  for (const r of records) {
+    const updatedOn = snString(r.sys_updated_on);
+    if (!updatedOn) continue;
+    const raw = snString(r.sys_mod_count);
+    const modCount = /^\d+$/.test(raw) ? Number(raw) : undefined;
+    out.set(snString(r.sys_id), {
+      updatedOn,
+      ...(modCount !== undefined ? { modCount } : {}),
+    });
+  }
+  return out;
+}
+
 async function readSection(
   spec: SectionSpec,
   rawIds: readonly string[],
@@ -231,7 +328,13 @@ async function readSection(
   const ids = cleanIds(rawIds);
   if (typeof ids === "string") return unavailable(ids);
   if (ids.length === 0) {
-    return { available: true, summaries: {}, scanned: 0, truncated: false };
+    return {
+      available: true,
+      summaries: {},
+      scanned: 0,
+      truncated: false,
+      definitionsChecked: false,
+    };
   }
   const limit = Math.min(ids.length * window, HISTORY_ROW_LIMIT);
   let records: Record<string, unknown>[];
@@ -259,13 +362,31 @@ async function readSection(
   for (const r of records) {
     byId.get(snString(r[spec.key]))?.push(spec.toRow(r));
   }
+  // Only ids that ran need their definition; never-run ones skip the read.
+  const ran = ids.filter((id) => byId.get(id)!.length > 0);
+  const definitions =
+    ran.length > 0
+      ? await readDefinitions(spec.definitionTable, ran)
+      : new Map<string, AtfDefinition>();
   const summaries: Record<string, AtfResultSummary> = {};
-  for (const [id, rows] of byId) summaries[id] = summariseResults(rows, window);
+  for (const [id, rows] of byId) {
+    const definition =
+      typeof definitions === "string" ? undefined : definitions.get(id);
+    summaries[id] = summariseResults(
+      rows,
+      window,
+      definition ? { definition } : {},
+    );
+  }
   return {
     available: true,
     summaries,
     scanned: records.length,
     truncated: records.length >= limit,
+    definitionsChecked: typeof definitions !== "string",
+    ...(typeof definitions === "string"
+      ? { definitionsUnavailableReason: definitions }
+      : {}),
   };
 }
 
@@ -326,6 +447,9 @@ function renderSection(
   const flaky = entries.filter(([, s]) => s.flaky).length;
   out.push(
     `${entries.length} item(s), last ${window} run(s) each; ${flaky} flaky${section.truncated ? " (row limit hit — older runs may be missing)" : ""}.`,
+    section.definitionsChecked
+      ? "Flaky counts only the runs since each definition's last update."
+      : `Flaky counts the whole window (definitions not checked${section.definitionsUnavailableReason ? `: ${section.definitionsUnavailableReason}` : ""}).`,
     "",
     mdTable(
       ["Name", "Last result", "Last run", "Pass rate", "Runs", "Flaky"],
@@ -335,12 +459,19 @@ function renderSection(
         s.last?.at ?? "",
         pct(s.passRate),
         String(s.runs),
-        s.flaky ? `yes (${s.flips} flips)` : "no",
+        flakyCell(s),
       ]),
     ),
     "",
   );
   return out;
+}
+
+function flakyCell(s: AtfResultSummary): string {
+  const base = s.flaky ? `yes (${s.flips} flips)` : "no";
+  return s.stableRuns < s.runs
+    ? `${base}; ${s.stableRuns} run(s) since change`
+    : base;
 }
 
 /** Markdown for a result history; `names` maps sys_id → display name. */

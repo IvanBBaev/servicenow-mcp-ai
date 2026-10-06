@@ -189,6 +189,16 @@ test("history: one bounded IN query per section, newest first", async () => {
             { test_suite: S1, status: "error", start_time: "2026-10-03" },
           ],
         }),
+      sys_atf_test: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: T1,
+              sys_updated_on: "2026-09-01 00:00:00",
+              sys_mod_count: "7",
+            },
+          ],
+        }),
     }),
     async (calls) => {
       const h = await atfResultHistory({
@@ -197,7 +207,9 @@ test("history: one bounded IN query per section, newest first", async () => {
         window: 5,
       });
       assert.equal(h.window, 5);
-      assert.equal(calls.length, 2);
+      // Results, then definitions (only the tests that ran), per section;
+      // sys_atf_test_suite is not faked (404) and degrades.
+      assert.equal(calls.length, 4);
       const q = new URL(calls[0].url).searchParams;
       assert.equal(
         q.get("sysparm_query"),
@@ -205,10 +217,15 @@ test("history: one bounded IN query per section, newest first", async () => {
       );
       assert.equal(q.get("sysparm_limit"), "10");
       assert.match(q.get("sysparm_fields"), /parent/);
+      const defs = new URL(calls[1].url);
+      assert.match(defs.pathname, /\/sys_atf_test$/);
+      assert.equal(defs.searchParams.get("sysparm_query"), `sys_idIN${T1}`);
+      assert.equal(defs.searchParams.get("sysparm_limit"), "1");
       assert.match(
-        new URL(calls[1].url).searchParams.get("sysparm_query"),
+        new URL(calls[2].url).searchParams.get("sysparm_query"),
         new RegExp(`^test_suiteIN${S1}\\^ORDERBYDESCstart_time$`),
       );
+      assert.match(new URL(calls[3].url).pathname, /\/sys_atf_test_suite$/);
 
       assert.equal(h.tests.available, true);
       assert.equal(h.tests.scanned, 4);
@@ -221,7 +238,16 @@ test("history: one bounded IN query per section, newest first", async () => {
       assert.equal(t1.last.suiteResult, "9".repeat(32));
       assert.equal(t1.flips, 2);
       assert.equal(t1.flaky, true);
+      assert.equal(t1.stableRuns, 3);
+      assert.deepEqual(t1.definition, {
+        updatedOn: "2026-09-01 00:00:00",
+        modCount: 7,
+      });
+      assert.equal(h.tests.definitionsChecked, true);
       assert.equal(h.tests.summaries[T2].runs, 0);
+      assert.equal(h.tests.summaries[T2].definition, undefined);
+      assert.equal(h.suites.definitionsChecked, false);
+      assert.match(h.suites.definitionsUnavailableReason, /sys_atf_test_suite/);
       assert.equal(h.suites.summaries[S1].last.outcome, "fail");
 
       const md = renderAtfHistory(h, { [T1]: "Login | smoke" }).join("\n");
@@ -230,6 +256,8 @@ test("history: one bounded IN query per section, newest first", async () => {
       assert.match(md, /Login \\\| smoke \| success \|/);
       assert.match(md, /never run/);
       assert.match(md, /yes \(2 flips\)/);
+      assert.match(md, /since each definition's last update/);
+      assert.match(md, /whole window \(definitions not checked: /);
       assert.match(md, /unverified until O-5/);
     },
   );
@@ -325,4 +353,189 @@ test("withAtfResults merges summaries onto list items by sys_id", () => {
   const off = { available: false, unavailableReason: "x" };
   assert.deepEqual(withAtfResults(list, off), list);
   assert.deepEqual(withAtfResults(list, undefined), list);
+});
+
+test("unchanged test: runs before the definition's last update are not flips", () => {
+  // fail, pass, fail (edited), pass, pass — flaky over the whole window.
+  const rows = runs(["failure", "success", "failure", "success", "success"]);
+  const whole = summariseResults(rows);
+  assert.equal(whole.flips, 3);
+  assert.equal(whole.flaky, true);
+  assert.equal(whole.stableRuns, 5);
+  assert.equal(whole.definition, undefined);
+
+  // Edited at 10:03: only the two passes after the fix count.
+  const definition = { updatedOn: "2026-10-01 10:03:00", modCount: 4 };
+  const fixed = summariseResults(rows, DEFAULT_WINDOW, { definition });
+  assert.equal(fixed.flips, 0);
+  assert.equal(fixed.flaky, false);
+  assert.equal(fixed.stableRuns, 2);
+  assert.deepEqual(fixed.definition, definition);
+  // Pass rate and the last result still use the whole window.
+  assert.equal(fixed.passRate, whole.passRate);
+  assert.deepEqual(fixed.last, whole.last);
+
+  // Still flaky after the edit when it keeps flipping.
+  const still = summariseResults(
+    runs(["success", "failure", "success", "failure", "success"]),
+    DEFAULT_WINDOW,
+    { definition: { updatedOn: "2026-10-01 10:01:00" } },
+  );
+  assert.equal(still.stableRuns, 4);
+  assert.equal(still.flips, 3);
+  assert.equal(still.flaky, true);
+
+  // Edited after the newest run: nothing about the current version yet.
+  const fresh = summariseResults(rows, DEFAULT_WINDOW, {
+    definition: { updatedOn: "2026-10-02 00:00:00" },
+  });
+  assert.equal(fresh.stableRuns, 0);
+  assert.equal(fresh.flaky, false);
+
+  // An empty updatedOn is unknown: the whole window, as before.
+  const unknown = summariseResults(rows, DEFAULT_WINDOW, {
+    definition: { updatedOn: "" },
+  });
+  assert.equal(unknown.flips, whole.flips);
+  assert.equal(unknown.stableRuns, 5);
+
+  const md = renderAtfHistory({
+    window: 20,
+    tests: {
+      available: true,
+      summaries: { [T1]: fixed },
+      scanned: 5,
+      truncated: false,
+      definitionsChecked: true,
+    },
+  }).join("\n");
+  assert.match(md, /no; 2 run\(s\) since change/);
+});
+
+test("property: the unchanged-test check equals the summary of the runs since the change", () => {
+  const timeArb = fc
+    .integer({ min: 0, max: 1_000_000 })
+    .map((n) => String(n).padStart(7, "0"));
+  const distinct = fc.uniqueArray(
+    fc.record({ status: statusArb, startTime: timeArb }),
+    { selector: (r) => r.startTime, maxLength: 40 },
+  );
+  fc.assert(
+    fc.property(
+      distinct,
+      fc.integer({ min: 1, max: 30 }),
+      timeArb,
+      (rows, window, updatedOn) => {
+        const plain = summariseResults(rows, window);
+        const s = summariseResults(rows, window, { definition: { updatedOn } });
+        // Window-wide fields do not move.
+        for (const k of ["runs", "passed", "failed", "other", "passRate"]) {
+          assert.deepEqual(s[k], plain[k]);
+        }
+        assert.deepEqual(s.last, plain.last);
+        // Flips and flaky are those of the in-window runs since the change.
+        const inWindow = [...rows]
+          .sort((a, b) => b.startTime.localeCompare(a.startTime))
+          .slice(0, window);
+        const since = inWindow.filter((r) => r.startTime >= updatedOn);
+        const sub = summariseResults(since, MAX_WINDOW);
+        assert.equal(s.stableRuns, since.length);
+        assert.equal(s.flips, sub.flips);
+        assert.equal(s.flaky, sub.flaky);
+        assert.ok(s.flips <= plain.flips);
+        // A change older than every run is the same as no check.
+        if (inWindow.every((r) => r.startTime >= updatedOn)) {
+          assert.equal(s.flips, plain.flips);
+          assert.equal(s.flaky, plain.flaky);
+        }
+      },
+    ),
+    fcParams(),
+  );
+});
+
+test("history: a failed definitions read falls back to the whole window", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test_result: () =>
+        jsonResponse(200, {
+          result: runs(["success", "failure", "success"]).map((r) => ({
+            test: T1,
+            status: r.status,
+            start_time: r.startTime,
+          })),
+        }),
+      sys_atf_test: () => jsonResponse(403, { error: { message: "ACL" } }),
+    }),
+    async (calls) => {
+      const h = await atfResultHistory({ testIds: [T1, T2] });
+      assert.equal(calls.length, 2);
+      assert.equal(h.tests.available, true);
+      assert.equal(h.tests.definitionsChecked, false);
+      assert.match(h.tests.definitionsUnavailableReason, /sys_atf_test.*403/);
+      const t1 = h.tests.summaries[T1];
+      assert.equal(t1.flips, 2);
+      assert.equal(t1.flaky, true);
+      assert.equal(t1.stableRuns, 3);
+      assert.equal(t1.definition, undefined);
+    },
+  );
+});
+
+test("history: definitions with an edit inside the window, a bad mod count and none for never-run tests", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test_result: () =>
+        jsonResponse(200, {
+          result: [
+            ...runs(["failure", "success", "failure", "success"]).map((r) => ({
+              test: T1,
+              status: r.status,
+              start_time: r.startTime,
+            })),
+          ],
+        }),
+      sys_atf_test: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: T1,
+              sys_updated_on: "2026-10-01 10:03:00",
+              sys_mod_count: "n/a",
+            },
+            { sys_id: T2, sys_updated_on: "", sys_mod_count: "1" },
+          ],
+        }),
+    }),
+    async (calls) => {
+      const h = await atfResultHistory({ testIds: [T1, T2] });
+      assert.equal(
+        new URL(calls[1].url).searchParams.get("sysparm_query"),
+        `sys_idIN${T1}`,
+        "never-run tests are not read",
+      );
+      const t1 = h.tests.summaries[T1];
+      assert.deepEqual(t1.definition, { updatedOn: "2026-10-01 10:03:00" });
+      assert.equal(t1.stableRuns, 1);
+      assert.equal(t1.flaky, false);
+      assert.equal(h.tests.summaries[T2].definition, undefined);
+    },
+  );
+});
+
+test("history: no definitions read when nothing ran", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test_result: () => jsonResponse(200, { result: [] }),
+    }),
+    async (calls) => {
+      const h = await atfResultHistory({ testIds: [T1] });
+      assert.equal(calls.length, 1);
+      assert.equal(h.tests.definitionsChecked, true);
+      assert.equal(h.tests.summaries[T1].runs, 0);
+    },
+  );
 });
