@@ -53,8 +53,12 @@ Install it with `npx -y servicenow-mcp-ai`. Run `npx servicenow-mcp-ai init` for
 - [npm package](https://www.npmjs.com/package/servicenow-mcp-ai): `servicenow-mcp-ai`
 - [MCP registry entry](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/server.json): `io.github.IvanBBaev/servicenow-mcp-ai`
 - [Landing page](https://ivanbbaev.github.io/servicenow-mcp-ai/)
+- [Claude Code plugin](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/.claude-plugin): `/plugin marketplace add IvanBBaev/servicenow-mcp-ai`, then `/plugin install servicenow-mcp-ai`; the server wired up plus skills, subagents and hooks
+- [VS Code extension](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/extension): `ivanbbaev.servicenow-mcp-ai`; registers the server in Copilot Chat with no `mcp.json`
+- [MCP bundle (.mcpb)](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/mcpb): one-click Claude Desktop install; built with `npm run mcpb:pack`
+- [Skills](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/skills): six workflow skills (`sn-discover`, `sn-drift`, `sn-impact`, `sn-safe-write`, `sn-triage`, `sn-uib`), usable from Claude Code, Copilot, Codex and Cursor
 
 ## Optional
 
 - [CONTRIBUTING.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/CONTRIBUTING.md): the build, the test and quality gates, and the release process
-- [Product state](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/PRODUCT-STATE.md): what is shipped and what is planned
+- [Product state](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/ROADMAP-V3.md): what is shipped and what is planned
