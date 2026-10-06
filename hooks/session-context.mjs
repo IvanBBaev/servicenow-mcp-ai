@@ -54,6 +54,32 @@ function packageList(raw) {
 }
 
 /**
+ * What a write does under the profile's write policy, mirroring the server's
+ * gate (src/mcp/confirm.ts): in apply mode nothing is previewed and no
+ * plan_token is involved — a prod profile confirms a destructive write in a
+ * client prompt instead; in plan mode a destructive apply also needs the
+ * preview's plan_token unless SN_DESTRUCTIVE_CONFIRM=off (ignored on prod).
+ */
+function writeModeSentence({ readonly, held, configured, confirm, marked }) {
+  if (readonly) return "read-only (SN_READONLY): every write is refused";
+  if (configured === "apply" && !held) {
+    return marked === "prod"
+      ? "write mode apply on a prod profile — writes execute immediately, without a preview or plan_token, but a destructive one is confirmed in a client prompt and refused on a client that cannot prompt"
+      : "write mode apply — every write executes immediately, destructive ones included, without a preview or plan_token";
+  }
+  const mode = held
+    ? "write mode plan — apply is configured but held, the profile is prod without SN_PROD_WRITES=I_UNDERSTAND"
+    : "write mode plan";
+  const destructive =
+    confirm === "off"
+      ? "a destructive one needs no plan_token (SN_DESTRUCTIVE_CONFIRM=off)"
+      : confirm === "elicit"
+        ? "a destructive one also needs the preview's plan_token and is confirmed in a client prompt when the client can prompt"
+        : "a destructive one also needs the preview's plan_token";
+  return `${mode} — writes return a preview, nothing changes until a call repeats with apply:true, ${destructive}`;
+}
+
+/**
  * The context line for the session, or `undefined` when there is no
  * ServiceNow config at all. `env` wins over `fileEnv`, as in the server.
  * Only allowlisted, non-secret keys are read.
@@ -69,6 +95,7 @@ export function sessionContext(env = {}, fileEnv = {}) {
     configured,
     held,
     readonly,
+    confirm,
   } = writePolicy(config, profile);
 
   const parts = [
@@ -76,21 +103,9 @@ export function sessionContext(env = {}, fileEnv = {}) {
       (host ? ` → ${host}` : " (no instance configured)") +
       (marked ? ` [${marked}]` : ""),
   ];
-  if (readonly) {
-    parts.push("read-only (SN_READONLY): every write is refused");
-  } else if (held) {
-    parts.push(
-      "write mode plan — apply is configured but held, the profile is prod without SN_PROD_WRITES=I_UNDERSTAND",
-    );
-  } else if (configured === "apply") {
-    parts.push(
-      "write mode apply — writes execute; destructive ones still need the plan_token of a preview",
-    );
-  } else {
-    parts.push(
-      "write mode plan — writes return a preview and a plan_token; nothing changes until a call repeats with apply:true",
-    );
-  }
+  parts.push(
+    writeModeSentence({ readonly, held, configured, confirm, marked }),
+  );
   parts.push(
     `tool packages: ${packageList(config.SN_TOOL_PACKAGES) ?? "core"}`,
   );
