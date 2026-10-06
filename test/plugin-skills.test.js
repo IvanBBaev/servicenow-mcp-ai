@@ -146,3 +146,32 @@ test("plugin.json stays consistent with package.json", () => {
   assert.equal(existsSync(join(root, "hooks/hooks.json")), true);
   assert.equal(plugin.hooks, undefined);
 });
+
+// PH-6: the description once said "five" skills after a sixth shipped. A
+// count written in words must match the skills/ directory, as must the
+// subagent count against agents/.
+test("plugin.json description counts the shipped skills and subagents", () => {
+  const plugin = JSON.parse(
+    readFileSync(join(root, ".claude-plugin/plugin.json"), "utf8"),
+  );
+  const WORDS = ["zero", "one", "two", "three", "four", "five", "six"];
+  const WORDS_MORE = ["seven", "eight", "nine", "ten", "eleven", "twelve"];
+  const numbers = [...WORDS, ...WORDS_MORE];
+  const counted = (noun) => {
+    const m = new RegExp(
+      `\\b(${numbers.join("|")}|\\d+)\\s+(?:[\\w-]+\\s+){0,2}${noun}\\b`,
+      "i",
+    ).exec(plugin.description);
+    if (!m) return undefined;
+    const n = numbers.indexOf(m[1].toLowerCase());
+    return n >= 0 ? n : Number(m[1]);
+  };
+  const skillCount = docs.filter((d) => d.kind === "skill").length;
+  const agentCount = readdirSync(join(root, "agents")).filter((f) =>
+    f.endsWith(".md"),
+  ).length;
+  const skills = counted("skills");
+  const agents = counted("subagents");
+  if (skills !== undefined) assert.equal(skills, skillCount, "skill count");
+  if (agents !== undefined) assert.equal(agents, agentCount, "subagent count");
+});
