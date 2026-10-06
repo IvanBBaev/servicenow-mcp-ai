@@ -24,6 +24,9 @@ import { parseUpdatePayload } from "./updatesets.js";
  *   customer version loses nothing), only_base_changes (the customer version
  *   equals the old base — reverting to the new base is safe) or both_changed
  *   (a merge is needed); `unknown` when a version is missing.
+ * - store updates (NX-21): installed sys_store_app rows with an update
+ *   available, each with the customised artefacts in its scope
+ *   (sys_update_xml by application, grouped by the registry type).
  *
  * Not wired to a tool yet: `servicenow_review_upgrade` (opt-in `upgrade`
  * package) and the `document_instance` kind `upgrade` grow tools/list (O-10).
@@ -525,6 +528,197 @@ export function renderSkipped(s: SkippedReview | Unavailable): string[] {
           r.disposition,
           r.resolution,
         ]),
+      ),
+      "",
+    );
+  }
+  return [...out, UNVERIFIED];
+}
+
+/** Store apps read per review. */
+export const STORE_APP_LIMIT = 50;
+/** Customer update rows read per store app. */
+export const STORE_CUSTOMISATION_LIMIT = 500;
+
+export interface StoreCustomisation {
+  updateName: string;
+  table: string;
+  artifactType?: string;
+  name: string;
+}
+
+export interface StoreAppUpdate {
+  sys_id: string;
+  name: string;
+  scope: string;
+  version: string;
+  latestVersion: string;
+  /** Distinct customised update names in the app scope, by name. */
+  customisations: StoreCustomisation[] | Unavailable;
+  /** Customisation count per artefact type (or table), largest first. */
+  byType: { artifactType: string; count: number }[];
+  truncated: boolean;
+}
+
+export interface StoreUpdates {
+  available: true;
+  apps: StoreAppUpdate[];
+  truncated: boolean;
+}
+
+/** Customisation count per artefact type, largest first. */
+function countByType(
+  rows: StoreCustomisation[],
+): { artifactType: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const r of rows) {
+    const t = r.artifactType ?? (r.table || "(unknown)");
+    counts.set(t, (counts.get(t) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([artifactType, count]) => ({ artifactType, count }))
+    .sort(
+      (a, b) =>
+        b.count - a.count || a.artifactType.localeCompare(b.artifactType),
+    );
+}
+
+/** The customised artefacts (sys_update_xml) in one app scope, deduplicated. */
+async function readScopeCustomisations(
+  app: string,
+  limit: number,
+): Promise<{ rows: StoreCustomisation[] | Unavailable; truncated: boolean }> {
+  try {
+    const { records, truncated } = await queryTable({
+      table: "sys_update_xml",
+      query: `application=${app}^ORDERBYname`,
+      fields: ["name", "target_name"],
+      displayValue: "false",
+      fetchAll: true,
+      limit,
+    });
+    const seen = new Map<string, StoreCustomisation>();
+    for (const r of records) {
+      const updateName = snString(r.name);
+      if (!updateName || seen.has(updateName)) continue;
+      const table = tableOfUpdateName(updateName);
+      const artifactType = artifactTypeOfTable(table);
+      seen.set(updateName, {
+        updateName,
+        table,
+        ...(artifactType ? { artifactType } : {}),
+        name: snString(r.target_name),
+      });
+    }
+    return {
+      rows: [...seen.values()],
+      truncated: truncated === true || records.length >= limit,
+    };
+  } catch (e) {
+    if (isCancel(e)) throw e;
+    return {
+      rows: unavailable(unreadableReason("sys_update_xml", e)),
+      truncated: false,
+    };
+  }
+}
+
+/**
+ * NX-21 — installed store apps with a newer version available, and for each
+ * one the customised artefacts in its scope that the update would touch.
+ * sys_store_app.update_available / latest_version are unverified until O-5.
+ */
+export async function readStoreUpdates({
+  limit = STORE_APP_LIMIT,
+  customisationLimit = STORE_CUSTOMISATION_LIMIT,
+}: { limit?: number; customisationLimit?: number } = {}): Promise<
+  StoreUpdates | Unavailable
+> {
+  let records: Record<string, unknown>[];
+  let truncated: boolean | undefined;
+  try {
+    ({ records, truncated } = await queryTable({
+      table: "sys_store_app",
+      query: "active=true^update_available=true^ORDERBYname",
+      fields: ["sys_id", "name", "scope", "version", "latest_version"],
+      displayValue: "false",
+      limit,
+    }));
+  } catch (e) {
+    if (isCancel(e)) throw e;
+    return unavailable(unreadableReason("sys_store_app", e));
+  }
+  const apps: StoreAppUpdate[] = [];
+  for (const r of records) {
+    const sys_id = snString(r.sys_id);
+    const { rows, truncated: partial } = /^[0-9a-f]{32}$/.test(sys_id)
+      ? await readScopeCustomisations(sys_id, customisationLimit)
+      : {
+          rows: unavailable(`"${sys_id}" is not a store app sys_id.`),
+          truncated: false,
+        };
+    apps.push({
+      sys_id,
+      name: snString(r.name),
+      scope: snString(r.scope),
+      version: snString(r.version),
+      latestVersion: snString(r.latest_version),
+      customisations: rows,
+      byType: Array.isArray(rows) ? countByType(rows) : [],
+      truncated: partial,
+    });
+  }
+  return {
+    available: true,
+    apps,
+    truncated: truncated === true || records.length >= limit,
+  };
+}
+
+/** Markdown for the store-app updates. */
+export function renderStoreUpdates(s: StoreUpdates | Unavailable): string[] {
+  if (!s.available) return [`Unavailable: ${s.unavailableReason}`];
+  if (s.apps.length === 0) {
+    return ["_No store app has an update available._", "", UNVERIFIED];
+  }
+  const count = (a: StoreAppUpdate): string =>
+    Array.isArray(a.customisations)
+      ? `${a.customisations.length}${a.truncated ? "+" : ""}`
+      : "?";
+  const out = [
+    `${s.apps.length} store app(s) with an update available${s.truncated ? " (first only — truncated)" : ""}.`,
+    "",
+    mdTable(
+      ["App", "Scope", "Installed", "Available", "Customised"],
+      s.apps.map((a) => [
+        a.name,
+        a.scope,
+        a.version,
+        a.latestVersion,
+        count(a),
+      ]),
+    ),
+    "",
+  ];
+  for (const a of s.apps) {
+    out.push(`### ${mdEscape(a.name || a.sys_id)}`, "");
+    if (!Array.isArray(a.customisations)) {
+      out.push(`Unavailable: ${a.customisations.unavailableReason}`, "");
+      continue;
+    }
+    if (a.customisations.length === 0) {
+      out.push("_No customised artefacts — the update touches none._", "");
+      continue;
+    }
+    out.push(
+      mdTable(
+        ["Artefact type", "Customised"],
+        a.byType.map((t) => [t.artifactType, String(t.count)]),
+      ),
+      "",
+      mdTable(
+        ["Update name", "Name"],
+        a.customisations.map((c) => [`\`${c.updateName}\``, c.name]),
       ),
       "",
     );

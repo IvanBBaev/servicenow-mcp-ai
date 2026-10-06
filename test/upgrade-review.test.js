@@ -10,8 +10,10 @@ import {
   isSkipDisposition,
   payloadFields,
   readSkipped,
+  readStoreUpdates,
   readUpgradeHistory,
   renderSkipped,
+  renderStoreUpdates,
   renderUpgradeHistory,
   reviewSkippedRecord,
   tableOfUpdateName,
@@ -268,4 +270,130 @@ test("unreadable upgrade tables degrade to unavailable", async () => {
   );
   assert.equal((await reviewSkippedRecord("nope")).available, false);
   assert.deepEqual(groupSkipped([]), []);
+});
+
+test("store updates: apps with an update and their customised artefacts", async () => {
+  freshRuntime();
+  const APP = "2".repeat(32);
+  const CLEAN = "3".repeat(32);
+  await withFetch(
+    tables({
+      sys_store_app: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: APP,
+              name: "HR Service Delivery",
+              scope: "sn_hr_core",
+              version: "5.0.1",
+              latest_version: "6.0.0",
+            },
+            {
+              sys_id: CLEAN,
+              name: "Clean App",
+              scope: "sn_clean",
+              version: "1.0.0",
+              latest_version: "1.1.0",
+            },
+          ],
+        }),
+      sys_update_xml: (u) => {
+        const q = u.searchParams.get("sysparm_query");
+        if (q.startsWith(`application=${CLEAN}`)) {
+          return jsonResponse(200, { result: [] });
+        }
+        return jsonResponse(200, {
+          result: [
+            { name: BR, target_name: "Close child tasks" },
+            { name: BR, target_name: "Close child tasks" },
+            { name: `sys_script_${"b".repeat(32)}`, target_name: "Other" },
+            {
+              name: `sys_script_include_${"c".repeat(32)}`,
+              target_name: "HRUtils",
+            },
+            { name: `u_custom_${"d".repeat(32)}`, target_name: "x" },
+          ],
+        });
+      },
+    }),
+    async (calls) => {
+      const s = await readStoreUpdates();
+      assert.equal(s.available, true);
+      assert.equal(s.apps.length, 2);
+      const hr = s.apps[0];
+      assert.equal(hr.latestVersion, "6.0.0");
+      assert.equal(hr.customisations.length, 4);
+      assert.deepEqual(hr.byType, [
+        { artifactType: "business_rule", count: 2 },
+        { artifactType: "script_include", count: 1 },
+        { artifactType: "u_custom", count: 1 },
+      ]);
+      assert.deepEqual(s.apps[1].customisations, []);
+      assert.equal(
+        new URL(calls[0].url).searchParams.get("sysparm_query"),
+        "active=true^update_available=true^ORDERBYname",
+      );
+      const md = renderStoreUpdates(s).join("\n");
+      assert.match(
+        md,
+        /\| HR Service Delivery \| sn_hr_core \| 5\.0\.1 \| 6\.0\.0 \| 4 \|/,
+      );
+      assert.match(md, /### Clean App\n\n_No customised artefacts/);
+      assert.match(md, /unverified until O-5/);
+    },
+  );
+});
+
+test("store updates degrade: unreadable store table or scope updates", async () => {
+  freshRuntime();
+  await withFetch(
+    () => jsonResponse(403, { error: { message: "denied" } }),
+    async () => {
+      const s = await readStoreUpdates();
+      assert.equal(s.available, false);
+      assert.match(s.unavailableReason, /sys_store_app is not readable/);
+      assert.match(renderStoreUpdates(s).join("\n"), /^Unavailable:/);
+    },
+  );
+  await withFetch(
+    tables({
+      sys_store_app: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: "4".repeat(32),
+              name: "App",
+              scope: "x_app",
+              version: "1",
+              latest_version: "2",
+            },
+            { sys_id: "bad", name: "Bad", scope: "x_bad" },
+          ],
+        }),
+    }),
+    async () => {
+      const s = await readStoreUpdates();
+      assert.equal(s.available, true);
+      assert.match(
+        s.apps[0].customisations.unavailableReason,
+        /sys_update_xml does not exist/,
+      );
+      assert.match(
+        s.apps[1].customisations.unavailableReason,
+        /not a store app/,
+      );
+      const md = renderStoreUpdates(s).join("\n");
+      assert.match(md, /\| App \| x_app \| 1 \| 2 \| \? \|/);
+    },
+  );
+  freshRuntime();
+  await withFetch(
+    tables({ sys_store_app: () => jsonResponse(200, { result: [] }) }),
+    async () => {
+      assert.match(
+        renderStoreUpdates(await readStoreUpdates()).join("\n"),
+        /No store app has an update available/,
+      );
+    },
+  );
 });
