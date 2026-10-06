@@ -429,6 +429,24 @@ test("owner gates and the status report", () => {
   );
 });
 
+test("status: a generated table rendered from the YAML is in sync", () => {
+  const doc = loadRoadmap(readFileSync(path.join(root, ROADMAP_YAML), "utf8"));
+  const md = replaceTable(roadmapMarkdown(fixtureLines), renderTable(doc), {
+    adopt: true,
+  });
+  const s = buildStatus(doc, md);
+  assert.equal(s.sync.generated, true);
+  assert.equal(s.sync.inSync, true);
+  assert.deepEqual(s.sync.changed, []);
+  const edited = structuredClone(doc);
+  const row = edited.items.find((it) => !("marker" in it));
+  row.title = `${row.title} (edited)`;
+  const s2 = buildStatus(edited, md);
+  assert.equal(s2.sync.inSync, false);
+  assert.ok(s2.sync.changed.includes(row.id));
+  assert.match(formatStatus(s2), /generated: re-render it with/);
+});
+
 test("CLI: import, check, status, adopt and render in a scratch repo", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "roadmap-"));
   try {

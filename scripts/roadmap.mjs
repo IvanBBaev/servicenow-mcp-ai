@@ -582,17 +582,25 @@ export function statusCounts(doc) {
  * `fromTable`; the sync section always compares the YAML with the live table.
  */
 export function buildStatus(yamlDoc, markdown, { fromTable = false } = {}) {
-  const live = importTable(liveTableLines(markdown));
+  const loc = locateTable(markdown);
+  const liveLines = loc.lines.slice(loc.start, loc.end);
+  const live = importTable(liveLines);
   const doc = fromTable ? live : yamlDoc;
   const source = fromTable ? `${ROADMAP_MD} (live table)` : ROADMAP_YAML;
   const counts = statusCounts(doc);
   const gates = parseOwnerGates(markdown);
-  const drift = diffItems(yamlDoc, live);
+  // In generated mode the table is rendered from the YAML, and re-importing it
+  // is lossy (derived fields, escaping), so a byte-identical render is in sync.
+  const rendered = loc.marked && liveLines.join("\n") === renderTable(yamlDoc);
+  const drift = rendered
+    ? { changed: [], added: [], removed: [], reordered: false }
+    : diffItems(yamlDoc, live);
   const inSync =
-    !drift.changed.length &&
-    !drift.added.length &&
-    !drift.removed.length &&
-    !drift.reordered;
+    rendered ||
+    (!drift.changed.length &&
+      !drift.added.length &&
+      !drift.removed.length &&
+      !drift.reordered);
   const ownerShared = doc.items.filter(
     (it) =>
       !("marker" in it) && it.pillar.endsWith("+O") && it.status !== "done",
@@ -608,7 +616,7 @@ export function buildStatus(yamlDoc, markdown, { fromTable = false } = {}) {
     openByPhase: byPhase,
     ownerShared: ownerShared.map((it) => it.id),
     ownerGates: gates.map((g) => ({ ...g, summary: summaryOf(g.text) })),
-    sync: { inSync, ...drift },
+    sync: { inSync, generated: loc.marked, ...drift },
   };
 }
 
@@ -659,7 +667,9 @@ export function formatStatus(s) {
       `Sync: DRIFT between ${ROADMAP_YAML} and the ${ROADMAP_MD} table — ${parts.join("; ")}.`,
     );
     out.push(
-      "      The table is still hand-edited: refresh with `npm run roadmap:sync -- --import`.",
+      s.sync.generated
+        ? "      The table is generated: re-render it with `npm run roadmap:sync`."
+        : "      The table is still hand-edited: refresh with `npm run roadmap:sync -- --import`.",
     );
   }
   return out.join("\n");
