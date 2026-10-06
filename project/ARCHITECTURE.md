@@ -179,7 +179,7 @@ flowchart TD
     GEN --> RMD["README tools table<br/>(guarded by a sync test)"]
 ```
 
-The `core` profile = table + schema + aggregate + attachment (+ the always-on admin tools = 19 tools); `all` = all 17 opt-in packages (61 tools; the always-on `admin` package is the 18th, bringing the full count to 67). `effectivePackages()` is the single source of truth — used by registration, the status payload and the generators.
+The `core` profile = table + schema + aggregate + attachment (+ the always-on admin tools = 24 tools); `all` = all 25 opt-in packages (87 tools; the always-on `admin` package is the 26th, bringing the full count to 97). `effectivePackages()` is the single source of truth — used by registration, the status payload and the generators.
 
 **Naming (M-7).** Every tool is `servicenow_<verb>_<noun>`; `src/mcp/naming.ts` holds the names (`TOOLS`), the v2 → v3 alias map (`TOOL_RENAMES`) and the overlap reasons (`TOOL_OVERLAPS`). Under `SN_LEGACY_TOOL_NAMES=1` the registry adds one alias tool per renamed tool (same schema and handler, gated with its package); `defineTool` maps renamed parameters (`legacyParams` under the flag, `deprecatedParams` always) onto the canonical ones before validation. The manifest (v4) publishes all three.
 

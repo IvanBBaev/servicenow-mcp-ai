@@ -29,6 +29,10 @@ applyTo:
   entry point (stdio, or Streamable HTTP with `SN_TRANSPORT=http`,
   `http-sessions.ts`); `src/server.ts` builds the server; `src/cli.ts` holds
   the CLI subcommands, which may print to stdout.
-- **Budget:** any change to what `tools/list` returns (names, descriptions,
-  schemas, instructions) is measured by `test/output-schema.test.js` and gated
-  by N-0 / O-10 — state the byte delta.
+- **Budgets:** any change to what `tools/list` returns (names, descriptions,
+  schemas) is gated by N-0 / O-10: the per-profile limits are in
+  `test/fixtures/token-budgets.json`, enforced by `test/output-schema.test.js`;
+  measure with `npm run build && npm run tokens:budget` and state the byte
+  delta. The `initialize` instructions (`server-info.ts`) are not part of
+  `tools/list`: they have their own cap, `INSTRUCTIONS_MAX_BYTES`
+  (`test/server-info.test.js`) — state that delta too.

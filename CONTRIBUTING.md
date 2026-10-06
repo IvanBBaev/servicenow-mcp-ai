@@ -188,18 +188,44 @@ the SDK's peer range (`^3.25 || ^4.0` — the zod 4 move is a breaking item,
   regenerate with `npm run gen:manifest` only when the change is deliberate.
 - Docs move with the code: [CHANGELOG.md](CHANGELOG.md) (Unreleased section),
   [TODO.md](project/TODO.md)/[DONE.md](project/DONE.md) when an item closes,
-  [PRODUCT-STATE.md](project/archive/PRODUCT-STATE.md) on milestones.
+  the item's row in [ROADMAP-V3.md](project/ROADMAP-V3.md) (the tracker).
 - Prettier checks Markdown too (`project/*.md`, the CHANGELOG, this file).
   After editing a doc run `npx prettier --write <files>` **twice**, then
   `npx prettier --check .`: the formatter is not idempotent on an inline code
   span that crosses a line break, or on a bare `_`/`*` in a table cell outside
   a code span (it becomes emphasis) — keep those on one line / in backticks.
 
+## Adding a tool
+
+1. **Define.** Add the `servicenow_<verb>_<noun>` name to `TOOLS` in
+   `src/mcp/naming.ts`, then the spec with `defineTool({...})` in
+   `src/tools/<area>.ts` (domain logic in `src/api/`, all four annotation
+   hints explicit, bounded zod inputs with `.describe()`). A write is
+   plan-by-default; a destructive apply declares `confirm` and gets a
+   `DESTRUCTIVE_TOOLS` entry in `hooks/require-plan-token.mjs`.
+2. **Package.** Export it from the area's `specs` and make sure that package
+   in `PACKAGES` (`src/mcp/registry.ts`) carries it; a new package also needs
+   its manifest row there (and is opt-in unless it belongs in `core`).
+3. **Manifest regen.** `npm run build`, then `npm run gen:manifest` (the
+   `core` contract in `test/fixtures/tools-manifest.json`),
+   `npm run docs:readme` (the README tools table) and
+   `npm run mcpb:manifest` (the `.mcpb` tool list).
+4. **Budget delta.** `npm run tokens:budget` measures every profile against
+   `test/fixtures/token-budgets.json` (`test/output-schema.test.js` enforces
+   it). State the `tools/list` byte delta in the commit and the CHANGELOG;
+   raising a budget is an owner decision (O-10).
+5. **docs:sync.** `npm run docs:sync` rewrites the tool and package counts
+   (README, `package.json`, `server.json`, the extension, the plugin, the
+   landing page) and the tool reference (`docs/tools/`, `docs/llms-full.txt`).
+6. **Tests.** Unit tests for the handler and its `api/` module (mock the
+   HTTP layer), then `npm run check`; `npm run scan:surface` (in the gate)
+   checks the new text.
+
 ## Where things live
 
 See [ARCHITECTURE.md](project/ARCHITECTURE.md) for the layer model
-(`core` → `api` → `mcp` → `tools`), the request lifecycle and the module
-contract for adding a tool or a package.
+(`core` → `api` → `mcp` → `tools`) and the request lifecycle; adding a tool
+is the checklist above.
 
 ## Releasing
 

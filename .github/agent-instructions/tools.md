@@ -25,6 +25,9 @@ applyTo:
 - **Results:** `ok(...)` / `okStructured(...)` / `okQueryResult(...)`; throw
   `ServiceNowError` on failure.
 - **Tool definitions are the public contract.** Names, descriptions and schemas
-  count against the `tools/list` byte budget (`test/output-schema.test.js`,
-  N-0 / O-10). After a deliberate change run `npm run gen:manifest`,
-  `npm run docs:readme` and `npm run docs:sync`, and state the byte delta.
+  count against the `tools/list` byte budgets: per-profile limits in
+  `test/fixtures/token-budgets.json`, enforced by `test/output-schema.test.js`
+  (N-0 / N-57 / O-10). Measure with `npm run build && npm run tokens:budget`
+  and state the byte delta; raising a budget is an owner decision.
+- **Adding a tool** — follow the checklist in CONTRIBUTING.md → "Adding a
+  tool": define → package → manifest regen → budget delta → docs:sync → tests.
