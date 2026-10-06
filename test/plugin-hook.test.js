@@ -4,7 +4,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,6 +14,7 @@ import {
   LEGACY_TOOL_NAMES,
   bareToolName,
   denyReason,
+  hookDecision,
 } from "../hooks/require-plan-token.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -216,4 +218,236 @@ test("spawned: the hook prints a PreToolUse deny decision, or nothing", () => {
   const garbage = runHook("not json");
   assert.equal(garbage.status, 0);
   assert.equal(garbage.stdout, "");
+});
+
+// --- SF-9: the hook against each write policy -------------------------------
+
+const DELETE = {
+  tool_name: `${PREFIX}servicenow_delete_record`,
+  tool_input: { table: "incident", sys_id: "a".repeat(32), apply: true },
+};
+const withInput = (extra) => ({
+  ...DELETE,
+  tool_input: { ...DELETE.tool_input, ...extra },
+});
+
+test("hookDecision: apply mode asks, with or without apply:true or a token", () => {
+  for (const event of [
+    DELETE,
+    withInput({ apply: undefined }),
+    withInput({ plan_token: "ptabc" }),
+  ]) {
+    const result = hookDecision(event, { SN_WRITE_MODE: "apply" });
+    assert.equal(result?.decision, "ask");
+    assert.match(result.reason, /apply mode/);
+    assert.match(result.reason, /executes the change immediately/);
+    // An ask is not a deny.
+    assert.equal(denyReason(event, { SN_WRITE_MODE: "apply" }), undefined);
+  }
+  // The env file provides the mode just as well; the environment wins.
+  assert.equal(
+    hookDecision(DELETE, {}, { SN_WRITE_MODE: "apply" })?.decision,
+    "ask",
+  );
+  assert.equal(
+    hookDecision(DELETE, { SN_WRITE_MODE: "plan" }, { SN_WRITE_MODE: "apply" })
+      ?.decision,
+    "deny",
+  );
+  // A non-destructive call stays silent in apply mode too.
+  assert.equal(
+    hookDecision(
+      { ...DELETE, tool_name: `${PREFIX}servicenow_update_record` },
+      { SN_WRITE_MODE: "apply" },
+    ),
+    undefined,
+  );
+});
+
+test("hookDecision: prod denies a token-less apply, and ignores SN_DESTRUCTIVE_CONFIRM=off", () => {
+  for (const confirm of [undefined, "off", "token"]) {
+    const result = hookDecision(DELETE, {
+      SN_ENV: "prod",
+      SN_DESTRUCTIVE_CONFIRM: confirm,
+    });
+    assert.equal(result?.decision, "deny", `confirm=${confirm}`);
+    assert.match(result.reason, /marked prod/);
+  }
+  // A token passes; the server checks it.
+  assert.equal(
+    hookDecision(withInput({ plan_token: "ptabc" }), { SN_ENV: "prod" }),
+    undefined,
+  );
+  // apply on prod without the acknowledgement is held to plan mode: deny.
+  assert.equal(
+    hookDecision(DELETE, { SN_ENV: "prod", SN_WRITE_MODE: "apply" })?.decision,
+    "deny",
+  );
+  // With the acknowledgement it runs in apply mode: ask, naming the prompt.
+  const acked = hookDecision(DELETE, {
+    SN_ENV: "prod",
+    SN_WRITE_MODE: "apply",
+    SN_PROD_WRITES: "I_UNDERSTAND",
+    SN_DESTRUCTIVE_CONFIRM: "off",
+  });
+  assert.equal(acked?.decision, "ask");
+  assert.match(acked.reason, /marked prod/);
+});
+
+test("hookDecision: SN_DESTRUCTIVE_CONFIRM=off, read-only and unknown profiles are silent", () => {
+  for (const confirm of ["off", " OFF "]) {
+    assert.equal(
+      hookDecision(DELETE, { SN_DESTRUCTIVE_CONFIRM: confirm }),
+      undefined,
+    );
+    assert.equal(
+      hookDecision(DELETE, {
+        SN_DESTRUCTIVE_CONFIRM: confirm,
+        SN_WRITE_MODE: "apply",
+      }),
+      undefined,
+    );
+  }
+  assert.equal(hookDecision(DELETE, { SN_READONLY: "true" }), undefined);
+  assert.equal(
+    hookDecision(DELETE, { SN_READONLY: "true", SN_WRITE_MODE: "apply" }),
+    undefined,
+  );
+  // An `instance` the local config does not define, or one the server would
+  // refuse: the hook cannot tell the policy, so the server decides.
+  assert.equal(hookDecision(withInput({ instance: "nowhere" }), {}), undefined);
+  assert.equal(
+    hookDecision(withInput({ instance: "bad name!" }), {}),
+    undefined,
+  );
+});
+
+test("hookDecision: the call's `instance` picks that profile's policy", () => {
+  const env = {
+    SN_PROFILE_SANDBOX_INSTANCE: "sandbox.example.com",
+    SN_PROFILE_SANDBOX_WRITE_MODE: "apply",
+    SN_PROFILE_LIVE_INSTANCE: "live.example.com",
+    SN_PROFILE_LIVE_ENV: "prod",
+  };
+  assert.equal(
+    hookDecision(withInput({ instance: "Sandbox" }), env)?.decision,
+    "ask",
+  );
+  const live = hookDecision(withInput({ instance: "live" }), {
+    ...env,
+    SN_DESTRUCTIVE_CONFIRM: "off",
+  });
+  assert.equal(live?.decision, "deny");
+  assert.match(live.reason, /Profile "live" is marked prod/);
+  // Without `instance`, the active profile decides.
+  assert.equal(
+    hookDecision(DELETE, { ...env, SN_ACTIVE_PROFILE: "sandbox" })?.decision,
+    "ask",
+  );
+  assert.equal(hookDecision(DELETE, env)?.decision, "deny");
+});
+
+test("spawned: the hook reads the env file, asks in apply mode and fails open", () => {
+  const dir = mkdtempSync(join(tmpdir(), "sn-hook-"));
+  try {
+    const file = join(dir, ".env");
+    writeFileSync(file, "SN_INSTANCE=dev1\nSN_WRITE_MODE=apply\n");
+    const asked = runHook(DELETE, { SN_ENV_FILE: file });
+    assert.equal(asked.status, 0, asked.stderr);
+    const out = JSON.parse(asked.stdout).hookSpecificOutput;
+    assert.equal(out.permissionDecision, "ask");
+    assert.match(out.permissionDecisionReason, /apply mode/);
+
+    // The environment wins over the file.
+    const denied = runHook(DELETE, {
+      SN_ENV_FILE: file,
+      SN_WRITE_MODE: "plan",
+    });
+    assert.equal(
+      JSON.parse(denied.stdout).hookSpecificOutput.permissionDecision,
+      "deny",
+    );
+
+    // An unreadable env file (a directory) reads as no file: plan defaults.
+    const unreadable = runHook(DELETE, { SN_ENV_FILE: dir });
+    assert.equal(unreadable.status, 0, unreadable.stderr);
+    assert.equal(
+      JSON.parse(unreadable.stdout).hookSpecificOutput.permissionDecision,
+      "deny",
+    );
+
+    // PH-10: an error inside the hook (here: writing its decision) prints
+    // nothing and exits 0, so the server decides the call.
+    const childEnv = {};
+    for (const [k, v] of Object.entries(process.env))
+      if (!k.startsWith("SN_")) childEnv[k] = v;
+    childEnv.SN_ENV_FILE = file;
+    const boom =
+      "data:text/javascript,JSON.stringify=()=>{throw new Error('boom')}";
+    const broken = spawnSync(process.execPath, ["--import", boom, script], {
+      input: JSON.stringify(DELETE),
+      env: childEnv,
+      encoding: "utf8",
+    });
+    assert.equal(broken.status, 0, broken.stderr);
+    assert.equal(broken.stdout, "");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/**
+ * SF-9: tools whose input schema has `apply` but no `plan_token`. Their
+ * writes have no H-3 confirm spec (not destructive), so the PreToolUse hook
+ * leaves them to the server's plan/apply gate. Reviewed list: a new tool with
+ * `apply` must either carry `plan_token` (and so be gated by the hook) or be
+ * added here with a reason.
+ */
+const NOT_DESTRUCTIVE = "a write without an H-3 confirm spec";
+const UNGATED_APPLY_TOOLS = {
+  servicenow_create_change: `${NOT_DESTRUCTIVE}: creates a change request`,
+  servicenow_create_ci: `${NOT_DESTRUCTIVE}: creates a CMDB CI`,
+  servicenow_create_record: `${NOT_DESTRUCTIVE}: creates a record`,
+  servicenow_identify_reconcile: `${NOT_DESTRUCTIVE}: IRE create-or-update`,
+  servicenow_insert_import_set_row: `${NOT_DESTRUCTIVE}: stages an import row`,
+  servicenow_run_atf_suite: `${NOT_DESTRUCTIVE}: runs an ATF suite`,
+  servicenow_run_atf_test: `${NOT_DESTRUCTIVE}: runs an ATF test`,
+  servicenow_set_property: `${NOT_DESTRUCTIVE}: sets a system property`,
+  servicenow_update_change: `${NOT_DESTRUCTIVE}: updates a change request`,
+  servicenow_update_ci: `${NOT_DESTRUCTIVE}: updates a CMDB CI`,
+  servicenow_update_record: `${NOT_DESTRUCTIVE}: updates a record`,
+  servicenow_upload_attachment: `${NOT_DESTRUCTIVE}: adds an attachment`,
+  servicenow_upsert_record: `${NOT_DESTRUCTIVE}: creates or updates a record`,
+};
+
+test("every tool with `apply` is hook-gated or in the reviewed ungated list", () => {
+  const props = (t) => t.inputSchema?.properties ?? {};
+  const withApply = manifest.tools.filter((t) => "apply" in props(t));
+  assert.ok(withApply.length > 0);
+  const ungated = [];
+  for (const tool of withApply) {
+    if ("plan_token" in props(tool)) {
+      assert.ok(
+        Object.hasOwn(DESTRUCTIVE_TOOLS, tool.name),
+        `${tool.name} carries plan_token but the hook does not gate it`,
+      );
+      assert.ok(
+        !Object.hasOwn(UNGATED_APPLY_TOOLS, tool.name),
+        `${tool.name} is gated; drop it from UNGATED_APPLY_TOOLS`,
+      );
+    } else {
+      ungated.push(tool.name);
+    }
+  }
+  assert.deepEqual(
+    ungated.sort(),
+    Object.keys(UNGATED_APPLY_TOOLS).sort(),
+    "a tool with `apply` and no `plan_token` must be reviewed into UNGATED_APPLY_TOOLS",
+  );
+  // Every gated tool takes `apply`.
+  for (const name of Object.keys(DESTRUCTIVE_TOOLS))
+    assert.ok(
+      withApply.some((t) => t.name === name),
+      `${name} has no apply`,
+    );
 });

@@ -393,3 +393,62 @@ test("spawned: PostToolUse prints additionalContext for a truncated result, or n
   assert.equal(garbage.status, 0);
   assert.equal(garbage.stdout, "");
 });
+
+// --- SF-9: the session context states what a write does in each mode -------
+
+test("session context: the write-mode sentence matches the server's gate", () => {
+  const ctx = (fileEnv) =>
+    sessionContext({}, { SN_INSTANCE: "dev1", ...fileEnv });
+  assert.match(
+    ctx({ SN_WRITE_MODE: "apply" }),
+    /write mode apply — every write executes immediately, destructive ones included, without a preview or plan_token/,
+  );
+  assert.match(
+    ctx({
+      SN_WRITE_MODE: "apply",
+      SN_ENV: "prod",
+      SN_PROD_WRITES: "I_UNDERSTAND",
+    }),
+    /write mode apply on a prod profile — writes execute immediately, without a preview or plan_token, but a destructive one is confirmed in a client prompt and refused on a client that cannot prompt/,
+  );
+  const plan = ctx({});
+  assert.match(
+    plan,
+    /write mode plan — writes return a preview, nothing changes until a call repeats with apply:true, a destructive one also needs the preview's plan_token/,
+  );
+  assert.doesNotMatch(plan, /write mode apply/);
+  assert.match(
+    ctx({ SN_DESTRUCTIVE_CONFIRM: "off" }),
+    /a destructive one needs no plan_token \(SN_DESTRUCTIVE_CONFIRM=off\)/,
+  );
+  assert.match(
+    ctx({ SN_DESTRUCTIVE_CONFIRM: "elicit" }),
+    /plan_token and is confirmed in a client prompt when the client can prompt/,
+  );
+  // On prod the opt-out is ignored, as by the server.
+  const prod = ctx({ SN_ENV: "prod", SN_DESTRUCTIVE_CONFIRM: "off" });
+  assert.match(prod, /confirmed in a client prompt/);
+  assert.doesNotMatch(prod, /needs no plan_token/);
+  assert.match(
+    ctx({ SN_ENV: "prod", SN_WRITE_MODE: "apply" }),
+    /write mode plan — apply is configured but held, the profile is prod without SN_PROD_WRITES=I_UNDERSTAND — writes return a preview/,
+  );
+  assert.match(
+    ctx({ SN_READONLY: "true", SN_WRITE_MODE: "apply" }),
+    /read-only \(SN_READONLY\): every write is refused/,
+  );
+});
+
+test('truncation hint: no format:"file" suggestion inside a subagent (SF-6)', () => {
+  const name = FILE_FORMAT_TOOLS[0];
+  const event = {
+    tool_name: PREFIX + name,
+    tool_response: { content: [{ type: "text", text: '{"truncated":true}' }] },
+  };
+  assert.match(truncationHint(event), /format: "file"/);
+  const inSubagent = truncationHint({ ...event, agent_id: "agent-123" });
+  assert.match(inSubagent, /truncated/);
+  assert.doesNotMatch(inSubagent, /format: "file"/);
+  // An empty agent_id is not a subagent.
+  assert.match(truncationHint({ ...event, agent_id: "" }), /format: "file"/);
+});
