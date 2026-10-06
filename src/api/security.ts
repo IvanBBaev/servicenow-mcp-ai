@@ -142,6 +142,26 @@ const ACL_SCRIPT_RULES: {
   },
 ];
 
+/** One ACL-script rule hit. */
+export interface AclScriptHint {
+  rule: string;
+  severity: Severity;
+  hint: string;
+}
+
+/**
+ * The ACL-script rules that match a script. S-12: calls are matched in the
+ * parsed script, so a commented-out eval() or a string naming gs.getUser() is
+ * not a hit; the regex fallback runs when the script does not parse.
+ */
+export function aclScriptHints(script: string): AclScriptHint[] {
+  if (!script.trim()) return [];
+  const calls = scriptCalls(script);
+  return ACL_SCRIPT_RULES.filter((rule) =>
+    calls ? calls.some(rule.call) : rule.re.test(script),
+  ).map(({ id, severity, hint }) => ({ rule: id, severity, hint }));
+}
+
 /** Operations that change data — an open ACL on these is worse than on `read`. */
 const WRITE_OPERATIONS = new Set(["write", "create", "delete"]);
 
@@ -422,22 +442,7 @@ export async function securityScan(
       name: acl.name,
       operation: acl.operation,
     };
-    // S-12: match calls in the parsed script, so a commented-out eval() or a
-    // string naming gs.getUser() is not a finding; regex when it does not parse.
-    const calls = acl.script ? scriptCalls(acl.script) : undefined;
-    for (const rule of ACL_SCRIPT_RULES) {
-      const hit = calls
-        ? calls.some(rule.call)
-        : Boolean(acl.script) && rule.re.test(acl.script);
-      if (hit) {
-        add({
-          ...base,
-          rule: rule.id,
-          severity: rule.severity,
-          hint: rule.hint,
-        });
-      }
-    }
+    for (const hit of aclScriptHints(acl.script)) add({ ...base, ...hit });
 
     const roles = rolesCheck.available ? (aclRoles.get(acl.sys_id) ?? []) : [];
     const open = !acl.script.trim() && !acl.condition.trim();

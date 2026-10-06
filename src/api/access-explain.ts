@@ -4,8 +4,13 @@ import {
   domainTraceFields,
   recordDomain,
 } from "./domain-separation.js";
+import { MermaidDoc, label } from "./mermaid.js";
 import { getTableChain } from "./meta.js";
-import { unreadableReason } from "./security.js";
+import {
+  aclScriptHints,
+  unreadableReason,
+  type AclScriptHint,
+} from "./security.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
 import { queryTable } from "./table.js";
 import { isSysId } from "./uib-usage.js";
@@ -83,6 +88,8 @@ export interface AclEvaluation {
   notes: string[];
   /** N-12: the ACL's domain when it is not global. */
   domain?: string;
+  /** S-12 lint hits of an undetermined script part. */
+  scriptHints?: AclScriptHint[];
 }
 
 export interface AccessCheck {
@@ -189,8 +196,14 @@ export function evaluateAcl(
     result: combine([role, condition, script]),
     notes,
     ...(acl.domain ? { domain: acl.domain } : {}),
+    ...(script === "undetermined" && hints.length
+      ? { scriptHints: hints }
+      : {}),
   });
   if (acl.overrides) notes.push(`overrides ${acl.overrides} in its domain`);
+  // Declared before the admin short-circuit so `out` never reads it unset.
+  let script: PartResult = "n/a";
+  let hints: AclScriptHint[] = [];
   if (admin && acl.adminOverrides) {
     notes.push("admin overrides this ACL");
     return out("pass", "n/a", "n/a");
@@ -217,10 +230,11 @@ export function evaluateAcl(
     }
   }
 
-  let script: PartResult = "n/a";
   if (acl.advanced && acl.script.trim()) {
     script = "undetermined";
     notes.push("script part is not evaluated statically");
+    hints = aclScriptHints(acl.script);
+    for (const h of hints) notes.push(`script: ${h.rule} (${h.severity})`);
   }
   return out(role, condition, script);
 }
@@ -543,4 +557,60 @@ export function renderAccessExplanation(e: AccessExplanation): string[] {
   }
   if (e.notes.length) out.push("", ...e.notes.map((n) => `- ${n}`));
   return out;
+}
+
+/** Short label of a check's decision. */
+const CHECK_TITLE = { row: "Row", field: "Field" } as const;
+
+/**
+ * A Mermaid flowchart of the decision: per check, the names tried down to the
+ * matched level, each ACL at that level with its result, the check decision,
+ * and the overall decision. Empty when the explanation is not available.
+ */
+export function renderAccessMermaid(e: AccessExplanation): string {
+  if (!e.available) return "";
+  const doc = new MermaidDoc("flowchart TD");
+  const target = `${e.table}${e.field ? `.${e.field}` : ""}`;
+  doc.node("start", label(`${e.user}: ${e.operation} ${target}`, 120), "rect", {
+    pinned: true,
+  });
+  const ends: string[] = [];
+  for (const c of e.checks) {
+    const k = c.kind;
+    const tried = c.matched
+      ? c.candidates.slice(0, c.candidates.indexOf(c.matched) + 1)
+      : c.candidates;
+    doc.open(`${k}_check`, label(`${CHECK_TITLE[k]} check`));
+    let prev = "start";
+    tried.forEach((name, i) => {
+      const id = `${k}_n${i}`;
+      const text =
+        name === c.matched
+          ? `${name}: ${c.acls.length} ACL${c.acls.length === 1 ? "" : "s"}`
+          : `${name}: no ACL`;
+      doc.edgeTo(prev, id, label(text, 120), {
+        arrow: name === c.matched ? "-->" : "-.->",
+      });
+      prev = id;
+    });
+    const decision = `${k}_decision`;
+    doc.node(decision, label(`${CHECK_TITLE[k]}: ${c.decision}`), "rect", {
+      pinned: true,
+    });
+    if (c.matched) {
+      c.acls.forEach((a, i) => {
+        const id = `${k}_acl${i}`;
+        const deciding = a.sys_id === c.decidingAcl ? " (deciding)" : "";
+        doc.edgeTo(prev, id, label(`${a.sys_id}: ${a.result}${deciding}`, 120));
+        doc.edge(id, decision);
+      });
+    } else {
+      doc.edge(prev, decision, "-.->");
+    }
+    doc.close();
+    ends.push(decision);
+  }
+  doc.node("decision", e.decision, "terminal", { pinned: true });
+  for (const id of ends) doc.edge(id, "decision");
+  return doc.render();
 }

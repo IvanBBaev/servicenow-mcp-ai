@@ -11,6 +11,7 @@ import {
   fieldCandidates,
   matchLevel,
   renderAccessExplanation,
+  renderAccessMermaid,
   rowCandidates,
 } from "../build/api/access-explain.js";
 import {
@@ -408,4 +409,69 @@ test("N-12: without domain separation the output has no Domain column or caveat"
     const md = renderAccessExplanation(r).join("\n");
     assert.doesNotMatch(md, /Domain/);
   });
+});
+
+test("an undetermined script part carries the S-12 ACL-script lint hints", () => {
+  const e = evaluateAcl(
+    acl({
+      script: "// eval('x')\nanswer = gs.getUserID() == current.caller_id;",
+      advanced: true,
+    }),
+    new Set(),
+    undefined,
+  );
+  assert.equal(e.script, "undetermined");
+  assert.deepEqual(
+    e.scriptHints.map((h) => h.rule),
+    ["getuser-in-acl"],
+  );
+  assert.match(e.notes.join(";"), /script: getuser-in-acl \(info\)/);
+  // No hints key when the script is clean or not used.
+  const clean = evaluateAcl(
+    acl({ script: "answer = true;", advanced: true }),
+    new Set(),
+    undefined,
+  );
+  assert.ok(!("scriptHints" in clean));
+});
+
+test("the Mermaid decision diagram walks the tried names to the ACLs and the decision", async () => {
+  freshRuntime();
+  await withFetch(instance(), async () => {
+    const r = await explainAccess({
+      user: "beth.anglin",
+      table: "incident",
+      operation: "read",
+      sysId: REC,
+      field: "state",
+    });
+    const md = renderAccessMermaid(r);
+    const lines = md.split("\n");
+    assert.equal(lines[0], "flowchart TD");
+    assert.ok(lines.includes('    start -.-> row_n0["incident: no ACL"]'));
+    assert.ok(lines.includes('    row_n0 --> row_n1["task: 1 ACL"]'));
+    assert.ok(
+      lines.includes('    row_n1 --> row_acl0["row1: granted (deciding)"]'),
+    );
+    assert.ok(lines.includes("    row_acl0 --> row_decision"));
+    assert.ok(
+      lines.includes('    field_n3 --> field_acl0["fld1: undetermined"]'),
+    );
+    assert.ok(lines.includes("  decision([undetermined])"));
+    assert.ok(lines.includes("  field_decision --> decision"));
+  });
+  await withFetch(
+    instance({ sys_security_acl: () => jsonResponse(200, { result: [] }) }),
+    async () => {
+      const r = await explainAccess({
+        user: USER,
+        table: "incident",
+        operation: "delete",
+      });
+      const md = renderAccessMermaid(r);
+      assert.match(md, /row_n2 -.-> row_decision/);
+      assert.match(md, /decision\(\[denied\]\)/);
+    },
+  );
+  assert.equal(renderAccessMermaid({ available: false, checks: [] }), "");
 });
