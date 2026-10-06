@@ -4,8 +4,9 @@
  * keep every constraint a model or a validator acts on. The specs and their
  * zod shapes are unchanged.
  *
- * Not wired yet: the wire change waits for owner decision O-10 (b). Until then
- * this module is measured by `npm run tokens:report` and pinned by tests.
+ * Wired by `wireLeanToolsList` from `registerAllTools` (O-10 (b), decided
+ * 2026-10-06, ADR 0006); `describeToolSchemas` applies the same schema rules,
+ * so the manifest and the tool reference match the wire.
  *
  * Rules (project/TOKEN-OPTIMIZATION-PLAN-2026-10.md, N-58):
  *  1. drop `$schema` in input and output schemas;
@@ -16,6 +17,9 @@
  *  5. drop `propertyNames: {type: "string"}` (always true for JSON keys);
  *  6. omit annotation hints a client already assumes (see wireAnnotations).
  */
+
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 type Json = Record<string, unknown>;
 
@@ -126,4 +130,36 @@ export function leanTool(tool: Json): Json {
 /** The lean form of a `tools/list` result's tools array. */
 export function leanToolsList<T extends Json>(tools: T[]): Json[] {
   return tools.map(leanTool);
+}
+
+/** The SDK's request-handler table (`Protocol._requestHandlers`). */
+type RequestHandlers = Map<
+  string,
+  (request: unknown, extra: unknown) => Promise<unknown>
+>;
+
+/**
+ * Serve tools/list in the lean form. McpServer installs its tools/list
+ * handler once, on the first registerTool, and computes the list from its
+ * registered tools on every request (so package toggles and the M-5 enable
+ * state still apply). This replaces that handler with one that calls it and
+ * maps the result through `leanToolsList`. A server with no tools has no
+ * handler, and nothing changes. Call it after the tools are registered.
+ */
+export function wireLeanToolsList(server: McpServer): void {
+  const method = ListToolsRequestSchema.shape.method.value;
+  const handlers = (server.server as unknown as { _requestHandlers?: unknown })
+    ._requestHandlers;
+  if (!(handlers instanceof Map)) return;
+  const original = (handlers as RequestHandlers).get(method);
+  if (!original) return;
+  server.server.setRequestHandler(
+    ListToolsRequestSchema,
+    async (request, extra) => {
+      const result = (await original(request, extra)) as Json & {
+        tools: Json[];
+      };
+      return { ...result, tools: leanToolsList(result.tools) };
+    },
+  );
 }

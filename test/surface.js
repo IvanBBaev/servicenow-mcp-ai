@@ -64,11 +64,14 @@ export function toolSizes(tool) {
   };
 }
 
-/** The tools array a client receives under `env`. */
-export async function listPublishedTools(env = {}) {
+/**
+ * The tools array a client receives under `env`. `raw: true` skips the N-58
+ * lean serializer, for tests and reports that compare against the SDK's list.
+ */
+export async function listPublishedTools(env = {}, { raw = false } = {}) {
   return withEnv({ ...PINNED, ...env }, async () => {
     const server = new McpServer({ name: "surface", version: "0.0.0" });
-    registerAllTools(server, currentRuntime());
+    registerAllTools(server, currentRuntime(), { leanList: !raw });
     const client = new Client({ name: "surface-client", version: "0.0.0" });
     const [a, b] = InMemoryTransport.createLinkedPair();
     await Promise.all([server.connect(b), client.connect(a)]);

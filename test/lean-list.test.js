@@ -13,9 +13,9 @@ import { PROFILES, listPublishedTools } from "./surface.js";
 baselineEnv();
 
 /**
- * N-58 — the lean `tools/list` serializer (src/mcp/lean-list.ts). Pure and not
- * wired yet (O-10 (b)): these tests pin each rule and the projected saving on
- * the real published surface.
+ * N-58 — the lean `tools/list` serializer (src/mcp/lean-list.ts), wired since
+ * O-10 (b) (ADR 0006): these tests pin each rule, that the wire carries the
+ * lean form of the SDK's list, and the saving on the real surface.
  */
 
 const MAX = Number.MAX_SAFE_INTEGER;
@@ -193,9 +193,11 @@ const effectiveHints = (a = {}) => {
 
 for (const [profile, env] of Object.entries(PROFILES)) {
   test(`lean ${profile} surface: rules hold and meaning is unchanged`, async () => {
-    const tools = await listPublishedTools(env);
+    const tools = await listPublishedTools(env, { raw: true });
     const lean = leanToolsList(tools);
     assert.equal(lean.length, tools.length);
+    // The wire is exactly the lean form of the SDK's list.
+    assert.deepEqual(await listPublishedTools(env), lean);
     lean.forEach((tool, i) => {
       const original = tools[i];
       assert.equal(tool.name, original.name);
@@ -236,12 +238,9 @@ test("lean projection saves what the plan measured (N-58)", async () => {
   // TOKEN-OPTIMIZATION-PLAN-2026-10 §1.2: core −4,191 B, all −16,493 B on
   // the 2026-10-05 surface. A floor, so a later spec change cannot hide a
   // broken rule; the exact figures are in `npm run tokens:report`.
-  const saved = async (env) => {
-    const tools = await listPublishedTools(env);
-    return (
-      JSON.stringify(tools).length - JSON.stringify(leanToolsList(tools)).length
-    );
-  };
+  const saved = async (env) =>
+    JSON.stringify(await listPublishedTools(env, { raw: true })).length -
+    JSON.stringify(await listPublishedTools(env)).length;
   assert.ok((await saved(PROFILES.core)) >= 4000);
   assert.ok((await saved(PROFILES.all)) >= 16000);
 });

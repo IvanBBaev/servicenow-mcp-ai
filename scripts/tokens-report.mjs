@@ -5,7 +5,8 @@
 //   npm run tokens:report             the breakdown, repeated parameter text,
 //                                     the 15 heaviest tools and the deltas
 //                                     against test/fixtures/token-budgets.json,
-//                                     plus the N-58 lean projection (not wired)
+//                                     plus the raw size before the N-58 lean
+//                                     serializer
 //   npm run tokens:report -- --json   the same data as JSON
 //   npm run tokens:report -- --base <ref>
 //                                     also measure <ref> (built in a temporary
@@ -19,7 +20,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { leanToolsList } from "../build/mcp/lean-list.js";
 import { baselineEnv } from "../test/helpers.js";
 import {
   BYTES_PER_TOKEN,
@@ -126,8 +126,8 @@ const tokens = (bytes) => Math.round(bytes / BYTES_PER_TOKEN.schema);
 const profiles = {};
 for (const profile of Object.keys(PROFILES)) {
   const m = await measureSurface(profile);
-  const lean = JSON.stringify(
-    leanToolsList(await listPublishedTools(PROFILES[profile])),
+  const raw = JSON.stringify(
+    await listPublishedTools(PROFILES[profile], { raw: true }),
   ).length;
   const breakdown = Object.fromEntries(
     COMPONENTS.map((c) => [c, m.perTool.reduce((sum, t) => sum + t[c], 0)]),
@@ -138,7 +138,7 @@ for (const profile of Object.keys(PROFILES)) {
     tools: m.tools,
     budget: budgets[profile] ?? null,
     delta: budgets[profile] === undefined ? null : m.bytes - budgets[profile],
-    lean,
+    raw,
     breakdown,
   };
   if (base) {
@@ -165,14 +165,14 @@ if (process.argv.includes("--json")) {
     `tools/list surface (tokens ≈ bytes / ${report.bytesPerToken})\n`,
   );
   console.log(
-    `${"profile".padEnd(11)}${n("tools")}${n("bytes")}${n("tokens")}${n("budget")}${n("delta")}${n("lean")}`,
+    `${"profile".padEnd(11)}${n("tools")}${n("bytes")}${n("tokens")}${n("budget")}${n("delta")}${n("raw")}`,
   );
   for (const [name, p] of Object.entries(profiles)) {
     console.log(
-      `${name.padEnd(11)}${n(p.tools)}${n(p.bytes)}${n(p.tokens)}${n(p.budget ?? "-")}${n(p.delta ?? "-")}${n(p.lean)}`,
+      `${name.padEnd(11)}${n(p.tools)}${n(p.bytes)}${n(p.tokens)}${n(p.budget ?? "-")}${n(p.delta ?? "-")}${n(p.raw)}`,
     );
   }
-  console.log("(lean: N-58 serializer, not on the wire until O-10 (b))");
+  console.log("(raw: bytes before the N-58 lean serializer)");
   if (base) {
     console.log(
       `\nagainst ${base.ref} (${base.sha.slice(0, 7)})\n${"profile".padEnd(11)}${n("base")}${n("now")}${n("delta")}${n("tools")}`,

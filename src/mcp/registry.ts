@@ -25,6 +25,7 @@ import {
   type ToolReferenceDetail,
 } from "./resources.js";
 import { linkToolView, mcpAppsEnabled, registerAppResources } from "./apps.js";
+import { leanJsonSchema, wireLeanToolsList } from "./lean-list.js";
 import { specs as tableSpecs } from "../tools/table.js";
 import { specs as metaSpecs } from "../tools/meta.js";
 import { specs as aggregateSpecs } from "../tools/aggregate.js";
@@ -235,16 +236,21 @@ function toolSchemas(spec: AnyToolSpec): ToolSchemas {
   const output = buildOutputSchema(spec);
   return {
     name: spec.name,
-    inputSchema: toJsonSchemaCompat(buildInputSchema(spec, { legacy: false }), {
-      strictUnions: true,
-      pipeStrategy: "input",
-    }),
+    // N-58: the lean form, as the wired tools/list handler publishes it.
+    inputSchema: leanJsonSchema(
+      toJsonSchemaCompat(buildInputSchema(spec, { legacy: false }), {
+        strictUnions: true,
+        pipeStrategy: "input",
+      }),
+    ),
     ...(output
       ? {
-          outputSchema: toJsonSchemaCompat(output, {
-            strictUnions: true,
-            pipeStrategy: "output",
-          }),
+          outputSchema: leanJsonSchema(
+            toJsonSchemaCompat(output, {
+              strictUnions: true,
+              pipeStrategy: "output",
+            }),
+          ),
         }
       : {}),
   };
@@ -394,7 +400,11 @@ function policyPermits(
  * dispatchers and telemetry it touches are that runtime's, whatever the
  * process-wide default is — the seam H-7 uses for per-session state.
  */
-export function registerAllTools(server: McpServer, runtime: Runtime): void {
+export function registerAllTools(
+  server: McpServer,
+  runtime: Runtime,
+  options: { leanList?: boolean } = {},
+): void {
   const { enabled, denied, readOnly } = effectivePackages();
   const deniedSet = new Set(denied);
   const readOnlySet = new Set(readOnly);
@@ -483,6 +493,9 @@ export function registerAllTools(server: McpServer, runtime: Runtime): void {
     }
   }
   bindPackageSession(session, runtime);
+  // N-58 (O-10 (b)): tools/list goes out in the lean form. `leanList: false`
+  // keeps the SDK's own list, for measurements against the raw surface.
+  if (options.leanList !== false) wireLeanToolsList(server);
 
   logger.info("Tools registered", {
     packages: enabled,

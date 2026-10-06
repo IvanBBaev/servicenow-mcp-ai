@@ -305,7 +305,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "avg_fields": {
@@ -379,7 +378,6 @@
           },
           "table": {
             "description": "Table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -388,16 +386,15 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": { "result": {} },
         "type": "object"
       },
       "sizes": {
         "description": 104,
-        "inputSchema": 1517,
+        "inputSchema": 1450,
         "paramDescriptions": 282,
-        "outputSchema": 122
+        "outputSchema": 70
       }
     },
     {
@@ -413,7 +410,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -477,7 +473,7 @@
       },
       "sizes": {
         "description": 153,
-        "inputSchema": 1269,
+        "inputSchema": 1217,
         "paramDescriptions": 397,
         "outputSchema": 0
       }
@@ -495,7 +491,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "groups": {
@@ -530,7 +525,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "capabilities": {},
@@ -544,9 +538,9 @@
       "overlap": "Kept beside get_status and test_connection: probes which admin tables and features the user can reach; also servicenow://capabilities.",
       "sizes": {
         "description": 200,
-        "inputSchema": 601,
+        "inputSchema": 549,
         "paramDescriptions": 199,
-        "outputSchema": 232
+        "outputSchema": 180
       }
     },
     {
@@ -562,7 +556,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -585,7 +578,6 @@
           },
           "sys_id": {
             "description": "Change request sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -595,7 +587,7 @@
       },
       "sizes": {
         "description": 171,
-        "inputSchema": 654,
+        "inputSchema": 587,
         "paramDescriptions": 219,
         "outputSchema": 0
       }
@@ -613,7 +605,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "domains": {
@@ -637,7 +628,6 @@
           },
           "scope": {
             "description": "Table to lint; omit for an instance-wide inventory.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -649,7 +639,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "generatedAt": { "type": "string" },
@@ -662,9 +651,9 @@
       },
       "sizes": {
         "description": 241,
-        "inputSchema": 869,
+        "inputSchema": 802,
         "paramDescriptions": 398,
-        "outputSchema": 284
+        "outputSchema": 232
       }
     },
     {
@@ -680,7 +669,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -725,7 +713,6 @@
           },
           "table": {
             "description": "Table to check, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -735,7 +722,7 @@
       },
       "sizes": {
         "description": 184,
-        "inputSchema": 1105,
+        "inputSchema": 1038,
         "paramDescriptions": 333,
         "outputSchema": 0
       }
@@ -753,7 +740,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "a": {
@@ -820,7 +806,7 @@
       },
       "sizes": {
         "description": 175,
-        "inputSchema": 1321,
+        "inputSchema": 1269,
         "paramDescriptions": 520,
         "outputSchema": 0
       }
@@ -838,7 +824,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -873,12 +858,10 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "against": {
             "additionalProperties": { "type": "string" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "artefacts": {
@@ -912,7 +895,6 @@
           "count": { "type": "number" },
           "summary": {
             "additionalProperties": { "type": "number" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "total": { "type": "number" },
@@ -944,9 +926,9 @@
       },
       "sizes": {
         "description": 193,
-        "inputSchema": 758,
+        "inputSchema": 706,
         "paramDescriptions": 288,
-        "outputSchema": 1305
+        "outputSchema": 1185
       }
     },
     {
@@ -962,7 +944,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -976,7 +957,6 @@
           },
           "template_id": {
             "description": "Template sys_id (required for standard).",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -990,7 +970,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "Field name/value pairs, e.g. { \"risk\": \"low\" }.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -1000,7 +979,7 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 88,
-        "inputSchema": 788,
+        "inputSchema": 687,
         "paramDescriptions": 231,
         "outputSchema": 0
       }
@@ -1018,7 +997,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -1027,7 +1005,6 @@
           },
           "class_name": {
             "description": "Deprecated: use table",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -1043,7 +1020,6 @@
           },
           "table": {
             "description": "CI class, e.g. 'cmdb_ci_server'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -1052,7 +1028,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "CI attribute name/value pairs.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -1063,7 +1038,7 @@
       "deprecatedParams": { "class_name": "table" },
       "sizes": {
         "description": 89,
-        "inputSchema": 877,
+        "inputSchema": 761,
         "paramDescriptions": 254,
         "outputSchema": 0
       }
@@ -1081,7 +1056,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -1099,7 +1073,6 @@
           },
           "table": {
             "description": "Table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -1114,7 +1087,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "Field name/value pairs, e.g. { \"short_description\": \"x\" }.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -1124,7 +1096,7 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 61,
-        "inputSchema": 1097,
+        "inputSchema": 996,
         "paramDescriptions": 488,
         "outputSchema": 0
       }
@@ -1142,7 +1114,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -1161,7 +1132,6 @@
           },
           "sys_id": {
             "description": "Attachment sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -1172,7 +1142,7 @@
       "legacyParams": { "attachment_sys_id": "sys_id" },
       "sizes": {
         "description": 37,
-        "inputSchema": 564,
+        "inputSchema": 497,
         "paramDescriptions": 175,
         "outputSchema": 0
       }
@@ -1190,7 +1160,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -1199,7 +1168,6 @@
           },
           "expected_mod_count": {
             "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
-            "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
           },
@@ -1215,13 +1183,11 @@
           },
           "sys_id": {
             "description": "Record sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -1237,7 +1203,7 @@
       },
       "sizes": {
         "description": 45,
-        "inputSchema": 1128,
+        "inputSchema": 1019,
         "paramDescriptions": 472,
         "outputSchema": 0
       }
@@ -1255,7 +1221,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "details": {
@@ -1269,7 +1234,6 @@
           },
           "table": {
             "description": "Table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -1278,7 +1242,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "columns": { "items": {}, "type": "array" },
@@ -1291,9 +1254,9 @@
       },
       "sizes": {
         "description": 160,
-        "inputSchema": 440,
+        "inputSchema": 373,
         "paramDescriptions": 113,
-        "outputSchema": 278
+        "outputSchema": 226
       }
     },
     {
@@ -1309,7 +1272,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -1319,7 +1281,6 @@
           },
           "table": {
             "description": "Table to analyse, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -1328,7 +1289,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "acls": { "items": {}, "type": "array" },
@@ -1350,9 +1310,9 @@
       },
       "sizes": {
         "description": 122,
-        "inputSchema": 345,
+        "inputSchema": 278,
         "paramDescriptions": 62,
-        "outputSchema": 425
+        "outputSchema": 373
       }
     },
     {
@@ -1368,7 +1328,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -1386,7 +1345,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "changed": { "type": "boolean" },
@@ -1408,9 +1366,9 @@
       },
       "sizes": {
         "description": 149,
-        "inputSchema": 307,
+        "inputSchema": 255,
         "paramDescriptions": 59,
-        "outputSchema": 402
+        "outputSchema": 350
       }
     },
     {
@@ -1426,7 +1384,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "detail": {
@@ -1458,7 +1415,7 @@
       },
       "sizes": {
         "description": 221,
-        "inputSchema": 704,
+        "inputSchema": 652,
         "paramDescriptions": 309,
         "outputSchema": 0
       }
@@ -1476,7 +1433,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apps": {
@@ -1516,11 +1472,7 @@
           },
           "tables": {
             "description": "Tables to write as tables/<name>.md.",
-            "items": {
-              "maxLength": 80,
-              "pattern": "^[A-Za-z0-9_]{1,80}$",
-              "type": "string"
-            },
+            "items": { "pattern": "^[A-Za-z0-9_]{1,80}$", "type": "string" },
             "maxItems": 50,
             "type": "array"
           },
@@ -1533,7 +1485,7 @@
       },
       "sizes": {
         "description": 245,
-        "inputSchema": 1294,
+        "inputSchema": 1227,
         "paramDescriptions": 527,
         "outputSchema": 0
       }
@@ -1551,7 +1503,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "columns": {
@@ -1575,7 +1526,6 @@
           },
           "table": {
             "description": "Table to document, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -1589,7 +1539,7 @@
       },
       "sizes": {
         "description": 214,
-        "inputSchema": 767,
+        "inputSchema": 700,
         "paramDescriptions": 267,
         "outputSchema": 0
       }
@@ -1607,7 +1557,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -1617,7 +1566,6 @@
           },
           "sys_id": {
             "description": "Attachment sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -1628,7 +1576,7 @@
       "legacyParams": { "attachment_sys_id": "sys_id" },
       "sizes": {
         "description": 104,
-        "inputSchema": 332,
+        "inputSchema": 265,
         "paramDescriptions": 46,
         "outputSchema": 0
       }
@@ -1646,7 +1594,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -1664,7 +1611,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "changed": { "type": "boolean" },
@@ -1686,9 +1632,9 @@
       },
       "sizes": {
         "description": 164,
-        "inputSchema": 307,
+        "inputSchema": 255,
         "paramDescriptions": 59,
-        "outputSchema": 402
+        "outputSchema": 350
       }
     },
     {
@@ -1704,7 +1650,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "artifactType": {
@@ -1735,7 +1680,6 @@
                     { "type": "boolean" }
                   ]
                 },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               }
             ],
@@ -1743,7 +1687,6 @@
           },
           "sys_id": {
             "description": "Record sys_id; this or 'key'.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -1752,7 +1695,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "artifactType": { "type": "string" },
@@ -1764,11 +1706,7 @@
               "properties": {
                 "count": { "type": "number" },
                 "items": {
-                  "items": {
-                    "additionalProperties": {},
-                    "propertyNames": { "type": "string" },
-                    "type": "object"
-                  },
+                  "items": { "additionalProperties": {}, "type": "object" },
                   "type": "array"
                 },
                 "omitted": { "type": "number" },
@@ -1811,14 +1749,9 @@
             "required": ["kind", "lines"],
             "type": "object"
           },
-          "fields": {
-            "additionalProperties": {},
-            "propertyNames": { "type": "string" },
-            "type": "object"
-          },
+          "fields": { "additionalProperties": {}, "type": "object" },
           "key": {
             "additionalProperties": { "type": "string" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "missingFields": { "items": { "type": "string" }, "type": "array" },
@@ -1863,11 +1796,7 @@
           "verified": { "type": "boolean" },
           "when": {
             "anyOf": [
-              {
-                "additionalProperties": {},
-                "propertyNames": { "type": "string" },
-                "type": "object"
-              },
+              { "additionalProperties": {}, "type": "object" },
               { "type": "null" }
             ]
           }
@@ -1887,9 +1816,9 @@
       },
       "sizes": {
         "description": 196,
-        "inputSchema": 892,
+        "inputSchema": 791,
         "paramDescriptions": 249,
-        "outputSchema": 2465
+        "outputSchema": 2277
       }
     },
     {
@@ -1905,7 +1834,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "depth": {
@@ -1941,7 +1869,6 @@
           },
           "sys_id": {
             "description": "sys_id of the flow, action, workflow or playbook (per kind). Required unless kind:'workflow' with migration:true.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -1949,7 +1876,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "kind": { "type": "string" },
@@ -1961,9 +1887,9 @@
       },
       "sizes": {
         "description": 219,
-        "inputSchema": 1111,
+        "inputSchema": 1044,
         "paramDescriptions": 486,
-        "outputSchema": 223
+        "outputSchema": 171
       }
     },
     {
@@ -1979,7 +1905,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "action": {
@@ -1994,7 +1919,6 @@
           },
           "table": {
             "description": "Table to check.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -2003,7 +1927,7 @@
       },
       "sizes": {
         "description": 167,
-        "inputSchema": 386,
+        "inputSchema": 319,
         "paramDescriptions": 58,
         "outputSchema": 0
       }
@@ -2021,7 +1945,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "depth": {
@@ -2055,7 +1978,7 @@
       },
       "sizes": {
         "description": 182,
-        "inputSchema": 723,
+        "inputSchema": 671,
         "paramDescriptions": 284,
         "outputSchema": 0
       }
@@ -2073,7 +1996,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "format": {
@@ -2093,7 +2015,6 @@
           },
           "sys_id": {
             "description": "sys_ux_page_registry sys_id (or 'path').",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -2101,12 +2022,10 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "counts": {
             "additionalProperties": { "type": "number" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "verified": { "type": "boolean" }
@@ -2116,9 +2035,9 @@
       },
       "sizes": {
         "description": 194,
-        "inputSchema": 615,
+        "inputSchema": 548,
         "paramDescriptions": 209,
-        "outputSchema": 266
+        "outputSchema": 180
       }
     },
     {
@@ -2134,7 +2053,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "columns": {
@@ -2160,16 +2078,11 @@
           "max_columns": {
             "description": "Columns per entity before '+N' folding (40).",
             "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
             "type": "integer"
           },
           "tables": {
             "description": "Tables to include, e.g. ['incident', 'problem'].",
-            "items": {
-              "maxLength": 80,
-              "pattern": "^[A-Za-z0-9_]{1,80}$",
-              "type": "string"
-            },
+            "items": { "pattern": "^[A-Za-z0-9_]{1,80}$", "type": "string" },
             "maxItems": 200,
             "minItems": 1,
             "type": "array"
@@ -2180,7 +2093,7 @@
       },
       "sizes": {
         "description": 211,
-        "inputSchema": 978,
+        "inputSchema": 884,
         "paramDescriptions": 350,
         "outputSchema": 0
       }
@@ -2198,7 +2111,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "artifactType": {
@@ -2234,7 +2146,6 @@
                     { "type": "boolean" }
                   ]
                 },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               }
             ],
@@ -2257,7 +2168,6 @@
           },
           "sys_id": {
             "description": "Record sys_id; this or 'key'.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -2266,7 +2176,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "artifactType": { "type": "string" },
@@ -2317,9 +2226,9 @@
       },
       "sizes": {
         "description": 199,
-        "inputSchema": 1324,
+        "inputSchema": 1223,
         "paramDescriptions": 443,
-        "outputSchema": 788
+        "outputSchema": 736
       }
     },
     {
@@ -2335,7 +2244,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "format": {
@@ -2371,7 +2279,6 @@
           },
           "table": {
             "description": "Table to diagram, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -2381,7 +2288,7 @@
       },
       "sizes": {
         "description": 212,
-        "inputSchema": 1000,
+        "inputSchema": 933,
         "paramDescriptions": 397,
         "outputSchema": 0
       }
@@ -2399,7 +2306,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "artifactType": {
@@ -2430,7 +2336,6 @@
                     { "type": "boolean" }
                   ]
                 },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               }
             ],
@@ -2438,7 +2343,6 @@
           },
           "sys_id": {
             "description": "Record sys_id; this or 'key'.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -2447,7 +2351,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "artifactType": { "type": "string" },
@@ -2463,11 +2366,7 @@
                 "parentTable": { "type": "string" },
                 "reason": { "type": "string" },
                 "records": {
-                  "items": {
-                    "additionalProperties": {},
-                    "propertyNames": { "type": "string" },
-                    "type": "object"
-                  },
+                  "items": { "additionalProperties": {}, "type": "object" },
                   "type": "array"
                 },
                 "redacted": { "type": "boolean" },
@@ -2498,18 +2397,13 @@
           },
           "key": {
             "additionalProperties": { "type": "string" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "missingFields": { "items": { "type": "string" }, "type": "array" },
           "name": { "type": "string" },
           "record": {
             "anyOf": [
-              {
-                "additionalProperties": {},
-                "propertyNames": { "type": "string" },
-                "type": "object"
-              },
+              { "additionalProperties": {}, "type": "object" },
               { "type": "null" }
             ]
           },
@@ -2542,9 +2436,9 @@
       },
       "sizes": {
         "description": 217,
-        "inputSchema": 892,
+        "inputSchema": 791,
         "paramDescriptions": 249,
-        "outputSchema": 1842
+        "outputSchema": 1688
       }
     },
     {
@@ -2560,7 +2454,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "artifactType": {
@@ -2607,7 +2500,6 @@
                     { "type": "boolean" }
                   ]
                 },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               }
             ],
@@ -2621,7 +2513,6 @@
           },
           "sys_id": {
             "description": "Record sys_id; this or 'key'.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -2630,7 +2521,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "artifactType": { "type": "string" },
@@ -2724,9 +2614,9 @@
       },
       "sizes": {
         "description": 200,
-        "inputSchema": 1363,
+        "inputSchema": 1262,
         "paramDescriptions": 436,
-        "outputSchema": 1698
+        "outputSchema": 1646
       }
     },
     {
@@ -2742,12 +2632,10 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "execution_id": {
             "description": "Execution id from a run tool.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -2761,7 +2649,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "executionId": { "type": "string" },
@@ -2772,9 +2659,9 @@
       },
       "sizes": {
         "description": 97,
-        "inputSchema": 355,
+        "inputSchema": 288,
         "paramDescriptions": 57,
-        "outputSchema": 205
+        "outputSchema": 153
       }
     },
     {
@@ -2790,7 +2677,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -2800,7 +2686,6 @@
           },
           "sys_id": {
             "description": "Attachment sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -2811,7 +2696,7 @@
       "legacyParams": { "attachment_sys_id": "sys_id" },
       "sizes": {
         "description": 52,
-        "inputSchema": 332,
+        "inputSchema": 265,
         "paramDescriptions": 46,
         "outputSchema": 0
       }
@@ -2829,7 +2714,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -2839,7 +2723,6 @@
           },
           "sys_id": {
             "description": "Catalog item sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -2850,7 +2733,7 @@
       "legacyParams": { "item_sys_id": "sys_id" },
       "sizes": {
         "description": 63,
-        "inputSchema": 334,
+        "inputSchema": 267,
         "paramDescriptions": 48,
         "outputSchema": 0
       }
@@ -2868,7 +2751,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -2878,7 +2760,6 @@
           },
           "sys_id": {
             "description": "Change request sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -2888,7 +2769,7 @@
       },
       "sizes": {
         "description": 40,
-        "inputSchema": 336,
+        "inputSchema": 269,
         "paramDescriptions": 50,
         "outputSchema": 0
       }
@@ -2906,12 +2787,10 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "class_name": {
             "description": "Deprecated: use table",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -2922,13 +2801,11 @@
           },
           "sys_id": {
             "description": "CI sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "CI class, e.g. 'cmdb_ci_server'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -2939,7 +2816,7 @@
       "deprecatedParams": { "class_name": "table" },
       "sizes": {
         "description": 82,
-        "inputSchema": 564,
+        "inputSchema": 467,
         "paramDescriptions": 95,
         "outputSchema": 0
       }
@@ -2957,12 +2834,10 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "class_name": {
             "description": "Deprecated: use table",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -2973,7 +2848,6 @@
           },
           "table": {
             "description": "CI class, e.g. 'cmdb_ci_server'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -2983,7 +2857,7 @@
       "deprecatedParams": { "class_name": "table" },
       "sizes": {
         "description": 81,
-        "inputSchema": 439,
+        "inputSchema": 357,
         "paramDescriptions": 83,
         "outputSchema": 0
       }
@@ -3001,7 +2875,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3011,7 +2884,6 @@
           },
           "sys_id": {
             "description": "Email sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -3021,7 +2893,7 @@
       },
       "sizes": {
         "description": 62,
-        "inputSchema": 327,
+        "inputSchema": 260,
         "paramDescriptions": 41,
         "outputSchema": 0
       }
@@ -3039,7 +2911,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3054,7 +2925,6 @@
           },
           "sys_id": {
             "description": "Flow or workflow sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -3063,7 +2933,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "kind": { "type": "string" },
@@ -3076,9 +2945,9 @@
       },
       "sizes": {
         "description": 118,
-        "inputSchema": 438,
+        "inputSchema": 371,
         "paramDescriptions": 85,
-        "outputSchema": 267
+        "outputSchema": 215
       }
     },
     {
@@ -3094,12 +2963,10 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "flow": {
             "description": "Flow sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -3115,7 +2982,6 @@
           },
           "record": {
             "description": "Record the flow ran against (document_id).",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -3123,7 +2989,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -3134,9 +2999,9 @@
       },
       "sizes": {
         "description": 108,
-        "inputSchema": 500,
+        "inputSchema": 418,
         "paramDescriptions": 84,
-        "outputSchema": 199
+        "outputSchema": 147
       }
     },
     {
@@ -3152,7 +3017,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3162,13 +3026,11 @@
           },
           "sys_id": {
             "description": "Staging row sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Import staging table.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -3179,7 +3041,7 @@
       "legacyParams": { "staging_table": "table" },
       "sizes": {
         "description": 46,
-        "inputSchema": 453,
+        "inputSchema": 371,
         "paramDescriptions": 70,
         "outputSchema": 0
       }
@@ -3197,7 +3059,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3207,7 +3068,6 @@
           },
           "sys_id": {
             "description": "Article sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -3217,7 +3077,7 @@
       },
       "sizes": {
         "description": 59,
-        "inputSchema": 329,
+        "inputSchema": 262,
         "paramDescriptions": 43,
         "outputSchema": 0
       }
@@ -3235,7 +3095,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3255,7 +3114,7 @@
       },
       "sizes": {
         "description": 71,
-        "inputSchema": 372,
+        "inputSchema": 320,
         "paramDescriptions": 43,
         "outputSchema": 0
       }
@@ -3273,7 +3132,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3308,7 +3166,7 @@
       },
       "sizes": {
         "description": 188,
-        "inputSchema": 633,
+        "inputSchema": 581,
         "paramDescriptions": 179,
         "outputSchema": 0
       }
@@ -3326,7 +3184,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "fields": {
@@ -3346,13 +3203,11 @@
           },
           "sys_id": {
             "description": "Record sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -3361,16 +3216,15 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {},
         "type": "object"
       },
       "sizes": {
         "description": 50,
-        "inputSchema": 629,
+        "inputSchema": 547,
         "paramDescriptions": 91,
-        "outputSchema": 111
+        "outputSchema": 59
       }
     },
     {
@@ -3386,7 +3240,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "fields": {
@@ -3422,13 +3275,11 @@
           },
           "sys_id": {
             "description": "Record sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Record table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -3444,7 +3295,7 @@
       },
       "sizes": {
         "description": 186,
-        "inputSchema": 1178,
+        "inputSchema": 1096,
         "paramDescriptions": 342,
         "outputSchema": 0
       }
@@ -3462,7 +3313,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3472,7 +3322,6 @@
           },
           "sys_id": {
             "description": "Script sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -3520,7 +3369,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "record": {},
@@ -3532,9 +3380,9 @@
       },
       "sizes": {
         "description": 70,
-        "inputSchema": 1139,
+        "inputSchema": 1072,
         "paramDescriptions": 260,
-        "outputSchema": 201
+        "outputSchema": 149
       }
     },
     {
@@ -3550,7 +3398,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -3562,7 +3409,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "activeProfile": { "type": "string" },
@@ -3600,7 +3446,6 @@
                   "required": ["active", "queued"],
                   "type": "object"
                 },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               },
               "tls": {
@@ -3622,7 +3467,6 @@
           "passwordSet": { "type": "boolean" },
           "pluginApis": {
             "additionalProperties": { "type": "string" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "policy": {
@@ -3698,7 +3542,6 @@
             "properties": {
               "errors": {
                 "additionalProperties": { "type": "number" },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               },
               "perHost": {
@@ -3707,7 +3550,6 @@
                   "properties": {
                     "errors": {
                       "additionalProperties": { "type": "number" },
-                      "propertyNames": { "type": "string" },
                       "type": "object"
                     },
                     "requests": { "type": "number" },
@@ -3717,7 +3559,6 @@
                   "required": ["requests", "retries", "errors", "totalMs"],
                   "type": "object"
                 },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               },
               "requests": { "type": "number" },
@@ -3728,11 +3569,7 @@
             "type": "object"
           },
           "user": { "type": "string" },
-          "writes": {
-            "additionalProperties": {},
-            "propertyNames": { "type": "string" },
-            "type": "object"
-          }
+          "writes": { "additionalProperties": {}, "type": "object" }
         },
         "required": [
           "configured",
@@ -3763,9 +3600,9 @@
       "overlap": "Kept beside test_connection and check_capabilities: local only (no request) — configuration, profile, policy and packages; also servicenow://status.",
       "sizes": {
         "description": 153,
-        "inputSchema": 199,
+        "inputSchema": 147,
         "paramDescriptions": 26,
-        "outputSchema": 3801
+        "outputSchema": 3545
       }
     },
     {
@@ -3781,7 +3618,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "include_payload": {
@@ -3821,17 +3657,14 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "by_action": {
             "additionalProperties": { "type": "number" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "by_type": {
             "additionalProperties": { "type": "number" },
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "count": { "type": "number" },
@@ -3885,9 +3718,9 @@
       },
       "sizes": {
         "description": 207,
-        "inputSchema": 794,
+        "inputSchema": 742,
         "paramDescriptions": 259,
-        "outputSchema": 1072
+        "outputSchema": 952
       }
     },
     {
@@ -3903,7 +3736,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -3926,7 +3758,6 @@
               "properties": {
                 "className": {
                   "description": "CI class, e.g. 'cmdb_ci_linux_server'.",
-                  "maxLength": 80,
                   "pattern": "^[A-Za-z0-9_]{1,80}$",
                   "type": "string"
                 },
@@ -3935,7 +3766,6 @@
                     "type": ["string", "number", "boolean", "null"]
                   },
                   "description": "Identifying and descriptive attributes.",
-                  "propertyNames": { "type": "string" },
                   "type": "object"
                 }
               },
@@ -3980,7 +3810,7 @@
       },
       "sizes": {
         "description": 174,
-        "inputSchema": 1451,
+        "inputSchema": 1350,
         "paramDescriptions": 443,
         "outputSchema": 0
       }
@@ -3998,7 +3828,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -4012,7 +3841,6 @@
           },
           "table": {
             "description": "Import staging table, e.g. 'u_imp_incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -4021,7 +3849,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "Staging row column name/value pairs.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -4031,7 +3858,7 @@
       "legacyParams": { "fields": "values", "staging_table": "table" },
       "sizes": {
         "description": 188,
-        "inputSchema": 685,
+        "inputSchema": 584,
         "paramDescriptions": 206,
         "outputSchema": 0
       }
@@ -4049,7 +3876,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4059,7 +3885,6 @@
           },
           "sys_id": {
             "description": "Script sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -4107,7 +3932,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "results": { "items": {}, "type": "array" },
@@ -4119,9 +3943,9 @@
       },
       "sizes": {
         "description": 163,
-        "inputSchema": 962,
+        "inputSchema": 895,
         "paramDescriptions": 83,
-        "outputSchema": 239
+        "outputSchema": 187
       }
     },
     {
@@ -4137,7 +3961,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4147,7 +3970,6 @@
           },
           "table": {
             "description": "Table to lint, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -4156,7 +3978,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "findingCount": { "type": "number" },
@@ -4176,9 +3997,9 @@
       },
       "sizes": {
         "description": 118,
-        "inputSchema": 342,
+        "inputSchema": 275,
         "paramDescriptions": 59,
-        "outputSchema": 349
+        "outputSchema": 297
       }
     },
     {
@@ -4194,7 +4015,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "active": {
@@ -4233,7 +4053,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "artifactType": { "type": "string" },
@@ -4244,7 +4063,6 @@
                 "active": { "type": "boolean" },
                 "key": {
                   "additionalProperties": { "type": "string" },
-                  "propertyNames": { "type": "string" },
                   "type": "object"
                 },
                 "name": { "type": "string" },
@@ -4290,9 +4108,9 @@
       },
       "sizes": {
         "description": 168,
-        "inputSchema": 797,
+        "inputSchema": 745,
         "paramDescriptions": 292,
-        "outputSchema": 1156
+        "outputSchema": 1070
       }
     },
     {
@@ -4308,7 +4126,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "active": { "description": "Filter by active.", "type": "boolean" },
@@ -4331,7 +4148,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -4343,9 +4159,9 @@
       "overlap": "Kept beside list_atf_tests: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
       "sizes": {
         "description": 56,
-        "inputSchema": 404,
+        "inputSchema": 352,
         "paramDescriptions": 67,
-        "outputSchema": 203
+        "outputSchema": 151
       }
     },
     {
@@ -4361,7 +4177,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "active": { "description": "Filter by active.", "type": "boolean" },
@@ -4384,7 +4199,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -4396,9 +4210,9 @@
       "overlap": "Kept beside list_atf_suites: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
       "sizes": {
         "description": 71,
-        "inputSchema": 404,
+        "inputSchema": 352,
         "paramDescriptions": 67,
-        "outputSchema": 201
+        "outputSchema": 149
       }
     },
     {
@@ -4414,7 +4228,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4424,13 +4237,11 @@
           },
           "sys_id": {
             "description": "Record sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Record table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -4439,7 +4250,7 @@
       },
       "sizes": {
         "description": 71,
-        "inputSchema": 427,
+        "inputSchema": 345,
         "paramDescriptions": 74,
         "outputSchema": 0
       }
@@ -4457,7 +4268,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4467,7 +4277,6 @@
           },
           "sys_id": {
             "description": "Catalog sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -4478,7 +4287,7 @@
       "legacyParams": { "catalog_sys_id": "sys_id" },
       "sizes": {
         "description": 47,
-        "inputSchema": 329,
+        "inputSchema": 262,
         "paramDescriptions": 43,
         "outputSchema": 0
       }
@@ -4496,7 +4305,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "category": {
@@ -4510,11 +4318,7 @@
             "type": "string"
           },
           "limit": { "exclusiveMinimum": 0, "maximum": 100, "type": "integer" },
-          "offset": {
-            "maximum": 9007199254740991,
-            "minimum": 0,
-            "type": "integer"
-          },
+          "offset": { "minimum": 0, "type": "integer" },
           "text": {
             "description": "Free-text search filter.",
             "maxLength": 1000,
@@ -4525,7 +4329,7 @@
       },
       "sizes": {
         "description": 70,
-        "inputSchema": 489,
+        "inputSchema": 410,
         "paramDescriptions": 70,
         "outputSchema": 0
       }
@@ -4543,7 +4347,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4556,7 +4359,7 @@
       },
       "sizes": {
         "description": 76,
-        "inputSchema": 199,
+        "inputSchema": 147,
         "paramDescriptions": 26,
         "outputSchema": 0
       }
@@ -4574,7 +4377,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "fields": {
@@ -4598,11 +4400,7 @@
             "maximum": 1000,
             "type": "integer"
           },
-          "offset": {
-            "maximum": 9007199254740991,
-            "minimum": 0,
-            "type": "integer"
-          },
+          "offset": { "minimum": 0, "type": "integer" },
           "query": {
             "description": "Encoded query (sysparm_query).",
             "maxLength": 8000,
@@ -4613,7 +4411,7 @@
       },
       "sizes": {
         "description": 88,
-        "inputSchema": 629,
+        "inputSchema": 550,
         "paramDescriptions": 98,
         "outputSchema": 0
       }
@@ -4631,7 +4429,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "direction": {
@@ -4652,7 +4449,6 @@
           },
           "sys_id": {
             "description": "CI sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -4667,7 +4463,7 @@
       },
       "sizes": {
         "description": 148,
-        "inputSchema": 648,
+        "inputSchema": 581,
         "paramDescriptions": 146,
         "outputSchema": 0
       }
@@ -4685,12 +4481,10 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "class_name": {
             "description": "Deprecated: use table",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -4704,11 +4498,7 @@
             "maximum": 1000,
             "type": "integer"
           },
-          "offset": {
-            "maximum": 9007199254740991,
-            "minimum": 0,
-            "type": "integer"
-          },
+          "offset": { "minimum": 0, "type": "integer" },
           "query": {
             "description": "Encoded query (sysparm_query).",
             "maxLength": 8000,
@@ -4716,7 +4506,6 @@
           },
           "table": {
             "description": "CMDB class/table, e.g. 'cmdb_ci_server'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -4726,7 +4515,7 @@
       "deprecatedParams": { "class_name": "table" },
       "sizes": {
         "description": 85,
-        "inputSchema": 667,
+        "inputSchema": 558,
         "paramDescriptions": 123,
         "outputSchema": 0
       }
@@ -4744,7 +4533,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4762,7 +4550,7 @@
       },
       "sizes": {
         "description": 167,
-        "inputSchema": 310,
+        "inputSchema": 258,
         "paramDescriptions": 78,
         "outputSchema": 0
       }
@@ -4780,7 +4568,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "active": {
@@ -4809,7 +4596,6 @@
           },
           "table": {
             "description": "Only flows triggered on this table.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -4817,7 +4603,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -4829,9 +4614,9 @@
       },
       "sizes": {
         "description": 112,
-        "inputSchema": 657,
+        "inputSchema": 590,
         "paramDescriptions": 166,
-        "outputSchema": 233
+        "outputSchema": 181
       }
     },
     {
@@ -4847,7 +4632,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4859,7 +4643,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -4870,9 +4653,9 @@
       },
       "sizes": {
         "description": 179,
-        "inputSchema": 199,
+        "inputSchema": 147,
         "paramDescriptions": 26,
-        "outputSchema": 207
+        "outputSchema": 155
       }
     },
     {
@@ -4888,7 +4671,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -4900,7 +4682,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "enabled": { "items": { "type": "string" }, "type": "array" },
@@ -4911,9 +4692,9 @@
       },
       "sizes": {
         "description": 170,
-        "inputSchema": 199,
+        "inputSchema": 147,
         "paramDescriptions": 26,
-        "outputSchema": 236
+        "outputSchema": 184
       }
     },
     {
@@ -4929,7 +4710,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "active": {
@@ -4944,7 +4724,6 @@
           "limit": {
             "description": "Max rows (default 50).",
             "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
             "type": "integer"
           },
           "name": {
@@ -4954,7 +4733,6 @@
           },
           "offset": {
             "description": "Rows to skip (paging).",
-            "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
           },
@@ -4965,7 +4743,6 @@
           },
           "table": {
             "description": "Applied table (types that have one).",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -5013,7 +4790,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -5025,9 +4801,9 @@
       },
       "sizes": {
         "description": 108,
-        "inputSchema": 1627,
+        "inputSchema": 1506,
         "paramDescriptions": 430,
-        "outputSchema": 237
+        "outputSchema": 185
       }
     },
     {
@@ -5043,7 +4819,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "filter": {
@@ -5060,7 +4835,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -5071,9 +4845,9 @@
       },
       "sizes": {
         "description": 82,
-        "inputSchema": 299,
+        "inputSchema": 247,
         "paramDescriptions": 68,
-        "outputSchema": 203
+        "outputSchema": 151
       }
     },
     {
@@ -5089,7 +4863,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "application": {
@@ -5133,7 +4906,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -5161,9 +4933,9 @@
       },
       "sizes": {
         "description": 133,
-        "inputSchema": 810,
+        "inputSchema": 758,
         "paramDescriptions": 236,
-        "outputSchema": 605
+        "outputSchema": 553
       }
     },
     {
@@ -5179,7 +4951,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "action": {
@@ -5222,7 +4993,6 @@
           },
           "table": {
             "description": "Only writes to this table.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -5235,7 +5005,7 @@
       },
       "sizes": {
         "description": 201,
-        "inputSchema": 983,
+        "inputSchema": 916,
         "paramDescriptions": 303,
         "outputSchema": 0
       }
@@ -5253,7 +5023,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "active": {
@@ -5282,7 +5051,6 @@
           },
           "sys_id": {
             "description": "Exact sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -5297,7 +5065,7 @@
       },
       "sizes": {
         "description": 196,
-        "inputSchema": 839,
+        "inputSchema": 772,
         "paramDescriptions": 256,
         "outputSchema": 0
       }
@@ -5315,7 +5083,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -5335,19 +5102,16 @@
           "quantity": {
             "description": "Quantity to order (default 1).",
             "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
             "type": "integer"
           },
           "sys_id": {
             "description": "Catalog item sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "variables": {
             "additionalProperties": {},
             "description": "Variable name/value pairs.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -5357,7 +5121,7 @@
       "legacyParams": { "item_sys_id": "sys_id" },
       "sizes": {
         "description": 116,
-        "inputSchema": 824,
+        "inputSchema": 696,
         "paramDescriptions": 237,
         "outputSchema": 0
       }
@@ -5375,7 +5139,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "displayValue": {
@@ -5424,7 +5187,6 @@
           },
           "offset": {
             "description": "Records to skip (paging).",
-            "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
           },
@@ -5448,7 +5210,6 @@
           },
           "table": {
             "description": "Table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -5462,7 +5223,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -5477,9 +5237,9 @@
       },
       "sizes": {
         "description": 225,
-        "inputSchema": 2199,
+        "inputSchema": 2105,
         "paramDescriptions": 1004,
-        "outputSchema": 308
+        "outputSchema": 256
       }
     },
     {
@@ -5495,7 +5255,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -5519,7 +5278,7 @@
       },
       "sizes": {
         "description": 86,
-        "inputSchema": 464,
+        "inputSchema": 412,
         "paramDescriptions": 155,
         "outputSchema": 0
       }
@@ -5537,7 +5296,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "filter": {
@@ -5598,7 +5356,7 @@
       },
       "sizes": {
         "description": 233,
-        "inputSchema": 1159,
+        "inputSchema": 1107,
         "paramDescriptions": 388,
         "outputSchema": 0
       }
@@ -5616,7 +5374,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -5649,7 +5406,7 @@
       },
       "sizes": {
         "description": 246,
-        "inputSchema": 727,
+        "inputSchema": 675,
         "paramDescriptions": 311,
         "outputSchema": 0
       }
@@ -5667,7 +5424,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -5681,7 +5437,6 @@
           },
           "sys_id": {
             "description": "sys_atf_test_suite sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -5698,7 +5453,7 @@
       "legacyParams": { "suite_sys_id": "sys_id" },
       "sizes": {
         "description": 186,
-        "inputSchema": 713,
+        "inputSchema": 646,
         "paramDescriptions": 310,
         "outputSchema": 0
       }
@@ -5716,7 +5471,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -5730,7 +5484,6 @@
           },
           "sys_id": {
             "description": "sys_atf_test sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -5747,7 +5500,7 @@
       "legacyParams": { "test_sys_id": "sys_id" },
       "sizes": {
         "description": 228,
-        "inputSchema": 707,
+        "inputSchema": 640,
         "paramDescriptions": 304,
         "outputSchema": 0
       }
@@ -5765,7 +5518,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "extended": {
@@ -5780,7 +5532,6 @@
           "limit": {
             "description": "Max matches over all types (default 50).",
             "exclusiveMinimum": 0,
-            "maximum": 9007199254740991,
             "type": "integer"
           },
           "scope": {
@@ -5790,7 +5541,6 @@
           },
           "table": {
             "description": "Only scripts applied to this table.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -5843,7 +5593,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
@@ -5855,9 +5604,9 @@
       },
       "sizes": {
         "description": 237,
-        "inputSchema": 1602,
+        "inputSchema": 1508,
         "paramDescriptions": 485,
-        "outputSchema": 246
+        "outputSchema": 194
       }
     },
     {
@@ -5873,7 +5622,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "generated": {
@@ -5906,7 +5654,7 @@
       },
       "sizes": {
         "description": 124,
-        "inputSchema": 618,
+        "inputSchema": 566,
         "paramDescriptions": 208,
         "outputSchema": 0
       }
@@ -5924,7 +5672,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "fields": {
@@ -5943,11 +5690,7 @@
             "type": "string"
           },
           "limit": { "exclusiveMinimum": 0, "maximum": 100, "type": "integer" },
-          "offset": {
-            "maximum": 9007199254740991,
-            "minimum": 0,
-            "type": "integer"
-          },
+          "offset": { "minimum": 0, "type": "integer" },
           "query": {
             "description": "Extra encoded query.",
             "maxLength": 8000,
@@ -5963,7 +5706,7 @@
       },
       "sizes": {
         "description": 97,
-        "inputSchema": 666,
+        "inputSchema": 587,
         "paramDescriptions": 92,
         "outputSchema": 0
       }
@@ -5981,7 +5724,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6030,13 +5772,11 @@
           },
           "sys_id": {
             "description": "sys_id of the record to associate.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Table of the record to associate.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -6057,7 +5797,7 @@
       },
       "sizes": {
         "description": 195,
-        "inputSchema": 1722,
+        "inputSchema": 1640,
         "paramDescriptions": 332,
         "outputSchema": 0
       }
@@ -6075,7 +5815,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "auth": {
@@ -6132,7 +5871,7 @@
       },
       "sizes": {
         "description": 240,
-        "inputSchema": 1226,
+        "inputSchema": 1174,
         "paramDescriptions": 472,
         "outputSchema": 0
       }
@@ -6150,7 +5889,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6178,7 +5916,7 @@
       },
       "sizes": {
         "description": 181,
-        "inputSchema": 556,
+        "inputSchema": 504,
         "paramDescriptions": 198,
         "outputSchema": 0
       }
@@ -6196,7 +5934,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "format": {
@@ -6242,11 +5979,7 @@
           },
           "tables": {
             "description": "Tables to write as schema/<table>.md.",
-            "items": {
-              "maxLength": 80,
-              "pattern": "^[A-Za-z0-9_]{1,80}$",
-              "type": "string"
-            },
+            "items": { "pattern": "^[A-Za-z0-9_]{1,80}$", "type": "string" },
             "maxItems": 1000,
             "type": "array"
           },
@@ -6262,7 +5995,7 @@
       },
       "sizes": {
         "description": 212,
-        "inputSchema": 1156,
+        "inputSchema": 1089,
         "paramDescriptions": 362,
         "outputSchema": 0
       }
@@ -6280,7 +6013,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -6292,7 +6024,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "latencyMs": { "type": "number" },
@@ -6307,9 +6038,9 @@
       "overlap": "Kept beside get_status and check_capabilities: one authenticated round trip that proves the credentials work.",
       "sizes": {
         "description": 150,
-        "inputSchema": 199,
+        "inputSchema": 147,
         "paramDescriptions": 26,
-        "outputSchema": 292
+        "outputSchema": 240
       }
     },
     {
@@ -6325,7 +6056,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -6356,7 +6086,6 @@
           },
           "table": {
             "description": "Table to trace, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -6365,7 +6094,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "chain": { "items": {}, "type": "array" },
@@ -6379,9 +6107,9 @@
       },
       "sizes": {
         "description": 219,
-        "inputSchema": 809,
+        "inputSchema": 742,
         "paramDescriptions": 261,
-        "outputSchema": 335
+        "outputSchema": 283
       }
     },
     {
@@ -6397,7 +6125,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6411,7 +6138,6 @@
           },
           "sys_id": {
             "description": "Change request sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -6420,7 +6146,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "Field name/value pairs, e.g. { \"risk\": \"low\" }.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -6430,7 +6155,7 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 46,
-        "inputSchema": 681,
+        "inputSchema": 580,
         "paramDescriptions": 199,
         "outputSchema": 0
       }
@@ -6448,7 +6173,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6457,7 +6181,6 @@
           },
           "class_name": {
             "description": "Deprecated: use table",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -6473,13 +6196,11 @@
           },
           "sys_id": {
             "description": "CI sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "CI class, e.g. 'cmdb_ci_server'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -6488,7 +6209,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "CI attribute name/value pairs.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -6499,7 +6219,7 @@
       "deprecatedParams": { "class_name": "table" },
       "sizes": {
         "description": 59,
-        "inputSchema": 973,
+        "inputSchema": 842,
         "paramDescriptions": 250,
         "outputSchema": 0
       }
@@ -6517,7 +6237,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6526,7 +6245,6 @@
           },
           "expected_mod_count": {
             "description": "sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD).",
-            "maximum": 9007199254740991,
             "minimum": 0,
             "type": "integer"
           },
@@ -6541,13 +6259,11 @@
           },
           "sys_id": {
             "description": "Record sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Table, e.g. 'incident'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -6562,7 +6278,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "Field name/value pairs to change.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -6572,7 +6287,7 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 63,
-        "inputSchema": 1377,
+        "inputSchema": 1234,
         "paramDescriptions": 574,
         "outputSchema": 0
       }
@@ -6590,7 +6305,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6618,13 +6332,11 @@
           },
           "sys_id": {
             "description": "Record sys_id.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
           "table": {
             "description": "Record table.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -6634,7 +6346,7 @@
       },
       "sizes": {
         "description": 78,
-        "inputSchema": 889,
+        "inputSchema": 807,
         "paramDescriptions": 260,
         "outputSchema": 0
       }
@@ -6652,7 +6364,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6674,7 +6385,6 @@
                     "type": ["string", "number", "boolean", "null"]
                   },
                   "description": "Deprecated: use values (accepted only with SN_LEGACY_TOOL_NAMES=1).",
-                  "propertyNames": { "type": "string" },
                   "type": "object"
                 },
                 "key": {
@@ -6686,7 +6396,6 @@
                     ]
                   },
                   "description": "Identifies the child under the parent (default: its name field, e.g. {field: 'state'}).",
-                  "propertyNames": { "type": "string" },
                   "type": "object"
                 },
                 "parent": {
@@ -6697,7 +6406,6 @@
                 },
                 "table": {
                   "description": "Child table (default: the type's only one).",
-                  "maxLength": 80,
                   "pattern": "^[A-Za-z0-9_]{1,80}$",
                   "type": "string"
                 },
@@ -6706,7 +6414,6 @@
                     "type": ["string", "number", "boolean", "null"]
                   },
                   "description": "Child fields (required); the tool sets the parent link.",
-                  "propertyNames": { "type": "string" },
                   "type": "object"
                 }
               },
@@ -6722,7 +6429,6 @@
           },
           "expected_sys_id": {
             "description": "From the plan's apply_with (parent sys_id).",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -6748,7 +6454,6 @@
                     { "type": "boolean" }
                   ]
                 },
-                "propertyNames": { "type": "string" },
                 "type": "object"
               }
             ],
@@ -6770,7 +6475,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "Primary-record fields (the type's descriptor fields; sys_scope on create only).",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -6780,7 +6484,7 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 219,
-        "inputSchema": 2979,
+        "inputSchema": 2727,
         "paramDescriptions": 1184,
         "outputSchema": 0
       }
@@ -6798,7 +6502,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "apply": {
@@ -6812,7 +6515,6 @@
           },
           "expected_sys_id": {
             "description": "The plan's sys_id; with apply, refused (STALE_RECORD) if the key now matches another record or none.",
-            "maxLength": 32,
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -6828,12 +6530,10 @@
           "key": {
             "additionalProperties": { "type": ["string", "number", "boolean"] },
             "description": "Field/value pairs identifying the record, matched on raw values ('' matches an empty field); no '^' in values.",
-            "propertyNames": { "type": "string" },
             "type": "object"
           },
           "table": {
             "description": "Table name, e.g. 'cmdb_ci_server'.",
-            "maxLength": 80,
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -6848,7 +6548,6 @@
               "type": ["string", "number", "boolean", "null"]
             },
             "description": "Fields to write (plus the key fields on create).",
-            "propertyNames": { "type": "string" },
             "type": "object"
           }
         },
@@ -6858,7 +6557,7 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 249,
-        "inputSchema": 1719,
+        "inputSchema": 1569,
         "paramDescriptions": 791,
         "outputSchema": 0
       }
@@ -6876,7 +6575,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "instance": {
@@ -6899,7 +6597,7 @@
       },
       "sizes": {
         "description": 78,
-        "inputSchema": 415,
+        "inputSchema": 363,
         "paramDescriptions": 122,
         "outputSchema": 0
       }
@@ -6917,7 +6615,6 @@
         "openWorldHint": true
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "extended": {
@@ -6956,7 +6653,6 @@
         "type": "object"
       },
       "outputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": {},
         "properties": {
           "caveats": { "items": {}, "type": "array" },
@@ -6970,9 +6666,9 @@
       },
       "sizes": {
         "description": 220,
-        "inputSchema": 841,
+        "inputSchema": 789,
         "paramDescriptions": 334,
-        "outputSchema": 323
+        "outputSchema": 271
       }
     },
     {
@@ -6988,7 +6684,6 @@
         "openWorldHint": false
       },
       "inputSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
         "additionalProperties": false,
         "properties": {
           "content": {
@@ -7020,7 +6715,7 @@
       },
       "sizes": {
         "description": 224,
-        "inputSchema": 603,
+        "inputSchema": 551,
         "paramDescriptions": 195,
         "outputSchema": 0
       }

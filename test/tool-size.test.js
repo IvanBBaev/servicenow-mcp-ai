@@ -48,11 +48,6 @@ const OVERSIZE_ALLOW = {
     reason:
       "The plan → token → apply write takes the artefact type, values, match keys and the H-3 guard arguments.",
   },
-  servicenow_get_artifact: {
-    caps: { total: 3200 },
-    reason:
-      "The registry-typed record plus children; the input and output each stay under their caps.",
-  },
 };
 
 test("every tool stays within its size caps", async () => {

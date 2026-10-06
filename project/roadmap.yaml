@@ -1283,11 +1283,11 @@ items:
     title: "lean `tools/list` serializer"
     pillar: "N"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: "T1"
-    done: null
+    done: "2026-10-06"
     gates: ["O-10"]
-    notes: "**Pure module done 2026-10-05 (local, not wired):** `src/mcp/lean-list.ts` (`leanJsonSchema`, `wireAnnotations`, `leanTool`, `leanToolsList`), `test/lean-list.test.js` (each rule, meaning-preserving hints, dialect guard, idempotence, all four profiles), `lean` column in `npm run tokens:report`; projected core 28,546 B, all 119,481 B. Open: the wire patch in `registerAllTools`, `describeToolSchemas` / manifest, budgets (O-10 (b) decided 2026-10-06, ADR 0006). Phase T1, wire change waits for O-10 (b) (TK-38, TK-39). Pure `src/mcp/lean-list.ts` over the published list: no `$schema`, default `execution` omitted, redundant bounds dropped, non-default annotation hints only; specs unchanged. `all` ≈ −16 KB. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: "**Done 2026-10-06 (wired, O-10 (b), ADR 0006):** `wireLeanToolsList` serves `tools/list` through `leanToolsList` (`registerAllTools`, `leanList: false` for raw measurements); `describeToolSchemas` (manifest, tool reference) applies `leanJsonSchema`; core 32,737 → 28,546 B, all 135,957 → 119,447 B; budgets ratcheted to 28,672 / 119,552 B; `tokens:report` shows the raw size. **Pure module done 2026-10-05:** `src/mcp/lean-list.ts` (`leanJsonSchema`, `wireAnnotations`, `leanTool`, `leanToolsList`), `test/lean-list.test.js` (each rule, meaning-preserving hints, dialect guard, idempotence, all four profiles), `lean` column in `npm run tokens:report`; projected core 28,546 B, all 119,481 B. Phase T1 (TK-38, TK-39). Pure `src/mcp/lean-list.ts` over the published list: no `$schema`, default `execution` omitted, redundant bounds dropped, non-default annotation hints only; specs unchanged. `all` ≈ −16 KB. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-59"
     title: "shared parameters and description hygiene"
     pillar: "N"
