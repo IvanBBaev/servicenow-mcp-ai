@@ -2,6 +2,7 @@ import { queryTable, type SnRecord } from "./table.js";
 import { snString } from "./shared.js";
 import { ServiceNowError } from "../core/errors.js";
 import {
+  BROKER_TABLES,
   BROKER_TABLE_NAMES,
   brokerTable,
   isSysId,
@@ -20,6 +21,8 @@ import {
  *
  *   route(s) → screen → variant → applicability → macroponent
  *     → client scripts → data brokers → their `ux_data_broker` ACLs
+ *     → nested macroponents (composition components that are
+ *       sys_ux_macroponent records, `NESTED_DEPTH` levels) → theirs in turn
  *
  * and lists the ones with no sys_update_xml row in the set. A missing record
  * is a prompt, not an error: it may already be on the target (OOB, or shipped
@@ -38,6 +41,8 @@ import {
 
 /** Pages checked per call; more are reported as `truncated`. */
 export const MAX_PAGES = 20;
+/** Levels of nested macroponents followed below a page's macroponent. */
+export const NESTED_DEPTH = 3;
 const IN_CHUNK = 100;
 const ROW_LIMIT = 500;
 const SYS_ID = /^[0-9a-f]{32}$/;
@@ -60,6 +65,7 @@ export type UibRole =
   | "variant"
   | "applicability"
   | "macroponent"
+  | "nested_macroponent"
   | "client_script"
   | "data_broker"
   | "acl";
@@ -92,6 +98,13 @@ interface Ctx {
   unavailable: { table: string; reason: string }[];
   caveats: string[];
 }
+
+const MACROPONENT_FIELDS = ["sys_id", "name", "composition", "data"];
+/** Broker tables read for every broker id, whatever its data resource type. */
+const ALWAYS_READ_BROKERS = new Set([
+  BROKER_TABLES.TRANSFORM!.table,
+  BROKER_TABLES.SCRIPTLET!.table,
+]);
 
 const str = (row: SnRecord, field: string): string => snString(row[field]);
 const opt = (row: SnRecord, field: string): string | undefined =>
@@ -268,13 +281,41 @@ export async function uibCompleteness(
     T.macroponent,
     "sys_id",
     macroponentIds,
-    ["sys_id", "name", "data"],
+    MACROPONENT_FIELDS,
   );
+  // Nested macroponents: composition components that resolve to a
+  // sys_ux_macroponent row. An id that does not (an OOB or library
+  // component) is read once and dropped.
+  const seenMacroponents = new Set(macroponentIds);
+  const nestedBy = new Map<string, string[]>();
+  let level = macroponentRows;
+  for (let depth = 0; depth < NESTED_DEPTH && level.length; depth++) {
+    const frontier = new Set<string>();
+    for (const m of level) {
+      const children = macroponentUses(m)
+        .components.map((c) => c.id)
+        .filter(isSysId);
+      nestedBy.set(str(m, "sys_id"), children);
+      for (const c of children) {
+        if (!seenMacroponents.has(c)) frontier.add(c);
+      }
+    }
+    for (const c of frontier) seenMacroponents.add(c);
+    level = await readIn(
+      ctx,
+      T.macroponent,
+      "sys_id",
+      frontier,
+      MACROPONENT_FIELDS,
+    );
+    macroponentRows.push(...level);
+  }
+  const allMacroponentIds = macroponentRows.map((m) => str(m, "sys_id"));
   const scriptRows = await readIn(
     ctx,
     T.clientScript,
     "macroponent",
-    macroponentIds,
+    allMacroponentIds,
     ["sys_id", "name", "macroponent"],
   );
   const brokersBy = new Map<string, { id: string; type?: string }[]>();
@@ -284,12 +325,23 @@ export async function uibCompleteness(
     brokersBy.set(str(m, "sys_id"), brokers);
     for (const b of brokers) brokerIds.add(b.id);
   }
+  // Transform and scriptlet tables are read for every broker id (a data
+  // resource type may be missing); the REST and GraphQL tables only for the
+  // brokers whose type names them, so an instance without them is not read.
+  const typed = new Map<string, Set<string>>();
+  for (const brokers of brokersBy.values()) {
+    for (const b of brokers) {
+      const { table } = brokerTable(b.type);
+      if (!typed.has(table)) typed.set(table, new Set());
+      typed.get(table)!.add(b.id);
+    }
+  }
   const brokerRows = new Map<string, { table: string; name?: string }>();
-  for (const table of [
-    "sys_ux_data_broker_transform",
-    "sys_ux_data_broker_scriptlet",
-  ]) {
-    for (const r of await readIn(ctx, table, "sys_id", brokerIds, [
+  for (const table of Object.values(BROKER_TABLES).map((b) => b.table)) {
+    const ids = ALWAYS_READ_BROKERS.has(table)
+      ? brokerIds
+      : (typed.get(table) ?? new Set<string>());
+    for (const r of await readIn(ctx, table, "sys_id", ids, [
       "sys_id",
       "name",
     ])) {
@@ -325,9 +377,21 @@ export async function uibCompleteness(
     sys_id: sysId,
     ...(row && opt(row, "name") ? { name: opt(row, "name") } : {}),
   });
-  const macroponentNeeds = (mp: string): UibExpected[] => {
-    if (!SYS_ID.test(mp)) return [];
-    const out = [named("macroponent", T.macroponent, macroponents.get(mp), mp)];
+  const macroponentNeeds = (
+    mp: string,
+    seen = new Set<string>(),
+    nested = false,
+  ): UibExpected[] => {
+    if (!SYS_ID.test(mp) || seen.has(mp)) return [];
+    seen.add(mp);
+    const out = [
+      named(
+        nested ? "nested_macroponent" : "macroponent",
+        T.macroponent,
+        macroponents.get(mp),
+        mp,
+      ),
+    ];
     for (const s of scriptsBy.get(mp) ?? []) {
       out.push(named("client_script", T.clientScript, s, str(s, "sys_id")));
     }
@@ -346,6 +410,11 @@ export async function uibCompleteness(
           sys_id: str(a, "sys_id"),
           name: [str(a, "name"), opt(a, "operation")].filter(Boolean).join("."),
         });
+      }
+    }
+    for (const child of nestedBy.get(mp) ?? []) {
+      if (macroponents.has(child)) {
+        out.push(...macroponentNeeds(child, seen, true));
       }
     }
     return out;
@@ -451,7 +520,7 @@ export async function uibCompleteness(
 
   const caveats = [
     "A record listed as missing may already exist on the target instance (out of the box, or shipped by an earlier update set); only records changed for this page need to travel with it.",
-    "Only ux_data_broker ACLs of transform / scriptlet brokers and the variant's own applicability are checked; roles, page properties and nested macroponents are not.",
+    `Data brokers, their ux_data_broker ACLs, the variant's own applicability and nested macroponents (up to ${NESTED_DEPTH} levels) are checked; roles and page properties are not.`,
     "UI Builder table and field names and the <table>_<sys_id> update name are unverified (gate O-5).",
     ...ctx.caveats,
   ];

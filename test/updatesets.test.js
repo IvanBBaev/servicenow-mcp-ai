@@ -1167,3 +1167,91 @@ test("get: no uib_completeness without UI Builder records; an unreadable table d
     assert.deepEqual(u.pages[0].missing, []);
   });
 });
+
+test("get: uib_completeness follows nested macroponents and reads REST brokers by type", async () => {
+  freshRuntime();
+  const MP = id("8");
+  const NEST1 = "e1".repeat(16);
+  const NEST2 = "e2".repeat(16);
+  const LIB = "f0".repeat(16);
+  const CS2 = "c2".repeat(16);
+  const REST = "be".repeat(16);
+  const comp = (...ids) =>
+    JSON.stringify(
+      ids.map((cid, i) => ({
+        elementId: `el${i}`,
+        definition: { id: cid, type: "MACROPONENT" },
+      })),
+    );
+  const seed = devSeed();
+  seed.sys_update_xml = [
+    ...seed.sys_update_xml,
+    {
+      sys_id: "u1",
+      update_set: id("a"),
+      name: `sys_ux_macroponent_${MP}`,
+      type: "Macroponent",
+      target_name: "Home page",
+      action: "INSERT_OR_UPDATE",
+      table: "",
+      payload: "",
+    },
+  ];
+  Object.assign(seed, {
+    sys_ux_macroponent: [
+      {
+        sys_id: MP,
+        name: "Home page",
+        composition: comp(NEST1, LIB),
+        data: "[]",
+      },
+      {
+        sys_id: NEST1,
+        name: "Card",
+        composition: comp(NEST2),
+        data: JSON.stringify([
+          { elementId: "fetch", definition: { id: REST, type: "REST" } },
+        ]),
+      },
+      // A cycle back to the page is followed once.
+      { sys_id: NEST2, name: "Badge", composition: comp(MP), data: "[]" },
+    ],
+    sys_ux_client_script: [
+      { sys_id: CS2, name: "Badge init", macroponent: NEST2 },
+    ],
+    sys_ux_data_broker_rest: [{ sys_id: REST, name: "Fetch orders" }],
+  });
+  const sn = instance(seed);
+  await withFetch(sn.handler, async (calls) => {
+    const res = out(
+      await call("servicenow_get_update_set", { update_set: "Sprint 12" }),
+    );
+    const [page] = res.uib_completeness.pages;
+    assert.deepEqual(page.expected, {
+      macroponent: 1,
+      nested_macroponent: 2,
+      client_script: 1,
+      data_broker: 1,
+    });
+    assert.deepEqual(
+      page.missing.map((m) => `${m.role}:${m.table}:${m.name ?? ""}`),
+      [
+        "nested_macroponent:sys_ux_macroponent:Card",
+        "data_broker:sys_ux_data_broker_rest:Fetch orders",
+        "nested_macroponent:sys_ux_macroponent:Badge",
+        "client_script:sys_ux_client_script:Badge init",
+      ],
+    );
+    const read = tables(calls);
+    assert.ok(read.includes("GET sys_ux_data_broker_rest"));
+    assert.ok(
+      !read.includes("GET sys_ux_data_broker_graphql"),
+      "a GraphQL table is read only for a GraphQL broker",
+    );
+    assert.ok(
+      res.uib_completeness.caveats.some((c) =>
+        /nested macroponents \(up to 3 levels\)/.test(c),
+      ),
+    );
+  });
+});

@@ -1017,7 +1017,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-5", "O-10"]
-    notes: '**Partly done 2026-10-05 (local, uncommitted).** Composition / broker / client-script-include dependency edges (both directions, `src/api/uib-usage.ts`), UIB `where_used` sources under `kind: "script"`, `get_update_set` `uib_completeness` (`src/api/uib-completeness.ts`). 0 B tools/list. Open: description mentions (O-10); `includes` field, nested macroponents, REST/GraphQL broker ACLs; tables unverified (O-5) (UX-07, UX-08, UX-09). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md).'
+    notes: '**Partly done 2026-10-05 (local, uncommitted).** Composition / broker / client-script-include dependency edges (both directions, `src/api/uib-usage.ts`), UIB `where_used` sources under `kind: "script"`, `get_update_set` `uib_completeness` (`src/api/uib-completeness.ts`). 0 B tools/list. **2026-10-07:** `uib_completeness` follows nested macroponents (3 levels, role `nested_macroponent`) and reads REST / GraphQL broker rows by data resource type; broker ACLs were already read for every broker id. Open: description mentions (O-10); the `includes` field; tables unverified (O-5) (UX-07, UX-08, UX-09). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md).'
   - id: "N-29"
     title: "UIB data brokers and security"
     pillar: "N"
