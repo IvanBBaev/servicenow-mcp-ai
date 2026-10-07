@@ -1,0 +1,21 @@
+{
+  "synthetic": true,
+  "cases": {
+    "incident.1-row.value-only": 3075,
+    "incident.1-row.display-all": 7670,
+    "incident.1-row.display": 3244,
+    "incident.1-row.display+omit_empty": 3273,
+    "incident.1-row.table": 3525,
+    "incident.1-row.summary.display-all": 962,
+    "incident.1-row.summary.display": 411,
+    "incident.1-row.summary.table": 644,
+    "incident.200-rows.value-only": 588179,
+    "incident.200-rows.display-all": 1479627,
+    "incident.200-rows.display": 621049,
+    "incident.200-rows.display+omit_empty": 547531,
+    "incident.200-rows.table": 343528,
+    "incident.200-rows.summary.display-all": 191857,
+    "incident.200-rows.summary.display": 81697,
+    "incident.200-rows.summary.table": 63226
+  }
+}
