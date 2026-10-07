@@ -160,6 +160,20 @@ export function isSysId(id: string): boolean {
 }
 
 /**
+ * The client script include sys_ids in a UIB client script's `includes`
+ * list (pure): a comma-separated glide_list, de-duplicated; values that are
+ * not sys_ids are dropped. O-5: the field is unverified.
+ */
+export function uibIncludeIds(value: string): string[] {
+  const ids = new Set<string>();
+  for (const part of value.split(",")) {
+    const v = part.trim();
+    if (SYS_ID.test(v)) ids.add(v);
+  }
+  return [...ids];
+}
+
+/**
  * Client script include names a UIB client script imports (pure):
  * `imports['global.MyInclude']`, `imports["MyInclude"]` and
  * `imports.MyInclude`. A scoped name yields its last segment, as the include

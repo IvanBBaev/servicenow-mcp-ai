@@ -747,3 +747,54 @@ test("N-28: a data broker and a nested component are used by the page that compo
   // The page does not count as using itself.
   assert.ok(!card.edges.some((e) => e.from === e.to));
 });
+
+test("N-28: a client script's includes list links it to the includes by sys_id, both ways", async () => {
+  const OTHER = id("9");
+  const tables = uibFixture();
+  tables.sys_ux_client_script.push({
+    sys_id: id("a"),
+    name: "On save",
+    macroponent: MP_PAGE,
+    sys_scope: "global",
+    script: "function handler() {}",
+    includes: `${INCLUDE}, not-an-id,${OTHER},${INCLUDE}`,
+  });
+  tables.sys_ux_client_script_include.push({
+    sys_id: OTHER,
+    name: "SaveUtil",
+    sys_scope: "global",
+    script: "",
+  });
+  const out = await deps(
+    { artifactType: "uib_macroponent", sys_id: MP_PAGE, direction: "outbound" },
+    instance(tables),
+  );
+  const edges = edgeSet(out);
+  for (const target of [INCLUDE, OTHER]) {
+    assert.equal(
+      edges.filter((e) =>
+        e.endsWith(
+          `-> sys_ux_client_script_include:${target} [reference:includes]`,
+        ),
+      ).length,
+      1,
+      edges.join("\n"),
+    );
+  }
+  assert.ok(!edges.some((e) => e.includes("not-an-id")));
+
+  const inbound = await deps(
+    {
+      artifactType: "uib_client_script_include",
+      sys_id: OTHER,
+      direction: "inbound",
+    },
+    instance(tables),
+  );
+  const edge = inbound.edges.find((e) => e.field === "includes");
+  assert.ok(edge, JSON.stringify(inbound.edges));
+  assert.equal(edge.from, `sys_ux_macroponent:${MP_PAGE}`);
+  assert.equal(edge.via, "reference");
+  // SaveUtil is never imported by name, so only the includes edge exists.
+  assert.ok(!inbound.edges.some((e) => e.field === "script"));
+});

@@ -31,6 +31,7 @@ import {
   isSysId,
   macroponentUses,
   uibImports,
+  uibIncludeIds,
 } from "./uib-usage.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
@@ -389,6 +390,21 @@ function rowEdges(
           ...tag,
         });
       }
+    }
+  }
+  if (table === UIB_CLIENT_SCRIPT) {
+    for (const id of uibIncludeIds(snString(row.includes))) {
+      out.push({
+        other: {
+          kind: "record",
+          table: UIB_INCLUDE,
+          type: "uib_client_script_include",
+          sys_id: id,
+        },
+        via: "reference",
+        field: "includes",
+        ...tag,
+      });
     }
   }
   if (table === UIB_MACROPONENT) out.push(...uibEdges(row, tag));
@@ -839,39 +855,65 @@ async function uibUsers(
   const table = node.table ?? "";
   if (table === UIB_INCLUDE) {
     const name = node.name.trim();
-    if (!name) return [];
-    assertNoCaret(name, "name");
+    const id = node.sys_id ?? "";
+    if (!name && !SYS_ID.test(id)) return [];
+    if (name) assertNoCaret(name, "name");
     graph.caveats.add(UIB_CAVEAT);
-    const rows = await likeRead(
-      node,
-      UIB_CLIENT_SCRIPT,
-      `scriptLIKE${name}`,
-      ["sys_id", "name", "macroponent", "script"],
-      limit,
-      graph,
-    );
-    for (const row of rows) {
-      if (!uibImports(snString(row.script)).includes(name)) continue;
+    const user = (row: SnRecord): NodeSpec => {
       const macro = snString(row.macroponent);
-      out.push({
-        other: SYS_ID.test(macro)
-          ? {
-              kind: "record",
-              table: UIB_MACROPONENT,
-              type: "uib_macroponent",
-              sys_id: macro,
-            }
-          : {
-              kind: "record",
-              table: UIB_CLIENT_SCRIPT,
-              type: "uib_client_script",
-              sys_id: snString(row.sys_id),
-              name: snString(row.name),
-            },
-        via: "script",
-        field: "script",
-        source: UIB_CLIENT_SCRIPT,
-      });
+      return SYS_ID.test(macro)
+        ? {
+            kind: "record",
+            table: UIB_MACROPONENT,
+            type: "uib_macroponent",
+            sys_id: macro,
+          }
+        : {
+            kind: "record",
+            table: UIB_CLIENT_SCRIPT,
+            type: "uib_client_script",
+            sys_id: snString(row.sys_id),
+            name: snString(row.name),
+          };
+    };
+    if (name) {
+      const rows = await likeRead(
+        node,
+        UIB_CLIENT_SCRIPT,
+        `scriptLIKE${name}`,
+        ["sys_id", "name", "macroponent", "script"],
+        limit,
+        graph,
+      );
+      for (const row of rows) {
+        if (!uibImports(snString(row.script)).includes(name)) continue;
+        out.push({
+          other: user(row),
+          via: "script",
+          field: "script",
+          source: UIB_CLIENT_SCRIPT,
+        });
+      }
+    }
+    if (SYS_ID.test(id)) {
+      // O-5: the `includes` glide_list is unverified.
+      const rows = await likeRead(
+        node,
+        UIB_CLIENT_SCRIPT,
+        `includesLIKE${id}`,
+        ["sys_id", "name", "macroponent", "includes"],
+        limit,
+        graph,
+      );
+      for (const row of rows) {
+        if (!uibIncludeIds(snString(row.includes)).includes(id)) continue;
+        out.push({
+          other: user(row),
+          via: "reference",
+          field: "includes",
+          source: UIB_CLIENT_SCRIPT,
+        });
+      }
     }
     return out;
   }
