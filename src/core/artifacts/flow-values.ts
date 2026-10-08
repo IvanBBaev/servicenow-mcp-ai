@@ -16,9 +16,7 @@
  * decoder (`flowValuesDecoder` in decoders.ts) wraps `detectFlowValues`.
  */
 import { gunzipSync } from "node:zlib";
-// Only called at run time, so the decoders.ts <-> flow-values.ts import
-// cycle is safe in either load order (function declarations are hoisted).
-import { jsonDecoder } from "./decoders.js";
+import { jsonDecoder } from "./json-decoder.js";
 
 /** Largest inflated `values` payload read (bytes); bigger is `unknown`. */
 export const FLOW_VALUES_MAX_INFLATED = 4 * 1024 * 1024;

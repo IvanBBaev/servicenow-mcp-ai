@@ -72,8 +72,6 @@ export function findCycles(graph) {
 // Modules on a runtime cycle today (core settings/logging bootstrap, flow
 // value decoders, the MCP registry ↔ status resources). Shrink only.
 const KNOWN = [
-  "core/artifacts/decoders.ts",
-  "core/artifacts/flow-values.ts",
   "core/log-file.ts",
   "core/logging.ts",
   "core/profile.ts",
