@@ -85,7 +85,7 @@ export interface AtfRun {
   progressUrl?: string;
 }
 
-interface CicdResult {
+export interface CicdResult {
   status?: string;
   status_label?: string;
   status_message?: string;
@@ -93,7 +93,8 @@ interface CicdResult {
   links?: { progress?: { id?: string; url?: string } };
 }
 
-function toRun(result: CicdResult): AtfRun {
+/** Map a CI/CD result (run start or progress) to an {@link AtfRun}. */
+export function toRun(result: CicdResult): AtfRun {
   const pct = Number(snString(result.percent_complete));
   return {
     executionId: result.links?.progress?.id,
@@ -171,12 +172,14 @@ export interface AtfWait {
  * complete as progress. Returns the latest run state plus `wait`; on timeout
  * `wait.state` is `running` and `wait.tracker` is the execution id to keep
  * polling with {@link getAtfResult}. A run without an execution id, or one
- * already final, is returned as is.
+ * already final, is returned as is. Any CI/CD run polls the same progress
+ * API (N-3 instance scans too); `label` is the progress message fallback.
  */
 export async function waitForAtfRun(
   run: AtfRun,
   waitMs: number,
   pollMs = 2000,
+  label = "ATF run in progress",
 ): Promise<AtfRun & { wait: AtfWait }> {
   const started = Date.now();
   const id = run.executionId;
@@ -205,8 +208,7 @@ export async function waitForAtfRun(
     reportProgress({
       progress: latest.percentComplete ?? 0,
       total: 100,
-      message:
-        latest.statusLabel ?? latest.statusMessage ?? "ATF run in progress",
+      message: latest.statusLabel ?? latest.statusMessage ?? label,
     });
     if (FINAL_STATUSES.has(latest.status ?? "")) return done("finished");
     const remaining = deadline - Date.now();

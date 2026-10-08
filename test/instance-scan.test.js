@@ -1,4 +1,5 @@
-// N-3 — Instance Scan read: latest result, findings by artefact type, "both agree".
+// N-3 — Instance Scan read: latest result, findings by artefact type, "both agree";
+// phase D run through the CI/CD API behind the ATF rails.
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -7,11 +8,17 @@ import {
   artifactTypeForTable,
   readInstanceScan,
   renderInstanceScan,
+  runInstanceScan,
+  scanRunRequest,
+  waitForInstanceScan,
 } from "../build/api/instance-scan.js";
+import { ServiceNowError } from "../build/core/errors.js";
+import { runWithCall } from "../build/core/request-context.js";
 import {
   baselineEnv,
   freshRuntime,
   jsonResponse,
+  withEnv,
   withFetch,
 } from "./helpers.js";
 
@@ -164,4 +171,141 @@ test("a missing plugin or denied read degrades to unavailable", async () => {
       assert.match(r.unavailableReason, /scan_finding could not be read/);
     },
   );
+});
+
+// --- run (phase D) ---------------------------------------------------------
+
+const started = (id) =>
+  jsonResponse(200, {
+    result: {
+      status: "0",
+      status_label: "Pending",
+      percent_complete: 0,
+      links: { progress: { id, url: `https://x/api/sn_cicd/progress/${id}` } },
+    },
+  });
+
+test("scanRunRequest maps each target to its CI/CD path", () => {
+  assert.deepEqual(scanRunRequest({ kind: "full" }), {
+    path: "/api/sn_cicd/instance_scan/full_scan",
+  });
+  const point = scanRunRequest({
+    kind: "point",
+    table: "sys_script",
+    sysId: "br1",
+  });
+  assert.equal(point.path, "/api/sn_cicd/instance_scan/point_scan");
+  assert.equal(
+    point.params.toString(),
+    "target_table=sys_script&target_sys_id=br1",
+  );
+  assert.deepEqual(scanRunRequest({ kind: "suite", suiteSysId: "a/b" }), {
+    path: "/api/sn_cicd/instance_scan/suite_scan/a%2Fb",
+  });
+  assert.throws(() =>
+    scanRunRequest({ kind: "point", table: "a^b", sysId: "x" }),
+  );
+});
+
+test("runInstanceScan POSTs the scan and returns the progress id", async () => {
+  freshRuntime();
+  await withFetch(
+    () => started("p1"),
+    async (calls) => {
+      const run = await runInstanceScan({
+        kind: "point",
+        table: "sys_script",
+        sysId: "br1",
+      });
+      assert.equal(run.executionId, "p1");
+      assert.equal(run.statusLabel, "Pending");
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].init.method, "POST");
+      const url = new URL(calls[0].url);
+      assert.equal(url.pathname, "/api/sn_cicd/instance_scan/point_scan");
+      assert.equal(url.searchParams.get("target_table"), "sys_script");
+      await runInstanceScan({ kind: "full" });
+      assert.match(calls[1].url, /\/instance_scan\/full_scan$/);
+    },
+  );
+});
+
+test("runInstanceScan is refused in read-only mode and on a denied table", async () => {
+  freshRuntime();
+  await withFetch(
+    () => started("p1"),
+    async (calls) => {
+      await withEnv({ SN_READONLY: "true" }, () =>
+        assert.rejects(
+          runInstanceScan({ kind: "full" }),
+          (err) => err instanceof ServiceNowError && err.status === 403,
+        ),
+      );
+      await withEnv({ SN_TABLES_DENY: "sys_script" }, () =>
+        assert.rejects(
+          runInstanceScan({ kind: "point", table: "sys_script", sysId: "x" }),
+          (err) => err instanceof ServiceNowError && err.status === 403,
+        ),
+      );
+      await withEnv({ SN_TABLES_DENY: "scan_result" }, () =>
+        assert.rejects(
+          runInstanceScan({ kind: "suite", suiteSysId: "s1" }),
+          (err) => err instanceof ServiceNowError && err.status === 403,
+        ),
+      );
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
+test("an inactive sn_cicd plugin is reported clearly", async () => {
+  freshRuntime();
+  await withFetch(
+    () =>
+      jsonResponse(404, {
+        error: { message: "Requested URI does not represent any resource" },
+      }),
+    async () => {
+      await assert.rejects(
+        runInstanceScan({ kind: "full" }),
+        (err) =>
+          err instanceof ServiceNowError &&
+          err.status === 404 &&
+          /may not be active/i.test(err.message),
+      );
+    },
+  );
+});
+
+test("waitForInstanceScan polls progress until the scan finishes", async () => {
+  freshRuntime();
+  const updates = [];
+  let n = 0;
+  await withFetch(
+    (url) => {
+      assert.match(url, /\/api\/sn_cicd\/progress\/p1$/);
+      n += 1;
+      return jsonResponse(200, {
+        result:
+          n < 2
+            ? { status: "1", percent_complete: 40 }
+            : {
+                status: "2",
+                status_label: "Successful",
+                percent_complete: 100,
+              },
+      });
+    },
+    async () => {
+      const res = await runWithCall(
+        { requestId: "r1", tool: "t", progress: (u) => updates.push(u) },
+        () => waitForInstanceScan({ executionId: "p1", status: "0" }, 5000, 1),
+      );
+      assert.equal(res.wait.state, "finished");
+      assert.equal(res.wait.polls, 2);
+      assert.equal(res.statusLabel, "Successful");
+    },
+  );
+  assert.equal(updates[0].message, "Instance scan in progress");
+  assert.equal(updates[1].message, "Successful");
 });

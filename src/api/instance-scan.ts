@@ -1,6 +1,11 @@
 import { ServiceNowError } from "../core/errors.js";
+import { snRequest } from "../core/http.js";
+import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import { ARTIFACT_TYPES } from "../core/artifacts/registry.js";
-import { snString } from "./shared.js";
+import { toRun, waitForAtfRun } from "./atf.js";
+import type { AtfRun, AtfWait, CicdResult } from "./atf.js";
+import { pluginCall } from "./plugin.js";
+import { assertNoCaret, expectResult, snString } from "./shared.js";
 import { queryTable } from "./table.js";
 
 /**
@@ -9,8 +14,9 @@ import { queryTable } from "./table.js";
  * record), each target table mapped to a registry artefact type, plus the
  * "both agree" set — records that Instance Scan and our lint both flag.
  *
- * Read-only; running a scan is phase D. Never throws except on a cancel: a
- * missing plugin or an unreadable table gives `available: false`.
+ * The read never throws except on a cancel: a missing plugin or an
+ * unreadable table gives `available: false`. Running a scan (phase D,
+ * {@link runInstanceScan}) is a write behind the ATF rails.
  * Table and field names (scan_result, scan_finding, check.*, source_table,
  * source) are unverified until O-5 (PDI).
  */
@@ -236,4 +242,76 @@ export function renderInstanceScan(report: InstanceScanReport): string[] {
     "",
   );
   return lines;
+}
+
+// ── run (phase D) ─────────────────────────────────────────────────────────
+
+/** What a scan run covers: the whole instance, one record, or one suite. */
+export type InstanceScanTarget =
+  | { kind: "full" }
+  | { kind: "point"; table: string; sysId: string }
+  | { kind: "suite"; suiteSysId: string };
+
+const SCAN_PATH = "/api/sn_cicd/instance_scan";
+
+/** The CI/CD path and query of a scan run. */
+export function scanRunRequest(target: InstanceScanTarget): {
+  path: string;
+  params?: URLSearchParams;
+} {
+  switch (target.kind) {
+    case "full":
+      return { path: `${SCAN_PATH}/full_scan` };
+    case "point":
+      assertNoCaret(target.table, "table");
+      return {
+        path: `${SCAN_PATH}/point_scan`,
+        params: new URLSearchParams({
+          target_table: target.table,
+          target_sys_id: target.sysId,
+        }),
+      };
+    case "suite":
+      return {
+        path: `${SCAN_PATH}/suite_scan/${encodeURIComponent(target.suiteSysId)}`,
+      };
+  }
+}
+
+/**
+ * Start an Instance Scan through the CI/CD API, behind the same rails as an
+ * ATF run: a write (the instance executes every check), refused in read-only
+ * mode and on a table the policy blocks (`scan_result`, plus the target
+ * table of a point scan), and wrapped in {@link pluginCall} so an inactive
+ * `sn_cicd` plugin reports clearly. Returns the progress id to poll with
+ * {@link waitForInstanceScan}. The refusal on a production-marked profile
+ * waits for the H-11 marker (O-4); the endpoints are unverified until O-5.
+ */
+export async function runInstanceScan(
+  target: InstanceScanTarget,
+): Promise<AtfRun> {
+  assertTableAllowed(SCAN_RESULT_TABLE); // H-4: the backing table
+  if (target.kind === "point") assertTableAllowed(target.table);
+  assertWriteAllowed(`run instance scan (${target.kind})`);
+  const { path, params } = scanRunRequest(target);
+  return pluginCall("CI/CD", async () => {
+    const { data } = await snRequest<{ result: CicdResult }>({
+      method: "POST",
+      path,
+      ...(params ? { params } : {}),
+    });
+    return toRun(expectResult(data, "CI/CD instance scan"));
+  });
+}
+
+/**
+ * Poll a started scan through the CI/CD progress API until it finishes or
+ * `waitMs` runs out (cancellable, progress reported), as for an ATF run.
+ */
+export function waitForInstanceScan(
+  run: AtfRun,
+  waitMs: number,
+  pollMs = 2000,
+): Promise<AtfRun & { wait: AtfWait }> {
+  return waitForAtfRun(run, waitMs, pollMs, "Instance scan in progress");
 }

@@ -819,7 +819,7 @@ items:
     phase: "C"
     done: "2026-10-05"
     gates: []
-    notes: '**Read done 2026-10-05 (93071c9).** `src/api/instance-scan.ts`: latest `scan_result` + its `scan_finding` rows by priority and artefact type, plus the "both agree" set with our lint, as an Instance Scan section of `check_code_health` (always on, degrades to unavailable). 0 B tools/list; the `kind:"instance_scan"` parameter waits for O-10; tables unverified until O-5. Open: phase D run behind the ATF rails (NX-03).'
+    notes: '**Read done 2026-10-05 (93071c9).** `src/api/instance-scan.ts`: latest `scan_result` + its `scan_finding` rows by priority and artefact type, plus the "both agree" set with our lint, as an Instance Scan section of `check_code_health` (always on, degrades to unavailable). 0 B tools/list; the `kind:"instance_scan"` parameter waits for O-10; tables unverified until O-5. **Run core done 2026-10-08 (dark, 0 B):** `runInstanceScan` (full / point / suite through `/api/sn_cicd/instance_scan/...`, write rails, table policy, plugin probe) and `waitForInstanceScan` (CI/CD progress polling). Open: the `run` input (O-10), refusal on a production-marked profile (H-11 marker, O-4), endpoints unverified (O-5) (NX-03).'
   - id: "N-4"
     title: "CI/CD promotion lane"
     pillar: "N"
