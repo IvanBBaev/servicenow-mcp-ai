@@ -58,7 +58,7 @@ import {
   type Conv,
   type EmitRun,
   type FluentSource,
-} from "./fluent.js";
+} from "./fluent-emit.js";
 
 /** The `warnings[]` entry (and header note) of a `servicenow_generate_fluent` run over a P-28 type. */
 export const UI_VERIFIED_NOTE =

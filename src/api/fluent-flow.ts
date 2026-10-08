@@ -46,7 +46,7 @@ import {
   type Stage,
   type StepInput,
 } from "./explain-flow.js";
-import type { FluentSource, FluentUnsupported } from "./fluent.js";
+import type { FluentSource, FluentUnsupported } from "./fluent-emit.js";
 import {
   arr,
   code,
