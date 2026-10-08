@@ -1,8 +1,6 @@
-// E-7 — runtime import cycles under src/ are a ratchet: src/api has none, and
-// the modules that still sit on a cycle elsewhere are pinned below, so a new
-// cycle fails and a cut one must leave the list. Type-only imports (`import type`,
-// or a clause that names only `type X` members) are erased by tsc and are
-// not counted.
+// E-7 — src/ has no runtime import cycles, and a new one fails the gate.
+// Type-only imports (`import type`, or a clause that names only `type X`
+// members) are erased by tsc and are not counted.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
@@ -69,15 +67,6 @@ export function findCycles(graph) {
   return cycles;
 }
 
-// Modules on a runtime cycle today (the MCP registry ↔ status resources).
-// Shrink only.
-const KNOWN = [
-  "mcp/registry.ts",
-  "mcp/resources.ts",
-  "mcp/status.ts",
-  "tools/admin.ts",
-];
-
 export function onCycle(graph) {
   const out = [];
   for (const start of graph.keys()) {
@@ -97,17 +86,12 @@ export function onCycle(graph) {
   return out;
 }
 
-test("runtime import cycles: none in src/api, the rest pinned (shrink only)", () => {
+test("runtime import cycles: none in src", () => {
   const graph = runtimeGraph(sources(SRC));
   const members = onCycle(graph)
     .map((f) => relative(SRC, f))
     .sort();
-  assert.deepEqual(
-    members.filter((f) => f.startsWith("api/")),
-    [],
-  );
-  assert.deepEqual(members, KNOWN);
-  assert.ok(findCycles(graph).length > 0, "the pinned cycles are still seen");
+  assert.deepEqual(members, []);
 });
 
 test("the detector sees a cycle and ignores type-only edges", () => {

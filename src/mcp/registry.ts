@@ -53,10 +53,10 @@ import { specs as directorySpecs } from "../tools/directory.js";
 import { specs as uiSpecs } from "../tools/ui.js";
 import { specs as adminSpecs } from "../tools/admin.js";
 import {
-  getRequestedPackages,
-  getDeniedPackages,
-  getReadOnlyPackages,
-} from "../core/settings.js";
+  ALL_PACKAGES,
+  effectivePackages,
+  resolveEnabledPackages,
+} from "./package-policy.js";
 import { logger } from "../core/logging.js";
 import { timeToolCall } from "../core/metrics.js";
 import { runWithRuntime, type Runtime } from "../core/runtime.js";
@@ -67,6 +67,8 @@ import {
   enableResourceSubscriptions,
   packageSessionOf,
 } from "./packages.js";
+
+export { ALL_PACKAGES, effectivePackages, resolveEnabledPackages };
 
 /**
  * The package manifest (A2-1): a package is ONE object — its tools plus its
@@ -125,71 +127,15 @@ for (const pkg of PACKAGES) {
 /** Every tool of every package, flattened from the package manifest. */
 export const ALL_TOOLS: AnyToolSpec[] = PACKAGES.flatMap((p) => p.tools);
 
-/** Canonical package set (admin is the always-on management surface, not a package). */
-export const ALL_PACKAGES: string[] = [
-  ...new Set(ALL_TOOLS.map((t) => t.package).filter((p) => p !== "admin")),
-];
-
-/** The default package set when SN_TOOL_PACKAGES is unset or unusable. */
-const CORE_PROFILE = ["table", "schema", "aggregate", "attachment"];
-
-/**
- * The read-first surface: browse data and inspect schema without any write or
- * scripting tools. The base for the `developer` preset.
- */
-const READER_PROFILE = ["table", "schema", "aggregate"];
-
-/**
- * The developer surface: the reader set plus the build/inspect packages —
- * scripts, flows, code check, and the docs/diagram generators. (There is no
- * separate `diagrams` package; the Mermaid generators live in `docs` and
- * `scripts`.)
- */
-const DEVELOPER_PROFILE = [
-  ...READER_PROFILE,
-  "scripts",
-  "flows",
-  "codecheck",
-  "docs",
-];
-
-/**
- * Named profiles that expand to a set of packages, resolved by
- * {@link resolveEnabledPackages}. `core` is the default profile loaded when
- * SN_TOOL_PACKAGES is unset; `all` (and its `admin` alias) enables everything.
- * The `reader` / `developer` / `admin` presets (UX review §11) give clients a
- * memorable name for the common surfaces instead of a hand-typed package list;
- * a preset may still be combined with explicit packages in SN_TOOL_PACKAGES.
- */
-const PROFILES: Record<string, string[]> = {
-  core: CORE_PROFILE,
-  all: ALL_PACKAGES,
-  reader: READER_PROFILE,
-  developer: DEVELOPER_PROFILE,
-  admin: ALL_PACKAGES,
-};
-
-/**
- * Resolve requested package/profile names into a concrete package set.
- * Unknown names are ignored (with a warning); an empty result falls back to
- * the `core` profile so the server always exposes a usable tool set.
- */
-export function resolveEnabledPackages(requested: string[]): Set<string> {
-  const enabled = new Set<string>();
-  for (const name of requested) {
-    const profile = PROFILES[name];
-    if (profile) {
-      for (const p of profile) enabled.add(p);
-    } else if (ALL_PACKAGES.includes(name)) {
-      enabled.add(name);
-    } else {
-      logger.warn("Unknown tool package ignored", { package: name });
-    }
+// Invariant: the static package list (package-policy.ts, read by the status
+// payload without loading the tools) matches this manifest, in order.
+{
+  const manifest = PACKAGES.map((p) => p.name).filter((n) => n !== "admin");
+  if (manifest.join() !== ALL_PACKAGES.join()) {
+    throw new Error(
+      `PACKAGE_NAMES (${ALL_PACKAGES.join(", ")}) does not match the package manifest (${manifest.join(", ")}).`,
+    );
   }
-  if (enabled.size === 0) {
-    for (const p of CORE_PROFILE) enabled.add(p);
-  }
-  return enabled;
 }
 
 /** Compact description of one registered tool (docs generator, snapshot tests). */
@@ -323,23 +269,6 @@ export function describeNaming(): {
         ...(overlap ? { overlap } : {}),
       };
     }),
-  };
-}
-
-/** The package policy currently in effect (also shown in the status payload). */
-export function effectivePackages(): {
-  enabled: string[];
-  denied: string[];
-  readOnly: string[];
-} {
-  const denied = new Set(getDeniedPackages());
-  const enabled = [...resolveEnabledPackages(getRequestedPackages())].filter(
-    (p) => !denied.has(p),
-  );
-  return {
-    enabled: enabled.sort(),
-    denied: [...denied].sort(),
-    readOnly: getReadOnlyPackages().sort(),
   };
 }
 

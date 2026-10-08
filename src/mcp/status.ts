@@ -47,7 +47,7 @@ import {
   getAllowedTables,
   getDeniedTables,
 } from "../core/policy.js";
-import { effectivePackages } from "./registry.js";
+import { effectivePackages } from "./package-policy.js";
 import { currentPackageSession } from "./packages.js";
 import { pluginAvailability } from "../api/plugin.js";
 import { cachedDomainSeparation } from "../api/capability-matrix.js";
