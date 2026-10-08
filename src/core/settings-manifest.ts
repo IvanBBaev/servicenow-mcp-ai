@@ -23,8 +23,7 @@
  */
 
 import { z } from "zod";
-import { logger } from "./logging.js";
-import { activeProfile, PROFILE_RE } from "./profile.js";
+import { currentRequestProfile, currentSession } from "./request-context.js";
 
 /** The release a setting first shipped in; bump this one constant at release. */
 export const UNRELEASED = "unreleased";
@@ -277,6 +276,9 @@ const dateSchema: Schema = z.string().transform((raw, ctx) => {
   }
   return raw.trim();
 });
+
+/** A profile name: lowercase letters, digits and `_`. */
+export const PROFILE_RE = /^[a-z0-9_]+$/;
 
 const profileNameSchema: Schema = z.string().transform((raw, ctx) => {
   const v = raw.trim().toLowerCase();
@@ -1610,6 +1612,19 @@ export function invalidMessage(
 
 const warned = new Set<string>();
 
+/**
+ * Where an invalid-value warning goes. logging.ts plugs the logger in when it
+ * loads (it reads SN_LOG_LEVEL through this module, so importing it here
+ * would close an import cycle); until then a bare stderr line is written.
+ */
+let settingWarn: (message: string) => void = (message) =>
+  console.error(message);
+
+/** Route invalid-value warnings (logging.ts sets the logger here). */
+export function setSettingWarn(fn: (message: string) => void): void {
+  settingWarn = fn;
+}
+
 /** Forget which invalid values were already reported (tests). */
 export function resetSettingWarnings(): void {
   warned.clear();
@@ -1619,7 +1634,23 @@ function warnOnce(id: string, message: string): void {
   if (warned.has(id)) return;
   // Mark first: the logger reads SN_LOG_LEVEL through this module.
   warned.add(id);
-  logger.warn(message);
+  settingWarn(message);
+}
+
+/**
+ * The profile for the current call: an explicit per-request profile (MI-3
+ * AsyncLocalStorage context) wins, then the HTTP session's own selection
+ * (H-7 — `use_instance` in HTTP mode), then SN_ACTIVE_PROFILE. Lives here,
+ * next to the reader that scopes settings by it; profile.ts re-exports it.
+ */
+export function activeProfile(): string {
+  const fromRequest = currentRequestProfile();
+  if (fromRequest) return fromRequest;
+  const fromSession = currentSession()?.profile;
+  if (fromSession) return fromSession;
+  // E-4: parsed (trimmed, lowercased, PROFILE_RE) by the manifest; an
+  // invalid name warns once and falls back to the default profile.
+  return readSetting<string>("SN_ACTIVE_PROFILE") ?? "default";
 }
 
 /**

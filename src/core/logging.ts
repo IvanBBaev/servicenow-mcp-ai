@@ -21,7 +21,7 @@
  */
 import { logContext } from "./request-context.js";
 import { formatLogLine, redactLogFields, writeLogFile } from "./log-file.js";
-import { readEnum } from "./settings-manifest.js";
+import { readEnum, setSettingWarn } from "./settings-manifest.js";
 
 export type LogLevel = "error" | "warn" | "info" | "debug";
 
@@ -87,3 +87,6 @@ export const logger = {
   debug: (message: string, fields?: Record<string, unknown>) =>
     emit("debug", message, fields),
 };
+
+// Invalid-setting warnings from the manifest reader go through the logger.
+setSettingWarn((message) => logger.warn(message));
