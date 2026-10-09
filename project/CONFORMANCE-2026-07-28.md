@@ -63,16 +63,21 @@ authorization.
   rows by hand and say so in the commit.
 - Do not add a covered row on the strength of code reading alone. It needs a test.
 
-## Open owner questions
+## Owner decisions
 
-These came up while classifying the rows. None is decided yet, and the matrix records the
-affected rows (`ownerQuestion`) without taking a position:
+The owner decided these on 2026-10-10. They came up while classifying the rows, and the affected
+rows carry `ownerQuestion` with the decision's number. The rows stay pending until their step
+lands with a test.
 
-1. **Dynamic `resources/list` entries** (`resources-02`): keep the per-profile entries and mark
-   them `ttlMs: 0`, `cacheScope: private`, as an accepted deviation from the "fixed list" rule.
-   Or drop them from the list and keep them reachable only through templates.
+1. **Dynamic `resources/list` entries** (`resources-02`): the per-profile entries stay in the
+   list. On the 2026-07-28 wire the list carries `ttlMs: 0` and `cacheScope: private`. This is a
+   known deviation from the "fixed list" rule.
 2. **`request_secrets` form mode (D-2)** (`mrtr-19`, `mrtr-20`, `mrtr-42`): on the 2026-07-28
-   wire, form-mode elicitation must not collect secrets. Should the tool refuse on the modern wire
-   and point to the secret-file route?
-3. **A declined destructive apply on the modern wire** (`mrtr-34`): should a decline returned
-   through `input_required` burn the plan token, like a declined elicitation does today?
+   wire, `set_credentials` refuses form-mode secret elicitation and returns a hint to use the env
+   file or secret files. The legacy wire is unchanged.
+3. **A declined destructive apply on the modern wire** (`mrtr-34`): a decline returned through
+   `input_required` burns the plan token, the same as a declined elicitation on the legacy wire.
+
+Defaults that need no decision: caching TTLs are constants (lists 300000 ms public, static
+resource reads 3600000 ms public, `server/discover` 300000 ms private). The `requestState` TTL
+equals the plan-token TTL and uses a per-process HMAC key, with no new setting.
