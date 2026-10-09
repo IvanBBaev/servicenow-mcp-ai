@@ -1098,7 +1098,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-10"]
-    notes: "**Partly done 2026-10-05 (local, uncommitted).** Manifest v5 per-tool `sizes` (via `toolSizes()`), `servicenow://reference/tools/{name}`; size lint is N-57. 0 B tools/list. Open: moving usage notes out of descriptions to the reference (O-10 / N-59), N-60 (TK-07, TK-08). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Partly done 2026-10-05 (local, uncommitted).** Manifest v5 per-tool `sizes` (via `toolSizes()`), `servicenow://reference/tools/{name}`; size lint is N-57. 0 B tools/list. **Example calls done 2026-10-09:** the reference carries `example: { summary, arguments }` for every tool (`src/mcp/tool-examples.ts`, schema-checked by test), 0 B tools/list. Open: moving usage notes out of descriptions to the reference (O-10 / N-59), N-60 (TK-07, TK-08). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-38"
     title: "cache-friendly listing"
     pillar: "N"
@@ -1251,7 +1251,7 @@ items:
     phase: "R0"
     done: null
     gates: ["O-10"]
-    notes: "**P0.** **Opt-in batch done 2026-10-09 (2790065):** O-10 decided by the owner 2026-10-09 (up to +4 KB on `all`, `core` unchanged); 31 tools gained an `outputSchema` from the shared shapes in `src/mcp/output-shapes.ts` (`all` +3,831 B, `core` +0 B), 68 / 97 declare one. The other 29 are in `test/fixtures/output-shape-register.json` with a reason (11 core, 7 delivery, 2 argument-dependent, 8 past the allowance), shrink-only. **Second pass done 2026-10-09 (owner, about +1 KB):** the 7 stable-shape `budget` tools declared (`all` +1,143 B, `core` +0 B), `explain_portal` registered as delivery; 75 / 98 declare one, 22 registered (core, delivery, argument-dependent). Open: N-37 example calls. Phase R0 (TK-30). `outputSchema` + `structuredContent` for every stable-shape tool (37 / 97 today), shared definitions; `tools/list` delta through N-0 / O-10, paired with N-37. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0.** **Opt-in batch done 2026-10-09 (2790065):** O-10 decided by the owner 2026-10-09 (up to +4 KB on `all`, `core` unchanged); 31 tools gained an `outputSchema` from the shared shapes in `src/mcp/output-shapes.ts` (`all` +3,831 B, `core` +0 B), 68 / 97 declare one. The other 29 are in `test/fixtures/output-shape-register.json` with a reason (11 core, 7 delivery, 2 argument-dependent, 8 past the allowance), shrink-only. **Second pass done 2026-10-09 (owner, about +1 KB):** the 7 stable-shape `budget` tools declared (`all` +1,143 B, `core` +0 B), `explain_portal` registered as delivery; 75 / 98 declare one, 22 registered (core, delivery, argument-dependent). N-37 example calls done 2026-10-09. Phase R0 (TK-30). `outputSchema` + `structuredContent` for every stable-shape tool (37 / 97 today), shared definitions; `tools/list` delta through N-0 / O-10, paired with N-37. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-55"
     title: "OpenTelemetry MCP spans"
     pillar: "N"

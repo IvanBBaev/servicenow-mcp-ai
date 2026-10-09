@@ -77,6 +77,10 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-37: an example call per tool in `servicenow://reference/tools/{name}`.** Each tool's reference now carries
+  `example: { summary, arguments }` — one call its input schema accepts, with placeholder sys_ids (`ID`, `ID2`); write
+  tools show the plan preview, never `apply`. The examples live in `src/mcp/tool-examples.ts`, and a test fails when a
+  tool has no example or its example no longer validates. `tools/list` +0 B on every profile.
 - **N-1: the `upgrade` document kind and the `servicenow_upgrade_review` prompt.** `servicenow_document_instance`
   gains `upgrade` (`upgrade.md`, needs the `docs` and `instance` packages): the upgrade history, the unresolved skipped
   records of the newest upgrade grouped by application and artefact type, and the store apps with an update. The
