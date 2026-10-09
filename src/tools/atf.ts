@@ -8,6 +8,12 @@ import {
   waitForAtfRun,
   type AtfRun,
 } from "../api/atf.js";
+import {
+  atfResultHistory,
+  withAtfResults,
+  DEFAULT_WINDOW,
+  MAX_IDS,
+} from "../api/atf-history.js";
 import { ok } from "../mcp/result.js";
 import {
   defineTool,
@@ -24,6 +30,52 @@ const RUN_OUTPUT = {
   executionId: z.string().optional(),
   status: z.string().optional(),
 };
+
+/** N-16: opt-in result history on the list tools. */
+const withResults = z
+  .boolean()
+  .optional()
+  .describe(
+    `Add each item's last result, pass rate over its last ${DEFAULT_WINDOW} runs and a flaky flag (up to ${MAX_IDS} items).`,
+  );
+
+/**
+ * N-16: the list payload, with each item's result summary (`results`) and
+ * the read's `history` status when `with_results` is set. The history read
+ * degrades on its own: an unreadable result table leaves the list as it is
+ * and says why.
+ */
+async function listPayload(
+  key: "tests" | "suites",
+  list: { sys_id?: string }[],
+  results: boolean | undefined,
+) {
+  if (!results) return ok({ count: list.length, [key]: list });
+  const ids = list.flatMap((item) => (item.sys_id ? [item.sys_id] : []));
+  const h = await atfResultHistory(
+    key === "tests" ? { testIds: ids } : { suiteIds: ids },
+  );
+  const section = h[key]!;
+  const status = section.available
+    ? {
+        available: true,
+        scanned: section.scanned,
+        truncated: section.truncated,
+        definitionsChecked: section.definitionsChecked,
+        ...(section.definitionsUnavailableReason
+          ? {
+              definitionsUnavailableReason:
+                section.definitionsUnavailableReason,
+            }
+          : {}),
+      }
+    : section;
+  return ok({
+    count: list.length,
+    [key]: withAtfResults(list, section),
+    history: { window: h.window, ...status },
+  });
+}
 
 /** S-10: optional wait for the run to finish (non-breaking; default 0 = no wait). */
 const waitSeconds = z
@@ -65,9 +117,10 @@ export const specs: AnyToolSpec[] = [
       active: z.boolean().optional().describe("Filter by active."),
       query: encodedQuery().optional().describe("Extra encoded query."),
       limit: z.number().int().positive().max(1000).optional(),
+      with_results: withResults,
     },
-    handler: (args) =>
-      listAtfTests(args).then((tests) => ok({ count: tests.length, tests })),
+    handler: async ({ with_results, ...args }) =>
+      listPayload("tests", await listAtfTests(args), with_results),
   }),
 
   defineTool({
@@ -86,11 +139,10 @@ export const specs: AnyToolSpec[] = [
       active: z.boolean().optional().describe("Filter by active."),
       query: encodedQuery().optional().describe("Extra encoded query."),
       limit: z.number().int().positive().max(1000).optional(),
+      with_results: withResults,
     },
-    handler: (args) =>
-      listAtfSuites(args).then((suites) =>
-        ok({ count: suites.length, suites }),
-      ),
+    handler: async ({ with_results, ...args }) =>
+      listPayload("suites", await listAtfSuites(args), with_results),
   }),
 
   defineTool({

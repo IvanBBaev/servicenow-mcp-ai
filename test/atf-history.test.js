@@ -539,3 +539,94 @@ test("history: no definitions read when nothing ran", async () => {
     },
   );
 });
+
+// --- with_results on the list tools ---------------------------------------
+
+const { runSpec } = await import("../build/mcp/define.js");
+const { ALL_TOOLS } = await import("../build/mcp/registry.js");
+const callList = async (name, args) => {
+  const spec = ALL_TOOLS.find((s) => s.name === name);
+  const res = await runSpec(spec, args);
+  assert.ok(!res.isError, res.content?.[0]?.text);
+  return res.structuredContent ?? JSON.parse(res.content[0].text);
+};
+
+test("list_atf_tests: no history read without with_results (N-16)", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test: () =>
+        jsonResponse(200, { result: [{ sys_id: T1, name: "Smoke" }] }),
+    }),
+    async (calls) => {
+      const body = await callList("servicenow_list_atf_tests", {});
+      assert.equal(calls.length, 1);
+      assert.equal(body.count, 1);
+      assert.equal(body.history, undefined);
+      assert.equal(body.tests[0].results, undefined);
+    },
+  );
+});
+
+test("list_atf_tests with_results merges each test's summary (N-16)", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test: (u) =>
+        u.searchParams.get("sysparm_query")?.startsWith("sys_idIN")
+          ? jsonResponse(200, { result: [] })
+          : jsonResponse(200, {
+              result: [
+                { sys_id: T1, name: "Smoke" },
+                { sys_id: T2, name: "Never run" },
+              ],
+            }),
+      sys_atf_test_result: () =>
+        jsonResponse(200, {
+          result: runs(["success", "failure", "success"]).map((r) => ({
+            test: T1,
+            status: r.status,
+            start_time: r.startTime,
+          })),
+        }),
+    }),
+    async () => {
+      const body = await callList("servicenow_list_atf_tests", {
+        with_results: true,
+      });
+      assert.equal(body.count, 2);
+      assert.equal(body.history.window, DEFAULT_WINDOW);
+      assert.equal(body.history.available, true);
+      assert.equal(body.history.scanned, 3);
+      assert.equal(body.history.truncated, false);
+      assert.equal(body.history.summaries, undefined);
+      const [smoke, never] = body.tests;
+      assert.equal(smoke.name, "Smoke");
+      assert.equal(smoke.results.runs, 3);
+      assert.equal(smoke.results.last.status, "success");
+      assert.equal(smoke.results.flaky, true);
+      assert.equal(never.results.runs, 0);
+    },
+  );
+});
+
+test("list_atf_suites with_results degrades when the result table is unreadable (N-16)", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test_suite: () =>
+        jsonResponse(200, { result: [{ sys_id: S1, name: "Regression" }] }),
+      sys_atf_test_suite_result: () =>
+        jsonResponse(403, { error: { message: "ACL" } }),
+    }),
+    async () => {
+      const body = await callList("servicenow_list_atf_suites", {
+        with_results: true,
+      });
+      assert.equal(body.count, 1);
+      assert.equal(body.suites[0].name, "Regression");
+      assert.equal(body.history.available, false);
+      assert.match(body.history.unavailableReason, /403/);
+    },
+  );
+});

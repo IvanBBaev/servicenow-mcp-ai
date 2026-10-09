@@ -4347,6 +4347,10 @@
             "description": "Extra encoded query.",
             "maxLength": 8000,
             "type": "string"
+          },
+          "with_results": {
+            "description": "Add each item's last result, pass rate over its last 20 runs and a flaky flag (up to 100 items).",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -4363,8 +4367,8 @@
       "overlap": "Kept beside list_atf_tests: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
       "sizes": {
         "description": 56,
-        "inputSchema": 352,
-        "paramDescriptions": 67,
+        "inputSchema": 499,
+        "paramDescriptions": 165,
         "outputSchema": 140
       }
     },
@@ -4398,6 +4402,10 @@
             "description": "Extra encoded query.",
             "maxLength": 8000,
             "type": "string"
+          },
+          "with_results": {
+            "description": "Add each item's last result, pass rate over its last 20 runs and a flaky flag (up to 100 items).",
+            "type": "boolean"
           }
         },
         "type": "object"
@@ -4414,8 +4422,8 @@
       "overlap": "Kept beside list_atf_suites: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
       "sizes": {
         "description": 71,
-        "inputSchema": 352,
-        "paramDescriptions": 67,
+        "inputSchema": 499,
+        "paramDescriptions": 165,
         "outputSchema": 138
       }
     },

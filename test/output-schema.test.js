@@ -126,6 +126,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * `servicenow_review_upgrade` in the opt-in instance package, measured
  * 26,583 / 117,388 / 118,758 / 133,919 (all +808 B; core +0 B): the budgets
  * become 26,624 / 117,504 / 118,784 / 134,144.
+ * N-16, 2026-10-09 (same allowance): `with_results` on
+ * `servicenow_list_atf_tests` / `servicenow_list_atf_suites`, measured
+ * 26,583 / 117,682 / 119,052 / 134,213 (all +294 B; core +0 B): the budgets
+ * become 26,624 / 117,760 / 119,296 / 134,400.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

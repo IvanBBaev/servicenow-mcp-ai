@@ -25,6 +25,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | `active` | boolean | no | Filter by active. |
 | `query` | string | no | Extra encoded query. |
 | `limit` | integer | no |  |
+| `with_results` | boolean | no | Add each item's last result, pass rate over its last 20 runs and a flaky flag (up to 100 items). |
 | `instance` | string | no | Profile (default active) |
 
 ### Output
@@ -49,6 +50,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `active` | boolean | no | Filter by active. |
 | `query` | string | no | Extra encoded query. |
 | `limit` | integer | no |  |
+| `with_results` | boolean | no | Add each item's last result, pass rate over its last 20 runs and a flaky flag (up to 100 items). |
 | `instance` | string | no | Profile (default active) |
 
 ### Output
