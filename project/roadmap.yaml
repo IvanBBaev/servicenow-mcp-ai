@@ -1004,11 +1004,11 @@ items:
     title: "UIB variant resolution for a user"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "B"
-    done: null
-    gates: ["O-13"]
-    notes: "Phase B. `as_user`: applicability, audience roles, `sys_ux_screen_condition`, `app_config.roles` → the variant the user sees (UX-05). Privacy per O-13. See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
+    done: "2026-10-10"
+    gates: ["O-5", "O-10"]
+    notes: "**Core done 2026-10-10 (93ba22f).** `src/api/uib-variant.ts` `resolveUiVariant()` (dark): for one user and one experience (path or sys_id, optional route) the `sys_ux_app_config.roles` check, then per route the screen variants in order, each matched against its audience (`sys_ux_applicability.roles`, inactive → no match) and its `sys_ux_screen_condition` rows (any → `undetermined`, like N-2 scripts); the first match is shown, later passing variants are shadowed, an undetermined variant before the match lists every candidate. Role lists accept names or `sys_user_role` sys_ids; admin passes every list. Markdown renderer; `test/uib-variant-resolution.test.js`. O-13 decided 2026-10-09 (the `directory` user-data surface). 0 B tools/list. Open: the `as_user` input on `explain_ui_experience` (tools/list delta, O-10) and the table / field check (O-5). Phase B. `as_user`: applicability, audience roles, `sys_ux_screen_condition`, `app_config.roles` → the variant the user sees (UX-05). Privacy per O-13. See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
   - id: "N-28"
     title: "UIB dependencies and where-used"
     pillar: "N"
