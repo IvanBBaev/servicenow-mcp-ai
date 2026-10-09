@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 229,
+  "pendingCeiling": 228,
   "requirements": [
     {
       "id": "base-01",
@@ -3347,8 +3347,12 @@
       "text": "Log messages MUST NOT contain: Credentials or secrets; Personal identifying information; Internal system details that could aid attacks",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging#security",
       "applies": "always",
-      "status": "pending",
-      "step": "logging"
+      "status": "covered",
+      "tests": [
+        "test/protocol-logging-hygiene.test.js :: logs go to stderr only and never carry credentials, headers or the query",
+        "test/observability.test.js :: the logger masks credential-named fields in every sink",
+        "test/redact.test.js :: SN_REDACT_PII masks emails/phones/ids inside string values (DF-5)"
+      ]
     },
     {
       "id": "deprecated-11",
