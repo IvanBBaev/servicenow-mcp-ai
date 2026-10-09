@@ -18,6 +18,7 @@ import {
   registerSchemaResources,
   registerTableResources,
   registerDocsResources,
+  registerExportsResource,
   registerInstanceResources,
   registerArtifactResources,
   registerToolsReferenceResource,
@@ -477,6 +478,9 @@ export function registerResources(server: McpServer): void {
     detail: describeToolDetail,
     renames: TOOL_RENAMES,
   });
+  // N-65: file deliveries stay readable without the docs package, unless
+  // docs is denied outright.
+  if (!deniedSet.has("docs")) registerExportsResource(server);
   for (const pkg of PACKAGES) {
     if (!pkg.resources || pkg.name === "admin") continue;
     if (session) {

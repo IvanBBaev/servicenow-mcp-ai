@@ -1031,6 +1031,7 @@ Read-only metadata is also exposed as resources, so clients can attach it declar
 | `servicenow://instances` | Configured connection profiles (no passwords). |
 | `servicenow://profiles/{profile}/schema/{table}` | A table's schema read through a named profile (the v2 URI `servicenow://{profile}/schema/{table}` is deprecated). |
 | `servicenow://docs/{+path}` | A Markdown document from the local docs store, wrapped in an untrusted-content block. |
+| `servicenow://exports/{+path}` | A file a `format: "file"` result wrote (.json, .jsonl, .csv, .mmd); on unless the `docs` package is denied. |
 | `servicenow://reference/encoded-query` | Encoded-query syntax, javascript: values and limits, and how fetchAll pages. |
 | `servicenow://reference/tools` | The tool manifest as Markdown, with this session's package policy. |
 | `servicenow://reference/tools/{name}` | One tool in full: description, annotations, the published input and output schema and an example call. |

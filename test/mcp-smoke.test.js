@@ -353,7 +353,7 @@ test("resources follow the package policy (K-7)", async () => {
 
   // table package only: no schema, no docs → the always-on admin resources
   // (connection status, the capability preflight, the tool reference and its
-  // per-tool template, N-37) and the table package's
+  // per-tool template, N-37, the file-delivery template, N-65) and the table package's
   // encoded-query reference (S-8) and record watch template (N-10).
   await withEnv({ SN_TOOL_PACKAGES: "table" }, async () => {
     const { client, close } = await startServer();
@@ -361,6 +361,7 @@ test("resources follow the package policy (K-7)", async () => {
       assert.deepEqual(await resourceNames(client), [
         "capabilities",
         "encoded-query",
+        "exports",
         "policy",
         "record",
         "status",
@@ -382,6 +383,7 @@ test("resources follow the package policy (K-7)", async () => {
         "capabilities",
         "docs",
         "encoded-query",
+        "exports",
         "instances",
         "policy",
         "profile-schema",
@@ -397,6 +399,19 @@ test("resources follow the package policy (K-7)", async () => {
       await close();
     }
   });
+
+  // N-65: denying docs also removes the file-delivery template.
+  await withEnv(
+    { SN_TOOL_PACKAGES: "table", SN_PACKAGES_DENY: "docs" },
+    async () => {
+      const { client, close } = await startServer();
+      try {
+        assert.ok(!(await resourceNames(client)).includes("exports"));
+      } finally {
+        await close();
+      }
+    },
+  );
 });
 
 test("set_credentials asks for confirmation via elicitation; decline saves nothing (X-2)", async () => {

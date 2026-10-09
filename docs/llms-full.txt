@@ -1641,6 +1641,7 @@ declaratively instead of calling a tool:
 | `servicenow://instances`                | Configured connection profiles: name, host, user, read-only flag, credential completeness.          |
 | `servicenow://profiles/{profile}/schema/{table}` | Columns of a table read through a specific named connection profile. The v2 URI `servicenow://{profile}/schema/{table}` still works until the next minor release (deprecated). |
 | `servicenow://docs/{+path}`             | A Markdown document from the local docs store (nested paths allowed), wrapped in an untrusted-content block. |
+| `servicenow://exports/{+path}`          | A file a `format: "file"` result wrote (`.json`, `.jsonl`, `.csv`, `.mmd`), wrapped in an untrusted-content block. Not listed; a file delivery's `resource_link` points here when the `docs` package is off. |
 | `servicenow://artifact-types`           | Artifact types the generic artifact tools accept: table, name / key / scope fields, child tables, SDK API, verified flag (`artifacts` package). |
 | `servicenow://reference/encoded-query`  | Encoded-query reference: syntax, `javascript:` values, limits (no `^` escaping, URL length, silently ignored fields, ACL-hidden rows) and how `fetchAll` pages. |
 | `servicenow://reference/tools`          | The tool manifest as Markdown: every tool by package, read / write, and whether this session registered it under the package policy. |
@@ -1649,7 +1650,8 @@ declaratively instead of calling a tool:
 
 Resources are package-gated like tools: `status`, `capabilities` and the tool
 reference are always on; `encoded-query` and the record template come with the `table` package, `tables`/`schema` with the `schema` package, `instances`/per-profile
-schema with `instance`, and `docs` with the `docs` package.
+schema with `instance`, and `docs` with the `docs` package. `exports` is on
+unless `docs` is denied (`SN_PACKAGES_DENY=docs`).
 
 The three templates support completion and listing: `{table}` completes from
 the tables already in the schema cache plus a short seed list of common

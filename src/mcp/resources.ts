@@ -1,3 +1,4 @@
+import path from "node:path";
 import { policyResourcePayload } from "./policy-view.js";
 import { TOOL_EXAMPLES } from "./tool-examples.js";
 import {
@@ -18,6 +19,7 @@ import {
   docsManifest,
   type ManifestEntry,
 } from "../api/docs.js";
+import { DELIVERY_MIME } from "../api/docs-inspect.js";
 import { checkCapabilities } from "../api/capabilities.js";
 import { artifactTypeCatalog } from "../api/artifacts.js";
 import { activeProfile, listProfiles } from "../core/config.js";
@@ -895,6 +897,53 @@ export function registerDocsResources(server: McpServer): void {
         };
       } catch (error) {
         throw resourceError("docs", error, { path: docPath });
+      }
+    },
+  );
+}
+
+/**
+ * N-65: the files a file delivery writes (`.json`, `.jsonl`, `.csv`, `.mmd`),
+ * readable without the docs package — the default profile has no docs
+ * resource, so its `resource_link` points here. Read-only, not listed, and
+ * limited to the delivery file types; Markdown documents stay docs-only.
+ */
+export function registerExportsResource(server: McpServer): void {
+  server.registerResource(
+    "exports",
+    new ResourceTemplate("servicenow://exports/{+path}", { list: undefined }),
+    {
+      title: "ServiceNow file deliveries",
+      description:
+        'A file a format:"file" result wrote (.json, .jsonl, .csv, .mmd), wrapped in an untrusted-content boundary. URI: servicenow://exports/<path>.',
+    },
+    async (uri, variables) => {
+      const raw = variables.path;
+      let filePath = Array.isArray(raw) ? raw.join("/") : raw;
+      try {
+        if (!filePath) throw badUri("No file path specified in the URI.");
+        filePath = decodeURIComponent(filePath);
+        const ext = path.posix.extname(filePath).toLowerCase();
+        if (!Object.hasOwn(DELIVERY_MIME, ext)) {
+          throw badUri(
+            `Not a file delivery: ${filePath} (expected ${Object.keys(DELIVERY_MIME).join(", ")}).`,
+          );
+        }
+        const { content, mimeType } = await docsRead(filePath, {
+          deliveries: true,
+        });
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              mimeType,
+              // SEC-21: a delivery holds instance data.
+              text: untrusted(`a file delivery (${filePath})`, content),
+            },
+          ],
+        };
+      } catch (error) {
+        throw resourceError("exports", error, { path: filePath });
       }
     },
   );
