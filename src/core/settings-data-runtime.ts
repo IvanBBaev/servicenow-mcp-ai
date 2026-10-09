@@ -269,6 +269,14 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       'N-65 (default on, O-21 (c)): the large readers (`document_*`, `snapshot_instance`, `compare_*`, `get_script`) carry `_meta["anthropic/maxResultSizeChars"]` = `SN_MAX_RESULT_CHARS` in `tools/list`. Set `false` to drop the hints.',
   }),
+  bool({
+    key: "SN_STRUCTURED",
+    section: "results",
+    since: NEXT,
+    default: true,
+    description:
+      "N-39 (default on, O-21 (d)): tools with an output shape publish `outputSchema` in `tools/list` and answer with `structuredContent` next to the JSON text. Set `false` to drop both: every result then carries its payload once, as text, and `tools/list` is smaller.",
+  }),
   bool(
     {
       key: "SN_INCLUDE_REF_LINKS",

@@ -573,6 +573,16 @@ export function resultSizeHints(): boolean {
   return readBool("SN_RESULT_SIZE_HINTS");
 }
 
+/**
+ * N-39 — `SN_STRUCTURED` (default on, O-21 (d)): tools with an output shape
+ * publish `outputSchema` and answer with `structuredContent` next to the JSON
+ * text. `0`/`false`/`no`/`off` drops both, so every result carries its
+ * payload once, as text.
+ */
+export function structuredResults(): boolean {
+  return readBool("SN_STRUCTURED");
+}
+
 // --- H-6: outbound hardening ------------------------------------------------
 
 export const DEFAULT_MAX_BODY_BYTES = 50 * 1024 * 1024;

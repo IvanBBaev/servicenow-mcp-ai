@@ -3,7 +3,11 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { logger } from "../core/logging.js";
 import { activeProfile, listProfiles } from "../core/config.js";
-import { getDestructiveConfirm, getProfileEnv } from "../core/settings.js";
+import {
+  getDestructiveConfirm,
+  getProfileEnv,
+  structuredResults,
+} from "../core/settings.js";
 import {
   runWithProfile,
   runWithClient,
@@ -315,6 +319,8 @@ async function runSpecInner(
     const capped = capResult(marked, {
       fileHint: supportsFileFormat(spec.input),
     });
+    // N-39: SN_STRUCTURED=false — the payload goes out once, as text.
+    if (!structuredResults()) return withoutStructuredContent(capped);
     return spec.output ? withStructuredContent(spec, capped) : capped;
   } catch (error) {
     const cancelled = call.signal?.aborted === true;
@@ -395,6 +401,14 @@ function normalizeParamAliases(
   return { args: parsed.data };
 }
 
+/** The result without its structuredContent (errors, N-39 SN_STRUCTURED=false). */
+function withoutStructuredContent(result: ToolResult): ToolResult {
+  if (result.structuredContent === undefined) return result;
+  const stripped = { ...result };
+  delete stripped.structuredContent;
+  return stripped;
+}
+
 /**
  * M-6: the structuredContent of a tool that declares an output shape. The
  * text content stays as it is (older clients read only that); a success
@@ -408,12 +422,7 @@ function withStructuredContent(
   spec: AnyToolSpec,
   result: ToolResult,
 ): ToolResult {
-  if (result.isError) {
-    if (result.structuredContent === undefined) return result;
-    const stripped = { ...result };
-    delete stripped.structuredContent;
-    return stripped;
-  }
+  if (result.isError) return withoutStructuredContent(result);
   if (result.structuredContent !== undefined) return result;
   const text = result.content[0]?.text;
   try {

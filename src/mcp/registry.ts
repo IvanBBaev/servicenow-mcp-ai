@@ -62,6 +62,7 @@ import { timeToolCall } from "../core/metrics.js";
 import { runWithRuntime, type Runtime } from "../core/runtime.js";
 import { runMaybeAsTask, withTaskInput, withTaskOutput } from "./tasks.js";
 import { resultHintMeta } from "./result-hints.js";
+import { structuredResults } from "../core/settings.js";
 import {
   PackageSession,
   bindPackageSession,
@@ -364,6 +365,9 @@ export function registerAllTools(
   ) => {
     // N-65: the large readers' result-size hint (SN_RESULT_SIZE_HINTS).
     const hint = resultHintMeta(spec.name);
+    // N-39: SN_STRUCTURED=false publishes no outputSchema (runSpec then drops
+    // structuredContent, which a declared schema would require).
+    const structured = spec.output && structuredResults();
     return server.registerTool(
       name,
       {
@@ -377,7 +381,7 @@ export function registerAllTools(
         // M-7: the legacy parameter names only when SN_LEGACY_TOOL_NAMES is on.
         inputSchema: withTaskInput(spec, buildInputSchema(spec, { legacy })),
         // M-6: a passthrough z.object — see buildOutputSchema.
-        ...(spec.output
+        ...(structured
           ? { outputSchema: withTaskOutput(spec, buildOutputSchema(spec)!) }
           : {}),
         ...(hint ? { _meta: hint } : {}),

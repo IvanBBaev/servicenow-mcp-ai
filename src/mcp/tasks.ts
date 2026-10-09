@@ -462,7 +462,9 @@ export async function runMaybeAsTask(
     ...ok(body),
     // M-6: a tool with an output schema must answer with structuredContent;
     // withTaskOutput makes every declared field optional for this tool.
-    ...(spec.output ? { structuredContent: { ...body } } : {}),
+    ...(spec.output && readBool("SN_STRUCTURED")
+      ? { structuredContent: { ...body } }
+      : {}),
     _meta: { [RELATED_TASK_META_KEY]: { taskId: task.taskId } },
   };
 }
