@@ -659,6 +659,19 @@
             "description": "Add a Mermaid diagram per flow/subflow/workflow/portal/UIB experience, a dependency graph and a lint summary (bounded).",
             "type": "boolean"
           },
+          "kind": {
+            "description": "i18n: write i18n/<scope>.md, missing translations instead.",
+            "type": "string",
+            "enum": [
+              "app",
+              "i18n"
+            ]
+          },
+          "language": {
+            "description": "i18n: one language code; default all active.",
+            "type": "string",
+            "maxLength": 16
+          },
           "instance": {
             "description": "Profile (default active)",
             "type": "string",

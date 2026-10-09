@@ -1433,6 +1433,16 @@
             "maxLength": 128,
             "type": "string"
           },
+          "kind": {
+            "description": "i18n: write i18n/<scope>.md, missing translations instead.",
+            "enum": ["app", "i18n"],
+            "type": "string"
+          },
+          "language": {
+            "description": "i18n: one language code; default all active.",
+            "maxLength": 16,
+            "type": "string"
+          },
           "profile": {
             "description": "Profile: 'current' (default) or a name; writes to its docs folder.",
             "maxLength": 128,
@@ -1453,8 +1463,8 @@
       },
       "sizes": {
         "description": 221,
-        "inputSchema": 652,
-        "paramDescriptions": 309,
+        "inputSchema": 879,
+        "paramDescriptions": 415,
         "outputSchema": 0
       }
     },

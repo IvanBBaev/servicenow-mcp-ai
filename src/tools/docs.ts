@@ -5,10 +5,12 @@ import { lanesArg } from "./flows.js";
 import { ok } from "../mcp/result.js";
 import { deliverDiagram, deliverJson } from "../mcp/file-result.js";
 import {
+  APP_DOC_KINDS,
   DISCOVERY_DEPTHS,
   INSTANCE_DOC_KINDS,
   INSTANCE_TARGETS_MAX,
   documentApp,
+  documentAppI18n,
   documentInstance,
   documentTable,
   type DocumentResult,
@@ -312,18 +314,32 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Add a Mermaid diagram per flow/subflow/workflow/portal/UIB experience, a dependency graph and a lint summary (bounded).",
         ),
+      kind: z
+        .enum(APP_DOC_KINDS)
+        .optional()
+        .describe("i18n: write i18n/<scope>.md, missing translations instead."),
+      language: shortText(16)
+        .optional()
+        .describe("i18n: one language code; default all active."),
     },
     logFields: (args) => ({
       scope: args.scope,
       profile: args.profile,
       write: args.write !== false,
       detail: args.detail === true,
+      kind: args.kind ?? "app",
+      language: args.language,
     }),
-    handler: async ({ scope, profile, write, detail }) =>
-      deliverDocument(
-        await documentApp(scope, { profile, write, detail }),
-        `document-app-${scope}`,
-      ),
+    handler: async ({ scope, profile, write, detail, kind, language }) =>
+      kind === "i18n"
+        ? deliverDocument(
+            await documentAppI18n(scope, { profile, write, language }),
+            `document-i18n-${scope}`,
+          )
+        : deliverDocument(
+            await documentApp(scope, { profile, write, detail }),
+            `document-app-${scope}`,
+          ),
   }),
 
   defineTool({

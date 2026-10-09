@@ -3868,6 +3868,8 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `profile` | string | no | Profile: 'current' (default) or a name; writes to its docs folder. |
 | `write` | boolean | no | false returns the Markdown, writing nothing. |
 | `detail` | boolean | no | Add a Mermaid diagram per flow/subflow/workflow/portal/UIB experience, a dependency graph and a lint summary (bounded). |
+| `kind` | "app" \| "i18n" | no | i18n: write i18n/<scope>.md, missing translations instead. |
+| `language` | string | no | i18n: one language code; default all active. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

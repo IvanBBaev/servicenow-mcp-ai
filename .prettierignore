@@ -9,6 +9,8 @@ docs/assets/
 coverage/
 # Writer goldens (E-7): byte-for-byte generator output, never reformatted
 test/fixtures/docs/writers/
+# Document goldens (N-7): rendered Markdown, byte-for-byte
+test/fixtures/docs/*.md
 # MCP Apps view snapshots (N-50): rendered HTML, byte-for-byte
 test/fixtures/apps/
 # Skill-eval mocks (N-49): recorded tool answers, rewritten by

@@ -140,6 +140,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * on `servicenow_query_table` (core), measured 26,719 / 117,988 / 119,358 /
  * 134,519 (+136 B on every profile): `core` becomes 26,880, `all+tasks`
  * 119,552 and `all+legacy` 134,656; `all` still fits 118,016.
+ * N-7, 2026-10-09 (owner: one 256 B step on `all`): `kind` (`app` | `i18n`)
+ * and `language` on `servicenow_document_app` (opt-in docs package),
+ * measured 26,719 / 118,225 / 119,595 / 134,756 (all +227 B; core +0 B):
+ * the budgets become 26,880 / 118,272 / 119,808 / 134,912.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

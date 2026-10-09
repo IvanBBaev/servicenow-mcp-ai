@@ -80,6 +80,8 @@ import {
   renderAccessReviewDoc,
 } from "./doc-access-review.js";
 import { type AccessReview } from "./access-review.js";
+import { collectI18n, i18nSources, renderI18nDoc } from "./doc-i18n.js";
+import { type I18nCoverageReport } from "./i18n-coverage.js";
 import {
   type UpgradeDocData,
   collectUpgrade,
@@ -1232,6 +1234,17 @@ const appKind: DocKind<AppDocData> = {
   ],
 };
 
+const i18nKind: DocKind<I18nCoverageReport> = {
+  title: "Translation coverage",
+  version: "1",
+  requires: ["docs"],
+  generator: "servicenow_document_app",
+  path: (scope) => `i18n/${scope}.md`,
+  collect: (scope, opts) => collectI18n(scope, opts),
+  render: renderI18nDoc,
+  sources: i18nSources,
+};
+
 const securityKind: DocKind<SecurityScan> = {
   title: "Security",
   version: "1",
@@ -1390,6 +1403,7 @@ const discoveryAppsKind: DocKind<DiscoveryAppsData> = {
 export const DOC_KINDS = {
   table: tableKind,
   app: appKind,
+  i18n: i18nKind,
   security: securityKind,
   catalog: catalogKind,
   integrations: integrationsKind,
@@ -1589,6 +1603,20 @@ export function documentApp(
   opts: DocumentOptions = {},
 ): Promise<DocumentResult> {
   return generateDocument("app", scope, opts);
+}
+
+/** The document_app kinds: the app document, or its translation coverage (N-7). */
+export const APP_DOC_KINDS = [
+  "app",
+  "i18n",
+] as const satisfies readonly DocKindId[];
+
+/** servicenow_document_app kind `i18n`: `<profile>/i18n/<scope>.md` + `.json`. */
+export function documentAppI18n(
+  scope: string,
+  opts: DocumentOptions = {},
+): Promise<DocumentResult> {
+  return generateDocument("i18n", scope, opts);
 }
 
 /**

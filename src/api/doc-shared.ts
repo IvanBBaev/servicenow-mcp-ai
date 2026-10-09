@@ -53,6 +53,8 @@ export interface CollectOptions {
    * (default false).
    */
   detail?: boolean;
+  /** document_app kind `i18n` (N-7): one language code (default: the active languages). */
+  language?: string;
 }
 
 export interface RenderContext {

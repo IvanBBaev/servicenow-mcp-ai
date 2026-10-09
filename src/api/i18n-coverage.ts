@@ -26,9 +26,8 @@ import { isSysIdAnyCase } from "../core/sys-id.js";
  * source degrades on its own: an unreadable table becomes a caveat and the
  * category is reported `unreadable`, never a thrown error (except a cancel).
  *
- * Callable from code only: the `document_app` kind `i18n` waits for the
- * tools/list budget (O-10). Every table and field name here is unverified
- * until O-5 (PDI).
+ * Reached through the `document_app` kind `i18n` (doc-i18n.ts). Every table
+ * and field name here is unverified until O-5 (PDI).
  */
 
 export const I18N_LIMITS = {
@@ -635,9 +634,14 @@ const code = (s: string): string => `\`${s.replaceAll("`", "'")}\``;
 
 /** The report as Markdown. */
 export function i18nCoverageMarkdown(report: I18nCoverageReport): string {
+  return ["# Translation coverage", "", ...i18nCoverageSections(report)].join(
+    "\n",
+  );
+}
+
+/** The report body below the title: summary line, sources, coverage, missing keys, caveats. */
+export function i18nCoverageSections(report: I18nCoverageReport): string[] {
   const md: string[] = [
-    "# Translation coverage",
-    "",
     [
       report.scope ? `Scope ${code(report.scope)}` : undefined,
       report.macroponents ? `${report.macroponents} macroponent(s)` : undefined,
@@ -695,5 +699,5 @@ export function i18nCoverageMarkdown(report: I18nCoverageReport): string {
   if (report.caveats.length) {
     md.push("## Caveats", "", ...report.caveats.map((c) => `- ${c}`), "");
   }
-  return md.join("\n");
+  return md;
 }
