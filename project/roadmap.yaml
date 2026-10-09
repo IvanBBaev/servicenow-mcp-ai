@@ -1197,7 +1197,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: []
-    notes: "**P0. Done 2026-10-05 (75e34b2).** `hooks/session-context.mjs` (`SessionStart`, no network/secrets) and `hooks/truncation-hint.mjs` (`PostToolUse`) (TK-24). Open: `tool_response` shape to confirm in a live session. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (75e34b2).** `hooks/session-context.mjs` (`SessionStart`, no network/secrets) and `hooks/truncation-hint.mjs` (`PostToolUse`) (TK-24). `tool_response` shape confirmed live on Claude Code 2.1.295 (content blocks for a text-only result, a JSON string for one with structuredContent) and pinned by tests; the hint reaches the model as additionalContext. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-49"
     title: "skill evals"
     pillar: "N"
