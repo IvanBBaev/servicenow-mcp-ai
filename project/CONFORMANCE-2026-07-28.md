@@ -32,14 +32,14 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 84      | 228     | 52  |
+| 364   | 100     | 212     | 52  |
 
 Pending rows by step:
 
 | step       | rows | delivered by                                                                                           |
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------ |
 | `wire`     | 33   | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
-| `http`     | 52   | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
+| `http`     | 36   | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
 | `mrtr`     | 34   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 43   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |

@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 228,
+  "pendingCeiling": 212,
   "requirements": [
     {
       "id": "base-01",
@@ -1026,8 +1026,11 @@
       "text": "MUST NOT be empty",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-22",
@@ -1035,8 +1038,11 @@
       "text": "MUST match HTTP field-name token syntax (`1*tchar`, RFC 9110 Section 5.1)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-23",
@@ -1044,8 +1050,11 @@
       "text": "MUST NOT contain control characters, including carriage return (CR, `\\r`) or line feed (LF, `\\n`)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-24",
@@ -1053,8 +1062,11 @@
       "text": "MUST be case-insensitively unique among all `x-mcp-header` values in the `inputSchema`",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-25",
@@ -1062,8 +1074,11 @@
       "text": "MUST only be applied to parameters with primitive types (integer, string, boolean).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-26",
@@ -1071,8 +1086,11 @@
       "text": "Integer values MUST be within the safe range for JavaScript (−2^53+1 to 2^53−1)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-27",
@@ -1080,8 +1098,11 @@
       "text": "MUST only be applied to properties that are _statically reachable_ from the schema root: reachable via a chain consisting solely of `properties` keys.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-28",
@@ -1089,8 +1110,11 @@
       "text": "The chain MUST NOT pass through `items` (or any other array keyword), composition keywords (`oneOf`, `anyOf`, `allOf`, `not`), conditional keywords (`if`/`then`/`else`), or `$ref`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#schema-extension",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "http-29",
@@ -2434,8 +2458,11 @@
       "text": "MUST NOT be empty",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-14",
@@ -2443,8 +2470,11 @@
       "text": "MUST match HTTP field-name token syntax (`1*tchar`, RFC 9110 Section 5.1)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-15",
@@ -2452,8 +2482,11 @@
       "text": "MUST NOT contain control characters, including carriage return (CR, `\\r`) or line feed (LF, `\\n`)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-16",
@@ -2461,8 +2494,11 @@
       "text": "MUST be case-insensitively unique among all `x-mcp-header` values in the `inputSchema`",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-17",
@@ -2470,8 +2506,11 @@
       "text": "MUST only be applied to parameters with primitive types (integer, string, boolean).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-18",
@@ -2479,8 +2518,11 @@
       "text": "Integer values MUST be within the safe range for integers represented using IEEE754 double-precision floating point numbers (−2^53+1 to 2^53−1)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-19",
@@ -2488,8 +2530,11 @@
       "text": "MUST only be applied to properties that are _statically reachable_ from the schema root, as defined in Custom Headers from Tool Parameters, which also defines how header values are extracted from call arguments",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-20",
@@ -2497,8 +2542,11 @@
       "text": "Server developers SHOULD NOT mark sensitive parameters (passwords, API keys, tokens, PII) with `x-mcp-header`, as header values are visible to network intermediaries.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#x-mcp-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: x-mcp-header: the rule checker flags every violation",
+        "test/protocol-shape.test.js :: x-mcp-header: every published schema keeps the rules on every profile"
+      ]
     },
     {
       "id": "tools-21",
