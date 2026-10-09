@@ -18,7 +18,10 @@ Workflow Studio (`sys_hub_*`), Process Automation Designer playbooks (`sys_pd_*`
 
 In scope:
 
-- Every Fluent API in SDK 4.12.2 and the 4.13.0 `DatabaseView` addition (§2 of the inventory).
+- Every Fluent API in SDK 4.12.2 and the 4.13 additions `DatabaseView` and `Interceptor` (§2 of the inventory).
+- Every artefact an SDK **guide** builds through `Record()` or an option of another API, even without an
+  API page of its own (assignment rules, knowledge base access, table augments, security attributes and
+  data filters, form formatters — rows added by the 2026-10-09 guide audit).
 - The `Record()`-only / transform-only areas: UIB internals, legacy workflow, decision tables,
   `sys_data_source`, portal search sources, guide-only tables (`sys_ui_style`, `sysevent_register`,
   `sys_relationship`, LDAP, views).
@@ -35,6 +38,7 @@ runtime execution of portal widgets, and background scripts.
 | ------------------- | ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | npm `latest` (GA)   | **4.12.2**  | 2026-09-15 | Baseline for every "Since" value and for the gap matrix.                                                                                                                                                          |
 | npm `next`          | **4.13.0**  | 2026-09-23 | Adds `DatabaseView` (`sys_db_view`, `sys_db_view_table` (U)); the API page returned 404 — **unverified** (§6.2).                                                                                                  |
+| npm `latest` (seen) | **4.13.6**  | 2026-10-09 | `sdk:drift` run: `DatabaseView` and `Interceptor` (`sys_wizard`) now have API pages. The baseline stays 4.12.2 until the owner re-pins the SDK (O-7, ADR 0002).                                                   |
 | API history (recap) | 4.0 → 4.12  | —          | 4.0 ScriptInclude/UiPage/UiAction/ScriptAction/SPWidget · 4.2 ImportSet/UiPolicy · 4.3 Flow MVP, Catalog, Workspace, Dashboard, Sla …                                                                             |
 | API history (recap) | 4.5 → 4.8   | —          | 4.5 scan checks, ScheduledScript, SPPage/SPTheme/SPMenu, AiAgent · 4.6 Action, subflow calls, Form · 4.7 DataPolicy, `$override` · 4.8 PlaybookDefinition, RestMessage, Alias, RetryPolicy, DataLookup, `Now.del` |
 | API history (recap) | 4.10 → 4.12 | —          | 4.10 StateModel, `cicd` · 4.11 TestSuite, GraphQLApi · 4.12 Assessment, RiskAssessment                                                                                                                            |
@@ -51,6 +55,11 @@ runtime execution of portal widgets, and background scripts.
    targets it. Generated Fluent (P5) declares the SDK version it targets in its header comment.
 4. `next`-only APIs (today `DatabaseView`) get a descriptor with `verified:false` and no G tier until
    they reach `latest` and O-5 confirms the tables.
+5. **Guides are tracked too.** The API index alone misses artefacts that a guide builds with `Record()`
+   or with an option of another API. `GUIDE_COVERAGE` in `scripts/sdk-drift.mjs` maps every guide slug
+   of the docs index (`## Guides`) to the §4 rows it describes, or to `n/a` with a reason (CLI, process,
+   reference pages). A guide missing from the map, or a mapped guide gone from the index, is a drift
+   finding; `test/sdk-drift.test.js` keeps every mapped row id present in §4.
 
 ## 3. Capability tiers
 
@@ -94,25 +103,29 @@ not verify.
 
 ### 4.1 Core platform / data model
 
-| Id      | Artefact (SDK API)           | ServiceNow table(s)                                                                   | R   | X   | A   | S   | W   | G   | Now (refs)                                     | Target | Phase    | Items                  |
-| ------- | ---------------------------- | ------------------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- | ---------------------------------------------- | ------ | -------- | ---------------------- |
-| CORE-1  | `Table`                      | sys_db_object, sys_dictionary, sys_dictionary_override, sys_documentation, sys_choice | ✅  | ◐   | ◐   | ◐   | —   | —   | `[MT]`, `[DG]`, schema in `[SN]`               | RXASWG | P1,P3,P5 | P-7, S-7, P-26         |
-| CORE-2  | `ChoiceSet`                  | sys_choice, sys_choice_set (legacy)                                                   | —   | —   | —   | —   | —   | —   | —                                              | RXSWG  | P1,P5    | P-7, S-7, P-26         |
-| CORE-3  | `DatabaseView` (4.13 `next`) | sys_db_view, sys_db_view_table (U)                                                    | —   | —   | —   | —   | —   | —   | — (API page 404, unverified)                   | RXS    | P1       | P-7, P-4               |
-| CORE-4  | `StateModel`                 | sttrm_model, sttrm_state, sttrm_state_transition, sttrm_transition_condition          | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3,P5 | P-7, P-20, P-26        |
-| CORE-5  | `Property`                   | sys_properties                                                                        | —   | —   | —   | —   | —   | —   | — (S-10 plans get/set)                         | RXASWG | P1,P4    | P-7, S-10, P-23        |
-| CORE-6  | `UserPreference`             | sys_user_preference                                                                   | —   | —   | —   | —   | —   | —   | —                                              | RXSG   | P1,P5    | P-7, P-26              |
-| CORE-7  | `Role`                       | sys_user_role, sys_user_role_contains                                                 | —   | —   | —   | —   | —   | —   | —                                              | RXASWG | P1,P4    | P-7, P-17, P-23        |
-| CORE-8  | `Acl`                        | sys_security_acl, sys_security_acl_role                                               | ◐   | ◐   | ✅  | ◐   | —   | —   | script body `[ST]`, scan `[CC]` :348           | RXASWG | P1,P4    | P-7, S-3, P-23         |
-| CORE-9  | `CrossScopePrivilege`        | sys_scope_privilege                                                                   | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3    | P-7, P-17              |
-| CORE-10 | `UserCriteria`               | user_criteria                                                                         | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3    | P-7, P-17              |
-| CORE-11 | `Record` (generic fallback)  | any table                                                                             | ✅  | —   | —   | —   | ✅  | —   | generic Table API tools (`src/tools/table.ts`) | RXG    | P1,P5    | P-5, P-26              |
-| CORE-12 | field styles (Record)        | sys_ui_style                                                                          | —   | —   | —   | —   | —   | —   | —                                              | RXSG   | P1       | P-7                    |
-| CORE-13 | schedules (Record)           | cmn_schedule, cmn_schedule_span (U)                                                   | —   | —   | —   | —   | —   | —   | —                                              | RXS    | P1       | P-7                    |
-| CORE-14 | events (Record)              | sysevent_register                                                                     | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3    | P-7, P-17              |
-| CORE-15 | relationships (Record)       | sys_relationship                                                                      | —   | —   | —   | —   | —   | —   | —                                              | RXSG   | P1       | P-7                    |
-| CORE-16 | LDAP (Record)                | ldap_server_config, ldap_server_url                                                   | —   | —   | —   | —   | —   | —   | —                                              | RXS    | P1       | P-7 (secrets redacted) |
-| CORE-17 | attachments (`Now.attach`)   | sys_attachment                                                                        | ✅  | —   | —   | —   | ✅  | —   | `[AS]`                                         | RWG    | P5       | P-26                   |
+| Id      | Artefact (SDK API)                            | ServiceNow table(s)                                                                                  | R   | X   | A   | S   | W   | G   | Now (refs)                                     | Target | Phase    | Items                  |
+| ------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- | ---------------------------------------------- | ------ | -------- | ---------------------- |
+| CORE-1  | `Table`                                       | sys_db_object, sys_dictionary, sys_dictionary_override, sys_documentation, sys_choice                | ✅  | ◐   | ◐   | ◐   | —   | —   | `[MT]`, `[DG]`, schema in `[SN]`               | RXASWG | P1,P3,P5 | P-7, S-7, P-26         |
+| CORE-2  | `ChoiceSet`                                   | sys_choice, sys_choice_set (legacy)                                                                  | —   | —   | —   | —   | —   | —   | —                                              | RXSWG  | P1,P5    | P-7, S-7, P-26         |
+| CORE-3  | `DatabaseView` (4.13 `next`)                  | sys_db_view, sys_db_view_table (U)                                                                   | —   | —   | —   | —   | —   | —   | — (API page 404, unverified)                   | RXS    | P1       | P-7, P-4               |
+| CORE-4  | `StateModel`                                  | sttrm_model, sttrm_state, sttrm_state_transition, sttrm_transition_condition                         | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3,P5 | P-7, P-20, P-26        |
+| CORE-5  | `Property`                                    | sys_properties                                                                                       | —   | —   | —   | —   | —   | —   | — (S-10 plans get/set)                         | RXASWG | P1,P4    | P-7, S-10, P-23        |
+| CORE-6  | `UserPreference`                              | sys_user_preference                                                                                  | —   | —   | —   | —   | —   | —   | —                                              | RXSG   | P1,P5    | P-7, P-26              |
+| CORE-7  | `Role`                                        | sys_user_role, sys_user_role_contains                                                                | —   | —   | —   | —   | —   | —   | —                                              | RXASWG | P1,P4    | P-7, P-17, P-23        |
+| CORE-8  | `Acl`                                         | sys_security_acl, sys_security_acl_role                                                              | ◐   | ◐   | ✅  | ◐   | —   | —   | script body `[ST]`, scan `[CC]` :348           | RXASWG | P1,P4    | P-7, S-3, P-23         |
+| CORE-9  | `CrossScopePrivilege`                         | sys_scope_privilege                                                                                  | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3    | P-7, P-17              |
+| CORE-10 | `UserCriteria`                                | user_criteria                                                                                        | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3    | P-7, P-17              |
+| CORE-11 | `Record` (generic fallback)                   | any table                                                                                            | ✅  | —   | —   | —   | ✅  | —   | generic Table API tools (`src/tools/table.ts`) | RXG    | P1,P5    | P-5, P-26              |
+| CORE-12 | field styles (Record)                         | sys_ui_style                                                                                         | —   | —   | —   | —   | —   | —   | —                                              | RXSG   | P1       | P-7                    |
+| CORE-13 | schedules (Record)                            | cmn_schedule, cmn_schedule_span (U)                                                                  | —   | —   | —   | —   | —   | —   | —                                              | RXS    | P1       | P-7                    |
+| CORE-14 | events (Record)                               | sysevent_register                                                                                    | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3    | P-7, P-17              |
+| CORE-15 | relationships (Record)                        | sys_relationship                                                                                     | —   | —   | —   | —   | —   | —   | —                                              | RXSG   | P1       | P-7                    |
+| CORE-16 | LDAP (Record)                                 | ldap_server_config, ldap_server_url                                                                  | —   | —   | —   | —   | —   | —   | —                                              | RXS    | P1       | P-7 (secrets redacted) |
+| CORE-17 | attachments (`Now.attach`)                    | sys_attachment                                                                                       | ✅  | —   | —   | —   | ✅  | —   | `[AS]`                                         | RWG    | P5       | P-26                   |
+| CORE-18 | assignment rules (Record)                     | sysrule_assignment                                                                                   | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3,P5 | P-7, P-17, P-26        |
+| CORE-19 | knowledge base access (Record)                | kb_uc_can_read_mtom, kb_uc_can_contribute_mtom, kb_uc_cannot_read_mtom, kb_uc_cannot_contribute_mtom | —   | —   | —   | —   | —   | —   | —                                              | RXAS   | P1,P3    | P-7, P-17              |
+| CORE-20 | table augments (`Table` `augments`)           | sys_dictionary rows a scope adds to a table owned by another scope                                   | ◐   | —   | —   | —   | —   | —   | columns only, through `[MT]`                   | RXA    | P1,P3    | P-7, P-17              |
+| CORE-21 | security attributes and data filters (Record) | sys_security_attribute, sys_security_data_filter                                                     | —   | —   | —   | —   | —   | —   | —                                              | RXAS   | P1,P3    | P-7, P-17              |
 
 ### 4.2 Server-side logic
 
@@ -141,17 +154,18 @@ not verify.
 
 ### 4.3 Classic UI
 
-| Id    | Artefact (SDK API) | ServiceNow table(s)                                                                 | R   | X   | A   | S   | W   | G   | Now (refs)                      | Target | Phase    | Items           |
-| ----- | ------------------ | ----------------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- | ------------------------------- | ------ | -------- | --------------- |
-| CUI-1 | `ClientScript`     | sys_script_client                                                                   | ✅  | ◐   | ✅  | ✅  | —   | —   | `[ST]`, `[WU]`, `[CC]`, `[SN]`  | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
-| CUI-2 | `UiAction`         | sys_ui_action (+ sys_ux_form_action for workspace buttons)                          | ✅  | ◐   | ✅  | ✅  | —   | —   | `[ST]`, `[WU]`, `[CC]`, `[SN]`  | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
-| CUI-3 | `UiPolicy`         | sys_ui_policy, sys_ui_policy_action                                                 | ◐   | ◐   | ◐   | ◐   | —   | —   | `[ST]` scripts only, no actions | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
-| CUI-4 | `DataPolicy`       | sys_data_policy2, sys_data_policy_rule                                              | —   | —   | —   | —   | —   | —   | — (S-5 lane)                    | RXASWG | P1,P4,P5 | P-7, S-5, P-23  |
-| CUI-5 | `UiPage`           | sys_ui_page                                                                         | —   | —   | —   | —   | —   | —   | — (S-4 adds)                    | RXASWG | P1,P4,P5 | S-4, P-7, P-26  |
-| CUI-6 | `Form`             | sys_ui_form, sys_ui_section, sys_ui_element, sys_ui_form_section, sys_ui_annotation | —   | —   | —   | —   | —   | —   | — (S-9 plans `sys_ui_section`)  | RXASWG | P1,P3,P4 | P-7, S-9, P-23  |
-| CUI-7 | `List`             | sys_ui_list, sys_ui_list_element                                                    | —   | —   | —   | —   | —   | —   | — (S-9 plans `sys_ui_list`)     | RXASWG | P1,P3,P4 | P-7, S-9, P-23  |
-| CUI-8 | `ApplicationMenu`  | sys_app_application, sys_app_module                                                 | —   | —   | —   | —   | —   | —   | —                               | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
-| CUI-9 | views (Record)     | sys_ui_view, sysrule_view, sys_ui_list_control                                      | —   | —   | —   | —   | —   | —   | —                               | RXS    | P1       | P-7             |
+| Id     | Artefact (SDK API)   | ServiceNow table(s)                                                                                                        | R   | X   | A   | S   | W   | G   | Now (refs)                      | Target | Phase    | Items           |
+| ------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- | ------------------------------- | ------ | -------- | --------------- |
+| CUI-1  | `ClientScript`       | sys_script_client                                                                                                          | ✅  | ◐   | ✅  | ✅  | —   | —   | `[ST]`, `[WU]`, `[CC]`, `[SN]`  | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
+| CUI-2  | `UiAction`           | sys_ui_action (+ sys_ux_form_action for workspace buttons)                                                                 | ✅  | ◐   | ✅  | ✅  | —   | —   | `[ST]`, `[WU]`, `[CC]`, `[SN]`  | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
+| CUI-3  | `UiPolicy`           | sys_ui_policy, sys_ui_policy_action                                                                                        | ◐   | ◐   | ◐   | ◐   | —   | —   | `[ST]` scripts only, no actions | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
+| CUI-4  | `DataPolicy`         | sys_data_policy2, sys_data_policy_rule                                                                                     | —   | —   | —   | —   | —   | —   | — (S-5 lane)                    | RXASWG | P1,P4,P5 | P-7, S-5, P-23  |
+| CUI-5  | `UiPage`             | sys_ui_page                                                                                                                | —   | —   | —   | —   | —   | —   | — (S-4 adds)                    | RXASWG | P1,P4,P5 | S-4, P-7, P-26  |
+| CUI-6  | `Form`               | sys_ui_form, sys_ui_section, sys_ui_element, sys_ui_form_section, sys_ui_annotation, sys_ui_formatter (+ sys_process_flow) | —   | —   | —   | —   | —   | —   | — (S-9 plans `sys_ui_section`)  | RXASWG | P1,P3,P4 | P-7, S-9, P-23  |
+| CUI-7  | `List`               | sys_ui_list, sys_ui_list_element                                                                                           | —   | —   | —   | —   | —   | —   | — (S-9 plans `sys_ui_list`)     | RXASWG | P1,P3,P4 | P-7, S-9, P-23  |
+| CUI-8  | `ApplicationMenu`    | sys_app_application, sys_app_module                                                                                        | —   | —   | —   | —   | —   | —   | —                               | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
+| CUI-9  | views (Record)       | sys_ui_view, sysrule_view, sys_ui_list_control                                                                             | —   | —   | —   | —   | —   | —   | —                               | RXS    | P1       | P-7             |
+| CUI-10 | `Interceptor` (4.13) | sys_wizard, sys_wizard_answer, sys_wizard_choice, sys_wizard_choice_list (U)                                               | —   | —   | —   | —   | —   | —   | — (API new in 4.13, unverified) | RXS    | P1       | P-7, P-4        |
 
 ### 4.4 Next Experience — SDK APIs
 
@@ -276,10 +290,10 @@ The registry descriptors are `verified:false` (O-5: verify on a live instance). 
 | PA-4  | PA script                | pa_scripts                                          | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `pa_script` (not in script tools) | RX     | P1    | N-8   |
 | PA-5  | PA dashboard             | pa_dashboards, pa_m2m_dashboard_tabs, pa_tabs       | ◐   | ◐   | ◐   | ◐   | n/a | n/a | registry `pa_dashboard` (licensed)         | RX     | P1    | N-8   |
 
-Totals: **115 rows** — 17 core, 20 server, 9 classic UI, 4 Next Experience APIs, 11 UIB internals, 11
+Totals: **120 rows** — 21 core, 20 server, 10 classic UI, 4 Next Experience APIs, 11 UIB internals, 11
 portal, 12 flow/playbook, 6 legacy workflow, 6 catalog, 5 quality, 3 AI, 4 application, 7 reporting
 and Performance Analytics. **Artefact-aware
-coverage today:** R ✅ on 9 rows, ◐ on 16; X ✅ on none; A ✅ on 6; S ✅ on 5; W ✅ only on the
+coverage today:** R ✅ on 9 rows, ◐ on 17; X ✅ on none; A ✅ on 6; S ✅ on 5; W ✅ only on the
 generic `Record` and attachment rows; G on none.
 
 ## 5. Key design decisions
@@ -477,6 +491,8 @@ unless it says so.
 - [x] Descriptors for rows CORE-1…17, SRV-1…20, CUI-1…9 (tables and children as in §4).
 - [x] `sttrm_*` state model and `sys_choice` explainers render a transition list / choice table;
       `sys_ui_policy` / `sys_data_policy2` explain field effects from their action/rule children.
+- [ ] Descriptors for rows CORE-18…21 and CUI-10 (added 2026-10-09 by the guide audit; CUI-10
+      `Interceptor` waits for the 4.13 re-pin, O-7) and `sys_ui_formatter` in CUI-6.
 - **Depends on:** P-1, P-2, P-6.
 - **Acceptance:** `list_artifacts` + `explain_artifact` work for every row on the PDI fixture; rows
   whose table is absent answer `available:false`.

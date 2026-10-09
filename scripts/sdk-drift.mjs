@@ -1,8 +1,9 @@
 // P-4 — ServiceNow SDK release tracking.
 //
 // Compares the registry's SDK_BASELINE with the npm `@servicenow/sdk`
-// dist-tags (`latest`, `next`) and diffs the SDK docs index (llms.txt, the
-// "API Reference" section) against the registry's `sdkApi` values. Run weekly
+// dist-tags (`latest`, `next`), diffs the SDK docs index (llms.txt, the
+// "API Reference" section) against the registry's `sdkApi` values and its
+// "Guides" section against GUIDE_COVERAGE (SDK-PARITY §2 rule 5). Run weekly
 // by .github/workflows/sdk-drift.yml, which opens or updates one tracking
 // issue. It is NOT part of `npm run check` and never ships in the package.
 //
@@ -49,6 +50,110 @@ export const HELPER_SLUGS = new Set([
 ]);
 const SUB_API_PATH = /\/(table\/columns|service-catalog\/variables)\//;
 
+/**
+ * Every guide of the docs index (`## Guides`) mapped to the SDK-PARITY §4
+ * rows it describes, or to `n/a: <reason>` when it describes no artefact
+ * (CLI, process or reference pages). Guides build artefacts the API index
+ * alone misses (`Record()` tables, options of another API), so a guide
+ * missing here is drift. `test/sdk-drift.test.js` keeps every row id present
+ * in project/SDK-PARITY.md.
+ */
+export const GUIDE_COVERAGE = {
+  "alias-guide": ["SRV-9"],
+  "alias-template-guide": ["SRV-9"],
+  "application-menu-guide": ["CUI-8"],
+  "assessment-guide": ["QA-4"],
+  "assignment-rule-guide": ["CORE-18"],
+  "atf-guide": ["QA-1", "QA-2"],
+  "atf-ui-test-script-guide": ["QA-1"],
+  "auth-token-guide": "n/a: `now-sdk auth` CLI command",
+  "building-ai-agents-advanced-guide": ["AI-1", "AI-2"],
+  "building-ai-agents-guide": ["AI-1"],
+  "building-ai-agents-tools-guide": ["AI-1"],
+  "business-rule-guide": ["SRV-1"],
+  "choiceset-guide": ["CORE-2"],
+  "client-script-guide": ["CUI-1"],
+  "client-side-api-guide": "n/a: browser API reference for client scripts",
+  "creating-workspaces-guide": ["NX-1"],
+  "cross-scope-privilege-guide": ["CORE-9"],
+  "dashboard-filters-guide": ["NX-2"],
+  "dashboard-guide": ["NX-2"],
+  "data-lookup-guide": ["SRV-11"],
+  "data-policy-guide": ["CUI-4"],
+  "database-view-guide": ["CORE-3"],
+  "developing-apps-guide": ["APP-1"],
+  "email-notification-guide": ["SRV-14"],
+  "encoded-query-guide": "n/a: encoded query syntax reference",
+  "external-services-guide": ["CORE-16"],
+  "field-styles-guide": ["CORE-12"],
+  "fluent-overview": "n/a: language overview",
+  "form-formatters-guide": ["CUI-6"],
+  "form-layout-guide": ["CUI-6"],
+  "graphql-api-guide": ["SRV-8"],
+  "importing-data-guide": ["SRV-12", "SRV-13"],
+  "inbound-email-action-guide": ["SRV-15"],
+  "instance-scan-guide": ["QA-3"],
+  "interceptor-guide": ["CUI-10"],
+  "javascript-compatibility-guide": "n/a: server-side ECMAScript reference",
+  "knowledge-base-access-guide": ["CORE-19"],
+  "list-control-guide": ["CUI-9"],
+  "list-guide": ["CUI-7"],
+  "module-guide": ["SRV-5"],
+  "nowassist-skills-advanced-guide": ["AI-3"],
+  "nowassist-skills-guide": ["AI-3"],
+  "nowassist-skills-tools-guide": ["AI-3"],
+  "npm-libraries-guide": "n/a: third-party library support reference",
+  "override-column-guide": ["CORE-1"],
+  "playbook-activities-guide": ["FLW-10"],
+  "playbook-anti-patterns-guide": ["FLW-10"],
+  "playbook-datapills-guide": ["FLW-10"],
+  "playbook-guide": ["FLW-10"],
+  "playbook-lanes-guide": ["FLW-10"],
+  "playbook-patterns-guide": ["FLW-10"],
+  "playbook-permissions-guide": ["FLW-10"],
+  "playbook-triggers-guide": ["FLW-10"],
+  "playbook-unsupported-features-guide": ["FLW-10"],
+  "property-guide": ["CORE-5"],
+  "query-guide": "n/a: `now-sdk query` CLI command",
+  "registering-events-guide": ["CORE-14"],
+  "relationship-guide": ["CORE-15"],
+  "rest-message-guide": ["SRV-7"],
+  "retry-policy-guide": ["SRV-10"],
+  "risk-assessment-guide": ["QA-5"],
+  "scheduled-script-guide": ["SRV-4"],
+  "script-include-guide": ["SRV-2"],
+  "scripted-rest-api-guide": ["SRV-6"],
+  "sdlc-guide": "n/a: build, release and CI/CD process",
+  "security-guide": ["CORE-7", "CORE-8", "CORE-21"],
+  "service-catalog-client-script-guide": ["CAT-5"],
+  "service-catalog-guide": ["CAT-1", "CAT-2"],
+  "service-catalog-ui-policy-guide": ["CAT-6"],
+  "service-catalog-variables-guide": ["CAT-3", "CAT-4"],
+  "service-portal-advanced-guide": ["SP-6", "SP-10"],
+  "service-portal-components-guide": ["SP-3", "SP-4", "SP-7", "SP-8", "SP-9"],
+  "service-portal-guide": ["SP-1", "SP-2", "SP-6", "SP-7"],
+  "service-portal-ootb-reference": "n/a: OOTB record examples",
+  "state-model-guide": ["CORE-4"],
+  "table-augments-guide": ["CORE-20"],
+  "table-guide": ["CORE-1"],
+  "ui-action-guide": ["CUI-2"],
+  "ui-page-guide": ["CUI-5"],
+  "ui-page-patterns-guide": ["CUI-5"],
+  "ui-page-theming-guide": ["CUI-5"],
+  "ui-policy-guide": ["CUI-3"],
+  "user-criteria-examples-guide": ["CORE-10"],
+  "user-criteria-guide": ["CORE-10"],
+  "view-guide": ["CUI-9"],
+  "view-rule-guide": ["CUI-9"],
+  "wfa-custom-action-guide": ["FLW-3"],
+  "wfa-flow-actions-guide": ["FLW-5"],
+  "wfa-flow-guide": ["FLW-1"],
+  "wfa-flow-logic-guide": ["FLW-6"],
+  "wfa-flow-stages-guide": ["FLW-8"],
+  "wfa-subflow-guide": ["FLW-2"],
+  "wfa-trigger-guide": ["FLW-4"],
+};
+
 /** Numeric x.y.z comparison; a pre-release sorts before its release. */
 export function compareVersions(a, b) {
   const parse = (v) => {
@@ -72,10 +177,33 @@ export function compareVersions(a, b) {
  * format changed — itself drift).
  */
 export function parseLlmsApis(text) {
-  const lines = String(text).split(/\r?\n/);
-  const start = lines.findIndex((l) => /^##\s+API Reference\s*$/i.test(l));
-  if (start === -1) return null;
+  const links = parseSection(text, "API Reference");
+  if (links === null) return null;
   const apis = [];
+  for (const { slug: name, path } of links) {
+    if (SUB_API_PATH.test(path)) continue;
+    const slug = name.replace(/-api$/, "");
+    if (HELPER_SLUGS.has(slug)) continue;
+    apis.push({ slug, path });
+  }
+  return apis;
+}
+
+/**
+ * The guide pages listed under "## Guides" in llms.txt: `[{slug, path}]`.
+ * `null` when the section is missing.
+ */
+export function parseLlmsGuides(text) {
+  return parseSection(text, "Guides");
+}
+
+/** The `- [name](url)` links of one `## <heading>` section, lower-cased. */
+function parseSection(text, heading) {
+  const lines = String(text).split(/\r?\n/);
+  const header = new RegExp(`^##\\s+${heading}\\s*$`, "i");
+  const start = lines.findIndex((l) => header.test(l));
+  if (start === -1) return null;
+  const links = [];
   for (const line of lines.slice(start + 1)) {
     if (/^##\s/.test(line)) break;
     const m = /^\s*[-*]\s*\[([^\]]+)\]\(([^)\s]+)\)/.exec(line);
@@ -86,19 +214,16 @@ export function parseLlmsApis(text) {
     } catch {
       continue;
     }
-    if (SUB_API_PATH.test(pathname)) continue;
-    const slug = m[1].trim().toLowerCase().replace(/-api$/, "");
-    if (HELPER_SLUGS.has(slug)) continue;
-    apis.push({ slug, path: pathname });
+    links.push({ slug: m[1].trim().toLowerCase(), path: pathname });
   }
-  return apis;
+  return links;
 }
 
 /**
  * The drift report. Inputs: `baseline` (SDK_BASELINE), `sdkApis` (baseline
  * API names), `nextApis` (next-only API names), `types` (registry
- * descriptors: `{type, sdkApi, verified, tiers}`), `distTags` (npm) and
- * `llmsText` (the docs index).
+ * descriptors: `{type, sdkApi, verified, tiers}`), `distTags` (npm),
+ * `llmsText` (the docs index) and `guideCoverage` (GUIDE_COVERAGE).
  */
 export function computeDrift({
   baseline,
@@ -107,6 +232,7 @@ export function computeDrift({
   types = [],
   distTags = {},
   llmsText = "",
+  guideCoverage = GUIDE_COVERAGE,
 }) {
   const findings = [];
   const versions = {};
@@ -177,6 +303,8 @@ export function computeDrift({
     }
   }
 
+  const guides = diffGuides(llmsText, guideCoverage, findings);
+
   const nextOnly = nextApis.map((api) => {
     const descriptors = types
       .filter((t) => t.sdkApi === api)
@@ -208,9 +336,43 @@ export function computeDrift({
     distTags,
     versions,
     docs,
+    guides,
     nextOnly,
     findings,
     drift: findings.length > 0,
+  };
+}
+
+/**
+ * Diff the `## Guides` section against the coverage map; pushes findings and
+ * returns `{listed, mapped, newGuides, missingGuides}` (`null` when the
+ * section is missing).
+ */
+function diffGuides(llmsText, guideCoverage, findings) {
+  const parsed = parseLlmsGuides(llmsText);
+  // No Guides section is neutral: a format change already shows as a
+  // missing API Reference section.
+  if (parsed === null) return null;
+  const listed = new Set(parsed.map((g) => g.slug));
+  const newGuides = parsed.filter((g) => !Object.hasOwn(guideCoverage, g.slug));
+  const missingGuides = Object.keys(guideCoverage).filter(
+    (slug) => !listed.has(slug),
+  );
+  for (const g of newGuides) {
+    findings.push(
+      `New guide in the docs: \`${g.slug}\` (${g.path}) — map it in GUIDE_COVERAGE to SDK-PARITY §4 rows (add a row if none fits) or to n/a.`,
+    );
+  }
+  if (missingGuides.length > 0) {
+    findings.push(
+      `Mapped guides without a docs page: ${missingGuides.join(", ")} (renamed or removed?).`,
+    );
+  }
+  return {
+    listed: parsed.length,
+    mapped: parsed.length - newGuides.length,
+    newGuides,
+    missingGuides,
   };
 }
 
@@ -249,6 +411,12 @@ export function renderMarkdown(report, now = new Date()) {
     out.push(
       "",
       `Docs index: ${report.docs.listed} API pages, ${report.docs.matched.length} matched to registry APIs.`,
+    );
+  }
+  if (report.guides) {
+    out.push(
+      "",
+      `Guides: ${report.guides.listed} pages, ${report.guides.mapped} mapped in GUIDE_COVERAGE.`,
     );
   }
   out.push(

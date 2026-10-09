@@ -8,12 +8,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   DIST_TAGS_URL,
+  GUIDE_COVERAGE,
   LLMS_URL,
   compareVersions,
   computeDrift,
   httpGet,
   main,
   parseLlmsApis,
+  parseLlmsGuides,
   renderMarkdown,
   runDrift,
 } from "../scripts/sdk-drift.mjs";
@@ -88,7 +90,7 @@ test("parseLlmsApis reads only the API Reference section, drops helpers and sub-
     assert.ok(!slugs.includes(helper), `${helper} is a helper page`);
   }
   assert.ok(!apis.some((a) => /\/(columns|variables)\//.test(a.path)));
-  assert.ok(!slugs.includes("build-guide"), "Guides are out of scope");
+  assert.ok(!slugs.includes("table-guide"), "guides are parsed separately");
   assert.ok(!slugs.includes("now-config"), "the next section ends the scan");
   assert.equal(parseLlmsApis("# nothing here"), null);
   assert.deepEqual(
@@ -102,6 +104,70 @@ test("parseLlmsApis reads only the API Reference section, drops helpers and sub-
     ),
     [{ slug: "foo", path: "/api/foo-api" }],
   );
+});
+
+test("the fixture's guides are all mapped in GUIDE_COVERAGE: no guide drift", () => {
+  const guides = parseLlmsGuides(LLMS);
+  assert.equal(guides.length, Object.keys(GUIDE_COVERAGE).length);
+  assert.ok(guides.some((g) => g.slug === "interceptor-guide"));
+  assert.equal(parseLlmsGuides("## API Reference\n"), null);
+  const report = computeDrift(base({ distTags: { latest: "4.12.2" } }));
+  assert.deepEqual(report.guides, {
+    listed: guides.length,
+    mapped: guides.length,
+    newGuides: [],
+    missingGuides: [],
+  });
+  assert.match(
+    renderMarkdown(report),
+    new RegExp(`Guides: ${guides.length} pages, ${guides.length} mapped`),
+  );
+});
+
+test("computeDrift flags an unmapped guide and a mapped guide without a page", () => {
+  const report = computeDrift(
+    base({
+      distTags: { latest: "4.12.2" },
+      llmsText: LLMS.replace(
+        "- [alias-guide](https://servicenow.github.io/sdk/guides/alias-guide?embed=true)\n",
+        "- [widget-guide](https://servicenow.github.io/sdk/guides/widget-guide?embed=true)\n",
+      ),
+    }),
+  );
+  assert.equal(report.drift, true);
+  assert.deepEqual(report.guides.newGuides, [
+    { slug: "widget-guide", path: "/sdk/guides/widget-guide" },
+  ]);
+  assert.deepEqual(report.guides.missingGuides, ["alias-guide"]);
+  assert.ok(
+    report.findings.some((f) =>
+      /New guide in the docs: `widget-guide`/.test(f),
+    ),
+  );
+  assert.ok(
+    report.findings.includes(
+      "Mapped guides without a docs page: alias-guide (renamed or removed?).",
+    ),
+  );
+});
+
+test("every GUIDE_COVERAGE row id is a row of SDK-PARITY §4; n/a entries give a reason", () => {
+  const parity = readFileSync(
+    path.join(here, "..", "project", "SDK-PARITY.md"),
+    "utf8",
+  );
+  const rows = new Set(
+    [...parity.matchAll(/^\|\s*([A-Z]+-\d+)\s*\|/gm)].map((m) => m[1]),
+  );
+  for (const [slug, cover] of Object.entries(GUIDE_COVERAGE)) {
+    if (typeof cover === "string") {
+      assert.match(cover, /^n\/a: \S/, `${slug} needs a reason`);
+      continue;
+    }
+    assert.ok(cover.length > 0, `${slug} maps to no row`);
+    for (const id of cover)
+      assert.ok(rows.has(id), `${slug}: ${id} is not a §4 row`);
+  }
 });
 
 test("compareVersions orders numerically and puts pre-releases first", () => {
