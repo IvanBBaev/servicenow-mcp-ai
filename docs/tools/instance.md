@@ -2,12 +2,13 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-2 tools (0 read-only, 2 write). Opt-in: add `instance` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
+3 tools (1 read-only, 2 write). Opt-in: add `instance` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
 | [`servicenow_snapshot_instance`](#servicenow_snapshot_instance) | no | Snapshot instance metadata |
 | [`servicenow_compare_instances`](#servicenow_compare_instances) | no | Compare two instances |
+| [`servicenow_review_upgrade`](#servicenow_review_upgrade) | yes | Review upgrade |
 
 ## servicenow_snapshot_instance
 
@@ -54,3 +55,26 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 ### Output
 
 Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+
+## servicenow_review_upgrade
+
+**Review upgrade.** Upgrade history by default; upgrade: its unresolved skipped records by app/type; update_name: one skip classified by base vs customer versions; store_updates: store apps with an update and their customisations.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `upgrade` | string | no |  |
+| `update_name` | string | no |  |
+| `store_updates` | boolean | no |  |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `available` | boolean |  |

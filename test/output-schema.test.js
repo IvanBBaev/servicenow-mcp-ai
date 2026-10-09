@@ -122,6 +122,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * / 117,950 / 133,111 (all −9,461 B; core −2,724 B): the budgets ratchet down
  * to 26,624 / 116,736 / 118,016 / 133,120. The N-5 / N-16 / N-1 / N-22
  * allowance above is still counted as growth from here.
+ * N-1, 2026-10-09 (same N-5 / N-16 / N-1 / N-22 allowance):
+ * `servicenow_review_upgrade` in the opt-in instance package, measured
+ * 26,583 / 117,388 / 118,758 / 133,919 (all +808 B; core +0 B): the budgets
+ * become 26,624 / 117,504 / 118,784 / 134,144.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

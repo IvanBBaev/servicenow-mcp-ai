@@ -2,7 +2,7 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-99 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
+100 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
 
 | Package | Tools | Read-only | Default `core` |
 | ------- | ----: | --------: | :------------: |
@@ -20,7 +20,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`flows`](flows.md) | 5 | 5 | no |
 | [`codecheck`](codecheck.md) | 3 | 2 | no |
 | [`docs`](docs.md) | 9 | 5 | no |
-| [`instance`](instance.md) | 2 | 0 | no |
+| [`instance`](instance.md) | 3 | 1 | no |
 | [`email`](email.md) | 2 | 1 | no |
 | [`atf`](atf.md) | 5 | 3 | no |
 | [`revert`](revert.md) | 2 | 1 | no |

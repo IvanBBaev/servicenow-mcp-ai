@@ -29,8 +29,8 @@ import { isSysId } from "../core/sys-id.js";
  *   available, each with the customised artefacts in its scope
  *   (sys_update_xml by application, grouped by the registry type).
  *
- * Not wired to a tool yet: `servicenow_review_upgrade` (opt-in `upgrade`
- * package) and the `document_instance` kind `upgrade` grow tools/list (O-10).
+ * Served by `servicenow_review_upgrade` (opt-in `instance` package). The
+ * `document_instance` kind `upgrade` is not wired yet (tools/list, O-10).
  *
  * Read-only and bounded; never throws except on a cancel. A failed read
  * degrades to `available:false`. Table, field and choice names

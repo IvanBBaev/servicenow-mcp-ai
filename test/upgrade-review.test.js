@@ -18,6 +18,8 @@ import {
   reviewSkippedRecord,
   tableOfUpdateName,
 } from "../build/api/upgrade.js";
+import { ALL_TOOLS } from "../build/mcp/registry.js";
+import { runSpec } from "../build/mcp/define.js";
 import {
   baselineEnv,
   freshRuntime,
@@ -394,6 +396,64 @@ test("store updates degrade: unreadable store table or scope updates", async () 
         renderStoreUpdates(await readStoreUpdates()).join("\n"),
         /No store app has an update available/,
       );
+    },
+  );
+});
+
+const tool = ALL_TOOLS.find((t) => t.name === "servicenow_review_upgrade");
+
+/** The table each request of one tool call read, in order. */
+const tablesRead = (calls) =>
+  calls.map((c) => new URL(c.url).pathname.split("/").pop());
+
+test("N-1: review_upgrade is a read tool in the opt-in instance package", () => {
+  assert.ok(tool);
+  assert.equal(tool.package, "instance");
+  assert.equal(tool.annotations.readOnlyHint, true);
+  assert.equal(tool.annotations.destructiveHint, false);
+});
+
+test("N-1: the history view is the default, as structured content", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_upgrade_history: () =>
+        jsonResponse(200, {
+          result: [{ sys_id: UPG, to_version: "glide-yokohama" }],
+        }),
+    }),
+    async (calls) => {
+      const res = await runSpec(tool, {});
+      assert.equal(res.isError, undefined);
+      assert.equal(res.structuredContent.available, true);
+      assert.equal(
+        res.structuredContent.upgrades[0].toVersion,
+        "glide-yokohama",
+      );
+      assert.deepEqual(JSON.parse(res.content[0].text), res.structuredContent);
+      assert.deepEqual(tablesRead(calls), ["sys_upgrade_history"]);
+    },
+  );
+});
+
+test("N-1: upgrade, update_name and store_updates pick their view", async () => {
+  freshRuntime();
+  await withFetch(
+    () => jsonResponse(403, { error: { message: "denied" } }),
+    async (calls) => {
+      const skipped = await runSpec(tool, { upgrade: UPG });
+      assert.match(
+        skipped.structuredContent.unavailableReason,
+        /sys_upgrade_history_log/,
+      );
+      const record = await runSpec(tool, { update_name: BR, upgrade: UPG });
+      assert.match(
+        record.structuredContent.unavailableReason,
+        /sys_update_version/,
+      );
+      const store = await runSpec(tool, { store_updates: true });
+      assert.equal(store.structuredContent.available, false);
+      assert.ok(tablesRead(calls).includes("sys_store_app"));
     },
   );
 });

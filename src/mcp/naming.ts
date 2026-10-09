@@ -94,6 +94,7 @@ export const TOOLS = {
   read_doc: "servicenow_read_doc",
   read_ops: "servicenow_read_ops",
   revert_write: "servicenow_revert_write",
+  review_upgrade: "servicenow_review_upgrade",
   run_atf_suite: "servicenow_run_atf_suite",
   run_atf_test: "servicenow_run_atf_test",
   search_code: "servicenow_search_code",

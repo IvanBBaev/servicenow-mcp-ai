@@ -6,10 +6,18 @@ import {
   type RecordSectionId,
 } from "../api/snapshot.js";
 import { compareInstances } from "../api/compare.js";
+import {
+  readSkipped,
+  readStoreUpdates,
+  readUpgradeHistory,
+  reviewSkippedRecord,
+} from "../api/upgrade.js";
 import { deliverJson } from "../mcp/file-result.js";
+import { ok } from "../mcp/result.js";
 import {
   defineTool,
   shortText,
+  sysId,
   tableList,
   type AnyToolSpec,
 } from "../mcp/define.js";
@@ -26,7 +34,9 @@ const formatInput = z
  * Instance analysis package (Phase 7): snapshot an instance's structural
  * metadata into the local docs folder; instance comparison (MI-7) joins it
  * next. Reads go through the regular api/ layers, output lands under
- * SN_DOCS_DIR/<profile>/.
+ * SN_DOCS_DIR/<profile>/. N-1: upgrade readiness (history, the skipped
+ * records of one upgrade, one skipped record's base vs customer versions,
+ * store apps with an update) through `servicenow_review_upgrade`.
  */
 /** P-20: registry artefact types for snapshot / compare. */
 const artifactTypesInput = z
@@ -150,5 +160,45 @@ export const specs: AnyToolSpec[] = [
       });
       return deliverJson(result, `compare-${result.a}-vs-${result.b}`, format);
     },
+  }),
+
+  defineTool({
+    name: "servicenow_review_upgrade",
+    title: "Review upgrade",
+    description:
+      "Upgrade history by default; upgrade: its unresolved skipped records by app/type; update_name: one skip classified by base vs customer versions; store_updates: store apps with an update and their customisations.",
+    package: "instance",
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    input: {
+      upgrade: sysId().optional(),
+      update_name: shortText(255).optional(),
+      store_updates: z.boolean().optional(),
+    },
+    output: { available: z.boolean() },
+    logFields: (args) => ({
+      view:
+        args.update_name !== undefined
+          ? "record"
+          : args.upgrade !== undefined
+            ? "skipped"
+            : args.store_updates === true
+              ? "store"
+              : "history",
+    }),
+    handler: async ({ upgrade, update_name, store_updates }) =>
+      ok(
+        update_name !== undefined
+          ? await reviewSkippedRecord(update_name)
+          : upgrade !== undefined
+            ? await readSkipped(upgrade)
+            : store_updates === true
+              ? await readStoreUpdates()
+              : await readUpgradeHistory(),
+      ),
   }),
 ];

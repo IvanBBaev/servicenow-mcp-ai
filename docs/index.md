@@ -14,7 +14,7 @@ Get started → [View on GitHub](https://github.com/IvanBBaev/servicenow-mcp-ai)
 - MCP SDK 1.29
 - OAuth 2.1 PKCE
 
-- **99** tools
+- **100** tools
 - **26** packages
 - **6** MCP resources
 - **3** prompts
@@ -376,7 +376,7 @@ The admin tools are always registered regardless of packages. Unknown names are 
 
 ## Tools reference
 
-99 tools across 26 packages. read tools never mutate the instance; write tools respect the read-only and policy guards. **Click any tool** to expand its full parameter list — name, type, whether it is required and any allowed values.
+100 tools across 26 packages. read tools never mutate the instance; write tools respect the read-only and policy guards. **Click any tool** to expand its full parameter list — name, type, whether it is required and any allowed values.
 
 No tools match that search.
 

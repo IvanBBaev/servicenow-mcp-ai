@@ -16,7 +16,7 @@
 
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-99-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-100-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -1091,7 +1091,7 @@ name carries the `servicenow_` prefix, left out below._
 | [`flows`](docs/tools/flows.md) | no | `trace_table_event`, `list_flows`, `get_flow`, `get_flow_runs`, `explain_flow` | — |
 | [`codecheck`](docs/tools/codecheck.md) | no | `lint_script`, `lint_table` | `check_code_health` |
 | [`docs`](docs/tools/docs.md) | no | `list_docs`, `read_doc`, `search_docs`, `generate_er_diagram`, `generate_table_flow` | `write_doc`, `document_table`, `document_app`, `document_instance` |
-| [`instance`](docs/tools/instance.md) | no | — | `snapshot_instance`, `compare_instances` |
+| [`instance`](docs/tools/instance.md) | no | `review_upgrade` | `snapshot_instance`, `compare_instances` |
 | [`email`](docs/tools/email.md) | no | `get_email` | `send_email` |
 | [`atf`](docs/tools/atf.md) | no | `list_atf_tests`, `list_atf_suites`, `get_atf_result` | `run_atf_test`, `run_atf_suite` |
 | [`revert`](docs/tools/revert.md) | no | `list_writes` | `revert_write` |
@@ -2169,7 +2169,7 @@ compatibility with the ServiceNow platform. See the README for the full notice.
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-99 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
+100 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
 
 | Package | Tools | Read-only | Default `core` |
 | ------- | ----: | --------: | :------------: |
@@ -2187,7 +2187,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`flows`](flows.md) | 5 | 5 | no |
 | [`codecheck`](codecheck.md) | 3 | 2 | no |
 | [`docs`](docs.md) | 9 | 5 | no |
-| [`instance`](instance.md) | 2 | 0 | no |
+| [`instance`](instance.md) | 3 | 1 | no |
 | [`email`](email.md) | 2 | 1 | no |
 | [`atf`](atf.md) | 5 | 3 | no |
 | [`revert`](revert.md) | 2 | 1 | no |
@@ -3901,12 +3901,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-2 tools (0 read-only, 2 write). Opt-in: add `instance` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
+3 tools (1 read-only, 2 write). Opt-in: add `instance` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
 | [`servicenow_snapshot_instance`](#servicenow_snapshot_instance) | no | Snapshot instance metadata |
 | [`servicenow_compare_instances`](#servicenow_compare_instances) | no | Compare two instances |
+| [`servicenow_review_upgrade`](#servicenow_review_upgrade) | yes | Review upgrade |
 
 ## servicenow_snapshot_instance
 
@@ -3953,6 +3954,29 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 ### Output
 
 Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+
+## servicenow_review_upgrade
+
+**Review upgrade.** Upgrade history by default; upgrade: its unresolved skipped records by app/type; update_name: one skip classified by base vs customer versions; store_updates: store apps with an update and their customisations.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `upgrade` | string | no |  |
+| `update_name` | string | no |  |
+| `store_updates` | boolean | no |  |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `available` | boolean |  |
 
 ---
 

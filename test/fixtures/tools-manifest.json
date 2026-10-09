@@ -5706,6 +5706,45 @@
       }
     },
     {
+      "name": "servicenow_review_upgrade",
+      "package": "instance",
+      "title": "Review upgrade",
+      "since": "2.0.1",
+      "description_sha256": "8ccadc7320ec337a724ba85941e07faac1f5638eaf0e24b991b3911f4518b26b",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance": {
+            "description": "Profile (default active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "store_updates": { "type": "boolean" },
+          "update_name": { "maxLength": 255, "type": "string" },
+          "upgrade": { "pattern": "^[A-Za-z0-9_-]{1,32}$", "type": "string" }
+        },
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": { "available": { "type": "boolean" } },
+        "required": ["available"],
+        "type": "object"
+      },
+      "sizes": {
+        "description": 212,
+        "inputSchema": 292,
+        "paramDescriptions": 26,
+        "outputSchema": 114
+      }
+    },
+    {
       "name": "servicenow_run_atf_suite",
       "package": "atf",
       "title": "Run an ATF suite",

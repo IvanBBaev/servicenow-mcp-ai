@@ -77,6 +77,10 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-1: `servicenow_review_upgrade` in the opt-in `instance` package.** The upgrade history by default; with `upgrade`
+  the unresolved skipped records of that upgrade grouped by application and artefact type; with `update_name` one
+  skipped record classified by its base and customer versions (with field diffs); with `store_updates` the store apps
+  that have an update and their customised artefacts. tools/list: all +808 B, core +0 B.
 - **N-5: `servicenow_get_task_context` in the opt-in `history` package.** For one task (sys_id or number) it returns the
   assignment, approvals and task SLAs (breach flag, time left), optionally recent journal entries; with `pending_for`
   it lists an approver's requested approvals instead. tools/list: all +859 B, core +0 B.
