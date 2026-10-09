@@ -2,9 +2,9 @@
   "note": "tools/list byte budgets per surface profile (JSON.stringify of the tools array, measured by test/surface.js), rounded up to 256 B. `npm run tokens:budget -- --write` lowers them; raising one is a hand edit and an owner decision (O-10). A budget more than slackPct above its measurement fails the ratchet test. `discovery` joins with N-63. N-57.",
   "slackPct": 2,
   "profiles": {
-    "core": 28672,
-    "all": 123392,
-    "all+tasks": 124672,
-    "all+legacy": 140288
+    "core": 29440,
+    "all": 124160,
+    "all+tasks": 125440,
+    "all+legacy": 141056
   }
 }

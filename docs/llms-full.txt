@@ -16,7 +16,7 @@
 
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-97-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-98-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -1102,7 +1102,7 @@ name carries the `servicenow_` prefix, left out below._
 | [`properties`](docs/tools/properties.md) | no | `get_properties` | `set_property` |
 | [`directory`](docs/tools/directory.md) | no | `lookup_directory` | — |
 | [`ui`](docs/tools/ui.md) | no | `explain_portal`, `explain_ui_experience` | — |
-| [`admin`](docs/tools/admin.md) | yes | `list_instances`, `explain_policy`, `get_status`, `test_connection`, `check_capabilities`, `list_packages` | `set_credentials`, `use_instance`, `enable_package`, `disable_package` |
+| [`admin`](docs/tools/admin.md) | yes | `list_instances`, `explain_policy`, `get_status`, `test_connection`, `check_capabilities`, `list_packages`, `find_tools` | `set_credentials`, `use_instance`, `enable_package`, `disable_package` |
 
 <!-- GENERATED:TOOLS:END -->
 
@@ -2169,7 +2169,7 @@ compatibility with the ServiceNow platform. See the README for the full notice.
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-97 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
+98 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
 
 | Package | Tools | Read-only | Default `core` |
 | ------- | ----: | --------: | :------------: |
@@ -2198,7 +2198,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`properties`](properties.md) | 2 | 1 | no |
 | [`directory`](directory.md) | 1 | 1 | no |
 | [`ui`](ui.md) | 2 | 2 | no |
-| [`admin`](admin.md) | 10 | 6 | yes |
+| [`admin`](admin.md) | 11 | 7 | yes |
 
 ## Error codes
 
@@ -4793,7 +4793,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-10 tools (6 read-only, 4 write). Always on. [All packages](README.md).
+11 tools (7 read-only, 4 write). Always on. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
@@ -4807,6 +4807,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`servicenow_list_packages`](#servicenow_list_packages) | yes | List tool packages |
 | [`servicenow_enable_package`](#servicenow_enable_package) | no | Enable a tool package |
 | [`servicenow_disable_package`](#servicenow_disable_package) | no | Disable a tool package |
+| [`servicenow_find_tools`](#servicenow_find_tools) | yes | Find tools by intent |
 
 ## servicenow_set_credentials
 
@@ -5050,3 +5051,25 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `readOnly` | boolean |  |
 | `tools` | string[] |  |
 | `prompts` | string[] |  |
+
+## servicenow_find_tools
+
+**Find tools by intent.** Search all tool packages, loaded or not, by intent; servicenow_enable_package loads a match's package.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `query` | string | yes | What to do, e.g. 'run an ATF suite'. |
+| `limit` | integer | no |  |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `matches` | any[] |  |

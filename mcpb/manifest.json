@@ -3,7 +3,7 @@
   "name": "servicenow-mcp-ai",
   "display_name": "ServiceNow MCP",
   "version": "2.0.1",
-  "description": "ServiceNow MCP server: 97 tools in 26 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
+  "description": "ServiceNow MCP server: 98 tools in 26 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "author": { "name": "Ivan Baev", "email": "ivanbbaev@gmail.com" },
   "repository": {
     "type": "git",
@@ -145,6 +145,7 @@
       "name": "servicenow_explain_ui_experience",
       "description": "Explain a UI Builder experience"
     },
+    { "name": "servicenow_find_tools", "description": "Find tools by intent" },
     {
       "name": "servicenow_generate_er_diagram",
       "description": "Generate ER diagram"

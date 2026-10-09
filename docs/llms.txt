@@ -44,7 +44,7 @@ Install it with `npx -y servicenow-mcp-ai`. Run `npx servicenow-mcp-ai init` for
 - [properties](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/properties.md): 2 tools
 - [directory](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/directory.md): 1 tool
 - [ui](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/ui.md): 2 tools
-- [admin](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/admin.md): 10 tools
+- [admin](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/admin.md): 11 tools
 
 <!-- GENERATED:TOOL-REFERENCE:END -->
 

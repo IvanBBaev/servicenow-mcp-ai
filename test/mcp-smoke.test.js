@@ -60,6 +60,7 @@ const CORE_TOOLS = [
   "servicenow_download_attachment",
   "servicenow_enable_package",
   "servicenow_explain_policy",
+  "servicenow_find_tools",
   "servicenow_get_attachment",
   "servicenow_get_record",
   "servicenow_get_status",

@@ -2079,6 +2079,49 @@
       }
     },
     {
+      "name": "servicenow_find_tools",
+      "package": "admin",
+      "title": "Find tools by intent",
+      "since": "2.0.1",
+      "description_sha256": "80e99631d0a796f9446835ba730534649c3e181a6719a59d9a491684433007b0",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance": {
+            "description": "Profile (default active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "limit": { "exclusiveMinimum": 0, "maximum": 25, "type": "integer" },
+          "query": {
+            "description": "What to do, e.g. 'run an ATF suite'.",
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": ["query"],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": { "matches": { "items": {}, "type": "array" } },
+        "required": ["matches"],
+        "type": "object"
+      },
+      "sizes": {
+        "description": 104,
+        "inputSchema": 324,
+        "paramDescriptions": 64,
+        "outputSchema": 119
+      }
+    },
+    {
       "name": "servicenow_generate_er_diagram",
       "package": "docs",
       "title": "Generate ER diagram",

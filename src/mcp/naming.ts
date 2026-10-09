@@ -41,6 +41,7 @@ export const TOOLS = {
   explain_policy: "servicenow_explain_policy",
   explain_portal: "servicenow_explain_portal",
   explain_ui_experience: "servicenow_explain_ui_experience",
+  find_tools: "servicenow_find_tools",
   generate_er_diagram: "servicenow_generate_er_diagram",
   generate_fluent: "servicenow_generate_fluent",
   generate_table_flow: "servicenow_generate_table_flow",

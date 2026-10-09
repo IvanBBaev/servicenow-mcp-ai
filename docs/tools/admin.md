@@ -2,7 +2,7 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-10 tools (6 read-only, 4 write). Always on. [All packages](README.md).
+11 tools (7 read-only, 4 write). Always on. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
@@ -16,6 +16,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`servicenow_list_packages`](#servicenow_list_packages) | yes | List tool packages |
 | [`servicenow_enable_package`](#servicenow_enable_package) | no | Enable a tool package |
 | [`servicenow_disable_package`](#servicenow_disable_package) | no | Disable a tool package |
+| [`servicenow_find_tools`](#servicenow_find_tools) | yes | Find tools by intent |
 
 ## servicenow_set_credentials
 
@@ -259,3 +260,25 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `readOnly` | boolean |  |
 | `tools` | string[] |  |
 | `prompts` | string[] |  |
+
+## servicenow_find_tools
+
+**Find tools by intent.** Search all tool packages, loaded or not, by intent; servicenow_enable_package loads a match's package.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `query` | string | yes | What to do, e.g. 'run an ATF suite'. |
+| `limit` | integer | no |  |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `matches` | any[] |  |

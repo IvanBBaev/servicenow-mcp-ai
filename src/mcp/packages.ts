@@ -14,6 +14,7 @@ import { IntegrationError } from "../core/errors.js";
 import { logger } from "../core/logging.js";
 import { defineRuntimePart, currentRuntime } from "../core/runtime.js";
 import { unwatchRecord, watchRecord } from "./record-watch.js";
+import type { ToolEntry } from "./tool-search.js";
 
 /**
  * M-5: dynamic packages. Every policy-permitted tool is registered up front;
@@ -206,6 +207,23 @@ export class PackageSession {
       readOnly: this.readOnly.has(name),
       tools: this.tools.get(name)?.length ?? 0,
     }));
+  }
+
+  /**
+   * N-36: every tool this session could expose (enabled or not, never a
+   * denied package or a read-only package's write tools), for find_tools.
+   */
+  catalog(): ToolEntry[] {
+    return [...this.tools].flatMap(([pkg, list]) =>
+      list.map(({ name, handle }) => ({
+        name,
+        package: pkg,
+        title: handle.title ?? name,
+        description: handle.description ?? "",
+        readOnly: handle.annotations?.readOnlyHint === true,
+        enabled: this.enabled.has(pkg),
+      })),
+    );
   }
 
   enable(input: string): PackageChange {

@@ -36,6 +36,7 @@ import {
   notifyProfileChanged,
   type PackageChange,
 } from "../mcp/packages.js";
+import { findTools } from "../mcp/tool-search.js";
 import { testConnection } from "../api/diagnostics.js";
 import { checkCapabilities, MATRIX_GROUPS } from "../api/capabilities.js";
 import { clearCapabilityCache } from "../api/capability-matrix.js";
@@ -278,7 +279,8 @@ function instanceChanged(profile: string, nextHost: string): boolean {
 }
 
 /** The always-on management surface: registered regardless of SN_TOOL_PACKAGES. */
-const NO_SESSION = "Packages can only be toggled on a running MCP server.";
+const NO_SESSION =
+  "Packages can only be listed or toggled on a running MCP server.";
 
 /** Shared body of servicenow_enable_package / servicenow_disable_package (M-5). */
 function togglePackage(name: string, on: boolean) {
@@ -797,5 +799,50 @@ export const specs: AnyToolSpec[] = [
     output: TOGGLE_OUTPUT,
     logFields: (args) => ({ name: args.name }),
     handler: ({ name }) => togglePackage(name, false),
+  }),
+
+  defineTool({
+    name: "servicenow_find_tools",
+    title: "Find tools by intent",
+    description:
+      "Search all tool packages, loaded or not, by intent; servicenow_enable_package loads a match's package.",
+    package: "admin",
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    input: {
+      query: shortText(200).describe("What to do, e.g. 'run an ATF suite'."),
+      limit: z.number().int().positive().max(25).optional(),
+    },
+    output: { matches: z.array(z.unknown()) },
+    handler: ({ query, limit }) => {
+      const session = currentPackageSession();
+      if (!session) return fail(NO_SESSION, { code: "NO_PACKAGE_SESSION" });
+      // The score only orders the matches; it is not part of the result.
+      const matches = findTools(session.catalog(), query, { limit }).map(
+        (m) => ({
+          name: m.name,
+          package: m.package,
+          title: m.title,
+          description: m.description,
+          readOnly: m.readOnly,
+          enabled: m.enabled,
+        }),
+      );
+      const disabled = [
+        ...new Set(matches.filter((m) => !m.enabled).map((m) => m.package)),
+      ];
+      return okStructured({
+        matches,
+        ...(disabled.length
+          ? {
+              hint: `Enable with servicenow_enable_package: ${disabled.join(", ")}.`,
+            }
+          : {}),
+      });
+    },
   }),
 ];
