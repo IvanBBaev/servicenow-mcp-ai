@@ -2294,20 +2294,21 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table, e.g. 'incident'. |
-| `query` | string | no | Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'. |
+| `query` | string | no | Encoded query (sysparm_query), e.g. 'active=true^ORDERBYDESCsys_created_on'. |
 | `fields` | string[] \| "summary" | no | Columns (default all); 'summary': the list view's. |
 | `limit` | integer | no | Max records (default 10). |
 | `offset` | integer | no | Records to skip (paging). |
 | `displayValue` | "true" \| "false" \| "all" \| "display" | no | 'true' display, 'false' raw (default), 'all' both, 'display' compact ([sys_id, name] refs). |
 | `omitEmpty` | boolean | no | Drop empty cells; columns are listed. |
-| `fetchAll` | boolean | no | All matches (up to SN_MAX_RECORDS), not one page: sys_id cursor without an ORDERBY (stable while rows change), else offset. |
+| `fetchAll` | boolean | no | All matches (≤ SN_MAX_RECORDS): sys_id cursor without an ORDERBY (stable), else offset. |
 | `view` | string | no | UI view's fields (sysparm_view); 'fields' wins. |
 | `queryCategory` | string | no | sysparm_query_category, e.g. a read replica. |
 | `noCount` | boolean | no | Skip the row count (sysparm_no_count): faster on huge tables; 'total' unknown. |
 | `queryNoDomain` | boolean | no | Query all accessible domains (sysparm_query_no_domain). |
+| `domain` | string | no | Only this domain's rows (sys_id). |
 | `suppressPaginationHeader` | boolean | no | sysparm_suppress_pagination_header. |
-| `format` | "json" \| "csv" \| "table" \| "file" | no | 'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/ → { path, bytes, preview }. |
-| `fileFormat` | "csv" \| "jsonl" | no | With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys). |
+| `format` | "json" \| "csv" \| "table" \| "file" | no | 'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/. |
+| `fileFormat` | "csv" \| "jsonl" | no | With format 'file': 'csv' (default; columns from 'fields' or page 1) or 'jsonl' (all keys). |
 | `explain` | boolean | no | Read no records: which conditions can use an index, with cost notes (advice). |
 | `instance` | string | no | Profile (default active) |
 

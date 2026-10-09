@@ -289,6 +289,36 @@ test("query_table forwards the S-8 sysparm_* parameters", async () => {
   );
 });
 
+test("query_table 'domain' scopes every ^NQ segment; absent, the query is untouched (N-12)", async () => {
+  const id = "c90d4b084a362312013398f5c3b2d3e1";
+  await withFetch(
+    listHandler(() => rows(1)),
+    async (calls) => {
+      await call("servicenow_query_table", {
+        table: "incident",
+        query: "active=true^NQpriority=1",
+        domain: id,
+      });
+      assert.equal(
+        params(calls[0]).get("sysparm_query"),
+        `sys_domain=${id}^active=true^NQsys_domain=${id}^priority=1`,
+      );
+      await call("servicenow_query_table", {
+        table: "incident",
+        domain: "global",
+      });
+      assert.equal(params(calls[1]).get("sysparm_query"), "sys_domain=global");
+      await call("servicenow_query_table", {
+        table: "incident",
+        query: "active=true",
+      });
+      assert.equal(params(calls[2]).get("sysparm_query"), "active=true");
+    },
+  );
+  const { domain } = tool("servicenow_query_table").input;
+  assert.equal(domain.safeParse("x^ORactive=false").success, false);
+});
+
 test("query_table description and the reference resource document C-6 limits", () => {
   const { description } = tool("servicenow_query_table");
   assert.match(description, /HTTP 414/);

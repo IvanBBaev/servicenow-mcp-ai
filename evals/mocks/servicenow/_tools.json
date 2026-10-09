@@ -2215,7 +2215,7 @@
             "description": "Table, e.g. 'incident'."
           },
           "query": {
-            "description": "Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'.",
+            "description": "Encoded query (sysparm_query), e.g. 'active=true^ORDERBYDESCsys_created_on'.",
             "type": "string",
             "maxLength": 8000
           },
@@ -2263,7 +2263,7 @@
             "type": "boolean"
           },
           "fetchAll": {
-            "description": "All matches (up to SN_MAX_RECORDS), not one page: sys_id cursor without an ORDERBY (stable while rows change), else offset.",
+            "description": "All matches (≤ SN_MAX_RECORDS): sys_id cursor without an ORDERBY (stable), else offset.",
             "type": "boolean"
           },
           "view": {
@@ -2284,12 +2284,17 @@
             "description": "Query all accessible domains (sysparm_query_no_domain).",
             "type": "boolean"
           },
+          "domain": {
+            "description": "Only this domain's rows (sys_id).",
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
           "suppressPaginationHeader": {
             "description": "sysparm_suppress_pagination_header.",
             "type": "boolean"
           },
           "format": {
-            "description": "'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/ → { path, bytes, preview }.",
+            "description": "'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/.",
             "type": "string",
             "enum": [
               "json",
@@ -2299,7 +2304,7 @@
             ]
           },
           "fileFormat": {
-            "description": "With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys).",
+            "description": "With format 'file': 'csv' (default; columns from 'fields' or page 1) or 'jsonl' (all keys).",
             "type": "string",
             "enum": [
               "csv",

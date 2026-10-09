@@ -1,5 +1,6 @@
 import { describeTableIndexes, unknownFields } from "../api/meta.js";
 import { explainQuery } from "../api/query-explain.js";
+import { scopeQueryToDomain } from "../api/domain-separation.js";
 import { sdkGuard, type SdkGuardTarget } from "../mcp/sdk-guard.js";
 import { z } from "zod";
 import {
@@ -248,7 +249,7 @@ export const specs: AnyToolSpec[] = [
       query: encodedQuery()
         .optional()
         .describe(
-          "Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'.",
+          "Encoded query (sysparm_query), e.g. 'active=true^ORDERBYDESCsys_created_on'.",
         ),
       fields: z
         .union([fieldList(), z.literal("summary")])
@@ -278,7 +279,7 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe(
-          "All matches (up to SN_MAX_RECORDS), not one page: sys_id cursor without an ORDERBY (stable while rows change), else offset.",
+          "All matches (≤ SN_MAX_RECORDS): sys_id cursor without an ORDERBY (stable), else offset.",
         ),
       view: shortText()
         .optional()
@@ -296,6 +297,7 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe("Query all accessible domains (sysparm_query_no_domain)."),
+      domain: sysId().optional().describe("Only this domain's rows (sys_id)."),
       suppressPaginationHeader: z
         .boolean()
         .optional()
@@ -304,13 +306,13 @@ export const specs: AnyToolSpec[] = [
         .enum(["json", "csv", "table", "file"])
         .optional()
         .describe(
-          "'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/ → { path, bytes, preview }.",
+          "'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/.",
         ),
       fileFormat: z
         .enum(["csv", "jsonl"])
         .optional()
         .describe(
-          "With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys).",
+          "With format 'file': 'csv' (default; columns from 'fields' or page 1) or 'jsonl' (all keys).",
         ),
       explain: z
         .boolean()
@@ -325,8 +327,14 @@ export const specs: AnyToolSpec[] = [
       fileFormat,
       explain,
       omitEmpty: omit,
-      ...input
+      domain,
+      ...scoped
     }) => {
+      // N-12: a domain scope is one more AND'd condition; absent, the query
+      // (and so every byte of the result) is unchanged.
+      const input = domain
+        ? { ...scoped, query: scopeQueryToDomain(scoped.query, domain) }
+        : scoped;
       // N-15: a static explain against the chain's indexes; no records read.
       if (explain) {
         const { indexes, rowEstimate, warnings } = await describeTableIndexes(

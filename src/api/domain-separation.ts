@@ -94,3 +94,21 @@ export function keepDomainFields(
     if (f in row && !(f in target)) target[f] = row[f];
   }
 }
+
+/**
+ * N-12: narrow an encoded query to one domain (`sys_domain=<sys_id>`). The
+ * condition joins every `^NQ` segment, so an OR'd query cannot escape the
+ * scope. Without a domain the query is returned unchanged.
+ */
+export function scopeQueryToDomain(
+  query: string | undefined,
+  domain: string | undefined,
+): string | undefined {
+  if (!domain) return query;
+  const cond = `sys_domain=${domain}`;
+  if (!query) return cond;
+  return query
+    .split("^NQ")
+    .map((seg) => (seg ? `${cond}^${seg}` : cond))
+    .join("^NQ");
+}
