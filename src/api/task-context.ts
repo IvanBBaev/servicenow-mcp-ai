@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { getRecordHistory, type HistoryEntry } from "./history.js";
 import { unreadableReason } from "./security.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
@@ -128,9 +128,6 @@ export interface TaskContextOptions {
   history?: boolean;
 }
 
-const isCancel = (e: unknown): boolean =>
-  e instanceof ServiceNowError && e.code === "CANCELLED";
-
 function unavailable(reason: string): Unavailable {
   return { available: false, unavailableReason: reason };
 }
@@ -195,7 +192,7 @@ async function readTask(
     }
     return taskRef(r, table);
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason(table, e));
   }
 }
@@ -245,7 +242,7 @@ async function readApprovals(task: string): Promise<TaskContext["approvals"]> {
       byState: countByState(rows),
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sysapproval_approver", e));
   }
 }
@@ -287,7 +284,7 @@ async function readSlas(task: string): Promise<TaskContext["slas"]> {
       breached: rows.filter((s) => s.breached).length,
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("task_sla", e));
   }
 }
@@ -321,7 +318,7 @@ async function readHistory(
       truncated: rows.length >= HISTORY_LIMIT,
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sys_journal_field", e));
   }
 }
@@ -412,7 +409,7 @@ export async function pendingApprovals({
       truncated: records.length >= cap,
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sysapproval_approver", e));
   }
 }

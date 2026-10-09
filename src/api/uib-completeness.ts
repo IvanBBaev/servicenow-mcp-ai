@@ -1,6 +1,6 @@
 import { queryTable, type SnRecord } from "./table.js";
 import { snString } from "./shared.js";
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import {
   BROKER_TABLES,
   BROKER_TABLE_NAMES,
@@ -110,10 +110,6 @@ const str = (row: SnRecord, field: string): string => snString(row[field]);
 const opt = (row: SnRecord, field: string): string | undefined =>
   str(row, field) || undefined;
 
-function isCancelled(error: unknown): boolean {
-  return error instanceof ServiceNowError && error.code === "CANCELLED";
-}
-
 async function readIn(
   ctx: Ctx,
   table: string,
@@ -144,7 +140,7 @@ async function readIn(
         );
       }
     } catch (error) {
-      if (isCancelled(error)) throw error;
+      rethrowIfCancelled(error);
       ctx.unavailable.push({
         table,
         reason: error instanceof Error ? error.message : String(error),
@@ -492,7 +488,7 @@ export async function uibCompleteness(
       });
       for (const r of records) captured.add(str(r, "name"));
     } catch (error) {
-      if (isCancelled(error)) throw error;
+      rethrowIfCancelled(error);
       ctx.unavailable.push({
         table: "sys_update_xml",
         reason: error instanceof Error ? error.message : String(error),

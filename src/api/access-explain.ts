@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import {
   DOMAIN_CAVEAT,
   domainTraceFields,
@@ -129,9 +129,6 @@ export interface ExplainAccessInput {
   sysId?: string;
   field?: string;
 }
-
-const isCancel = (e: unknown): boolean =>
-  e instanceof ServiceNowError && e.code === "CANCELLED";
 
 /** Row ACL names for a table chain (child first): each table, then `*`. */
 export function rowCandidates(chain: readonly string[]): string[] {
@@ -292,7 +289,7 @@ async function step<T>(table: string, fn: () => Promise<T>): Promise<Step<T>> {
   try {
     return { ok: true, value: await fn() };
   } catch (error) {
-    if (isCancel(error)) throw error;
+    rethrowIfCancelled(error);
     return { ok: false, reason: unreadableReason(table, error) };
   }
 }
@@ -393,7 +390,7 @@ async function conditionMatches(
     });
     return records.length > 0;
   } catch (error) {
-    if (isCancel(error)) throw error;
+    rethrowIfCancelled(error);
     return undefined;
   }
 }

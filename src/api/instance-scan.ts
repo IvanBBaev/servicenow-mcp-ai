@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { snRequest } from "../core/http.js";
 import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import { ARTIFACT_TYPES } from "../core/artifacts/registry.js";
@@ -127,7 +127,7 @@ export async function readInstanceScan(
       };
     }
   } catch (e) {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     return unavailable(
       `${SCAN_RESULT_TABLE} could not be read (Instance Scan plugin missing or no read role): ${message(e)}`,
     );
@@ -149,7 +149,7 @@ export async function readInstanceScan(
       limit: INSTANCE_SCAN_LIMIT,
     }));
   } catch (e) {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     return {
       ...unavailable(`${SCAN_FINDING_TABLE} could not be read: ${message(e)}`),
       ...(result ? { result } : {}),

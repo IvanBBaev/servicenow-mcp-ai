@@ -1,6 +1,6 @@
 import { decodeField } from "../core/artifacts/decoders.js";
 import { requiredTranslations } from "../core/artifacts/uib-translations.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
 import { scopeClause } from "./scripts.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
@@ -188,9 +188,6 @@ const chunks = <T>(items: T[], n: number): T[][] => {
 const message = (e: unknown): string =>
   e instanceof Error ? e.message : String(e);
 
-const isCancel = (e: unknown): boolean =>
-  e instanceof ServiceNowError && e.code === "CANCELLED";
-
 /**
  * Read `table` once per query clause; undefined (and a caveat) when any read
  * fails. `truncated` when a read stopped at SN_MAX_RECORDS.
@@ -216,7 +213,7 @@ async function readAll(
       rows.push(...res.records);
       if (res.truncated) truncated = true;
     } catch (e) {
-      if (isCancel(e)) throw e;
+      rethrowIfCancelled(e);
       caveats.push(`i18n: ${table} could not be read: ${message(e)}`);
       return undefined;
     }

@@ -1,5 +1,5 @@
 import { ARTIFACT_TYPES } from "../core/artifacts/registry.js";
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { unreadableReason } from "./security.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
 import { queryTable } from "./table.js";
@@ -146,9 +146,6 @@ export interface RecordReview {
   diffs: FieldDiff[];
 }
 
-const isCancel = (e: unknown): boolean =>
-  e instanceof ServiceNowError && e.code === "CANCELLED";
-
 const unavailable = (reason: string): Unavailable => ({
   available: false,
   unavailableReason: reason,
@@ -211,7 +208,7 @@ export async function readUpgradeHistory({
       truncated: truncated === true || records.length >= limit,
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sys_upgrade_history", e));
   }
 }
@@ -299,7 +296,7 @@ export async function readSkipped(
       truncated: truncated === true,
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sys_upgrade_history_log", e));
   }
 }
@@ -418,7 +415,7 @@ export async function reviewSkippedRecord(
       limit: VERSION_LIMIT,
     }));
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sys_update_version", e));
   }
   const versions: Version[] = records.map((r) => {
@@ -615,7 +612,7 @@ async function readScopeCustomisations(
       truncated: truncated === true || records.length >= limit,
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return {
       rows: unavailable(unreadableReason("sys_update_xml", e)),
       truncated: false,
@@ -645,7 +642,7 @@ export async function readStoreUpdates({
       limit,
     }));
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sys_store_app", e));
   }
   const apps: StoreAppUpdate[] = [];

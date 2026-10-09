@@ -14,7 +14,7 @@ import {
   APP_SOURCES,
   type RecordSectionId,
 } from "./collectors.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import {
   collectArtifactType,
   resolveArtifactTypes,
@@ -222,7 +222,7 @@ export async function snapshotInstance(
         try {
           snap = await collectArtifactType(type, { scope: opts.scope });
         } catch (e) {
-          if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+          rethrowIfCancelled(e);
           u.warn(
             `artifact ${type}: unavailable — ${e instanceof Error ? e.message : String(e)}`,
           );

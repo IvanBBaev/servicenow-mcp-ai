@@ -36,7 +36,7 @@ import { compositionDiffSummary } from "../core/artifacts/uib-composition-diff.j
 import { listProfiles } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
 import { getDocsDir } from "../core/settings.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import { trackProgress } from "../core/progress.js";
 
 /**
@@ -273,7 +273,7 @@ async function scriptsFor(
       }
       byType.set(type, recs);
     } catch (e) {
-      rethrowCancel(e);
+      rethrowIfCancelled(e);
       warnings.push(
         `scripts: ${type} unavailable on "${profile}" — ${e instanceof Error ? e.message : String(e)}`,
       );
@@ -315,11 +315,6 @@ export function matchBySysId<T extends { sysId: string }>(
     } else onlyA.push(l);
   }
   return { pairs, onlyA, onlyB: [...restB] };
-}
-
-/** A cancelled call must stop, not become an "unavailable" warning. */
-function rethrowCancel(e: unknown): void {
-  if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
 }
 
 /** The match key of a record section row (choices: name.element=value). */
@@ -420,7 +415,7 @@ async function artifactsFor(
     }
     return snap;
   } catch (e) {
-    rethrowCancel(e);
+    rethrowIfCancelled(e);
     warnings.push(
       `artifact ${type}: unavailable on "${profile}" — ${e instanceof Error ? e.message : String(e)}`,
     );
@@ -454,7 +449,7 @@ async function diffMermaid(
       );
       if (d) out.push(d);
     } catch (e) {
-      rethrowCancel(e);
+      rethrowIfCancelled(e);
       warnings.push(
         `mermaid ${type} ${x.key}: not rendered — ${e instanceof Error ? e.message : String(e)}`,
       );

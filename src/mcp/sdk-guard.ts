@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import {
   getSdkManagedScopes,
   getSdkManagedWrites,
@@ -91,10 +91,6 @@ type CurrentScope =
 /** One current-scope read per tool call, however many records it writes. */
 const currentScopeByCall = new WeakMap<CallContext, Promise<CurrentScope>>();
 
-function isCancel(e: unknown): boolean {
-  return e instanceof ServiceNowError && e.code === "CANCELLED";
-}
-
 async function readCurrentScope(): Promise<CurrentScope> {
   try {
     const row = await readUserPreference(CURRENT_APP_PREFERENCE);
@@ -103,7 +99,7 @@ async function readCurrentScope(): Promise<CurrentScope> {
       ? { ref, source: "current_application" }
       : { ref: null, source: "default" };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return {
       warning: `Could not read the session's current application (${CURRENT_APP_PREFERENCE}: ${
         e instanceof Error ? e.message : String(e)
@@ -134,7 +130,7 @@ async function createScope(
   try {
     chain = await getTableChain(table);
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return {
       warning: `Could not read the hierarchy of ${table} to resolve the scope of the create; the SDK-managed check judged it without a scope.`,
     };

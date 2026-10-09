@@ -3,7 +3,7 @@ import { queryTable, type SnRecord } from "./table.js";
 import { resolveArtifactType } from "./artifacts.js";
 import { scopeClause } from "./scripts.js";
 import { snString } from "./shared.js";
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import {
   ARTIFACT_TYPES,
   type ArtifactChild,
@@ -296,7 +296,7 @@ export async function collectArtifactType(
         ...snapshots.values(),
       ]);
     } catch (e) {
-      if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+      rethrowIfCancelled(e);
       warnings.push(
         `${t.type}: ${child.table} unavailable — ${e instanceof Error ? e.message : String(e)}`,
       );

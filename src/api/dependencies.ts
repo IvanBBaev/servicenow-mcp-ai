@@ -7,7 +7,7 @@ import {
   type RefField,
 } from "../core/artifacts/registry.js";
 import { decodeField } from "../core/artifacts/decoders.js";
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
 import {
   getArtifactFor,
@@ -262,10 +262,6 @@ function canonical(spec: NodeSpec): NodeSpec & { id: string } {
     return { ...spec, id: `${spec.table}:${spec.name}` };
   }
   return { ...spec, id: `${spec.table}:${spec.sys_id}` };
-}
-
-function isCancelled(error: unknown): boolean {
-  return error instanceof ServiceNowError && error.code === "CANCELLED";
 }
 
 function reasonOf(error: unknown): string {
@@ -543,7 +539,7 @@ class Graph {
   }
 
   fail(node: string, source: string, error: unknown): void {
-    if (isCancelled(error)) throw error;
+    rethrowIfCancelled(error);
     this.unavailable.push({ node, source, reason: reasonOf(error) });
   }
 }

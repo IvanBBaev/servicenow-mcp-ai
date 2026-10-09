@@ -2,7 +2,7 @@ import { queryTable, type SnRecord } from "./table.js";
 import { describeTable, getTableChain, type ColumnInfo } from "./meta.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { cached, schemaCacheScope } from "../core/cache.js";
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 
 /**
  * N-62 — platform-aware compact reads (dark core; no tool wires it yet). The
@@ -134,7 +134,7 @@ async function readListLayout(
       },
     );
   } catch (e) {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     warnings.push(
       `sys_ui_list_element (${table}): unavailable — ${e instanceof Error ? e.message : String(e)}`,
     );

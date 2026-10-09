@@ -9,7 +9,7 @@ import { aggregate } from "./aggregate.js";
 import { queryTable } from "./table.js";
 import { SCRIPT_TYPES, scriptArtifact } from "./scripts.js";
 import { snString } from "./shared.js";
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { anySignal } from "../core/http-util.js";
 import { throwIfCancelled } from "../core/progress.js";
 import { currentCall, runWithCall } from "../core/request-context.js";
@@ -110,11 +110,6 @@ export type RecordSectionId = keyof typeof RECORD_SECTIONS;
 const SECRET_NAME =
   /password|secret|token|credential|private[_.]?key|api[_.]?key/i;
 
-/** A cancelled call must stop, not become one more unreadable source (M-3). */
-function rethrowCancel(e: unknown): void {
-  if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
-}
-
 const asError = (e: unknown): Error =>
   e instanceof Error ? e : new Error(String(e));
 
@@ -130,7 +125,7 @@ class Outcome {
 
   /** Record a failed read; rethrows CANCELLED. */
   fail(source: string, e: unknown, unreadable = true): void {
-    rethrowCancel(e);
+    rethrowIfCancelled(e);
     this.errors[source] = asError(e);
     if (unreadable) this.unreadable.push(source);
   }

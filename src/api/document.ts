@@ -2,7 +2,11 @@ import path from "node:path";
 import { activeProfile } from "../core/config.js";
 import { checkHardening, renderHardening } from "./hardening.js";
 import { crossScopeReport, type CrossScopeReport } from "./cross-scope.js";
-import { ServiceNowError } from "../core/errors.js";
+import {
+  ServiceNowError,
+  isCancelledError,
+  rethrowIfCancelled,
+} from "../core/errors.js";
 import { throwIfCancelled, trackProgress } from "../core/progress.js";
 import {
   currentRequestProfile,
@@ -164,10 +168,6 @@ function isAccessDenied(error: unknown): boolean {
     error instanceof ServiceNowError &&
     (error.status === 401 || error.status === 403)
   );
-}
-
-function isCancelled(error: unknown): boolean {
-  return error instanceof ServiceNowError && error.code === "CANCELLED";
 }
 
 // ---------------------------------------------------------------------------
@@ -333,7 +333,7 @@ async function diagram<T extends { mermaid: string; truncated?: number }>(
     }
     return d.mermaid;
   } catch (error) {
-    if (isCancelled(error)) throw error;
+    rethrowIfCancelled(error);
     caveats.push(
       `${label}: not drawn — ${error instanceof Error ? error.message : String(error)}`,
     );
@@ -825,7 +825,7 @@ async function collectAppDetail(
         for (const n of r.nodes) if (!nodes.has(n.id)) nodes.set(n.id, n);
         for (const e of r.edges) edges.set(`${e.from}|${e.to}|${e.field}`, e);
       } catch (e) {
-        rethrowCancelled(e);
+        rethrowIfCancelled(e);
         caveats.push(
           `Dependencies of ${t.type} ${row.name || row.sys_id}: ${e instanceof Error ? e.message : String(e)}`,
         );
@@ -879,7 +879,7 @@ async function collectAppDetail(
         })),
       };
     } catch (e) {
-      rethrowCancelled(e);
+      rethrowIfCancelled(e);
       caveats.push(`Lint: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
@@ -895,10 +895,6 @@ async function collectAppDetail(
     caveats.push("Cross-scope: the application record has no sys_id.");
   }
   return detail;
-}
-
-function rethrowCancelled(e: unknown): void {
-  if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
 }
 
 /**
@@ -1693,7 +1689,7 @@ async function readSection(
       ...(r.truncated ? { truncated: true as const } : {}),
     };
   } catch (error) {
-    if (isCancelled(error)) throw error;
+    rethrowIfCancelled(error);
     // A plugin table that is not installed (404) has no rows to report.
     if (
       opts.absentIsEmpty &&
@@ -3879,7 +3875,7 @@ async function instanceRun(
           instance: run,
         });
       } catch (error) {
-        if (isCancelled(error) || step.kind === "instance") throw error;
+        if (isCancelledError(error) || step.kind === "instance") throw error;
         failed.push({
           kind: step.kind,
           target: step.target,

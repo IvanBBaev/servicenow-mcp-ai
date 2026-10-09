@@ -668,6 +668,19 @@ export function errorSourceOf(error: unknown): ErrorSource {
   return sourceOfCode(errorCodeOf(error));
 }
 
+/** M-3: true for the CANCELLED error a client cancellation raises. */
+export function isCancelledError(error: unknown): boolean {
+  return error instanceof ServiceNowError && error.code === "CANCELLED";
+}
+
+/**
+ * M-3: rethrow a cancellation, so a read that degrades on failure stops
+ * instead of turning the cancel into an "unavailable" warning.
+ */
+export function rethrowIfCancelled(error: unknown): void {
+  if (isCancelledError(error)) throw error;
+}
+
 /**
  * M-1 — the recoverable "not configured" error: the message keeps its wording,
  * the code is NOT_CONFIGURED and the hint names what is missing (field roles,

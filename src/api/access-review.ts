@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import { unreadableReason } from "./security.js";
 import { snString } from "./shared.js";
 import { queryTable } from "./table.js";
@@ -83,9 +83,6 @@ export interface AccessReview {
     rows: RoleRevoke[];
   };
 }
-
-const isCancel = (e: unknown): boolean =>
-  e instanceof ServiceNowError && e.code === "CANCELLED";
 
 /** Platform date-time ("YYYY-MM-DD HH:MM:SS", UTC) to epoch ms; NaN when unparseable. */
 function snTime(value: string): number {
@@ -243,7 +240,7 @@ async function readRevokes(now: number): Promise<AccessReview["revokes"]> {
       })),
     };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return {
       available: false,
       unavailableReason: unreadableReason("sys_audit_delete", e),
@@ -271,7 +268,7 @@ export async function readAccessReview({
       if (name) base.add(name);
     }
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason("sys_user_role", e));
   }
 
@@ -292,7 +289,7 @@ export async function readAccessReview({
     );
   } catch (e) {
     // Containment is an addition: without it the direct holders still list.
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
   }
 
   const roles = [...new Set([...base, ...Object.keys(containers)])].sort();
@@ -321,7 +318,7 @@ export async function readAccessReview({
     holders = res.records;
     truncated = res.records.length >= ACCESS_REVIEW_LIMIT;
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return {
       ...unavailable(unreadableReason("sys_user_has_role", e)),
       roles,
@@ -522,7 +519,7 @@ export async function readRoleHistory({
     });
     grants = res.records;
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return {
       ...base,
       available: false,
@@ -572,7 +569,7 @@ export async function readRoleHistory({
     }
     revokes = { available: true };
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     revokes = {
       available: false,
       unavailableReason: unreadableReason("sys_audit_delete", e),

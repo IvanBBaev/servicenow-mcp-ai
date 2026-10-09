@@ -1,7 +1,7 @@
 import { queryTable, type SnRecord } from "./table.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { scopeClause } from "./scripts.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
 import { PERFORMANCE_ANALYTICS } from "../core/artifacts/registry.js";
 import { macroponentUses, uibImports } from "./uib-usage.js";
@@ -832,9 +832,7 @@ export async function findStructuralReferences(
         });
         return { source, records: res.records };
       } catch (error) {
-        if (error instanceof ServiceNowError && error.code === "CANCELLED") {
-          throw error;
-        }
+        rethrowIfCancelled(error);
         return { source, reason: unreadableReason(source, error) };
       }
     }),

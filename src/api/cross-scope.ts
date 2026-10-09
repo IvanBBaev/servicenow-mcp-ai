@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
 import { scriptTables } from "./references.js";
 import { SCRIPT_TYPES, scopeClause, scriptArtifact } from "./scripts.js";
@@ -179,7 +179,7 @@ async function scanScripts(
       });
       records = res.records;
     } catch (e) {
-      if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+      rethrowIfCancelled(e);
       caveats.push(
         `Cross-scope: ${type} (${descriptor.table}) could not be read: ${e instanceof Error ? e.message : String(e)}`,
       );
@@ -239,7 +239,7 @@ async function tableScopes(
       records.map((r) => [snString(r.name), snString(r["sys_scope.scope"])]),
     );
   } catch (e) {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     caveats.push(
       `Cross-scope: table scopes could not be read (sys_db_object): ${e instanceof Error ? e.message : String(e)}`,
     );
@@ -268,7 +268,7 @@ async function readRows(
     }
     return records;
   } catch (e) {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     caveats.push(
       `Cross-scope: ${table} could not be read: ${e instanceof Error ? e.message : String(e)}`,
     );

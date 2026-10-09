@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import {
   HARDENING_RULES,
   HARDENING_RULES_VERSION,
@@ -181,7 +181,7 @@ export async function checkHardening(
     }
     return evaluateHardening(values, { family });
   } catch (e) {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     return evaluateHardening(undefined, {
       family,
       unavailableReason: `sys_properties could not be read: ${e instanceof Error ? e.message : String(e)}`,

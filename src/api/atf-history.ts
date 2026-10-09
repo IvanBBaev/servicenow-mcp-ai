@@ -1,4 +1,4 @@
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { unreadableReason } from "./security.js";
 import { mdTable, snString } from "./shared.js";
 import { queryTable } from "./table.js";
@@ -144,9 +144,6 @@ export interface AtfResultHistory {
   tests?: AtfHistorySection | Unavailable;
   suites?: AtfHistorySection | Unavailable;
 }
-
-const isCancel = (e: unknown): boolean =>
-  e instanceof ServiceNowError && e.code === "CANCELLED";
 
 const unavailable = (reason: string): Unavailable => ({
   available: false,
@@ -303,7 +300,7 @@ async function readDefinitions(
       limit: ids.length,
     }));
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unreadableReason(table, e);
   }
   const out = new Map<string, AtfDefinition>();
@@ -355,7 +352,7 @@ async function readSection(
       limit,
     }));
   } catch (e) {
-    if (isCancel(e)) throw e;
+    rethrowIfCancelled(e);
     return unavailable(unreadableReason(spec.table, e));
   }
   const byId = new Map<string, AtfResultRow[]>(ids.map((id) => [id, []]));

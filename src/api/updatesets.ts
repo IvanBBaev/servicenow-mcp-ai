@@ -6,7 +6,7 @@ import { assertProfile, readSnapshotJson, COMPARE_CAVEATS } from "./compare.js";
 import { snString, assertNoCaret, expectResult } from "./shared.js";
 import { snRequest } from "../core/http.js";
 import { uibCompleteness } from "./uib-completeness.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import { activeProfile, getCredentials } from "../core/config.js";
 import { runWithProfile } from "../core/request-context.js";
 import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
@@ -597,7 +597,7 @@ export async function compareUpdateSet(
         for (const { a, parsed } of items)
           judge(a, parsed, found.get(a.sys_id));
       } catch (e) {
-        if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+        rethrowIfCancelled(e);
         const reason = `${table} unreadable on "${other}": ${e instanceof Error ? e.message : String(e)}`;
         warnings.push(reason);
         for (const { a } of items) {
@@ -677,7 +677,7 @@ async function isCaptured(table: string): Promise<boolean | "unknown"> {
     });
     return records.length > 0;
   } catch (e) {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     return "unknown";
   }
 }

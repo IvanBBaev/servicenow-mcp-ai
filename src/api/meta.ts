@@ -6,7 +6,7 @@ import { cached, peekSchemaCache, schemaCacheScope } from "../core/cache.js";
 // re-exported so existing importers keep working.
 export { schemaCacheScope };
 import { assertNoCaret, snString } from "./shared.js";
-import { ServiceNowError } from "../core/errors.js";
+import { rethrowIfCancelled } from "../core/errors.js";
 import { aggregate } from "./aggregate.js";
 import type { TableIndex } from "./query-explain.js";
 
@@ -304,7 +304,7 @@ export async function describeTableDetails(
         warnings.push(`${t}: hit the SN_MAX_RECORDS cap — partial.`);
       return r.records;
     } catch (e) {
-      if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+      rethrowIfCancelled(e);
       warnings.push(
         `${t}: unavailable — ${e instanceof Error ? e.message : String(e)}`,
       );
@@ -386,7 +386,7 @@ export async function describeTableIndexes(table: string): Promise<{
   const chain = await getTableChain(table);
   const warnings: string[] = [];
   const unavailable = (what: string, e: unknown): void => {
-    if (e instanceof ServiceNowError && e.code === "CANCELLED") throw e;
+    rethrowIfCancelled(e);
     warnings.push(
       `${what}: unavailable — ${e instanceof Error ? e.message : String(e)}`,
     );
