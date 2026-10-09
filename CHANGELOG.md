@@ -78,6 +78,11 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-7: the `i18n` kind of `servicenow_document_app`.** With `kind: "i18n"` (and an optional `language`) the tool
+  writes `i18n/<scope>.md` + `.json` instead of the app document: the scoped app's translation coverage per language
+  over UI messages, field labels, choices, translated text, translated fields and UI Builder strings, with the missing
+  keys per category. Without `language`, every active `sys_language` except the base language is measured. Table and
+  field names are unverified until O-5. tools/list: all +227 B, core +0 B (owner: one 256 B step on `all`).
 - **N-18: repeats and a paired comparison in the tool-selection eval.** `npm run eval:tools -- --repeats <n>` runs
   every case n times and scores the majority answer. The report lists each run's top-1, and the baseline keeps
   `correctRuns` / `runs` per case. Against a baseline the comparison prints an exact two-sided McNemar p-value over
