@@ -97,6 +97,13 @@ serverOptions)` takes extra server options. tools/list is identical on both
 2. **MRTR `input_required`** for the elicitation flows (credentials, confirm),
    on top of the factory.
 3. **Log bridge (M-8)** off the deprecated logging API.
+   **Done:** a line logged during a tool call goes out through the call's
+   `ctx.mcpReq.log` on the response stream; a 2026-07-28 request gets it only
+   at or above the `io.modelcontextprotocol/logLevel` in its `_meta` (none
+   without one; an unknown level is -32602 from the SDK). Lines outside a call
+   reach only a 2025 session after `initialize`, through the deprecated
+   `sendLoggingMessage` (kept for the deprecation window). Token bucket and
+   `logging/setLevel` unchanged for 2025 clients; tools/list delta 0.
 4. **Tasks extension (M-9)** on top of the hand-rolled handlers.
 5. **N-38** `ttlMs` / `cacheScope` on list results on the modern wire.
 6. A dual-protocol spawn test (legacy and 2026-07-28 against the built

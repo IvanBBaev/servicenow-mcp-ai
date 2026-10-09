@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { McpServer, ServerContext } from "@modelcontextprotocol/server";
+import {
+  LOG_LEVEL_META_KEY,
+  type McpServer,
+  type ServerContext,
+} from "@modelcontextprotocol/server";
 import { logger } from "../core/logging.js";
 import { activeProfile, listProfiles } from "../core/config.js";
 import {
@@ -14,6 +18,7 @@ import {
   runWithTool,
   runWithCall,
   type CallContext,
+  type RequestLog,
 } from "../core/request-context.js";
 import {
   nextCallId,
@@ -160,6 +165,8 @@ export interface CallExtra {
     tracestate?: unknown;
   };
   sendNotification?: (notification: ProgressNotification) => Promise<void>;
+  /** M-8: the request-scoped log channel (see request-context.ts). */
+  log?: RequestLog;
 }
 
 /**
@@ -169,12 +176,20 @@ export interface CallExtra {
  */
 export function callExtraFromContext(ctx: ServerContext): CallExtra {
   const req = ctx.mcpReq;
+  // The SDK types the envelope as `{}`; the level key is validated on the way in.
+  const envelope = req.envelope as Record<string, unknown> | undefined;
+  const level = envelope?.[LOG_LEVEL_META_KEY];
   return {
     ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
     requestId: req.id,
     signal: req.signal,
     ...(req._meta ? { _meta: req._meta } : {}),
     sendNotification: (notification) => req.notify(notification),
+    log: {
+      modern: envelope !== undefined,
+      ...(typeof level === "string" ? { level } : {}),
+      send: (level, data) => req.log(level, data),
+    },
   };
 }
 
@@ -215,6 +230,7 @@ export async function runSpec(
     ...(progress ? { progress: progress.sink } : {}),
     callId: nextCallId(),
     ...(trace ? { trace } : {}),
+    ...(extra.log ? { log: extra.log } : {}),
   };
   // N-55: the diagnostics_channel envelope of the call (tracing.ts) — built
   // lazily, so an unobserved call pays only the hasSubscribers checks.

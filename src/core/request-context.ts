@@ -102,6 +102,29 @@ export interface CallContext {
    * (collectors' `within`) shares it and the result boundary sees every read.
    */
   secrets?: SecretRegistry;
+  /**
+   * M-8: the call's request-scoped MCP log channel (the SDK's
+   * `ctx.mcpReq.log`); absent for in-process calls. The log bridge sends
+   * through it, so a line logged during the call reaches the client on the
+   * stream that carries the call's response.
+   */
+  log?: RequestLog;
+}
+
+/** M-8: an MCP logging level (`warn` maps onto `warning`). */
+export type McpLogLevel = "debug" | "info" | "warning" | "error";
+
+/** M-8: the request-scoped log channel of one MCP request. */
+export interface RequestLog {
+  /**
+   * True on a 2026-07-28 request (it carries the per-request `_meta`
+   * envelope): it gets log notifications only at or above `level`, and none
+   * when it set no level.
+   */
+  modern: boolean;
+  /** The `io.modelcontextprotocol/logLevel` the request set (2026-07-28). */
+  level?: string;
+  send(level: McpLogLevel, data: unknown): Promise<void>;
 }
 
 /**

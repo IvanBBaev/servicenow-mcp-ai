@@ -13,11 +13,27 @@
  *   and the rate). Lines over the cap are counted, not sent; one `warning`
  *   "N log messages suppressed" per minute reports them. stderr is never
  *   throttled — every line is still written there.
+ *
+ * M-8 (N-35 step 2) moves the bridge off the deprecated logging API
+ * (SEP-2577, 2026-07-28):
+ * - **Request-scoped.** A line logged during a tool call goes out through
+ *   the call's `ctx.mcpReq.log` (request-context.ts `RequestLog`), on the
+ *   stream that carries the call's response. On a 2026-07-28 request it is
+ *   sent only when the request set `io.modelcontextprotocol/logLevel` in
+ *   `_meta`, and only at or above that level; the SDK applies the
+ *   `logging/setLevel` level of a 2025 session.
+ * - **Nothing outside a request on the 2026-07-28 wire.** A line logged
+ *   outside a call reaches only a 2025 session, and only once it completed
+ *   `initialize` (a 2026-07-28 client never sends it); that path keeps the
+ *   deprecated `sendLoggingMessage`, functional for the deprecation window.
+ *   Lines a 2026-07-28 request drops over the rate cap stay on stderr: its
+ *   stream ends with the response, so no summary follows.
  */
 import type { LogLevel, LogSink } from "../core/logging.js";
 import { getLogNotifyRate } from "../core/settings.js";
+import { currentCall, type McpLogLevel } from "../core/request-context.js";
 
-type McpLevel = "debug" | "info" | "warning" | "error";
+type McpLevel = McpLogLevel;
 
 /** Map our levels onto the MCP logging levels (warn → warning). */
 export const MCP_LEVEL: Record<LogLevel, McpLevel> = {
@@ -40,6 +56,27 @@ export interface LoggingServer {
     sessionId?: string,
   ): Promise<void>;
   readonly transport?: { sessionId?: string } | undefined;
+  /** Called when a 2025 client completes `initialize` (chained, not replaced). */
+  oninitialized?: (() => void) | undefined;
+}
+
+/** MCP logging levels by severity (the spec's order, lowest first). */
+const SEVERITY: readonly string[] = [
+  "debug",
+  "info",
+  "notice",
+  "warning",
+  "error",
+  "critical",
+  "alert",
+  "emergency",
+];
+
+/** Whether a 2026-07-28 request's `logLevel` lets `level` through. */
+function belowRequestLevel(level: McpLevel, threshold?: string): boolean {
+  if (threshold === undefined) return true;
+  const floor = SEVERITY.indexOf(threshold);
+  return floor < 0 || SEVERITY.indexOf(level) < floor;
 }
 
 interface Bucket {
@@ -73,6 +110,13 @@ function ignoredByClient(
 /** Build the log sink that forwards to `server` (see the module comment). */
 export function createLogBridge(server: LoggingServer): LogSink {
   const buckets = new Map<string, Bucket>();
+  // A 2025 session completed initialize: lines outside a call may reach it.
+  let legacySession = false;
+  const previous = server.oninitialized;
+  server.oninitialized = () => {
+    legacySession = true;
+    previous?.();
+  };
 
   const send = (level: McpLevel, data: unknown, sessionId?: string): void => {
     void server
@@ -119,23 +163,36 @@ export function createLogBridge(server: LoggingServer): LogSink {
 
   return (level, message, fields) => {
     const mcpLevel = MCP_LEVEL[level];
+    const channel = currentCall()?.log;
+    if (channel?.modern) {
+      if (belowRequestLevel(mcpLevel, channel.level)) return;
+    } else if (!channel && !legacySession) {
+      return;
+    }
     const fromContext = fields?.sessionId;
     const sessionId =
       typeof fromContext === "string" && fromContext
         ? fromContext
         : server.transport?.sessionId;
-    if (ignoredByClient(server, mcpLevel, sessionId)) return;
+    if (!channel?.modern && ignoredByClient(server, mcpLevel, sessionId)) {
+      return;
+    }
     const data = { message, ...(fields ?? {}) };
+    const emit = (): void => {
+      if (channel) void channel.send(mcpLevel, data).catch(() => undefined);
+      else send(mcpLevel, data, sessionId);
+    };
     const rate = getLogNotifyRate();
     if (rate === 0) {
-      send(mcpLevel, data, sessionId);
+      emit();
       return;
     }
     const key = sessionId ?? "";
     if (take(key, rate)) {
-      send(mcpLevel, data, sessionId);
+      emit();
       return;
     }
+    if (channel?.modern) return;
     const bucket = buckets.get(key)!;
     bucket.suppressed++;
     if (!bucket.timer) {

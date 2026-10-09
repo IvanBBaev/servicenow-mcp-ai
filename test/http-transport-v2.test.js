@@ -494,6 +494,51 @@ test("e2e: a 2026-07-28 client is served statelessly beside a 2025 session (H-7)
   });
 });
 
+test("e2e: a 2026-07-28 request gets log notifications only when its _meta sets a level (M-8)", async () => {
+  // debug on stderr, so the request's level (not the logger's) filters.
+  await withHttp({ SN_LOG_LEVEL: "debug" }, async (_port, url) => {
+    const modern = new ModernClient(
+      { name: "m8-modern", version: "0" },
+      { versionNegotiation: { mode: "auto" } },
+    );
+    const received = [];
+    modern.setNotificationHandler("notifications/message", (n) => {
+      received.push(n.params);
+    });
+    await modern.connect(new ModernHTTPClientTransport(new URL(url)));
+    const LEVEL = "io.modelcontextprotocol/logLevel";
+    const status = (meta) =>
+      modern.callTool({
+        name: "servicenow_get_status",
+        arguments: {},
+        ...(meta ? { _meta: meta } : {}),
+      });
+    try {
+      assert.equal(modern.getProtocolEra(), "modern");
+      payload(await status());
+      assert.deepEqual(received, [], "no level in _meta → no notification");
+
+      payload(await status({ [LEVEL]: "info" }));
+      const done = received.find((p) =>
+        String(p.data?.message).startsWith("tool servicenow_get_status done"),
+      );
+      assert.ok(done, "the call's info line arrives on its own stream");
+      assert.equal(done.level, "info");
+      assert.ok(
+        received.every((p) => p.level !== "debug"),
+        "below the level",
+      );
+
+      await assert.rejects(status({ [LEVEL]: "loud" }), (err) => {
+        assert.equal(err.code, -32602);
+        return true;
+      });
+    } finally {
+      await modern.close();
+    }
+  });
+});
+
 test("HTTP: requests without a valid session are refused with JSON-RPC errors", async () => {
   await withHttp({ SN_HTTP_MAX_SESSIONS: "1" }, async (port) => {
     const get = await rawRequest(port, { method: "GET", headers: MCP_HEADERS });

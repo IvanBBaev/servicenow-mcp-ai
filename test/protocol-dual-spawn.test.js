@@ -41,12 +41,15 @@ function cleanEnv() {
   };
 }
 
-/** Spawn build/index.js and connect with the given negotiation mode. */
-async function connect(mode) {
+/**
+ * Spawn build/index.js and connect with the given negotiation mode; `env`
+ * adds to the clean environment, `onLog` sees every notifications/message.
+ */
+async function connect(mode, { env = {}, onLog } = {}) {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [entry],
-    env: cleanEnv(),
+    env: { ...cleanEnv(), ...env },
     cwd: sandbox,
     stderr: "ignore",
   });
@@ -54,6 +57,11 @@ async function connect(mode) {
     { name: "dual-spawn-test", version: "0.0.0" },
     { versionNegotiation: { mode } },
   );
+  if (onLog) {
+    client.setNotificationHandler("notifications/message", (n) =>
+      onLog(n.params),
+    );
+  }
   await client.connect(transport);
   return client;
 }
@@ -115,6 +123,38 @@ test("modern wire: auto negotiation discovers 2026-07-28 and serves tools (H-7)"
     });
     assert.notEqual(status.isError, true);
   });
+});
+
+test("modern wire: log notifications only for a request that sets a level (M-8)", async () => {
+  const received = [];
+  const client = await connect("auto", {
+    env: { SN_LOG_LEVEL: "debug" },
+    onLog: (params) => received.push(params),
+  });
+  try {
+    assert.equal(client.getProtocolEra(), "modern");
+    await client.callTool({ name: "servicenow_get_status", arguments: {} });
+    assert.deepEqual(
+      received,
+      [],
+      "startup and unlevelled calls stay on stderr",
+    );
+
+    await client.callTool({
+      name: "servicenow_get_status",
+      arguments: {},
+      _meta: { "io.modelcontextprotocol/logLevel": "info" },
+    });
+    assert.ok(received.length > 0);
+    assert.ok(received.every((p) => p.level !== "debug"));
+    assert.ok(
+      received.some((p) =>
+        String(p.data?.message).startsWith("tool servicenow_get_status done"),
+      ),
+    );
+  } finally {
+    await client.close();
+  }
 });
 
 test("both wires list the same tools (H-7)", async () => {

@@ -15,7 +15,39 @@ import {
   getLogNotifyRate,
   DEFAULT_LOG_NOTIFY_RATE,
 } from "../build/core/settings.js";
+import { runWithCall } from "../build/core/request-context.js";
 import { withEnv } from "./helpers.js";
+
+/**
+ * A bridge on a 2025 session that completed initialize — the only kind a line
+ * logged outside a call reaches (M-8).
+ */
+function legacyBridge(server) {
+  const sink = createLogBridge(server);
+  server.oninitialized?.();
+  return sink;
+}
+
+/** A request-scoped log channel (the SDK's ctx.mcpReq.log) that records. */
+function recordingChannel({ modern, level } = {}) {
+  const sent = [];
+  return {
+    sent,
+    channel: {
+      modern: modern === true,
+      ...(level ? { level } : {}),
+      send(lvl, data) {
+        sent.push({ level: lvl, data });
+        return Promise.resolve();
+      },
+    },
+  };
+}
+
+/** Run `fn` inside a tool call whose request log channel is `channel`. */
+function inCall(channel, fn) {
+  return runWithCall({ requestId: "r1", tool: "t", log: channel }, fn);
+}
 
 /** A fake low-level server that records what the bridge sends. */
 function recordingServer({ sessionId, ignored } = {}) {
@@ -48,7 +80,7 @@ test("getLogNotifyRate: default 20, 0 disables, invalid falls back", async () =>
 
 test("the bridge maps levels and sends the call's session id first, then the transport's", async () => {
   const server = recordingServer({ sessionId: "transport-sess" });
-  const sink = createLogBridge(server);
+  const sink = legacyBridge(server);
   await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
     sink("warn", "from a call", { sessionId: "call-sess", tool: "t" });
     sink("info", "outside a call");
@@ -74,7 +106,7 @@ test("the bridge maps levels and sends the call's session id first, then the tra
 });
 
 test("a failing sendLoggingMessage is swallowed", async () => {
-  const sink = createLogBridge({
+  const sink = legacyBridge({
     sendLoggingMessage: () => Promise.reject(new Error("closed")),
   });
   await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
@@ -98,11 +130,12 @@ test("logging/setLevel is honoured for a session-bound transport (HTTP)", async 
   // A Streamable HTTP transport carries its session id; the SDK keys the
   // level the client sets under it.
   serverTransport.sessionId = "http-session-1";
+  // Built with the session, as transport.ts does, so it sees initialize.
+  const sink = createLogBridge(server);
   await server.connect(serverTransport);
   await client.connect(clientTransport);
   try {
     await client.setLoggingLevel("warning");
-    const sink = createLogBridge(server);
     await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
       sink("info", "below the level");
       sink("debug", "below the level too");
@@ -123,7 +156,7 @@ test("logging/setLevel is honoured for a session-bound transport (HTTP)", async 
 test("token bucket: 1000 debug lines → the burst plus one suppressed summary", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
   const server = recordingServer({ sessionId: "s1" });
-  const sink = createLogBridge(server);
+  const sink = legacyBridge(server);
   await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
     for (let i = 0; i < 1000; i++) sink("debug", `line ${i}`);
   });
@@ -158,7 +191,7 @@ test("token bucket: 1000 debug lines → the burst plus one suppressed summary",
 test("token bucket: sessions have separate buckets; a summary with nothing suppressed is skipped", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
   const server = recordingServer();
-  const sink = createLogBridge(server);
+  const sink = legacyBridge(server);
   await withEnv({ SN_LOG_NOTIFY_RATE: "1" }, () => {
     for (let i = 0; i < 60; i++) sink("info", "a", { sessionId: "A" });
     for (let i = 0; i < 10; i++) sink("info", "b", { sessionId: "B" });
@@ -177,7 +210,7 @@ test("token bucket: sessions have separate buckets; a summary with nothing suppr
 test("a rate above the minimum burst raises the burst", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
   const server = recordingServer();
-  const sink = createLogBridge(server);
+  const sink = legacyBridge(server);
   await withEnv({ SN_LOG_NOTIFY_RATE: "200" }, () => {
     for (let i = 0; i < 500; i++) sink("debug", "x");
   });
@@ -186,7 +219,7 @@ test("a rate above the minimum burst raises the burst", async (t) => {
 
 test("SN_LOG_NOTIFY_RATE=0 turns the limit off", async () => {
   const server = recordingServer();
-  const sink = createLogBridge(server);
+  const sink = legacyBridge(server);
   await withEnv({ SN_LOG_NOTIFY_RATE: "0" }, () => {
     for (let i = 0; i < 1000; i++) sink("debug", "x");
   });
@@ -197,11 +230,106 @@ test("messages the client's level drops spend no token", async () => {
   const server = recordingServer({
     ignored: (level) => level === "debug",
   });
-  const sink = createLogBridge(server);
+  const sink = legacyBridge(server);
   await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
     for (let i = 0; i < 1000; i++) sink("debug", "dropped by the client");
     for (let i = 0; i < 10; i++) sink("info", "kept");
   });
   assert.equal(server.sent.length, 10);
   assert.ok(server.sent.every((m) => m.level === "info"));
+});
+
+test("outside a call, nothing is sent before a 2025 client initializes (M-8)", async () => {
+  const server = recordingServer();
+  const sink = createLogBridge(server);
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
+    sink("error", "no client yet, or a 2026-07-28 client");
+  });
+  assert.deepEqual(server.sent, []);
+  server.oninitialized();
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
+    sink("error", "a 2025 session");
+  });
+  assert.deepEqual(
+    server.sent.map((m) => m.data.message),
+    ["a 2025 session"],
+  );
+});
+
+test("the bridge chains a previous oninitialized hook (M-8)", () => {
+  let called = 0;
+  const server = recordingServer();
+  server.oninitialized = () => called++;
+  createLogBridge(server);
+  server.oninitialized();
+  assert.equal(called, 1);
+});
+
+test("a 2026-07-28 request without a log level gets no notification (M-8)", async () => {
+  const server = recordingServer();
+  const sink = legacyBridge(server);
+  const { sent, channel } = recordingChannel({ modern: true });
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () =>
+    inCall(channel, () => {
+      sink("error", "not asked for");
+      sink("debug", "not asked for either");
+    }),
+  );
+  assert.deepEqual(sent, []);
+  assert.deepEqual(server.sent, [], "never the session-wide path");
+});
+
+test("a 2026-07-28 request gets lines at or above its level, request-scoped (M-8)", async () => {
+  const server = recordingServer();
+  const sink = createLogBridge(server);
+  const { sent, channel } = recordingChannel({
+    modern: true,
+    level: "warning",
+  });
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () =>
+    inCall(channel, () => {
+      sink("debug", "below");
+      sink("info", "below too");
+      sink("warn", "at the level", { tool: "t" });
+      sink("error", "above");
+    }),
+  );
+  assert.deepEqual(sent, [
+    { level: "warning", data: { message: "at the level", tool: "t" } },
+    { level: "error", data: { message: "above" } },
+  ]);
+  assert.deepEqual(server.sent, [], "never sendLoggingMessage");
+});
+
+test("a 2026-07-28 request over the rate cap gets no summary (M-8)", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
+  const server = recordingServer();
+  const sink = createLogBridge(server);
+  const { sent, channel } = recordingChannel({ modern: true, level: "debug" });
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () =>
+    inCall(channel, () => {
+      for (let i = 0; i < 100; i++) sink("debug", `line ${i}`);
+    }),
+  );
+  assert.equal(sent.length, LOG_NOTIFY_MIN_BURST);
+  t.mock.timers.tick(LOG_SUPPRESSED_SUMMARY_MS);
+  assert.equal(sent.length, LOG_NOTIFY_MIN_BURST);
+  assert.deepEqual(server.sent, []);
+});
+
+test("a 2025 call logs through its request channel, still filtered by setLevel (M-8)", async () => {
+  const server = recordingServer({ ignored: (level) => level === "debug" });
+  const sink = createLogBridge(server);
+  const { sent, channel } = recordingChannel();
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () =>
+    inCall(channel, () => {
+      sink("debug", "dropped by the client");
+      sink("info", "kept");
+    }),
+  );
+  assert.deepEqual(
+    sent.map((m) => m.data.message),
+    ["kept"],
+  );
+  assert.deepEqual(server.sent, [], "not the deprecated session-wide path");
 });
