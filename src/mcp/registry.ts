@@ -1,6 +1,7 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { toJsonSchemaCompat } from "@modelcontextprotocol/sdk/server/zod-json-schema-compat.js";
+import type { McpServer } from "@modelcontextprotocol/server";
+import type { z } from "zod";
 import {
+  callExtraFromContext,
   runSpec,
   buildInputSchema,
   buildOutputSchema,
@@ -61,7 +62,15 @@ import {
 import { logger } from "../core/logging.js";
 import { timeToolCall } from "../core/metrics.js";
 import { runWithRuntime, type Runtime } from "../core/runtime.js";
-import { runMaybeAsTask, withTaskInput, withTaskOutput } from "./tasks.js";
+import {
+  acceptsRunAsTask,
+  requestTaskStore,
+  runMaybeAsTask,
+  taskStoreFor,
+  withTaskInput,
+  withTaskOutput,
+  type TaskCallExtra,
+} from "./tasks.js";
 import { resultHintMeta } from "./result-hints.js";
 import { structuredResults } from "../core/settings.js";
 import {
@@ -183,6 +192,17 @@ export function describeToolSchemas(): ToolSchemas[] {
   return ALL_TOOLS.map(toolSchemas);
 }
 
+/**
+ * N-35: a zod schema as JSON Schema the way SDK v2 publishes it in
+ * tools/list — zod's Standard JSON Schema, target draft 2020-12.
+ */
+function wireJsonSchema(
+  schema: z.ZodType,
+  io: "input" | "output",
+): Record<string, unknown> {
+  return schema["~standard"].jsonSchema[io]({ target: "draft-2020-12" });
+}
+
 /** One tool's JSON Schemas (describeToolSchemas, per spec). */
 function toolSchemas(spec: AnyToolSpec): ToolSchemas {
   const output = buildOutputSchema(spec);
@@ -191,19 +211,11 @@ function toolSchemas(spec: AnyToolSpec): ToolSchemas {
     // N-58: the lean form, as the wired tools/list handler publishes it
     // (N-60: the output schema before its shallow wire form).
     inputSchema: leanJsonSchema(
-      toJsonSchemaCompat(buildInputSchema(spec, { legacy: false }), {
-        strictUnions: true,
-        pipeStrategy: "input",
-      }),
+      wireJsonSchema(buildInputSchema(spec, { legacy: false }), "input"),
     ),
     ...(output
       ? {
-          outputSchema: leanJsonSchema(
-            toJsonSchemaCompat(output, {
-              strictUnions: true,
-              pipeStrategy: "output",
-            }),
-          ),
+          outputSchema: leanJsonSchema(wireJsonSchema(output, "output")),
         }
       : {}),
   };
@@ -391,8 +403,17 @@ export function registerAllTools(
       // progressToken + sendNotification, request and session ids.
       // E-5: every call is timed into the runtime's per-tool statistics.
       // M-9: `run_as_task:true` returns a task handle and runs in background.
-      (args, extra) => {
+      (args, ctx) => {
         onCall?.();
+        const extra: TaskCallExtra = callExtraFromContext(ctx);
+        if (acceptsRunAsTask(spec)) {
+          extra.taskStore = requestTaskStore(
+            taskStoreFor(runtime),
+            ctx.mcpReq.id,
+            { method: ctx.mcpReq.method, params: { name, arguments: args } },
+            ctx.sessionId,
+          );
+        }
         return runWithRuntime(runtime, () =>
           runMaybeAsTask(spec, args, extra, (a, e) =>
             timeToolCall(spec.name, () => runSpec(spec, a, e)),

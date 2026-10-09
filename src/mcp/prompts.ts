@@ -1,8 +1,5 @@
-import type {
-  McpServer,
-  RegisteredPrompt,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import { completable } from "@modelcontextprotocol/sdk/server/completable.js";
+import type { McpServer, RegisteredPrompt } from "@modelcontextprotocol/server";
+import { completable } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { activeProfile } from "../core/config.js";
 import { isReadOnly } from "../core/policy.js";
@@ -186,7 +183,6 @@ export function registerPrompts(
           z
             .string()
             .max(ARG_MAX)
-            .optional()
             .describe(
               "Connection profile the documentation is for (default: 'current', the active profile).",
             ),
@@ -194,7 +190,7 @@ export function registerPrompts(
             ...("current".startsWith(value.toLowerCase()) ? ["current"] : []),
             ...completeProfile(value),
           ],
-        ),
+        ).optional(),
       },
     },
     (args) => {
@@ -347,10 +343,9 @@ function registerWhyIsItSlow(server: McpServer): void {
           z
             .string()
             .max(ARG_MAX)
-            .optional()
             .describe("Table where the slowness shows, e.g. 'incident'."),
           (value = "") => completeTable(value),
-        ),
+        ).optional(),
       },
     },
     (args) => {
@@ -417,10 +412,9 @@ function registerSecurityPosture(server: McpServer): void {
           z
             .string()
             .max(ARG_MAX)
-            .optional()
             .describe("Instance profile; omit for the active one."),
           (value = "") => completeProfile(value),
-        ),
+        ).optional(),
       },
     },
     (args) => {
@@ -570,10 +564,9 @@ function registerSafeWrite(server: McpServer): void {
           z
             .string()
             .max(ARG_MAX)
-            .optional()
             .describe("Table the change touches, e.g. 'incident'."),
           (value = "") => completeTable(value),
-        ),
+        ).optional(),
       },
     },
     (args) => {
@@ -627,12 +620,11 @@ function registerDriftReview(server: McpServer): void {
           z
             .string()
             .max(ARG_MAX)
-            .optional()
             .describe(
               "Profile to compare with; omit to compare a with its saved snapshot.",
             ),
           (value = "") => completeProfile(value),
-        ),
+        ).optional(),
         update_set: z
           .string()
           .max(ARG_MAX)
@@ -813,20 +805,18 @@ function registerDiscoverInstance(server: McpServer): void {
           z
             .string()
             .max(ARG_MAX)
-            .optional()
             .describe(
               "Discovery tier (cumulative): overview, apps or artefacts. Default overview.",
             ),
           (value = "") => pick(DISCOVERY_DEPTHS, value),
-        ),
+        ).optional(),
         profile: completable(
           z
             .string()
             .max(ARG_MAX)
-            .optional()
             .describe("Instance profile; omit for the active one."),
           (value = "") => completeProfile(value),
-        ),
+        ).optional(),
       },
     },
     (args) => {

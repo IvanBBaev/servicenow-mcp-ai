@@ -1,19 +1,19 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { ServerOptions } from "@modelcontextprotocol/sdk/server/index.js";
-import type { RequestTaskStore } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type {
+  McpServer,
+  ServerContext,
+  ServerOptions,
+} from "@modelcontextprotocol/server";
 import {
-  isTerminal,
-  type CreateTaskOptions,
-  type TaskStore,
-} from "@modelcontextprotocol/sdk/experimental/tasks";
-import {
+  ProtocolError,
+  ProtocolErrorCode,
   RELATED_TASK_META_KEY,
   type Request,
   type RequestId,
   type Result,
   type Task,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
 import { logger } from "../core/logging.js";
 import { readBool } from "../core/settings-manifest.js";
 import { redactValue } from "../core/redaction.js";
@@ -28,15 +28,15 @@ import { fail, ok, type ToolResult } from "./result.js";
 /**
  * M-9 — long-running operations as MCP tasks (EXPERIMENTAL).
  *
- * Behind `SN_EXPERIMENTAL_TASKS=1` the server hands the SDK's experimental
- * task machinery (`@modelcontextprotocol/sdk/experimental/tasks`, SDK 1.30) a
- * task store, which installs the standard `tasks/get`, `tasks/result`,
- * `tasks/list` and `tasks/cancel` handlers, and the long-running tools gain an
+ * Behind `SN_EXPERIMENTAL_TASKS=1` the server installs the standard
+ * `tasks/get`, `tasks/result`, `tasks/list` and `tasks/cancel` handlers
+ * (installTaskHandlers — SDK v2 has no task runtime, N-35, so they are ours,
+ * on the 2025-11-25 wire vocabulary), and the long-running tools gain an
  * optional `run_as_task:true` argument. Such a call returns a task handle at
  * once — `{ task: { taskId, status, ttl, pollInterval, … } }` with
  * `_meta["io.modelcontextprotocol/related-task"]` — and the work continues in
  * the background; `tasks/result` later returns the tool result carrying the
- * same `_meta` key (added by the SDK).
+ * same `_meta` key.
  *
  * - One in-memory store per E-3 runtime container (a runtime part): disposing
  *   the runtime aborts every running task and drops every stored result.
@@ -61,6 +61,37 @@ import { fail, ok, type ToolResult } from "./result.js";
  * capability, and the input schemas (tools/list) are byte-identical to a build
  * without this module. Removable without a major if the SDK drops the API.
  */
+
+/** The 2025-11-25 task statuses a task never leaves. */
+const TERMINAL: ReadonlySet<Task["status"]> = new Set([
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+/** True when `status` is final (completed, failed or cancelled). */
+export function isTerminal(status: Task["status"]): boolean {
+  return TERMINAL.has(status);
+}
+
+/** What a caller may ask of a new task (`ttl` is capped by the store). */
+export interface CreateTaskOptions {
+  ttl?: number | null;
+  pollInterval?: number;
+}
+
+/**
+ * The task store bound to one tools/call request (its id, the request and
+ * its session) — the shape SDK v1 handed tools as `extra.taskStore`.
+ */
+export interface RequestTaskStore {
+  createTask(options: CreateTaskOptions): Promise<Task>;
+  storeTaskResult(
+    taskId: string,
+    status: "completed" | "failed",
+    result: Result,
+  ): Promise<void>;
+}
 
 /** Retention cap of a task (and its result), from creation: one hour. */
 export const TASK_TTL_MS = 60 * 60 * 1000;
@@ -106,7 +137,7 @@ interface Entry {
  * It also owns the AbortController of each running task so `tasks/cancel`
  * (a status update to `cancelled`) and TTL expiry stop the work.
  */
-export class SnTaskStore implements TaskStore {
+export class SnTaskStore {
   private readonly entries = new Map<string, Entry>();
   private readonly running = new Map<string, AbortController>();
 
@@ -323,14 +354,11 @@ export function taskStoreFor(runtime: Runtime): SnTaskStore {
 }
 
 /**
- * McpServer options with task support merged in when the flag is on: the
- * runtime's task store and the `tasks` capability (list + cancel). Returns
- * `options` unchanged when the flag is off.
+ * McpServer options with the `tasks` capability (list + cancel) merged in
+ * when the flag is on; installTaskHandlers serves it. Returns `options`
+ * unchanged when the flag is off.
  */
-export function withTaskSupport(
-  options: ServerOptions,
-  runtime: Runtime,
-): ServerOptions {
+export function withTaskSupport(options: ServerOptions): ServerOptions {
   if (!tasksEnabled()) return options;
   return {
     ...options,
@@ -338,8 +366,128 @@ export function withTaskSupport(
       ...options.capabilities,
       tasks: { list: {}, cancel: {} },
     },
-    taskStore: taskStoreFor(runtime),
   };
+}
+
+/** `store` bound to one tools/call request (RequestTaskStore). */
+export function requestTaskStore(
+  store: SnTaskStore,
+  requestId: RequestId,
+  request: Request,
+  sessionId?: string,
+): RequestTaskStore {
+  return {
+    createTask: (options) =>
+      store.createTask(options, requestId, request, sessionId),
+    storeTaskResult: (taskId, status, result) =>
+      store.storeTaskResult(taskId, status, result, sessionId),
+  };
+}
+
+const taskIdParams = z.looseObject({ taskId: z.string() });
+const listParams = z.looseObject({ cursor: z.string().optional() }).optional();
+
+/** A task id unknown to (or hidden from) the session: -32602. */
+function notFound(taskId: string): ProtocolError {
+  return new ProtocolError(
+    ProtocolErrorCode.InvalidParams,
+    `Task ${taskId} not found (or expired).`,
+  );
+}
+
+/** Resolve after `ms`, or at once when `signal` aborts. */
+function pause(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      { once: true },
+    );
+  });
+}
+
+/**
+ * Serve tasks/get, tasks/result, tasks/list and tasks/cancel from the
+ * runtime's store (N-35: SDK v1 installed these from `taskStore`; v2 has no
+ * task runtime). Session-bound like the store. tasks/result waits for a
+ * final status, as the 2025-11-25 spec asks, until the request is cancelled.
+ * A no-op when the flag is off.
+ */
+export function installTaskHandlers(server: McpServer, runtime: Runtime): void {
+  if (!tasksEnabled()) return;
+  const store = taskStoreFor(runtime);
+  const proto = server.server;
+  proto.setRequestHandler(
+    "tasks/get",
+    { params: taskIdParams },
+    async ({ taskId }, ctx: ServerContext) => {
+      const task = await store.getTask(taskId, ctx.sessionId);
+      if (!task) throw notFound(taskId);
+      return { ...task };
+    },
+  );
+  proto.setRequestHandler(
+    "tasks/result",
+    { params: taskIdParams },
+    async ({ taskId }, ctx: ServerContext) => {
+      for (;;) {
+        const task = await store.getTask(taskId, ctx.sessionId);
+        if (!task) throw notFound(taskId);
+        if (task.status === "cancelled") {
+          throw new ProtocolError(
+            ProtocolErrorCode.InvalidParams,
+            `Task ${taskId} was cancelled; it has no result.`,
+          );
+        }
+        if (isTerminal(task.status)) {
+          const result = await store.getTaskResult(taskId, ctx.sessionId);
+          return {
+            ...result,
+            _meta: {
+              ...result._meta,
+              [RELATED_TASK_META_KEY]: { taskId },
+            },
+          };
+        }
+        if (ctx.mcpReq.signal.aborted) throw notFound(taskId);
+        await pause(
+          task.pollInterval ?? TASK_POLL_INTERVAL_MS,
+          ctx.mcpReq.signal,
+        );
+      }
+    },
+  );
+  proto.setRequestHandler(
+    "tasks/list",
+    { params: listParams },
+    (params, ctx: ServerContext) =>
+      store.listTasks(params?.cursor, ctx.sessionId),
+  );
+  proto.setRequestHandler(
+    "tasks/cancel",
+    { params: taskIdParams },
+    async ({ taskId }, ctx: ServerContext) => {
+      const task = await store.getTask(taskId, ctx.sessionId);
+      if (!task) throw notFound(taskId);
+      if (isTerminal(task.status)) {
+        throw new ProtocolError(
+          ProtocolErrorCode.InvalidParams,
+          `Task ${taskId} is already ${task.status}; it cannot be cancelled.`,
+        );
+      }
+      await store.updateTaskStatus(
+        taskId,
+        "cancelled",
+        undefined,
+        ctx.sessionId,
+      );
+      return { ...(await store.getTask(taskId, ctx.sessionId))! };
+    },
+  );
 }
 
 const runAsTaskParam = z
@@ -376,7 +524,7 @@ export function withTaskOutput<T extends z.ZodObject>(
   return schema.partial() as unknown as T;
 }
 
-/** The SDK `extra` as seen here: M-3's subset plus the request task store. */
+/** M-3's CallExtra plus the request task store (registry.ts binds it). */
 export type TaskCallExtra = CallExtra & { taskStore?: RequestTaskStore };
 
 /** A tool handle result: the ok() envelope plus the related-task `_meta`. */

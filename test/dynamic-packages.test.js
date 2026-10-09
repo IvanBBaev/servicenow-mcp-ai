@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
@@ -159,10 +159,11 @@ test("M-5: a denied package cannot be pulled in", async () => {
       assert.equal(seen.tools, 0);
       const listed = await names();
       for (const tool of CODECHECK_TOOLS) assert.ok(!listed.includes(tool));
-      // Never registered at all: the SDK does not know the tool.
-      const direct = await call(CODECHECK_TOOLS[0], {});
-      assert.equal(direct.isError, true);
-      assert.match(text(direct), /not found/);
+      // Never registered at all: SDK v2 answers -32602, not a tool result.
+      await assert.rejects(call(CODECHECK_TOOLS[0], {}), {
+        code: -32602,
+        message: /not found/,
+      });
       const row = (
         await call("servicenow_list_packages")
       ).structuredContent.packages.find((p) => p.name === "codecheck");
@@ -232,11 +233,11 @@ test("M-5: disable withdraws tools, resources and prompts; enable restores them"
       assert.ok(seen.prompts >= 1);
       assert.ok(seen.resources >= 1);
 
-      const disabled = await call("servicenow_query_table", {
-        table: "incident",
-      });
-      assert.equal(disabled.isError, true);
-      assert.match(text(disabled), /disabled/);
+      // SDK v2 answers a disabled tool with -32602, not a tool result.
+      await assert.rejects(
+        call("servicenow_query_table", { table: "incident" }),
+        { code: -32602, message: /disabled/ },
+      );
 
       await call("servicenow_enable_package", { name: "table" });
       await call("servicenow_enable_package", { name: "schema" });

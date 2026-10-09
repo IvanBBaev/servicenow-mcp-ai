@@ -8,7 +8,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
@@ -169,9 +169,11 @@ test("legacy off: old names are absent from tools/list and unknown", async () =>
       for (const rename of TOOL_RENAMES) {
         assert.ok(!listed.includes(rename.from), rename.from);
       }
-      const result = await call("servicenow_docs_list");
-      assert.equal(result.isError, true);
-      assert.match(text(result), /not found|unknown/i);
+      // SDK v2 answers an unknown tool with -32602, not a tool result.
+      await assert.rejects(call("servicenow_docs_list"), {
+        code: -32602,
+        message: /not found|unknown/i,
+      });
     },
   );
 });

@@ -8,7 +8,10 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import fc from "fast-check";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import {
+  ProtocolError as McpError,
+  ProtocolErrorCode as ErrorCode,
+} from "@modelcontextprotocol/server";
 
 import {
   ERROR_CODES,

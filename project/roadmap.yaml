@@ -1076,11 +1076,11 @@ items:
     title: "protocol 2026-07-28 alignment"
     pillar: "N"
     effort: "L"
-    status: "open"
+    status: "partial"
     phase: "R"
-    done: null
+    done: "2026-10-10"
     gates: []
-    notes: "Phase R (spike) then B. **O-19 decided 2026-10-10** ([ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)): full 2026-07-28 conformance, legacy revisions kept; `@modelcontextprotocol/server` 2.3.1 negotiates both. MCP SDK v2 split packages; stateless HTTP replaces `Mcp-Session-Id` (H-7); log bridge off deprecated Logging (M-8); tasks extension (M-9); N-9 re-scoped; CIMD for N-17 (TK-01 … TK-05). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Step 1 (spike) done 2026-10-10** ([N-35-SPIKE-SDK-V2.md](N-35-SPIKE-SDK-V2.md)): runs on `@modelcontextprotocol/server` 2.3.1 + `@modelcontextprotocol/node` 2.1.1 with legacy-wire parity, 0 B tools/list; ctx adapter, hand-rolled `tasks/*` handlers, `completable(...).optional()`, unknown/disabled tool is -32602. Open: server factory with modern serving (`serveStdio` / `createMcpHandler`), then MRTR, M-8, M-9, N-38. Phase R (spike) then B. **O-19 decided 2026-10-10** ([ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)): full 2026-07-28 conformance, legacy revisions kept; `@modelcontextprotocol/server` 2.3.1 negotiates both. MCP SDK v2 split packages; stateless HTTP replaces `Mcp-Session-Id` (H-7); log bridge off deprecated Logging (M-8); tasks extension (M-9); N-9 re-scoped; CIMD for N-17 (TK-01 … TK-05). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-36"
     title: "tool discovery instead of a bigger budget"
     pillar: "N"

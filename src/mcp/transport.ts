@@ -5,8 +5,8 @@ import {
   type ServerResponse,
 } from "node:http";
 import { timingSafeEqual } from "node:crypto";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import type { McpServer } from "@modelcontextprotocol/server";
 import {
   getTransport,
   getHttpPort,

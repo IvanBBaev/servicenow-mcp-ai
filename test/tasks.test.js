@@ -9,7 +9,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
@@ -31,6 +31,7 @@ import {
   runMaybeAsTask,
   taskStoreFor,
   tasksEnabled,
+  installTaskHandlers,
   withTaskSupport,
 } from "../build/mcp/tasks.js";
 import { ALL_TOOLS } from "../build/mcp/registry.js";
@@ -87,19 +88,19 @@ test("tasksEnabled: only 1 / true switch it on", async () => {
   }
 });
 
-test("withTaskSupport: unchanged when off, store + capability when on", async () => {
+test("withTaskSupport: unchanged when off, the tasks capability when on", async () => {
   const runtime = currentRuntime();
   const base = { capabilities: { logging: {} } };
   await withEnv(OFF, () => {
-    assert.equal(withTaskSupport(base, runtime), base);
+    assert.equal(withTaskSupport(base), base);
   });
   await withEnv(ON, () => {
-    const opts = withTaskSupport(base, runtime);
+    const opts = withTaskSupport(base);
     assert.deepEqual(opts.capabilities, {
       logging: {},
       tasks: { list: {}, cancel: {} },
     });
-    assert.equal(opts.taskStore, taskStoreFor(runtime));
+    assert.equal("taskStore" in opts, false, "N-35: no SDK task store");
     assert.equal(
       taskStoreFor(runtime),
       taskStoreFor(runtime),
@@ -354,8 +355,9 @@ async function startServer() {
   const runtime = currentRuntime();
   const server = new McpServer(
     { name: "servicenow-mcp-test", version: "0.0.0" },
-    withTaskSupport({ capabilities: { logging: {} } }, runtime),
+    withTaskSupport({ capabilities: { logging: {} } }),
   );
+  installTaskHandlers(server, runtime);
   registerAllTools(server, runtime);
   const client = new Client({ name: "test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] =

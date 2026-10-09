@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { McpServer, ServerContext } from "@modelcontextprotocol/server";
 import { logger } from "../core/logging.js";
 import { activeProfile, listProfiles } from "../core/config.js";
 import {
@@ -160,6 +160,22 @@ export interface CallExtra {
     tracestate?: unknown;
   };
   sendNotification?: (notification: ProgressNotification) => Promise<void>;
+}
+
+/**
+ * N-35: the SDK v2 handler context as a CallExtra. v2 passes `ctx` (request
+ * data under `ctx.mcpReq`) where v1 passed a flat `extra`; tests and
+ * in-process callers keep passing the flat form.
+ */
+export function callExtraFromContext(ctx: ServerContext): CallExtra {
+  const req = ctx.mcpReq;
+  return {
+    ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+    requestId: req.id,
+    signal: req.signal,
+    ...(req._meta ? { _meta: req._meta } : {}),
+    sendNotification: (notification) => req.notify(notification),
+  };
 }
 
 /**

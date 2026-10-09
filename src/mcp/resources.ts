@@ -1,11 +1,8 @@
 import path from "node:path";
 import { policyResourcePayload } from "./policy-view.js";
 import { TOOL_EXAMPLES } from "./tool-examples.js";
-import {
-  McpServer,
-  ResourceTemplate,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/server";
+import { ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
 import { buildStatusPayload, profilesPayload } from "./status.js";
 import {
   listTables,
@@ -62,14 +59,16 @@ export function resourceError(
   what: string,
   error: unknown,
   context: Record<string, unknown> = {},
-): McpError {
-  if (error instanceof McpError) return error;
+): ProtocolError {
+  if (error instanceof ProtocolError) return error;
   const message = error instanceof Error ? error.message : String(error);
   logger.warn(`${what} resource failed`, { ...context, error: message });
   const code = errorCodeOf(error);
   const hint = error instanceof IntegrationError ? error.hint : undefined;
-  return new McpError(
-    CALLER_CODES.has(code) ? ErrorCode.InvalidParams : ErrorCode.InternalError,
+  return new ProtocolError(
+    CALLER_CODES.has(code)
+      ? ProtocolErrorCode.InvalidParams
+      : ProtocolErrorCode.InternalError,
     message,
     { code, source: errorSourceOf(error), ...(hint ? { hint } : {}) },
   );
@@ -133,7 +132,7 @@ export function completeProfile(value: string): string[] {
 /**
  * Package-scoped resource registrars (A2-1). Gating lives in the registry's
  * package manifest — these functions only know how to register themselves.
- * M-2: a failed read throws an McpError (resourceError) instead of returning
+ * M-2: a failed read throws an ProtocolError (resourceError) instead of returning
  * a 200 body with an `error` field; listing never calls the instance, so a
  * missing connection still does not break resources/list.
  */

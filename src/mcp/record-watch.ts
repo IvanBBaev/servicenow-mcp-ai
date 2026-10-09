@@ -1,5 +1,5 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
+import type { McpServer } from "@modelcontextprotocol/server";
+import { ProtocolError, ProtocolErrorCode } from "@modelcontextprotocol/server";
 import { snString } from "../api/shared.js";
 import { getRecord } from "../api/table.js";
 import { listProfiles } from "../core/config.js";
@@ -107,8 +107,8 @@ function stop(watch: Watch): void {
 const versionOf = (record: Record<string, unknown>): string =>
   `${snString(record.sys_updated_on)}|${snString(record.sys_mod_count)}`;
 
-function limit(message: string): McpError {
-  return new McpError(ErrorCode.InvalidRequest, message, {
+function limit(message: string): ProtocolError {
+  return new ProtocolError(ProtocolErrorCode.InvalidRequest, message, {
     code: "WATCH_LIMIT",
     source: "server",
   });
@@ -179,8 +179,8 @@ export async function watchRecord(
   byServer.set(server, mine);
   if (mine.has(uri)) return;
   if (!listProfiles().includes(ref.profile)) {
-    throw new McpError(
-      ErrorCode.InvalidParams,
+    throw new ProtocolError(
+      ProtocolErrorCode.InvalidParams,
       `Unknown connection profile "${ref.profile}".`,
       { code: "UNKNOWN_PROFILE", source: "server" },
     );
@@ -202,12 +202,12 @@ export async function watchRecord(
   try {
     version = await readVersion(ref);
   } catch (error) {
-    if (error instanceof McpError) throw error;
+    if (error instanceof ProtocolError) throw error;
     const code = errorCodeOf(error);
-    throw new McpError(
+    throw new ProtocolError(
       code === "NOT_FOUND" || code === "INSTANCE_HTTP_404"
-        ? ErrorCode.InvalidParams
-        : ErrorCode.InternalError,
+        ? ProtocolErrorCode.InvalidParams
+        : ProtocolErrorCode.InternalError,
       error instanceof Error ? error.message : String(error),
       {
         code,

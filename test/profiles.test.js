@@ -129,7 +129,7 @@ test("per-profile policy: prod read-only, dev writes (MI-2)", async () => {
 });
 
 test("the automatic instance argument routes a single call (MI-3)", async () => {
-  const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
+  const { McpServer } = await import("@modelcontextprotocol/server");
   const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
   const { InMemoryTransport } =
     await import("@modelcontextprotocol/sdk/inMemory.js");

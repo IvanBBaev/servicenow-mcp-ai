@@ -4,11 +4,7 @@ import type {
   RegisteredResource,
   RegisteredResourceTemplate,
   RegisteredTool,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import {
-  SubscribeRequestSchema,
-  UnsubscribeRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
 import { getDeniedPackages } from "../core/settings.js";
 import { IntegrationError } from "../core/errors.js";
 import { logger } from "../core/logging.js";
@@ -406,13 +402,13 @@ export function enableResourceSubscriptions(server: McpServer): void {
   server.server.registerCapabilities({
     resources: { subscribe: true, listChanged: true },
   });
-  server.server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+  server.server.setRequestHandler("resources/subscribe", async (request) => {
     // N-10: a record URI starts a poll (and may be refused at a cap).
     await watchRecord(server, request.params.uri);
     uris.add(request.params.uri);
     return {};
   });
-  server.server.setRequestHandler(UnsubscribeRequestSchema, (request) => {
+  server.server.setRequestHandler("resources/unsubscribe", (request) => {
     unwatchRecord(server, request.params.uri);
     uris.delete(request.params.uri);
     return {};

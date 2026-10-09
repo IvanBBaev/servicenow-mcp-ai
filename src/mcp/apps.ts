@@ -1,8 +1,8 @@
 import type {
+  ClientCapabilities,
   McpServer,
   RegisteredTool,
-} from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { ClientCapabilities } from "@modelcontextprotocol/sdk/types.js";
+} from "@modelcontextprotocol/server";
 import { readBool } from "../core/settings-manifest.js";
 import { SERVER_VERSION } from "../core/identity.js";
 import type { AnyToolSpec } from "./define.js";

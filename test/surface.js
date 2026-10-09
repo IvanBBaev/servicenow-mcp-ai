@@ -3,7 +3,7 @@
 // through this module, so they agree on what a byte is: the length of
 // JSON.stringify of the tools array an MCP client receives.
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 

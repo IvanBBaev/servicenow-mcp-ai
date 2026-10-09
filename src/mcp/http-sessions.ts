@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
+import type { McpServer } from "@modelcontextprotocol/server";
+import { isInitializeRequest } from "@modelcontextprotocol/server";
 import {
   createRuntime,
   runWithRuntime,
@@ -19,7 +19,7 @@ import { createLogBridge } from "./log-bridge.js";
 /**
  * H-7 — HTTP session management (closes the single-transport design of DF-6).
  *
- * Every MCP session gets its own `StreamableHTTPServerTransport`, its own
+ * Every MCP session gets its own `NodeStreamableHTTPServerTransport`, its own
  * `McpServer` (so list-changed notifications, the logging level and
  * elicitations reach only the client that owns them) and its own session
  * runtime — a child of the process runtime (`createRuntime({ parent })`):
@@ -59,7 +59,7 @@ export interface HttpSessionOptions {
 
 interface HttpSession {
   scope: SessionScope;
-  transport: StreamableHTTPServerTransport;
+  transport: NodeStreamableHTTPServerTransport;
   server: McpServer;
   runtime: Runtime;
   lastSeen: number;
@@ -215,10 +215,10 @@ export class HttpSessionManager {
       );
       scope.server = server;
       scope.logSink = createLogBridge(server.server);
-      const transport = new StreamableHTTPServerTransport({
+      const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         keepAliveMs: this.options.keepAliveMs,
-        onsessioninitialized: (id) => {
+        onsessioninitialized: (id: string) => {
           scope.id = id;
           this.sessions.set(id, session!);
           logger.info("HTTP session opened", {

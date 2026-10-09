@@ -1,4 +1,4 @@
-import type { Implementation } from "@modelcontextprotocol/sdk/types.js";
+import type { Implementation } from "@modelcontextprotocol/server";
 import {
   activeProfile,
   credentialStatus,

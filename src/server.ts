@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { connectTransport, closeHttpTransport } from "./mcp/transport.js";
 import { installCrashHandlers } from "./core/lifecycle.js";
 import { startOtelSubscriber } from "./core/otel.js";
@@ -17,7 +17,7 @@ import { createLogBridge } from "./mcp/log-bridge.js";
 import { warnIfTlsVerifyOff } from "./core/dispatcher.js";
 import type { Runtime } from "./core/runtime.js";
 import { SERVER_VERSION } from "./core/identity.js";
-import { withTaskSupport } from "./mcp/tasks.js";
+import { installTaskHandlers, withTaskSupport } from "./mcp/tasks.js";
 import {
   buildServerInstructions,
   serverImplementation,
@@ -33,17 +33,15 @@ export function buildMcpServer(runtime: Runtime): McpServer {
   // registry and configuration (packages, write mode, credentials, how to fix).
   const server = new McpServer(
     serverImplementation(SERVER_VERSION),
-    // M-9: task store + `tasks` capability when SN_EXPERIMENTAL_TASKS is on.
-    withTaskSupport(
-      {
-        capabilities: { logging: {} },
-        instructions: buildServerInstructions(SERVER_VERSION),
-        // M-5: one list_changed per list for a package toggle, not one per tool.
-        debouncedNotificationMethods: LIST_CHANGED_NOTIFICATIONS,
-      },
-      runtime,
-    ),
+    // M-9: the `tasks` capability when SN_EXPERIMENTAL_TASKS is on.
+    withTaskSupport({
+      capabilities: { logging: {} },
+      instructions: buildServerInstructions(SERVER_VERSION),
+      // M-5: one list_changed per list for a package toggle, not one per tool.
+      debouncedNotificationMethods: LIST_CHANGED_NOTIFICATIONS,
+    }),
   );
+  installTaskHandlers(server, runtime);
   registerAllTools(server, runtime);
   registerResources(server);
   registerPrompts(server, effectivePackages().enabled);

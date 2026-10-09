@@ -24,8 +24,7 @@
  *     still validates `structuredContent` against the full zod shape.
  */
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import type { ListToolsResult, McpServer } from "@modelcontextprotocol/server";
 
 type Json = Record<string, unknown>;
 
@@ -161,7 +160,11 @@ export function wireAnnotations(annotations: Json | undefined): Json {
 
 /** The lean form of one published tool. */
 export function leanTool(tool: Json): Json {
-  const out: Json = { ...tool };
+  // SDK v2 lists every tool field, set or not; an undefined key never
+  // reaches JSON, so drop it here too (in-memory transports keep it).
+  const out: Json = Object.fromEntries(
+    Object.entries(tool).filter(([, value]) => value !== undefined),
+  );
   if (isObject(tool.inputSchema)) {
     out.inputSchema = leanJsonSchema(tool.inputSchema);
   }
@@ -202,19 +205,20 @@ type RequestHandlers = Map<
  * handler, and nothing changes. Call it after the tools are registered.
  */
 export function wireLeanToolsList(server: McpServer): void {
-  const method = ListToolsRequestSchema.shape.method.value;
+  const method = "tools/list";
   const handlers = (server.server as unknown as { _requestHandlers?: unknown })
     ._requestHandlers;
   if (!(handlers instanceof Map)) return;
   const original = (handlers as RequestHandlers).get(method);
   if (!original) return;
-  server.server.setRequestHandler(
-    ListToolsRequestSchema,
-    async (request, extra) => {
-      const result = (await original(request, extra)) as Json & {
-        tools: Json[];
-      };
-      return { ...result, tools: leanToolsList(result.tools) };
-    },
-  );
+  server.server.setRequestHandler(method, async (request, extra) => {
+    const result = (await original(request, extra)) as Json & {
+      tools: Json[];
+    };
+    // The lean form only drops keywords, so it stays a ListToolsResult.
+    return {
+      ...result,
+      tools: leanToolsList(result.tools),
+    } as unknown as ListToolsResult;
+  });
 }
