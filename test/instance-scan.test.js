@@ -309,3 +309,100 @@ test("waitForInstanceScan polls progress until the scan finishes", async () => {
   assert.equal(updates[0].message, "Instance scan in progress");
   assert.equal(updates[1].message, "Successful");
 });
+
+// --- run through check_code_health (scan_run) -------------------------------
+
+const healthTool = (await import("../build/tools/codecheck.js")).specs.find(
+  (s) => s.name === "servicenow_check_code_health",
+);
+const out = (res) => JSON.parse(res.content[0].text);
+
+test("check_code_health scan_run previews by default and calls nothing", async () => {
+  freshRuntime();
+  await withFetch(
+    () => started("p1"),
+    async (calls) => {
+      const o = out(
+        await healthTool.handler({
+          scan_run: "point",
+          scope: "sys_script",
+          sys_id: "br1",
+        }),
+      );
+      assert.equal(o.mode, "plan");
+      assert.equal(o.action, "execute");
+      assert.equal(o.table, "scan_result");
+      assert.equal(o.sys_id, "br1");
+      assert.equal(o.scope, "sys_script");
+      assert.ok(o.generatedAt);
+      assert.deepEqual(o.warnings, []);
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
+test("check_code_health scan_run with apply starts the scan and journals it", async () => {
+  freshRuntime();
+  await withFetch(
+    () => started("p9"),
+    async (calls) => {
+      const o = out(
+        await healthTool.handler({
+          scan_run: "suite",
+          sys_id: "su1",
+          apply: true,
+        }),
+      );
+      assert.equal(o.executionId, "p9");
+      assert.equal(o.scope, "instance");
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].init.method, "POST");
+      assert.match(calls[0].url, /\/instance_scan\/suite_scan\/su1$/);
+      const full = out(
+        await healthTool.handler({ scan_run: "full", apply: true }),
+      );
+      assert.equal(full.executionId, "p9");
+      assert.match(calls[1].url, /\/instance_scan\/full_scan$/);
+    },
+  );
+});
+
+test("check_code_health scan_run refuses a target without its sys_id or table", async () => {
+  freshRuntime();
+  await withFetch(
+    () => started("p1"),
+    async (calls) => {
+      for (const args of [
+        { scan_run: "point", sys_id: "br1" },
+        { scan_run: "point", scope: "sys_script" },
+        { scan_run: "suite", apply: true },
+        { scan_run: "suite", sys_id: "a b", apply: true },
+      ]) {
+        await assert.rejects(
+          () => healthTool.handler(args),
+          (e) =>
+            e instanceof ServiceNowError &&
+            e.code === "INVALID_INPUT" &&
+            /needs|must be a sys_id/.test(e.message),
+        );
+      }
+      assert.equal(calls.length, 0);
+    },
+  );
+});
+
+test("check_code_health scan_run with apply is refused in read-only mode", async () => {
+  freshRuntime();
+  await withFetch(
+    () => started("p1"),
+    async (calls) => {
+      await withEnv({ SN_READONLY: "true" }, () =>
+        assert.rejects(
+          healthTool.handler({ scan_run: "full", apply: true }),
+          (err) => err instanceof ServiceNowError && err.status === 403,
+        ),
+      );
+      assert.equal(calls.length, 0);
+    },
+  );
+});

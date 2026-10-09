@@ -61,9 +61,9 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_check_code_health
 
-**Code health report.** Code-health report: script counts by type, ACL security scan (open, public, scripted, elevated ACLs; public REST/UI pages; tables without ACL), lint for a table, and new/fixed findings vs a stored baseline. Writes <profile>/code-health.md.
+**Code health report.** Code-health report: script counts, ACL scan, table lint, new/fixed findings vs baseline. Writes <profile>/code-health.md.
 
-**Writes:** Write, idempotent.
+**Writes:** Write, idempotent. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`).
 
 ### Parameters
 
@@ -74,6 +74,9 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `limit` | integer | no | Records per type for extended, candidates per rule for domains (default 50). |
 | `domains` | boolean | no | Also run the flow, portal, UI Builder and legacy-workflow analysers. |
 | `update_baseline` | boolean | no | Reset the baseline to this run; otherwise new/fixed findings are reported against it. |
+| `scan_run` | "full" \| "point" \| "suite" | no | Run Instance Scan; point: scope+sys_id, suite: sys_id. |
+| `sys_id` | string | no | Its target. |
+| `apply` | boolean | no | true runs it. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

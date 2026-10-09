@@ -405,6 +405,7 @@ test("spawned: the hook reads the env file, asks in apply mode and fails open", 
  */
 const NOT_DESTRUCTIVE = "a write without an H-3 confirm spec";
 const UNGATED_APPLY_TOOLS = {
+  servicenow_check_code_health: `${NOT_DESTRUCTIVE}: starts an Instance Scan (scan_run)`,
   servicenow_create_change: `${NOT_DESTRUCTIVE}: creates a change request`,
   servicenow_create_ci: `${NOT_DESTRUCTIVE}: creates a CMDB CI`,
   servicenow_create_record: `${NOT_DESTRUCTIVE}: creates a record`,

@@ -621,7 +621,7 @@
       "package": "codecheck",
       "title": "Code health report",
       "since": "2.0.1",
-      "description_sha256": "fd08e3d296cef59fb7716b8ee9c52a704048ac88e154c372fa212285873afece",
+      "description_sha256": "25eda3a0c2715e1432e54b0a22b4d8e34df89ee0415114705adc9b50f7f4b1d4",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -631,6 +631,7 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "apply": { "description": "true runs it.", "type": "boolean" },
           "domains": {
             "description": "Also run the flow, portal, UI Builder and legacy-workflow analysers.",
             "type": "boolean"
@@ -650,9 +651,19 @@
             "minimum": 1,
             "type": "integer"
           },
+          "scan_run": {
+            "description": "Run Instance Scan; point: scope+sys_id, suite: sys_id.",
+            "enum": ["full", "point", "suite"],
+            "type": "string"
+          },
           "scope": {
             "description": "Table to lint; omit for an instance-wide inventory.",
             "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "type": "string"
+          },
+          "sys_id": {
+            "description": "Its target.",
+            "maxLength": 32,
             "type": "string"
           },
           "update_baseline": {
@@ -674,9 +685,9 @@
         "type": "object"
       },
       "sizes": {
-        "description": 241,
-        "inputSchema": 802,
-        "paramDescriptions": 398,
+        "description": 123,
+        "inputSchema": 1061,
+        "paramDescriptions": 482,
         "outputSchema": 221
       }
     },

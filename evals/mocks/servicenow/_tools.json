@@ -176,7 +176,7 @@
     {
       "name": "servicenow_check_code_health",
       "title": "Code health report",
-      "description": "Code-health report: script counts by type, ACL security scan (open, public, scripted, elevated ACLs; public REST/UI pages; tables without ACL), lint for a table, and new/fixed findings vs a stored baseline. Writes <profile>/code-health.md.",
+      "description": "Code-health report: script counts, ACL scan, table lint, new/fixed findings vs baseline. Writes <profile>/code-health.md.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -201,6 +201,24 @@
           },
           "update_baseline": {
             "description": "Reset the baseline to this run; otherwise new/fixed findings are reported against it.",
+            "type": "boolean"
+          },
+          "scan_run": {
+            "description": "Run Instance Scan; point: scope+sys_id, suite: sys_id.",
+            "type": "string",
+            "enum": [
+              "full",
+              "point",
+              "suite"
+            ]
+          },
+          "sys_id": {
+            "description": "Its target.",
+            "type": "string",
+            "maxLength": 32
+          },
+          "apply": {
+            "description": "true runs it.",
             "type": "boolean"
           },
           "instance": {

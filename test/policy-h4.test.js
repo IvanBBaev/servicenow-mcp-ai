@@ -598,6 +598,7 @@ const WRITE_ARGS = {
   servicenow_send_email: { to: ["a@example.com"], subject: "s", body: "b" },
   servicenow_run_atf_test: { sys_id: SYS_ID },
   servicenow_run_atf_suite: { sys_id: SYS_ID },
+  servicenow_check_code_health: { scan_run: "full" },
   servicenow_revert_write: { entry_id: "01J0000000000000000000000" },
   servicenow_set_property: { name: "glide.x", value: "1" },
   servicenow_upsert_artifact: {
@@ -628,6 +629,7 @@ const WRITE_TABLE = {
   servicenow_send_email: "sys_email",
   servicenow_run_atf_test: "sys_atf_test",
   servicenow_run_atf_suite: "sys_atf_test_suite",
+  servicenow_check_code_health: "scan_result",
   servicenow_set_property: "sys_properties",
   servicenow_upsert_artifact: "sys_ui_policy",
   // revert_write takes its table from the journal entry (test/revert.test.js).

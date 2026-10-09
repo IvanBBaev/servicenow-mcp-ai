@@ -6,20 +6,99 @@ import {
   lintTable,
   codeHealth,
 } from "../api/codecheck.js";
+import {
+  runInstanceScan,
+  SCAN_RESULT_TABLE,
+  type InstanceScanTarget,
+} from "../api/instance-scan.js";
+import { ServiceNowError } from "../core/errors.js";
+import { journaledWrite } from "../core/write-journal.js";
 import { OPT_IN_SCRIPT_TYPE_NAMES, SCRIPT_TYPE_NAMES } from "../api/scripts.js";
 import { ok } from "../mcp/result.js";
 import {
   defineTool,
   sysId,
   tableName,
+  SYS_ID_SHAPE_RE,
   type AnyToolSpec,
 } from "../mcp/define.js";
+import { shouldApply, planPreview } from "../mcp/write-mode.js";
 
 // P-18: lint_script takes the opt-in registry types (UI Builder, portal) too.
 const scriptType = z.enum([
   ...SCRIPT_TYPE_NAMES,
   ...OPT_IN_SCRIPT_TYPE_NAMES,
 ] as [string, ...string[]]);
+
+/**
+ * N-3: the Instance Scan target of a `scan_run` call — a point scan needs the
+ * record's table (`scope`) and `sys_id`, a suite scan the suite's `sys_id`.
+ */
+function scanTarget(
+  run: "full" | "point" | "suite",
+  scope: string | undefined,
+  sysId: string | undefined,
+): InstanceScanTarget {
+  if (sysId !== undefined && !SYS_ID_SHAPE_RE.test(sysId))
+    throw new ServiceNowError("sys_id must be a sys_id.", 400, undefined, {
+      code: "INVALID_INPUT",
+      hint: "Letters, digits, '_' or '-'; at most 32.",
+    });
+  if (run === "full") return { kind: "full" };
+  if (sysId && run === "suite") return { kind: "suite", suiteSysId: sysId };
+  if (sysId && scope) return { kind: "point", table: scope, sysId };
+  throw new ServiceNowError(
+    `scan_run "${run}" needs ${run === "point" ? "scope and sys_id" : "sys_id"}.`,
+    400,
+    undefined,
+    {
+      code: "INVALID_INPUT",
+      hint: "point: scope = the record's table, sys_id = the record; suite: sys_id = the scan suite.",
+    },
+  );
+}
+
+/**
+ * N-3: start an Instance Scan through the CI/CD API on the ATF rails — a
+ * plan preview unless applied, then a journalled `execute` on `scan_result`.
+ * The answer keeps the report's required fields; poll the progress id with
+ * servicenow_get_atf_result. Refusal on a production-marked profile waits
+ * for the H-11 marker (O-4).
+ */
+async function startScan(
+  run: "full" | "point" | "suite",
+  scope: string | undefined,
+  sysId: string | undefined,
+  apply: boolean | undefined,
+) {
+  const target = scanTarget(run, scope, sysId);
+  const head = {
+    scope: scope ?? "instance",
+    generatedAt: new Date().toISOString(),
+    warnings: [],
+  };
+  const record = target.kind === "full" ? undefined : sysId;
+  if (!shouldApply(apply)) {
+    return planPreview(
+      {
+        action: "execute",
+        table: SCAN_RESULT_TABLE,
+        ...(record ? { sys_id: record } : {}),
+        after: { run: `Instance Scan (${run})` },
+      },
+      head,
+    );
+  }
+  const started = await journaledWrite(
+    {
+      action: "execute",
+      table: SCAN_RESULT_TABLE,
+      ...(record ? { sys_id: record } : {}),
+    },
+    () => runInstanceScan(target),
+  );
+  return ok({ ...head, ...started });
+}
 
 /**
  * Code checking package (Phase 8): deterministic local analysis of the
@@ -83,7 +162,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_check_code_health",
     title: "Code health report",
     description:
-      "Code-health report: script counts by type, ACL security scan (open, public, scripted, elevated ACLs; public REST/UI pages; tables without ACL), lint for a table, and new/fixed findings vs a stored baseline. Writes <profile>/code-health.md.",
+      "Code-health report: script counts, ACL scan, table lint, new/fixed findings vs baseline. Writes <profile>/code-health.md.",
     package: "codecheck",
     annotations: {
       readOnlyHint: false,
@@ -128,14 +207,32 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Reset the baseline to this run; otherwise new/fixed findings are reported against it.",
         ),
+      scan_run: z
+        .enum(["full", "point", "suite"])
+        .optional()
+        .describe("Run Instance Scan; point: scope+sys_id, suite: sys_id."),
+      // Shape-checked in scanTarget: a schema pattern would not fit the budget.
+      sys_id: z.string().max(32).optional().describe("Its target."),
+      apply: z.boolean().optional().describe("true runs it."),
     },
     logFields: (args) => ({ scope: args.scope ?? "instance" }),
-    handler: ({ scope, extended, domains, limit, update_baseline }) =>
-      codeHealth(scope, {
-        extended,
-        domains,
-        limit,
-        updateBaseline: update_baseline,
-      }).then(ok),
+    handler: ({
+      scope,
+      extended,
+      domains,
+      limit,
+      update_baseline,
+      scan_run,
+      sys_id,
+      apply,
+    }) =>
+      scan_run
+        ? startScan(scan_run, scope, sys_id, apply)
+        : codeHealth(scope, {
+            extended,
+            domains,
+            limit,
+            updateBaseline: update_baseline,
+          }).then(ok),
   }),
 ];
