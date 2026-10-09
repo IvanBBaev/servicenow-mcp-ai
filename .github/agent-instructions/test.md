@@ -5,8 +5,8 @@ applyTo:
 
 # test — node:test against the compiled build
 
-- Tests are plain ESM `test/*.test.js` using `node:test` and
-  `node:assert/strict`. They import from `../build/...`, so run
+- Tests are plain ESM `test/**/*.test.js` (sub-folders run too) using
+  `node:test` and `node:assert/strict`. They import from `../build/...`, so run
   `npm run build` first (`npm run test:full` does both).
 - **Isolation:** call `baselineEnv()` at the top of the file and
   `freshRuntime()` where state must start empty (it replaces the old
@@ -19,7 +19,8 @@ applyTo:
 - **Property tests** use fast-check with `fcParams()`; the seed is fixed
   (`SN_FC_SEED` overrides it), so a failure is reproducible.
 - **Coverage ratchet** (`npm run test:coverage`, c8): lines 94, branches 82,
-  functions 97 — scripts imported by tests count too.
+  functions 97, defined once in `.c8rc.json` — scripts imported by tests
+  count too.
 - **Contracts:** `test/fixtures/tools-manifest.json` is the tools contract —
   regenerate it with `npm run gen:manifest`, never by hand. The `tools/list`
   byte budget lives in `test/output-schema.test.js`. Goldens are regenerated

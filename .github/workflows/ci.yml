@@ -39,7 +39,7 @@ jobs:
       - run: npm run build
       # E-1: c8 12 runs on every supported Node (the Node >= 25 coverage guard
       # is gone), so the coverage ratchet — lines 94 / branches 82 /
-      # functions 97, set just below the real report — gates every leg.
+      # functions 97 in .c8rc.json, set just below the real report — gates every leg.
       - run: npm run test:coverage
       # L9-04: tarball guard — no jira/, .map, test/ or docs/instance/ entries,
       # a fixed top-level allow-list and a size ceiling. Runs once on ubuntu/Node 22.

@@ -29,8 +29,8 @@ see the [README](README.md#configure-credentials) for the resolution order.
 
 ```bash
 npm run check      # the full gate: build, lint, format check, tests with
-                   # coverage thresholds (lines 94 / branches 82 / functions 97),
-                   # Fluent action table check, eval mock drift
+                   # coverage thresholds (lines 94 / branches 82 / functions 97,
+                   # in .c8rc.json), Fluent action table check, eval mock drift
                    # (eval:mocks:check), tool-surface scan
                    # (scan:surface), tarball guard (pack:check), prod audit
 npm run verify     # the same minus coverage/audit — the fast inner loop

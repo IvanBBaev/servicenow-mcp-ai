@@ -1,0 +1,7 @@
+{
+  "check-coverage": true,
+  "lines": 94,
+  "branches": 82,
+  "functions": 97,
+  "reporter": ["text-summary", "lcov"]
+}
