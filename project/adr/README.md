@@ -47,6 +47,7 @@ and the open questions behind them wait in [TODO.md](../TODO.md).
 | [0005](0005-jira-surface.md)                                | The dark Jira Cloud surface (ARCH-14, O-1)                    | superseded by 0007             | TODO.md, ARCHITECTURE.md §11, ROADMAP E-8   |
 | [0006](0006-tools-list-budget-ratchet.md)                   | `tools/list` budgets as data; restated targets (O-10 (a)+(b)) | accepted 2026-10-06 (part)      | ROADMAP-V3.md §O, TOKEN-OPTIMIZATION-PLAN §7 |
 | [0007](0007-delete-jira-scaffold.md) | Delete the dark Jira scaffold (O-1 NO-GO) | accepted 2026-10-09 | ROADMAP-V3.md §O, §E-8, B10 |
+| [0008](0008-full-protocol-2026-07-28-conformance.md) | Full MCP 2026-07-28 conformance, dual protocol (O-19) | accepted 2026-10-10 (part) | ROADMAP-V3.md §O, PROTOCOL-BREAKING-REPORT |
 
-Open gates without a record (as of 2026-10-09): O-2, O-3,
-O-5, O-6, O-8, O-9, O-11 … O-22; O-10 (c) and (d) stay open under 0006.
+Open gates without a record (as of 2026-10-10): O-2, O-3,
+O-5, O-6, O-8, O-9, O-11 … O-22; O-10 (c) and (d) stay open under 0006; the rest of O-19 stays open under 0008.

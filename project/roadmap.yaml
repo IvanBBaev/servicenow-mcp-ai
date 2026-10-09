@@ -1079,8 +1079,8 @@ items:
     status: "open"
     phase: "R"
     done: null
-    gates: ["O-19"]
-    notes: "Phase R (spike) then B, waits for O-19. MCP SDK v2 split packages; stateless HTTP replaces `Mcp-Session-Id` (H-7); log bridge off deprecated Logging (M-8); tasks extension (M-9); N-9 re-scoped; CIMD for N-17 (TK-01 … TK-05). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    gates: []
+    notes: "Phase R (spike) then B. **O-19 decided 2026-10-10** ([ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)): full 2026-07-28 conformance, legacy revisions kept; `@modelcontextprotocol/server` 2.3.1 negotiates both. MCP SDK v2 split packages; stateless HTTP replaces `Mcp-Session-Id` (H-7); log bridge off deprecated Logging (M-8); tasks extension (M-9); N-9 re-scoped; CIMD for N-17 (TK-01 … TK-05). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-36"
     title: "tool discovery instead of a bigger budget"
     pillar: "N"
@@ -1331,8 +1331,8 @@ items:
     status: "open"
     phase: "T3"
     done: null
-    gates: ["O-4", "O-10", "O-19"]
-    notes: "Phase T3, waits for O-10 (b), O-19 (d) and O-4 entries (TK-43, TK-45). Refines N-36 (`core` ≈ 21 KB, restated ≤ 22 KB): `attachment` out of `core`, `find_tools` in (done 2026-10-09 under N-36), `discovery` as the default budget profile; per-connection `tools/list` rule of 2026-07-28 decided first. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    gates: ["O-4", "O-10"]
+    notes: "Phase T3, waits for O-10 (b) and O-4 (O-19 (d) decided 2026-10-10: `tools/list` fixed per server on 2026-07-28) entries (TK-43, TK-45). Refines N-36 (`core` ≈ 21 KB, restated ≤ 22 KB): `attachment` out of `core`, `find_tools` in (done 2026-10-09 under N-36), `discovery` as the default budget profile; per-connection `tools/list` rule of 2026-07-28 decided first. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-64"
     title: "selective consolidation"
     pillar: "N"
