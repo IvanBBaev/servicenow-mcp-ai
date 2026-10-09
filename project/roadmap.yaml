@@ -1125,7 +1125,7 @@ items:
     phase: "A"
     done: null
     gates: ["O-21"]
-    notes: 'Phase A (metrics) then C, defaults wait for O-21. `format:"table"`, `fields:"display"`, `SN_MAX_RESULT_TOKENS` + cursor, automatic file result, bytes per call in E-5 metrics (TK-11 … TK-14). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).'
+    notes: 'Bytes per call in E-5 metrics (TK-14) are covered by N-57; `format:"table"` / display fields by N-62, the file result by N-61. Phase A (metrics) then C, defaults wait for O-21. `format:"table"`, `fields:"display"`, `SN_MAX_RESULT_TOKENS` + cursor, automatic file result, bytes per call in E-5 metrics (TK-11 … TK-14). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).'
   - id: "N-41"
     title: "doc corpus index and machine-readable roadmap"
     pillar: "N"
@@ -1319,11 +1319,11 @@ items:
     title: "platform-aware compact reads"
     pillar: "N"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: "T2"
-    done: null
+    done: "2026-10-09"
     gates: ["O-5", "O-21"]
-    notes: '**Core done 2026-10-07 (dark, 0 B tools/list):** `src/api/compact-read.ts` — `summaryFields` (sys_id, the child-most display field with a `name` / `number` fallback, up to 12 columns of the default `sys_ui_list_element` view walked up the chain, sys_updated_on; heuristic set when no layout; every read schema-cached, a failed layout read a warning), `compactDisplayRecord` (reference `[sys_id, display]`, choice collapsed, dates raw, journal dropped unless named), `omitEmpty` (keeps `0` / `false`) and `toTableForm` (`{columns, rows, cell, total, truncated}`, row cap). **Goldens 2026-10-07:** `test/compact-read-sizes.test.js` pins the bytes of each form on the N-57 synthetic incident (200 rows: display_value=all 1,479,627 B → display 621,049 B, table 343,528 B, summary table 63,226 B). Open: the `query_table` / `get_record` / `aggregate` options and their tool-level goldens (O-21 (a)); the default-view query unverified (O-5). Phase T2 opt-in; defaults wait for O-21 (a) (TK-49, TK-50). `fields:"summary"` from the default list view, `display_value:"display"`, `omit_empty`, `format:"table"`, display values for `get_record` / `aggregate`. Refines N-40. O-5-unverified. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
+    notes: '**Tool options done 2026-10-09 (fc2f949, O-21 (a): opt-in only, defaults unchanged, +357 B on core and all).** `query_table` takes `fields:"summary"`, `displayValue:"display"`, `omitEmpty` and `format:"table"`; `get_record` and `aggregate` take the display variants; tool-level tests in `test/compact-read-tools.test.js`. The default-view query stays unverified until O-5. **Core done 2026-10-07 (dark, 0 B tools/list):** `src/api/compact-read.ts` — `summaryFields` (sys_id, the child-most display field with a `name` / `number` fallback, up to 12 columns of the default `sys_ui_list_element` view walked up the chain, sys_updated_on; heuristic set when no layout; every read schema-cached, a failed layout read a warning), `compactDisplayRecord` (reference `[sys_id, display]`, choice collapsed, dates raw, journal dropped unless named), `omitEmpty` (keeps `0` / `false`) and `toTableForm` (`{columns, rows, cell, total, truncated}`, row cap). **Goldens 2026-10-07:** `test/compact-read-sizes.test.js` pins the bytes of each form on the N-57 synthetic incident (200 rows: display_value=all 1,479,627 B → display 621,049 B, table 343,528 B, summary table 63,226 B). Open: the `query_table` / `get_record` / `aggregate` options and their tool-level goldens (O-21 (a)); the default-view query unverified (O-5). Phase T2 opt-in; defaults wait for O-21 (a) (TK-49, TK-50). `fields:"summary"` from the default list view, `display_value:"display"`, `omit_empty`, `format:"table"`, display values for `get_record` / `aggregate`. Refines N-40. O-5-unverified. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
   - id: "N-63"
     title: "narrow core and discovery profile"
     pillar: "N"
@@ -1346,8 +1346,8 @@ items:
     title: "client result hints"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "partial"
     phase: "T3"
     done: null
     gates: ["O-21"]
-    notes: 'Phase T3, waits for O-21 (c) (TK-44, TK-48). `_meta["anthropic/maxResultSizeChars"]` on the large readers, `resource_link` results, tied to the N-61 cap. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
+    notes: '**Hints done 2026-10-09 (b9e46e7, O-21 (c)).** `_meta["anthropic/maxResultSizeChars"]` (= `SN_MAX_RESULT_CHARS`) on seven large readers (`src/mcp/result-hints.ts`), on by default, `SN_RESULT_SIZE_HINTS=false` turns it off; `all` +329 B, `core` +0 B. Open: `resource_link` results. Phase T3, waits for O-21 (c) (TK-44, TK-48). `_meta["anthropic/maxResultSizeChars"]` on the large readers, `resource_link` results, tied to the N-61 cap. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
