@@ -276,9 +276,10 @@
       (stretch 14 KB), `all` ≤ 120 KB (with N-54) non-default — and the N-58 / N-63 wire changes
       (**(a) and (b) decided 2026-10-06**, [ADR 0006](adr/0006-tools-list-budget-ratchet.md)); (c) shallow
       output schemas (N-60; **decided 2026-10-09**, shallow on the wire, full in the reference — done in 90dea84); (d) N-18 eval models and API budget (**decided 2026-10-09**: `claude-sonnet-5-5`, three repeats with McNemar, baseline and after each, roughly $60–90 in all; the owner provides `ANTHROPIC_API_KEY` and the run waits for it). O-19 (d) per-connection
-      `tools/list` vs M-5 / N-63. O-21 (a) compact-read defaults; (b) 48 k result cap, automatic
-      file result, `list_tables` default limit; (c) Claude Code `_meta` hints; (d) N-39 parked
-      until N-35. O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63); the `list_tables` default limit (N-61) unless ruled a fix.
+      `tools/list` vs M-5 / N-63. O-21 (**decided 2026-10-09**): (a) compact reads (N-62) are opt-in only, defaults stay
+      byte-identical; (b) 48 k result cap with the automatic file result on, and the `list_tables`
+      default limit ruled a bug fix (N-61, done); (c) Claude Code `_meta` hints (N-65) on by default
+      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63).
 - [ ] **Owner decisions from batch 11 (D-4, 2026-09-26):** (a) client syntaxes not verified
       against a live client — Zed `context_servers` (`"source": "custom"` + flat `command` /
       `args`; older Zed builds nest `command: {path, args}`), the JetBrains AI Assistant menu path
