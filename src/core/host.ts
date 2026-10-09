@@ -60,14 +60,14 @@ export { isBlockedHost as _isBlockedHost };
 
 /**
  * Per-system host policy: the canonical domain suffix, the allowlist env var,
- * the error wording and the error type. The ServiceNow and Jira resolvers are
- * thin wrappers over one shared algorithm (resolveHostWithPolicy), so the
- * normalisation and SSRF rules cannot silently drift apart.
+ * the error wording and the error type. Resolvers are thin wrappers over one
+ * shared algorithm (resolveHostWithPolicy), so the normalisation and SSRF
+ * rules cannot silently drift apart.
  */
 export interface HostPolicy {
-  /** Subject for validation errors, e.g. "ServiceNow instance" / "Jira site". */
+  /** Subject for validation errors, e.g. "ServiceNow instance". */
   subject: string;
-  /** System name for the malformed-host error, e.g. "ServiceNow" / "Jira". */
+  /** System name for the malformed-host error, e.g. "ServiceNow". */
   system: string;
   /** Suffix appended to a bare (dot-less) name, e.g. ".service-now.com". */
   canonicalSuffix: string;

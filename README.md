@@ -1690,7 +1690,7 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 │   ├── index.ts           # bootstrap: load env, register, connect transport
 │   ├── core/              # HTTP client (auth, retry, SSRF guard), OAuth/JWT/mTLS, policy,
 │   │                      # settings, logging, config store, write journal, request
-│   │                      # context (profiles); jira/ is a dark scaffold — no tools (ARCH-14)
+│   │                      # context (profiles)
 │   ├── api/               # one module per REST area: table, aggregate, attachment,
 │   │                      # importset, batch, catalog, change, knowledge, cmdb, scripts,
 │   │                      # flows, codecheck, atf, email, docs, diagrams, meta, doctor,

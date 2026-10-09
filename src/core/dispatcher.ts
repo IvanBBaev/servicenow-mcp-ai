@@ -170,8 +170,8 @@ export function tlsVerifyEnabled(env: Env = process.env): boolean {
 /**
  * TLS connect options from the environment, or undefined when nothing beyond
  * Node's defaults is configured. `clientCert: false` ignores the client
- * certificate (the Jira twin talks to Atlassian, where the ServiceNow mTLS
- * identity must not be presented) while still honouring CA and verification.
+ * certificate (for a non-ServiceNow host, where the ServiceNow mTLS identity
+ * must not be presented) while still honouring CA and verification.
  */
 export function buildTlsOptions(
   env: Env = process.env,

@@ -458,7 +458,7 @@ test("GA-7: every REST surface the server calls maps to a tool package", () => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const full = path.join(dir, e.name);
       if (e.isDirectory()) {
-        if (e.name !== "jira") walk(full);
+        walk(full);
       } else if (e.name.endsWith(".ts")) {
         // Code only: comment lines quote example paths (e.g. traversal tricks).
         const src = readFileSync(full, "utf8")

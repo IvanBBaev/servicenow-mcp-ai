@@ -33,6 +33,3 @@ applyTo:
   stdout (stdio MCP transport); never log a secret — redaction rules live in
   `redaction.ts`.
 - **Writes** are journaled through `journaledWrite()` in `write-journal.ts`.
-- `jira/` is the dark Jira Cloud scaffold (ARCH-14): keep it compiling, expose
-  nothing. `test/http-twin-parity.test.js` keeps its client in step with
-  `http.ts`.

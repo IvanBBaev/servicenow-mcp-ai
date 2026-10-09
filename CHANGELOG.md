@@ -17,7 +17,7 @@ These are the 3.0 changes the owner approved on 2026-10-01 (O-4). Each write-saf
   - Messages no longer repeat the code as a prefix: `CREDENTIALS_INCOMPLETE: …` and the M-5 `UNKNOWN_PACKAGE: …` / `PACKAGE_DENIED: …` / `PACKAGE_ALWAYS_ON: …` messages now carry the code in `code` only; hints moved from the message into `hint`.
   - Resource reads (`servicenow://…`) throw an MCP `McpError` instead of returning a 200 body with an `error` field: a malformed URI, an unknown profile or a missing document is `InvalidParams` (-32602; the SDK has no ResourceNotFound), anything else `InternalError` (-32603). The error's `data` carries `{ code, source, hint? }`. The docs resource template no longer declares a fixed `text/markdown` type, since it also serves JSON companions; each listed entry and each read declares its own.
   - The tool manifest is now `manifestVersion: 3` and publishes the code table as a global `errorCodes` object (code → `{ source, description }`, including the `INSTANCE_HTTP_<status>` family). The table is global rather than per tool because most codes come from shared layers (HTTP, policy, configuration), so a per-tool list would over-promise.
-  - Internals (ARCH-11b): `IntegrationError` is the neutral base class; `ServiceNowError` and `JiraError` are siblings under it, so `JiraError` is no longer a `ServiceNowError`.
+  - Internals (ARCH-11b): `IntegrationError` is the neutral base class and `ServiceNowError` extends it (`JiraError` was deleted with B10).
   - **Migration:** read `result.error` as the message, not `result.error.message`; read `code`, `source`, `hint` and `detail` from the top level; replace `snDetail` with `detail`; branch on `code`, not on message text. Resource clients catch the JSON-RPC error and read `error.data.code`. Manifest consumers accept version 3.
 
 - **B4: a destructive `apply:true` needs a `plan_token` (H-3).** `SN_DESTRUCTIVE_CONFIRM` now defaults to `token` (it was `off`). In plan mode (the default), the following calls are refused with `PLAN_REQUIRED` (428) before any request unless they carry the `plan_token` from their own plan preview:
@@ -74,6 +74,7 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
   - The per-profile schema template is now `servicenow://profiles/{profile}/schema/{table}`. The old `servicenow://{profile}/schema/{table}` still reads the same schema until the next minor release, logs a deprecation warning once and is no longer listed.
   - Profile names `docs`, `schema`, `status`, `capabilities`, `reference`, `profiles` and `policy` are reserved: creating one, or loading an env file that defines one, fails with `RESERVED_PROFILE_NAME` and a hint.
   - **Migration:** read `servicenow://profiles/<profile>/schema/<table>`; rename a profile that uses a reserved name (its `SN_<NAME>_*` variables).
+- **B10: the dark Jira scaffold is deleted (E-8, O-1 NO-GO, owner decision 2026-10-09).** `src/core/jira/`, `src/api/jira/` and the `JiraError` class are gone; `ServiceNowError` is now the only `IntegrationError` subclass. No tool, setting or documented export referred to Jira, so there is nothing to migrate. See `project/adr/0007-delete-jira-scaffold.md`.
 
 ### Added
 

@@ -1,16 +1,16 @@
 # 0004 — Twin HTTP clients and the parity drift guard (ARCH-10)
 
-- **Status:** proposed — not decided by the owner; the interim rule below applies. It resolves
-  together with ARCH-14 / O-1 in E-8.
+- **Status:** superseded on 2026-10-09 by [0007](0007-delete-jira-scaffold.md) (O-1 NO-GO); the
+  Jira client and the parity test were deleted.
 - **Date:** 2026-07-01 (raised in the architect review); recorded here 2026-10-05
 - **Owner gate / ID:** ARCH-10; settled by O-1 through E-8
 - **Supersedes:** —
-- **Superseded by:** —
+- **Superseded by:** [0007](0007-delete-jira-scaffold.md)
 
 ## Context
 
 The ServiceNow client [`src/core/http.ts`](../../src/core/http.ts) and the dark Jira client
-[`src/core/jira/http.ts`](../../src/core/jira/http.ts) each carry a copy of the ~120-line request
+`src/core/jira/http.ts` (deleted) each carry a copy of the ~120-line request
 loop (transport catch → idempotence gate → status retry → error parse → telemetry → JSON / binary
 tail). [`src/core/http-util.ts`](../../src/core/http-util.ts) shares only the policy primitives,
 and its header documents the split as deliberate: the two callers differ in host resolution,
@@ -32,7 +32,7 @@ Two options are on record ([ARCHITECTURE.md](../ARCHITECTURE.md) §11):
 ## Decision
 
 Not yet decided. **In force until the owner decides:** Option L. The parity test
-[`test/http-twin-parity.test.js`](../../test/http-twin-parity.test.js) is the shipped drift
+`test/http-twin-parity.test.js` (deleted) is the shipped drift
 guard; it runs one scenario against both clients so a third divergence fails the gate. Option E
 is built **only if ARCH-14 lands as "build"** — do not unify speculatively
 ([ARCHITECTURE.md](../ARCHITECTURE.md) §11).
@@ -57,4 +57,4 @@ E-8 records both outcomes ([ROADMAP-V3.md](../ROADMAP-V3.md) §E-8):
 - [ARCHITECTURE.md](../ARCHITECTURE.md) — §11 "What is next architecturally".
 - [ROADMAP-V3.md](../ROADMAP-V3.md) — §E-8 "ARCH-14 / ARCH-10 resolution", O-1.
 - [DEEP-REVIEW-2026-09.md](../archive/DEEP-REVIEW-2026-09.md) — finding A1.
-- [`test/http-twin-parity.test.js`](../../test/http-twin-parity.test.js).
+- `test/http-twin-parity.test.js` (deleted).

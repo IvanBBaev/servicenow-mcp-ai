@@ -34,7 +34,7 @@ function positiveInt(key: string, fallback: number): number {
 /**
  * Per-request timeout in milliseconds (SN_TIMEOUT_MS). Like the retry and
  * concurrency knobs below, it governs every REST client in this server —
- * ServiceNow and Jira alike; the SN_ prefix is historical.
+ * ServiceNow and the OAuth token exchange alike.
  */
 export function getTimeoutMs(): number {
   return positiveInt("SN_TIMEOUT_MS", DEFAULT_TIMEOUT_MS);

@@ -12,9 +12,8 @@ safety.
 `src/core/` (plumbing) ← `src/api/` (one module per REST area) ← `src/mcp/`
 (server wiring, registry) ← `src/tools/` (tool definitions as data). `bin/`
 holds the CommonJS launcher; `src/index.ts` is the server entry (stdio by
-default, Streamable HTTP with `SN_TRANSPORT=http`). `src/core/jira/` +
-`src/api/jira/` are Jira Cloud scaffolding — **no Jira tools are exposed**
-(ARCH-14).
+default, Streamable HTTP with `SN_TRANSPORT=http`). There is no Jira client:
+the dark scaffold was deleted (E-8, O-1 NO-GO).
 
 The rules for each area are path-scoped in `.github/instructions/`
 (`<area>.instructions.md`, applied by `applyTo` glob). They are generated from
@@ -65,8 +64,7 @@ The rules for each area are path-scoped in `.github/instructions/`
   `project/TOKEN-OPTIMIZATION-PLAN-2026-10.md` (N-57…N-65); older passes are in
   `project/archive/`. Non-breaking items ship on the 2.x line; the breaking
   cluster goes to 3.0.0 (previewed as `3.0.0-beta.n` on the npm `next` tag).
-- Do not start an item marked BREAKING before owner gate O-4; Jira tools wait
-  for O-1 (ARCH-14). Any `tools/list` change is gated by N-0 / O-10: budgets in
+- Do not start an item marked BREAKING before owner gate O-4. Any `tools/list` change is gated by N-0 / O-10: budgets in
   `test/fixtures/token-budgets.json`, measured with `npm run tokens:budget`.
   Each finished item gets a `project/DONE.md` entry with its gate line.
 - Adding a tool: CONTRIBUTING.md → "Adding a tool".

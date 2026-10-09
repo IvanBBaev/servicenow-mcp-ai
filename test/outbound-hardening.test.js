@@ -25,7 +25,6 @@ import {
   readJsonBody,
   resetBreakers,
 } from "../build/core/http-util.js";
-import { jiraRequest } from "../build/core/jira/http.js";
 import { resolveHost, _isBlockedHost } from "../build/core/host.js";
 import {
   warnIfTlsVerifyOff,
@@ -46,7 +45,7 @@ import { specs as emailSpecs } from "../build/tools/email.js";
 import { docsRead, docsSearch, docsWrite } from "../build/api/docs.js";
 import { sendEmail, assertRecipientsAllowed } from "../build/api/email.js";
 import { email, recipients } from "../build/mcp/define.js";
-import { ServiceNowError, JiraError } from "../build/core/errors.js";
+import { ServiceNowError } from "../build/core/errors.js";
 import {
   baselineEnv,
   freshRuntime,
@@ -177,35 +176,6 @@ test("a relative redirect resolves against the instance host", async () => {
   );
 });
 
-test("the Jira client refuses redirects with a JiraError", async () => {
-  resetBreakers();
-  await withEnv(
-    {
-      ...CLEAN,
-      JIRA_SITE: "mycompany",
-      JIRA_EMAIL: "a@b.c",
-      JIRA_API_TOKEN: "tok",
-    },
-    () =>
-      withFetch(
-        () =>
-          new Response(null, {
-            status: 301,
-            headers: { location: "https://attacker.example/" },
-          }),
-        async () => {
-          await assert.rejects(
-            jiraRequest({ method: "GET", path: "/rest/api/3/myself" }),
-            (err) =>
-              err instanceof JiraError &&
-              err.code === "REDIRECT_BLOCKED" &&
-              /attacker\.example/.test(err.message),
-          );
-        },
-      ),
-  );
-});
-
 // --- body cap (SN_MAX_BODY_BYTES) -------------------------------------------
 
 test("a declared Content-Length over the cap is refused before reading", async () => {
@@ -308,36 +278,14 @@ test("an oversized error body is excerpted, never buffered whole", async () => {
   });
 });
 
-test("the Jira client and the body readers honour the cap", async () => {
+test("the body readers honour the cap", async () => {
   resetBreakers();
   await withEnv(
     {
       ...CLEAN,
       SN_MAX_BODY_BYTES: "50",
-      JIRA_SITE: "mycompany",
-      JIRA_EMAIL: "a@b.c",
-      JIRA_API_TOKEN: "tok",
     },
     async () => {
-      await withFetch(
-        () => jsonResponse(200, { big: "y".repeat(200) }),
-        async () => {
-          await assert.rejects(
-            jiraRequest({ method: "GET", path: "/rest/api/3/myself" }),
-            (err) =>
-              err instanceof JiraError && err.code === "RESPONSE_TOO_LARGE",
-          );
-          await assert.rejects(
-            jiraRequest({
-              method: "GET",
-              path: "/rest/api/3/attachment/content/1",
-              responseType: "binary",
-            }),
-            (err) =>
-              err instanceof JiraError && err.code === "RESPONSE_TOO_LARGE",
-          );
-        },
-      );
       // Default context (no makeError) raises a ServiceNowError.
       await assert.rejects(
         readJsonBody(new Response("z".repeat(80))),

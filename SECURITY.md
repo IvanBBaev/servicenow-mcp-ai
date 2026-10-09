@@ -93,7 +93,6 @@ Out of scope:
 - vulnerabilities in dependencies with no demonstrated impact on this project
   (report those upstream; the production audit gate below catches published
   advisories);
-- the Jira client scaffold, which exposes no tools yet;
 - the limitations this document already lists as not covered.
 
 ## Threat model
@@ -314,7 +313,7 @@ conservative defaults win, and both are now enforced in code (with tests):
   verified against its `sha256` checksums file before it runs.
 - `npm run pack:check` (part of the gate and of CI) fails when the tarball would
   contain anything outside `build/`, `bin/`, `README.md`, `LICENSE` and
-  `package.json` — source maps, tests and the dark Jira client never ship.
+  `package.json` — source maps and tests never ship.
 
 ## OWASP MCP Top 10 mapping
 

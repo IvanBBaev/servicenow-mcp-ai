@@ -26,7 +26,7 @@ import {
   INSTANCE_HTML_HINT,
 } from "./http-util.js";
 
-// Telemetry is owned by http-util.ts (shared with the Jira client) but kept
+// Telemetry is owned by http-util.ts (shared with the OAuth client) but kept
 // importable here for the status payload and the existing tests.
 export { getTelemetry } from "./http-util.js";
 
@@ -98,8 +98,8 @@ function extractErrorDetail(json: unknown): string | undefined {
  * request deadline; non-idempotent methods are retried only on connection
  * errors, never on a received response. Everything below the URL — identity
  * header, proxy/TLS dispatcher, queue, timeout, deadline, retry, error shaping —
- * is the shared primitive in http-util.ts, which the Jira twin and the OAuth
- * token exchange use as well.
+ * is the shared primitive in http-util.ts, which the OAuth token exchange
+ * uses as well.
  */
 export async function snRequest<T>({
   method,

@@ -23,6 +23,5 @@ applyTo:
   `fetchAllProgress`); a tick is also a cancellation point.
 - Table and field names that no code reads yet are unverified until owner gate
   O-5 (a PDI check) — mark them as such instead of guessing.
-- `jira/` is the dark Jira scaffold (ARCH-14): no tools, do not expose it.
 - **Tests** run every module against a mock `fetch` (`createFetchDouble`,
   `withFetch` in `test/helpers.js`); nothing touches the network.

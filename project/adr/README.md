@@ -43,9 +43,10 @@ and the open questions behind them wait in [TODO.md](../TODO.md).
 | [0001](0001-approve-breaking-change-register.md)            | Approve the 3.0 breaking-change register (O-4)                | accepted 2026-10-01             | ROADMAP-V3.md §O, TODO.md, DONE.md batch 17 |
 | [0002](0002-servicenow-sdk-exact-dev-dependency.md)         | `@servicenow/sdk` 4.12.2 exact as a dev dependency (O-7)      | accepted 2026-10-01             | ROADMAP-V3.md §O, SDK-PARITY.md §7, P-29    |
 | [0003](0003-acorn-runtime-parser.md)                        | `acorn` as a runtime parser dependency (S-12)                 | accepted 2026-10-01             | ROADMAP-V3.md §S-12, TODO.md, DONE.md       |
-| [0004](0004-twin-http-clients.md)                           | Twin HTTP clients and the parity drift guard (ARCH-10)        | proposed (interim rule applies) | TODO.md, ARCHITECTURE.md §11                |
-| [0005](0005-jira-surface.md)                                | The dark Jira Cloud surface (ARCH-14, O-1)                    | proposed (deferred 2026-10-01)  | TODO.md, ARCHITECTURE.md §11, ROADMAP E-8   |
+| [0004](0004-twin-http-clients.md)                           | Twin HTTP clients and the parity drift guard (ARCH-10)        | superseded by 0007             | TODO.md, ARCHITECTURE.md §11                |
+| [0005](0005-jira-surface.md)                                | The dark Jira Cloud surface (ARCH-14, O-1)                    | superseded by 0007             | TODO.md, ARCHITECTURE.md §11, ROADMAP E-8   |
 | [0006](0006-tools-list-budget-ratchet.md)                   | `tools/list` budgets as data; restated targets (O-10 (a)+(b)) | accepted 2026-10-06 (part)      | ROADMAP-V3.md §O, TOKEN-OPTIMIZATION-PLAN §7 |
+| [0007](0007-delete-jira-scaffold.md) | Delete the dark Jira scaffold (O-1 NO-GO) | accepted 2026-10-09 | ROADMAP-V3.md §O, §E-8, B10 |
 
-Open gates without a record (as of 2026-10-06): O-1 (see 0005 for the deferral), O-2, O-3,
+Open gates without a record (as of 2026-10-09): O-2, O-3,
 O-5, O-6, O-8, O-9, O-11 … O-22; O-10 (c) and (d) stay open under 0006.

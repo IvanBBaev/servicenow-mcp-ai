@@ -65,6 +65,9 @@
     dependency, the P-29 type-check oracle. **O-1 / ARCH-14 deferred** — E-8 stays blocked, the
     Jira scaffold stays dark and untouched. **S-12 approved** — `acorn` as a runtime parser
     dependency with the regex rules as fallback. O-2, O-3 and O-5 remain open.
+  - **Decided 2026-10-09:** **O-1 = NO-GO** — the dark Jira scaffold is deleted (E-8, B10,
+    [ADR 0007](adr/0007-delete-jira-scaffold.md)); ARCH-10, ARCH-11b, ARCH-12b and ARCH-14 below
+    are closed by it.
 - [x] **H-10 · HTTP client resilience + identity** — done 2026-09-23 (uncommitted): one
       `getDispatcher(host)` for proxy (`SN_HTTPS_PROXY` → `HTTPS_PROXY` / `HTTP_PROXY` + `NO_PROXY`)
       and TLS without a client cert, identifying `User-Agent` (+ `SN_USER_AGENT_SUFFIX`),
@@ -627,7 +630,7 @@
 > `http.ts`). Gate green: 358 tests, coverage 95.22/84.07/98.56, audit 0. What remains below are the
 > deferred design decisions.
 
-- 👤 **ARCH-10 · The request/retry loop is duplicated between the twin HTTP clients.**
+- ✅ **ARCH-10 · The request/retry loop is duplicated between the twin HTTP clients.** _Closed 2026-10-09 by O-1 NO-GO ([ADR 0007](adr/0007-delete-jira-scaffold.md))._
   `src/core/http.ts:127-265` and `src/core/jira/http.ts:134-252` copy the ~120-line engine
   (transport catch → idempotence gate → status retry → error parse → telemetry → json/binary tail);
   `http-util.ts` shares only the policy primitives. The `http-util.ts` header documents the split
@@ -636,13 +639,13 @@
   error extractor, total-count, labels) reverses that documented choice — **owner decision**. The
   two concrete drifts already visible (SN builds `AbortSignal.timeout` before the semaphore slot;
   SN lacks the `?`-join guard) are handled as DEV findings in this review.
-- 👤 **ARCH-11b · Fuller error-taxonomy rename.** `JiraError extends ServiceNowError` is in; a
+- ✅ **ARCH-11b · Fuller error-taxonomy rename.** _Closed 2026-10-09 by O-1 NO-GO ([ADR 0007](adr/0007-delete-jira-scaffold.md))._ `JiraError extends ServiceNowError` is in; a
   neutral base class (+ `snDetail` → a generic key in `mcp/result.ts`) is a public-contract change
   — **owner decision**.
-- 👤 **ARCH-12b · Per-system `JIRA_*` transport overrides.** Jira currently rides
-  `SN_TIMEOUT_MS`/`SN_MAX_RETRIES`/`SN_MAX_CONCURRENT` (now documented in `settings.ts`). Splitting
-  the config surface per system is an owner decision.
-- 👤 **ARCH-14 · The Jira surface is dark and the safety rails are undecided.** `api/jira/`
+- [x] ~~ARCH-12b · Per-system `JIRA_*` transport overrides.\*\* Jira currently rides
+      `SN_TIMEOUT_MS`/`SN_MAX_RETRIES`/`SN_MAX_CONCURRENT` (now documented in `settings.ts`). Splitting
+      the config surface per system is an owner decision.
+- ✅ **ARCH-14 · The Jira surface is dark and the safety rails are undecided.** _Closed 2026-10-09 by O-1 NO-GO ([ADR 0007](adr/0007-delete-jira-scaffold.md))._ `api/jira/`
   contains only `shared.ts`; no domain modules, no tools, no `jira` package in the registry, no
   ARCHITECTURE.md/README mention. When Jira tools land they must ride the same rails as ServiceNow
   tools — the package axis (`SN_TOOL_PACKAGES`/`SN_PACKAGES_DENY`/`SN_PACKAGES_READONLY`),

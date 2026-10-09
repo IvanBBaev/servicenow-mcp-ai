@@ -27,8 +27,7 @@ COPY tsconfig.json ./
 COPY src ./src
 COPY bin ./bin
 COPY README.md LICENSE ./
-# npm pack applies the package.json "files" list (no source maps, no dark
-# Jira client), so the image ships exactly what `npm install` would.
+# npm pack applies the package.json "files" list (no source maps), so the image ships exactly what `npm install` would.
 RUN npm run build \
  && npm pack --ignore-scripts --pack-destination /tmp \
  && mkdir -p /app /data/docs \

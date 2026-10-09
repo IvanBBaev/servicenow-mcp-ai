@@ -3,7 +3,7 @@ import { getTransport, getUserAgentSuffix } from "./settings.js";
 
 /**
  * The server's outbound identity (H-10 / L1-02): one User-Agent on every
- * ServiceNow, Jira and OAuth request, so instance transaction logs, WAF logs
+ * ServiceNow and OAuth request, so instance transaction logs, WAF logs
  * and the REST usage dashboards can attribute the traffic:
  *
  *   servicenow-mcp-ai/<version> (node/<major>; <transport>; <client>)[ <suffix>]

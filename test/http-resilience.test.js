@@ -150,7 +150,7 @@ for (const cert of [false, true]) {
               assert.equal(c.ca, ca ? "CA-PEM" : undefined);
               assert.equal(c.rejectUnauthorized, !verifyOff);
 
-              // The Jira twin never presents the ServiceNow client identity
+              // A non-ServiceNow host never gets the ServiceNow client identity
               // but keeps the CA and verification policy.
               const j = await getDispatcher("acme.atlassian.net", {
                 clientCert: false,

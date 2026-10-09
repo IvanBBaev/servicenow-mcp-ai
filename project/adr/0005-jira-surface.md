@@ -1,10 +1,11 @@
 # 0005 — The dark Jira Cloud surface (ARCH-14, O-1)
 
-- **Status:** proposed — **deferred by the owner on 2026-10-01**; O-1 stays open.
+- **Status:** superseded on 2026-10-09 by [0007](0007-delete-jira-scaffold.md) (O-1 NO-GO);
+  deferred by the owner on 2026-10-01.
 - **Date:** 2026-10-01 (deferral); raised 2026-07-01
 - **Owner gate / ID:** ARCH-14, owner gate O-1; implemented by E-8 (breaking row B10)
 - **Supersedes:** —
-- **Superseded by:** —
+- **Superseded by:** [0007](0007-delete-jira-scaffold.md)
 
 ## Context
 

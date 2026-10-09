@@ -48,8 +48,7 @@ import {
 
 /**
  * Transport primitives shared by every REST client in this server (the
- * ServiceNow client in http.ts, the Jira client in jira/http.ts and the OAuth
- * token exchange in auth.ts): the retry matrix, exponential backoff, the
+ * ServiceNow client in http.ts and the OAuth token exchange in auth.ts): the retry matrix, exponential backoff, the
  * bounded per-host concurrency semaphore, the request deadline, the error-body
  * shaping and the in-process telemetry — all behind ONE request primitive,
  * rawRequest(). Keeping them here means there is still effectively "one HTTP
@@ -118,7 +117,7 @@ export interface RawRequestOptions {
   host: string;
   /** Telemetry bucket; defaults to `host` ("auth" for token requests). */
   telemetryKey?: string;
-  /** Name used in messages and logs: "ServiceNow", "Jira", "OAuth token". */
+  /** Name used in messages and logs: "ServiceNow", "OAuth token". */
   system: string;
   /** Prefix of the API-error message; default `${system} API error`. */
   errorPrefix?: string;
@@ -220,7 +219,7 @@ export async function rawRequest(opts: RawRequestOptions): Promise<Response> {
   });
   const startMessage = publishRequestEvent("start", base);
   // N-55: trace headers go to the ServiceNow REST API only (never the OAuth
-  // token endpoint or Jira), and only under SN_OTEL_PROPAGATE.
+  // token endpoint), and only under SN_OTEL_PROPAGATE.
   if (opts.system === "ServiceNow" && otelPropagate()) {
     obs.traceHeaders = outboundTraceHeaders(startMessage, call?.trace);
   }

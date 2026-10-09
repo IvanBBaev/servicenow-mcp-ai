@@ -601,24 +601,6 @@ export class ServiceNowError extends IntegrationError {
   }
 }
 
-/**
- * Error thrown when a Jira request fails (ARCH-11b: a sibling of
- * ServiceNowError under IntegrationError, no longer its subclass). The Jira
- * client is dark (ARCH-14) — no tool reaches it yet; when it lands, the
- * ErrorSource union gains a value for it.
- */
-export class JiraError extends IntegrationError {
-  constructor(
-    message: string,
-    status?: number,
-    detail?: unknown,
-    options?: ServiceNowErrorOptions,
-  ) {
-    super(message, status, detail, options);
-    this.name = "JiraError";
-  }
-}
-
 /** M-2: the code a status implies for an error that names none. */
 function codeOfStatus(status: number | undefined): ServiceNowErrorCode {
   switch (status) {

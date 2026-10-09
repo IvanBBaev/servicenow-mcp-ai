@@ -14,7 +14,6 @@ import {
   ERROR_CODES,
   INSTANCE_HTTP_CODE_INFO,
   IntegrationError,
-  JiraError,
   ServiceNowError,
   errorCodeOf,
   errorCodeTable,
@@ -144,16 +143,13 @@ test("errorCodeOf / errorSourceOf derivation order", () => {
   assert.equal(errorSourceOf(overridden), "servicenow");
 });
 
-test("ARCH-11b: ServiceNowError and JiraError are siblings under IntegrationError", () => {
+test("ARCH-11b: ServiceNowError extends IntegrationError", () => {
   const sn = new ServiceNowError("a");
-  const jira = new JiraError("b");
+  const base = new IntegrationError("c");
   assert.ok(sn instanceof IntegrationError);
-  assert.ok(jira instanceof IntegrationError);
-  assert.ok(!(jira instanceof ServiceNowError));
   assert.equal(sn.name, "ServiceNowError");
-  assert.equal(jira.name, "JiraError");
-  assert.equal(new IntegrationError("c").name, "IntegrationError");
-  assert.equal(errorCodeOf(jira), "REQUEST_FAILED");
+  assert.equal(base.name, "IntegrationError");
+  assert.equal(errorCodeOf(base), "REQUEST_FAILED");
 });
 
 // ---------------------------------------------------------------------------
