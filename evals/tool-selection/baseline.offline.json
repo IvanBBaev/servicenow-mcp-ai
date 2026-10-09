@@ -7,11 +7,12 @@
     "n": 150,
     "sha256": "94f1edfd496ad369eda0a68b25edf6695e80da299ed31503bdb04409f315f27a"
   },
+  "repeats": 1,
   "profiles": {
     "core": {
-      "tools": 24,
+      "tools": 25,
       "n": 150,
-      "top1": 12.7,
+      "top1": 13.3,
       "byKind": {
         "cluster": {
           "n": 30,
@@ -25,8 +26,8 @@
         },
         "positive": {
           "n": 97,
-          "correct": 8,
-          "accuracy": 8.2
+          "correct": 9,
+          "accuracy": 9.3
         },
         "write": {
           "n": 15,
@@ -142,8 +143,8 @@
         },
         "revert": {
           "n": 3,
-          "correct": 0,
-          "accuracy": 0
+          "correct": 1,
+          "accuracy": 33.3
         },
         "schema": {
           "n": 4,
@@ -227,14 +228,14 @@
       "planFirst": null
     },
     "all": {
-      "tools": 97,
+      "tools": 101,
       "n": 150,
-      "top1": 33.3,
+      "top1": 32.7,
       "byKind": {
         "cluster": {
           "n": 30,
-          "correct": 7,
-          "accuracy": 23.3
+          "correct": 5,
+          "accuracy": 16.7
         },
         "negative": {
           "n": 8,
@@ -243,8 +244,8 @@
         },
         "positive": {
           "n": 97,
-          "correct": 31,
-          "accuracy": 32
+          "correct": 32,
+          "accuracy": 33
         },
         "write": {
           "n": 15,
@@ -270,8 +271,8 @@
         },
         "artifacts": {
           "n": 10,
-          "correct": 2,
-          "accuracy": 20
+          "correct": 1,
+          "accuracy": 10
         },
         "atf": {
           "n": 6,
@@ -305,8 +306,8 @@
         },
         "codecheck": {
           "n": 6,
-          "correct": 1,
-          "accuracy": 16.7
+          "correct": 2,
+          "accuracy": 33.3
         },
         "directory": {
           "n": 1,
@@ -360,13 +361,13 @@
         },
         "revert": {
           "n": 3,
-          "correct": 2,
-          "accuracy": 66.7
+          "correct": 1,
+          "accuracy": 33.3
         },
         "schema": {
           "n": 4,
-          "correct": 2,
-          "accuracy": 50
+          "correct": 1,
+          "accuracy": 25
         },
         "scripts": {
           "n": 10,
@@ -375,8 +376,8 @@
         },
         "table": {
           "n": 12,
-          "correct": 4,
-          "accuracy": 33.3
+          "correct": 5,
+          "accuracy": 41.7
         },
         "ui": {
           "n": 2,
@@ -392,8 +393,8 @@
       "byCluster": {
         "artifacts": {
           "n": 3,
-          "correct": 1,
-          "accuracy": 33.3
+          "correct": 0,
+          "accuracy": 0
         },
         "change": {
           "n": 1,
@@ -437,22 +438,22 @@
         },
         "schema": {
           "n": 4,
-          "correct": 1,
-          "accuracy": 25
+          "correct": 0,
+          "accuracy": 0
         }
       },
       "argValidity": null,
       "planFirst": null
     },
     "discovery": {
-      "tools": 97,
+      "tools": 101,
       "n": 150,
-      "top1": 31.3,
+      "top1": 30.7,
       "byKind": {
         "cluster": {
           "n": 30,
-          "correct": 6,
-          "accuracy": 20
+          "correct": 5,
+          "accuracy": 16.7
         },
         "negative": {
           "n": 8,
@@ -583,8 +584,8 @@
         },
         "schema": {
           "n": 4,
-          "correct": 3,
-          "accuracy": 75
+          "correct": 2,
+          "accuracy": 50
         },
         "scripts": {
           "n": 10,
@@ -655,8 +656,8 @@
         },
         "schema": {
           "n": 4,
-          "correct": 2,
-          "accuracy": 50
+          "correct": 1,
+          "accuracy": 25
         }
       },
       "argValidity": null,
@@ -686,7 +687,7 @@
         "correct": false
       },
       "pos-check-data-health": {
-        "pick": "servicenow_test_connection",
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "pos-compare-instances": {
@@ -746,7 +747,7 @@
         "correct": false
       },
       "pos-enable-package": {
-        "pick": "servicenow_disable_package",
+        "pick": "servicenow_use_instance",
         "correct": false
       },
       "pos-explain-artifact": {
@@ -866,7 +867,7 @@
         "correct": false
       },
       "pos-insert-import-set-row": {
-        "pick": "servicenow_list_instances",
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "pos-lint-script": {
@@ -914,11 +915,11 @@
         "correct": false
       },
       "pos-list-cis": {
-        "pick": "servicenow_aggregate",
+        "pick": "servicenow_list_attachments",
         "correct": false
       },
       "pos-list-docs": {
-        "pick": "servicenow_test_connection",
+        "pick": "servicenow_use_instance",
         "correct": false
       },
       "pos-list-flows": {
@@ -946,11 +947,11 @@
         "correct": false
       },
       "pos-list-writes": {
-        "pick": "servicenow_use_instance",
-        "correct": false
+        "pick": "servicenow_enable_package",
+        "correct": true
       },
       "pos-lookup-directory": {
-        "pick": null,
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "pos-order-catalog-item": {
@@ -982,11 +983,11 @@
         "correct": false
       },
       "pos-search-code": {
-        "pick": "servicenow_explain_policy",
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "pos-search-docs": {
-        "pick": "servicenow_test_connection",
+        "pick": "servicenow_use_instance",
         "correct": false
       },
       "pos-search-knowledge": {
@@ -1110,11 +1111,11 @@
         "correct": false
       },
       "cl-lint-health": {
-        "pick": null,
+        "pick": "servicenow_use_instance",
         "correct": false
       },
       "cl-artifact-explain": {
-        "pick": "servicenow_test_connection",
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "cl-artifact-list": {
@@ -1134,7 +1135,7 @@
         "correct": false
       },
       "cl-docs-kb": {
-        "pick": null,
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "cl-conn-status": {
@@ -1284,8 +1285,8 @@
         "correct": false
       },
       "pos-check-code-health": {
-        "pick": "servicenow_document_app",
-        "correct": false
+        "pick": "servicenow_check_code_health",
+        "correct": true
       },
       "pos-check-data-health": {
         "pick": "servicenow_check_data_health",
@@ -1308,8 +1309,8 @@
         "correct": false
       },
       "pos-create-record": {
-        "pick": "servicenow_check_code_health",
-        "correct": false
+        "pick": "servicenow_create_record",
+        "correct": true
       },
       "pos-delete-attachment": {
         "pick": "servicenow_upload_attachment",
@@ -1388,7 +1389,7 @@
         "correct": true
       },
       "pos-get-artifact-dependencies": {
-        "pick": "servicenow_get_script",
+        "pick": "servicenow_get_task_context",
         "correct": false
       },
       "pos-get-atf-result": {
@@ -1404,7 +1405,7 @@
         "correct": true
       },
       "pos-get-change": {
-        "pick": null,
+        "pick": "servicenow_get_task_context",
         "correct": false
       },
       "pos-get-ci": {
@@ -1456,7 +1457,7 @@
         "correct": true
       },
       "pos-get-status": {
-        "pick": "servicenow_lookup_directory",
+        "pick": "servicenow_explain_access",
         "correct": false
       },
       "pos-get-update-set": {
@@ -1472,11 +1473,11 @@
         "correct": true
       },
       "pos-lint-script": {
-        "pick": "servicenow_query_table",
+        "pick": "servicenow_review_upgrade",
         "correct": false
       },
       "pos-lint-table": {
-        "pick": "servicenow_upload_attachment",
+        "pick": "servicenow_check_capabilities",
         "correct": false
       },
       "pos-list-artifacts": {
@@ -1548,8 +1549,8 @@
         "correct": true
       },
       "pos-list-writes": {
-        "pick": "servicenow_list_writes",
-        "correct": true
+        "pick": "servicenow_enable_package",
+        "correct": false
       },
       "pos-lookup-directory": {
         "pick": "servicenow_lookup_directory",
@@ -1564,7 +1565,7 @@
         "correct": false
       },
       "pos-read-doc": {
-        "pick": "servicenow_check_code_health",
+        "pick": "servicenow_document_instance",
         "correct": false
       },
       "pos-read-ops": {
@@ -1584,7 +1585,7 @@
         "correct": true
       },
       "pos-search-code": {
-        "pick": "servicenow_where_used",
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "pos-search-docs": {
@@ -1608,7 +1609,7 @@
         "correct": false
       },
       "pos-snapshot-instance": {
-        "pick": "servicenow_compare_update_set",
+        "pick": "servicenow_review_upgrade",
         "correct": false
       },
       "pos-test-connection": {
@@ -1672,8 +1673,8 @@
         "correct": false
       },
       "cl-schema-list": {
-        "pick": "servicenow_list_tables",
-        "correct": true
+        "pick": "servicenow_get_task_context",
+        "correct": false
       },
       "cl-schema-describe": {
         "pick": "servicenow_where_used",
@@ -1704,19 +1705,19 @@
         "correct": false
       },
       "cl-lint-snippet": {
-        "pick": "servicenow_lint_script",
-        "correct": true
+        "pick": "servicenow_explain_access",
+        "correct": false
       },
       "cl-lint-table": {
-        "pick": "servicenow_list_scripts",
+        "pick": "servicenow_get_task_context",
         "correct": false
       },
       "cl-lint-health": {
-        "pick": "servicenow_search_code",
-        "correct": false
+        "pick": "servicenow_check_code_health",
+        "correct": true
       },
       "cl-artifact-explain": {
-        "pick": "servicenow_check_code_health",
+        "pick": "servicenow_document_table",
         "correct": false
       },
       "cl-artifact-list": {
@@ -1724,8 +1725,8 @@
         "correct": false
       },
       "cl-artifact-get": {
-        "pick": "servicenow_get_artifact",
-        "correct": true
+        "pick": "servicenow_explain_ui_experience",
+        "correct": false
       },
       "cl-docs-list": {
         "pick": "servicenow_write_doc",
@@ -1744,7 +1745,7 @@
         "correct": false
       },
       "cl-conn-test": {
-        "pick": "servicenow_check_capabilities",
+        "pick": "servicenow_get_record_history",
         "correct": false
       },
       "cl-conn-caps": {
@@ -1772,7 +1773,7 @@
         "correct": false
       },
       "cl-change-get-vs-list": {
-        "pick": "servicenow_run_atf_suite",
+        "pick": "servicenow_get_task_context",
         "correct": false
       },
       "w-create-incident": {
@@ -1890,7 +1891,7 @@
         "correct": true
       },
       "pos-check-data-health": {
-        "pick": "servicenow_read_ops",
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "pos-compare-instances": {
@@ -2006,7 +2007,7 @@
         "correct": true
       },
       "pos-get-change": {
-        "pick": null,
+        "pick": "servicenow_get_task_context",
         "correct": false
       },
       "pos-get-ci": {
@@ -2058,7 +2059,7 @@
         "correct": false
       },
       "pos-get-status": {
-        "pick": "servicenow_document_instance",
+        "pick": "servicenow_explain_access",
         "correct": false
       },
       "pos-get-update-set": {
@@ -2070,11 +2071,11 @@
         "correct": false
       },
       "pos-insert-import-set-row": {
-        "pick": "servicenow_get_import_set_row",
+        "pick": "servicenow_explain_access",
         "correct": false
       },
       "pos-lint-script": {
-        "pick": "servicenow_query_table",
+        "pick": "servicenow_review_upgrade",
         "correct": false
       },
       "pos-lint-table": {
@@ -2202,7 +2203,7 @@
         "correct": false
       },
       "pos-set-credentials": {
-        "pick": "servicenow_create_record",
+        "pick": "servicenow_explain_access",
         "correct": false
       },
       "pos-set-property": {
@@ -2210,7 +2211,7 @@
         "correct": false
       },
       "pos-snapshot-instance": {
-        "pick": "servicenow_compare_update_set",
+        "pick": "servicenow_review_upgrade",
         "correct": false
       },
       "pos-test-connection": {
@@ -2274,8 +2275,8 @@
         "correct": false
       },
       "cl-schema-list": {
-        "pick": "servicenow_list_tables",
-        "correct": true
+        "pick": "servicenow_get_task_context",
+        "correct": false
       },
       "cl-schema-describe": {
         "pick": "servicenow_describe_table",
@@ -2310,7 +2311,7 @@
         "correct": false
       },
       "cl-lint-table": {
-        "pick": "servicenow_get_script",
+        "pick": "servicenow_get_task_context",
         "correct": false
       },
       "cl-lint-health": {
@@ -2318,7 +2319,7 @@
         "correct": false
       },
       "cl-artifact-explain": {
-        "pick": "servicenow_test_connection",
+        "pick": "servicenow_find_tools",
         "correct": false
       },
       "cl-artifact-list": {
@@ -2476,7 +2477,7 @@
     "servicenow_batch": "13dd2fcbd7a9eb33eca2ce6bbbcb07222cfccc9efa1daf01e8038f9892a93b5c",
     "servicenow_check_capabilities": "9321dfc04dc16d804d264c4c4f3ce424380f01a84a5507893fd82f54c15f308e",
     "servicenow_check_change_conflicts": "fb2795d506bd9e20440d329dc998b92cf503e3e1cf64c55f25aa231adb13a085",
-    "servicenow_check_code_health": "fd08e3d296cef59fb7716b8ee9c52a704048ac88e154c372fa212285873afece",
+    "servicenow_check_code_health": "25eda3a0c2715e1432e54b0a22b4d8e34df89ee0415114705adc9b50f7f4b1d4",
     "servicenow_check_data_health": "a571593c47e25864e891cbd8fdf1ddf9e8fe153024e8f118001e725253628963",
     "servicenow_compare_instances": "69e887a4f2061145b1161d0ca206fd804ba11e8e10c7205ee15d4edd6d8f7f03",
     "servicenow_compare_update_set": "82117cdb7a36e334a13e61e80fd63b43978edc431b49087a22f7ad73b2f58b2d",
@@ -2493,16 +2494,18 @@
     "servicenow_document_table": "5c98799f7b8df76a29f9bafa59ca5c3f121a67c0f139754bf613d1591ac30755",
     "servicenow_download_attachment": "7762ecb1cfc638cc33eafaf8adbaf1ec24272c68a3f3571046f74b4fae72749f",
     "servicenow_enable_package": "6da9efe39ac04dc7ab9a0cb21db072136fe5532a43da63210b8ce6a405118097",
+    "servicenow_explain_access": "5d8469c23567684e67bbf1e9a04c49afb396ae20134e2f785246f3fcc5e68d79",
     "servicenow_explain_artifact": "a9c842f68dad6e1e3b66e757f9b4ad09c4221c6120ff3b592059005d36d591ca",
     "servicenow_explain_flow": "1c2b35b01e26bdf6a54143edb886f3b8037428f497be224f5bb8137acb2de5c3",
     "servicenow_explain_policy": "444c2aa7ad162bf96b93c365024badc3d2fca8d31b612bc3ecd72f115c55f746",
     "servicenow_explain_portal": "1b9ad3bc9c2509902bdc194536bb5568fc99b0f4c2956bcec6708e7742f44a9a",
     "servicenow_explain_ui_experience": "bc66b8584b115834216e721661949e0258bfb3cb0e4feb6a62127249ae13923e",
+    "servicenow_find_tools": "80e99631d0a796f9446835ba730534649c3e181a6719a59d9a491684433007b0",
     "servicenow_generate_er_diagram": "158e3bd629e9c7d021668cb0dec2e63a35e3e44a9d6e495d805116b1c51e4a58",
-    "servicenow_generate_fluent": "ffaf59b9901a63d5ef314585b8deaef2e53c7e7e1f1db3d3879b534cd29beda6",
+    "servicenow_generate_fluent": "a7e9a80dd0304d0ad7a4af6063574383ef18778d2ffa07a3c2ae5fafb20fb91e",
     "servicenow_generate_table_flow": "812444910431ba6a00a54aeda10bda73ed49223f0631ebd01b21717df05aeb02",
     "servicenow_get_artifact": "c835224374bbb10fbad10bb91af10c9834e4d7110422f58fc4c2e7f782f6d9fd",
-    "servicenow_get_artifact_dependencies": "1364a2a887790cb75be5100287e29f02be300d111213cb46aa938673597f8888",
+    "servicenow_get_artifact_dependencies": "a958af1cd690dfab39482ecc86ae43494d0ef99c5cef7bba4badd275201c0582",
     "servicenow_get_atf_result": "25dbfe1c9ba6a35067d4a99cb8eb87a087088be357362a34ea0410ff44f173df",
     "servicenow_get_attachment": "90d1912202434380390ba33bfa7c6ef54c1cc7b563c30b98d732193912e7fd2c",
     "servicenow_get_catalog_item": "02bcbbfc12ff8c9e67780d1eca330f7bbfe38a2cd79c8e200a8ef3d2756ee422",
@@ -2520,7 +2523,8 @@
     "servicenow_get_record_history": "2ba97e1b0b5a289dfbb8b5ce37e00395c70ace3f972701bf343461cd2124f3bf",
     "servicenow_get_script": "4ed3a08d4a9f9adce2cb38c35a5bfb4cc14a893cf62729b2e7c62ae443bcc5b9",
     "servicenow_get_status": "ad8eb59cbf5221ee9450922e2612c694be46b977fde510ba894bc7d4dcf034d4",
-    "servicenow_get_update_set": "e09311d1871c5f7cba8dfe1886064a9839b283c2439de311f7317f59fbb0f68f",
+    "servicenow_get_task_context": "cd0cc99b7533575b5b0629949f95db1d9a2dffea4bc29c1f9b96a9cde0916e3e",
+    "servicenow_get_update_set": "246222298bccc321e488033dc854e64faee0947647433cfeb7b940d6249097f5",
     "servicenow_identify_reconcile": "e746a14737d99c75bca85180260387b108ab742234940220f91bef8d59fa2683",
     "servicenow_insert_import_set_row": "bf04485d476ef98297211d45cec225ab3b339a579fe8246d3c150104b1585a22",
     "servicenow_lint_script": "1cef0bbb82352c5d3f3a475255d12b8bb36ef13fd6e617cfd5e7e9498b04b19e",
@@ -2549,6 +2553,7 @@
     "servicenow_read_doc": "58727659bbcb557cbfecb670ac862f6c9577dc81b739a615d90108e689f7b908",
     "servicenow_read_ops": "42a052828b077a79bbd085bd6c5a2eba3d032acfcdb8820972d708b613f6c71a",
     "servicenow_revert_write": "5ed95aa7ed732b4c9be824f47d4755add87a5cd9c010acc570cc751e0421a047",
+    "servicenow_review_upgrade": "8ccadc7320ec337a724ba85941e07faac1f5638eaf0e24b991b3911f4518b26b",
     "servicenow_run_atf_suite": "70a33a19fa86ac08211ba1b7a796aa0a7b6e83b33f04c5a444eb5089e698395f",
     "servicenow_run_atf_test": "f0e2de2f4b7a3a389232ce7e4996b60a601239ee1ec52d791558c423c5af8372",
     "servicenow_search_code": "cd698d89515e6191549c536d1f66218815b503ab3b0f276237e7a365d105932c",
@@ -2564,7 +2569,7 @@
     "servicenow_update_ci": "d21c2e7f2bec262cf4bf89aebf91034b98290764bd20e14aa13acc2085475eea",
     "servicenow_update_record": "c7a71e45ede4d9057b2007138aa91ab46b7735e4c78cea8eb6bec46fa597990a",
     "servicenow_upload_attachment": "ce707eb17e61bb2adb77045093d1678bb7c77e992552b6c03816e3a56c95bf8f",
-    "servicenow_upsert_artifact": "88db1b536217939d774b117d6eaa9c7a20f6fbe0a41e2fa4fe404ed4d435cd7d",
+    "servicenow_upsert_artifact": "35d30b75b30da79138ad41ec24bfcb47463b1a855197add4c26d357618570b5e",
     "servicenow_upsert_record": "8177c107fb3c18982fbdba6250151bcb9afde15547edb88b050e31786f82e4f7",
     "servicenow_use_instance": "bbcac5393ab887a72704f88a0154a0fcf635f7acde82554ad5fe8257765f0ee4",
     "servicenow_where_used": "717d5821b3c8f7de89044c73a16eac90d417524ebf331096367afdd8b1c2a336",
