@@ -1,16 +1,18 @@
 // E-6 / L9-02: property tests for policy resolution (global vs per-profile
 // keys, deny-over-allow, read-only spellings) and the two glob-style
-// allow-lists that exist today: the host allow-list (exact / suffix / port /
-// internal-needs-exact) and the upload MIME allow-list (`type/*`). A table
-// glob does not exist yet (H-11 / L3-01); its property lands with it.
+// allow-lists: the host allow-list (exact / suffix / port /
+// internal-needs-exact), the upload MIME allow-list (`type/*`) and the H-11
+// table glob (`*` / `?` entries in SN_TABLES_ALLOW / SN_TABLES_DENY).
 import test from "node:test";
 import assert from "node:assert/strict";
 import fc from "fast-check";
 
 import {
   assertTableAllowed,
+  evaluateTable,
   getAllowedTables,
   getDeniedTables,
+  globToRegExp,
   isReadOnly,
 } from "../build/core/policy.js";
 import { _isBlockedHost, resolveHost } from "../build/core/host.js";
@@ -361,6 +363,89 @@ test("upload MIME allow-list: `major/*` admits every subtype of that major type 
         });
       },
     ),
+    fcParams(),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Table glob (H-11 / L3-01): `*` any run, `?` one character, else literal
+// ---------------------------------------------------------------------------
+
+/** Reference glob matcher: plain dynamic programming over pattern × name. */
+function globMatches(pattern, name) {
+  const p = [...pattern];
+  const n = [...name];
+  let row = [true, ...n.map(() => false)];
+  for (const c of p) {
+    const next = [c === "*" && row[0]];
+    for (let j = 1; j <= n.length; j++) {
+      next[j] =
+        c === "*"
+          ? row[j] || next[j - 1]
+          : (c === "?" || c === n[j - 1]) && row[j - 1];
+    }
+    row = next;
+  }
+  return row[n.length];
+}
+
+// A tiny alphabet so random names and patterns actually collide.
+const nameChar = fc.constantFrom("a", "b", "_", ".");
+const tableName = fc
+  .array(nameChar, { minLength: 1, maxLength: 5 })
+  .map((cs) => cs.join(""));
+const globEntry = fc
+  .array(fc.oneof(nameChar, fc.constantFrom("*", "?")), {
+    minLength: 1,
+    maxLength: 5,
+  })
+  .map((cs) => cs.join(""));
+
+test("table glob: an entry matches exactly the names the reference matcher accepts; `.` and `_` are literal", () => {
+  fc.assert(
+    fc.property(globEntry, tableName, (entry, name) => {
+      const re = globToRegExp(entry);
+      const isGlob = /[*?]/.test(entry);
+      assert.equal(re === null, !isGlob, entry);
+      const got = re ? re.test(name) : entry === name;
+      assert.equal(got, globMatches(entry, name), `${entry} vs ${name}`);
+    }),
+    fcParams(),
+  );
+});
+
+test("table policy order: exact deny, exact allow, pattern deny, then the allow-list's patterns; no list means no policy", () => {
+  const entries = fc.array(fc.oneof(tableName, globEntry), { maxLength: 4 });
+  fc.assert(
+    fc.property(entries, entries, tableName, (allow, deny, name) => {
+      withEnvSync(
+        {
+          SN_TABLES_ALLOW: allow.join(","),
+          SN_TABLES_DENY: deny.join(","),
+        },
+        () => {
+          const glob = (e) => /[*?]/.test(e);
+          const expected = deny.some((e) => !glob(e) && e === name)
+            ? ["deny-exact", false]
+            : allow.some((e) => !glob(e) && e === name)
+              ? ["allow-exact", true]
+              : deny.some((e) => glob(e) && globMatches(e, name))
+                ? ["deny-pattern", false]
+                : allow.length === 0
+                  ? ["no-policy", true]
+                  : allow.some((e) => glob(e) && globMatches(e, name))
+                    ? ["allow-pattern", true]
+                    : ["not-in-allowlist", false];
+          // Reads only: the protected list applies to writes.
+          const verdict = evaluateTable(name, "read", "default");
+          assert.deepEqual(
+            [verdict.rule, verdict.allowed],
+            expected,
+            JSON.stringify({ allow, deny, name }),
+          );
+        },
+      );
+    }),
     fcParams(),
   );
 });
