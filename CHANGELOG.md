@@ -77,6 +77,10 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-16: `with_results` on `servicenow_list_atf_tests` and `servicenow_list_atf_suites`.** With the flag, each test or
+  suite gains its last result, its pass rate over the last 20 runs and a `flaky` flag (edits to the test restart the flip
+  count); a `history` section reports the window, the rows scanned, truncation and the definitions check, or why the
+  history is unavailable (up to 100 items). Without the flag the output is unchanged. tools/list: all +294 B, core +0 B.
 - **N-1: `servicenow_review_upgrade` in the opt-in `instance` package.** The upgrade history by default; with `upgrade`
   the unresolved skipped records of that upgrade grouped by application and artefact type; with `update_name` one
   skipped record classified by its base and customer versions (with field diffs); with `store_updates` the store apps
