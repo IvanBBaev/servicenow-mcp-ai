@@ -78,6 +78,7 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-2: `servicenow_explain_access`.** Why a user can or cannot read, write, create or delete a table, record or field: the user's roles, the matching row and field ACLs with their role, condition and script parts (scripts stay `undetermined`; conditions run as the connected user), admin overrides and the domain caveat. `format: "markdown"` adds the Mermaid decision diagram. It sits in the opt-in `directory` package, so `SN_PACKAGES_DENY=directory` removes it with the other user-data reads (O-13). Tables and fields are unverified until O-5. `tools/list` delta: +1355 B on `all`, `all+tasks` and `all+legacy` (budgets raised, O-10); `core` unchanged.
 - **N-12: `domain` scope on `servicenow_query_table`.** An optional domain `sys_id` narrows a read to that
   domain: `sys_domain=<sys_id>` is AND'd into every `^NQ` segment of the encoded query, so an OR'd query cannot
   escape it. Without it the query and the result are unchanged. Pair it with `queryNoDomain` to read a domain other
