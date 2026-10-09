@@ -1301,11 +1301,11 @@ items:
     title: "shallow output schemas"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: "T2"
-    done: null
+    done: "2026-10-09"
     gates: ["O-10"]
-    notes: "Phase T2, waits for O-10 (c) (TK-40). Top-level properties and types only in the published outputSchema; full zod shape stays the test oracle and in the reference resource; trade-off with N-54's code-mode goal. `all` ≈ −9 KB (measured). See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: "**Done 2026-10-09 (90dea84, owner O-10 (c)).** `shallowOutputSchema` (lean-list rule 7) publishes top-level names, types and `required` with `additionalProperties: {}`; the manifest, tool docs and `servicenow://reference/tools/{name}` keep the full shape, and the server validates against the full zod shape. `all` −9,461 B, `core` −2,724 B; budgets 26,624 / 116,736 / 118,016 / 133,120. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-61"
     title: "result size safety"
     pillar: "N"

@@ -273,7 +273,7 @@
       as data with an automatic tightening ratchet; (b) restated targets — `discovery` ≤ 22 KB
       (stretch 14 KB), `all` ≤ 120 KB (with N-54) non-default — and the N-58 / N-63 wire changes
       (**(a) and (b) decided 2026-10-06**, [ADR 0006](adr/0006-tools-list-budget-ratchet.md)); (c) shallow
-      output schemas (N-60); (d) N-18 eval models and API budget. O-19 (d) per-connection
+      output schemas (N-60; **decided 2026-10-09**, shallow on the wire, full in the reference — done in 90dea84); (d) N-18 eval models and API budget. O-19 (d) per-connection
       `tools/list` vs M-5 / N-63. O-21 (a) compact-read defaults; (b) 48 k result cap, automatic
       file result, `list_tables` default limit; (c) Claude Code `_meta` hints; (d) N-39 parked
       until N-35. O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63); the `list_tables` default limit (N-61) unless ruled a fix.
