@@ -1,4 +1,7 @@
-import { rethrowIfCancelled } from "../core/errors.js";
+import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
+import { activeProfile } from "../core/config.js";
+import { getProfileEnv } from "../core/settings.js";
+import { settingSource } from "../core/settings-manifest.js";
 import { snRequest } from "../core/http.js";
 import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import { ARTIFACT_TYPES } from "../core/artifacts/registry.js";
@@ -279,17 +282,38 @@ export function scanRunRequest(target: InstanceScanTarget): {
 }
 
 /**
+ * N-3: an Instance Scan runs only on a non-production profile, as ATF does —
+ * a profile marked prod (H-11, `SN_ENV`) is refused, whatever its write
+ * mode or `SN_PROD_WRITES` acknowledgement.
+ */
+export function assertScanAllowed(profile: string = activeProfile()): void {
+  if (getProfileEnv(profile) !== "prod") return;
+  const key = settingSource("SN_ENV", { profile });
+  throw new ServiceNowError(
+    `An Instance Scan runs only on a non-production profile; profile "${profile}" is marked prod (${key}). Nothing was started.`,
+    403,
+    undefined,
+    {
+      code: "POLICY_DENIED",
+      source: "policy",
+      hint: "Run the scan against a test or dev profile (the instance argument), or read the latest results without scan_run.",
+    },
+  );
+}
+
+/**
  * Start an Instance Scan through the CI/CD API, behind the same rails as an
  * ATF run: a write (the instance executes every check), refused in read-only
  * mode and on a table the policy blocks (`scan_result`, plus the target
  * table of a point scan), and wrapped in {@link pluginCall} so an inactive
  * `sn_cicd` plugin reports clearly. Returns the progress id to poll with
- * {@link waitForInstanceScan}. The refusal on a production-marked profile
- * waits for the H-11 marker (O-4); the endpoints are unverified until O-5.
+ * {@link waitForInstanceScan}. Refused on a production-marked profile
+ * ({@link assertScanAllowed}); the endpoints are unverified until O-5.
  */
 export async function runInstanceScan(
   target: InstanceScanTarget,
 ): Promise<AtfRun> {
+  assertScanAllowed();
   assertTableAllowed(SCAN_RESULT_TABLE); // H-4: the backing table
   if (target.kind === "point") assertTableAllowed(target.table);
   assertWriteAllowed(`run instance scan (${target.kind})`);

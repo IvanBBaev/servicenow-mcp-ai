@@ -7,6 +7,7 @@ import {
   codeHealth,
 } from "../api/codecheck.js";
 import {
+  assertScanAllowed,
   runInstanceScan,
   SCAN_RESULT_TABLE,
   type InstanceScanTarget,
@@ -62,8 +63,8 @@ function scanTarget(
  * N-3: start an Instance Scan through the CI/CD API on the ATF rails — a
  * plan preview unless applied, then a journalled `execute` on `scan_result`.
  * The answer keeps the report's required fields; poll the progress id with
- * servicenow_get_atf_result. Refusal on a production-marked profile waits
- * for the H-11 marker (O-4).
+ * servicenow_get_atf_result. A production-marked profile is refused before
+ * the plan, so no preview promises a run that cannot happen.
  */
 async function startScan(
   run: "full" | "point" | "suite",
@@ -72,6 +73,7 @@ async function startScan(
   apply: boolean | undefined,
 ) {
   const target = scanTarget(run, scope, sysId);
+  assertScanAllowed();
   const head = {
     scope: scope ?? "instance",
     generatedAt: new Date().toISOString(),

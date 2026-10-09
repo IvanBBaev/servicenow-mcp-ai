@@ -406,3 +406,44 @@ test("check_code_health scan_run with apply is refused in read-only mode", async
     },
   );
 });
+
+test("an Instance Scan is refused on a prod-marked profile, plan and apply", async () => {
+  freshRuntime();
+  const prodRefusal = (err) =>
+    err instanceof ServiceNowError &&
+    err.status === 403 &&
+    err.code === "POLICY_DENIED" &&
+    /marked prod \(SN_ENV\)/.test(err.message);
+  await withFetch(
+    () => started("p1"),
+    async (calls) => {
+      await withEnv(
+        {
+          SN_ENV: "prod",
+          SN_WRITE_MODE: "apply",
+          SN_PROD_WRITES: "I_UNDERSTAND",
+        },
+        async () => {
+          await assert.rejects(runInstanceScan({ kind: "full" }), prodRefusal);
+          await assert.rejects(
+            healthTool.handler({ scan_run: "full" }),
+            prodRefusal,
+          );
+          await assert.rejects(
+            healthTool.handler({
+              scan_run: "suite",
+              sys_id: "su1",
+              apply: true,
+            }),
+            prodRefusal,
+          );
+        },
+      );
+      assert.equal(calls.length, 0);
+      await withEnv({ SN_ENV: "test" }, async () => {
+        await runInstanceScan({ kind: "full" });
+      });
+      assert.equal(calls.length, 1);
+    },
+  );
+});
