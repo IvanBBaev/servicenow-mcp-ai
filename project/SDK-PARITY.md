@@ -38,7 +38,7 @@ runtime execution of portal widgets, and background scripts.
 | ------------------- | ----------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | npm `latest` (GA)   | **4.12.2**  | 2026-09-15 | Baseline for every "Since" value and for the gap matrix.                                                                                                                                                          |
 | npm `next`          | **4.13.0**  | 2026-09-23 | Adds `DatabaseView` (`sys_db_view`, `sys_db_view_table` (U)); the API page returned 404 — **unverified** (§6.2).                                                                                                  |
-| npm `latest` (seen) | **4.13.6**  | 2026-10-09 | `sdk:drift` run: `DatabaseView` and `Interceptor` (`sys_wizard`) now have API pages. The baseline stays 4.12.2 until the owner re-pins the SDK (O-7, ADR 0002).                                                   |
+| npm `latest` (seen) | **4.13.6**  | 2026-10-09 | `sdk:drift` run: `DatabaseView` and `Interceptor` (`sys_wizard`) now have API pages. The owner re-pinned the SDK and the baseline to 4.13.6 the same day (O-7, ADR 0002).                                         |
 | API history (recap) | 4.0 → 4.12  | —          | 4.0 ScriptInclude/UiPage/UiAction/ScriptAction/SPWidget · 4.2 ImportSet/UiPolicy · 4.3 Flow MVP, Catalog, Workspace, Dashboard, Sla …                                                                             |
 | API history (recap) | 4.5 → 4.8   | —          | 4.5 scan checks, ScheduledScript, SPPage/SPTheme/SPMenu, AiAgent · 4.6 Action, subflow calls, Form · 4.7 DataPolicy, `$override` · 4.8 PlaybookDefinition, RestMessage, Alias, RetryPolicy, DataLookup, `Now.del` |
 | API history (recap) | 4.10 → 4.12 | —          | 4.10 StateModel, `cicd` · 4.11 TestSuite, GraphQLApi · 4.12 Assessment, RiskAssessment                                                                                                                            |
@@ -53,7 +53,7 @@ runtime execution of portal widgets, and background scripts.
 3. A new SDK **minor**: add or adjust registry descriptors within one release (R/X tiers first, same
    rules as P-7…P-9). A new **major**: re-run the inventory and re-baseline this file before G-tier work
    targets it. Generated Fluent (P5) declares the SDK version it targets in its header comment.
-4. `next`-only APIs (today `DatabaseView`) get a descriptor with `verified:false` and no G tier until
+4. `next`-only APIs (none since the 4.13.6 re-pin; `DatabaseView` was one) get a descriptor with `verified:false` and no G tier until
    they reach `latest` and O-5 confirms the tables.
 5. **Guides are tracked too.** The API index alone misses artefacts that a guide builds with `Record()`
    or with an option of another API. `GUIDE_COVERAGE` in `scripts/sdk-drift.mjs` maps every guide slug
@@ -107,7 +107,7 @@ not verify.
 | ------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --- | --- | --- | --- | --- | --- | ---------------------------------------------- | ------ | -------- | ---------------------- |
 | CORE-1  | `Table`                                       | sys_db_object, sys_dictionary, sys_dictionary_override, sys_documentation, sys_choice                | ✅  | ◐   | ◐   | ◐   | —   | —   | `[MT]`, `[DG]`, schema in `[SN]`               | RXASWG | P1,P3,P5 | P-7, S-7, P-26         |
 | CORE-2  | `ChoiceSet`                                   | sys_choice, sys_choice_set (legacy)                                                                  | —   | —   | —   | —   | —   | —   | —                                              | RXSWG  | P1,P5    | P-7, S-7, P-26         |
-| CORE-3  | `DatabaseView` (4.13 `next`)                  | sys_db_view, sys_db_view_table (U)                                                                   | —   | —   | —   | —   | —   | —   | — (API page 404, unverified)                   | RXS    | P1       | P-7, P-4               |
+| CORE-3  | `DatabaseView` (4.13)                         | sys_db_view, sys_db_view_table (U)                                                                   | —   | —   | —   | —   | —   | —   | — (on the 4.13.6 baseline, unverified)         | RXS    | P1       | P-7, P-4               |
 | CORE-4  | `StateModel`                                  | sttrm_model, sttrm_state, sttrm_state_transition, sttrm_transition_condition                         | —   | —   | —   | —   | —   | —   | —                                              | RXASG  | P1,P3,P5 | P-7, P-20, P-26        |
 | CORE-5  | `Property`                                    | sys_properties                                                                                       | —   | —   | —   | —   | —   | —   | — (S-10 plans get/set)                         | RXASWG | P1,P4    | P-7, S-10, P-23        |
 | CORE-6  | `UserPreference`                              | sys_user_preference                                                                                  | —   | —   | —   | —   | —   | —   | —                                              | RXSG   | P1,P5    | P-7, P-26              |
@@ -165,7 +165,7 @@ not verify.
 | CUI-7  | `List`               | sys_ui_list, sys_ui_list_element                                                                                           | —   | —   | —   | —   | —   | —   | — (S-9 plans `sys_ui_list`)     | RXASWG | P1,P3,P4 | P-7, S-9, P-23  |
 | CUI-8  | `ApplicationMenu`    | sys_app_application, sys_app_module                                                                                        | —   | —   | —   | —   | —   | —   | —                               | RXASWG | P1,P4,P5 | P-7, P-23, P-26 |
 | CUI-9  | views (Record)       | sys_ui_view, sysrule_view, sys_ui_list_control                                                                             | —   | —   | —   | —   | —   | —   | —                               | RXS    | P1       | P-7             |
-| CUI-10 | `Interceptor` (4.13) | sys_wizard, sys_wizard_answer, sys_wizard_choice, sys_wizard_choice_list (U)                                               | —   | —   | —   | —   | —   | —   | — (API new in 4.13, unverified) | RXS    | P1       | P-7, P-4        |
+| CUI-10 | `Interceptor` (4.13) | sys_wizard, sys_wizard_answer, sys_wizard_choice, sys_wizard_choice_list (U)                                               | —   | —   | —   | —   | —   | —   | — (registered, unverified)      | RXS    | P1       | P-7, P-4        |
 
 ### 4.4 Next Experience — SDK APIs
 
@@ -491,8 +491,9 @@ unless it says so.
 - [x] Descriptors for rows CORE-1…17, SRV-1…20, CUI-1…9 (tables and children as in §4).
 - [x] `sttrm_*` state model and `sys_choice` explainers render a transition list / choice table;
       `sys_ui_policy` / `sys_data_policy2` explain field effects from their action/rule children.
-- [ ] Descriptors for rows CORE-18…21 and CUI-10 (added 2026-10-09 by the guide audit; CUI-10
-      `Interceptor` waits for the 4.13 re-pin, O-7) and `sys_ui_formatter` in CUI-6.
+- [x] CUI-10 `Interceptor`: `interceptor` descriptor (`sys_wizard` + `sys_wizard_answer`), added with
+      the 4.13.6 re-pin (2026-10-09).
+- [ ] Descriptors for rows CORE-18…21 (added 2026-10-09 by the guide audit) and `sys_ui_formatter` in CUI-6.
 - **Depends on:** P-1, P-2, P-6.
 - **Acceptance:** `list_artifacts` + `explain_artifact` work for every row on the PDI fixture; rows
   whose table is absent answer `available:false`.

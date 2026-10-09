@@ -33,11 +33,10 @@
 
 ## Active (2026-09-02)
 
-- [ ] **P-4 / P-7 · SDK 4.13 and the guide audit** — 2026-10-09: npm `latest` is 4.13.6;
-      `DatabaseView` and `Interceptor` (`sys_wizard`) have API pages. Owner questions: re-pin
-      `@servicenow/sdk` to 4.13.6 and move `SDK_BASELINE` (O-7, ADR 0002); then add `Interceptor`
-      to the registry and promote `DatabaseView` out of `SDK_NEXT_APIS`. The guide audit added
-      SDK-PARITY rows CORE-18…21 and CUI-10 (descriptors open under P-7).
+- [x] **P-4 / P-7 · SDK 4.13 re-pin** — done 2026-10-09 (owner approved): `@servicenow/sdk` and
+      `SDK_BASELINE` at 4.13.6 (O-7), `DatabaseView` promoted out of `SDK_NEXT_APIS`, `Interceptor`
+      registered as `interceptor` (`sys_wizard`, verified:false). Still open under P-7: descriptors for
+      the guide-audit rows CORE-18…21 and `sys_ui_formatter` in CUI-6.
 - [x] **H-1 · Make the gate green again** — done 2026-09-03 (uncommitted): SDK `^1.30.0`, zod
       `^3.25.0`, lock-only `npm audit fix` for the transitive `fast-uri` / `ip-address` / `hono` /
       `@hono/node-server` / `qs` / `body-parser`; `npm run check` green (406/406, audit 0),
