@@ -530,6 +530,68 @@ export async function mapLimit(items, limit, fn) {
   return out;
 }
 
+/**
+ * Merge the scored results of several runs of the same cases into one result
+ * per case: the case counts as correct when most runs got it right, and its
+ * pick is the most frequent pick. `correctRuns` / `runs` keep the spread.
+ */
+export function mergeRepeats(runs) {
+  if (runs.length === 1) return runs[0];
+  return runs[0].map((first, i) => {
+    const all = runs.map((rs) => rs[i]);
+    const correctRuns = all.filter((r) => r.correct).length;
+    const counts = new Map();
+    for (const r of all) counts.set(r.pick, (counts.get(r.pick) ?? 0) + 1);
+    const majority = all.find(
+      (r) => r.correct === correctRuns * 2 > all.length,
+    );
+    const pick = [...counts.entries()].sort(
+      ([a, x], [b, y]) => y - x || String(a).localeCompare(String(b)),
+    )[0][0];
+    const usage = all.reduce(
+      (acc, r) =>
+        r.usage
+          ? {
+              input_tokens: acc.input_tokens + (r.usage.input_tokens ?? 0),
+              output_tokens: acc.output_tokens + (r.usage.output_tokens ?? 0),
+            }
+          : acc,
+      { input_tokens: 0, output_tokens: 0 },
+    );
+    const merged = {
+      ...(majority ?? first),
+      pick: majority?.correct ? majority.pick : pick,
+      correct: correctRuns * 2 > all.length,
+      runs: all.length,
+      correctRuns,
+    };
+    if (all.some((r) => r.usage)) merged.usage = usage;
+    else delete merged.usage;
+    return merged;
+  });
+}
+
+/**
+ * Two-sided exact McNemar test on the discordant pairs of a paired
+ * comparison: `broken` cases went from right to wrong, `fixed` the other
+ * way. Returns the p-value (1 when nothing flipped).
+ */
+export function mcnemarExact(broken, fixed) {
+  const n = broken + fixed;
+  if (n === 0) return 1;
+  const k = Math.min(broken, fixed);
+  let tail = 0;
+  let term = Math.pow(0.5, n); // C(n, 0) / 2^n
+  for (let i = 0; i <= k; i++) {
+    tail += term;
+    term *= (n - i) / (i + 1);
+  }
+  return Math.min(1, Math.round(2 * tail * 10000) / 10000);
+}
+
+/** The N-18 acceptance rule: top-1 drops by at most this many points. */
+export const ACCEPT_MAX_DROP = 4;
+
 /** Score every case of one surface with one backend. */
 export async function evaluate({
   cases,
@@ -610,7 +672,10 @@ export function descriptionDriftMessage({ changed, added, removed }) {
   );
 }
 
-/** Per-profile top-1 delta (points) and the cases that flipped. */
+/**
+ * Per-profile top-1 delta (points), the cases that flipped, the exact
+ * McNemar p-value of those flips and whether the acceptance rule holds.
+ */
 export function compareToBaseline(baseline, run) {
   const out = {};
   for (const [profile, cur] of Object.entries(run.profiles)) {
@@ -624,11 +689,14 @@ export function compareToBaseline(baseline, run) {
       if (was.correct && !r.correct) flips.broken.push(r.id);
       if (!was.correct && r.correct) flips.fixed.push(r.id);
     }
+    const delta = Math.round((cur.top1 - base.top1) * 10) / 10;
     out[profile] = {
       before: base.top1,
       after: cur.top1,
-      delta: Math.round((cur.top1 - base.top1) * 10) / 10,
+      delta,
       ...flips,
+      mcnemarP: mcnemarExact(flips.broken.length, flips.fixed.length),
+      accepted: -delta <= ACCEPT_MAX_DROP,
     };
   }
   return out;

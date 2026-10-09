@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import {
+  ACCEPT_MAX_DROP,
   PACKAGE_RESCUE,
   PROFILE_ENV,
   buildSurface,
@@ -26,6 +27,8 @@ import {
   effectiveExpected,
   evaluate,
   loadCases,
+  mcnemarExact,
+  mergeRepeats,
   scoreCase,
   summarize,
   validateArgs,
@@ -391,6 +394,8 @@ test("evaluate + baseline comparison and description drift", async () => {
     delta: -50,
     fixed: [],
     broken: ["b"],
+    mcnemarP: 1,
+    accepted: false,
   });
 
   const before = descriptionHashes(pub.all);
@@ -483,4 +488,51 @@ test("every eval tool keeps the description hash of the last tool-selection eval
   }
   const message = descriptionDriftMessage(drift);
   assert.equal(message, "", message);
+});
+
+test("mcnemarExact: two-sided exact p over the flipped cases", () => {
+  assert.equal(mcnemarExact(0, 0), 1);
+  assert.equal(mcnemarExact(1, 1), 1);
+  assert.equal(mcnemarExact(0, 5), 0.0625); // 2 / 2^5
+  assert.equal(mcnemarExact(9, 1), 0.0215); // 2 * (1 + 10) / 2^10
+  assert.equal(mcnemarExact(1, 9), mcnemarExact(9, 1));
+});
+
+test("mergeRepeats: majority vote per case, spread kept", () => {
+  const res = (id, pick, correct, usage) => ({
+    id,
+    kind: "positive",
+    expected: ["x"],
+    pick,
+    correct,
+    ...(usage ? { usage } : {}),
+  });
+  const u = { input_tokens: 10, output_tokens: 1 };
+  const runs = [
+    [res("a", "x", true, u), res("b", "y", false, u)],
+    [res("a", "z", false, u), res("b", "y", false, u)],
+    [res("a", "x", true, u), res("b", "x", true, u)],
+  ];
+  const [a, b] = mergeRepeats(runs);
+  assert.equal(a.correct, true);
+  assert.equal(a.pick, "x");
+  assert.equal(a.correctRuns, 2);
+  assert.equal(a.runs, 3);
+  assert.deepEqual(a.usage, { input_tokens: 30, output_tokens: 3 });
+  assert.equal(b.correct, false);
+  assert.equal(b.pick, "y", "the most frequent wrong pick");
+  assert.equal(b.correctRuns, 1);
+  assert.equal(summarize([a, b]).top1, 50);
+  // One run passes through unchanged.
+  assert.equal(mergeRepeats([runs[0]]), runs[0]);
+});
+
+test("compareToBaseline: the acceptance rule allows a small drop", () => {
+  const cmp = compareToBaseline(
+    { profiles: { all: { top1: 80 } }, picks: { all: {} } },
+    { profiles: { all: { top1: 80 - ACCEPT_MAX_DROP } }, results: { all: [] } },
+  );
+  assert.equal(ACCEPT_MAX_DROP, 4);
+  assert.equal(cmp.all.accepted, true);
+  assert.equal(cmp.all.mcnemarP, 1);
 });

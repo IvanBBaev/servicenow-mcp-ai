@@ -21,12 +21,18 @@
  *   --cases <file>                         default evals/tool-selection/cases.json
  *   --filter <text>                        only cases whose id contains <text>
  *   --concurrency <n>                      parallel model calls (default 4 for anthropic)
+ *   --repeats <n>                          run every case n times (default 1); a case
+ *                                          counts as correct when most runs get it
+ *                                          right, and the report lists each run's top-1
  *   --baseline <file>                      baseline to compare with (default per backend)
  *   --write-baseline                       write the baseline file for this backend
  *   --write-hashes                         record the description hashes this run
  *                                          used (description-hashes.json; the
  *                                          drift test in npm test reads it)
  *   --max-drop <points>                    exit 1 when top-1 drops more than this
+ *                                          (the acceptance rule is 4 points; the
+ *                                          comparison also reports an exact McNemar
+ *                                          p-value over the cases that flipped)
  *   --json                                 print the full run as JSON
  *
  * The anthropic backend reads ANTHROPIC_API_KEY and spends real API budget
@@ -38,6 +44,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import {
+  ACCEPT_MAX_DROP,
   DEFAULT_MODEL,
   PROFILE_ENV,
   SURFACE_PROFILES,
@@ -52,6 +59,8 @@ import {
   descriptionHashes,
   evaluate,
   loadCases,
+  mergeRepeats,
+  summarize,
 } from "./lib.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -69,6 +78,7 @@ const { values: opts } = parseArgs({
     cases: { type: "string", default: join(HERE, "cases.json") },
     filter: { type: "string" },
     concurrency: { type: "string" },
+    repeats: { type: "string", default: "1" },
     baseline: { type: "string" },
     "write-baseline": { type: "boolean", default: false },
     "write-hashes": { type: "boolean", default: false },
@@ -143,6 +153,11 @@ try {
   process.exit(2);
 }
 
+const repeats = Number(opts.repeats);
+if (!Number.isInteger(repeats) || repeats < 1) {
+  console.error("--repeats needs a positive integer");
+  process.exit(2);
+}
 const concurrency = Number(
   opts.concurrency ?? (backend.id === "anthropic" ? 4 : 1),
 );
@@ -156,26 +171,38 @@ const run = {
   backend: backend.id,
   model: backend.model,
   cases: { n: cases.length, sha256: casesSha, filter: opts.filter ?? null },
+  repeats,
   profiles: {},
   results: {},
   descriptions: descriptionHashes(published.all),
 };
 const recorded = { backend: backend.id, model: backend.model, answers: {} };
+if (repeats > 1) recorded.repeats = [];
 
 for (const profile of profiles) {
   const surface = buildSurface(profile, published);
-  const { answers, results, summary } = await evaluate({
-    cases,
-    surface,
-    backend,
-    toolPackages,
-    concurrency,
-  });
-  run.profiles[profile] = { tools: surface.tools.length, ...summary };
+  const runs = [];
+  for (let n = 0; n < repeats; n++) {
+    const { answers, results, summary } = await evaluate({
+      cases,
+      surface,
+      backend,
+      toolPackages,
+      concurrency,
+    });
+    runs.push({ results, top1: summary.top1 });
+    const byId = Object.fromEntries(cases.map((c, i) => [c.id, answers[i]]));
+    // The first run stays replayable by the recorded backend as before.
+    if (n === 0) recorded.answers[profile] = byId;
+    else (recorded.repeats[n - 1] ??= {})[profile] = byId;
+  }
+  const results = mergeRepeats(runs.map((r) => r.results));
+  run.profiles[profile] = {
+    tools: surface.tools.length,
+    ...summarize(results),
+    ...(repeats > 1 ? { runTop1: runs.map((r) => r.top1) } : {}),
+  };
   run.results[profile] = results;
-  recorded.answers[profile] = Object.fromEntries(
-    cases.map((c, i) => [c.id, answers[i]]),
-  );
 }
 
 // ------------------------------------------------------------ baseline ---
@@ -233,6 +260,7 @@ if (opts["write-baseline"]) {
     backend: run.backend,
     model: run.model,
     cases: { n: cases.length, sha256: casesSha },
+    repeats,
     profiles: Object.fromEntries(
       Object.entries(run.profiles).map(([p, s]) => [
         p,
@@ -245,6 +273,7 @@ if (opts["write-baseline"]) {
           byCluster: s.byCluster,
           argValidity: s.argValidity,
           planFirst: s.planFirst,
+          ...(s.runTop1 ? { runTop1: s.runTop1 } : {}),
         },
       ]),
     ),
@@ -252,7 +281,14 @@ if (opts["write-baseline"]) {
       Object.entries(run.results).map(([p, rs]) => [
         p,
         Object.fromEntries(
-          rs.map((r) => [r.id, { pick: r.pick, correct: r.correct }]),
+          rs.map((r) => [
+            r.id,
+            {
+              pick: r.pick,
+              correct: r.correct,
+              ...(r.runs ? { correctRuns: r.correctRuns, runs: r.runs } : {}),
+            },
+          ]),
         ),
       ]),
     ),
@@ -268,12 +304,14 @@ if (opts.json) {
 } else {
   const pct = (v) => (v === null || v === undefined ? "n/a" : `${v}%`);
   console.log(
-    `tool-selection eval — backend ${run.backend} (${run.model}), ${cases.length} cases`,
+    `tool-selection eval — backend ${run.backend} (${run.model}), ${cases.length} cases` +
+      (repeats > 1 ? `, ${repeats} runs each (majority vote)` : ""),
   );
   for (const [profile, s] of Object.entries(run.profiles)) {
     console.log(
       `\n[${profile}] ${s.tools} tools  top-1 ${pct(s.top1)} (${s.correct}/${s.n})` +
         `  args ${pct(s.argValidity)}  plan-first ${pct(s.planFirst)}` +
+        (s.runTop1 ? `  runs ${s.runTop1.map(pct).join(" / ")}` : "") +
         (s.errors ? `  errors ${s.errors}` : "") +
         (s.usage
           ? `  tokens in ${s.usage.input_tokens} out ${s.usage.output_tokens}`
@@ -303,6 +341,8 @@ if (opts.json) {
     for (const [p, c] of Object.entries(comparison)) {
       console.log(
         `  [${p}] ${c.before}% -> ${c.after}% (${c.delta >= 0 ? "+" : ""}${c.delta})` +
+          `  McNemar p ${c.mcnemarP}` +
+          `  ${c.accepted ? "accepted" : `REJECTED (drop > ${ACCEPT_MAX_DROP} points)`}` +
           (c.broken.length ? `  broken: ${c.broken.join(", ")}` : "") +
           (c.fixed.length ? `  fixed: ${c.fixed.join(", ")}` : ""),
       );

@@ -133,6 +133,11 @@ cluster, the confusion pairs, plan-first compliance and argument validity;
 picks and the sha256 of every tool description; later runs print the delta,
 the flipped cases and a stale-baseline warning when a description changed,
 and `--max-drop <points>` turns the delta into an exit code.
+`--repeats <n>` runs every case n times and scores the majority answer (the
+owner's model baseline is `claude-sonnet-5-5` with `--repeats 3`). The
+comparison prints an exact McNemar p-value over the flipped cases, and
+`accepted` or `REJECTED`: a change is accepted when top-1 drops by at most
+4 points.
 `test/tool-selection-eval.test.js` covers the harness without a model, and
 it is the "description change needs a fresh eval" gate:
 `evals/tool-selection/description-hashes.json` holds the `description_sha256`
