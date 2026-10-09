@@ -336,7 +336,7 @@
       after the write. Fix F1/F2 in the env writer and reject the store's own files in F3?
       **Update 2026-10-01 (E-2):** F1 and F2 are resolved by the switch to Node's env-file
       parser (`process.loadEnvFile` / `util.parseEnv`), which has neither hazard; both are now
-      regular tests. F3 remains.
+      regular tests. **F3 resolved 2026-10-09 (owner):** `docsWriteRaw` refuses the store's root `index.md` / `index.json` with 400; the todo test is a regular test.
 - [ ] **Owner decisions from batch 12 (S-16/D-8, 2026-09-26):** (a) The S-16 acceptance says
       `document_instance({depth:"apps"})` produces the four-file set; as built, `depth` is
       cumulative — `apps` writes `overview.md`, `apps.md` and `tables-<scope>.md`, and

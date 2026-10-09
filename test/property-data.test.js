@@ -356,8 +356,6 @@ const docPath = fc
       lead + segs.map(([s, sep]) => s + sep).join("") + base + ext,
   );
 
-const STORE_FILES = new Set(["index.md", "index.json"]);
-
 test("docs path: a write either lands inside SN_DOCS_DIR (and reads back) or is refused with 400 — never outside, never through a link", async () => {
   await fc.assert(
     fc.asyncProperty(docPath, async (rel) => {
@@ -389,11 +387,9 @@ test("docs path: a write either lands inside SN_DOCS_DIR (and reads back) or is 
           assert.ok(
             [".md", ".json"].includes(path.extname(landed).toLowerCase()),
           );
-          // The store's own index.md / index.json are rebuilt after every
-          // write, replacing what was written there (finding F3, todo below).
-          if (!STORE_FILES.has(path.basename(landed).toLowerCase())) {
-            assert.equal((await docsRead(rel)).content, "payload");
-          }
+          // A path that normalizes to the store's own index.md / index.json
+          // is refused above (E-6 F3); one in a subfolder is a regular doc.
+          assert.equal((await docsRead(rel)).content, "payload");
         });
       } finally {
         rmSync(base, { recursive: true, force: true });
@@ -403,27 +399,21 @@ test("docs path: a write either lands inside SN_DOCS_DIR (and reads back) or is 
   );
 });
 
-test(
-  "docs store: a raw write to the store's own index.md / index.json is refused (not silently replaced)",
-  {
-    todo: "E-6 finding F3 (owner decision): docsWriteRaw accepts index.md / index.json, which the store rebuilds right after the write",
-  },
-  async () => {
-    const root = scratch("docs-index");
-    try {
-      await withEnv({ SN_DOCS_DIR: root }, async () => {
-        for (const name of ["index.md", "index.json"]) {
-          await assert.rejects(
-            () => docsWriteRaw(name, "mine", [".md", ".json"]),
-            (e) => e instanceof ServiceNowError && e.status === 400,
-          );
-        }
-      });
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  },
-);
+test("docs store: a raw write to the store's own index.md / index.json is refused (not silently replaced)", async () => {
+  const root = scratch("docs-index");
+  try {
+    await withEnv({ SN_DOCS_DIR: root }, async () => {
+      for (const name of ["index.md", "index.json", "INDEX.MD", "/index.md"]) {
+        await assert.rejects(
+          () => docsWriteRaw(name, "mine", [".md", ".json"]),
+          (e) => e instanceof ServiceNowError && e.status === 400,
+        );
+      }
+    });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 // ---------------------------------------------------------------------------
 // Env-file values (extended alphabet)

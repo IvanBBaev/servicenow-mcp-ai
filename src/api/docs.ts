@@ -25,13 +25,14 @@ import {
 } from "./docs-frontmatter.js";
 import {
   assertRealPathInside,
+  INDEX_FILE,
   JOURNAL_FILE,
   resolveDocPath,
   scoped,
   tooLarge,
 } from "./docs-paths.js";
 import { LIST_HEAD_BYTES } from "./docs-inspect.js";
-import { regenerateIndex } from "./docs-manifest.js";
+import { MANIFEST_FILE, regenerateIndex } from "./docs-manifest.js";
 
 /**
  * Local self-documentation store. These tools read and write Markdown files in
@@ -103,8 +104,8 @@ export interface DocsWriteOptions {
 }
 
 /**
- * Create or overwrite a Markdown document, then regenerate index.md. Writing
- * index.md directly is allowed; it is rebuilt afterwards either way. Content
+ * Create or overwrite a Markdown document, then regenerate index.md. The
+ * store's own index.md / index.json are refused (E-6 F3). Content
  * over SN_DOCS_MAX_FILE_BYTES is refused (the tool path; the internal
  * snapshot writer is not capped). A generated document is only replaced with
  * `overwrite: true` (DOC_GENERATED).
@@ -162,6 +163,19 @@ export async function docsWriteRaw(
     throw new ServiceNowError(
       `The write journal cannot be written through the docs store: ${relPath}`,
       400,
+    );
+  }
+  // E-6 F3: the store's own index.md / index.json are rebuilt after every
+  // write, so a write to them would be silently replaced.
+  const rootRel = path.relative(getDocsDir(), abs).toLowerCase();
+  if (rootRel === INDEX_FILE || rootRel === MANIFEST_FILE) {
+    throw new ServiceNowError(
+      `The docs store index is generated and cannot be written: ${relPath}`,
+      400,
+      undefined,
+      {
+        hint: "Write a document under another name; the index rebuilds itself.",
+      },
     );
   }
   if (!meta) {

@@ -9,7 +9,7 @@ import { inspect } from "./docs-inspect.js";
  * Docs store manifest: index.json and the index.md rendered from it.
  */
 
-const MANIFEST_FILE = "index.json";
+export const MANIFEST_FILE = "index.json";
 
 /** One document in index.json. */
 export interface ManifestEntry {
