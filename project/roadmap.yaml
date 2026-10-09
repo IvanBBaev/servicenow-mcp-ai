@@ -342,7 +342,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: ["O-2"]
-    notes: "**Partly done 2026-09-26:** fetch double v2, fake timers, property tests (retry, policy, encoders + the six L9-02), spawn CLI tests, extension typecheck job; batch 15 (2026-09-30): metadata-only guard across the metadata suites (ID-27), code-health golden (ID-28), extension lint; property finding F3 fixed 2026-10-09 (owner: the docs store refuses its own index files). Open: fixture corpus + live smoke (O-2), L9-03 layout."
+    notes: "**Partly done 2026-09-26:** fetch double v2, fake timers, property tests (retry, policy, encoders + the six L9-02), spawn CLI tests, extension typecheck job; batch 15 (2026-09-30): metadata-only guard across the metadata suites (ID-27), code-health golden (ID-28), extension lint; property finding F3 fixed 2026-10-09 (owner: the docs store refuses its own index files). L9-03 done 2026-10-09 (b69a55e): recursive `test/**/*.test.js` in every test script, thresholds only in `.c8rc.json`, a sub-folder sentinel; existing suites not moved. Open: fixture corpus + live smoke (O-2)."
   - id: "E-7"
     title: "code health"
     pillar: "E"
