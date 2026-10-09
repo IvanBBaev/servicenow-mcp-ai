@@ -40,6 +40,7 @@ import {
   baselineEnv,
   jsonResponse,
   withEnv,
+  withFetch,
   withMetadataFetch,
 } from "./helpers.js";
 
@@ -907,6 +908,54 @@ test("invalid arguments and a missing experience fail cleanly", async () => {
   });
   const two = payload(await run({ path: "now/acme" }, instance(dup)));
   assert.ok(two.caveats.some((c) => /More than one/.test(c)));
+});
+
+test("N-27: as_user adds the route variants that user sees", async () => {
+  const USER = id("9");
+  const tables = {
+    ...fixture(),
+    sys_user: [{ sys_id: USER, user_name: "beth" }],
+    sys_user_has_role: [{ user: USER, "role.name": "itil", state: "active" }],
+  };
+  // as_user reads sys_user / sys_user_has_role, which are not metadata, so
+  // these calls skip the withMetadataFetch guard.
+  const runAs = (args, mock) =>
+    withFetch(mock.handler, () => runSpec(spec, args));
+  const mock = instance(tables);
+  const out = payload(await runAs({ path: "now/acme", as_user: "beth" }, mock));
+  assert.equal(out.variants.available, true);
+  assert.deepEqual(out.variants.roles, ["itil"]);
+  const home = out.variants.routes.find((r) => r.name === "home");
+  assert.equal(home.decision, "resolved");
+  assert.equal(home.variant, "sc1");
+  assert.deepEqual(home.shadowed, ["sc2"]);
+  assert.ok(mock.reads.includes("sys_user_has_role"));
+
+  const md = payload(
+    await runAs(
+      { path: "now/acme", as_user: "beth", format: "markdown" },
+      instance(tables),
+    ),
+  ).markdown;
+  assert.match(md, /# Variants of Acme Workspace for beth/);
+  assert.match(md, /## Route home — shows `sc1`/);
+
+  // Without as_user nothing about users is read.
+  const plain = instance(tables);
+  assert.equal(
+    payload(await run({ path: "now/acme" }, plain)).variants,
+    undefined,
+  );
+  assert.equal(plain.reads.includes("sys_user"), false);
+
+  // O-13: denying the directory package denies as_user before any read.
+  const denied = instance(tables);
+  const res = await withEnv({ SN_PACKAGES_DENY: "directory" }, () =>
+    runAs({ path: "now/acme", as_user: "beth" }, denied),
+  );
+  assert.equal(res.isError, true);
+  assert.match(res.content[0].text, /POLICY_DENIED/);
+  assert.deepEqual(denied.reads, []);
 });
 
 test("an unreadable root table degrades with availability", async () => {

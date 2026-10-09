@@ -12,6 +12,11 @@ import {
   uiExperienceMarkdown,
   uiExperienceMermaid,
 } from "../api/ui-experience.js";
+import {
+  renderUiVariantResolution,
+  resolveUiVariant,
+} from "../api/uib-variant.js";
+import { assertPackageAllowed } from "../core/policy.js";
 import { deliverDiagram, deliverJson } from "../mcp/file-result.js";
 import { ok } from "../mcp/result.js";
 import {
@@ -143,14 +148,21 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Depth: element props/components, bindings, event chains, script bodies. file default: all.",
         ),
+      as_user: shortText(100)
+        .optional()
+        .describe("user_name or sys_id: which route variants this user sees."),
     },
     logFields: (args) => ({
       sys_id: args.sys_id,
       path: args.path,
       format: args.format,
       detail: args.detail?.join(","),
+      as_user: args.as_user === undefined ? undefined : true,
     }),
-    handler: async ({ sys_id, path, format, detail }) => {
+    handler: async ({ sys_id, path, format, detail, as_user }) => {
+      // N-27 / O-13: reading another user's roles is the `directory`
+      // package's surface, so denying that package also denies `as_user`.
+      if (as_user !== undefined) assertPackageAllowed("directory");
       // N-26: `detail` picks the depth (element props and components,
       // bindings, event chains, script bodies) for any format; the file
       // format defaults to the full depth, since it lands in exports/.
@@ -161,9 +173,17 @@ export const specs: AnyToolSpec[] = [
         path,
         ...(levels ? { detail: levels } : {}),
       });
+      const variants =
+        as_user === undefined
+          ? undefined
+          : await resolveUiVariant({
+              experience: result.experience?.sys_id ?? path ?? sys_id ?? "",
+              user: as_user,
+            });
+      const withVariants = variants ? { ...result, variants } : result;
       const name = `ui-experience-${path ?? sys_id}`;
       if (format === "json" || format === undefined) {
-        return deliverJson(result, name, "json");
+        return deliverJson(withVariants, name, "json");
       }
       const { mermaid, truncated } = uiExperienceMermaid(result);
       const signal = truncated > 0 ? { mermaidTruncated: truncated } : {};
@@ -178,15 +198,18 @@ export const specs: AnyToolSpec[] = [
         return deliverDiagram({ ...summary, mermaid }, name, "inline");
       }
       if (format === "markdown") {
+        const markdown = uiExperienceMarkdown(result, mermaid);
         return ok({
           ...summary,
-          markdown: uiExperienceMarkdown(result, mermaid),
+          markdown: variants
+            ? [markdown, "", ...renderUiVariantResolution(variants)].join("\n")
+            : markdown,
         });
       }
       const events = uiExperienceEventMermaid(result);
       return deliverJson(
         {
-          ...result,
+          ...withVariants,
           ...signal,
           mermaid,
           ...(events.mermaid ? { eventMermaid: events.mermaid } : {}),

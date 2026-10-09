@@ -2145,6 +2145,11 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "as_user": {
+            "description": "user_name or sys_id: which route variants this user sees.",
+            "maxLength": 100,
+            "type": "string"
+          },
           "detail": {
             "description": "Depth: element props/components, bindings, event chains, script bodies. file default: all.",
             "items": {
@@ -2191,8 +2196,8 @@
       },
       "sizes": {
         "description": 194,
-        "inputSchema": 770,
-        "paramDescriptions": 301,
+        "inputSchema": 888,
+        "paramDescriptions": 360,
         "outputSchema": 139
       }
     },
