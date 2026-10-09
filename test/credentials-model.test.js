@@ -494,10 +494,10 @@ test("L6-02: a rejected bearer token without a fresher file fails with AUTH_EXPI
   await withScratch(
     { SN_AUTH: "token", SN_TOKEN_FILE: "/nonexistent/tok" },
     async () => {
-      await assert.rejects(
-        queryTable({ table: "incident" }),
-        /Cannot read SN_TOKEN_FILE/,
-      );
+      await assert.rejects(queryTable({ table: "incident" }), {
+        code: "UNREADABLE",
+        message: /Cannot read SN_TOKEN_FILE/,
+      });
       assert.equal(reloadBearerTokenFile(), false);
     },
   );
@@ -505,15 +505,15 @@ test("L6-02: a rejected bearer token without a fresher file fails with AUTH_EXPI
     const empty = path.join(dir, "empty");
     await fs.writeFile(empty, "  \n");
     await withEnv({ SN_TOKEN_FILE: empty }, async () => {
-      await assert.rejects(
-        queryTable({ table: "incident" }),
-        /SN_TOKEN_FILE is empty/,
-      );
+      await assert.rejects(queryTable({ table: "incident" }), {
+        code: "UNREADABLE",
+        message: /SN_TOKEN_FILE is empty/,
+      });
     });
-    await assert.rejects(
-      queryTable({ table: "incident" }),
-      /requires SN_BEARER_TOKEN or SN_TOKEN_FILE/,
-    );
+    await assert.rejects(queryTable({ table: "incident" }), {
+      code: "NOT_CONFIGURED",
+      message: /requires SN_BEARER_TOKEN or SN_TOKEN_FILE/,
+    });
   });
   // Basic auth keeps its plain 401 (M-2: INSTANCE_HTTP_401, not AUTH_EXPIRED).
   await withScratch({}, async () => {

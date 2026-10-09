@@ -110,7 +110,7 @@ test("snRequest fails clearly when no instance is configured", async () => {
   await withEnv({ SN_INSTANCE: undefined }, async () => {
     await assert.rejects(
       snRequest({ method: "GET", path: "/api/now/table/x" }),
-      /not configured/,
+      { code: "NOT_CONFIGURED", message: /not configured/ },
     );
   });
 });
@@ -144,7 +144,7 @@ test("snRequest maps a timeout and a transport error to clear messages", async (
     async () => {
       await assert.rejects(
         snRequest({ method: "GET", path: "/api/now/table/x" }),
-        /timed out/,
+        { code: "TIMEOUT", message: /timed out/ },
       );
     },
   );
@@ -155,7 +155,7 @@ test("snRequest maps a timeout and a transport error to clear messages", async (
     async () => {
       await assert.rejects(
         snRequest({ method: "GET", path: "/api/now/table/x" }),
-        /Could not reach/,
+        { code: "UNREACHABLE", message: /Could not reach/ },
       );
     },
   );

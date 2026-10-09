@@ -448,11 +448,14 @@ test("isBlockedHost covers IPv4 and IPv6 internal ranges", () => {
 
 test("a suffix allow-list entry never opens an internal host", async () => {
   await withEnv({ ...CLEAN, SN_ALLOWED_HOSTS: "internal,local" }, () => {
-    assert.throws(
-      () => resolveHost("sn.internal"),
-      /internal\/loopback host "sn\.internal".*exactly/,
-    );
-    assert.throws(() => resolveHost("printer.local"), /internal\/loopback/);
+    assert.throws(() => resolveHost("sn.internal"), {
+      code: "POLICY_DENIED",
+      message: /internal\/loopback host "sn\.internal".*exactly/,
+    });
+    assert.throws(() => resolveHost("printer.local"), {
+      code: "POLICY_DENIED",
+      message: /internal\/loopback/,
+    });
   });
   await withEnv({ ...CLEAN, SN_ALLOWED_HOSTS: "com" }, () => {
     assert.equal(resolveHost("dev1.example.com"), "dev1.example.com");
@@ -467,8 +470,14 @@ test("an exact allow-list entry is a deliberate opt-in to an internal host", asy
       assert.equal(resolveHost("127.0.0.1:8443"), "127.0.0.1:8443");
       assert.equal(resolveHost("[::1]"), "[::1]");
       // The same address on another port is not the listed entry.
-      assert.throws(() => resolveHost("127.0.0.1"), /not permitted/);
-      assert.throws(() => resolveHost("[::2]"), /not permitted/);
+      assert.throws(() => resolveHost("127.0.0.1"), {
+        code: "POLICY_DENIED",
+        message: /not permitted/,
+      });
+      assert.throws(() => resolveHost("[::2]"), {
+        code: "POLICY_DENIED",
+        message: /not permitted/,
+      });
     },
   );
 });
@@ -481,8 +490,15 @@ test("IPv6 literals stay refused without an allow-list", async () => {
       "[::ffff:127.0.0.1]",
       "[2001:db8::1]",
     ])
-      assert.throws(() => resolveHost(v), /IPv6 literal/, v);
-    assert.throws(() => resolveHost("169.254.169.254"), /internal\/loopback/);
+      assert.throws(
+        () => resolveHost(v),
+        { code: "POLICY_DENIED", message: /IPv6 literal/ },
+        v,
+      );
+    assert.throws(() => resolveHost("169.254.169.254"), {
+      code: "POLICY_DENIED",
+      message: /internal\/loopback/,
+    });
   });
 });
 
@@ -658,7 +674,11 @@ test("the upload file name is reduced to a safe leaf name", async () => {
   assert.ok(!long.includes("\uFFFD"));
   assert.equal(Buffer.byteLength(sanitizeFileName("a".repeat(400))), 255);
   for (const bad of ["", "dir/", "..", "\u0001\u0002"]) {
-    assert.throws(() => sanitizeFileName(bad), /empty/, JSON.stringify(bad));
+    assert.throws(
+      () => sanitizeFileName(bad),
+      { code: "INVALID_INPUT", message: /empty/ },
+      JSON.stringify(bad),
+    );
   }
   await withEnv(CLEAN, () =>
     withFetch(

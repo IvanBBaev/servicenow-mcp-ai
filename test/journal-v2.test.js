@@ -295,7 +295,7 @@ test("update/delete apply journal the before-state; a read-only refusal is journ
           table: "incident",
           values: { short_description: "x" },
         }),
-        /read-only/,
+        { code: "POLICY_DENIED", message: /read-only/ },
       );
     });
     const { entries, integrity } = readWriteJournal();

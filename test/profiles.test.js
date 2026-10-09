@@ -196,8 +196,14 @@ test("useProfile switches and persists; unknown/invalid names throw", async () =
         const parsed = parseEnv(await fs.readFile(envFile, "utf8"));
         assert.equal(parsed.SN_ACTIVE_PROFILE, "dev");
 
-        assert.throws(() => useProfile("prod"), /Unknown profile "prod"/);
-        assert.throws(() => useProfile("Bad Name!"), /Invalid profile name/);
+        assert.throws(() => useProfile("prod"), {
+          code: "UNKNOWN_PROFILE",
+          message: /Unknown profile "prod"/,
+        });
+        assert.throws(() => useProfile("Bad Name!"), {
+          code: "INVALID_INPUT",
+          message: /Invalid profile name/,
+        });
       },
     );
   } finally {

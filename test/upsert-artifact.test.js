@@ -168,7 +168,10 @@ test("descriptor allow-lists never include sys_* or the parent link", () => {
   const child = childWriteFields(t.children[0]);
   assert.ok(child.includes("visible"));
   assert.ok(!child.includes("ui_policy"));
-  assert.throws(() => writableArtifactType("flow"), /NOT_WRITABLE_TYPE|flow/);
+  assert.throws(() => writableArtifactType("flow"), {
+    code: "NOT_WRITABLE_TYPE",
+    message: /NOT_WRITABLE_TYPE|flow/,
+  });
 });
 
 test("acceptance: create -> update -> S-2 revert of a UI policy with two actions restores both actions", async () => {

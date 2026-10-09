@@ -508,6 +508,8 @@
     a per-tool list would be noise. Confirm, or ask for per-tool lists.
   - Older suites still match only the message text on failures; convert them to `code` asserts as
     they are touched (the new `test/error-contract.test.js` covers the contract itself).
+    2026-10-09: 52 sites in 18 suites converted (every regex-only `rejects`/`throws` whose error
+    carries one stable code); the rest have no code, mixed codes, or are the dark Jira suites.
   - A resource `McpError` reaches clients as `MCP error -32602: MCP error -32602: …` (the SDK's
     `McpError` prefixes its message on the server and again when the client rebuilds it) — SDK
     behaviour, not fixed.

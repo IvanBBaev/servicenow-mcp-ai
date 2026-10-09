@@ -105,10 +105,11 @@ test("resolveSecretFiles: both <KEY> and <KEY>_FILE set fails fast naming the pa
     SN_PROFILE_PROD_API_KEY: "inline",
     SN_PROFILE_PROD_API_KEY_FILE: secretFile("k"),
   };
-  assert.throws(
-    () => resolveSecretFiles(profileEnv),
-    /Both SN_PROFILE_PROD_API_KEY and SN_PROFILE_PROD_API_KEY_FILE are set/,
-  );
+  assert.throws(() => resolveSecretFiles(profileEnv), {
+    code: "NOT_CONFIGURED",
+    message:
+      /Both SN_PROFILE_PROD_API_KEY and SN_PROFILE_PROD_API_KEY_FILE are set/,
+  });
 });
 
 test("resolveSecretFiles: an empty <KEY> or an empty <KEY>_FILE is not a conflict", () => {
@@ -130,7 +131,10 @@ test("resolveSecretFiles: a repeated resolve is not a conflict and re-reads the 
   assert.equal(env.SN_BEARER_TOKEN, "two");
   // A value changed by someone else afterwards is a real conflict again.
   env.SN_BEARER_TOKEN = "hand-set";
-  assert.throws(() => resolveSecretFiles(env), /Both SN_BEARER_TOKEN/);
+  assert.throws(() => resolveSecretFiles(env), {
+    code: "NOT_CONFIGURED",
+    message: /Both SN_BEARER_TOKEN/,
+  });
 });
 
 test("resolveSecretFiles: a missing file errors with the setting and path, not content", () => {
@@ -143,16 +147,16 @@ test("resolveSecretFiles: a missing file errors with the setting and path, not c
       error.message.includes("ENOENT"),
   );
   // A directory is unreadable as a file too.
-  assert.throws(
-    () => resolveSecretFiles({ SN_HTTP_TOKEN_FILE: dir }),
-    /Cannot read SN_HTTP_TOKEN_FILE/,
-  );
+  assert.throws(() => resolveSecretFiles({ SN_HTTP_TOKEN_FILE: dir }), {
+    code: "UNREADABLE",
+    message: /Cannot read SN_HTTP_TOKEN_FILE/,
+  });
 });
 
 test("resolveSecretFiles: an empty file is an error", () => {
   assert.throws(
     () => resolveSecretFiles({ SN_PASSWORD_FILE: secretFile("\n") }),
-    /SN_PASSWORD_FILE \(.+\) is empty/,
+    { code: "UNREADABLE", message: /SN_PASSWORD_FILE \(.+\) is empty/ },
   );
 });
 
@@ -228,10 +232,11 @@ test("the env-file writer refuses a key that a _FILE source supplies", async () 
       SN_PASSWORD_FILE: "/run/secrets/pw",
     },
     async () => {
-      assert.throws(
-        () => persistEnv({ SN_OAUTH_REFRESH_TOKEN: "rotated" }),
-        /SN_OAUTH_REFRESH_TOKEN is loaded from SN_OAUTH_REFRESH_TOKEN_FILE — update that file/,
-      );
+      assert.throws(() => persistEnv({ SN_OAUTH_REFRESH_TOKEN: "rotated" }), {
+        code: "CONFLICT",
+        message:
+          /SN_OAUTH_REFRESH_TOKEN is loaded from SN_OAUTH_REFRESH_TOKEN_FILE — update that file/,
+      });
       assert.throws(
         () =>
           saveCredentials({
@@ -239,7 +244,10 @@ test("the env-file writer refuses a key that a _FILE source supplies", async () 
             user: "u",
             password: "p",
           }),
-        /SN_PASSWORD is loaded from SN_PASSWORD_FILE/,
+        {
+          code: "CONFLICT",
+          message: /SN_PASSWORD is loaded from SN_PASSWORD_FILE/,
+        },
       );
       assert.equal(
         readFileSync(envFile, "utf8"),

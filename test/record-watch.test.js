@@ -125,7 +125,7 @@ test("reading the record resource masks secrets and checks policy", async (t) =>
         s.client.readResource({
           uri: recordUri("nope", "incident", "abc"),
         }),
-        /Unknown connection profile/,
+        { code: -32602, message: /Unknown connection profile/ },
       );
     });
   });

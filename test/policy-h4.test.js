@@ -320,7 +320,10 @@ test("batch: a table named in the query or body is policed; a nested batch is re
           body: { table_name: "hr_case", to: "a@b.c" },
         },
       ]) {
-        await assert.rejects(runBatch([req]), /hr_case.*SN_TABLES_DENY/);
+        await assert.rejects(runBatch([req]), {
+          code: "POLICY_DENIED",
+          message: /hr_case.*SN_TABLES_DENY/,
+        });
       }
       for (const url of [
         "/api/now/v1/batch",
@@ -329,7 +332,7 @@ test("batch: a table named in the query or body is policed; a nested batch is re
       ]) {
         await assert.rejects(
           runBatch([{ method: "POST", url, body: {} }]),
-          /nested batch/,
+          { code: "POLICY_DENIED", message: /nested batch/ },
           url,
         );
       }
@@ -347,7 +350,7 @@ test("batch: an attachment addressed by sys_id is checked against its parent tab
         runBatch([
           { method: "GET", url: `/api/now/attachment/${SYS_ID}/file` },
         ]),
-        /hr_case/,
+        { code: "POLICY_DENIED", message: /hr_case/ },
       );
       assert.deepEqual(
         calls.map((c) => new URL(c.url).pathname),
@@ -355,7 +358,7 @@ test("batch: an attachment addressed by sys_id is checked against its parent tab
       );
       await assert.rejects(
         runBatch([{ method: "GET", url: "/api/now/attachment" }]),
-        /without naming a table/,
+        { code: "POLICY_DENIED", message: /without naming a table/ },
       );
     },
     { attachmentTable: "hr_case" },

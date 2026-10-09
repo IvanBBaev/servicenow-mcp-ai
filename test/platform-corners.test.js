@@ -557,12 +557,18 @@ test("C-9: base64 inflation vs SN_MAX_RESULT_CHARS — exactly the limit passes,
     });
     // Metadata pre-check: refused without fetching the bytes.
     await withFetch(serve(31, "31"), async (calls) => {
-      await assert.rejects(downloadAttachment("b"), /~44 base64 chars > 40/);
+      await assert.rejects(downloadAttachment("b"), {
+        code: "RESPONSE_TOO_LARGE",
+        message: /~44 base64 chars > 40/,
+      });
       assert.equal(calls.length, 1);
     });
     // Stale/missing size_bytes: the post-check catches the real payload.
     await withFetch(serve(31, ""), async (calls) => {
-      await assert.rejects(downloadAttachment("b"), /\(44 base64 chars > 40\)/);
+      await assert.rejects(downloadAttachment("b"), {
+        code: "RESPONSE_TOO_LARGE",
+        message: /\(44 base64 chars > 40\)/,
+      });
       assert.equal(calls.length, 2);
     });
   });

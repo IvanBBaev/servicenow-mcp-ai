@@ -116,7 +116,7 @@ test("a POST transport error is NOT retried (outcome unknown)", async () => {
       async (calls) => {
         await assert.rejects(
           createRecord("incident", { short_description: "x" }),
-          /Could not reach ServiceNow/,
+          { code: "UNREACHABLE", message: /Could not reach ServiceNow/ },
         );
         assert.equal(calls.length, 1);
       },

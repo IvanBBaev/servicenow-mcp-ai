@@ -1090,7 +1090,7 @@ test("waitForAtfRun: final or id-less runs return at once; cancellation aborts t
           () =>
             waitForAtfRun({ executionId: "exec1", status: "1" }, 10_000, 5_000),
         ),
-        /cancel/i,
+        { code: "CANCELLED", message: /cancel/i },
       );
       assert.equal(calls.length, 1);
     },

@@ -293,7 +293,7 @@ test("dispose(): queued waiters fail with BUSY, breakers close, dispatchers are 
                 path: "/api/now/table/x",
                 bypassQueue: true,
               }),
-              /Could not reach ServiceNow/,
+              { code: "UNREACHABLE", message: /Could not reach ServiceNow/ },
             ),
         );
         assert.equal(getBreakerStats()[HOST]?.open, true);
@@ -431,7 +431,10 @@ test("HTTP transport: a bind failure rejects start-up instead of crashing later"
       async () => {
         const server = new McpServer({ name: "lifecycle-test", version: "0" });
         try {
-          await assert.rejects(connectTransport(server), /EADDRINUSE/);
+          await assert.rejects(connectTransport(server), {
+            code: "EADDRINUSE",
+            message: /EADDRINUSE/,
+          });
         } finally {
           await server.close().catch(() => undefined);
           await closeHttpTransport();

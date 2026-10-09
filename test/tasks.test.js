@@ -560,7 +560,7 @@ test("e2e: tasks/cancel aborts the in-flight ServiceNow request", async () => {
               { method: "tasks/cancel", params: { taskId } },
               CancelTaskResultSchema,
             ),
-            /terminal|already/i,
+            { code: -32602, message: /terminal|already/i },
           );
         } finally {
           await close();

@@ -231,15 +231,18 @@ test("the stored refresh token mints a bearer at runtime (post-login path)", asy
 
 test("runOAuthLogin validates instance, client id and a loopback redirect", async () => {
   await withEnv({ SN_INSTANCE: undefined }, async () => {
-    await assert.rejects(runOAuthLogin({ open: false }), /SN_INSTANCE/);
+    await assert.rejects(runOAuthLogin({ open: false }), {
+      code: "NOT_CONFIGURED",
+      message: /SN_INSTANCE/,
+    });
   });
   await withEnv(
     { SN_INSTANCE: "dev00000.service-now.com", SN_OAUTH_CLIENT_ID: undefined },
     async () => {
-      await assert.rejects(
-        runOAuthLogin({ open: false }),
-        /SN_OAUTH_CLIENT_ID/,
-      );
+      await assert.rejects(runOAuthLogin({ open: false }), {
+        code: "NOT_CONFIGURED",
+        message: /SN_OAUTH_CLIENT_ID/,
+      });
     },
   );
   await withEnv(
@@ -249,7 +252,10 @@ test("runOAuthLogin validates instance, client id and a loopback redirect", asyn
       SN_OAUTH_REDIRECT_URI: "https://evil.example/cb",
     },
     async () => {
-      await assert.rejects(runOAuthLogin({ open: false }), /loopback/);
+      await assert.rejects(runOAuthLogin({ open: false }), {
+        code: "NOT_CONFIGURED",
+        message: /loopback/,
+      });
     },
   );
 });

@@ -138,7 +138,10 @@ test("per-profile policy: no scoped key falls back to the global", async () => {
   await withEnv(
     { SN_ACTIVE_PROFILE: "prod", SN_TABLES_DENY: "incident" },
     () => {
-      assert.throws(() => assertTableAllowed("incident"), /SN_TABLES_DENY/);
+      assert.throws(() => assertTableAllowed("incident"), {
+        code: "POLICY_DENIED",
+        message: /SN_TABLES_DENY/,
+      });
     },
   );
 });

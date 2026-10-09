@@ -70,13 +70,22 @@ test("rejects a non-service-now.com host without SN_ALLOWED_HOSTS (SEC-8)", () =
     );
     // An arbitrary external host is refused — a redirected/typo'd host must not
     // silently receive Basic credentials.
-    assert.throws(() => _buildBaseUrl("evil.com"), /service-now\.com/);
-    assert.throws(() => _buildBaseUrl("api.example.com"), /SN_ALLOWED_HOSTS/);
+    assert.throws(() => _buildBaseUrl("evil.com"), {
+      code: "POLICY_DENIED",
+      message: /service-now\.com/,
+    });
+    assert.throws(() => _buildBaseUrl("api.example.com"), {
+      code: "POLICY_DENIED",
+      message: /SN_ALLOWED_HOSTS/,
+    });
     // Look-alike domains must not satisfy the suffix check.
     assert.throws(() => _buildBaseUrl("evil-service-now.com"));
     assert.throws(() => _buildBaseUrl("foo.service-now.com.evil.com"));
     // The leading dot matters: the bare apex is not an instance.
-    assert.throws(() => _buildBaseUrl("service-now.com"), /service-now\.com/);
+    assert.throws(() => _buildBaseUrl("service-now.com"), {
+      code: "POLICY_DENIED",
+      message: /service-now\.com/,
+    });
     // The suffix check is case-insensitive and whitespace-trimmed.
     assert.equal(
       _buildBaseUrl("DEV12345.SERVICE-NOW.COM"),

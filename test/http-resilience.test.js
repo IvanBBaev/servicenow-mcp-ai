@@ -329,7 +329,7 @@ test("proxy — a malformed proxy URL fails without echoing the value", () => {
   );
   assert.throws(
     () => resolveProxyForHost(HOST, { HTTPS_PROXY: "socks5://p.corp:1080" }),
-    /http:\/\/ or https:\/\//,
+    { code: "NOT_CONFIGURED", message: /http:\/\/ or https:\/\// },
   );
 });
 
@@ -599,7 +599,7 @@ test("per-call timeoutMs overrides SN_TIMEOUT_MS", async () => {
           path: "/api/now/table/incident",
           timeoutMs: 50,
         }),
-        /timed out after 50ms/,
+        { code: "TIMEOUT", message: /timed out after 50ms/ },
       );
     }),
   );
@@ -619,7 +619,10 @@ test("the caller's AbortSignal cancels the attempt and is never retried", async 
         // Abort once the attempt is in flight — no timer involved.
         while (d.calls.length === 0) await flushAsync(1);
         controller.abort();
-        await assert.rejects(pending, /cancelled by the caller/);
+        await assert.rejects(pending, {
+          code: "CANCELLED",
+          message: /cancelled by the caller/,
+        });
         assert.equal(d.calls.length, 1);
       },
     ),
@@ -822,14 +825,23 @@ test("drainQueue rejects every waiter with BUSY (lifecycle dispose hook)", async
 
 test("explicit port and bracketed IPv6 are accepted only when allow-listed", async () => {
   await withEnv({ ...CLEAN }, () => {
-    assert.throws(() => resolveHost("dev1.service-now.com:8443"), /port 8443/);
-    assert.throws(() => resolveHost("[2001:db8::1]"), /IPv6/);
+    assert.throws(() => resolveHost("dev1.service-now.com:8443"), {
+      code: "POLICY_DENIED",
+      message: /port 8443/,
+    });
+    assert.throws(() => resolveHost("[2001:db8::1]"), {
+      code: "POLICY_DENIED",
+      message: /IPv6/,
+    });
     assert.equal(
       resolveHost("dev1.service-now.com:443"),
       "dev1.service-now.com",
       "the https default port is dropped",
     );
-    assert.throws(() => resolveHost("dev1.service-now.com:99999"), /Invalid/);
+    assert.throws(() => resolveHost("dev1.service-now.com:99999"), {
+      code: "INVALID_INPUT",
+      message: /Invalid/,
+    });
   });
   await withEnv(
     { ...CLEAN, SN_ALLOWED_HOSTS: "sn.corp.example:8443,[2001:db8::1]" },
@@ -839,15 +851,24 @@ test("explicit port and bracketed IPv6 are accepted only when allow-listed", asy
         "sn.corp.example:8443",
       );
       assert.equal(resolveHost("[2001:DB8::1]"), "[2001:db8::1]");
-      assert.throws(() => resolveHost("sn.corp.example"), /not permitted/);
-      assert.throws(() => resolveHost("sn.corp.example:9443"), /not permitted/);
-      assert.throws(() => resolveHost("[2001:db8::2]"), /not permitted/);
+      assert.throws(() => resolveHost("sn.corp.example"), {
+        code: "POLICY_DENIED",
+        message: /not permitted/,
+      });
+      assert.throws(() => resolveHost("sn.corp.example:9443"), {
+        code: "POLICY_DENIED",
+        message: /not permitted/,
+      });
+      assert.throws(() => resolveHost("[2001:db8::2]"), {
+        code: "POLICY_DENIED",
+        message: /not permitted/,
+      });
     },
   );
   await withEnv({ ...CLEAN, SN_ALLOWED_HOSTS: "corp.example" }, () => {
     assert.throws(
       () => resolveHost("sn.corp.example:8443"),
-      /not permitted/,
+      { code: "POLICY_DENIED", message: /not permitted/ },
       "a portless entry does not open other ports",
     );
   });
