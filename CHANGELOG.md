@@ -77,6 +77,10 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-15: `explain` on `servicenow_query_table`.** With the flag no records are read: the encoded query is explained
+  against the table chain's indexes (`sys_index`) — which conditions can use an index, cost notes for `ORDERBY`, `LIKE`
+  and scans, the index count and a cached row estimate. Advice from the usual index rules, not ServiceNow's planner.
+  tools/list: +136 B on every profile (core included; owner-approved core step to 26,880 B).
 - **N-22: `role_history` on `servicenow_lookup_directory` and the `access_review` document kind.** With `role_history`
   (kind `user`, one match) the result gains the user's role grants and revokes of the last 90 days, newest first.
   `servicenow_document_instance` gains `access_review` (`access-review.md`): privileged roles, their holders with the
