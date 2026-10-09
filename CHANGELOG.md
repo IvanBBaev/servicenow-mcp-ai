@@ -78,6 +78,11 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **P-7: five more artefact types from the SDK guide audit.** `assignment_rule` (`sysrule_assignment`),
+  `knowledge_base` (`kb_knowledge_base` with its four `kb_uc_*_mtom` user-criteria children), `security_attribute`,
+  `security_data_filter` and `formatter` (`sys_ui_formatter`). The registry now has 142 types. Tables and fields are
+  unverified until O-5. CORE-20 (table augments) has no type of its own: augment columns stay columns of the `table`
+  type. tools/list: +0 B.
 - **N-7: the `i18n` kind of `servicenow_document_app`.** With `kind: "i18n"` (and an optional `language`) the tool
   writes `i18n/<scope>.md` + `.json` instead of the app document: the scoped app's translation coverage per language
   over UI messages, field labels, choices, translated text, translated fields and UI Builder strings, with the missing

@@ -493,7 +493,10 @@ unless it says so.
       `sys_ui_policy` / `sys_data_policy2` explain field effects from their action/rule children.
 - [x] CUI-10 `Interceptor`: `interceptor` descriptor (`sys_wizard` + `sys_wizard_answer`), added with
       the 4.13.6 re-pin (2026-10-09).
-- [ ] Descriptors for rows CORE-18…21 (added 2026-10-09 by the guide audit) and `sys_ui_formatter` in CUI-6.
+- [x] Descriptors for rows CORE-18…21 (added 2026-10-09 by the guide audit) and `sys_ui_formatter` in CUI-6 — done
+      2026-10-09: `assignment_rule`, `knowledge_base` (+ the four `kb_uc_*_mtom` children), `security_attribute`,
+      `security_data_filter`, `formatter`. CORE-20 table augments get no type: no encoded query selects `sys_dictionary`
+      rows on another scope's table, so they stay columns of `table`.
 - **Depends on:** P-1, P-2, P-6.
 - **Acceptance:** `list_artifacts` + `explain_artifact` work for every row on the PDI fixture; rows
   whose table is absent answer `available:false`.
