@@ -15,6 +15,7 @@ import {
   degradeStatus,
 } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /**
  * ServiceNow CMDB Instance API (`/api/now/cmdb/instance/{class}`) and CMDB Meta
@@ -140,9 +141,6 @@ export interface CiRelationQuery {
   limit?: number;
 }
 
-/** A 32-character hex id (a relationship type given by sys_id). */
-const HEX_ID = /^[0-9a-f]{32}$/i;
-
 /**
  * S-10 — list the relationships of one CI from `cmdb_rel_ci`, each oriented
  * from that CI: `outbound` (it is the parent) or `inbound` (it is the child),
@@ -165,7 +163,7 @@ export async function listCiRelations(
   const type = opts.type?.trim();
   if (type) {
     assertNoCaret(type, "type");
-    clauses.push(HEX_ID.test(type) ? `type=${type}` : `type.name=${type}`);
+    clauses.push(isSysIdAnyCase(type) ? `type=${type}` : `type.name=${type}`);
   }
   clauses.push("ORDERBYtype.name");
   const limit = Math.min(opts.limit ?? 100, 1000);

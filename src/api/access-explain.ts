@@ -13,7 +13,7 @@ import {
 } from "./security.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
 import { queryTable } from "./table.js";
-import { isSysId } from "./uib-usage.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-2 (NX-02) — access explainer: why one user can or cannot perform one

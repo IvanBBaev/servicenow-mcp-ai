@@ -11,6 +11,7 @@ import {
   getArtifactType,
   type ArtifactType,
 } from "../core/artifacts/registry.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /**
  * Script intelligence helpers. ServiceNow keeps all server/client code in
@@ -99,9 +100,7 @@ export function scriptArtifact(type: string, optIn = false): ArtifactType {
 export function scopeClause(scopeField: string, scope: string): string {
   const s = scope.trim();
   assertNoCaret(s, "scope");
-  return /^[0-9a-f]{32}$/i.test(s)
-    ? `${scopeField}=${s}`
-    : `${scopeField}.scope=${s}`;
+  return isSysIdAnyCase(s) ? `${scopeField}=${s}` : `${scopeField}.scope=${s}`;
 }
 
 function resolveType(type: string, optIn = false): ScriptType {

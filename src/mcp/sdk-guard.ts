@@ -13,6 +13,7 @@ import { getTableChain } from "../api/meta.js";
 import { readUserPreference } from "../api/updatesets.js";
 import { assertTableWriteAllowed } from "../core/policy.js";
 import { currentCall, type CallContext } from "../core/request-context.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /**
  * P-22 — the SDK-managed write guard. A record whose scope is SDK-managed
@@ -54,11 +55,7 @@ export interface SdkGuardTarget {
 export function scopeRefOf(value: unknown): ScopeRef | null {
   if (typeof value === "string") {
     const v = value.trim();
-    return v
-      ? /^[0-9a-f]{32}$/i.test(v)
-        ? { sys_id: v }
-        : { scope: v }
-      : null;
+    return v ? (isSysIdAnyCase(v) ? { sys_id: v } : { scope: v }) : null;
   }
   if (value && typeof value === "object") {
     const o = value as Record<string, unknown>;
@@ -66,7 +63,7 @@ export function scopeRefOf(value: unknown): ScopeRef | null {
     const name =
       typeof o.display_value === "string" &&
       o.display_value &&
-      !/^[0-9a-f]{32}$/i.test(o.display_value)
+      !isSysIdAnyCase(o.display_value)
         ? o.display_value
         : null;
     if (id || name) return { sys_id: id, scope: name };

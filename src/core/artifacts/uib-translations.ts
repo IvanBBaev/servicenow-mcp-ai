@@ -1,4 +1,5 @@
 import { elementProps, flattenComposition } from "./uib-composition-diff.js";
+import { isSysId } from "../sys-id.js";
 
 /**
  * N-31 (UX-23) — the strings a UI Builder page shows to users, read from its
@@ -32,7 +33,6 @@ const TEXT_MAX = 300;
 const TEXT_PROP =
   /(^|[._-])(label|title|subtitle|heading|header|text|message|placeholder|tooltip|description|caption|helpText|hint|emptyState\w*|ariaLabel|alt|confirmText|cancelText|buttonText)$/i;
 
-const SYS_ID = /^[0-9a-f]{32}$/;
 const BINDING = /@(data|state|context|payload)\./;
 const URL_LIKE = /^(https?:)?\/\/|^\/[\w./?=&%-]*$/;
 
@@ -49,7 +49,7 @@ function isText(s: string): boolean {
   return (
     t.length > 0 &&
     /\p{L}/u.test(t) &&
-    !SYS_ID.test(t) &&
+    !isSysId(t) &&
     !BINDING.test(t) &&
     !URL_LIKE.test(t)
   );

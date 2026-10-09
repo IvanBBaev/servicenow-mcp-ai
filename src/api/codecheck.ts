@@ -51,6 +51,7 @@ import {
   type CodeHealthDelta,
   type SectionFacts,
 } from "./code-health-baseline.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * Local code analysis (Phase 8, package `codecheck`). Pulls script source
@@ -345,7 +346,6 @@ const RULE_BY_ID = new Map(LINE_RULES.map((r) => [r.id, r]));
 const ES5_SYNTAX_HINT =
   "ES2021 syntax (let/const, arrow functions, template literals, classes…) in a global-scope server script, which runs as ES5 — rewrite it in ES5 or move the script into a scoped app with ES2021 enabled.";
 
-const SYS_ID_LITERAL = /^[0-9a-f]{32}$/;
 const INSTANCE_URL = /https?:\/\/[a-z0-9-]+\.service-now\.com/i;
 const GLIDE_RECORD_CTORS = new Set(["GlideRecord", "GlideRecordSecure"]);
 const QUERY_BOUND_METHODS = new Set([
@@ -493,7 +493,7 @@ function lintAst(
     switch (node.type) {
       case "Literal": {
         if (typeof node.value !== "string") break;
-        if (SYS_ID_LITERAL.test(node.value)) {
+        if (isSysId(node.value)) {
           add("hardcoded-sys-id", lineOf(node));
         }
         if (INSTANCE_URL.test(node.value)) {
@@ -508,7 +508,7 @@ function lintAst(
           const v = q.value as { cooked?: string; raw?: string } | undefined;
           return v?.cooked ?? v?.raw ?? "";
         });
-        if (exprs.length === 0 && SYS_ID_LITERAL.test(text[0] ?? "")) {
+        if (exprs.length === 0 && isSysId(text[0] ?? "")) {
           add("hardcoded-sys-id", lineOf(node));
         }
         if (text.some((t) => INSTANCE_URL.test(t))) {
@@ -764,8 +764,6 @@ function lintField(
   };
 }
 
-const SYS_ID_RE = /^[0-9a-f]{32}$/;
-
 /**
  * N-32: the UIB lint context of a client script — its macroponent's declared
  * state, events and data resources. Empty (the contract rules stay silent)
@@ -775,7 +773,7 @@ async function uibContextFor(
   record: Record<string, unknown>,
 ): Promise<UibLintContext> {
   const id = snString(record.macroponent);
-  if (!SYS_ID_RE.test(id)) return {};
+  if (!isSysId(id)) return {};
   try {
     const res = await queryTable({
       table: "sys_ux_macroponent",

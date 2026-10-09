@@ -70,6 +70,7 @@ import {
 import { assertNoCaret, mdTable, snString, IN_CHUNK } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 import { WORKSPACE_CATEGORY } from "./uib-workspace.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /**
  * S-15 — document generators. Each kind of document collects structured
@@ -1000,7 +1001,7 @@ export function artefactsByDomain(
 }
 
 async function appRecord(scope: string): Promise<AppDocRecord> {
-  const byId = /^[0-9a-f]{32}$/i.test(scope);
+  const byId = isSysIdAnyCase(scope);
   for (const table of ["sys_app", "sys_store_app"]) {
     try {
       const { records } = await queryTable({
@@ -1136,7 +1137,7 @@ export async function collectApp(
   }
   const caveats: string[] = [];
   const app = await appRecord(s);
-  const scopeRef = /^[0-9a-f]{32}$/i.test(s) ? s : app.scope || s;
+  const scopeRef = isSysIdAnyCase(s) ? s : app.scope || s;
 
   const tablesRes = await queryTable({
     table: "sys_db_object",

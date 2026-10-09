@@ -5,6 +5,7 @@ import { throwIfCancelled } from "../core/progress.js";
 import { scopeClause } from "./scripts.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /**
  * N-7 (NX-07) — translation coverage of one application scope and / or a set
@@ -120,7 +121,6 @@ export interface I18nRow {
 export const I18N_CAVEAT =
   "Translation coverage (N-7) is unverified (gate O-5): sys_ui_message (key, language), sys_documentation (name, element, language), sys_choice (name, element, value, language), sys_translated_text (tablename, fieldname, documentkey, language), sys_translated (name, element, value, language), sys_language (id, name, active) and the UIB message-key convention (the English string is the sys_ui_message key) are assumptions. The keys of a category are those seen in any language, so a value never translated into any language is not counted.";
 
-const SYS_ID = /^[0-9a-f]{32}$/i;
 const LANGUAGE = /^[a-z]{2,3}([_-][a-z0-9]{2,8})*$/i;
 const SAFE_TABLE = /^[a-z0-9_]{1,80}$/;
 
@@ -302,7 +302,7 @@ async function uibStrings(
   opts: I18nCoverageOptions,
   caveats: string[],
 ): Promise<{ texts: string[]; count: number } | undefined> {
-  const ids = (opts.macroponents ?? []).filter((id) => SYS_ID.test(id));
+  const ids = (opts.macroponents ?? []).filter((id) => isSysIdAnyCase(id));
   if (opts.macroponents?.length && ids.length < opts.macroponents.length) {
     caveats.push(
       `i18n: ${opts.macroponents.length - ids.length} macroponent id(s) are not sys_ids and are ignored.`,

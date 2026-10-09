@@ -58,6 +58,7 @@ import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label, type Arrow, type Shape } from "./mermaid.js";
 import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { isSysId } from "../core/sys-id.js";
 
 /** Call-expansion depth: default (a flow's calls one level down) and max. */
 export const EXPLAIN_FLOW_DEPTH = { default: 1, max: 3 } as const;
@@ -1039,7 +1040,7 @@ async function readRoles(ctx: Ctx, raw: string): Promise<Ref[]> {
     .map((s) => s.trim())
     .filter(Boolean);
   if (!parts.length) return [];
-  const ids = parts.filter((p) => /^[0-9a-f]{32}$/.test(p));
+  const ids = parts.filter((p) => isSysId(p));
   const names = new Map<string, string>();
   if (ids.length) {
     for (const r of await readIn(ctx, "sys_user_role", "sys_id", ids, [

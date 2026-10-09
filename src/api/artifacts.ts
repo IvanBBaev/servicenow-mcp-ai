@@ -36,6 +36,7 @@ import {
 import { snString, degradeStatus } from "./shared.js";
 import { scopeClause } from "./scripts.js";
 import { DOMAIN_FIELDS, keepDomainFields } from "./domain-separation.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /** Rows returned per child table before the entry is marked `truncated`. */
 export const CHILD_LIMIT = 200;
@@ -339,7 +340,7 @@ type PrimaryRead = { sysId: string } | { query: string };
 function primaryRead(t: ArtifactType, ref: ArtifactRef): PrimaryRead {
   if (ref.sys_id !== undefined) {
     const id = ref.sys_id.trim();
-    if (!/^[0-9a-f]{32}$/i.test(id)) {
+    if (!isSysIdAnyCase(id)) {
       throw new ServiceNowError(`Invalid sys_id '${ref.sys_id}'.`, 400);
     }
     return { sysId: id };

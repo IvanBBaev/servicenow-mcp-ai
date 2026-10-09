@@ -9,6 +9,7 @@ import {
   UIB_BROKER_RULES,
   brokerMutates,
 } from "./uib-broker-lint.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * DF-1 / S-3 — security scan over the access-control layer, part of the
@@ -252,8 +253,7 @@ function toAcl(r: SnRecord): Acl {
   const name = snString(r.name);
   const typeName = snString(r["type.name"]) || snString(r.type);
   // A bare sys_id (reference without its dot-walk) says nothing — assume record.
-  const record =
-    !typeName || typeName === "record" || /^[0-9a-f]{32}$/.test(typeName);
+  const record = !typeName || typeName === "record" || isSysId(typeName);
   return {
     sys_id: snString(r.sys_id),
     name,
@@ -262,7 +262,7 @@ function toAcl(r: SnRecord): Acl {
     condition: snString(r.condition),
     table: name.split(".")[0]?.trim().toLowerCase() ?? "",
     record,
-    type: /^[0-9a-f]{32}$/.test(typeName) ? "" : typeName,
+    type: isSysId(typeName) ? "" : typeName,
   };
 }
 

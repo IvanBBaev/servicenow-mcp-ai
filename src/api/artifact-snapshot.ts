@@ -18,6 +18,7 @@ import {
 } from "../core/artifacts/uib-composition-diff.js";
 import { isComposition } from "../core/artifacts/uib-composition.js";
 import { REDACTED } from "../core/redaction.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * P-20 — registry artefacts for snapshot / compare. One collector reads every
@@ -153,9 +154,6 @@ function keyOf(
 /** Values safe inside an encoded `IN` list (no `^` / `,`). */
 const IN_SAFE = /^[^,^]+$/;
 
-/** A sys_id (the published-snapshot pointer must be one). */
-const SYS_ID = /^[0-9a-f]{32}$/;
-
 /** Table whose records carry published flow snapshots (flow, subflow). */
 const FLOW_TABLE = "sys_hub_flow";
 
@@ -179,7 +177,7 @@ type ChildGroups = (link: string, parent: Parent) => ArtifactChildRow[];
 function publishedSnapshot(t: ArtifactType, p: Parent): string | undefined {
   if (t.table !== FLOW_TABLE) return undefined;
   const id = snString(p.fields.master_snapshot);
-  return SYS_ID.test(id) && id !== p.sys_id ? id : undefined;
+  return isSysId(id) && id !== p.sys_id ? id : undefined;
 }
 
 async function readChildren(

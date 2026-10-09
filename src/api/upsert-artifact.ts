@@ -23,6 +23,7 @@ import {
   type SnRecord,
 } from "./table.js";
 import { applyInUpdateSet, type UpdateSetBinding } from "./updatesets.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /**
  * P-23 — `servicenow_upsert_artifact`: create or update one registry artefact
@@ -116,8 +117,6 @@ const REFUSED_GROUPS = new Set(["flow", "workflow"]);
 
 /** Children read per table when diffing (the P-5 read cap). */
 export const CHILD_WRITE_LIMIT = 200;
-
-const SYS_ID = /^[0-9a-f]{32}$/i;
 
 function notWritable(message: string, hint?: string): ServiceNowError {
   return new ServiceNowError(message, 400, undefined, {
@@ -306,7 +305,7 @@ function parentKey(
       );
     }
     const field = t.keyFields[0] as string;
-    if (field === "sys_id" && !SYS_ID.test(String(key))) {
+    if (field === "sys_id" && !isSysIdAnyCase(String(key))) {
       throw new ServiceNowError(
         `Artifact type '${t.type}' is keyed by sys_id; a plain key must be a 32-character sys_id, or pass an object of identifying fields.`,
         400,
@@ -333,7 +332,7 @@ function parentKey(
   if (bad.length) {
     throw fieldNotAllowed(t.table, bad, allowed, "not usable as a key");
   }
-  if ("sys_id" in key && !SYS_ID.test(String(key.sys_id))) {
+  if ("sys_id" in key && !isSysIdAnyCase(String(key.sys_id))) {
     throw new ServiceNowError("key.sys_id must be a 32-character sys_id.", 400);
   }
   return key;
@@ -474,7 +473,7 @@ function resolveChildren(
         "not usable as a key",
       );
     }
-    if ("sys_id" in key && !SYS_ID.test(String(key.sys_id))) {
+    if ("sys_id" in key && !isSysIdAnyCase(String(key.sys_id))) {
       throw new ServiceNowError(
         `children[${index}].key.sys_id must be a 32-character sys_id.`,
         400,
@@ -640,7 +639,7 @@ async function scopePrefixWarnings(
     parent.action !== "create" ||
     !t.scopePrefixFields?.length ||
     typeof scopeId !== "string" ||
-    !SYS_ID.test(scopeId)
+    !isSysIdAnyCase(scopeId)
   ) {
     return [];
   }

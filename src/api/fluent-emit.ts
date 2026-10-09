@@ -26,6 +26,7 @@ import {
 import { SDK_NUMERIC_COLUMNS } from "./fluent-sdk-actions.js";
 import { snString } from "./shared.js";
 import type { SnRecord } from "./table.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /** The value a secret is replaced with. */
 export const SECRET_PLACEHOLDER = "<redacted:credential>";
@@ -56,8 +57,6 @@ const SYSTEM_FIELDS = new Set([
 /** Field names that hold a credential, whatever the descriptor says. */
 const CREDENTIAL_NAME =
   /(^|_)(password\d*|passwd|pwd|secret|token|api_?key|private_?key|client_secret|credentials?|passphrase)(_|$)/i;
-
-const SYS_ID = /^[0-9a-f]{32}$/i;
 
 /** Code-point order: the same on every machine and locale. */
 export const cmp = (a: string, b: string): number =>
@@ -195,7 +194,7 @@ export function sidecar(
 
 /** A reference value: `Now.ref` for a sys_id, the plain value otherwise. */
 export function refExpr(table: string, value: string): Expr {
-  return SYS_ID.test(value)
+  return isSysIdAnyCase(value)
     ? code(`Now.ref(${tsString(table)}, ${tsString(value.toLowerCase())})`)
     : lit(value);
 }

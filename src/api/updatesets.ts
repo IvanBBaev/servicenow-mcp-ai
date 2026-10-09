@@ -12,6 +12,7 @@ import { runWithProfile } from "../core/request-context.js";
 import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import { getUpdateSetSetting } from "../core/settings.js";
 import { currentRuntime, defineRuntimePart } from "../core/runtime.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /**
  * S-6 — update-set awareness (GAP L3-06).
@@ -23,7 +24,6 @@ import { currentRuntime, defineRuntimePart } from "../core/runtime.js";
  * the write, then restoring it.
  */
 
-const SYS_ID_32 = /^[0-9a-f]{32}$/i;
 /** Field names whose payload values are never returned. */
 const SECRET_FIELD =
   /password|secret|token|credential|private[_.]?key|api[_.]?key/i;
@@ -79,7 +79,7 @@ const REF_FIELDS = [
 export async function resolveUpdateSet(ref: string): Promise<UpdateSetRef> {
   const value = ref.trim();
   assertNoCaret(value, "update_set");
-  const byId = SYS_ID_32.test(value);
+  const byId = isSysIdAnyCase(value);
   const { records } = await queryTable({
     table: "sys_update_set",
     query: byId ? `sys_id=${value}` : `name=${value}`,
@@ -173,7 +173,7 @@ export async function listUpdateSets(
   if (opts.application) {
     assertNoCaret(opts.application, "application");
     clauses.push(
-      SYS_ID_32.test(opts.application) || opts.application === "global"
+      isSysIdAnyCase(opts.application) || opts.application === "global"
         ? `application=${opts.application}`
         : `application.scope=${opts.application}`,
     );
@@ -301,7 +301,7 @@ export function parseUpdatePayload(
 /** sys_id of the updated record: the payload's, else the name's suffix. */
 function targetSysId(name: string, parsed?: ParsedPayload): string {
   const fromPayload = parsed?.fields.sys_id;
-  if (fromPayload && SYS_ID_32.test(fromPayload)) return fromPayload;
+  if (fromPayload && isSysIdAnyCase(fromPayload)) return fromPayload;
   return /_([0-9a-f]{32})$/i.exec(name)?.[1] ?? "";
 }
 

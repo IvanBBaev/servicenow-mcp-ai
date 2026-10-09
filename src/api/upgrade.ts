@@ -5,6 +5,7 @@ import { mdEscape, mdTable, snString } from "./shared.js";
 import { queryTable } from "./table.js";
 import { unifiedDiff } from "./unified-diff.js";
 import { parseUpdatePayload } from "./updatesets.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-1 (NX-01) — upgrade readiness: the upgrade history, the skipped records
@@ -248,7 +249,7 @@ export async function readSkipped(
   upgrade: string,
   { limit = UPGRADE_LOG_LIMIT }: { limit?: number } = {},
 ): Promise<SkippedReview | Unavailable> {
-  if (!/^[0-9a-f]{32}$/.test(upgrade)) {
+  if (!isSysId(upgrade)) {
     return unavailable(`"${upgrade}" is not an upgrade sys_id.`);
   }
   try {
@@ -648,7 +649,7 @@ export async function readStoreUpdates({
   const apps: StoreAppUpdate[] = [];
   for (const r of records) {
     const sys_id = snString(r.sys_id);
-    const { rows, truncated: partial } = /^[0-9a-f]{32}$/.test(sys_id)
+    const { rows, truncated: partial } = isSysId(sys_id)
       ? await readScopeCustomisations(sys_id, customisationLimit)
       : {
           rows: unavailable(`"${sys_id}" is not a store app sys_id.`),

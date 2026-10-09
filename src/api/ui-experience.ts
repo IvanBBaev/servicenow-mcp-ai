@@ -123,8 +123,7 @@ import {
   type WorkspaceIo,
   workspaceLines,
 } from "./uib-workspace.js";
-
-const SYS_ID = /^[0-9a-f]{32}$/;
+import { isSysId } from "../core/sys-id.js";
 
 /** A record id safe to splice into an encoded query. */
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -720,7 +719,7 @@ async function readRoot(
 ): Promise<{ row: SnRecord } | { unreadable: Unreadable }> {
   const table = "sys_ux_page_registry";
   const text = value.trim();
-  const bySysId = SYS_ID.test(text);
+  const bySysId = isSysId(text);
   const query = bySysId ? `sys_id=${text}` : keyQuery({ path: text });
   ctx.progress.tick(table);
   try {
@@ -796,7 +795,7 @@ export async function explainUiExperience(
       400,
     );
   }
-  if (hasId && !SYS_ID.test(opts.sys_id!.trim())) {
+  if (hasId && !isSysId(opts.sys_id!.trim())) {
     throw new ServiceNowError(
       "'sys_id' must be a 32-character sys_id; pass a path as 'path'.",
       400,
@@ -1045,7 +1044,7 @@ export async function explainUiExperience(
   const brokerIds = new Set<string>();
   for (const mp of result.macroponents) {
     for (const d of mp.data.value ?? []) {
-      if (d.broker && SYS_ID.test(d.broker)) brokerIds.add(d.broker);
+      if (d.broker && isSysId(d.broker)) brokerIds.add(d.broker);
     }
   }
   // N-29: transform, scriptlet, then REST and GraphQL brokers (the latter
@@ -1703,7 +1702,7 @@ async function readDetail(
         for (const h of mp.handlers) {
           if (
             h.definitionId &&
-            SYS_ID.test(h.definitionId) &&
+            isSysId(h.definitionId) &&
             !scripts.has(h.definitionId)
           ) {
             eventIds.add(h.definitionId);
@@ -1888,8 +1887,8 @@ async function resolveComponents(
     used.set(m.sys_id, byId);
   }
   if (!all.size) return;
-  const sysIds = [...all].filter((i) => SYS_ID.test(i));
-  const tags = [...all].filter((i) => !SYS_ID.test(i));
+  const sysIds = [...all].filter((i) => isSysId(i));
+  const tags = [...all].filter((i) => !isSysId(i));
   const libFields = ["sys_id", "name", "tag", "category"];
   const libRows = [
     ...(await readIn(ctx, "sys_ux_lib_component", "sys_id", sysIds, libFields)),
@@ -1927,7 +1926,7 @@ async function resolveComponents(
       const l = lib.get(id);
       const mp = known.get(id);
       if (l) {
-        const tag = opt(l, "tag") ?? (SYS_ID.test(id) ? undefined : id);
+        const tag = opt(l, "tag") ?? (isSysId(id) ? undefined : id);
         comps.push({
           id,
           kind: tag && OOB_TAG.test(tag) ? "oob" : "custom",

@@ -5,9 +5,9 @@ import {
   BROKER_TABLES,
   BROKER_TABLE_NAMES,
   brokerTable,
-  isSysId,
   macroponentUses,
 } from "./uib-usage.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-28 (UX-09) — the `uib_completeness` block of `get_update_set`: for every
@@ -44,7 +44,6 @@ export const MAX_PAGES = 20;
 /** Levels of nested macroponents followed below a page's macroponent. */
 export const NESTED_DEPTH = 3;
 const ROW_LIMIT = 500;
-const SYS_ID = /^[0-9a-f]{32}$/;
 /** `<table>_<sys_id>` — the update name of a captured record (O-5). */
 const UPDATE_NAME = /^(sys_ux_[a-z0-9_]+)_([0-9a-f]{32})$/;
 
@@ -117,7 +116,7 @@ async function readIn(
   fields: string[],
   prefix?: string,
 ): Promise<SnRecord[]> {
-  const list = [...new Set(ids)].filter((id) => SYS_ID.test(id));
+  const list = [...new Set(ids)].filter((id) => isSysId(id));
   if (!list.length || ctx.unavailable.some((u) => u.table === table)) {
     return [];
   }
@@ -238,7 +237,7 @@ export async function uibCompleteness(
   const variants = [...variantRows.values()];
   const withVariant = new Set(variants.map((v) => str(v, "macroponent")));
   const lone = [...anchorMacroponents].filter(
-    (m) => SYS_ID.test(m) && !withVariant.has(m),
+    (m) => isSysId(m) && !withVariant.has(m),
   );
   const total = variants.length + lone.length;
   const keptVariants = variants.slice(0, MAX_PAGES);
@@ -377,7 +376,7 @@ export async function uibCompleteness(
     seen = new Set<string>(),
     nested = false,
   ): UibExpected[] => {
-    if (!SYS_ID.test(mp) || seen.has(mp)) return [];
+    if (!isSysId(mp) || seen.has(mp)) return [];
     seen.add(mp);
     const out = [
       named(
@@ -425,10 +424,10 @@ export async function uibCompleteness(
     for (const r of routesBy.get(st) ?? []) {
       e.push(named("route", T.route, r, str(r, "sys_id")));
     }
-    if (SYS_ID.test(st)) e.push(named("screen", T.screen, screens.get(st), st));
+    if (isSysId(st)) e.push(named("screen", T.screen, screens.get(st), st));
     e.push(named("variant", T.variant, v, str(v, "sys_id")));
     const ap = str(v, "applicability");
-    if (SYS_ID.test(ap)) {
+    if (isSysId(ap)) {
       e.push(
         named("applicability", T.applicability, applicabilities.get(ap), ap),
       );
@@ -440,7 +439,7 @@ export async function uibCompleteness(
           sys_id: str(v, "sys_id"),
           ...(opt(v, "name") ? { name: opt(v, "name") } : {}),
         },
-        ...(SYS_ID.test(mp)
+        ...(isSysId(mp)
           ? {
               macroponent: {
                 sys_id: mp,

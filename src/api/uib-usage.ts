@@ -5,6 +5,7 @@ import {
   type UibElement,
 } from "../core/artifacts/uib-composition.js";
 import { snString } from "./shared.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-28 (UX-07, UX-08) — what a UI Builder macroponent and its client scripts
@@ -24,8 +25,6 @@ import { snString } from "./shared.js";
  * sys_ux_macroponent sys_id for composition elements; the broker table per
  * data resource `definition.type`; the `imports['…']` call form.
  */
-
-const SYS_ID = /^[0-9a-f]{32}$/;
 
 /** Data broker tables by data resource `definition.type` (O-5: unverified). */
 export const BROKER_TABLES: Readonly<
@@ -154,11 +153,6 @@ export function macroponentUses(row: Record<string, unknown>): MacroponentUses {
   };
 }
 
-/** Whether a component or broker id is a sys_id (a tag or built-in is not). */
-export function isSysId(id: string): boolean {
-  return SYS_ID.test(id);
-}
-
 /**
  * The client script include sys_ids in a UIB client script's `includes`
  * list (pure): a comma-separated glide_list, de-duplicated; values that are
@@ -168,7 +162,7 @@ export function uibIncludeIds(value: string): string[] {
   const ids = new Set<string>();
   for (const part of value.split(",")) {
     const v = part.trim();
-    if (SYS_ID.test(v)) ids.add(v);
+    if (isSysId(v)) ids.add(v);
   }
   return [...ids];
 }

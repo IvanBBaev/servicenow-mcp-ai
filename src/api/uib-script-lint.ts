@@ -10,6 +10,7 @@ import {
   walk,
   type AstNode,
 } from "./script-ast.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-32 (UX-15) — UIB-aware lint for UI Builder client scripts
@@ -229,7 +230,6 @@ const MUTATING_METHODS = new Set([
   "clear",
   "add",
 ]);
-const SYS_ID = /^[0-9a-f]{32}$/;
 const INSTANCE_URL = /https?:\/\/[a-z0-9-]+\.service-now\.com/i;
 const SNIPPET_MAX = 160;
 
@@ -523,7 +523,7 @@ export function lintUibClientScript(
 
       case "Literal": {
         if (typeof node.value !== "string") return;
-        if (SYS_ID.test(node.value)) {
+        if (isSysId(node.value)) {
           add("uib-hardcoded-sys-id", node, "Hard-coded sys_id literal.");
         } else if (INSTANCE_URL.test(node.value)) {
           add("uib-hardcoded-instance-url", node, "Hard-coded instance URL.");

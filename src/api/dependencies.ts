@@ -28,13 +28,13 @@ import { searchCode } from "./scripts.js";
 import {
   BROKER_TABLE_NAMES,
   brokerTable,
-  isSysId,
   macroponentUses,
   uibImports,
   uibIncludeIds,
 } from "./uib-usage.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * P-17 — `get_artifact_dependencies`: the dependency graph of one registry
@@ -110,7 +110,6 @@ const TABLE_KEYS = new Set([
   "referenced_table",
 ]);
 
-const SYS_ID = /^[0-9a-f]{32}$/;
 const TABLE_NAME = /^[a-z][a-z0-9_]{1,79}$/;
 
 export type DependencyDirection = "outbound" | "inbound" | "both";
@@ -320,7 +319,7 @@ export function jsonTargets(value: unknown, self?: string): NodeSpec[] {
         (x): x is string => typeof x === "string" && TABLE_NAME.test(x),
       );
       const id = typeof o.sys_id === "string" ? o.sys_id : undefined;
-      if (table && id && SYS_ID.test(id)) {
+      if (table && id && isSysId(id)) {
         out.push({ kind: "record", table, sys_id: id });
       }
       for (const [k, child] of Object.entries(o)) {
@@ -353,7 +352,7 @@ function rowEdges(
   const tag = source ? { source } : {};
   for (const rf of shape.refFields ?? []) {
     const value = snString(row[rf.field]);
-    if (!SYS_ID.test(value)) continue;
+    if (!isSysId(value)) continue;
     out.push({
       other: {
         kind: "record",
@@ -644,7 +643,7 @@ async function reverseEdges(
   for (const { s, rows } of reads) {
     for (const row of rows) {
       const parentId = s.parent ? snString(row[s.parent.field]) : "";
-      if (s.parent && SYS_ID.test(parentId)) {
+      if (s.parent && isSysId(parentId)) {
         out.push({
           other: {
             kind: "record",
@@ -739,7 +738,7 @@ async function scriptUsers(
   for (const { table, rows } of reads) {
     for (const row of rows) {
       const flow = snString(row.flow);
-      if (!SYS_ID.test(flow)) continue;
+      if (!isSysId(flow)) continue;
       const decoded = decodeField("flow-values", snString(row.values));
       if (!decoded.decoded || !jsonCalls(decoded.value, name)) continue;
       const flowName = snString(row["flow.name"]);
@@ -852,12 +851,12 @@ async function uibUsers(
   if (table === UIB_INCLUDE) {
     const name = node.name.trim();
     const id = node.sys_id ?? "";
-    if (!name && !SYS_ID.test(id)) return [];
+    if (!name && !isSysId(id)) return [];
     if (name) assertNoCaret(name, "name");
     graph.caveats.add(UIB_CAVEAT);
     const user = (row: SnRecord): NodeSpec => {
       const macro = snString(row.macroponent);
-      return SYS_ID.test(macro)
+      return isSysId(macro)
         ? {
             kind: "record",
             table: UIB_MACROPONENT,
@@ -891,7 +890,7 @@ async function uibUsers(
         });
       }
     }
-    if (SYS_ID.test(id)) {
+    if (isSysId(id)) {
       // O-5: the `includes` glide_list is unverified.
       const rows = await likeRead(
         node,

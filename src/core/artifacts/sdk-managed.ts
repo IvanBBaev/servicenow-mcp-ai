@@ -5,6 +5,7 @@ import { getSdkManagedScopes, getSdkProjectDirs } from "../settings.js";
 import { currentRuntime, defineRuntimePart } from "../runtime.js";
 import { snRequest } from "../http.js";
 import { assertTableAllowed } from "../policy.js";
+import { isSysIdAnyCase } from "../sys-id.js";
 
 /**
  * P-3 — SDK-managed scope detection.
@@ -129,7 +130,6 @@ export const SDK_SCAN_TTL_MS = 60_000;
 
 const CONFIG_FILE = "now.config.json";
 const SKIP_DIRS = new Set(["node_modules", "dist", "build", "target", "out"]);
-const SYS_ID = /^[0-9a-f]{32}$/i;
 const SCOPE_NAME = /^[a-z0-9_]+$/;
 
 /** One SDK project found on disk. */
@@ -313,7 +313,7 @@ function normalizeRef(input: string | ScopeRef): {
 } {
   if (typeof input === "string") {
     const v = str(input);
-    return v !== null && SYS_ID.test(v)
+    return v !== null && isSysIdAnyCase(v)
       ? { scope: null, sysId: v }
       : { scope: v, sysId: null };
   }
@@ -361,7 +361,7 @@ export async function detectSdkManaged(
   // Source 1 — the owner's declaration.
   const declared = getSdkManagedScopes();
   for (const entry of declared) {
-    const bySysId = SYS_ID.test(entry);
+    const bySysId = isSysIdAnyCase(entry);
     const key = bySysId ? sysId : scope;
     if (key === null) {
       comparable = false;
@@ -521,7 +521,7 @@ export function sdkManagedStatus(): SdkManagedStatus {
         (scopeId !== null && s.scopeId === scopeId),
     );
   for (const entry of declared) {
-    const bySysId = SYS_ID.test(entry);
+    const bySysId = isSysIdAnyCase(entry);
     scopes.push({
       scope: bySysId ? null : entry,
       scopeId: bySysId ? entry : null,

@@ -2,6 +2,7 @@ import { rethrowIfCancelled } from "../core/errors.js";
 import { unreadableReason } from "./security.js";
 import { mdTable, snString } from "./shared.js";
 import { queryTable } from "./table.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-16 (NX-20) — ATF result history: per test and per suite, the last result,
@@ -150,8 +151,6 @@ const unavailable = (reason: string): Unavailable => ({
   unavailableReason: reason,
 });
 
-const SYS_ID = /^[0-9a-f]{32}$/;
-
 /** Outcome of a status value or label. */
 export function outcomeOf(status: string): AtfOutcome {
   const s = status.trim();
@@ -275,7 +274,7 @@ function baseRow(r: Record<string, unknown>): AtfResultRow {
 /** Distinct, valid sys_ids (at most MAX_IDS), or the reason they are not. */
 function cleanIds(ids: readonly string[]): string[] | string {
   const out = [...new Set(ids.map((id) => id.trim()))];
-  const bad = out.find((id) => !SYS_ID.test(id));
+  const bad = out.find((id) => !isSysId(id));
   if (bad !== undefined) return `"${bad}" is not a sys_id.`;
   if (out.length > MAX_IDS) return `At most ${MAX_IDS} ids per call.`;
   return out;

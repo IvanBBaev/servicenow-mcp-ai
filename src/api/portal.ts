@@ -28,14 +28,13 @@ import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label } from "./mermaid.js";
 import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
+import { isSysId } from "../core/sys-id.js";
 
 /** Default and maximum nested-row depth (a row inside a column). */
 export const PORTAL_DEPTH = { default: 3, max: 6 } as const;
 
 /** Pages whose full layout is read; the others are listed with a summary. */
 export const LAYOUT_PAGES = 5;
-
-const SYS_ID = /^[0-9a-f]{32}$/;
 
 /**
  * A record id safe to splice into an encoded query (no `^`, `,` or spaces).
@@ -644,7 +643,7 @@ async function readRoot(
   fields: string[],
 ): Promise<{ row: SnRecord } | { unreadable: Unreadable }> {
   const text = value.trim();
-  const query = SYS_ID.test(text)
+  const query = isSysId(text)
     ? `sys_id=${text}`
     : keyQuery({ [keyField]: text });
   ctx.progress.tick(table);
@@ -658,7 +657,7 @@ async function readRoot(
     });
     if (!records.length) {
       throw new ServiceNowError(
-        `No ${table} record matches ${SYS_ID.test(text) ? "sys_id" : keyField} '${text}'.`,
+        `No ${table} record matches ${isSysId(text) ? "sys_id" : keyField} '${text}'.`,
         404,
         undefined,
         {

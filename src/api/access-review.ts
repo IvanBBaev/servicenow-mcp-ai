@@ -2,6 +2,7 @@ import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
 import { unreadableReason } from "./security.js";
 import { snString } from "./shared.js";
 import { queryTable } from "./table.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-22 (NX-31, NX-33) — access review: who holds a privileged role and how.
@@ -431,8 +432,6 @@ export interface RoleHistory {
   revokes: { available: boolean; unavailableReason?: string };
 }
 
-const SYS_ID = /^[0-9a-f]{32}$/;
-
 const xmlText = (s: string): string =>
   s
     .replaceAll("&lt;", "<")
@@ -490,7 +489,7 @@ export async function readRoleHistory({
   now?: number;
   days?: number;
 }): Promise<RoleHistory> {
-  if (!SYS_ID.test(user)) {
+  if (!isSysId(user)) {
     throw new ServiceNowError("Give the user's sys_id.", 400);
   }
   const base = {

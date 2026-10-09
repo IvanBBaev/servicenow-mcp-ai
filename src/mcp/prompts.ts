@@ -23,6 +23,7 @@ import {
   requirementMet,
   type PromptRequirement,
 } from "./packages.js";
+import { isSysIdAnyCase } from "../core/sys-id.js";
 
 /** Longest accepted prompt argument (M-4). */
 const ARG_MAX = 200;
@@ -489,7 +490,7 @@ function registerUibPageReview(server: McpServer): void {
     (args) => {
       const experience = inlineArg(args.experience);
       const page = args.page ? inlineArg(args.page) : undefined;
-      const by = /^[0-9a-f]{32}$/i.test(args.experience)
+      const by = isSysIdAnyCase(args.experience)
         ? `sys_id ${experience}`
         : `path ${experience}`;
       const focus = page ?? "each page it routes to";

@@ -3,6 +3,7 @@ import { getRecordHistory, type HistoryEntry } from "./history.js";
 import { unreadableReason } from "./security.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { isSysId } from "../core/sys-id.js";
 
 /**
  * N-5 (NX-05) — task context: what one task record is waiting for.
@@ -45,7 +46,6 @@ export const PENDING_MAX_LIMIT = 200;
 /** Journal entry text is cut to this many characters. */
 const HISTORY_VALUE_CHARS = 500;
 
-const SYS_ID_RE = /^[0-9a-f]{32}$/;
 /** A task number or user name: no encoded-query separators or spaces. */
 const TOKEN_RE = /^[\w.@-]{1,100}$/;
 /** A table name. */
@@ -334,7 +334,7 @@ export async function taskContext(
   const sysId = opts.sysId?.trim();
   const number = opts.number?.trim();
   if (sysId) {
-    if (!SYS_ID_RE.test(sysId)) {
+    if (!isSysId(sysId)) {
       return unavailable(`"${sysId}" is not a sys_id.`);
     }
   } else if (number) {
@@ -375,9 +375,7 @@ export async function pendingApprovals({
     return unavailable(`"${approver}" is not a user sys_id or user_name.`);
   }
   const cap = Math.max(1, Math.min(Math.floor(limit) || 1, PENDING_MAX_LIMIT));
-  const match = SYS_ID_RE.test(who)
-    ? `approver=${who}`
-    : `approver.user_name=${who}`;
+  const match = isSysId(who) ? `approver=${who}` : `approver.user_name=${who}`;
   try {
     const { records } = await queryTable({
       table: "sysapproval_approver",
