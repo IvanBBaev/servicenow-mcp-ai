@@ -1497,10 +1497,10 @@
           "kinds": {
             "description": "Instance-wide documents to add, each as <kind>.md.",
             "items": {
-              "enum": ["security", "catalog", "integrations"],
+              "enum": ["security", "catalog", "integrations", "access_review"],
               "type": "string"
             },
-            "maxItems": 3,
+            "maxItems": 4,
             "type": "array"
           },
           "profile": {
@@ -1523,7 +1523,7 @@
       },
       "sizes": {
         "description": 245,
-        "inputSchema": 1227,
+        "inputSchema": 1243,
         "paramDescriptions": 527,
         "outputSchema": 0
       }
@@ -5314,6 +5314,10 @@
             "maximum": 200,
             "type": "integer"
           },
+          "role_history": {
+            "description": "Users only: add the user's role grants and revokes (last 90 days), newest first, when one user matches.",
+            "type": "boolean"
+          },
           "sys_id": {
             "description": "Exact sys_id.",
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
@@ -5339,8 +5343,8 @@
       },
       "sizes": {
         "description": 196,
-        "inputSchema": 772,
-        "paramDescriptions": 256,
+        "inputSchema": 926,
+        "paramDescriptions": 361,
         "outputSchema": 142
       }
     },

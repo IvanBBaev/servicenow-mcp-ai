@@ -707,14 +707,15 @@
           },
           "kinds": {
             "description": "Instance-wide documents to add, each as <kind>.md.",
-            "maxItems": 3,
+            "maxItems": 4,
             "type": "array",
             "items": {
               "type": "string",
               "enum": [
                 "security",
                 "catalog",
-                "integrations"
+                "integrations",
+                "access_review"
               ]
             }
           },

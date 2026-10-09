@@ -43,6 +43,12 @@ export const specs: AnyToolSpec[] = [
         .boolean()
         .optional()
         .describe("Add roles, groups, members when one record matches."),
+      role_history: z
+        .boolean()
+        .optional()
+        .describe(
+          "Users only: add the user's role grants and revokes (last 90 days), newest first, when one user matches.",
+        ),
       limit: z
         .number()
         .int()
@@ -53,7 +59,15 @@ export const specs: AnyToolSpec[] = [
     },
     output: listOutput("records"),
     logFields: (args) => ({ kind: args.kind }),
-    handler: async ({ kind, term, sys_id, active, include_details, limit }) =>
+    handler: async ({
+      kind,
+      term,
+      sys_id,
+      active,
+      include_details,
+      role_history,
+      limit,
+    }) =>
       ok(
         await lookupDirectory({
           kind,
@@ -61,6 +75,7 @@ export const specs: AnyToolSpec[] = [
           sysId: sys_id,
           active,
           includeDetails: include_details,
+          roleHistory: role_history,
           limit,
         }),
       ),

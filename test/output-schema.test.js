@@ -130,6 +130,11 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * `servicenow_list_atf_tests` / `servicenow_list_atf_suites`, measured
  * 26,583 / 117,682 / 119,052 / 134,213 (all +294 B; core +0 B): the budgets
  * become 26,624 / 117,760 / 119,296 / 134,400.
+ * N-22, 2026-10-09 (same allowance; 2,131 B of it used in all):
+ * `role_history` on `servicenow_lookup_directory` and the `access_review`
+ * kind of `servicenow_document_instance`, measured 26,583 / 117,852 /
+ * 119,222 / 134,383 (all +170 B; core +0 B): `all` becomes 118,016, the
+ * others still fit.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

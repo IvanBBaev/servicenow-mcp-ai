@@ -373,3 +373,116 @@ test("readRoleHistory needs a user sys_id", async () => {
     /user's sys_id/,
   );
 });
+
+// --- wiring: lookup_directory role_history and the access_review kind -------
+
+const { runSpec } = await import("../build/mcp/define.js");
+const { ALL_TOOLS } = await import("../build/mcp/registry.js");
+const { generateDocument } = await import("../build/api/document.js");
+const { withEnv } = await import("./helpers.js");
+
+const lookup = (args) =>
+  runSpec(
+    ALL_TOOLS.find((s) => s.name === "servicenow_lookup_directory"),
+    args,
+  );
+const body = (res) => res.structuredContent ?? JSON.parse(res.content[0].text);
+const userRows = (rows) => ({
+  sys_user: () => jsonResponse(200, { result: rows }),
+});
+
+test("lookup_directory role_history adds one user's grants and revokes (N-22)", async () => {
+  freshRuntime();
+  await withFetch(
+    historyTables(userRows([{ sys_id: U1, user_name: "alice" }])),
+    async (calls) => {
+      const res = body(
+        await lookup({ kind: "user", sys_id: U1, role_history: true }),
+      );
+      assert.equal(res.count, 1);
+      assert.equal(res.details, undefined);
+      const h = res.role_history;
+      assert.equal(h.available, true);
+      assert.equal(h.user, U1);
+      assert.deepEqual(
+        h.events.map((e) => [e.action, e.role]),
+        [
+          ["revoked", "security_admin"],
+          ["granted", "itil"],
+          ["granted", "admin"],
+        ],
+      );
+      assert.ok(
+        calls.some((c) => /\/sys_audit_delete\?/.test(c.url)),
+        "revokes are read",
+      );
+    },
+  );
+});
+
+test("lookup_directory role_history needs one user (N-22)", async () => {
+  freshRuntime();
+  await withFetch(
+    historyTables(
+      userRows([
+        { sys_id: U1, user_name: "alice" },
+        { sys_id: U2, user_name: "alan" },
+      ]),
+    ),
+    async (calls) => {
+      const res = body(
+        await lookup({ kind: "user", term: "al", role_history: true }),
+      );
+      assert.equal(res.count, 2);
+      assert.equal(res.role_history, undefined);
+      assert.match(res.note, /role history/);
+      assert.equal(calls.length, 1);
+    },
+  );
+  await withFetch(
+    () => {
+      throw new Error("no request for a non-user kind");
+    },
+    async () => {
+      const res = await lookup({
+        kind: "group",
+        term: "x",
+        role_history: true,
+      });
+      assert.equal(res.isError, true);
+      assert.match(body(res).error, /kind 'user' only/);
+    },
+  );
+});
+
+test("the access_review document holds the review and its account-data caveat (N-22)", async () => {
+  freshRuntime();
+  await withFetch(tables(), async () => {
+    const doc = await generateDocument("access_review", "access_review", {
+      write: false,
+    });
+    assert.match(doc.path, /\/access-review\.md$/);
+    assert.match(doc.markdown, /^# Access review — profile /m);
+    assert.match(doc.markdown, /\| alice \|/);
+    assert.match(doc.markdown, /### Role revokes/);
+    assert.match(doc.markdown, /Account data: user names/);
+    assert.doesNotMatch(doc.markdown, /Metadata only/);
+  });
+});
+
+test("the access_review kind follows the directory package deny (N-22)", async () => {
+  freshRuntime();
+  await withEnv({ SN_PACKAGES_DENY: "directory" }, async () => {
+    await withFetch(
+      () => {
+        throw new Error("no read when directory is denied");
+      },
+      async () => {
+        await assert.rejects(
+          generateDocument("access_review", "access_review", { write: false }),
+          /package "directory" is denied/,
+        );
+      },
+    );
+  });
+});

@@ -15,10 +15,10 @@ import { isSysId } from "../core/sys-id.js";
  * row's creator and date as "who granted it and when". Revokes come from
  * sys_audit_delete rows of sys_user_has_role, when that table is readable.
  *
- * Not wired to a tool yet: it reads account data (sys_user_has_role and the
- * dot-walked sys_user fields), so it cannot join the metadata-only security
- * document. It ships as the `document_instance` kind `access_review` once
- * O-10 clears the tools/list change.
+ * It reads account data (sys_user_has_role and the dot-walked sys_user
+ * fields), so it cannot join the metadata-only security document; it ships
+ * as the `document_instance` kind `access_review` (doc-access-review.ts),
+ * which follows the `directory` package.
  *
  * Read-only and bounded; never throws except on a cancel. Each read that
  * fails degrades to `available:false` (roles, holders) or
@@ -338,7 +338,7 @@ export async function readAccessReview({
   };
 }
 
-/** Markdown for the privileged-accounts report (the future `access_review` kind). */
+/** Markdown for the privileged-accounts report (the `access_review` kind's body). */
 export function renderAccessReview(review: AccessReview): string[] {
   if (!review.available) {
     return [
@@ -474,8 +474,7 @@ export function deletedRoleRow(payload: string): {
  * grant (creator and date, path, a non-active state), and the user's deleted
  * rows from sys_audit_delete as revokes (the last `days` days). Newest first.
  *
- * Not wired to a tool yet: it becomes `lookup_directory` kind `user`
- * `role_history` once O-10 clears the tools/list change (NX-33). Degrades like
+ * Served by `lookup_directory` kind `user` with `role_history` (NX-33). Degrades like
  * the review: an unreadable sys_user_has_role is `available:false`, an
  * unreadable audit only `revokes.available:false`. The revoke filter matches
  * the user sys_id in the payload text, then checks the parsed `user` element.
@@ -590,7 +589,7 @@ export async function readRoleHistory({
   };
 }
 
-/** Markdown for one user's role history (the future `role_history` section). */
+/** Markdown for one user's role history. */
 export function renderRoleHistory(history: RoleHistory): string[] {
   if (!history.available) {
     return [

@@ -23,6 +23,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | `sys_id` | string | no | Exact sys_id. |
 | `active` | boolean | no | Filter users / groups by active. |
 | `include_details` | boolean | no | Add roles, groups, members when one record matches. |
+| `role_history` | boolean | no | Users only: add the user's role grants and revokes (last 90 days), newest first, when one user matches. |
 | `limit` | integer | no | Max records (default 20). |
 | `instance` | string | no | Profile (default active) |
 

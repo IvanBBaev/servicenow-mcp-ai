@@ -75,6 +75,12 @@ import {
 import { collectTable, renderTable, type TableDocData } from "./doc-table.js";
 import { renderSecurity } from "./doc-security.js";
 import {
+  accessReviewSources,
+  collectAccessReview,
+  renderAccessReviewDoc,
+} from "./doc-access-review.js";
+import { type AccessReview } from "./access-review.js";
+import {
   type CatalogDocData,
   collectCatalog,
   renderCatalog,
@@ -1270,6 +1276,18 @@ const integrationsKind: DocKind<IntegrationsDocData> = {
     ]),
 };
 
+const accessReviewKind: DocKind<AccessReview> = {
+  title: "Access review",
+  version: "1",
+  requires: ["docs", "directory"],
+  generator: "servicenow_document_instance",
+  path: () => "access-review.md",
+  collect: () => collectAccessReview(),
+  render: renderAccessReviewDoc,
+  singleton: true,
+  sources: accessReviewSources,
+};
+
 const instanceKind: DocKind<InstanceDocData> = {
   title: "Instance",
   version: "1",
@@ -1357,6 +1375,7 @@ export const DOC_KINDS = {
   security: securityKind,
   catalog: catalogKind,
   integrations: integrationsKind,
+  access_review: accessReviewKind,
   instance: instanceKind,
   artifact_types: artifactTypesKind,
   discovery_overview: discoveryOverviewKind,
@@ -1372,6 +1391,7 @@ export const INSTANCE_DOC_KINDS = [
   "security",
   "catalog",
   "integrations",
+  "access_review",
 ] as const satisfies readonly DocKindId[];
 
 export type InstanceDocKindId = (typeof INSTANCE_DOC_KINDS)[number];

@@ -2,6 +2,7 @@ import { ServiceNowError } from "../core/errors.js";
 import { assertTableAllowed } from "../core/policy.js";
 import { assertNoCaret, snString, degradeStatus } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
+import { readRoleHistory } from "./access-review.js";
 
 /**
  * S-10 — read-only lookups of users, groups and roles, with the membership
@@ -84,6 +85,11 @@ export interface DirectoryQuery {
   active?: boolean;
   /** Add memberships and roles when the lookup resolves to one record. */
   includeDetails?: boolean;
+  /**
+   * N-22 (NX-33): add the user's role grants and revokes (readRoleHistory)
+   * when the lookup resolves to one user. Users only.
+   */
+  roleHistory?: boolean;
   limit?: number;
 }
 
@@ -225,6 +231,9 @@ export async function lookupDirectory(
 ): Promise<Record<string, unknown>> {
   const spec = KINDS[opts.kind];
   assertTableAllowed(spec.table);
+  if (opts.roleHistory && opts.kind !== "user") {
+    throw new ServiceNowError("role_history is for kind 'user' only.", 400);
+  }
   const clauses: string[] = [];
   if (opts.sysId) clauses.push(`sys_id=${opts.sysId}`);
   if (opts.active !== undefined && spec.activeField) {
@@ -255,13 +264,18 @@ export async function lookupDirectory(
     truncated: total !== undefined && total > records.length,
     records,
   };
-  if (!opts.includeDetails) return result;
+  if (!opts.includeDetails && !opts.roleHistory) return result;
   if (records.length !== 1) {
     result.note =
-      "Details (roles, groups, members) are added only when the lookup matches exactly one record; narrow it with sys_id or a more specific term.";
+      "Details (roles, groups, members) and role history are added only when the lookup matches exactly one record; narrow it with sys_id or a more specific term.";
     return result;
   }
   const id = snString((records[0] as SnRecord).sys_id);
+  if (opts.roleHistory) {
+    assertTableAllowed("sys_user_has_role");
+    result.role_history = await readRoleHistory({ user: id });
+  }
+  if (!opts.includeDetails) return result;
   const details: Record<string, unknown> = {};
   const unavailable: Record<string, unknown>[] = [];
   for (const d of detailReads(opts.kind, id)) {
