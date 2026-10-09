@@ -35,8 +35,9 @@
 
 - [x] **P-4 / P-7 · SDK 4.13 re-pin** — done 2026-10-09 (owner approved): `@servicenow/sdk` and
       `SDK_BASELINE` at 4.13.6 (O-7), `DatabaseView` promoted out of `SDK_NEXT_APIS`, `Interceptor`
-      registered as `interceptor` (`sys_wizard`, verified:false). Still open under P-7: descriptors for
-      the guide-audit rows CORE-18…21 and `sys_ui_formatter` in CUI-6.
+      registered as `interceptor` (`sys_wizard`, verified:false). The P-7 guide-audit descriptors
+      (CORE-18, 19, 21 and `sys_ui_formatter` in CUI-6) landed 2026-10-09 (0dd9fda); CORE-20 table
+      augments stay columns of `table`.
 - [x] **H-1 · Make the gate green again** — done 2026-09-03 (uncommitted): SDK `^1.30.0`, zod
       `^3.25.0`, lock-only `npm audit fix` for the transitive `fast-uri` / `ip-address` / `hono` /
       `@hono/node-server` / `qs` / `body-parser`; `npm run check` green (406/406, audit 0),
