@@ -997,9 +997,9 @@ items:
     effort: "M"
     status: "partial"
     phase: null
-    done: "2026-10-05"
-    gates: ["O-5", "O-10"]
-    notes: '**Partly done 2026-10-05 (local, uncommitted).** API layer complete in `uib-composition.ts` / `ui-experience.ts`: element props and bindings, event → handler → target chains (+ Mermaid), component resolution, script bodies; reachable via `format: "file"` only. 0 B tools/list. Open: the `detail` input for inline output (O-10); shapes unverified (O-5) (UX-02, UX-03, UX-04, UX-06). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md).'
+    done: "2026-10-10"
+    gates: ["O-5"]
+    notes: '**Partly done 2026-10-05.** API layer complete in `uib-composition.ts` / `ui-experience.ts`: element props and bindings, event → handler → target chains (+ Mermaid), component resolution, script bodies; reachable via `format: "file"` only. 0 B tools/list. The `detail` input done 2026-10-10 (O-10 approved): `servicenow_explain_ui_experience` takes up to four levels (element props / components, bindings, event chains, script bodies) inline in json or markdown; `format: "file"` defaults to all four; +222 B on the `all` profiles, `core` unchanged. Open: shapes unverified (O-5) (UX-02, UX-03, UX-04, UX-06). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md).'
   - id: "N-27"
     title: "UIB variant resolution for a user"
     pillar: "N"
