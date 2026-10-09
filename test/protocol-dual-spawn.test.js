@@ -1,9 +1,8 @@
 // N-35 / ADR 0008: the real stdio entry point (build/index.js) on the v2 SDK.
 // Each test spawns the server with a sandboxed environment (no SN_* variables,
 // no credentials, so nothing reaches a network) and connects with the v2
-// client on the legacy `initialize` wire (2025-11-25). The 2026-07-28 cases
-// (server/discover, auto negotiation, identical tools/list on both wires) land
-// with the modern-era server factory (H-7).
+// client on either wire: the legacy `initialize` handshake (2025-11-25) or
+// `server/discover` with the per-request envelope (2026-07-28, H-7).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
@@ -17,6 +16,7 @@ const root = join(import.meta.dirname, "..");
 const entry = join(root, "build", "index.js");
 
 const LEGACY = "2025-11-25";
+const MODERN = "2026-07-28";
 
 const sandbox = mkdtempSync(join(tmpdir(), "sn-dual-"));
 test.after(() => rmSync(sandbox, { recursive: true, force: true }));
@@ -100,4 +100,26 @@ test("legacy wire: initialize negotiates 2025-11-25 and serves tools", async () 
 
 test("pinning an unsupported revision fails loudly instead of falling back", async () => {
   await assert.rejects(connect({ pin: "2099-01-01" }));
+});
+
+test("modern wire: auto negotiation discovers 2026-07-28 and serves tools (H-7)", async () => {
+  await withClient("auto", async (client) => {
+    assert.equal(client.getProtocolEra(), "modern");
+    assert.equal(client.getNegotiatedProtocolVersion(), MODERN);
+    assert.ok(client.getDiscoverResult());
+    assert.ok(client.getServerCapabilities()?.tools);
+
+    const status = await client.callTool({
+      name: "servicenow_get_status",
+      arguments: {},
+    });
+    assert.notEqual(status.isError, true);
+  });
+});
+
+test("both wires list the same tools (H-7)", async () => {
+  const legacy = await withClient("legacy", allTools);
+  const modern = await withClient("auto", allTools);
+  assert.ok(legacy.length > 0);
+  assert.deepEqual(modern, legacy);
 });

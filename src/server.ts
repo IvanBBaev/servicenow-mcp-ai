@@ -1,5 +1,9 @@
-import { McpServer } from "@modelcontextprotocol/server";
-import { connectTransport, closeHttpTransport } from "./mcp/transport.js";
+import { McpServer, type ServerOptions } from "@modelcontextprotocol/server";
+import {
+  connectTransport,
+  closeHttpTransport,
+  closeStdioTransport,
+} from "./mcp/transport.js";
 import { installCrashHandlers } from "./core/lifecycle.js";
 import { startOtelSubscriber } from "./core/otel.js";
 import { hasCredentials } from "./core/config.js";
@@ -25,20 +29,28 @@ import {
 
 /**
  * Build one fully registered McpServer on `runtime`: tools (with the
- * runtime's package session), resources and prompts. stdio builds one; the
- * HTTP transport builds one per session (H-7).
+ * runtime's package session), resources and prompts. stdio builds one per
+ * connection, the HTTP transport one per session or modern request (H-7).
+ *
+ * `serverOptions` is spread over the base options (capabilities are merged),
+ * so a protocol feature can add its server options without touching this
+ * bootstrap.
  */
-export function buildMcpServer(runtime: Runtime): McpServer {
+export function buildMcpServer(
+  runtime: Runtime,
+  serverOptions: ServerOptions = {},
+): McpServer {
   // M-1: title / website / icon, and `instructions` generated from the live
   // registry and configuration (packages, write mode, credentials, how to fix).
   const server = new McpServer(
     serverImplementation(SERVER_VERSION),
     // M-9: the `tasks` capability when SN_EXPERIMENTAL_TASKS is on.
     withTaskSupport({
-      capabilities: { logging: {} },
       instructions: buildServerInstructions(SERVER_VERSION),
       // M-5: one list_changed per list for a package toggle, not one per tool.
       debouncedNotificationMethods: LIST_CHANGED_NOTIFICATIONS,
+      ...serverOptions,
+      capabilities: { logging: {}, ...serverOptions.capabilities },
     }),
   );
   installTaskHandlers(server, runtime);
@@ -66,20 +78,23 @@ export async function startServer(runtime: Runtime): Promise<void> {
   await startOtelSubscriber();
 
   const http = getTransport() === "http";
-  let server: McpServer | undefined;
   if (http) {
-    // H-7: one McpServer per HTTP session, each on its own session runtime
-    // (a child of `runtime`); the transport installs the per-session log sink.
+    // H-7: one McpServer per HTTP session or modern request, each on its own
+    // child runtime of `runtime`; the transport installs the log sink.
     await connectTransport((sessionRuntime) => buildMcpServer(sessionRuntime));
   } else {
-    server = buildMcpServer(runtime);
-    setServer(server);
-    // DF-6: stdio (default) — one client, one server.
-    await connectTransport(server);
-    // Mirror stderr logs to the client over the MCP logging capability (X-4).
-    // M-8: per-session levels and a notification rate limit
-    // (SN_LOG_NOTIFY_RATE) — see log-bridge.ts.
-    setLogSink(createLogBridge(server.server));
+    // DF-6 / H-7: stdio serves one client in either protocol era; serveStdio
+    // builds the server for the era the client speaks (a discarded discovery
+    // probe may come first, so the last built instance is the live one).
+    await connectTransport((processRuntime) => {
+      const server = buildMcpServer(processRuntime);
+      setServer(server);
+      // Mirror stderr logs to the client over the MCP logging capability
+      // (X-4). M-8: per-session levels and a notification rate limit
+      // (SN_LOG_NOTIFY_RATE) — see log-bridge.ts.
+      setLogSink(createLogBridge(server.server));
+      return server;
+    });
   }
   const transportKind = http ? "http" : "stdio";
   // Logs always go to stderr (never stdout — that is the stdio protocol channel).
@@ -104,7 +119,7 @@ export async function startServer(runtime: Runtime): Promise<void> {
       // tokens, dispatcher pools).
       // H-7: HTTP drains in-flight calls and closes every session first.
       await closeHttpTransport();
-      await server?.close();
+      await closeStdioTransport();
       await runtime.dispose();
     } catch {
       // ignore errors raised while closing during shutdown

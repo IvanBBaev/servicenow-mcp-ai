@@ -5,7 +5,11 @@ import {
   type ServerResponse,
 } from "node:http";
 import { timingSafeEqual } from "node:crypto";
-import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import {
+  serveStdio,
+  StdioServerTransport,
+  type StdioServerHandle,
+} from "@modelcontextprotocol/server/stdio";
 import type { McpServer } from "@modelcontextprotocol/server";
 import {
   getTransport,
@@ -30,6 +34,7 @@ import {
   sessionLogSink,
   type ServerFactory,
 } from "./http-sessions.js";
+import { ModernHttpHandler } from "./http-modern.js";
 import { testConnection, type ConnectionProbe } from "../api/diagnostics.js";
 
 /**
@@ -49,34 +54,58 @@ export function httpAuthorized(
 /**
  * DF-6 / A2-4 / H-7 — transport selection.
  *
- * Default `stdio`: one local client, one McpServer, no network surface —
- * unchanged by H-7. With `SN_TRANSPORT=http` the server listens over
- * **Streamable HTTP** on `SN_PORT` with one transport and one McpServer per
- * MCP session (see `http-sessions.ts`), DNS-rebinding protection (Host and
- * Origin allow-lists), `/healthz` + `/readyz` probes and a graceful drain on
+ * Default `stdio`: one local client, no network surface. Given a factory,
+ * stdio is served by the SDK's `serveStdio`, which answers both protocol eras:
+ * a 2025 client gets the classic `initialize` handshake, a 2026-07-28 client
+ * the per-request envelope. With `SN_TRANSPORT=http` the server listens over
+ * **Streamable HTTP** on `SN_PORT`: one transport and one McpServer per 2025
+ * MCP session (see `http-sessions.ts`), one McpServer per 2026-07-28 request
+ * (see `http-modern.ts`), DNS-rebinding protection (Host and Origin
+ * allow-lists), `/healthz` + `/readyz` probes and a graceful drain on
  * shutdown. TLS and network exposure remain the operator's responsibility.
  *
  * `server` is either a ready McpServer or a factory building one on a given
- * runtime. HTTP needs a factory to serve more than one session at a time; a
- * plain instance can back a single session only.
+ * runtime. Only a factory serves the 2026-07-28 era and more than one HTTP
+ * session at a time; a plain instance backs a single 2025 connection.
  */
 export async function connectTransport(
   server: McpServer | ServerFactory,
 ): Promise<string> {
   const factory: ServerFactory =
     typeof server === "function" ? server : () => server;
+  const modern = typeof server === "function";
   if (getTransport() === "http") {
-    await startHttp(factory);
+    await startHttp(factory, modern);
     return "http";
   }
-  await factory(currentRuntime()).connect(new StdioServerTransport());
+  if (modern) {
+    stdio = serveStdio(() => factory(currentRuntime()), {
+      onerror: (error) => {
+        logger.warn("stdio transport error", { error: error.message });
+      },
+    });
+  } else {
+    await factory(currentRuntime()).connect(new StdioServerTransport());
+  }
   return "stdio";
+}
+
+/** The serveStdio handle, when stdio was started from a factory. */
+let stdio: StdioServerHandle | null = null;
+
+/** Close the stdio connection and its server (no-op when none is open). */
+export async function closeStdioTransport(): Promise<void> {
+  const handle = stdio;
+  stdio = null;
+  await handle?.close();
 }
 
 /** The listening HTTP server, when the http transport is active. */
 let httpListener: Server | null = null;
 /** Its session manager. */
 let sessions: HttpSessionManager | null = null;
+/** Its 2026-07-28 request handler, when started from a factory. */
+let modernHandler: ModernHttpHandler | null = null;
 /** True once shutdown began: probes answer 503, new requests are refused. */
 let draining = false;
 
@@ -97,18 +126,23 @@ export async function closeHttpTransport(
   httpListener = null;
   draining = true;
   const manager = sessions;
+  const modern = modernHandler;
   const closed = new Promise<void>((resolve) =>
     listener.close(() => resolve()),
   );
   listener.closeIdleConnections();
   if (manager) {
     const deadline = Date.now() + drainMs;
-    while (manager.inFlightPosts > 0 && Date.now() < deadline) {
+    const inFlight = (): number =>
+      manager.inFlightPosts + (modern?.inFlight ?? 0);
+    while (inFlight() > 0 && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 25));
     }
     await manager.closeAll();
   }
+  await modern?.close();
   sessions = null;
+  modernHandler = null;
   listener.closeAllConnections();
   await closed;
   setLogSink(null);
@@ -231,7 +265,10 @@ async function readyProbe(): Promise<ConnectionProbe> {
   return result;
 }
 
-async function startHttp(factory: ServerFactory): Promise<void> {
+async function startHttp(
+  factory: ServerFactory,
+  serveModern: boolean,
+): Promise<void> {
   const port = getHttpPort();
   const host = getHttpHost();
   const token = getHttpToken();
@@ -265,12 +302,24 @@ async function startHttp(factory: ServerFactory): Promise<void> {
     );
   }
 
+  // H-7 (N-35): a session-less POST that is not `initialize` is a
+  // 2026-07-28 request — served statelessly, one server per request.
+  const modern = serveModern
+    ? new ModernHttpHandler({
+        factory: (runtime) => factory(runtime),
+        parent: currentRuntime(),
+        keepAliveMs: getHttpKeepAliveMs(),
+      })
+    : null;
   const manager = new HttpSessionManager({
     factory,
     parent: currentRuntime(),
     ttlMs: getHttpSessionTtlSec() * 1000,
     keepAliveMs: getHttpKeepAliveMs(),
     maxSessions: getHttpMaxSessions(),
+    ...(modern
+      ? { modern: (req, res, body) => modern.handle(req, res, body) }
+      : {}),
   });
 
   const route = async (
@@ -366,6 +415,7 @@ async function startHttp(factory: ServerFactory): Promise<void> {
     });
   } catch (error) {
     await manager.closeAll();
+    await modern?.close();
     throw error;
   }
   // H-7: a later server error (EMFILE, a socket fault) is logged, never an
@@ -375,6 +425,7 @@ async function startHttp(factory: ServerFactory): Promise<void> {
   });
   httpListener = httpServer;
   sessions = manager;
+  modernHandler = modern;
   draining = false;
   // Log lines reach the MCP client of the session they were logged in.
   setLogSink(sessionLogSink);

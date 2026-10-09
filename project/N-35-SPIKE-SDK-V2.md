@@ -87,6 +87,13 @@ the elicitation flows need the MRTR `input_required` path first.
    factory options extensible (`inputRequired`, `requestState` for MRTR).
    Stateless HTTP replaces `Mcp-Session-Id`; `Mcp-Method` / `Mcp-Name`
    headers come with it.
+   **Done:** stdio runs on `serveStdio` (both eras). HTTP routes by request:
+   `initialize` or an `Mcp-Session-Id` stays on the sessionful 2025 manager
+   (no breaking change), any other session-less POST goes to
+   `createMcpHandler({ legacy: 'reject' })` with one server and one child
+   runtime per request (`src/mcp/http-modern.ts`). `buildMcpServer(runtime,
+serverOptions)` takes extra server options. tools/list is identical on both
+   wires; the legacy byte budget is unchanged (delta 0).
 2. **MRTR `input_required`** for the elicitation flows (credentials, confirm),
    on top of the factory.
 3. **Log bridge (M-8)** off the deprecated logging API.

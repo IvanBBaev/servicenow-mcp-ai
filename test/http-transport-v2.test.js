@@ -15,6 +15,10 @@ import path from "node:path";
 import { parseEnv as parseEnvFile } from "node:util";
 import { McpServer } from "@modelcontextprotocol/server";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import {
+  Client as ModernClient,
+  StreamableHTTPClientTransport as ModernHTTPClientTransport,
+} from "@modelcontextprotocol/client";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 import {
@@ -448,6 +452,44 @@ test("e2e: DELETE ends a session (404 afterwards) and the client can reconnect",
       await again.client.ping();
     } finally {
       await again.client.close();
+    }
+  });
+});
+
+test("e2e: a 2026-07-28 client is served statelessly beside a 2025 session (H-7)", async () => {
+  await withHttp({}, async (_port, url) => {
+    const legacy = await connectClient(url);
+    const sessionIds = [];
+    const transport = new ModernHTTPClientTransport(new URL(url), {
+      fetch: async (u, init) => {
+        const res = await realFetch(u, init);
+        sessionIds.push(res.headers.get("mcp-session-id"));
+        return res;
+      },
+    });
+    const modern = new ModernClient(
+      { name: "h7-modern", version: "0" },
+      { versionNegotiation: { mode: "auto" } },
+    );
+    await modern.connect(transport);
+    try {
+      assert.equal(modern.getProtocolEra(), "modern");
+      assert.equal(modern.getNegotiatedProtocolVersion(), "2026-07-28");
+      const names = async (client) =>
+        (await client.listTools()).tools.map((t) => t.name).sort();
+      assert.deepEqual(await names(modern), await names(legacy.client));
+      payload(
+        await modern.callTool({ name: "servicenow_get_status", arguments: {} }),
+      );
+      assert.ok(sessionIds.length > 0);
+      assert.ok(
+        sessionIds.every((id) => id === null),
+        "no session id on the modern wire",
+      );
+      assert.equal(httpSessionInfo().sessions, 1, "only the 2025 session");
+    } finally {
+      await modern.close();
+      await legacy.client.close();
     }
   });
 });

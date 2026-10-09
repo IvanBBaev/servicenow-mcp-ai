@@ -30,7 +30,9 @@ import { createLogBridge } from "./log-bridge.js";
  * A session is created by an `initialize` POST without a session id, dropped
  * on DELETE, and closed by the sweeper once it has been idle (no request in
  * flight, none started) for the TTL. A request for an unknown or expired
- * session gets 404 / -32001, which tells a client to re-initialize.
+ * session gets 404 / -32001, which tells a client to re-initialize. Any
+ * other session-less POST is a 2026-07-28 request: with the `modern` option
+ * it is handed to the stateless leg (`http-modern.ts`), otherwise it gets 400.
  *
  * Every request handed to a session runs inside `runInSession` and
  * `runWithRuntime`, so the session's profile (`use_instance` over HTTP), its
@@ -55,6 +57,16 @@ export interface HttpSessionOptions {
   maxSessions: number;
   /** Clock, injectable for tests. */
   now?: () => number;
+  /**
+   * N-35: serves a session-less POST that is not `initialize` — the
+   * 2026-07-28 per-request envelope (`http-modern.ts`). Without it such a
+   * POST gets 400, as before.
+   */
+  modern?: (
+    req: IncomingMessage,
+    res: ServerResponse,
+    body: unknown,
+  ) => Promise<void>;
 }
 
 interface HttpSession {
@@ -180,6 +192,10 @@ export class HttpSessionManager {
       } else {
         jsonRpcError(res, 400, -32700, "Parse error: invalid JSON");
       }
+      return;
+    }
+    if (!isInitialize(body) && this.options.modern) {
+      await this.options.modern(req, res, body);
       return;
     }
     if (!isInitialize(body)) {
