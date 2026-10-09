@@ -1112,20 +1112,20 @@ items:
     title: "one channel per payload"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: "A"
-    done: null
+    done: "2026-10-09"
     gates: ["O-21"]
-    notes: "Phase A, default flip waits for O-21. Text summary + `structuredContent` only for capable clients on the 30 `okStructured` tools (TK-10). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Opt-in done 2026-10-09 (9d92986, O-21 (d)).** `SN_STRUCTURED=false` publishes no `outputSchema` and drops `structuredContent` from every result (`runSpec`, task handles), so each payload goes out once, as text; MCP Apps views fall back to the text. Default unchanged (0 B); off, `core` −3,392 B and `all` −15,914 B. The structured-only flip stays parked (TK-51). Was: Phase A, default flip waits for O-21. Text summary + `structuredContent` only for capable clients on the 30 `okStructured` tools (TK-10). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-40"
     title: "compact records and token-aware caps"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "A"
     done: null
     gates: ["O-21"]
-    notes: 'Bytes per call in E-5 metrics (TK-14) are covered by N-57; `format:"table"` / display fields by N-62, the file result by N-61. Phase A (metrics) then C, defaults wait for O-21. `format:"table"`, `fields:"display"`, `SN_MAX_RESULT_TOKENS` + cursor, automatic file result, bytes per call in E-5 metrics (TK-11 … TK-14). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).'
+    notes: '**Split 2026-10-09 (owner):** `format:"table"` / display fields done by N-62, the automatic file result by N-61, bytes per call in E-5 metrics (TK-14) by N-57. `SN_MAX_RESULT_TOKENS` dropped: the character cap (`SN_MAX_RESULT_CHARS`) matches Claude Code. `format:"table"` on the other list tools waits for N-57 data or the N-18 eval (O-10). Open: `next_offset` in the `query_table` result when a page or a size cap cuts it (approved, 0 B tools/list). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).'
   - id: "N-41"
     title: "doc corpus index and machine-readable roadmap"
     pillar: "N"

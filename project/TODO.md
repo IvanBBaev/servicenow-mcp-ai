@@ -279,7 +279,7 @@
       `tools/list` vs M-5 / N-63. O-21 (**decided 2026-10-09**): (a) compact reads (N-62) are opt-in only, defaults stay
       byte-identical; (b) 48 k result cap with the automatic file result on, and the `list_tables`
       default limit ruled a bug fix (N-61, done); (c) Claude Code `_meta` hints (N-65) on by default
-      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63).
+      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. Done 2026-10-09: (a) fc2f949, (c) b9e46e7, (d) 9d92986 (`SN_STRUCTURED=false`). O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63).
 - [ ] **Owner decisions from batch 11 (D-4, 2026-09-26):** (a) client syntaxes not verified
       against a live client — Zed `context_servers` (`"source": "custom"` + flat `command` /
       `args`; older Zed builds nest `command: {path, args}`), the JetBrains AI Assistant menu path
