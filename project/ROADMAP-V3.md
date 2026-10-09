@@ -69,7 +69,8 @@ as `3.0.0-beta.n` under the npm `next` tag.
 - **E — Engineering platform.** Runtime floor, toolchain, architecture debt, tests, observability.
 - **O — Owner gates.** Decisions and actions only the owner can take.
 - **P — SDK parity epic.** Parity with every artefact `@servicenow/sdk` (Fluent) can describe;
-  plan in [SDK-PARITY.md](SDK-PARITY.md). Post-3.0 (3.x/4.0).
+  plan in [SDK-PARITY.md](SDK-PARITY.md). Post-3.0 (3.x/4.0). Fluent generation (P-26 … P-29) is
+  dropped — syncrona owns it ([ADR 0010](adr/0010-drop-fluent-generation.md)).
 - **N — Next surface.** What a ServiceNow developer or admin still cannot do through the server
   (upgrade readiness, access explanation, Instance Scan, CI/CD promotion, approvals / SLAs, ops
   v2, translations, reports / PA, sampling, record watch); analysis and plan in
@@ -1491,7 +1492,7 @@ Service Portal, Flow Designer/playbooks, legacy workflow, catalog, quality, AI a
 design decisions and acceptance criteria: [SDK-PARITY.md](SDK-PARITY.md). Baseline `@servicenow/sdk`
 4.12.2 (4.13.0 on `next`). Rows 55–83 above track P-1…P-29 in six phases (P0 registry and
 detection → P1 read/explain breadth → P2 flows, UIB, portal, workflow → P3 analyse/snapshot/docs →
-P4 writes → P5 Fluent generation); weighted effort 64 (S=1, M=2, L=4). Tool delta +9 tools, +2
+P4 writes → P5 Fluent generation, dropped 2026-10-10 by [ADR 0010](adr/0010-drop-fluent-generation.md)); weighted effort 64 (S=1, M=2, L=4). Tool delta +9 tools, +2
 packages. Placement: nothing in the 3.0 cut; P0–P5 on 3.x; only the P-22 `deny` default is a 4.0
 breaking change. Touch points with the S pillar (INSTANCE-DOCS §9): P-10 and P-21 render through
 S-14's `src/api/mermaid.ts`, P-21 extends S-15's `document_app`, P-26 writes under the S-14 store

@@ -7,6 +7,13 @@ and a read of `src/` in the 2026-09-23 working tree. Table and field names below
 inventory; anything it marked (U) stays **unverified** here and must be confirmed on a live instance
 (gate O-5) before an item designs around it.
 
+> **2026-10-10:** the **G** (generate Fluent) column and phase P5 (P-26 … P-29) are **dropped**
+> ([ADR 0010](adr/0010-drop-fluent-generation.md), breaking row B15). `servicenow_generate_fluent`, the emitters, the round-trip
+> oracle and the `@servicenow/sdk` dev dependency were removed: turning an app into Fluent source
+> and keeping it in source control is syncrona's job (`syncrona fluent transform`). The read,
+> explain, analyse, snapshot and write columns, the registry `sdkApi` field, P-4 drift tracking
+> and the P-3 / P-22 SDK-managed guard stay. The text below is kept as the original plan.
+
 ## 1. Purpose and scope
 
 The server should be able to read, explain, analyse, snapshot, write (safely) and emit as Fluent
@@ -387,7 +394,7 @@ M-4 completions and a `servicenow://artifact-types` reference resource.
 | `explain_artifact`      | `artifacts`       | X    | Decoded, structured view for any registered type                             |
 | `artifact_dependencies` | `artifacts`       | A    | Outbound + inbound edges; `format:"mermaid"`                                 |
 | `upsert_artifact`       | `artifacts`       | W    | Plan/apply, child-aware; same read-only-profile rule as `create_record`      |
-| `generate_fluent`       | `artifacts`       | G    | Emits `.now.ts` under `<SN_DOCS_DIR>/fluent/` or returns text                |
+| `generate_fluent`       | `artifacts`       | G    | Removed 2026-10-10 (ADR 0010, B15); use syncrona `fluent transform`          |
 | `explain_flow`          | `flows`           | X    | `kind: flow \| subflow \| action \| playbook \| workflow`; Mermaid           |
 | `explain_ui_experience` | `ui` (new)        | X    | Experience → routes → variants → macroponent tree                            |
 | `explain_portal`        | `ui`              | X    | Portal → pages → layout → instances → widgets → dependencies                 |
@@ -788,6 +795,8 @@ mermaid: true})` renders each changed record of `flow`, `subflow`, `flow_action`
 
 ### P5 — Fluent generation and round-trip
 
+> **Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): the code below was removed; kept for the record.
+
 #### P-26 — Fluent emitter core (L)
 
 - [x] `generate_fluent({artifactType, sys_id | scope})` emits `.now.ts` for every registry type with an
@@ -945,7 +954,7 @@ At the ROADMAP-V3 effort key that is roughly 20–25 single-maintainer weeks.
       P-10, P-14, P-25.
 - [ ] **O-6** SDK-managed writes: accept `warn` in 3.x → `deny` in 4.0, and the authority order
       (declared list → `now.config.json` → heuristics).
-- [ ] **O-7** Fluent generation: may the repo take `@servicenow/sdk` as a dev dependency (types +
+- [x] **O-7** (approved 2026-10-01, superseded 2026-10-10 by [ADR 0010](adr/0010-drop-fluent-generation.md): no SDK dev dependency) Fluent generation: may the repo take `@servicenow/sdk` as a dev dependency (types +
       round-trip builds in CI), and which SDK major does generated code target?
 - [ ] **O-8** Tool budget: approve +9 tools / +2 packages and their profile placement, and whether
       `list_scripts` / `get_script` become aliases of the generic tools in 4.0.

@@ -69,6 +69,10 @@
   - **Decided 2026-10-09:** **O-1 = NO-GO** — the dark Jira scaffold is deleted (E-8, B10,
     [ADR 0007](adr/0007-delete-jira-scaffold.md)); ARCH-10, ARCH-11b, ARCH-12b and ARCH-14 below
     are closed by it.
+  - **Decided 2026-10-10:** **Fluent generation dropped** — `servicenow_generate_fluent`, the
+    emitters, the P-29 oracle and the `@servicenow/sdk` dev dependency are removed (B15,
+    [ADR 0010](adr/0010-drop-fluent-generation.md)); Fluent generation and source control belong to syncrona. O-7 has no consumer
+    left. The P-26 … P-29 owner questions of batches 15–17 below are moot.
 - [x] **H-10 · HTTP client resilience + identity** — done 2026-09-23 (uncommitted): one
       `getDispatcher(host)` for proxy (`SN_HTTPS_PROXY` → `HTTPS_PROXY` / `HTTP_PROXY` + `NO_PROXY`)
       and TLS without a client cert, identifying `User-Agent` (+ `SN_USER_AGENT_SUFFIX`),
@@ -533,7 +537,7 @@
   - The filter-field dictionary guard adds two cached metadata reads each for `integrations` and
     `transactions`, also in `overview`.
 - [ ] **Owner decisions from batch 17 (2026-10-01, uncommitted).**
-  - P-29: `SPPage`, flow variables, stages, action inputs / outputs and process inputs take no `$id`
+  - ~~P-29~~ (moot 2026-10-10, ADR 0010): `SPPage`, flow variables, stages, action inputs / outputs and process inputs take no `$id`
     in SDK 4.12.2, so `now-sdk build` mints new sys_ids — installing generated Fluent on the
     source instance can duplicate those records. Accept with the per-file note, or refuse to emit
     pages until the SDK supports `$id`? O-2 / O-5: fixtures for the per-field instance comparison.

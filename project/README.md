@@ -27,7 +27,7 @@ Status legend:
 | [`TOKEN-DOCS-ANALYSIS-2026-10.md`](TOKEN-DOCS-ANALYSIS-2026-10.md)           | Token economy, docs pipeline and agent-harness analysis.                                                                                | Findings TK-01…TK-33; items N-35…N-56; gates O-19…O-22                                           |
 | [`TOKEN-OPTIMIZATION-PLAN-2026-10.md`](TOKEN-OPTIMIZATION-PLAN-2026-10.md)   | Implementation-ready token optimisation plan (proposes breaking item B14).                                                              | Findings TK-34…TK-51; items N-57…N-65                                                            |
 | [`PROTOCOL-BREAKING-REPORT-2026-10.md`](PROTOCOL-BREAKING-REPORT-2026-10.md) | Owner report: protocol 2026-07-28 impact (O-19) and the breaking register, non-breaking options. | — |
-| [`SDK-PARITY.md`](SDK-PARITY.md)                                             | The ServiceNow SDK / Fluent parity epic: detailed plan behind the `P-` pillar.                                                          | P-1…P-29 (detail); gates O-5…O-9                                                                 |
+| [`SDK-PARITY.md`](SDK-PARITY.md)                                             | The ServiceNow SDK parity epic: detailed plan behind the `P-` pillar (Fluent generation dropped, ADR 0010).                                                          | P-1…P-29 (detail); gates O-5…O-9                                                                 |
 | [`adr/`](adr/README.md) | Architecture decision records: one per decided owner gate, plus the imported `ARCH-10` / `ARCH-14` (N-44). | ADR numbers `0001`… (`NNNN-kebab-title.md`) |
 
 ## Reference documents
