@@ -163,18 +163,32 @@ export async function docsList(opts: DocsListOptions = {}): Promise<{
   return { dir: root, count: files.length, files, entries };
 }
 
-/** The media type of a readable docs file (ID-21). */
-export type DocMimeType = "text/markdown" | "application/json";
+/**
+ * N-65: the media types of the files a file delivery writes (S-11 exports
+ * and diagrams), by extension — readable through the docs resource.
+ */
+export const DELIVERY_MIME = {
+  ".json": "application/json",
+  ".jsonl": "application/x-ndjson",
+  ".csv": "text/csv",
+  ".mmd": "text/plain",
+} as const;
+
+/** The media type of a readable docs file (ID-21, N-65). */
+export type DocMimeType =
+  | "text/markdown"
+  | (typeof DELIVERY_MIME)[keyof typeof DELIVERY_MIME];
 
 /**
  * Read one Markdown document or JSON companion (ID-21). A file over
  * SN_DOCS_MAX_FILE_BYTES is returned truncated to that many bytes, flagged
  * `truncated: true` with its full size in `bytes`. With `profile`, the path
- * is relative to `<profile>/`.
+ * is relative to `<profile>/`. With `deliveries`, the files a file delivery
+ * writes (`.jsonl`, `.csv`, `.mmd`) are readable too (N-65).
  */
 export async function docsRead(
   relPath: string,
-  opts: { profile?: string } = {},
+  opts: { profile?: string; deliveries?: boolean } = {},
 ): Promise<{
   path: string;
   content: string;
@@ -183,11 +197,15 @@ export async function docsRead(
   bytes?: number;
 }> {
   const rel = scoped(relPath, opts.profile);
-  const abs = resolveDocPath(rel, [".md", ".json"]);
+  const abs = resolveDocPath(
+    rel,
+    opts.deliveries ? [".md", ...Object.keys(DELIVERY_MIME)] : [".md", ".json"],
+  );
+  const ext = path.extname(abs).toLowerCase();
   const mimeType: DocMimeType =
-    path.extname(abs).toLowerCase() === ".json"
-      ? "application/json"
-      : "text/markdown";
+    ext === ".md"
+      ? "text/markdown"
+      : DELIVERY_MIME[ext as keyof typeof DELIVERY_MIME];
   const max = getDocsMaxFileBytes();
   const head = await readHead(abs, max);
   if (!head) throw new ServiceNowError(`Document not found: ${rel}`, 404);

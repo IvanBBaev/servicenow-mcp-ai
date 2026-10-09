@@ -213,7 +213,10 @@ export function supportsFileFormat(input: z.ZodRawShape | undefined): boolean {
 
 /** The size the cap measures: the structured payload, else the text. */
 export function resultChars(result: ToolResult): number {
-  const text = result.content.reduce((n, c) => n + c.text.length, 0);
+  const text = result.content.reduce(
+    (n, c) => n + (c.type === "text" ? c.text.length : 0),
+    0,
+  );
   return result.structuredContent === undefined
     ? text
     : Math.max(text, JSON.stringify(result.structuredContent).length);
@@ -239,7 +242,9 @@ export function capResult(
   const noteFor = (prior: string, list: string[]): string =>
     `${prior}Result too large (${chars} chars > ${max}); kept ${list.join(", ")}. Narrow the request (filters, fields, limit)${options.fileHint ? ' or pass format:"file" to write the full result to a file under SN_DOCS_DIR' : ""}.`;
 
-  const source = result.content[0]!.text;
+  const first = result.content[0]!;
+  if (first.type !== "text") return result;
+  const source = first.text;
   let payload: unknown;
   try {
     payload = JSON.parse(source);

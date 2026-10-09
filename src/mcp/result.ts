@@ -11,9 +11,24 @@ import { redactRecords } from "./redact.js";
 import { redactValue } from "../core/redaction.js";
 import type { SnRecord } from "../api/table.js";
 
+/** A text content block — what every handler returns. */
+export type TextBlock = { type: "text"; text: string };
+
+/**
+ * N-65: a link to a file the result wrote to the docs store, added after the
+ * text block by runSpec (file-link.ts); the client reads it as a resource.
+ */
+export type ResourceLinkBlock = {
+  type: "resource_link";
+  uri: string;
+  name: string;
+  mimeType?: string;
+  size?: number;
+};
+
 /** The shape every tool handler returns to the MCP client. */
 export type ToolResult = {
-  content: { type: "text"; text: string }[];
+  content: (TextBlock | ResourceLinkBlock)[];
   structuredContent?: Record<string, unknown>;
   isError?: boolean;
   /** MCP result metadata (H-11: `environment` of a marked profile). */

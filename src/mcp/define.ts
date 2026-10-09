@@ -25,6 +25,7 @@ import {
 import { createProgressSink, type ProgressNotification } from "./progress.js";
 import { fail, type ToolResult } from "./result.js";
 import { capResult, supportsFileFormat } from "./result-cap.js";
+import { withFileLink } from "./file-link.js";
 import { planArgsHash } from "./plan-token.js";
 import { createSecretRegistry } from "../core/secret-columns.js";
 import { confirmDestructiveApply } from "./confirm.js";
@@ -319,9 +320,11 @@ async function runSpecInner(
     const capped = capResult(marked, {
       fileHint: supportsFileFormat(spec.input),
     });
+    // N-65: a file delivery links the written file as a resource.
+    const linked = withFileLink(capped);
     // N-39: SN_STRUCTURED=false — the payload goes out once, as text.
-    if (!structuredResults()) return withoutStructuredContent(capped);
-    return spec.output ? withStructuredContent(spec, capped) : capped;
+    if (!structuredResults()) return withoutStructuredContent(linked);
+    return spec.output ? withStructuredContent(spec, linked) : linked;
   } catch (error) {
     const cancelled = call.signal?.aborted === true;
     logger.warn(`tool ${spec.name} ${cancelled ? "cancelled" : "error"}`, {
@@ -424,7 +427,8 @@ function withStructuredContent(
 ): ToolResult {
   if (result.isError) return withoutStructuredContent(result);
   if (result.structuredContent !== undefined) return result;
-  const text = result.content[0]?.text;
+  const first = result.content[0];
+  const text = first?.type === "text" ? first.text : undefined;
   try {
     const parsed: unknown = text === undefined ? undefined : JSON.parse(text);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {

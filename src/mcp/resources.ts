@@ -871,7 +871,7 @@ export function registerDocsResources(server: McpServer): void {
       // `.json` (application/json) documents; each listed entry and each
       // read declares its own (docsMime / docsRead agree on the extension).
       description:
-        "A Markdown or JSON document from the local docs store, wrapped in an untrusted-content boundary. URI: servicenow://docs/<path>.",
+        "A Markdown or JSON document (or an exported .jsonl/.csv/.mmd file) from the local docs store, wrapped in an untrusted-content boundary. URI: servicenow://docs/<path>.",
     },
     async (uri, variables) => {
       const raw = variables.path;
@@ -879,7 +879,10 @@ export function registerDocsResources(server: McpServer): void {
       try {
         if (!docPath) throw badUri("No document path specified in the URI.");
         docPath = decodeURIComponent(docPath);
-        const { content, mimeType } = await docsRead(docPath);
+        // N-65: the files a file delivery links (resource_link) read here too.
+        const { content, mimeType } = await docsRead(docPath, {
+          deliveries: true,
+        });
         return {
           contents: [
             {
