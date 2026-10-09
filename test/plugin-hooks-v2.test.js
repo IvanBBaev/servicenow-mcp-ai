@@ -313,6 +313,43 @@ test("truncation hint: names the tool's own knobs and counts, never record data"
   assert.doesNotMatch(other, /offset|format|fields/);
 });
 
+test("truncation hint: a row-capped result names count of total", () => {
+  const capped = JSON.stringify({
+    count: 100,
+    total: 2400,
+    truncated: true,
+    records: [],
+  });
+  const hint = truncationHint({
+    tool_name: `${PREFIX}servicenow_query_table`,
+    tool_response: [{ type: "text", text: capped }],
+  });
+  assert.match(hint, /\(100 of 2400 shown\)/);
+
+  // A total that is not larger than the count adds no size.
+  const flat = truncationHint({
+    tool_name: `${PREFIX}servicenow_query_table`,
+    tool_response: '{"count":5,"total":5,"truncated":true}',
+  });
+  assert.match(flat, /returned a truncated result; /);
+});
+
+test("truncation hint: the shapes Claude Code 2.1.295 passes", () => {
+  // Captured live: a text-only result arrives as its content blocks, a
+  // result with structuredContent as that object serialised to a string.
+  for (const tool_response of [
+    [{ type: "text", text: truncatedText }],
+    truncatedText,
+  ])
+    assert.match(
+      truncationHint({
+        tool_name: `${PREFIX}servicenow_query_table`,
+        tool_response,
+      }),
+      /\(62 of 500 shown\)/,
+    );
+});
+
 test("truncation hint: reads every result shape a client may pass", () => {
   const shapes = [
     truncatedText,

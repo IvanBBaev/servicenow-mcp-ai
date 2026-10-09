@@ -6,10 +6,10 @@
 // Inside a subagent (`agent_id` in the hook input) format:"file" is left out.
 //
 // It only reads the tool result the client hands it — no network, no
-// dependency, no file access — and only the top-level `truncated`, `returned`
-// and `count` of a JSON payload; nothing from the records reaches the hint.
-// Anything it does not understand (another tool, an error, a result shape it
-// cannot parse) prints nothing.
+// dependency, no file access — and only the top-level `truncated`,
+// `returned`, `count` and `total` of a JSON payload; nothing from the records
+// reaches the hint. Anything it does not understand (another tool, an error,
+// a result shape it cannot parse) prints nothing.
 import { pathToFileURL } from "node:url";
 
 /**
@@ -115,12 +115,17 @@ export function truncationHint(event) {
   );
   if (!truncated) return undefined;
 
+  // A size-capped payload says `returned` of `count`; a row-capped one
+  // (SN_MAX_RECORDS, a list limit) says `count` of the instance's `total`.
   const returned = count(truncated.returned);
-  const total = count(truncated.count);
+  const fetched = count(truncated.count);
+  const total = count(truncated.total);
   const size =
-    returned !== undefined && total !== undefined
-      ? ` (${returned} of ${total} shown)`
-      : "";
+    returned !== undefined && fetched !== undefined
+      ? ` (${returned} of ${fetched} shown)`
+      : fetched !== undefined && total !== undefined && total > fetched
+        ? ` (${fetched} of ${total} shown)`
+        : "";
   const knobs = [];
   if (FIELDS_TOOLS.includes(name)) knobs.push("select fewer `fields`");
   knobs.push("tighten the filter or lower `limit`");
