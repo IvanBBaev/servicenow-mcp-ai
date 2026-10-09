@@ -243,7 +243,7 @@
       the SDK minor while M-9 stays in, or drop M-9 on the first breaking change? (f) The ATF
       `wait_seconds` loop and a task both bound a run — cap `wait_seconds` differently when
       `run_as_task` is set? (g) Add `document_instance` / `document_app` to `TASK_TOOLS` once
-      S-15 lands (ID-15).
+      S-15 lands (ID-15). Done 2026-10-09.
 - [ ] **Owner decisions from batch 10 (P-16, 2026-09-26):** (a) a new opt-in `ui` package for
       `servicenow_explain_portal` (SDK-PARITY §5(d)) — or fold it into `artifacts`? (b) Every SP
       field name is unverified (O-5): `sp_column.size`, rows nested in a column via

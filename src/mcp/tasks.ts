@@ -76,6 +76,8 @@ export const TASK_TOOLS: ReadonlySet<string> = new Set([
   "servicenow_run_atf_suite",
   "servicenow_check_code_health",
   "servicenow_query_table",
+  "servicenow_document_app",
+  "servicenow_document_instance",
 ]);
 
 /** True when SN_EXPERIMENTAL_TASKS is `1` / `true` (read at call time). */
@@ -344,7 +346,7 @@ const runAsTaskParam = z
   .boolean()
   .optional()
   .describe(
-    "EXPERIMENTAL (SN_EXPERIMENTAL_TASKS): return a task handle at once and run in the background; poll tasks/get, fetch the result with tasks/result (kept 1 h), stop it with tasks/cancel.",
+    "EXPERIMENTAL: run as a background task, return its handle; poll tasks/get, read tasks/result (kept 1 h); tasks/cancel stops it.",
   );
 
 /**

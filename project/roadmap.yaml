@@ -468,7 +468,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** `src/mcp/tasks.ts` behind `SN_EXPERIMENTAL_TASKS=1`: `run_as_task` on six long-running tools, task store (1 h TTL, redacted results), `tasks/cancel` aborts the request. Open: owner questions (TODO batch 10)."
+    notes: "**Done 2026-09-26 (local, uncommitted).** `src/mcp/tasks.ts` behind `SN_EXPERIMENTAL_TASKS=1`: `run_as_task` on six long-running tools, task store (1 h TTL, redacted results), `tasks/cancel` aborts the request; 2026-10-09 also `document_app` / `document_instance` (ID-15). Open: owner questions (TODO batch 10)."
   - id: "S-14"
     title: "docs store v2 + generator depth"
     pillar: "S"

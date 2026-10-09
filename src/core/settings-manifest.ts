@@ -795,7 +795,7 @@ const BASE_SETTINGS: SettingSpec[] = [
       defaultText: "`0`",
       example: "0",
       description:
-        'M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `check_code_health` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK\'s experimental task API.',
+        'M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `check_code_health`, `document_app`, `document_instance` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK\'s experimental task API.',
     },
     ["1", "true"],
     ["0", "false"],
