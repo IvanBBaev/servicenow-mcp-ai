@@ -707,7 +707,7 @@
           },
           "kinds": {
             "description": "Instance-wide documents to add, each as <kind>.md.",
-            "maxItems": 4,
+            "maxItems": 5,
             "type": "array",
             "items": {
               "type": "string",
@@ -715,7 +715,8 @@
                 "security",
                 "catalog",
                 "integrations",
-                "access_review"
+                "access_review",
+                "upgrade"
               ]
             }
           },

@@ -1670,6 +1670,7 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 | `servicenow_security_posture`      | `scope`, `profile` (both optional) | ACL scan and hardening compliance (`check_code_health`), the instance `security` document, then the cross-scope access of one app (`docs` package for the documents). |
 | `servicenow_safe_write`             | `change`, `table` (optional) | Write mode first, then read → plan → apply after approval → verify → revert path. In apply mode (`SN_WRITE_MODE=apply`) there is no preview, so the model must ask the user before every write call; a prod profile adds a caution. |
 | `servicenow_drift_review`           | `a`, `b`, `update_set` (last two optional) | Snapshot the reference profile, compare two profiles (or one with its snapshot), review an update set, then drill into differences; security-relevant drift first. |
+| `servicenow_upgrade_review`         | `upgrade` (optional) | Upgrade history, the unresolved skipped records of an upgrade, one skip's base vs customer versions, store apps with an update (`instance`), then the `upgrade` document (`docs`). |
 | `servicenow_schema_impact`          | `kind` (`table` / `field` / `script`), `name` | Where-used (structural and text), the logic and events on the table, an optional ER diagram → dependants and a risk call. |
 | `servicenow_discover_instance`      | `depth` (`overview` / `apps` / `artefacts`), `profile` (both optional) | Runs `servicenow_document_instance` at that depth, reads the result back and summarises counts, scopes and caveats. |
 

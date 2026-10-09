@@ -81,6 +81,12 @@ import {
 } from "./doc-access-review.js";
 import { type AccessReview } from "./access-review.js";
 import {
+  type UpgradeDocData,
+  collectUpgrade,
+  renderUpgradeDoc,
+  upgradeSources,
+} from "./doc-upgrade.js";
+import {
   type CatalogDocData,
   collectCatalog,
   renderCatalog,
@@ -1288,6 +1294,18 @@ const accessReviewKind: DocKind<AccessReview> = {
   sources: accessReviewSources,
 };
 
+const upgradeKind: DocKind<UpgradeDocData> = {
+  title: "Upgrade readiness",
+  version: "1",
+  requires: ["docs", "instance"],
+  generator: "servicenow_document_instance",
+  path: () => "upgrade.md",
+  collect: () => collectUpgrade(),
+  render: renderUpgradeDoc,
+  singleton: true,
+  sources: upgradeSources,
+};
+
 const instanceKind: DocKind<InstanceDocData> = {
   title: "Instance",
   version: "1",
@@ -1376,6 +1394,7 @@ export const DOC_KINDS = {
   catalog: catalogKind,
   integrations: integrationsKind,
   access_review: accessReviewKind,
+  upgrade: upgradeKind,
   instance: instanceKind,
   artifact_types: artifactTypesKind,
   discovery_overview: discoveryOverviewKind,
@@ -1392,6 +1411,7 @@ export const INSTANCE_DOC_KINDS = [
   "catalog",
   "integrations",
   "access_review",
+  "upgrade",
 ] as const satisfies readonly DocKindId[];
 
 export type InstanceDocKindId = (typeof INSTANCE_DOC_KINDS)[number];
@@ -1597,7 +1617,7 @@ export interface DocumentInstanceOptions {
   tables?: string[];
   /** Application scopes to document (apps/<scope>.md each). */
   apps?: string[];
-  /** Optional instance-wide kinds (security, catalog, integrations). */
+  /** Optional instance-wide kinds (INSTANCE_DOC_KINDS). */
   kinds?: InstanceDocKindId[];
   /** S-16 discovery tier; omitted, no `discovery/` files are written. */
   depth?: DiscoveryDepth;

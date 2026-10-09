@@ -433,6 +433,7 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
     "servicenow_schema_impact",
     "servicenow_security_posture",
     "servicenow_uib_page_review",
+    "servicenow_upgrade_review",
     "servicenow_why_is_it_slow",
   ]);
   // The overview prompt uses only admin tools: always listed.
@@ -460,9 +461,11 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
     "servicenow_schema_impact",
   ]);
   // MC-3: drift review needs instance (update sets and artefacts are optional).
+  // N-1: so does the upgrade review (the docs step is optional).
   assert.deepEqual(await promptNames(["instance"]), [
     "servicenow_drift_review",
     OVERVIEW,
+    "servicenow_upgrade_review",
   ]);
   // N-19: security posture needs codecheck only (docs steps are optional).
   assert.deepEqual(await promptNames(["codecheck"]), [

@@ -246,6 +246,7 @@ export function registerPrompts(
   // MC-3: the plugin skills as prompts, for clients without the plugin.
   registerSafeWrite(gated(server, on, { all: ["table"] }));
   registerDriftReview(gated(server, on, { all: ["instance"] }));
+  registerUpgradeReview(gated(server, on, { all: ["instance"] }));
   registerSchemaImpact(gated(server, on, { all: ["scripts"] }));
   registerDiscoverInstance(gated(server, on, { all: ["docs"] }));
 }
@@ -664,6 +665,54 @@ function registerDriftReview(server: McpServer): void {
                   : `5. If an update set is in question: ${TOOLS.list_update_sets}, then ${TOOLS.compare_update_set} and ${TOOLS.get_update_set} (the 'updatesets' package).`,
                 `6. Drill into a difference with ${TOOLS.get_artifact} or ${TOOLS.explain_artifact} on each side (the 'artifacts' package).`,
                 "6. Report the differences as added / removed / changed per artefact type, security-relevant items (ACLs, roles, cross-scope privileges) first, and name the update set or manual change that would reconcile each. Skip a step whose package is off and say so.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/** N-1: upgrade readiness — history, skipped records, store app updates. */
+function registerUpgradeReview(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_upgrade_review",
+    {
+      title: "Review ServiceNow upgrade readiness",
+      description:
+        "Guide the assistant through an upgrade review: the upgrade history, the unresolved skipped records of an " +
+        "upgrade, one skip's base vs customer versions, and the store apps with an update (the 'instance' package).",
+      argsSchema: {
+        upgrade: z
+          .string()
+          .max(ARG_MAX)
+          .optional()
+          .describe("Upgrade sys_id to review; omit for the newest."),
+      },
+    },
+    (args) => {
+      const upgrade = args.upgrade ? inlineArg(args.upgrade) : undefined;
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Review the upgrade readiness of this ServiceNow instance${upgrade ? ` for upgrade ${upgrade}` : ""}. Use the servicenow_* tools; this review is read-only. ${TOOLS.review_upgrade} needs the 'instance' package (SN_TOOL_PACKAGES); skip a step whose package is off and say so. Base every finding on values read from the instance.`,
+                "",
+                upgrade
+                  ? `1. History: ${TOOLS.review_upgrade} with no arguments, to place upgrade ${upgrade} (from / to version, state) among the others.`
+                  : `1. History: ${TOOLS.review_upgrade} with no arguments; the newest upgrade is the first row. Take its sys_id for step 2.`,
+                `2. Skipped records: ${TOOLS.review_upgrade} with upgrade ${upgrade ?? "<that sys_id>"} — the unresolved skips grouped by application and artefact type.`,
+                `3. Per skip: for the records that matter most (security, business rules, script includes, client scripts first), ${TOOLS.review_upgrade} with update_name. only_customer_changes keeps the customer version; only_base_changes can revert to the new base; both_changed needs a merge — show the field diff.`,
+                `4. Store apps: ${TOOLS.review_upgrade} with store_updates true — apps with an update and the customised artefacts in their scope that the update can overwrite.`,
+                `5. To keep the result, ${TOOLS.document_instance} with kinds ['upgrade'] writes upgrade.md (the 'docs' package).`,
+                "6. Report per application: skips to revert, to keep and to merge, and the store updates to plan, with the reason read for each. Table and field names are unverified until a live check, so report an unavailable section as not checked.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
             },

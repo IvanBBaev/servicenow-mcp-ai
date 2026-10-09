@@ -207,7 +207,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `profile` | string | no | Profile: 'current' (default) or a name; writes to its docs folder. |
 | `tables` | string[] | no | Tables to write as tables/<name>.md. |
 | `apps` | string[] | no | Scopes to write as apps/<scope>.md. |
-| `kinds` | "security" \| "catalog" \| "integrations" \| "access_review"[] | no | Instance-wide documents to add, each as <kind>.md. |
+| `kinds` | "security" \| "catalog" \| "integrations" \| "access_review" \| "upgrade"[] | no | Instance-wide documents to add, each as <kind>.md. |
 | `depth` | "overview" \| "apps" \| "artefacts" | no | Discovery tier under discovery/: overview, apps (+ per-scope tables), artefacts (+ per-scope artefacts); for 'apps', else every scope. |
 | `write` | boolean | no | false returns the Markdown, writing nothing. |
 | `format` | "json" \| "file" | no | 'json' (default) or 'file': write the result JSON to <SN_DOCS_DIR>/<profile>/exports/ and return { path, bytes, preview }. |

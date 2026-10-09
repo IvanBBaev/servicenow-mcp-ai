@@ -1497,10 +1497,16 @@
           "kinds": {
             "description": "Instance-wide documents to add, each as <kind>.md.",
             "items": {
-              "enum": ["security", "catalog", "integrations", "access_review"],
+              "enum": [
+                "security",
+                "catalog",
+                "integrations",
+                "access_review",
+                "upgrade"
+              ],
               "type": "string"
             },
-            "maxItems": 4,
+            "maxItems": 5,
             "type": "array"
           },
           "profile": {
@@ -1523,7 +1529,7 @@
       },
       "sizes": {
         "description": 245,
-        "inputSchema": 1243,
+        "inputSchema": 1253,
         "paramDescriptions": 527,
         "outputSchema": 0
       }

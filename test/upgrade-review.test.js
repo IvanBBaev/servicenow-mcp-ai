@@ -457,3 +457,69 @@ test("N-1: upgrade, update_name and store_updates pick their view", async () => 
     },
   );
 });
+
+test("N-1: the upgrade document holds the history, the newest upgrade's skips and the store updates", async () => {
+  freshRuntime();
+  const { generateDocument } = await import("../build/api/document.js");
+  await withFetch(
+    tables({
+      sys_upgrade_history: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: UPG,
+              from_version: "glide-xanadu",
+              to_version: "glide-yokohama",
+              state: "Complete",
+            },
+          ],
+        }),
+      sys_upgrade_history_log: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: "a1",
+              file_name: BR,
+              target_name: BR,
+              application: "Global",
+              disposition: "Skipped",
+              resolution_status: "Not Reviewed",
+            },
+          ],
+        }),
+      sys_store_app: () => jsonResponse(200, { result: [] }),
+    }),
+    async (calls) => {
+      const doc = await generateDocument("upgrade", "upgrade", {
+        write: false,
+      });
+      assert.match(doc.path, /\/upgrade\.md$/);
+      assert.match(doc.markdown, /^# Upgrade readiness — profile /m);
+      assert.match(doc.markdown, /^## Skipped records — `glide-yokohama`$/m);
+      assert.match(doc.markdown, /business_rule/);
+      assert.match(doc.markdown, /^## Store app updates$/m);
+      assert.match(doc.markdown, /review_upgrade with update_name/);
+      assert.ok(
+        calls.some((c) =>
+          decodeURIComponent(c.url).includes(`upgrade_history=${UPG}`),
+        ),
+      );
+    },
+  );
+});
+
+test("N-1: an unreadable instance degrades every upgrade section", async () => {
+  freshRuntime();
+  const { generateDocument } = await import("../build/api/document.js");
+  await withFetch(
+    () => jsonResponse(403, { error: { message: "denied" } }),
+    async () => {
+      const doc = await generateDocument("upgrade", "upgrade", {
+        write: false,
+      });
+      assert.match(doc.markdown, /^## Skipped records$/m);
+      assert.match(doc.markdown, /_No upgrade to review\._/);
+      assert.match(doc.markdown, /Unavailable:/);
+    },
+  );
+});
