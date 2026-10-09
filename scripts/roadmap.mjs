@@ -42,7 +42,7 @@
 //
 //   pillar  primary pillar letter, `+O` when the owner shares it ("D+O")
 //   effort  S / M / L or a range ("S–M", en dash)
-//   status  done | partial | open    (🟢 | 🟡 | 🔴 in the table)
+//   status  done | partial | open | dropped   (🟢 | 🟡 | 🔴 | ⚫ in the table)
 //   phase   "A", "R0", "T1"… from "Phase X" in the notes, or null
 //   done    the date of the leading "**Done YYYY-MM-DD" / "**Partly done …" note
 //   gates   owner gates (O-n) the notes reference
@@ -69,7 +69,12 @@ export const HEADER = [
   "Status",
 ];
 export const PILLARS = ["H", "M", "S", "D", "E", "P", "N"];
-export const STATUS_EMOJI = { done: "🟢", partial: "🟡", open: "🔴" };
+export const STATUS_EMOJI = {
+  done: "🟢",
+  partial: "🟡",
+  open: "🔴",
+  dropped: "⚫",
+};
 const EMOJI_STATUS = Object.fromEntries(
   Object.entries(STATUS_EMOJI).map(([k, v]) => [v, k]),
 );
@@ -561,11 +566,11 @@ function summaryOf(text, max = 96) {
 /** Counts per primary pillar and status, plus totals. */
 export function statusCounts(doc) {
   const pillars = {};
-  const total = { done: 0, partial: 0, open: 0, total: 0 };
+  const total = { done: 0, partial: 0, open: 0, dropped: 0, total: 0 };
   for (const it of doc.items) {
     if ("marker" in it) continue;
     const p = it.pillar[0];
-    pillars[p] ??= { done: 0, partial: 0, open: 0, total: 0 };
+    pillars[p] ??= { done: 0, partial: 0, open: 0, dropped: 0, total: 0 };
     pillars[p][it.status]++;
     pillars[p].total++;
     total[it.status]++;
@@ -603,11 +608,20 @@ export function buildStatus(yamlDoc, markdown, { fromTable = false } = {}) {
       !drift.reordered);
   const ownerShared = doc.items.filter(
     (it) =>
-      !("marker" in it) && it.pillar.endsWith("+O") && it.status !== "done",
+      !("marker" in it) &&
+      it.pillar.endsWith("+O") &&
+      it.status !== "done" &&
+      it.status !== "dropped",
   );
   const byPhase = {};
   for (const it of doc.items) {
-    if ("marker" in it || it.status === "done" || !it.phase) continue;
+    if (
+      "marker" in it ||
+      it.status === "done" ||
+      it.status === "dropped" ||
+      !it.phase
+    )
+      continue;
     (byPhase[it.phase] ??= []).push(it.id);
   }
   return {
@@ -631,9 +645,9 @@ export function formatStatus(s) {
   const out = [];
   out.push(`Roadmap status — ${s.source}`);
   out.push("");
-  out.push("Pillar   Done  Partly  Open  Total  Done%");
+  out.push("Pillar   Done  Partly  Open  Dropped  Total  Done%");
   const row = (name, c) =>
-    `${name.padEnd(6)} ${String(c.done).padStart(6)} ${String(c.partial).padStart(7)} ${String(c.open).padStart(5)} ${String(c.total).padStart(6)} ${pct(c.done, c.total).padStart(6)}`;
+    `${name.padEnd(6)} ${String(c.done).padStart(6)} ${String(c.partial).padStart(7)} ${String(c.open).padStart(5)} ${String(c.dropped).padStart(8)} ${String(c.total).padStart(6)} ${pct(c.done, c.total).padStart(6)}`;
   for (const [p, c] of Object.entries(s.pillars)) out.push(row(p, c));
   out.push(row("All", s.total));
   const phases = Object.entries(s.openByPhase);

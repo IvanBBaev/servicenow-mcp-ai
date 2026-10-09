@@ -280,6 +280,9 @@ Effort key as in ROADMAP-V3: **S** ≤ 1 day · **M** 2–5 days · **L** 1–2 
 
 ### N-9 — Sampling summaries (M) — owner gate O-12
 
+> **Dropped 2026-10-10** ([ADR 0009](adr/0009-drop-sampling-summaries.md)); the plan below is kept
+> for the record.
+>
 > **2026-10-04:** MCP 2026-07-28 deprecates Sampling. N-9 waits for O-19 and is re-scoped or
 > dropped there; see N-35 in [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md).
 

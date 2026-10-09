@@ -195,6 +195,7 @@ test("fixture: import → render reproduces the table, modulo the documented nor
     done: 76,
     partial: 15,
     open: 58,
+    dropped: 0,
     total: 149,
   });
 });
@@ -399,7 +400,7 @@ test("owner gates and the status report", () => {
       s.ownerGates[2].summary.length === 96,
   );
   const text = formatStatus(s);
-  assert.match(text, /^All +76 +15 +58 +149 +51%$/m);
+  assert.match(text, /^All +76 +15 +58 +0 +149 +51%$/m);
   assert.match(text, /Open owner gates: 2 of 3/);
   assert.match(text, /Sync: project\/roadmap\.yaml matches/);
 
@@ -419,6 +420,21 @@ test("owner gates and the status report", () => {
   assert.match(formatStatus(buildStatus(c, md)), /rows reordered/);
   const custom = { items: [{ ...doc.items[0], id: "Q-1", pillar: "Q" }] };
   assert.deepEqual(Object.keys(statusCounts(custom).pillars), ["Q"]);
+  const dropped = {
+    items: [
+      {
+        ...doc.items[0],
+        id: "Q-2",
+        pillar: "Q+O",
+        status: "dropped",
+        phase: "D",
+      },
+    ],
+  };
+  assert.equal(statusCounts(dropped).total.dropped, 1);
+  const s3 = buildStatus(dropped, md);
+  assert.deepEqual([s3.openByPhase, s3.ownerShared], [{}, []]);
+  assert.match(renderTable(dropped), /\| ⚫ +\|$/m);
   assert.equal(
     formatStatus({
       ...buildStatus(custom, md),
@@ -476,7 +492,7 @@ test("CLI: import, check, status, adopt and render in a scratch repo", () => {
     assert.match(readFileSync(yamlPath, "utf8"), /^imported: "2026-10-05"$/m);
 
     assert.equal(cli("--check").code, 0);
-    assert.match(cli("--status").out, /^All +76 +15 +58 +149 +51%$/m);
+    assert.match(cli("--status").out, /^All +76 +15 +58 +0 +149 +51%$/m);
     assert.equal(
       JSON.parse(cli("--status", "--json", "--from-table").out).total.total,
       149,

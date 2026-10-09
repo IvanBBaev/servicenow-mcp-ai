@@ -48,6 +48,7 @@ and the open questions behind them wait in [TODO.md](../TODO.md).
 | [0006](0006-tools-list-budget-ratchet.md)                   | `tools/list` budgets as data; restated targets (O-10 (a)+(b)) | accepted 2026-10-06 (part)      | ROADMAP-V3.md §O, TOKEN-OPTIMIZATION-PLAN §7 |
 | [0007](0007-delete-jira-scaffold.md) | Delete the dark Jira scaffold (O-1 NO-GO) | accepted 2026-10-09 | ROADMAP-V3.md §O, §E-8, B10 |
 | [0008](0008-full-protocol-2026-07-28-conformance.md) | Full MCP 2026-07-28 conformance, dual protocol (O-19) | accepted 2026-10-10 (part) | ROADMAP-V3.md §O, PROTOCOL-BREAKING-REPORT |
+| [0009](0009-drop-sampling-summaries.md) | Drop N-9 sampling summaries (O-19, O-12 moot) | accepted 2026-10-10 | ROADMAP-V3.md §O, ADR 0008 |
 
 Open gates without a record (as of 2026-10-10): O-2, O-3,
-O-5, O-6, O-8, O-9, O-11 … O-22; O-10 (c) and (d) stay open under 0006; the rest of O-19 stays open under 0008.
+O-5, O-6, O-8, O-9, O-11, O-14 … O-22 (O-12 moot under 0009); O-10 (c) and (d) stay open under 0006; the end of the legacy window (O-19) stays open under 0008.

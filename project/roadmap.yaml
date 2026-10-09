@@ -833,11 +833,11 @@ items:
     title: "sampling summaries"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "dropped"
     phase: "D"
     done: null
-    gates: ["O-12", "O-19"]
-    notes: "Phase D, waits for O-12 and O-19 — Sampling is deprecated in MCP 2026-07-28, see N-35. `SN_SAMPLING=1` + client capability; redacted input, additive summary, byte-identical output when off (NX-09)."
+    gates: []
+    notes: "**Dropped 2026-10-10** (O-19, [ADR 0009](adr/0009-drop-sampling-summaries.md)): Sampling is deprecated in MCP 2026-07-28 and ADR 0008 forbids deprecated features on that wire; O-12 is moot. Was: `SN_SAMPLING=1` + client capability; redacted input, additive summary, byte-identical output when off (NX-09)."
   - id: "N-10"
     title: "record watch resources"
     pillar: "N"
