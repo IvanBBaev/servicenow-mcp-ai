@@ -13,7 +13,7 @@ sn_source_hash: <masked>
 
 Every artefact type this server knows (servicenow_artifact_types), with what this scope has of it and, when nothing was collected, why. [Overview](overview.md) · [Applications](apps.md)
 
-- **Types:** 136
+- **Types:** 137
 - **Collected:** 12
 
 ## Types
@@ -74,6 +74,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `ui_section` | classic-ui | `sys_ui_section` | no | no — no records in this scope |
 | `list` | classic-ui | `sys_ui_list` | no | no — no records in this scope |
 | `application_menu` | classic-ui | `sys_app_application` | no | no — no records in this scope |
+| `interceptor` | classic-ui | `sys_wizard` | no | no — no records in this scope |
 | `ui_view` | classic-ui | `sys_ui_view` | no | no — no records in this scope |
 | `list_control` | classic-ui | `sys_ui_list_control` | no | no — no records in this scope |
 | `workspace` | next-experience | `sys_ux_page_registry` | no | no — no records in this scope |

@@ -25,7 +25,7 @@
  * `unsupported[]` entry and a `Record()` fallback for that node or row, placed
  * after the main call: never silent loss.
  *
- * P-29: the output is type-checked against the pinned @servicenow/sdk 4.12.2
+ * P-29: the output is type-checked against the pinned @servicenow/sdk 4.13.6
  * (`npm run fluent:verify`, owner gate O-7); the action.core / actionStep input
  * tables come from `scripts/gen-fluent-actions.mjs`.
  * Output is deterministic: the tree is already ordered (order, then name) and

@@ -27,7 +27,7 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const GOLDEN_DIR = path.join(ROOT, "test", "fixtures", "fluent");
-const SDK_VERSION = "4.12.2";
+const SDK_VERSION = "4.13.6";
 const SCOPE = "x_fluent_oracle";
 const SCOPE_ID = "0f1e2d3c4b5a69788796a5b4c3d2e1f0";
 const TSC_TIMEOUT_MS = 300_000;

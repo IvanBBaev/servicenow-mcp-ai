@@ -4,13 +4,13 @@
  */
 
 /** The ServiceNow SDK release every `sdkSince` value is measured against. */
-export const SDK_BASELINE = "4.12.2";
+export const SDK_BASELINE = "4.13.6";
 
 /**
  * Fluent API names published in SDK {@link SDK_BASELINE} (gap matrix §4), plus
  * `Record` — the generic fallback for tables without a dedicated API. P-4 diffs
- * this list against the SDK docs index. `next`-only APIs (4.13 `DatabaseView`)
- * are deliberately absent until they reach `latest`.
+ * this list against the SDK docs index. `next`-only APIs are deliberately
+ * absent until they reach `latest` (4.13 `DatabaseView` and `Interceptor` did).
  */
 export const SDK_APIS = [
   // Core platform / data model
@@ -23,6 +23,7 @@ export const SDK_APIS = [
   "Acl",
   "CrossScopePrivilege",
   "UserCriteria",
+  "DatabaseView",
   "Record",
   // Server-side logic
   "BusinessRule",
@@ -49,6 +50,7 @@ export const SDK_APIS = [
   "Form",
   "List",
   "ApplicationMenu",
+  "Interceptor",
   // Next Experience
   "Workspace",
   "Dashboard",
@@ -97,17 +99,15 @@ export const SDK_APIS = [
  * A descriptor may name one only while it is `verified:false` and has no G
  * tier; the API moves to {@link SDK_APIS} once it reaches `latest` and O-5
  * confirms its tables. `scripts/sdk-drift.mjs` reports these as known.
+ * Empty since the 4.13.6 re-pin; a new entry also joins {@link SdkApi}.
  */
-export const SDK_NEXT_APIS = ["DatabaseView"] as const;
+export const SDK_NEXT_APIS: readonly string[] = [];
 
 /**
- * A Fluent API name on the baseline (or `next`-only, see
- * {@link SDK_NEXT_APIS}), or `none` when the SDK has no API.
+ * A Fluent API name on the baseline, or `none` when the SDK has no API.
+ * While {@link SDK_NEXT_APIS} names an API, add it to this union too.
  */
-export type SdkApi =
-  | (typeof SDK_APIS)[number]
-  | (typeof SDK_NEXT_APIS)[number]
-  | "none";
+export type SdkApi = (typeof SDK_APIS)[number] | "none";
 
 /**
  * Decoders a `jsonFields` entry may name. `json` is a tolerant JSON parse;

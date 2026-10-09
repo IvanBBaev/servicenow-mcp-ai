@@ -218,11 +218,13 @@ test("every jsonFields decoder id is declared", () => {
   }
 });
 
-test("every sdkApi is on the baseline list; SDK_BASELINE is 4.12.2", () => {
-  assert.equal(SDK_BASELINE, "4.12.2");
+test("every sdkApi is on the baseline list; SDK_BASELINE is 4.13.6", () => {
+  assert.equal(SDK_BASELINE, "4.13.6");
   assert.equal(new Set(SDK_APIS).size, SDK_APIS.length);
-  assert.ok(!SDK_APIS.includes("DatabaseView"), "next-only API on baseline");
-  assert.deepEqual([...SDK_NEXT_APIS], ["DatabaseView"]);
+  // P-4: DatabaseView reached `latest` with 4.13 and left the next-only list.
+  assert.ok(SDK_APIS.includes("DatabaseView"));
+  assert.ok(SDK_APIS.includes("Interceptor"));
+  assert.deepEqual([...SDK_NEXT_APIS], []);
   for (const t of ARTIFACT_TYPES) {
     if (SDK_NEXT_APIS.includes(t.sdkApi)) {
       // SDK-PARITY §2 rule 4: next-only APIs stay unverified and never G.
@@ -239,6 +241,12 @@ test("every sdkApi is on the baseline list; SDK_BASELINE is 4.12.2", () => {
   assert.equal(view.sdkApi, "DatabaseView");
   assert.equal(view.table, "sys_db_view");
   assert.equal(view.children[0].table, "sys_db_view_table");
+  const interceptor = getArtifactType("interceptor");
+  assert.equal(interceptor.sdkApi, "Interceptor");
+  assert.equal(interceptor.table, "sys_wizard");
+  assert.equal(interceptor.verified, false);
+  assert.equal(interceptor.children[0].table, "sys_wizard_answer");
+  assert.deepEqual(interceptor.children[0].scriptFields, ["script"]);
 });
 
 test("seeded breadth: the P-1 representative types are registered", () => {
@@ -327,11 +335,11 @@ test("validateArtifactTypes reports every kind of defect", () => {
       clientFields: ["client_script"],
       markupFields: ["css"],
     },
-    { ...good, type: "early", sdkApi: "DatabaseView", verified: true },
-    { ...good, type: "early-g", sdkApi: "DatabaseView", tiers: ["R", "G"] },
-    { ...good, type: "early-ok", sdkApi: "DatabaseView", tiers: [] },
+    { ...good, type: "early", sdkApi: "FutureApi", verified: true },
+    { ...good, type: "early-g", sdkApi: "FutureApi", tiers: ["R", "G"] },
+    { ...good, type: "early-ok", sdkApi: "FutureApi", tiers: [] },
   ];
-  const problems = validateArtifactTypes(bad);
+  const problems = validateArtifactTypes(bad, ["FutureApi"]);
   const expect = [
     /^dup: duplicate type$/,
     /broken: unknown group 'nowhere'/,
@@ -349,8 +357,8 @@ test("validateArtifactTypes reports every kind of defect", () => {
     /both: scriptTools and scriptToolsOptIn are exclusive/,
     /stray: client_script is not one of its scriptFields/,
     /stray: css is not one of its scriptFields/,
-    /^early: next-only sdkApi 'DatabaseView' must be verified:false/,
-    /^early-g: next-only sdkApi 'DatabaseView' must be verified:false/,
+    /^early: next-only sdkApi 'FutureApi' must be verified:false/,
+    /^early-g: next-only sdkApi 'FutureApi' must be verified:false/,
   ];
   for (const re of expect) {
     assert.ok(

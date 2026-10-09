@@ -657,6 +657,36 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     verified: false,
     metaFields: ["category", "order", "roles", "active"],
   },
+  // SDK 4.13 `Interceptor`: the new-record chooser. The answer table's
+  // parent field (`question`) and the panel refs are unverified until O-5;
+  // `sys_wizard_choice` rows are plain `Record` calls in the SDK.
+  {
+    ...BASE,
+    type: "interceptor",
+    group: "classic-ui",
+    sdkApi: "Interceptor",
+    sdkSince: "4.13.0",
+    table: "sys_wizard",
+    children: [
+      {
+        table: "sys_wizard_answer",
+        parentField: "question",
+        orderField: "order",
+        nameField: "name",
+        scriptFields: ["script"],
+        refFields: [{ field: "next_question", table: "sys_wizard" }],
+      },
+    ],
+    nameField: "name",
+    scriptFields: [],
+    refFields: [
+      { field: "back_panel", table: "sys_wizard", type: "interceptor" },
+      { field: "next_panel", table: "sys_wizard", type: "interceptor" },
+    ],
+    tiers: SEED_TIERS,
+    verified: false,
+    metaFields: ["question", "intercepts"],
+  },
   {
     ...BASE,
     type: "ui_view",

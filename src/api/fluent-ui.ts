@@ -18,7 +18,7 @@
  *   criteria, followed by the `VariableSet`, `CatalogClientScript` and
  *   `CatalogUiPolicy` calls the item's form uses.
  *
- * Property names are type-checked against the pinned @servicenow/sdk 4.12.2 and
+ * Property names are type-checked against the pinned @servicenow/sdk 4.13.6 and
  * the goldens built with `now-sdk build` (P-29, `npm run fluent:verify`, owner
  * gate O-7); instance behaviour is not verified (O-5). The P-26 rules hold: every set field is
  * either emitted or reported in `unsupported[]` (never lost silently), child
@@ -108,7 +108,7 @@ import {
 
 /** The `warnings[]` entry (and header note) of a `servicenow_generate_fluent` run over a P-28 type. */
 export const UI_VERIFIED_NOTE =
-  "The portal / workspace / catalog shapes (P-28) are type-checked against @servicenow/sdk 4.12.2 (npm run fluent:verify); instance behaviour (P-29 / O-5) is not verified: review before deploying.";
+  "The portal / workspace / catalog shapes (P-28) are type-checked against @servicenow/sdk 4.13.6 (npm run fluent:verify); instance behaviour (P-29 / O-5) is not verified: review before deploying.";
 
 const NO_ID_NOTE =
   "Nested structures the SDK gives no $id (variables, choices, includes, variable-set links, UI policy actions) are matched by their natural key on install; their sys_ids are not kept.";

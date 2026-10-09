@@ -110,6 +110,7 @@ export function getArtifactType(type: string): ArtifactType | undefined {
  */
 export function validateArtifactTypes(
   types: readonly ArtifactType[] = ARTIFACT_TYPES,
+  nextApis: readonly string[] = SDK_NEXT_APIS,
 ): string[] {
   const problems: string[] = [];
   const ids = new Set(types.map((t) => t.type));
@@ -145,7 +146,7 @@ export function validateArtifactTypes(
     if (!(ARTIFACT_GROUPS as readonly string[]).includes(t.group)) {
       problems.push(`${where}: unknown group '${t.group}'`);
     }
-    if ((SDK_NEXT_APIS as readonly string[]).includes(t.sdkApi)) {
+    if (nextApis.includes(t.sdkApi)) {
       if (t.verified || t.tiers.includes("G")) {
         problems.push(
           `${where}: next-only sdkApi '${t.sdkApi}' must be verified:false without a G tier`,

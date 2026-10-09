@@ -14,7 +14,7 @@
  * `Record({ table, data })` form plus an explicit `unsupported[]` entry, never
  * silent loss. Child records are always emitted as `Record()` rows.
  *
- * The target is the registry's SDK baseline (`SDK_BASELINE`, 4.12.2), which
+ * The target is the registry's SDK baseline (`SDK_BASELINE`, 4.13.6), which
  * is also the exact `@servicenow/sdk` dev dependency (owner gate O-7,
  * resolved 2026-10-01). The P-29 round-trip oracle (`npm run fluent:verify`,
  * test/fluent-sdk-oracle.test.js) type-checks every golden against the SDK

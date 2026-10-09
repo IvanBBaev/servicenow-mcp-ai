@@ -19,12 +19,24 @@ import {
   renderMarkdown,
   runDrift,
 } from "../scripts/sdk-drift.mjs";
-import * as registry from "../build/core/artifacts/registry.js";
+import * as liveRegistry from "../build/core/artifacts/registry.js";
 import { jsonResponse, withFetch } from "./helpers.js";
 
 const here = import.meta.dirname;
 const LLMS = readFileSync(path.join(here, "fixtures", "sdk-llms.txt"), "utf8");
 const NEXT_TAGS = { latest: "4.12.2", next: "4.13.0" };
+// The fixtures model the 4.12.2 baseline with 4.13.0 on `next`, so the drift
+// tests run against that snapshot of the registry: DatabaseView back on the
+// next-only list and the 4.13 Interceptor type not yet registered.
+const SDK_413 = ["DatabaseView", "Interceptor"];
+const registry = {
+  SDK_BASELINE: "4.12.2",
+  SDK_APIS: liveRegistry.SDK_APIS.filter((a) => !SDK_413.includes(a)),
+  SDK_NEXT_APIS: ["DatabaseView"],
+  ARTIFACT_TYPES: liveRegistry.ARTIFACT_TYPES.filter(
+    (t) => t.sdkApi !== "Interceptor",
+  ),
+};
 
 const fixtureDeps = (distTags = NEXT_TAGS, llmsText = LLMS) => ({
   fetchJson: async (url) => {

@@ -470,7 +470,7 @@ export const APPLICABILITY: UiProp[] = [
   p("role_names", "roleNames"),
 ];
 
-// Catalog specs follow the SDK 4.12.2 record → Fluent transforms
+// Catalog specs follow the SDK 4.13.6 record → Fluent transforms
 // (sdk-build-plugins service-catalog) and the sdk-core types.
 
 /** Fields of `CatalogItemBaseConfig`, `M2MRelationships`, `PortalSettings` and `AvailabilityConfig`: both item APIs. */

@@ -748,7 +748,7 @@ test("flow: Flow(), trigger, core actions, logic chains and data pills", () => {
   );
   assert.match(text, /attempts: IntegerColumn\(\{/);
   assert.match(text, /stages: \{\n\s+triage: FlowStage\(\{/);
-  assert.match(text, /type-checked against @servicenow\/sdk 4\.12\.2/);
+  assert.match(text, /type-checked against @servicenow\/sdk 4\.13\.6/);
   // Every declared key is used by an $id (an unused one builds as a DELETE),
   // and wfa.action keys name the table now-sdk build writes.
   for (const k of b.keys) {

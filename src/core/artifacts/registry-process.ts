@@ -918,8 +918,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     licensed: PERFORMANCE_ANALYTICS,
     metaFields: ["description", "group", "owner", "active"],
   },
-  // -- next-only (SDK 4.13.0 on npm `next`; SDK-PARITY CORE-3) -------------
-  // The API page returned 404 at inventory time: the tables are unverified.
+  // -- SDK 4.13 (on npm `latest` since the 4.13.6 re-pin; SDK-PARITY CORE-3) --
+  // The tables are unverified until O-5.
   {
     ...BASE,
     type: "database_view",

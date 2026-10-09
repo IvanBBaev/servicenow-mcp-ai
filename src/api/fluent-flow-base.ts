@@ -52,7 +52,7 @@ export const FLOW_TREE_KINDS: Readonly<Record<string, ExplainFlowKind>> = {
 
 /** The warning every P-27 run carries. */
 export const FLOW_VERIFIED_NOTE =
-  "The Flow / Subflow / Action / PlaybookDefinition shapes are type-checked against @servicenow/sdk 4.12.2 (npm run fluent:verify); instance behaviour (P-29 / O-5) is not verified: review before deploying.";
+  "The Flow / Subflow / Action / PlaybookDefinition shapes are type-checked against @servicenow/sdk 4.13.6 (npm run fluent:verify); instance behaviour (P-29 / O-5) is not verified: review before deploying.";
 
 /**
  * What the flow emitter needs from the P-26 core (`fluent.ts`): passed in so
