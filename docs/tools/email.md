@@ -32,7 +32,13 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `message` | string |  |
+| `result` | any |  |
 
 ## servicenow_get_email
 
@@ -49,4 +55,8 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `result` | any |  |

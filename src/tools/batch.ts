@@ -10,6 +10,7 @@ import { ok } from "../mcp/result.js";
 import { defineTool, shortText, type AnyToolSpec } from "../mcp/define.js";
 import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
 import { sdkGuard } from "../mcp/sdk-guard.js";
+import { WRITE_OUTPUT } from "../mcp/output-shapes.js";
 import {
   appendWriteJournal,
   journaledWrite,
@@ -185,6 +186,12 @@ export const specs: AnyToolSpec[] = [
       apply: applyInput,
     },
     logFields: (args) => ({ count: args.requests.length }),
+    // N-54: a plan preview (WRITE_OUTPUT) or the sub-request results.
+    output: {
+      ...WRITE_OUTPUT,
+      count: z.number().optional(),
+      results: z.array(z.unknown()).optional(),
+    },
     handler: async ({ requests, apply }) => {
       // A read-only batch (all GET) needs no plan gate; a batch that writes does.
       const hasWrites = requests.some((r) => r.method !== "GET");

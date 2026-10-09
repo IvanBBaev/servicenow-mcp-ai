@@ -3,8 +3,8 @@
   "slackPct": 2,
   "profiles": {
     "core": 28672,
-    "all": 119552,
-    "all+tasks": 120832,
-    "all+legacy": 136192
+    "all": 123392,
+    "all+tasks": 124672,
+    "all+legacy": 140288
   }
 }

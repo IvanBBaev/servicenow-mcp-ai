@@ -17,6 +17,7 @@ import {
   applyInput,
   resultSysId,
 } from "../mcp/write-mode.js";
+import { RESULT_OUTPUT, WRITE_OUTPUT } from "../mcp/output-shapes.js";
 import { journaledWrite } from "../core/write-journal.js";
 
 const importFieldsSchema = z.record(
@@ -47,6 +48,7 @@ export const specs: AnyToolSpec[] = [
       ),
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, values, apply }) => {
       if (!shouldApply(apply)) {
@@ -87,6 +89,7 @@ export const specs: AnyToolSpec[] = [
       table: tableName().describe("Import staging table."),
       sys_id: sysId().describe("Staging row sys_id."),
     },
+    output: RESULT_OUTPUT,
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, sys_id }) =>
       ok({ result: await getImportSetRow(table, sys_id) }),

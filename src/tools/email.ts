@@ -13,6 +13,7 @@ import {
   type AnyToolSpec,
 } from "../mcp/define.js";
 import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { RESULT_OUTPUT, WRITE_OUTPUT } from "../mcp/output-shapes.js";
 import { journaledWrite } from "../core/write-journal.js";
 
 /** Email package: only enabled explicitly or via the `all` profile. */
@@ -51,6 +52,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    output: WRITE_OUTPUT,
     confirm: {
       target: (args) => ({
         action: "create",
@@ -122,6 +124,7 @@ export const specs: AnyToolSpec[] = [
     input: {
       sys_id: sysId().describe("Email sys_id."),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ sys_id }) => ok({ result: await getEmail(sys_id) }),
   }),
 ];

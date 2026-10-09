@@ -30,7 +30,11 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `result` | any |  |
 
 ## servicenow_get_change
 
@@ -47,7 +51,11 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `result` | any |  |
 
 ## servicenow_create_change
 
@@ -67,7 +75,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `message` | string |  |
+| `result` | any |  |
 
 ## servicenow_update_change
 
@@ -86,7 +100,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `message` | string |  |
+| `result` | any |  |
 
 ## servicenow_check_change_conflicts
 
@@ -106,4 +126,10 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `message` | string |  |
+| `result` | any |  |

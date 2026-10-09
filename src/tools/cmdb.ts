@@ -26,6 +26,11 @@ import {
   resultSysId,
   captureBefore,
 } from "../mcp/write-mode.js";
+import {
+  RESULT_OUTPUT,
+  WRITE_OUTPUT,
+  listOutput,
+} from "../mcp/output-shapes.js";
 import { journaledWrite } from "../core/write-journal.js";
 
 /** S-10: the relationship-type bound (e.g. 'Depends on::Used by'). */
@@ -95,6 +100,7 @@ export const specs: AnyToolSpec[] = [
       limit: z.number().int().positive().max(1000).optional(),
       offset: z.number().int().nonnegative().optional(),
     },
+    output: RESULT_OUTPUT,
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, query, limit, offset }) =>
       ok({
@@ -119,6 +125,7 @@ export const specs: AnyToolSpec[] = [
       table: tableName().describe("CI class, e.g. 'cmdb_ci_server'."),
       sys_id: sysId().describe("CI sys_id."),
     },
+    output: RESULT_OUTPUT,
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, sys_id }) =>
       ok({ result: await getCmdbInstance(table, sys_id) }),
@@ -146,6 +153,7 @@ export const specs: AnyToolSpec[] = [
         .describe("IRE discovery source (e.g. 'ServiceNow')."),
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, values: attrs, source, apply }) => {
       if (!shouldApply(apply)) {
@@ -193,6 +201,7 @@ export const specs: AnyToolSpec[] = [
       source: shortText().optional().describe("Discovery source for IRE."),
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table, sys_id, values: attrs, source, apply }) => {
       if (!shouldApply(apply)) {
@@ -241,6 +250,7 @@ export const specs: AnyToolSpec[] = [
     input: {
       table: tableName().describe("CI class, e.g. 'cmdb_ci_server'."),
     },
+    output: RESULT_OUTPUT,
     logFields: (args) => ({ table: args.table }),
     handler: async ({ table }) => ok({ result: await getCmdbMeta(table) }),
   }),
@@ -274,6 +284,7 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Max relationships (default 100)."),
     },
+    output: listOutput("relations"),
     handler: async ({ sys_id, direction, type, limit }) =>
       ok(await listCiRelations({ ci: sys_id, direction, type, limit })),
   }),
@@ -298,6 +309,7 @@ export const specs: AnyToolSpec[] = [
         .describe("sysparm_data_source (default 'ServiceNow')."),
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     logFields: (args) => ({ items: args.items.length }),
     handler: async ({ items, relations, data_source, apply }) => {
       const payload: IrePayload = {

@@ -9,6 +9,7 @@ import {
   tableName,
   type AnyToolSpec,
 } from "../mcp/define.js";
+import { listOutput } from "../mcp/output-shapes.js";
 
 /**
  * S-10 — opt-in `history` package: who changed what on one record, from
@@ -60,6 +61,7 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Chars per value (default 2000)."),
     },
+    output: listOutput("entries"),
     logFields: (args) => ({ table: args.table, source: args.source ?? "all" }),
     handler: async ({
       table,

@@ -97,6 +97,12 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * all+tasks, all+legacy), measured 32,737 / 135,991 / 137,343 / 154,621;
  * the tasks and legacy surfaces were not budgeted before. A budget more than
  * `slackPct` above its measurement fails the ratchet test.
+ * N-54, 2026-10-09 (owner, O-10: up to +4 KB on `all`, `core` unchanged): 31
+ * opt-in tools gain an outputSchema from the shared shapes in
+ * `src/mcp/output-shapes.ts`, measured 28,546 / 123,278 / 124,648 / 140,167
+ * (all +3,831 B; core +0 B): the budgets become 28,672 / 123,392 / 124,672 /
+ * 140,288. The 29 tools left without one are in
+ * `test/fixtures/output-shape-register.json`.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(
@@ -213,6 +219,82 @@ test("tools with an output shape publish a permissive outputSchema", async () =>
     "servicenow_check_code_health",
   ]) {
     assert.ok(withOutput.has(name), `${name} declares an output shape`);
+  }
+});
+
+/** N-54: the tools without an outputSchema, each with a reason. */
+const OUTPUT_REGISTER = JSON.parse(
+  readFileSync(
+    new URL("./fixtures/output-shape-register.json", import.meta.url),
+    "utf8",
+  ),
+);
+
+test("every tool without an outputSchema is in the register, which only shrinks", async () => {
+  const missing = (await listTools("all"))
+    .filter((t) => !t.outputSchema)
+    .map((t) => t.name)
+    .sort();
+  const listed = Object.keys(OUTPUT_REGISTER.tools).sort();
+  assert.deepEqual(
+    listed,
+    missing,
+    "the register lists exactly the tools without an outputSchema",
+  );
+  assert.ok(
+    listed.length <= OUTPUT_REGISTER.ceiling,
+    `${listed.length} entries exceed the ceiling ${OUTPUT_REGISTER.ceiling}`,
+  );
+  assert.equal(
+    OUTPUT_REGISTER.ceiling,
+    listed.length,
+    "lower the ceiling to the register size",
+  );
+  for (const [name, reason] of Object.entries(OUTPUT_REGISTER.tools)) {
+    assert.ok(OUTPUT_REGISTER.reasons[reason], `${name}: unknown reason`);
+  }
+});
+
+test("the shared N-54 output shapes pass the SDK output validation", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "sn-n54-"));
+  const id = "a".repeat(32);
+  const calls = [
+    ["servicenow_get_change", { sys_id: id }],
+    ["servicenow_list_catalogs", {}],
+    ["servicenow_create_change", { type: "normal" }],
+    ["servicenow_create_change", { type: "normal", apply: true }],
+    ["servicenow_get_properties", { prefix: "glide" }],
+    ["servicenow_list_ci_relations", { sys_id: id }],
+    ["servicenow_lookup_directory", { kind: "user", term: "abel" }],
+    ["servicenow_get_record_history", { table: "incident", sys_id: id }],
+    ["servicenow_list_writes", {}],
+  ];
+  try {
+    await withEnv({ SN_TOOL_PACKAGES: "all", SN_DOCS_DIR: dir }, () =>
+      withClient((client) =>
+        withFetch(
+          () =>
+            jsonResponse(
+              200,
+              { result: [{ sys_id: id, name: "glide.x", value: "1" }] },
+              { "x-total-count": "1" },
+            ),
+          async () => {
+            for (const [name, args] of calls) {
+              const res = await client.callTool({ name, arguments: args });
+              assert.ok(!res.isError, `${name}: ${res.content[0].text}`);
+              assert.deepEqual(
+                res.structuredContent,
+                JSON.parse(res.content[0].text),
+                `${name}: structuredContent mirrors the text`,
+              );
+            }
+          },
+        ),
+      ),
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 

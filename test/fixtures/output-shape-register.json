@@ -1,0 +1,41 @@
+{
+  "note": "N-54: every published tool (all profile) without an outputSchema, with the reason. test/output-schema.test.js checks the register is exact and only shrinks: a tool that gains an outputSchema leaves it, a new tool needs a schema or an owner-reviewed entry, and `ceiling` is lowered with each removal.",
+  "ceiling": 29,
+  "reasons": {
+    "core": "Core profile tool: the core tools/list budget is frozen (owner, O-10, 2026-10-09).",
+    "delivery": "Inline payload or a file reference ({ path, bytes, preview }) by the format argument.",
+    "varies": "The payload shape depends on the kind / view argument.",
+    "budget": "Stable shape, not yet declared: past the +4 KB N-54 allowance (O-10, 2026-10-09)."
+  },
+  "tools": {
+    "servicenow_check_data_health": "varies",
+    "servicenow_compare_instances": "delivery",
+    "servicenow_create_record": "core",
+    "servicenow_delete_attachment": "core",
+    "servicenow_delete_record": "core",
+    "servicenow_document_app": "delivery",
+    "servicenow_document_instance": "delivery",
+    "servicenow_document_table": "delivery",
+    "servicenow_download_attachment": "core",
+    "servicenow_explain_policy": "core",
+    "servicenow_explain_portal": "budget",
+    "servicenow_generate_er_diagram": "delivery",
+    "servicenow_generate_table_flow": "delivery",
+    "servicenow_get_attachment": "core",
+    "servicenow_list_attachments": "core",
+    "servicenow_list_docs": "budget",
+    "servicenow_read_doc": "budget",
+    "servicenow_read_ops": "varies",
+    "servicenow_run_atf_suite": "budget",
+    "servicenow_run_atf_test": "budget",
+    "servicenow_search_docs": "budget",
+    "servicenow_set_credentials": "core",
+    "servicenow_snapshot_instance": "delivery",
+    "servicenow_update_record": "core",
+    "servicenow_upload_attachment": "core",
+    "servicenow_upsert_artifact": "budget",
+    "servicenow_upsert_record": "core",
+    "servicenow_use_instance": "core",
+    "servicenow_write_doc": "budget"
+  }
+}

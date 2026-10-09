@@ -21,6 +21,7 @@ import {
   resultSysId,
   captureBefore,
 } from "../mcp/write-mode.js";
+import { RESULT_OUTPUT, WRITE_OUTPUT } from "../mcp/output-shapes.js";
 import { journaledWrite } from "../core/write-journal.js";
 
 const changeFields = z
@@ -54,6 +55,7 @@ export const specs: AnyToolSpec[] = [
         .describe("Rows (default 10)."),
       offset: z.number().int().nonnegative().optional(),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ query, fields, limit, offset }) =>
       ok({ result: await listChanges({ query, fields, limit, offset }) }),
   }),
@@ -72,6 +74,7 @@ export const specs: AnyToolSpec[] = [
     input: {
       sys_id: sysId().describe("Change request sys_id."),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ sys_id }) => ok({ result: await getChange(sys_id) }),
   }),
 
@@ -98,6 +101,7 @@ export const specs: AnyToolSpec[] = [
       values: changeFields.optional(),
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     logFields: (args) => ({ type: args.type }),
     handler: async ({ type, template_id, values: fields, apply }) => {
       const proposed = {
@@ -147,6 +151,7 @@ export const specs: AnyToolSpec[] = [
       values: changeFields,
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     handler: async ({ sys_id, values: fields, apply }) => {
       if (!shouldApply(apply)) {
         const before = await getChange(sys_id);
@@ -193,6 +198,7 @@ export const specs: AnyToolSpec[] = [
         .describe("Recalculate (POST) instead of reading."),
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     // H-3 / H-4: recalculation replaces the change's conflict rows.
     confirm: {
       when: (args) => args.calculate === true,

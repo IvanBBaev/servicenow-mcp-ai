@@ -7,6 +7,7 @@ import {
   sysId,
   type AnyToolSpec,
 } from "../mcp/define.js";
+import { listOutput } from "../mcp/output-shapes.js";
 
 /**
  * S-10 — opt-in `directory` package: read-only user / group / role lookups.
@@ -50,6 +51,7 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Max records (default 20)."),
     },
+    output: listOutput("records"),
     logFields: (args) => ({ kind: args.kind }),
     handler: async ({ kind, term, sys_id, active, include_details, limit }) =>
       ok(

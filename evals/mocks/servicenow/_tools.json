@@ -88,6 +88,26 @@
         ],
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {},
+          "count": {
+            "type": "number"
+          },
+          "results": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "additionalProperties": {}
+      },
       "annotations": {
         "destructiveHint": false
       }
@@ -2010,6 +2030,23 @@
         ],
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "entries": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "count",
+          "entries"
+        ],
+        "additionalProperties": {}
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2931,6 +2968,27 @@
         },
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number"
+          },
+          "returned": {
+            "type": "number"
+          },
+          "entries": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "total",
+          "returned",
+          "entries"
+        ],
+        "additionalProperties": {}
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3224,6 +3282,19 @@
           "entry_id"
         ],
         "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {}
+        },
+        "additionalProperties": {}
       }
     },
     {

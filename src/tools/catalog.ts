@@ -14,6 +14,7 @@ import {
   type AnyToolSpec,
 } from "../mcp/define.js";
 import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { RESULT_OUTPUT, WRITE_OUTPUT } from "../mcp/output-shapes.js";
 import { journaledWrite } from "../core/write-journal.js";
 
 export const specs: AnyToolSpec[] = [
@@ -30,6 +31,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: true,
     },
     input: {},
+    output: RESULT_OUTPUT,
     handler: async () => ok({ result: await listCatalogs() }),
   }),
 
@@ -48,6 +50,7 @@ export const specs: AnyToolSpec[] = [
     input: {
       sys_id: sysId().describe("Catalog sys_id."),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ sys_id }) =>
       ok({ result: await listCatalogCategories(sys_id) }),
   }),
@@ -70,6 +73,7 @@ export const specs: AnyToolSpec[] = [
       limit: z.number().int().positive().max(100).optional(),
       offset: z.number().int().nonnegative().optional(),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ text, category, limit, offset }) =>
       ok({ result: await listCatalogItems({ text, category, limit, offset }) }),
   }),
@@ -90,6 +94,7 @@ export const specs: AnyToolSpec[] = [
     input: {
       sys_id: sysId().describe("Catalog item sys_id."),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ sys_id }) => ok({ result: await getCatalogItem(sys_id) }),
   }),
 
@@ -105,6 +110,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    output: WRITE_OUTPUT,
     confirm: {
       target: (args) => ({
         action: "create",

@@ -14,6 +14,7 @@ import {
   type AnyToolSpec,
 } from "../mcp/define.js";
 import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
+import { WRITE_OUTPUT } from "../mcp/output-shapes.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -64,6 +65,11 @@ export const specs: AnyToolSpec[] = [
         .describe("Full journal lines (fields, before) instead of summaries."),
     },
     logFields: (args) => ({ table: args.table, result: args.result }),
+    output: {
+      total: z.number(),
+      returned: z.number(),
+      entries: z.array(z.unknown()),
+    },
     handler: (args) => ok(listWrites(args)),
   }),
 
@@ -79,6 +85,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
+    output: WRITE_OUTPUT,
     confirm: {
       target: (args) => ({
         action: "execute",

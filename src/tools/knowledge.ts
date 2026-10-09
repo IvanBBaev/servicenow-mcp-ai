@@ -13,6 +13,7 @@ import {
   sysId,
   type AnyToolSpec,
 } from "../mcp/define.js";
+import { RESULT_OUTPUT } from "../mcp/output-shapes.js";
 
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -34,6 +35,7 @@ export const specs: AnyToolSpec[] = [
       limit: z.number().int().positive().max(100).optional(),
       offset: z.number().int().nonnegative().optional(),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ search, query, fields, limit, offset }) =>
       ok({
         result: await searchKnowledge({ search, query, fields, limit, offset }),
@@ -54,6 +56,7 @@ export const specs: AnyToolSpec[] = [
     input: {
       sys_id: sysId().describe("Article sys_id."),
     },
+    output: RESULT_OUTPUT,
     handler: async ({ sys_id }) =>
       ok({ result: await getKnowledgeArticle(sys_id) }),
   }),
@@ -74,6 +77,7 @@ export const specs: AnyToolSpec[] = [
       mode: z.enum(["featured", "most_viewed"]).describe("Highlight list."),
       limit: z.number().int().positive().max(100).optional(),
     },
+    output: RESULT_OUTPUT,
     logFields: (args) => ({ mode: args.mode }),
     handler: async ({ mode, limit }) =>
       ok({ result: await knowledgeHighlights(mode, limit) }),

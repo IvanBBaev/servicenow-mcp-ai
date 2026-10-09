@@ -26,7 +26,11 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `result` | any |  |
 
 ## servicenow_list_catalog_categories
 
@@ -43,7 +47,11 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `result` | any |  |
 
 ## servicenow_list_catalog_items
 
@@ -63,7 +71,11 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `result` | any |  |
 
 ## servicenow_get_catalog_item
 
@@ -80,7 +92,11 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `result` | any |  |
 
 ## servicenow_order_catalog_item
 
@@ -101,4 +117,10 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `message` | string |  |
+| `result` | any |  |

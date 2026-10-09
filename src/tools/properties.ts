@@ -18,6 +18,7 @@ import {
   type AnyToolSpec,
 } from "../mcp/define.js";
 import { applyInput, planPreview, shouldApply } from "../mcp/write-mode.js";
+import { WRITE_OUTPUT, listOutput } from "../mcp/output-shapes.js";
 import { snString } from "../api/shared.js";
 
 /**
@@ -60,6 +61,7 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Chars per value (default 4000)."),
     },
+    output: listOutput("properties"),
     handler: async ({ name, prefix, limit, value_max_chars }) =>
       ok(
         await getProperties({
@@ -90,6 +92,7 @@ export const specs: AnyToolSpec[] = [
       value: longText(65_536).describe("New value (string)."),
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     logFields: (args) => ({ name: args.name }),
     handler: async ({ name, value, apply }) => {
       const property = await resolveProperty(name);
