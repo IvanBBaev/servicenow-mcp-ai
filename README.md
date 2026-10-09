@@ -1055,6 +1055,8 @@ task, tests ship with the change, generated docs).
 
 The full reference — every parameter, the output fields, how each tool writes, and the error codes — is in [docs/tools/](docs/tools/README.md), one page per package. [docs/llms-full.txt](docs/llms-full.txt) bundles this README, SECURITY.md and that reference in one file for LLM context.
 
+Every `inputSchema` and `outputSchema` in `tools/list` is written in JSON Schema 2020-12, the MCP default dialect, without a `$schema` field. The server supports no other dialect and never reads a schema from the client.
+
 <!-- GENERATED:TOOLS:BEGIN (npm run docs:readme) -->
 
 _This table is generated from the tool registrations — edit the tool

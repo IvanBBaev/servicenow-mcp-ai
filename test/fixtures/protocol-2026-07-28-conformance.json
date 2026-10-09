@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 245,
+  "pendingCeiling": 229,
   "requirements": [
     {
       "id": "base-01",
@@ -198,8 +198,11 @@
       "text": "Supported dialects: Implementations MUST support at least 2020-12 and SHOULD document which additional dialects they support",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#schema-dialect",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: every published schema is valid JSON Schema 2020-12 on every profile",
+        "test/protocol-shape.test.js :: every example call validates against its published 2020-12 input schema"
+      ]
     },
     {
       "id": "base-17",
@@ -207,8 +210,10 @@
       "text": "Supported dialects: Implementations MUST support at least 2020-12 and SHOULD document which additional dialects they support",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#schema-dialect",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: the README states the schema dialect"
+      ]
     },
     {
       "id": "base-18",
@@ -216,8 +221,10 @@
       "text": "Recommendation: Implementors are RECOMMENDED to use JSON Schema 2020-12.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#schema-dialect",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: every published schema is valid JSON Schema 2020-12 on every profile"
+      ]
     },
     {
       "id": "base-19",
@@ -225,8 +232,11 @@
       "text": "Clients and servers MUST support JSON Schema 2020-12 for schemas without an explicit `$schema` field",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#implementation-requirements",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: every published schema is valid JSON Schema 2020-12 on every profile",
+        "test/protocol-shape.test.js :: every example call validates against its published 2020-12 input schema"
+      ]
     },
     {
       "id": "base-20",
@@ -234,8 +244,11 @@
       "text": "Clients and servers MUST validate schemas according to their declared or default dialect.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#implementation-requirements",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: every example call validates against its published 2020-12 input schema",
+        "test/mcp-smoke.test.js :: invalid arguments are rejected by the zod schema before any network call"
+      ]
     },
     {
       "id": "base-21",
@@ -243,8 +256,8 @@
       "text": "They MUST handle unsupported dialects gracefully by returning an appropriate error indicating the dialect is not supported.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#implementation-requirements",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "n/a",
+      "reason": "The server never receives a schema from a peer: it publishes its own 2020-12 schemas and validates arguments against them, so no unsupported dialect can reach it."
     },
     {
       "id": "base-22",
@@ -252,8 +265,10 @@
       "text": "Clients and servers SHOULD document which schema dialects they support",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#implementation-requirements",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: the README states the schema dialect"
+      ]
     },
     {
       "id": "base-23",
@@ -261,8 +276,10 @@
       "text": "Schemas MUST be valid according to their declared or default dialect",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#schema-validation",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: every published schema is valid JSON Schema 2020-12 on every profile"
+      ]
     },
     {
       "id": "base-24",
@@ -2288,8 +2305,10 @@
       "text": "Servers SHOULD return tools from `tools/list` in a deterministic order to enable client-side caching and improve LLM prompt cache hit rates.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/changelog#minor-changes",
       "applies": "always",
-      "status": "pending",
-      "step": "packages"
+      "status": "covered",
+      "tests": [
+        "test/dynamic-packages.test.js :: N-38: list order is stable across sessions and package toggles"
+      ]
     },
     {
       "id": "tools-02",
@@ -2328,8 +2347,10 @@
       "text": "Servers SHOULD return tools in a deterministic order (i.e., the same ordering across requests when the underlying set of tools has not changed).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#capabilities",
       "applies": "always",
-      "status": "pending",
-      "step": "packages"
+      "status": "covered",
+      "tests": [
+        "test/dynamic-packages.test.js :: N-38: list order is stable across sessions and package toggles"
+      ]
     },
     {
       "id": "tools-06",
@@ -2358,8 +2379,10 @@
       "text": "Tool names SHOULD be between 1 and 128 characters in length (inclusive).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#tool-names",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: tool names: 1–128 characters of [A-Za-z0-9_.-], unique, case-insensitively too"
+      ]
     },
     {
       "id": "tools-09",
@@ -2367,8 +2390,10 @@
       "text": "Tool names SHOULD be considered case-sensitive.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#tool-names",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: tool names: 1–128 characters of [A-Za-z0-9_.-], unique, case-insensitively too"
+      ]
     },
     {
       "id": "tools-10",
@@ -2376,8 +2401,10 @@
       "text": "The following SHOULD be the only allowed characters: uppercase and lowercase ASCII letters (A-Z, a-z), digits (0-9), underscore (\\_), hyphen (-), and dot (.)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#tool-names",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: tool names: 1–128 characters of [A-Za-z0-9_.-], unique, case-insensitively too"
+      ]
     },
     {
       "id": "tools-11",
@@ -2385,8 +2412,10 @@
       "text": "Tool names SHOULD NOT contain spaces, commas, or other special characters.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#tool-names",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: tool names: 1–128 characters of [A-Za-z0-9_.-], unique, case-insensitively too"
+      ]
     },
     {
       "id": "tools-12",
@@ -2394,8 +2423,10 @@
       "text": "Tool names SHOULD be unique within a server.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#tool-names",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: tool names: 1–128 characters of [A-Za-z0-9_.-], unique, case-insensitively too"
+      ]
     },
     {
       "id": "tools-13",
@@ -2593,8 +2624,10 @@
       "text": "Custom URI schemes MUST be in accordance with RFC3986, taking the above guidance in to account.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources#custom-uri-schemes",
       "applies": "always",
-      "status": "pending",
-      "step": "shape"
+      "status": "covered",
+      "tests": [
+        "test/protocol-shape.test.js :: resource URIs and templates are RFC 3986 with a valid scheme"
+      ]
     },
     {
       "id": "resources-08",

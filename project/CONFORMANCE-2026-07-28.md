@@ -32,7 +32,7 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 68      | 245     | 51  |
+| 364   | 83      | 229     | 52  |
 
 Pending rows by step:
 
@@ -43,12 +43,11 @@ Pending rows by step:
 | `mrtr`     | 34   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 43   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
-| `shape`    | 14   | N-35: `tools/list` shape suite (JSON Schema 2020-12 meta-validation, name charset, URI syntax)         |
 | `listen`   | 11   | N-35 step 1: `subscriptions/listen`                                                                    |
 | `logging`  | 7    | N-35 step 1: per-request log level; no `notifications/message` without it                              |
 | `cache`    | 6    | N-38: `ttlMs` / `cacheScope`                                                                           |
 | `discover` | 5    | N-35 step 1: `server/discover`                                                                         |
-| `packages` | 5    | O-19 (d): lists fixed per server, deterministic order                                                  |
+| `packages` | 3    | O-19 (d): lists fixed per server, deterministic order                                                  |
 
 The n/a rows cover features the server never uses: client-supplied `$ref` resolution, custom
 transports, URL-mode elicitation, roots and sampling (ADR 0009), the legacy HTTP+SSE transport,
