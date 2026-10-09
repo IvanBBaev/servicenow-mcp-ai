@@ -927,7 +927,7 @@ items:
     phase: null
     done: null
     gates: ["O-10"]
-    notes: "**Harness done 2026-10-05 (local, uncommitted).** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. Open: real-model baseline (O-10 (d)) before any N-59 description change, repeats + McNemar, real `discovery` profile after N-63 (NX-23)."
+    notes: "**Harness done 2026-10-05 (local, uncommitted).** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. **Repeats + McNemar done 2026-10-09:** `--repeats <n>` with a majority vote, an exact McNemar p-value and the 4-point acceptance rule in the comparison. O-10 (d) decided 2026-10-09: `claude-sonnet-5-5`, three repeats. Open: the real-model baseline run (it waits for the owner's `ANTHROPIC_API_KEY`) before any N-59 description change, a real `discovery` profile after N-63 (NX-23)."
   - id: "N-19"
     title: "prompts for the N flagships"
     pillar: "N"

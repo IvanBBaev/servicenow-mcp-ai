@@ -77,6 +77,12 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-18: repeats and a paired comparison in the tool-selection eval.** `npm run eval:tools -- --repeats <n>` runs
+  every case n times and scores the majority answer. The report lists each run's top-1, and the baseline keeps
+  `correctRuns` / `runs` per case. Against a baseline the comparison prints an exact two-sided McNemar p-value over
+  the cases that flipped, and `accepted` or `REJECTED` under the acceptance rule (top-1 drops by at most 4 points).
+  The owner chose the model baseline (O-10 (d)): `claude-sonnet-5-5` with three repeats. Outside the gate;
+  `tools/list` +0 B.
 - **P-7: the `interceptor` artefact type (SDK 4.13 `Interceptor`).** The registry gains the classic-UI type `interceptor` over `sys_wizard`, with its answers (`sys_wizard_answer`, script field `script`) as children and the back / next panels as references. It is `verified:false` until O-5 confirms the tables; `sys_wizard_choice` rows stay plain `Record` calls, as in the SDK. tools/list delta: 0 B.
 - **N-37: an example call per tool in `servicenow://reference/tools/{name}`.** Each tool's reference now carries
   `example: { summary, arguments }` — one call its input schema accepts, with placeholder sys_ids (`ID`, `ID2`); write
