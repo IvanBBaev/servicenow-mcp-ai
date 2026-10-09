@@ -405,7 +405,7 @@ export function registerAllTools(
       // M-9: `run_as_task:true` returns a task handle and runs in background.
       (args, ctx) => {
         onCall?.();
-        const extra: TaskCallExtra = callExtraFromContext(ctx);
+        const extra: TaskCallExtra = callExtraFromContext(ctx, server);
         if (acceptsRunAsTask(spec)) {
           extra.taskStore = requestTaskStore(
             taskStoreFor(runtime),

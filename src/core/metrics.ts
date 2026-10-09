@@ -176,24 +176,31 @@ export function getToolStats(): Record<string, ToolStats> {
 /**
  * Time `fn` as one call of `tool` and record it with its result size: a
  * resolved result with `isError: true` and a rejection both count as errors.
+ * An MRTR `input_required` round (2026-07-28 wire) is not a finished call:
+ * it is not recorded, and the retry that answers it is.
  */
 export async function timeToolCall<
   T extends {
     isError?: boolean;
     content?: unknown;
     structuredContent?: unknown;
+    resultType?: unknown;
   },
 >(tool: string, fn: () => Promise<T>): Promise<T> {
   const started = performance.now();
   let error = true;
   let bytes: ResultBytes | undefined;
+  let pending = false;
   try {
     const result = await fn();
+    pending = result.resultType === "input_required";
     error = result.isError === true;
     bytes = measureResultBytes(result);
     return result;
   } finally {
-    recordToolCall(tool, performance.now() - started, error, bytes);
+    if (!pending) {
+      recordToolCall(tool, performance.now() - started, error, bytes);
+    }
   }
 }
 

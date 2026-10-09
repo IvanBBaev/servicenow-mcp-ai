@@ -31,6 +31,8 @@ import { clearPluginAvailability } from "../api/plugin.js";
 import { resolveHost } from "../core/host.js";
 import { buildStatusPayload, profilesPayload } from "../mcp/status.js";
 import { getServer } from "../mcp/context.js";
+import { askUser, onModernWire, type QuestionBinding } from "../mcp/input.js";
+import type { InputRequiredResult } from "@modelcontextprotocol/server";
 import {
   currentPackageSession,
   notifyProfileChanged,
@@ -52,61 +54,75 @@ import { explainTable, policyPayload } from "../mcp/policy-view.js";
 const UNCONFIRMED_HINT =
   "Set SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1 on the server to let credential changes proceed without confirmation.";
 
+/** The tool name a credential-change confirmation round is bound to. */
+const SET_CREDENTIALS = "servicenow_set_credentials";
+
 /**
  * Ask the client to confirm a credential change through elicitation (X-2).
- * Returns null to proceed, or a refusal ToolResult. H-2: the check fails
- * closed — no live server, a client without the `elicitation` capability and
- * a transport error all refuse the change unless the operator opted out with
- * SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE. An explicit decline is refused
- * regardless of that opt-out.
+ * Returns null to proceed, or a refusal ToolResult — or, on the 2026-07-28
+ * wire, the `input_required` round to return as is (MRTR, input.ts). H-2:
+ * the check fails closed — no live server, a client without the
+ * `elicitation` capability and a transport error all refuse the change
+ * unless the operator opted out with SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE.
+ * An explicit decline, and a rejected MRTR retry (replayed, or bound to
+ * another call), are refused regardless of that opt-out.
  */
 async function confirmCredentialChange(
   summary: string,
-): Promise<ReturnType<typeof fail> | null> {
-  const server = getServer();
-  const capabilities = server?.server.getClientCapabilities();
-  if (!server || !capabilities?.elicitation) {
-    if (allowUnconfirmedCredentialChange()) return null;
-    return fail(
-      "Credential change refused: this client cannot confirm it (no elicitation support).",
-      { code: "CREDENTIALS_UNCONFIRMED", hint: UNCONFIRMED_HINT },
-    );
-  }
-
-  let confirmed: boolean;
-  try {
-    const res = await server.server.elicitInput({
-      message: `Save ServiceNow credentials (${summary})?`,
-      requestedSchema: {
-        type: "object",
-        properties: {
-          confirm: {
-            type: "boolean",
-            description: "Confirm saving the new credentials.",
-          },
+  binding: QuestionBinding,
+): Promise<ReturnType<typeof fail> | InputRequiredResult | null> {
+  const answer = await askUser({
+    purpose: "credential_change",
+    key: "confirm",
+    message: `Save ServiceNow credentials (${summary})?`,
+    requestedSchema: {
+      type: "object",
+      properties: {
+        confirm: {
+          type: "boolean",
+          description: "Confirm saving the new credentials.",
         },
-        required: ["confirm"],
       },
-    });
-    confirmed =
-      res.action === "accept" &&
-      (res.content as { confirm?: boolean } | undefined)?.confirm === true;
-  } catch (error) {
-    // Elicitation failed at the protocol level. An unconfirmed change must
-    // never slip through on an error, so this is a refusal unless opted out.
-    if (allowUnconfirmedCredentialChange()) return null;
-    const detail = error instanceof Error ? error.message : String(error);
-    return fail(
-      `Credential change refused: the confirmation prompt failed (${detail}).`,
-      { code: "CREDENTIALS_UNCONFIRMED", hint: UNCONFIRMED_HINT },
-    );
+      required: ["confirm"],
+    },
+    binding,
+  });
+  switch (answer.status) {
+    case "pending":
+      return answer.result;
+    case "unsupported":
+      if (allowUnconfirmedCredentialChange()) return null;
+      return fail(
+        "Credential change refused: this client cannot confirm it (no elicitation support).",
+        { code: "CREDENTIALS_UNCONFIRMED", hint: UNCONFIRMED_HINT },
+      );
+    case "failed":
+      // Elicitation failed at the protocol level. An unconfirmed change must
+      // never slip through on an error, so this is a refusal unless opted out.
+      if (allowUnconfirmedCredentialChange()) return null;
+      return fail(
+        `Credential change refused: the confirmation prompt failed (${answer.error}).`,
+        { code: "CREDENTIALS_UNCONFIRMED", hint: UNCONFIRMED_HINT },
+      );
+    case "rejected":
+      return fail(
+        `Credential change refused: ${answer.error}. Nothing was changed.`,
+        {
+          code: "CREDENTIALS_UNCONFIRMED",
+          hint: "Repeat the call without inputResponses or requestState to be asked again.",
+        },
+      );
+    case "answered":
+      if (
+        answer.action === "accept" &&
+        (answer.content as { confirm?: unknown } | undefined)?.confirm === true
+      ) {
+        return null;
+      }
+      return fail("Credential change was not confirmed by the user.", {
+        code: "CREDENTIALS_UNCONFIRMED",
+      });
   }
-  if (!confirmed) {
-    return fail("Credential change was not confirmed by the user.", {
-      code: "CREDENTIALS_UNCONFIRMED",
-    });
-  }
-  return null;
 }
 
 /** The secrets set_credentials collects through elicitation, never as arguments. */
@@ -150,65 +166,85 @@ function describeChange(
  * transports may log. There is no argument fallback and no opt-out: a client
  * without elicitation cannot set them through this tool. Accepting the form
  * also confirms the whole change it describes.
+ *
+ * On the 2026-07-28 wire the answer to a form would come back in the retry's
+ * `inputResponses`, a tool-call argument in all but name — and a server must
+ * not ask for secrets through a form there. That wire is refused outright.
  */
 async function elicitSecrets(
   summary: string,
   secrets: readonly SecretName[],
+  binding: QuestionBinding,
 ): Promise<
   | { ok: true; values: Partial<Record<AuthSetting, string>> }
   | { ok: false; refusal: ReturnType<typeof fail> }
 > {
-  const server = getServer();
-  if (!server || !server.server.getClientCapabilities()?.elicitation) {
+  const envHint = secrets
+    .map((n) => `SN_${SECRET_FIELDS[n].setting}`)
+    .join(" / ");
+  if (onModernWire()) {
+    return {
+      ok: false,
+      refusal: fail(
+        `Secret entry refused: ${secrets.join(" and ")} cannot be requested through a form prompt on this protocol revision (2026-07-28), and secrets are never accepted as tool arguments. Nothing was changed.`,
+        {
+          code: "CREDENTIALS_UNCONFIRMED",
+          hint: `Set ${envHint} in the env file or a secret file instead.`,
+        },
+      ),
+    };
+  }
+  const answer = await askUser({
+    purpose: "credential_change",
+    key: "secrets",
+    message: `Save ServiceNow credentials (${summary})? Enter the secret value(s) to confirm.`,
+    requestedSchema: {
+      type: "object",
+      properties: Object.fromEntries(
+        secrets.map((name) => [
+          name,
+          {
+            type: "string",
+            title: SECRET_FIELDS[name].label,
+            minLength: 1,
+          },
+        ]),
+      ),
+      required: [...secrets],
+    },
+    binding,
+  });
+  if (answer.status === "unsupported") {
     return {
       ok: false,
       refusal: fail(
         `Secret entry refused: ${secrets.join(" and ")} can only be entered through an elicitation prompt, which this client does not support — secrets are never accepted as tool arguments. Nothing was changed.`,
         {
           code: "CREDENTIALS_UNCONFIRMED",
-          hint: `Set ${secrets.map((n) => `SN_${SECRET_FIELDS[n].setting}`).join(" / ")} in the env file instead.`,
+          hint: `Set ${envHint} in the env file instead.`,
         },
       ),
     };
   }
-  let content: Record<string, unknown> | undefined;
-  try {
-    const res = await server.server.elicitInput({
-      message: `Save ServiceNow credentials (${summary})? Enter the secret value(s) to confirm.`,
-      requestedSchema: {
-        type: "object",
-        properties: Object.fromEntries(
-          secrets.map((name) => [
-            name,
-            {
-              type: "string",
-              title: SECRET_FIELDS[name].label,
-              minLength: 1,
-            },
-          ]),
-        ),
-        required: [...secrets],
-      },
-    });
-    if (res.action !== "accept") {
-      return {
-        ok: false,
-        refusal: fail("Credential change was not confirmed by the user.", {
-          code: "CREDENTIALS_UNCONFIRMED",
-        }),
-      };
-    }
-    content = res.content;
-  } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+  if (answer.status === "failed") {
     return {
       ok: false,
       refusal: fail(
-        `Secret entry refused: the elicitation prompt failed (${detail}). Nothing was changed.`,
+        `Secret entry refused: the elicitation prompt failed (${answer.error}). Nothing was changed.`,
         { code: "CREDENTIALS_UNCONFIRMED" },
       ),
     };
   }
+  // `pending` and `rejected` belong to the 2026-07-28 wire, refused above.
+  if (answer.status !== "answered" || answer.action !== "accept") {
+    return {
+      ok: false,
+      refusal: fail("Credential change was not confirmed by the user.", {
+        code: "CREDENTIALS_UNCONFIRMED",
+      }),
+    };
+  }
+  const content = answer.content;
   const values: Partial<Record<AuthSetting, string>> = {};
   for (const name of secrets) {
     const value = content?.[name];
@@ -314,7 +350,7 @@ const TOGGLE_OUTPUT = {
 
 export const specs: AnyToolSpec[] = [
   defineTool({
-    name: "servicenow_set_credentials",
+    name: SET_CREDENTIALS,
     title: "Set ServiceNow credentials",
     description:
       "Save connection credentials to the env file for later requests (any subset; auth / oauth_client_id / oauth_grant pick the method). Secrets are never arguments: list them in request_secrets for elicitation. See 'instance' for host changes.",
@@ -417,12 +453,14 @@ export const specs: AnyToolSpec[] = [
         }
       }
       const summary = describeChange(clean, settings, secrets);
+      // MRTR: a confirmation round answers only this very call.
+      const binding = { tool: SET_CREDENTIALS, profile, args };
       if (secrets.length > 0) {
-        const entered = await elicitSecrets(summary, secrets);
+        const entered = await elicitSecrets(summary, secrets, binding);
         if (!entered.ok) return entered.refusal;
         Object.assign(settings, entered.values);
       } else {
-        const refusal = await confirmCredentialChange(summary);
+        const refusal = await confirmCredentialChange(summary, binding);
         if (refusal) return refusal;
       }
 

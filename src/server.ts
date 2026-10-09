@@ -16,6 +16,7 @@ import {
 import { LIST_CHANGED_NOTIFICATIONS } from "./mcp/packages.js";
 import { registerPrompts } from "./mcp/prompts.js";
 import { setServer } from "./mcp/context.js";
+import { mrtrServerOptions } from "./mcp/input.js";
 import { logger, setLogSink } from "./core/logging.js";
 import { createLogBridge } from "./mcp/log-bridge.js";
 import { warnIfTlsVerifyOff } from "./core/dispatcher.js";
@@ -52,6 +53,9 @@ export function buildMcpServer(
       debouncedNotificationMethods: LIST_CHANGED_NOTIFICATIONS,
       // N-38: ttlMs / cacheScope on the 2026-07-28 wire; legacy ignores them.
       cacheHints: LIST_CACHE_HINTS,
+      // MRTR (2026-07-28): input_required rounds with a signed, single-use
+      // requestState; the legacy wire keeps in-line elicitation (input.ts).
+      ...mrtrServerOptions(),
       ...serverOptions,
       capabilities: { logging: {}, ...serverOptions.capabilities },
     }),

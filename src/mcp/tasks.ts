@@ -22,7 +22,8 @@ import {
   defineRuntimePart,
   type Runtime,
 } from "../core/runtime.js";
-import type { AnyToolSpec, CallExtra } from "./define.js";
+import type { AnyToolSpec, CallExtra, SpecResult } from "./define.js";
+import { isPendingInput } from "./input.js";
 import { fail, ok, type ToolResult } from "./result.js";
 
 /**
@@ -541,8 +542,8 @@ export async function runMaybeAsTask(
   spec: AnyToolSpec,
   args: Record<string, unknown>,
   extra: TaskCallExtra,
-  run: (args: Record<string, unknown>, extra: CallExtra) => Promise<ToolResult>,
-): Promise<ToolResult | TaskHandleResult> {
+  run: (args: Record<string, unknown>, extra: CallExtra) => Promise<SpecResult>,
+): Promise<SpecResult | TaskHandleResult> {
   if (!("run_as_task" in args)) return run(args, extra);
   const { run_as_task: asTask, ...rest } = args;
   if (asTask !== true || !acceptsRunAsTask(spec)) return run(rest, extra);
@@ -577,12 +578,23 @@ export async function runMaybeAsTask(
   const background: CallExtra = {
     ...(extra.requestId !== undefined ? { requestId: extra.requestId } : {}),
     ...(extra.sessionId ? { sessionId: extra.sessionId } : {}),
+    ...(extra.input ? { input: extra.input } : {}),
     signal: controller.signal,
   };
   void (async () => {
     let result: ToolResult;
     try {
-      result = await run(rest, background);
+      const done = await run(rest, background);
+      // MRTR: the request that could carry the answer has already returned.
+      result = isPendingInput(done)
+        ? fail(
+            "This call needs the user's confirmation, which a background task cannot ask for. Nothing was changed.",
+            {
+              code: "CONFIRM_REQUIRED",
+              hint: "Call the tool without run_as_task to confirm the change.",
+            },
+          )
+        : done;
     } catch (error) {
       result = fail(error);
     }

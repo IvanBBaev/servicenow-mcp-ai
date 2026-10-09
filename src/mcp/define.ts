@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   LOG_LEVEL_META_KEY,
+  type InputRequiredResult,
   type McpServer,
   type ServerContext,
 } from "@modelcontextprotocol/server";
@@ -34,6 +35,12 @@ import { withFileLink } from "./file-link.js";
 import { planArgsHash } from "./plan-token.js";
 import { createSecretRegistry } from "../core/secret-columns.js";
 import { confirmDestructiveApply } from "./confirm.js";
+import {
+  inputRoundFromContext,
+  isPendingInput,
+  runWithInputRound,
+  type InputRound,
+} from "./input.js";
 import type { JournalInput } from "../core/write-journal.js";
 import { EMAIL_ADDRESS_RE } from "../api/shared.js";
 import { legacyToolNames, type ToolName } from "./naming.js";
@@ -102,8 +109,15 @@ export interface ToolSpec<S extends z.ZodRawShape = z.ZodRawShape> {
   deprecatedParams?: Readonly<Record<string, string>>;
   /** Fields for the log line; never secrets or raw encoded queries. */
   logFields?: (args: z.output<z.ZodObject<S>>) => Record<string, unknown>;
-  handler: (args: z.output<z.ZodObject<S>>) => ToolResult | Promise<ToolResult>;
+  /**
+   * The tool's work. It returns an `input_required` round (MRTR) only through
+   * input.ts askUser, which yields one on the 2026-07-28 wire alone.
+   */
+  handler: (args: z.output<z.ZodObject<S>>) => SpecResult | Promise<SpecResult>;
 }
+
+/** What a tool call returns: a result, or an MRTR `input_required` round. */
+export type SpecResult = ToolResult | InputRequiredResult;
 
 /** H-3: see ToolSpec.confirm. */
 export interface ConfirmSpec {
@@ -167,6 +181,8 @@ export interface CallExtra {
   sendNotification?: (notification: ProgressNotification) => Promise<void>;
   /** M-8: the request-scoped log channel (see request-context.ts). */
   log?: RequestLog;
+  /** MRTR: the call is served on the 2026-07-28 wire (input.ts). */
+  input?: InputRound;
 }
 
 /**
@@ -174,12 +190,17 @@ export interface CallExtra {
  * data under `ctx.mcpReq`) where v1 passed a flat `extra`; tests and
  * in-process callers keep passing the flat form.
  */
-export function callExtraFromContext(ctx: ServerContext): CallExtra {
+export function callExtraFromContext(
+  ctx: ServerContext,
+  server?: McpServer,
+): CallExtra {
   const req = ctx.mcpReq;
   // The SDK types the envelope as `{}`; the level key is validated on the way in.
   const envelope = req.envelope as Record<string, unknown> | undefined;
   const level = envelope?.[LOG_LEVEL_META_KEY];
+  const input = inputRoundFromContext(ctx, server);
   return {
+    ...(input ? { input } : {}),
     ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
     requestId: req.id,
     signal: req.signal,
@@ -211,7 +232,7 @@ export async function runSpec(
   spec: AnyToolSpec,
   args: Record<string, unknown>,
   extra: CallExtra = {},
-): Promise<ToolResult> {
+): Promise<SpecResult> {
   const token = extra._meta?.progressToken;
   const progress =
     token !== undefined && extra.sendNotification
@@ -236,11 +257,13 @@ export async function runSpec(
   // lazily, so an unobserved call pays only the hasSubscribers checks.
   const started = Date.now();
   publishToolCallEvent("start", () => toolCallMessage(spec, call));
-  let result: ToolResult;
+  let result: SpecResult;
   try {
-    result = await runWithCall(call, () =>
-      runWithClient(extra.sessionId, () =>
-        runWithTool(spec.name, () => runSpecInner(spec, args, call)),
+    result = await runWithInputRound(extra.input, () =>
+      runWithCall(call, () =>
+        runWithClient(extra.sessionId, () =>
+          runWithTool(spec.name, () => runSpecInner(spec, args, call)),
+        ),
       ),
     );
   } catch (error) {
@@ -255,22 +278,33 @@ export async function runSpec(
   } finally {
     progress?.flush();
   }
-  const outcome = result.isError
+  if (isPendingInput(result)) {
+    // MRTR: the call asked the user and ends here; the retry is a new call.
+    publishToolCallEvent("end", () => ({
+      ...toolCallMessage(spec, call),
+      outcome: "input_required",
+      ms: Date.now() - started,
+      resultBytes: 0,
+    }));
+    return result;
+  }
+  const done = result;
+  const outcome = done.isError
     ? call.signal?.aborted
       ? "cancelled"
       : "error"
     : "ok";
-  publishToolCallEvent(result.isError ? "error" : "end", () => {
-    const code = result.isError ? resultErrorCode(result) : undefined;
+  publishToolCallEvent(done.isError ? "error" : "end", () => {
+    const code = done.isError ? resultErrorCode(done) : undefined;
     return {
       ...toolCallMessage(spec, call),
       outcome,
       ms: Date.now() - started,
       ...(code ? { code } : {}),
-      resultBytes: resultBytes(result),
+      resultBytes: resultBytes(done),
     };
   });
-  return result;
+  return done;
 }
 
 /**
@@ -304,7 +338,7 @@ async function runSpecInner(
   spec: AnyToolSpec,
   rawArgs: Record<string, unknown>,
   call: CallContext,
-): Promise<ToolResult> {
+): Promise<SpecResult> {
   const normalized = normalizeParamAliases(spec, rawArgs);
   if ("error" in normalized) return normalized.error;
   const args = normalized.args;
@@ -334,12 +368,20 @@ async function runSpecInner(
   try {
     // H-3: the gate runs in the call's profile context, so a refusal is
     // journaled under the profile the write targeted.
-    const invoke = async (): Promise<ToolResult> =>
+    const invoke = async (): Promise<SpecResult> =>
       (await confirmDestructiveApply(spec, args, call)) ??
       (await spec.handler(args));
     const result = profile
       ? await runWithProfile(profile, invoke)
       : await invoke();
+    if (isPendingInput(result)) {
+      // MRTR: the round asks the user; it carries no tool result to shape.
+      logger.info(`tool ${spec.name} input_required`, {
+        ...fields,
+        ms: Date.now() - start,
+      });
+      return result;
+    }
     logger.info(`tool ${spec.name} done`, {
       ...fields,
       ms: Date.now() - start,

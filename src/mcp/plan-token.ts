@@ -58,16 +58,16 @@ const UNBOUND_ARGS = new Set([
 ]);
 
 /** JSON with sorted object keys, so equal arguments hash equally. */
-function canonical(value: unknown): string {
+export function canonicalJson(value: unknown): string {
   if (value === undefined) return "null";
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   const entries = Object.entries(value as Record<string, unknown>)
     .filter(([, v]) => v !== undefined)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`).join(",")}}`;
 }
 
 /**
@@ -80,7 +80,7 @@ export function planArgsHash(args: Record<string, unknown>): string {
   for (const [k, v] of Object.entries(args)) {
     if (!UNBOUND_ARGS.has(k)) bound[k] = v;
   }
-  return createHash("sha256").update(canonical(bound)).digest("hex");
+  return createHash("sha256").update(canonicalJson(bound)).digest("hex");
 }
 
 function randomLetters(n: number): string {
