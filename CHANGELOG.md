@@ -77,6 +77,11 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-1: the `upgrade` document kind and the `servicenow_upgrade_review` prompt.** `servicenow_document_instance`
+  gains `upgrade` (`upgrade.md`, needs the `docs` and `instance` packages): the upgrade history, the unresolved skipped
+  records of the newest upgrade grouped by application and artefact type, and the store apps with an update. The
+  `servicenow_upgrade_review` prompt (listed with the `instance` package, optional `upgrade`) walks the history, the
+  skips, one skip's base vs customer versions and the store updates, then the document. tools/list: all +10 B, core +0 B.
 - **N-15: `explain` on `servicenow_query_table`.** With the flag no records are read: the encoded query is explained
   against the table chain's indexes (`sys_index`) — which conditions can use an index, cost notes for `ORDERBY`, `LIKE`
   and scans, the index count and a cached row estimate. Advice from the usual index rules, not ServiceNow's planner.
