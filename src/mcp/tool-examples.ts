@@ -123,6 +123,16 @@ export const TOOL_EXAMPLES: Record<ToolName, ToolExample> = {
     summary: "Load the cmdb package for this session.",
     arguments: { name: "cmdb" },
   },
+  servicenow_explain_access: {
+    summary: "Why a user cannot write one incident's assignment group.",
+    arguments: {
+      user: "abel.tuter",
+      table: "incident",
+      operation: "write",
+      sys_id: ID,
+      field: "assignment_group",
+    },
+  },
   servicenow_explain_artifact: {
     summary: "Explain one business rule.",
     arguments: { artifactType: "business_rule", sys_id: ID },

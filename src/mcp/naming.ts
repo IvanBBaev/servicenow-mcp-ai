@@ -36,6 +36,7 @@ export const TOOLS = {
   document_table: "servicenow_document_table",
   download_attachment: "servicenow_download_attachment",
   enable_package: "servicenow_enable_package",
+  explain_access: "servicenow_explain_access",
   explain_artifact: "servicenow_explain_artifact",
   explain_flow: "servicenow_explain_flow",
   explain_policy: "servicenow_explain_policy",

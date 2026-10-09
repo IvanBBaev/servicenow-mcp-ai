@@ -1696,6 +1696,80 @@
       }
     },
     {
+      "name": "servicenow_explain_access",
+      "package": "directory",
+      "title": "Explain a user's access",
+      "since": "2.0.1",
+      "description_sha256": "5d8469c23567684e67bbf1e9a04c49afb396ae20134e2f785246f3fcc5e68d79",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "description": "Field ACL too.",
+            "maxLength": 255,
+            "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
+            "type": "string"
+          },
+          "format": {
+            "description": "json (default) or markdown report + Mermaid.",
+            "enum": ["json", "markdown"],
+            "type": "string"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "operation": {
+            "description": "Operation.",
+            "enum": ["read", "write", "create", "delete"],
+            "type": "string"
+          },
+          "sys_id": {
+            "description": "Record; conditions run as the connected user.",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "type": "string"
+          },
+          "table": {
+            "description": "Table.",
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "type": "string"
+          },
+          "user": {
+            "description": "user_name or sys_id.",
+            "maxLength": 100,
+            "type": "string"
+          }
+        },
+        "required": ["user", "table", "operation"],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "available": { "type": "boolean" },
+          "decision": {
+            "enum": ["granted", "denied", "undetermined"],
+            "type": "string"
+          }
+        },
+        "required": ["available", "decision"],
+        "type": "object"
+      },
+      "sizes": {
+        "description": 188,
+        "inputSchema": 814,
+        "paramDescriptions": 177,
+        "outputSchema": 154
+      }
+    },
+    {
       "name": "servicenow_explain_artifact",
       "package": "artifacts",
       "title": "Explain artifact",

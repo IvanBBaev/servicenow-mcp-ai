@@ -475,3 +475,50 @@ test("the Mermaid decision diagram walks the tried names to the ACLs and the dec
   );
   assert.equal(renderAccessMermaid({ available: false, checks: [] }), "");
 });
+
+// --- wiring: servicenow_explain_access (N-2, O-10) ---------------------------
+
+const { runSpec } = await import("../build/mcp/define.js");
+const { ALL_TOOLS } = await import("../build/mcp/registry.js");
+
+const spec = ALL_TOOLS.find((s) => s.name === "servicenow_explain_access");
+const body = (res) => res.structuredContent ?? JSON.parse(res.content[0].text);
+
+test("explain_access sits in the opt-in directory package, read-only", () => {
+  assert.equal(spec.package, "directory");
+  assert.equal(spec.annotations.readOnlyHint, true);
+  assert.equal(spec.input.operation.safeParse("execute").success, false);
+  assert.equal(spec.input.user.safeParse("x".repeat(101)).success, false);
+});
+
+test("explain_access returns the explanation, or Markdown with the Mermaid diagram", async () => {
+  freshRuntime();
+  await withFetch(instance(), async () => {
+    const args = {
+      user: "beth.anglin",
+      table: "incident",
+      operation: "read",
+      sys_id: REC,
+      field: "state",
+    };
+    const json = body(await runSpec(spec, args));
+    assert.equal(json.available, true);
+    assert.equal(json.decision, "undetermined");
+    assert.equal(json.sysId, REC);
+    assert.equal(json.checks.length, 2);
+
+    const md = body(await runSpec(spec, { ...args, format: "markdown" }));
+    assert.equal(md.decision, "undetermined");
+    assert.match(md.markdown, /\*\*Decision: undetermined\*\*/);
+    assert.match(md.markdown, /```mermaid\nflowchart TD/);
+  });
+});
+
+test("explain_access passes a bad user through to a validation error", async () => {
+  const res = await runSpec(spec, {
+    user: "a^b",
+    table: "incident",
+    operation: "read",
+  });
+  assert.equal(res.isError, true);
+});

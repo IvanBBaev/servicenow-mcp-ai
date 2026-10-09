@@ -16,7 +16,7 @@
 
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-100-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-101-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -1102,7 +1102,7 @@ name carries the `servicenow_` prefix, left out below._
 | [`ops`](docs/tools/ops.md) | no | `read_ops`, `check_data_health` | — |
 | [`history`](docs/tools/history.md) | no | `get_record_history`, `get_task_context` | — |
 | [`properties`](docs/tools/properties.md) | no | `get_properties` | `set_property` |
-| [`directory`](docs/tools/directory.md) | no | `lookup_directory` | — |
+| [`directory`](docs/tools/directory.md) | no | `lookup_directory`, `explain_access` | — |
 | [`ui`](docs/tools/ui.md) | no | `explain_portal`, `explain_ui_experience` | — |
 | [`admin`](docs/tools/admin.md) | yes | `list_instances`, `explain_policy`, `get_status`, `test_connection`, `check_capabilities`, `list_packages`, `find_tools` | `set_credentials`, `use_instance`, `enable_package`, `disable_package` |
 
@@ -2171,7 +2171,7 @@ compatibility with the ServiceNow platform. See the README for the full notice.
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-100 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
+101 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
 
 | Package | Tools | Read-only | Default `core` |
 | ------- | ----: | --------: | :------------: |
@@ -2198,7 +2198,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`ops`](ops.md) | 2 | 2 | no |
 | [`history`](history.md) | 2 | 2 | no |
 | [`properties`](properties.md) | 2 | 1 | no |
-| [`directory`](directory.md) | 1 | 1 | no |
+| [`directory`](directory.md) | 2 | 2 | no |
 | [`ui`](ui.md) | 2 | 2 | no |
 | [`admin`](admin.md) | 11 | 7 | yes |
 
@@ -4797,11 +4797,12 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-1 tool (1 read-only, 0 write). Opt-in: add `directory` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
+2 tools (2 read-only, 0 write). Opt-in: add `directory` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
 | [`servicenow_lookup_directory`](#servicenow_lookup_directory) | yes | Look up users, groups and roles |
+| [`servicenow_explain_access`](#servicenow_explain_access) | yes | Explain a user's access |
 
 ## servicenow_lookup_directory
 
@@ -4830,6 +4831,33 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ----- | ---- | ----------- |
 | `count` | number |  |
 | `records` | any[] |  |
+
+## servicenow_explain_access
+
+**Explain a user's access.** Why a user can or cannot read, write, create or delete a table, record or field: roles, the matching row/field ACLs and their role, condition and script parts. Scripts stay undetermined.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `user` | string | yes | user_name or sys_id. |
+| `table` | string | yes | Table. |
+| `operation` | "read" \| "write" \| "create" \| "delete" | yes | Operation. |
+| `sys_id` | string | no | Record; conditions run as the connected user. |
+| `field` | string | no | Field ACL too. |
+| `format` | "json" \| "markdown" | no | json (default) or markdown report + Mermaid. |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `available` | boolean |  |
+| `decision` | "granted" \| "denied" \| "undetermined" |  |
 
 ---
 

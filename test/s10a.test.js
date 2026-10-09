@@ -108,7 +108,10 @@ test("S-10a packages: history, properties, directory are opt-in; cmdb gains two 
     "servicenow_get_properties",
     "servicenow_set_property",
   ]);
-  assert.deepEqual(names("directory"), ["servicenow_lookup_directory"]);
+  assert.deepEqual(names("directory"), [
+    "servicenow_explain_access",
+    "servicenow_lookup_directory",
+  ]);
   const cmdb = names("cmdb");
   assert.ok(cmdb.includes("servicenow_list_ci_relations"));
   assert.ok(cmdb.includes("servicenow_identify_reconcile"));

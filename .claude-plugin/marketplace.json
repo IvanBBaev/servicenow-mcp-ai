@@ -5,7 +5,7 @@
     {
       "name": "servicenow-mcp-ai",
       "source": "./",
-      "description": "ServiceNow MCP server — 100 tools, plan-and-apply write safety, capability preflight and an ACL security scan. Add with: /plugin marketplace add IvanBBaev/servicenow-mcp-ai"
+      "description": "ServiceNow MCP server — 101 tools, plan-and-apply write safety, capability preflight and an ACL security scan. Add with: /plugin marketplace add IvanBBaev/servicenow-mcp-ai"
     }
   ]
 }

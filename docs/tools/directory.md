@@ -2,11 +2,12 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-1 tool (1 read-only, 0 write). Opt-in: add `directory` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
+2 tools (2 read-only, 0 write). Opt-in: add `directory` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
 | [`servicenow_lookup_directory`](#servicenow_lookup_directory) | yes | Look up users, groups and roles |
+| [`servicenow_explain_access`](#servicenow_explain_access) | yes | Explain a user's access |
 
 ## servicenow_lookup_directory
 
@@ -35,3 +36,30 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ----- | ---- | ----------- |
 | `count` | number |  |
 | `records` | any[] |  |
+
+## servicenow_explain_access
+
+**Explain a user's access.** Why a user can or cannot read, write, create or delete a table, record or field: roles, the matching row/field ACLs and their role, condition and script parts. Scripts stay undetermined.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `user` | string | yes | user_name or sys_id. |
+| `table` | string | yes | Table. |
+| `operation` | "read" \| "write" \| "create" \| "delete" | yes | Operation. |
+| `sys_id` | string | no | Record; conditions run as the connected user. |
+| `field` | string | no | Field ACL too. |
+| `format` | "json" \| "markdown" | no | json (default) or markdown report + Mermaid. |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `available` | boolean |  |
+| `decision` | "granted" \| "denied" \| "undetermined" |  |
