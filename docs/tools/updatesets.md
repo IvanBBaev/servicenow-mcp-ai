@@ -42,7 +42,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_get_update_set
 
-**Get update set.** Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target, action, table — with counts. include_payload adds the parsed field values, capped, secret-looking fields masked.
+**Get update set.** Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target, action, table — with counts; UIB pages it touches list the records it lacks. include_payload adds parsed field values, capped, secrets masked.
 
 **Writes:** Read-only.
 

@@ -353,7 +353,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_get_artifact_dependencies",
     title: "Artifact dependencies",
     description:
-      "Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables) and inbound (reverse references, script and flow-step callers). Depth-capped; JSON or Mermaid.",
+      "Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables, UIB components and brokers) and inbound (reverse references, script, flow-step and UIB page callers). Depth-capped; JSON or Mermaid.",
     package: "artifacts",
     annotations: {
       readOnlyHint: true,

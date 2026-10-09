@@ -1010,20 +1010,6 @@
               "file"
             ]
           },
-          "detail": {
-            "description": "Depth: element props/components, bindings, event chains, script bodies. file default: all.",
-            "maxItems": 4,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "elements",
-                "bindings",
-                "events",
-                "scripts"
-              ]
-            }
-          },
           "instance": {
             "description": "Profile (default active)",
             "type": "string",
@@ -1250,7 +1236,7 @@
     {
       "name": "servicenow_get_artifact_dependencies",
       "title": "Artifact dependencies",
-      "description": "Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables) and inbound (reverse references, script and flow-step callers). Depth-capped; JSON or Mermaid.",
+      "description": "Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables, UIB components and brokers) and inbound (reverse references, script, flow-step and UIB page callers). Depth-capped; JSON or Mermaid.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -1831,7 +1817,7 @@
     {
       "name": "servicenow_get_update_set",
       "title": "Get update set",
-      "description": "Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target, action, table — with counts. include_payload adds the parsed field values, capped, secret-looking fields masked.",
+      "description": "Summarise one update set: its customer updates (sys_update_xml) per artefact — type, target, action, table — with counts; UIB pages it touches list the records it lacks. include_payload adds parsed field values, capped, secrets masked.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -3211,7 +3197,7 @@
               "field",
               "script"
             ],
-            "description": "A table, a field, or a script/script-include name."
+            "description": "A table, a field, or a script/script-include name (also a UIB component, macroponent or broker sys_id)."
           },
           "name": {
             "type": "string",

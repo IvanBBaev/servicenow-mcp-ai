@@ -4,7 +4,7 @@
   "profiles": {
     "core": 27136,
     "all": 120576,
-    "all+tasks": 122112,
+    "all+tasks": 121856,
     "all+legacy": 137216
   }
 }

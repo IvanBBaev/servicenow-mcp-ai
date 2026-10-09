@@ -127,7 +127,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_get_artifact_dependencies
 
-**Artifact dependencies.** Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables) and inbound (reverse references, script and flow-step callers). Depth-capped; JSON or Mermaid.
+**Artifact dependencies.** Dependency graph of one artifact: outbound (references, decoded JSON, script calls, GlideRecord tables, UIB components and brokers) and inbound (reverse references, script, flow-step and UIB page callers). Depth-capped; JSON or Mermaid.
 
 **Writes:** Read-only.
 

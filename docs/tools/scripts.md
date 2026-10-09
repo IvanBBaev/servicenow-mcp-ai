@@ -129,7 +129,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `kind` | "table" \| "field" \| "script" | yes | A table, a field, or a script/script-include name. |
+| `kind` | "table" \| "field" \| "script" | yes | A table, a field, or a script/script-include name (also a UIB component, macroponent or broker sys_id). |
 | `name` | string | yes | Name to find usages of (table, table.field or script). |
 | `mermaid` | boolean | no | Also render a Mermaid reference graph. |
 | `scope` | string | no | One scope: namespace (e.g. 'x_acme_app') or sys_id. |

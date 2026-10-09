@@ -2130,15 +2130,6 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
-          "detail": {
-            "description": "Depth: element props/components, bindings, event chains, script bodies. file default: all.",
-            "items": {
-              "enum": ["elements", "bindings", "events", "scripts"],
-              "type": "string"
-            },
-            "maxItems": 4,
-            "type": "array"
-          },
           "format": {
             "description": "json (default), markdown (report + diagram), mermaid (page map) or file (JSON to exports/).",
             "enum": ["json", "markdown", "mermaid", "file"],
@@ -2176,8 +2167,8 @@
       },
       "sizes": {
         "description": 194,
-        "inputSchema": 770,
-        "paramDescriptions": 301,
+        "inputSchema": 548,
+        "paramDescriptions": 209,
         "outputSchema": 139
       }
     },
@@ -2630,7 +2621,7 @@
       "package": "artifacts",
       "title": "Artifact dependencies",
       "since": "2.0.1",
-      "description_sha256": "1364a2a887790cb75be5100287e29f02be300d111213cb46aa938673597f8888",
+      "description_sha256": "a958af1cd690dfab39482ecc86ae43494d0ef99c5cef7bba4badd275201c0582",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2797,7 +2788,7 @@
         "type": "object"
       },
       "sizes": {
-        "description": 200,
+        "description": 238,
         "inputSchema": 1262,
         "paramDescriptions": 436,
         "outputSchema": 688
@@ -3904,7 +3895,7 @@
       "package": "updatesets",
       "title": "Get update set",
       "since": "2.0.1",
-      "description_sha256": "e09311d1871c5f7cba8dfe1886064a9839b283c2439de311f7317f59fbb0f68f",
+      "description_sha256": "246222298bccc321e488033dc854e64faee0947647433cfeb7b940d6249097f5",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4011,7 +4002,7 @@
         "type": "object"
       },
       "sizes": {
-        "description": 207,
+        "description": 237,
         "inputSchema": 742,
         "paramDescriptions": 259,
         "outputSchema": 335
@@ -7178,7 +7169,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "A table, a field, or a script/script-include name.",
+            "description": "A table, a field, or a script/script-include name (also a UIB component, macroponent or broker sys_id).",
             "enum": ["table", "field", "script"],
             "type": "string"
           },
@@ -7217,8 +7208,8 @@
       },
       "sizes": {
         "description": 220,
-        "inputSchema": 789,
-        "paramDescriptions": 334,
+        "inputSchema": 842,
+        "paramDescriptions": 387,
         "outputSchema": 249
       }
     },

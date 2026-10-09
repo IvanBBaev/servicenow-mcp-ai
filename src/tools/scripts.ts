@@ -200,7 +200,9 @@ export const specs: AnyToolSpec[] = [
     input: {
       kind: z
         .enum(["table", "field", "script"])
-        .describe("A table, a field, or a script/script-include name."),
+        .describe(
+          "A table, a field, or a script/script-include name (also a UIB component, macroponent or broker sys_id).",
+        ),
       name: z
         .string()
         .describe("Name to find usages of (table, table.field or script)."),
