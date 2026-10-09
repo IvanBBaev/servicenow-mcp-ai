@@ -7,6 +7,7 @@ import { readBool } from "../core/settings-manifest.js";
 import { SERVER_VERSION } from "../core/identity.js";
 import type { AnyToolSpec } from "./define.js";
 import { APP_VIEW_IDS, viewHtml, type AppViewId } from "./apps-views.js";
+import { STATIC_RESOURCE_HINT } from "./cache-hints.js";
 
 /**
  * N-50 — MCP Apps (SEP-1865, spec 2026-01-26). Under SN_MCP_APPS=1 the
@@ -130,7 +131,13 @@ export function registerAppResources(server: McpServer): void {
     server.registerResource(
       `app-${view}`,
       uri,
-      { title, description, mimeType: MCP_APPS_MIME },
+      // N-38: the view HTML is fixed per server version.
+      {
+        title,
+        description,
+        mimeType: MCP_APPS_MIME,
+        cacheHint: STATIC_RESOURCE_HINT,
+      },
       () => ({
         contents: [
           {

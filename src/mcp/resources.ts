@@ -34,6 +34,7 @@ import {
 } from "../core/errors.js";
 import { untrusted } from "./boundary.js";
 import type { ToolInfo } from "./registry.js";
+import { STATIC_RESOURCE_HINT } from "./cache-hints.js";
 
 const JSON_MIME = "application/json";
 
@@ -244,6 +245,7 @@ export function registerToolsReferenceResource(
       description:
         "Every tool by package: read or write, whether it is registered under the current package policy, and a one-line summary.",
       mimeType: "text/markdown",
+      // N-38: no static hint; "Registered" follows enable/disable_package.
     },
     (uri) => ({
       contents: [
@@ -367,6 +369,7 @@ export function registerToolReferenceTemplate(
       description:
         "One tool's full definition: description, input and output JSON Schema, an example call, annotations, package and whether it is registered, parameter aliases and the error codes. URI: servicenow://reference/tools/<tool name>.",
       mimeType: JSON_MIME,
+      // N-38: no static hint; "registered" follows enable/disable_package.
     },
     (uri, variables) => {
       const name = one(variables.name);
@@ -490,6 +493,8 @@ export function registerTableResources(server: McpServer): void {
       description:
         "Encoded-query syntax (operators, ORDERBY, javascript: values), its limits (no escaping, URL length) and how fetchAll pages.",
       mimeType: "text/markdown",
+      // N-38: a constant document.
+      cacheHint: STATIC_RESOURCE_HINT,
     },
     (uri) => ({
       contents: [
@@ -963,6 +968,8 @@ export function registerArtifactResources(server: McpServer): void {
       description:
         "Every artifact type the generic artifact tools accept: table, name and key fields, scope field, active flag, child tables, Fluent API, tiers and whether the names are verified on a live instance.",
       mimeType: JSON_MIME,
+      // N-38: the built-in registry, no instance call.
+      cacheHint: STATIC_RESOURCE_HINT,
     },
     (uri) => jsonContents(uri, artifactTypeCatalog()),
   );

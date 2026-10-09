@@ -21,6 +21,7 @@ import { createLogBridge } from "./mcp/log-bridge.js";
 import { warnIfTlsVerifyOff } from "./core/dispatcher.js";
 import type { Runtime } from "./core/runtime.js";
 import { SERVER_VERSION } from "./core/identity.js";
+import { LIST_CACHE_HINTS } from "./mcp/cache-hints.js";
 import { installTaskHandlers, withTaskSupport } from "./mcp/tasks.js";
 import {
   buildServerInstructions,
@@ -49,6 +50,8 @@ export function buildMcpServer(
       instructions: buildServerInstructions(SERVER_VERSION),
       // M-5: one list_changed per list for a package toggle, not one per tool.
       debouncedNotificationMethods: LIST_CHANGED_NOTIFICATIONS,
+      // N-38: ttlMs / cacheScope on the 2026-07-28 wire; legacy ignores them.
+      cacheHints: LIST_CACHE_HINTS,
       ...serverOptions,
       capabilities: { logging: {}, ...serverOptions.capabilities },
     }),
