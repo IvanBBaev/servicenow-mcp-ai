@@ -1202,11 +1202,11 @@ items:
     title: "skill evals"
     pillar: "N"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-05"
+    done: "2026-10-09"
     gates: []
-    notes: "**P0. Done 2026-10-05 (75e34b2).** `evals/<skill>/` for 5 skills (trigger + negative), recorded mocks from the fetch double, `npm run eval:skills` / `eval:mocks`, dispatch-only `skill-evals.yml` (TK-25). Open: model run needs claude ≥ 2.1.283 + API key. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (75e34b2); first model run 2026-10-09.** `evals/<skill>/` for the plugin skills (trigger + negative; `sn-uib` added with N-34), recorded mocks from the fetch double, `npm run eval:skills` / `eval:mocks`, dispatch-only `skill-evals.yml` (TK-25). Model run on Claude Code 2.1.295 (1 run per case, with/without-plugin arms, $4.40): 15/15 cases pass with the plugin, mean delta +0.38 over the no-plugin baseline (every trigger case scores 0 without it; the negatives pass in both arms). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-50"
     title: "MCP Apps views"
     pillar: "N"
