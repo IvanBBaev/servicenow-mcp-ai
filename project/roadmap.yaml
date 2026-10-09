@@ -1346,8 +1346,8 @@ items:
     title: "client result hints"
     pillar: "N"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: "T3"
-    done: null
+    done: "2026-10-09"
     gates: ["O-21"]
-    notes: '**Hints done 2026-10-09 (b9e46e7, O-21 (c)).** `_meta["anthropic/maxResultSizeChars"]` (= `SN_MAX_RESULT_CHARS`) on seven large readers (`src/mcp/result-hints.ts`), on by default, `SN_RESULT_SIZE_HINTS=false` turns it off; `all` +329 B, `core` +0 B. Open: `resource_link` results. Phase T3, waits for O-21 (c) (TK-44, TK-48). `_meta["anthropic/maxResultSizeChars"]` on the large readers, `resource_link` results, tied to the N-61 cap. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
+    notes: '**Done 2026-10-09.** Hints (b9e46e7, O-21 (c)): `_meta["anthropic/maxResultSizeChars"]` (= `SN_MAX_RESULT_CHARS`) on seven large readers (`src/mcp/result-hints.ts`), on by default, `SN_RESULT_SIZE_HINTS=false` turns it off; `all` +329 B, `core` +0 B. `resource_link` (e7c3b46): a `format:"file"` delivery gains a link to `servicenow://docs/<path>` while the docs package is on (`src/mcp/file-link.ts`); the docs resource reads `.jsonl`/`.csv`/`.mmd`; +0 B. Phase T3, waits for O-21 (c) (TK-44, TK-48). `_meta["anthropic/maxResultSizeChars"]` on the large readers, `resource_link` results, tied to the N-61 cap. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
