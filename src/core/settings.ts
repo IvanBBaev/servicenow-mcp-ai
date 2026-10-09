@@ -563,6 +563,16 @@ export function oversizeToFile(): boolean {
   return readBool("SN_OVERSIZE_TO_FILE");
 }
 
+/**
+ * N-65 — `SN_RESULT_SIZE_HINTS` (default on, O-21 (c)): the deliberately large
+ * readers carry `_meta["anthropic/maxResultSizeChars"]` in tools/list, so a
+ * client that honours it keeps their result inline up to SN_MAX_RESULT_CHARS.
+ * `0`/`false`/`no`/`off` drops the hints.
+ */
+export function resultSizeHints(): boolean {
+  return readBool("SN_RESULT_SIZE_HINTS");
+}
+
 // --- H-6: outbound hardening ------------------------------------------------
 
 export const DEFAULT_MAX_BODY_BYTES = 50 * 1024 * 1024;

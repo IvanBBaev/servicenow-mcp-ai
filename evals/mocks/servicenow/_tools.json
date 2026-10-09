@@ -320,6 +320,9 @@
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 48000
       }
     },
     {
@@ -408,6 +411,9 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 48000
       }
     },
     {
@@ -686,6 +692,9 @@
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 48000
       }
     },
     {
@@ -765,6 +774,9 @@
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 48000
       }
     },
     {
@@ -815,6 +827,9 @@
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 48000
       }
     },
     {
@@ -1676,6 +1691,9 @@
         "readOnlyHint": true,
         "destructiveHint": false,
         "idempotentHint": true
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 48000
       }
     },
     {
@@ -2842,6 +2860,9 @@
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
+      },
+      "_meta": {
+        "anthropic/maxResultSizeChars": 48000
       }
     },
     {

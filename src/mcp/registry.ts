@@ -61,6 +61,7 @@ import { logger } from "../core/logging.js";
 import { timeToolCall } from "../core/metrics.js";
 import { runWithRuntime, type Runtime } from "../core/runtime.js";
 import { runMaybeAsTask, withTaskInput, withTaskOutput } from "./tasks.js";
+import { resultHintMeta } from "./result-hints.js";
 import {
   PackageSession,
   bindPackageSession,
@@ -360,8 +361,10 @@ export function registerAllTools(
     title: string,
     description: string,
     onCall?: () => void,
-  ) =>
-    server.registerTool(
+  ) => {
+    // N-65: the large readers' result-size hint (SN_RESULT_SIZE_HINTS).
+    const hint = resultHintMeta(spec.name);
+    return server.registerTool(
       name,
       {
         title,
@@ -377,6 +380,7 @@ export function registerAllTools(
         ...(spec.output
           ? { outputSchema: withTaskOutput(spec, buildOutputSchema(spec)!) }
           : {}),
+        ...(hint ? { _meta: hint } : {}),
       },
       // M-3: the whole SDK `extra` reaches runSpec — cancellation signal,
       // progressToken + sendNotification, request and session ids.
@@ -391,6 +395,7 @@ export function registerAllTools(
         );
       },
     );
+  };
 
   for (const spec of ALL_TOOLS) {
     if (!policyPermits(spec, deniedSet, readOnlySet)) continue;

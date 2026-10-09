@@ -32,28 +32,35 @@ const APPS_CAPS = {
   extensions: { [MCP_APPS_EXTENSION]: { mimeTypes: [MCP_APPS_MIME] } },
 };
 
-/** Connect a client to a fresh server and serialise the whole surface. */
+/**
+ * Connect a client to a fresh server and serialise the whole surface. The
+ * N-65 result-size hints are off here, so `_meta` is the views' alone
+ * (test/result-hints.test.js covers both together).
+ */
 async function surface(env, capabilities = {}) {
-  return withEnv({ SN_TOOL_PACKAGES: "all", ...env }, async () => {
-    const server = buildMcpServer(currentRuntime());
-    const client = new Client({ name: "t", version: "0" }, { capabilities });
-    const [a, b] = InMemoryTransport.createLinkedPair();
-    await Promise.all([server.connect(b), client.connect(a)]);
-    // The views' HTML is built at registration, so reads may follow later.
-    surface.close = async () => {
-      await client.close();
-      await server.close();
-    };
-    return {
-      capabilities: client.getServerCapabilities(),
-      instructions: client.getInstructions(),
-      tools: (await client.listTools()).tools,
-      resources: (await client.listResources()).resources,
-      templates: (await client.listResourceTemplates()).resourceTemplates,
-      prompts: (await client.listPrompts()).prompts,
-      read: (uri) => client.readResource({ uri }),
-    };
-  });
+  return withEnv(
+    { SN_TOOL_PACKAGES: "all", SN_RESULT_SIZE_HINTS: "0", ...env },
+    async () => {
+      const server = buildMcpServer(currentRuntime());
+      const client = new Client({ name: "t", version: "0" }, { capabilities });
+      const [a, b] = InMemoryTransport.createLinkedPair();
+      await Promise.all([server.connect(b), client.connect(a)]);
+      // The views' HTML is built at registration, so reads may follow later.
+      surface.close = async () => {
+        await client.close();
+        await server.close();
+      };
+      return {
+        capabilities: client.getServerCapabilities(),
+        instructions: client.getInstructions(),
+        tools: (await client.listTools()).tools,
+        resources: (await client.listResources()).resources,
+        templates: (await client.listResourceTemplates()).resourceTemplates,
+        prompts: (await client.listPrompts()).prompts,
+        read: (uri) => client.readResource({ uri }),
+      };
+    },
+  );
 }
 
 const serial = (s) => JSON.stringify({ ...s, read: undefined });

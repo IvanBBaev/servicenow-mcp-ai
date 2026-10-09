@@ -97,7 +97,9 @@ export function linkToolView(
 ): void {
   const view = toolView(spec);
   if (!view) return;
-  const meta = { ui: { resourceUri: appViewUri(view) } };
+  // N-65: a result-size hint registered with the tool stays alongside.
+  const base = handle._meta;
+  const meta = { ...base, ui: { resourceUri: appViewUri(view) } };
   let override: Record<string, unknown> | undefined;
   let overridden = false;
   Object.defineProperty(handle, "_meta", {
@@ -108,7 +110,7 @@ export function linkToolView(
         ? override
         : clientSupportsApps(server.server.getClientCapabilities())
           ? meta
-          : undefined,
+          : base,
     set: (value: Record<string, unknown> | undefined) => {
       overridden = true;
       override = value;

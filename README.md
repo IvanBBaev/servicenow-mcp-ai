@@ -755,6 +755,7 @@ Result size budgets, output shaping, redaction of record values, the write journ
 | `SN_MAX_RECORDS` | no | `10000` | 1.1.0 | Hard cap on records returned by a `fetchAll` query. |
 | `SN_MAX_RESULT_CHARS` | no | `48000` | 1.1.0 | Character budget for a tool result (48,000 since O-21 (b), under Claude Code's 50,000 threshold). A larger result goes to a file while `SN_OVERSIZE_TO_FILE` is on; otherwise it is shrunk with a note naming `format:"file"`, and a snapshot, compare or diagram result is returned in full with a `note`. |
 | `SN_OVERSIZE_TO_FILE` | no | `true` | next | S-11 / N-61 (default on since O-21 (b)): write a `query_table` (JSON lines), snapshot, compare or diagram result over `SN_MAX_RESULT_CHARS` to a file under `SN_DOCS_DIR` (`<profile>/exports/`, `<profile>/diagrams/`) and return `{path, bytes, preview}` instead. |
+| `SN_RESULT_SIZE_HINTS` | no | `true` | next | N-65 (default on, O-21 (c)): the large readers (`document_*`, `snapshot_instance`, `compare_*`, `get_script`) carry `_meta["anthropic/maxResultSizeChars"]` = `SN_MAX_RESULT_CHARS` in `tools/list`. Set `false` to drop the hints. |
 | `SN_INCLUDE_REF_LINKS` | no | `false` | 1.1.0 | Reference fields come back without their `link` URLs by default (token savings). Set `true` to include them. |
 | `SN_RESULT_PRETTY` | no | `false` | 1.1.0 | Tool results are compact JSON by default (pretty-printing ~doubles tokens). Set `true` for indented output. |
 | `SN_REDACT_FIELDS` | no | — | 2.0.0 | DF-5: mask these field values before records reach the model (comma/space-separated). |

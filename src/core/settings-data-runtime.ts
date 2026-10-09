@@ -261,6 +261,14 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       "S-11 / N-61 (default on since O-21 (b)): write a `query_table` (JSON lines), snapshot, compare or diagram result over `SN_MAX_RESULT_CHARS` to a file under `SN_DOCS_DIR` (`<profile>/exports/`, `<profile>/diagrams/`) and return `{path, bytes, preview}` instead.",
   }),
+  bool({
+    key: "SN_RESULT_SIZE_HINTS",
+    section: "results",
+    since: NEXT,
+    default: true,
+    description:
+      'N-65 (default on, O-21 (c)): the large readers (`document_*`, `snapshot_instance`, `compare_*`, `get_script`) carry `_meta["anthropic/maxResultSizeChars"]` = `SN_MAX_RESULT_CHARS` in `tools/list`. Set `false` to drop the hints.',
+  }),
   bool(
     {
       key: "SN_INCLUDE_REF_LINKS",
