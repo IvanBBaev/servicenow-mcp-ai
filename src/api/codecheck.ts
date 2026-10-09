@@ -892,15 +892,7 @@ function countFromStats(result: unknown): number {
 // --- DF-1 / S-3: security scan over the access-control layer ----------------
 // Lives in ./security.ts; re-exported so existing imports keep working.
 
-export {
-  securityScan,
-  SECURITY_SCAN_MAX_ROWS,
-  type SecurityScan,
-  type SecurityFinding,
-  type SecurityCheck,
-  type SecurityCheckName,
-  type SecurityFindingKind,
-} from "./security.js";
+export { securityScan } from "./security.js";
 
 /** P-18: per-type records read by the registry sweep (default / max). */
 export const ARTIFACT_LINT_LIMIT = 50;

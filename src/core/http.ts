@@ -28,11 +28,7 @@ import {
 
 // Telemetry is owned by http-util.ts (shared with the Jira client) but kept
 // importable here for the status payload and the existing tests.
-export {
-  getTelemetry,
-  type Telemetry,
-  type TelemetrySnapshot,
-} from "./http-util.js";
+export { getTelemetry } from "./http-util.js";
 
 /** Arguments for a single ServiceNow REST request. */
 export interface SnRequestArgs {

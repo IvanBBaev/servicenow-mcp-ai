@@ -32,8 +32,6 @@ import {
 } from "./http-sessions.js";
 import { testConnection, type ConnectionProbe } from "../api/diagnostics.js";
 
-export type { ServerFactory } from "./http-sessions.js";
-
 /**
  * Constant-time bearer check for the HTTP transport: true only when the
  * Authorization header is exactly `Bearer <token>`. Exported for testing.

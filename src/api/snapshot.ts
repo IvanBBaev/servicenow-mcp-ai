@@ -27,21 +27,7 @@ import { trackProgress } from "../core/progress.js";
 
 // The collectors moved to collectors.ts (E-7); re-exported for the importers
 // that know them from here.
-export {
-  RECORD_SECTIONS,
-  collectApps,
-  collectAutomation,
-  collectPlugins,
-  collectRecordSection,
-  collectSchema,
-  collectTables,
-  type AppRow,
-  type AutomationStat,
-  type CollectorContext,
-  type CollectorResult,
-  type PluginRow,
-  type RecordSectionId,
-} from "./collectors.js";
+export { RECORD_SECTIONS, type RecordSectionId } from "./collectors.js";
 
 /**
  * Instance metadata snapshot (MI-6, v2 in S-7): pull the structural picture

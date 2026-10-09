@@ -22,7 +22,6 @@ import type { DecoderId } from "./registry.js";
 import { isComposition } from "./uib-composition.js";
 
 export { jsonDecoder } from "./json-decoder.js";
-export type { DecodeOutcome, Decoder } from "./json-decoder.js";
 
 /**
  * The `flow-values` decoder (P-10): Flow Designer `values` columns, stored as

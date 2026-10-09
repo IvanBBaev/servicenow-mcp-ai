@@ -23,8 +23,6 @@ import { logger } from "./logging.js";
 import { getTransport } from "./settings.js";
 import { currentRuntime, type Disposer } from "./runtime.js";
 
-export type { Disposer } from "./runtime.js";
-
 // ---------------------------------------------------------------------------
 // dispose()
 // ---------------------------------------------------------------------------
