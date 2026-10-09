@@ -16,7 +16,7 @@
 
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-98-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-99-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -1098,7 +1098,7 @@ name carries the `servicenow_` prefix, left out below._
 | [`artifacts`](docs/tools/artifacts.md) | no | `list_artifacts`, `get_artifact`, `explain_artifact`, `get_artifact_dependencies`, `generate_fluent` | `upsert_artifact` |
 | [`updatesets`](docs/tools/updatesets.md) | no | `list_update_sets`, `get_update_set`, `compare_update_set` | — |
 | [`ops`](docs/tools/ops.md) | no | `read_ops`, `check_data_health` | — |
-| [`history`](docs/tools/history.md) | no | `get_record_history` | — |
+| [`history`](docs/tools/history.md) | no | `get_record_history`, `get_task_context` | — |
 | [`properties`](docs/tools/properties.md) | no | `get_properties` | `set_property` |
 | [`directory`](docs/tools/directory.md) | no | `lookup_directory` | — |
 | [`ui`](docs/tools/ui.md) | no | `explain_portal`, `explain_ui_experience` | — |
@@ -2169,7 +2169,7 @@ compatibility with the ServiceNow platform. See the README for the full notice.
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-98 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
+99 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
 
 | Package | Tools | Read-only | Default `core` |
 | ------- | ----: | --------: | :------------: |
@@ -2194,7 +2194,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`artifacts`](artifacts.md) | 6 | 5 | no |
 | [`updatesets`](updatesets.md) | 3 | 3 | no |
 | [`ops`](ops.md) | 2 | 2 | no |
-| [`history`](history.md) | 1 | 1 | no |
+| [`history`](history.md) | 2 | 2 | no |
 | [`properties`](properties.md) | 2 | 1 | no |
 | [`directory`](directory.md) | 1 | 1 | no |
 | [`ui`](ui.md) | 2 | 2 | no |
@@ -4633,11 +4633,12 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-1 tool (1 read-only, 0 write). Opt-in: add `history` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
+2 tools (2 read-only, 0 write). Opt-in: add `history` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
 | [`servicenow_get_record_history`](#servicenow_get_record_history) | yes | Get record history |
+| [`servicenow_get_task_context`](#servicenow_get_task_context) | yes | Get task context |
 
 ## servicenow_get_record_history
 
@@ -4666,6 +4667,30 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ----- | ---- | ----------- |
 | `count` | number |  |
 | `entries` | any[] |  |
+
+## servicenow_get_task_context
+
+**Get task context.** What a task waits for: assignment, approvals and SLAs (breach, time left); or, with pending_for, an approver's requested approvals.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `sys_id` | string | no |  |
+| `number` | string | no |  |
+| `history` | boolean | no | Add recent journal entries. |
+| `pending_for` | string | no | Approver sys_id or user_name. |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `available` | boolean |  |
 
 ---
 

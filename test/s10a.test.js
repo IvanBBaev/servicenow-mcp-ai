@@ -100,7 +100,10 @@ test("S-10a packages: history, properties, directory are opt-in; cmdb gains two 
     PACKAGES.find((x) => x.name === p)
       .tools.map((t) => t.name)
       .sort();
-  assert.deepEqual(names("history"), ["servicenow_get_record_history"]);
+  assert.deepEqual(names("history"), [
+    "servicenow_get_record_history",
+    "servicenow_get_task_context",
+  ]);
   assert.deepEqual(names("properties"), [
     "servicenow_get_properties",
     "servicenow_set_property",

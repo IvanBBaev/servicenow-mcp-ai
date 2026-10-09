@@ -1,6 +1,6 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-98-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-99-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -1082,7 +1082,7 @@ name carries the `servicenow_` prefix, left out below._
 | [`artifacts`](docs/tools/artifacts.md) | no | `list_artifacts`, `get_artifact`, `explain_artifact`, `get_artifact_dependencies`, `generate_fluent` | `upsert_artifact` |
 | [`updatesets`](docs/tools/updatesets.md) | no | `list_update_sets`, `get_update_set`, `compare_update_set` | — |
 | [`ops`](docs/tools/ops.md) | no | `read_ops`, `check_data_health` | — |
-| [`history`](docs/tools/history.md) | no | `get_record_history` | — |
+| [`history`](docs/tools/history.md) | no | `get_record_history`, `get_task_context` | — |
 | [`properties`](docs/tools/properties.md) | no | `get_properties` | `set_property` |
 | [`directory`](docs/tools/directory.md) | no | `lookup_directory` | — |
 | [`ui`](docs/tools/ui.md) | no | `explain_portal`, `explain_ui_experience` | — |

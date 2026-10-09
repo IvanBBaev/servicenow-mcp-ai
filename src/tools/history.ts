@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getRecordHistory } from "../api/history.js";
+import { pendingApprovals, taskContext } from "../api/task-context.js";
 import { ok } from "../mcp/result.js";
 import {
   defineTool,
@@ -14,7 +15,8 @@ import { listOutput } from "../mcp/output-shapes.js";
 /**
  * S-10 — opt-in `history` package: who changed what on one record, from
  * `sys_audit` and `sys_journal_field` (the comments / work notes the Table
- * API reads back empty, C-5).
+ * API reads back empty, C-5) — and N-5: what one task is waiting for
+ * (approvals, SLAs, assignment) or which approvals wait on one approver.
  */
 export const specs: AnyToolSpec[] = [
   defineTool({
@@ -82,6 +84,35 @@ export const specs: AnyToolSpec[] = [
           limit,
           valueMaxChars: value_max_chars,
         }),
+      ),
+  }),
+  defineTool({
+    name: "servicenow_get_task_context",
+    title: "Get task context",
+    description:
+      "What a task waits for: assignment, approvals and SLAs (breach, time left); or, with pending_for, an approver's requested approvals.",
+    package: "history",
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+    input: {
+      sys_id: sysId().optional(),
+      number: shortText(100).optional(),
+      history: z.boolean().optional().describe("Add recent journal entries."),
+      pending_for: shortText(100)
+        .optional()
+        .describe("Approver sys_id or user_name."),
+    },
+    output: { available: z.boolean() },
+    logFields: (args) => ({ pending: args.pending_for !== undefined }),
+    handler: async ({ sys_id, number, history, pending_for }) =>
+      ok(
+        pending_for !== undefined
+          ? await pendingApprovals({ approver: pending_for })
+          : await taskContext({ sysId: sys_id, number, history }),
       ),
   }),
 ];

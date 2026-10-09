@@ -111,6 +111,11 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * 29,307 / 125,182 / 126,552 / 142,759 (all +1,143 B; core +0 B): the budgets
  * become 29,440 / 125,184 / 126,720 / 142,848. `explain_portal` moves to the
  * register as a delivery tool (inline JSON or a file reference).
+ * N-5, 2026-10-09 (owner, O-10: up to +4 KB on `all` for the N-5 / N-16 /
+ * N-1 / N-22 opt-in wiring, `core` unchanged): `servicenow_get_task_context`
+ * in the opt-in history package, measured 29,307 / 126,041 / 127,411 /
+ * 143,618 (all +859 B; core +0 B): the budgets become 29,440 / 126,208 /
+ * 127,488 / 143,872.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

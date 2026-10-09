@@ -10,6 +10,8 @@ import {
   taskContext,
   taskContextMarkdown,
 } from "../build/api/task-context.js";
+import { ALL_TOOLS } from "../build/mcp/registry.js";
+import { runSpec } from "../build/mcp/define.js";
 import {
   baselineEnv,
   freshRuntime,
@@ -409,4 +411,49 @@ test("pending approvals for an approver, by user_name and sys_id", async () => {
       );
     },
   );
+});
+
+const tool = ALL_TOOLS.find((t) => t.name === "servicenow_get_task_context");
+
+test("N-5: servicenow_get_task_context is a read tool of the history package", () => {
+  assert.equal(tool.package, "history");
+  assert.equal(tool.annotations.readOnlyHint, true);
+  assert.equal(tool.annotations.destructiveHint, false);
+});
+
+test("N-5: the tool returns the task context, with history on request", async () => {
+  freshRuntime();
+  await withFetch(tables(), async (calls) => {
+    const res = await runSpec(tool, { number: "INC0001", history: true });
+    assert.equal(res.isError, undefined);
+    assert.equal(res.structuredContent.available, true);
+    assert.equal(res.structuredContent.task.sys_id, INC);
+    assert.equal(res.structuredContent.slas.breached, 1);
+    assert.equal(res.structuredContent.history.available, true);
+    assert.equal(queryOf(calls, "sys_journal_field").length, 1);
+    assert.deepEqual(JSON.parse(res.content[0].text), res.structuredContent);
+  });
+});
+
+test("N-5: pending_for replaces the task lookup", async () => {
+  freshRuntime();
+  await withFetch(tables(), async (calls) => {
+    const res = await runSpec(tool, { pending_for: "carol" });
+    assert.equal(res.structuredContent.available, true);
+    assert.equal(res.structuredContent.approver, "carol");
+    assert.deepEqual(queryOf(calls, "task"), []);
+    assert.deepEqual(queryOf(calls, "sysapproval_approver"), [
+      "approver.user_name=carol^state=requested^ORDERBYdue_date",
+    ]);
+  });
+});
+
+test("N-5: without a task reference the tool degrades, no request sent", async () => {
+  freshRuntime();
+  await withFetch(tables(), async (calls) => {
+    const res = await runSpec(tool, {});
+    assert.equal(res.structuredContent.available, false);
+    assert.match(res.structuredContent.unavailableReason, /sys_id or number/);
+    assert.equal(calls.length, 0);
+  });
 });

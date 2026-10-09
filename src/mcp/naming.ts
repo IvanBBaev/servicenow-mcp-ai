@@ -64,6 +64,7 @@ export const TOOLS = {
   get_record_history: "servicenow_get_record_history",
   get_script: "servicenow_get_script",
   get_status: "servicenow_get_status",
+  get_task_context: "servicenow_get_task_context",
   get_update_set: "servicenow_get_update_set",
   identify_reconcile: "servicenow_identify_reconcile",
   insert_import_set_row: "servicenow_insert_import_set_row",

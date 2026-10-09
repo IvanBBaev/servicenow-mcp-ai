@@ -3745,6 +3745,53 @@
       }
     },
     {
+      "name": "servicenow_get_task_context",
+      "package": "history",
+      "title": "Get task context",
+      "since": "2.0.1",
+      "description_sha256": "cd0cc99b7533575b5b0629949f95db1d9a2dffea4bc29c1f9b96a9cde0916e3e",
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "history": {
+            "description": "Add recent journal entries.",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "number": { "maxLength": 100, "type": "string" },
+          "pending_for": {
+            "description": "Approver sys_id or user_name.",
+            "maxLength": 100,
+            "type": "string"
+          },
+          "sys_id": { "pattern": "^[A-Za-z0-9_-]{1,32}$", "type": "string" }
+        },
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": { "available": { "type": "boolean" } },
+        "required": ["available"],
+        "type": "object"
+      },
+      "sizes": {
+        "description": 133,
+        "inputSchema": 418,
+        "paramDescriptions": 86,
+        "outputSchema": 114
+      }
+    },
+    {
       "name": "servicenow_get_update_set",
       "package": "updatesets",
       "title": "Get update set",

@@ -2,11 +2,12 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-1 tool (1 read-only, 0 write). Opt-in: add `history` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
+2 tools (2 read-only, 0 write). Opt-in: add `history` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |
 | [`servicenow_get_record_history`](#servicenow_get_record_history) | yes | Get record history |
+| [`servicenow_get_task_context`](#servicenow_get_task_context) | yes | Get task context |
 
 ## servicenow_get_record_history
 
@@ -35,3 +36,27 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ----- | ---- | ----------- |
 | `count` | number |  |
 | `entries` | any[] |  |
+
+## servicenow_get_task_context
+
+**Get task context.** What a task waits for: assignment, approvals and SLAs (breach, time left); or, with pending_for, an approver's requested approvals.
+
+**Writes:** Read-only.
+
+### Parameters
+
+| Name | Type | Required | Description |
+| ---- | ---- | :------: | ----------- |
+| `sys_id` | string | no |  |
+| `number` | string | no |  |
+| `history` | boolean | no | Add recent journal entries. |
+| `pending_for` | string | no | Approver sys_id or user_name. |
+| `instance` | string | no | Profile (default active) |
+
+### Output
+
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `available` | boolean |  |

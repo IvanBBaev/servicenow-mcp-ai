@@ -23,8 +23,7 @@ import { isSysId } from "../core/sys-id.js";
  * `pendingApprovals` is the "pending for an approver" view: the requested
  * approvals of one user (sys_id or user_name), oldest due date first.
  *
- * Not wired to a tool yet: `servicenow_get_task_context` (opt-in `history`
- * package) grows tools/list (O-10).
+ * Served by `servicenow_get_task_context` (opt-in `history` package).
  *
  * Read-only and bounded; never throws except on a cancel. The task read is
  * required: when it fails or finds nothing the context is
@@ -429,7 +428,7 @@ function sectionHead<T>(
   );
 }
 
-/** Markdown for one task context (the future `servicenow_get_task_context`). */
+/** Markdown for one task context. */
 export function taskContextMarkdown(ctx: TaskContext | Unavailable): string[] {
   if (!ctx.available) return [`Unavailable: ${ctx.unavailableReason}`];
   const t = ctx.task;
