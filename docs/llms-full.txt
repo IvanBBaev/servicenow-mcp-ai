@@ -2306,6 +2306,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | `suppressPaginationHeader` | boolean | no | sysparm_suppress_pagination_header. |
 | `format` | "json" \| "csv" \| "file" | no | 'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS. |
 | `fileFormat` | "csv" \| "jsonl" | no | With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys). |
+| `explain` | boolean | no | Read no records: which conditions can use an index, with cost notes (advice). |
 | `instance` | string | no | Profile (default active) |
 
 ### Output
@@ -2321,6 +2322,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `records` | any[] |  |
 | `format` | string |  |
 | `rows` | number |  |
+| `explain` | any |  |
 
 ## servicenow_get_record
 

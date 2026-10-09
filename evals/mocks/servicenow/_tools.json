@@ -2250,6 +2250,10 @@
               "jsonl"
             ]
           },
+          "explain": {
+            "description": "Read no records: which conditions can use an index, with cost notes (advice).",
+            "type": "boolean"
+          },
           "instance": {
             "description": "Profile (default active)",
             "type": "string",
@@ -2284,7 +2288,8 @@
           },
           "rows": {
             "type": "number"
-          }
+          },
+          "explain": {}
         },
         "additionalProperties": {}
       },

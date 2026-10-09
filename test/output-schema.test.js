@@ -135,6 +135,11 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * kind of `servicenow_document_instance`, measured 26,583 / 117,852 /
  * 119,222 / 134,383 (all +170 B; core +0 B): `all` becomes 118,016, the
  * others still fit.
+ *
+ * N-15, 2026-10-09 (owner: core may grow one 256 B step for it): `explain`
+ * on `servicenow_query_table` (core), measured 26,719 / 117,988 / 119,358 /
+ * 134,519 (+136 B on every profile): `core` becomes 26,880, `all+tasks`
+ * 119,552 and `all+legacy` 134,656; `all` still fits 118,016.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

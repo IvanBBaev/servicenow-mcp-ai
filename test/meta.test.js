@@ -429,3 +429,44 @@ test("describe_table details:true carries indexes and rowEstimate (N-15)", async
     }),
   );
 });
+
+test("query_table explain:true explains the query against the indexes without reading records (N-15)", async () => {
+  freshRuntime();
+  const call = (args) =>
+    runSpec(
+      ALL_TOOLS.find((s) => s.name === "servicenow_query_table"),
+      args,
+    );
+  await withEnv({ SN_SCHEMA_CACHE_TTL_SEC: "0" }, async () => {
+    await withFetch(indexHandler(), async (calls) => {
+      const res = await call({
+        table: "u_det",
+        query: "number=X1^short_descriptionLIKEdisk",
+        explain: true,
+      });
+      assert.equal(res.isError, undefined);
+      const { explain } = res.structuredContent;
+      assert.equal(explain.indexes, 2);
+      assert.equal(explain.rowEstimate, 12345);
+      assert.equal(explain.warnings, undefined);
+      assert.equal(explain.indexFriendly, true);
+      assert.deepEqual(
+        explain.conditions.map((c) => [c.field, c.indexed, c.index]),
+        [
+          ["number", true, "u_base_number"],
+          ["short_description", false, undefined],
+        ],
+      );
+      assert.equal(res.structuredContent.records, undefined);
+      assert.ok(
+        !(calls ?? []).some((c) => String(c.url ?? c).includes("/table/u_det")),
+      );
+    });
+    await withFetch(indexHandler({ failIndex: true }), async () => {
+      const res = await call({ table: "u_det", explain: true });
+      const { explain } = res.structuredContent;
+      assert.equal(explain.indexes, 0);
+      assert.match(explain.warnings[0], /^sys_index: unavailable/);
+    });
+  });
+});

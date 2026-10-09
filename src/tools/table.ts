@@ -1,4 +1,5 @@
-import { unknownFields } from "../api/meta.js";
+import { describeTableIndexes, unknownFields } from "../api/meta.js";
+import { explainQuery } from "../api/query-explain.js";
 import { sdkGuard, type SdkGuardTarget } from "../mcp/sdk-guard.js";
 import { z } from "zod";
 import {
@@ -177,6 +178,7 @@ export const specs: AnyToolSpec[] = [
       records: z.array(z.unknown()).optional(),
       format: z.string().optional(),
       rows: z.number().optional(),
+      explain: z.unknown().optional(),
     },
     input: {
       table: tableName().describe("Table, e.g. 'incident'."),
@@ -243,9 +245,29 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys).",
         ),
+      explain: z
+        .boolean()
+        .optional()
+        .describe(
+          "Read no records: which conditions can use an index, with cost notes (advice).",
+        ),
     },
     logFields: (args) => ({ table: args.table }),
-    handler: async ({ format, fileFormat, ...args }) => {
+    handler: async ({ format, fileFormat, explain, ...args }) => {
+      // N-15: a static explain against the chain's indexes; no records read.
+      if (explain) {
+        const { indexes, rowEstimate, warnings } = await describeTableIndexes(
+          args.table,
+        );
+        return ok({
+          explain: {
+            ...explainQuery(args.query ?? "", indexes),
+            indexes: indexes.length,
+            ...(rowEstimate !== undefined ? { rowEstimate } : {}),
+            ...(warnings.length ? { warnings } : {}),
+          },
+        });
+      }
       if (format === "file") return queryToFile(args, fileFormat ?? "csv");
       const { records, total, truncated, truncatedReason, filtered } =
         await queryTable({ ...args, onProgress: fetchAllProgress(args.table) });

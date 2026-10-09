@@ -5433,6 +5433,10 @@
             "enum": ["true", "false", "all"],
             "type": "string"
           },
+          "explain": {
+            "description": "Read no records: which conditions can use an index, with cost notes (advice).",
+            "type": "boolean"
+          },
           "fetchAll": {
             "description": "Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset.",
             "type": "boolean"
@@ -5513,6 +5517,7 @@
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
+          "explain": {},
           "format": { "type": "string" },
           "note": { "type": "string" },
           "records": { "items": {}, "type": "array" },
@@ -5524,9 +5529,9 @@
       },
       "sizes": {
         "description": 225,
-        "inputSchema": 2105,
-        "paramDescriptions": 1004,
-        "outputSchema": 245
+        "inputSchema": 2228,
+        "paramDescriptions": 1083,
+        "outputSchema": 258
       }
     },
     {
