@@ -78,6 +78,11 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-12: `domain` scope on `servicenow_query_table`.** An optional domain `sys_id` narrows a read to that
+  domain: `sys_domain=<sys_id>` is AND'd into every `^NQ` segment of the encoded query, so an OR'd query cannot
+  escape it. Without it the query and the result are unchanged. Pair it with `queryNoDomain` to read a domain other
+  than your own (platform behaviour unverified until O-5). Some `query_table` input descriptions were shortened to keep the tool under the per-tool size cap;
+  tools/list grows by 8 B on every profile.
 - **P-7: five more artefact types from the SDK guide audit.** `assignment_rule` (`sysrule_assignment`),
   `knowledge_base` (`kb_knowledge_base` with its four `kb_uc_*_mtom` user-criteria children), `security_attribute`,
   `security_data_filter` and `formatter` (`sys_ui_formatter`). The registry now has 142 types. Tables and fields are

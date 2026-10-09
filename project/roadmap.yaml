@@ -873,7 +873,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-5", "O-10"]
-    notes: "**Partly done 2026-10-05.** Cached probe (`src/api/domain-separation.ts`, capability matrix) in `check_capabilities` / `get_status`; artefact and script lists, `explain_artifact` and the trace (business rules, flows, workflows, notifications) keep `sys_domain` / `sys_overrides` with one caveat; table documents add a Domain column to logic tables and app documents a per-domain Domains section (`artefactsByDomain`). 0 B tools/list. Per-domain grouping in N-2 done 2026-10-06 (`access-explain.ts`). Open: a `domain` query scope (tools/list bytes, O-10); fields unverified (O-5) (NX-16)."
+    notes: "**Partly done 2026-10-05.** Cached probe (`src/api/domain-separation.ts`, capability matrix) in `check_capabilities` / `get_status`; artefact and script lists, `explain_artifact` and the trace (business rules, flows, workflows, notifications) keep `sys_domain` / `sys_overrides` with one caveat; table documents add a Domain column to logic tables and app documents a per-domain Domains section (`artefactsByDomain`). 0 B tools/list. Per-domain grouping in N-2 done 2026-10-06 (`access-explain.ts`). `domain` query scope done 2026-10-09: `query_table` takes an optional domain sys_id, AND'd as `sys_domain=` into every `^NQ` segment (`scopeQueryToDomain`); absent, byte-identical; tools/list +8 B (descriptions trimmed, no budget raise). Open: fields unverified (O-5) (NX-16)."
   - id: "N-13"
     title: "hardening compliance"
     pillar: "N"
