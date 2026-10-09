@@ -130,7 +130,7 @@ export async function docsWrite(
 /**
  * Read a file of the docs store verbatim (no frontmatter parsing), with the
  * same confinement as docsWriteRaw; undefined when it does not exist. The
- * Fluent emitter (P-26) uses it to spot hand-edited generated sources.
+ * code-health baseline reads its JSON through it.
  */
 export async function docsReadRaw(
   relPath: string,

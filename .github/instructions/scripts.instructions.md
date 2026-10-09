@@ -15,7 +15,7 @@ applyTo: "scripts/**,bin/**"
 - **Generators own their output.** Edit the source (`settings-manifest.ts`,
   the tool specs, `.github/agent-instructions/`…), then run the generator —
   `docs:env`, `docs:sync`, `docs:readme`, `docs:instructions`,
-  `gen:manifest`, `fluent:actions`. A `--check` mode never writes.
+  `gen:manifest`. A `--check` mode never writes.
 - Scripts that read TypeScript sources without a build run under
   `node --experimental-transform-types` (see `registry-from-source.mjs`,
   `ts-source-loader.mjs`).

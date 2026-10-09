@@ -24,7 +24,6 @@ export const FILE_FORMAT_TOOLS = [
   "servicenow_explain_portal",
   "servicenow_explain_ui_experience",
   "servicenow_generate_er_diagram",
-  "servicenow_generate_fluent",
   "servicenow_generate_table_flow",
   "servicenow_query_table",
   "servicenow_snapshot_instance",

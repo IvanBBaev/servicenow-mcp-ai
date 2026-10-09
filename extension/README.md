@@ -7,7 +7,7 @@ with no manual `.vscode/mcp.json`.
 
 ## What you get
 
-101 tools over the full ServiceNow REST surface (Table, Aggregate, Attachment,
+100 tools over the full ServiceNow REST surface (Table, Aggregate, Attachment,
 Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email), plus:
 
 - **Plan-and-apply write safety** — writes preview a before/after diff by default

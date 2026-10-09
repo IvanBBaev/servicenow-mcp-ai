@@ -4,15 +4,15 @@
   "backend": "lexical",
   "model": "lexical-tfidf@0.05",
   "cases": {
-    "n": 150,
-    "sha256": "94f1edfd496ad369eda0a68b25edf6695e80da299ed31503bdb04409f315f27a"
+    "n": 149,
+    "sha256": "6d46496e51962d294ce7d50bfebed01fa902c17ed6c7a4c52fb992c9ffc33be4"
   },
   "repeats": 1,
   "profiles": {
     "core": {
       "tools": 25,
-      "n": 150,
-      "top1": 13.3,
+      "n": 149,
+      "top1": 13.4,
       "byKind": {
         "cluster": {
           "n": 30,
@@ -25,9 +25,9 @@
           "accuracy": 50
         },
         "positive": {
-          "n": 97,
+          "n": 96,
           "correct": 9,
-          "accuracy": 9.3
+          "accuracy": 9.4
         },
         "write": {
           "n": 15,
@@ -52,7 +52,7 @@
           "accuracy": 0
         },
         "artifacts": {
-          "n": 10,
+          "n": 9,
           "correct": 0,
           "accuracy": 0
         },
@@ -228,9 +228,9 @@
       "planFirst": null
     },
     "all": {
-      "tools": 101,
-      "n": 150,
-      "top1": 32.7,
+      "tools": 100,
+      "n": 149,
+      "top1": 32.9,
       "byKind": {
         "cluster": {
           "n": 30,
@@ -243,9 +243,9 @@
           "accuracy": 37.5
         },
         "positive": {
-          "n": 97,
+          "n": 96,
           "correct": 32,
-          "accuracy": 33
+          "accuracy": 33.3
         },
         "write": {
           "n": 15,
@@ -270,9 +270,9 @@
           "accuracy": 0
         },
         "artifacts": {
-          "n": 10,
+          "n": 9,
           "correct": 1,
-          "accuracy": 10
+          "accuracy": 11.1
         },
         "atf": {
           "n": 6,
@@ -446,9 +446,9 @@
       "planFirst": null
     },
     "discovery": {
-      "tools": 101,
-      "n": 150,
-      "top1": 30.7,
+      "tools": 100,
+      "n": 149,
+      "top1": 30.9,
       "byKind": {
         "cluster": {
           "n": 30,
@@ -461,9 +461,9 @@
           "accuracy": 37.5
         },
         "positive": {
-          "n": 97,
+          "n": 96,
           "correct": 29,
-          "accuracy": 29.9
+          "accuracy": 30.2
         },
         "write": {
           "n": 15,
@@ -488,9 +488,9 @@
           "accuracy": 0
         },
         "artifacts": {
-          "n": 10,
+          "n": 9,
           "correct": 1,
-          "accuracy": 10
+          "accuracy": 11.1
         },
         "atf": {
           "n": 6,
@@ -772,10 +772,6 @@
       },
       "pos-generate-er-diagram": {
         "pick": "servicenow_list_tables",
-        "correct": false
-      },
-      "pos-generate-fluent": {
-        "pick": "servicenow_explain_policy",
         "correct": false
       },
       "pos-generate-table-flow": {
@@ -1269,7 +1265,7 @@
     },
     "all": {
       "pos-aggregate": {
-        "pick": "servicenow_lookup_directory",
+        "pick": "servicenow_order_catalog_item",
         "correct": false
       },
       "pos-batch": {
@@ -1374,10 +1370,6 @@
       },
       "pos-generate-er-diagram": {
         "pick": "servicenow_document_app",
-        "correct": false
-      },
-      "pos-generate-fluent": {
-        "pick": "servicenow_get_script",
         "correct": false
       },
       "pos-generate-table-flow": {
@@ -1978,10 +1970,6 @@
         "pick": "servicenow_generate_er_diagram",
         "correct": true
       },
-      "pos-generate-fluent": {
-        "pick": "servicenow_search_code",
-        "correct": false
-      },
       "pos-generate-table-flow": {
         "pick": "servicenow_generate_er_diagram",
         "correct": false
@@ -2502,7 +2490,6 @@
     "servicenow_explain_ui_experience": "bc66b8584b115834216e721661949e0258bfb3cb0e4feb6a62127249ae13923e",
     "servicenow_find_tools": "80e99631d0a796f9446835ba730534649c3e181a6719a59d9a491684433007b0",
     "servicenow_generate_er_diagram": "158e3bd629e9c7d021668cb0dec2e63a35e3e44a9d6e495d805116b1c51e4a58",
-    "servicenow_generate_fluent": "a7e9a80dd0304d0ad7a4af6063574383ef18778d2ffa07a3c2ae5fafb20fb91e",
     "servicenow_generate_table_flow": "812444910431ba6a00a54aeda10bda73ed49223f0631ebd01b21717df05aeb02",
     "servicenow_get_artifact": "c835224374bbb10fbad10bb91af10c9834e4d7110422f58fc4c2e7f782f6d9fd",
     "servicenow_get_artifact_dependencies": "a958af1cd690dfab39482ecc86ae43494d0ef99c5cef7bba4badd275201c0582",

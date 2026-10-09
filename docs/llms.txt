@@ -37,7 +37,7 @@ Install it with `npx -y servicenow-mcp-ai`. Run `npx servicenow-mcp-ai init` for
 - [email](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/email.md): 2 tools
 - [atf](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/atf.md): 5 tools
 - [revert](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/revert.md): 2 tools
-- [artifacts](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/artifacts.md): 6 tools
+- [artifacts](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/artifacts.md): 5 tools
 - [updatesets](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/updatesets.md): 3 tools
 - [ops](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/ops.md): 2 tools
 - [history](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/docs/tools/history.md): 2 tools

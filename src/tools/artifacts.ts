@@ -3,7 +3,6 @@ import { ServiceNowError } from "../core/errors.js";
 import { legacyToolNames } from "../mcp/naming.js";
 import { listArtifacts, getArtifact, LIST_LIMIT } from "../api/artifacts.js";
 import { explainArtifact } from "../api/explain-artifact.js";
-import { FLUENT_LIMIT, generateFluent } from "../api/fluent.js";
 import {
   artifactDependencies,
   dependencyMermaid,
@@ -462,59 +461,6 @@ export const specs: AnyToolSpec[] = [
       });
     },
   }),
-  defineTool({
-    name: "servicenow_generate_fluent",
-    title: "Generate Fluent",
-    description:
-      "Emit SDK Fluent source (.now.ts, sidecars, keys.ts fragment) for one artifact or a type in a scope. Secrets become placeholders; types without an emitter use Record() and are listed in unsupported.",
-    package: "artifacts",
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-    input: {
-      ...artifactRefInput,
-      scope: shortText()
-        .optional()
-        .describe(
-          "Instead of sys_id/key: every artifact of the type in a scope.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(FLUENT_LIMIT.max)
-        .optional()
-        .describe(`Scope mode cap (default ${FLUENT_LIMIT.default}).`),
-      format: z
-        .enum(["inline", "file"])
-        .optional()
-        .describe(
-          "'inline' (default) or 'file' (<SN_DOCS_DIR>/<profile>/fluent/<scope>/).",
-        ),
-      overwrite: z.boolean().optional().describe("Replace hand-edited files."),
-    },
-    output: {
-      artifactType: z.string(),
-      sdkApi: z.string(),
-      emitter: z.enum(["dedicated", "record"]),
-      count: z.number(),
-      keys: z.array(z.object({ key: z.string() }).loose()),
-      unsupported: z.array(
-        z.object({ kind: z.string(), reason: z.string() }).loose(),
-      ),
-      files: z.array(z.object({ path: z.string() }).loose()),
-    },
-    logFields: (args) => ({
-      artifactType: args.artifactType,
-      scope: args.scope,
-      format: args.format,
-    }),
-    handler: async (args) => okStructured(await generateFluent(args)),
-  }),
-
   defineTool({
     name: "servicenow_upsert_artifact",
     title: "Upsert artifact",

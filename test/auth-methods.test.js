@@ -169,8 +169,8 @@ test("mutual TLS: no dispatcher unless configured; clear error when undici is ab
     },
     async () => {
       freshRuntime();
-      // undici is an optional dependency; simulate its absence (a devDependency
-      // such as @servicenow/sdk may pull it into node_modules transitively).
+      // undici is an optional dependency; simulate its absence (another
+      // package may pull it into node_modules transitively).
       _setUndiciLoader(async () => {
         throw Object.assign(new Error("Cannot find package 'undici'"), {
           code: "ERR_MODULE_NOT_FOUND",

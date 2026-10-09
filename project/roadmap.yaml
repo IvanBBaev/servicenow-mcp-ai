@@ -725,38 +725,38 @@ items:
     title: "Fluent emitter core (`generate_fluent`)"
     pillar: "P"
     effort: "L"
-    status: "done"
+    status: "dropped"
     phase: null
     done: "2026-09-30"
     gates: ["O-7"]
-    notes: "**Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `servicenow_generate_fluent` (opt-in `artifacts`): `.now.ts` + `keys.ts` + `Now.include` sidecars + `Now.ref`, `Record()` fallback with `unsupported[]`, secret placeholders, `<profile>/fluent/<scope>/` store. Type-checked and built against `@servicenow/sdk` 4.12.2 by the P-29 oracle; `keys.ts` only declares referenced keys (no `DELETE`s)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `servicenow_generate_fluent` (opt-in `artifacts`): `.now.ts` + `keys.ts` + `Now.include` sidecars + `Now.ref`, `Record()` fallback with `unsupported[]`, secret placeholders, `<profile>/fluent/<scope>/` store. Type-checked and built against `@servicenow/sdk` 4.12.2 by the P-29 oracle; `keys.ts` only declares referenced keys (no `DELETE`s)."
   - id: "P-27"
     title: "flow/subflow/action/playbook emitters"
     pillar: "P"
     effort: "L"
-    status: "done"
+    status: "dropped"
     phase: null
     done: "2026-09-30"
     gates: ["O-5", "O-7"]
-    notes: "**Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `src/api/fluent-flow.ts`: `Flow` / `Subflow` / `Action` / `PlaybookDefinition` from the `explain_flow` tree; `action.core` inputs typed from the generated `src/api/fluent-sdk-actions.ts` (`npm run fluent:actions`), `wfa.action` keys on `sys_hub_action_instance_v2`. Open: flow variables / stages / inputs get SDK-minted ids; PDI behaviour (O-5)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `src/api/fluent-flow.ts`: `Flow` / `Subflow` / `Action` / `PlaybookDefinition` from the `explain_flow` tree; `action.core` inputs typed from the generated `src/api/fluent-sdk-actions.ts` (`npm run fluent:actions`), `wfa.action` keys on `sys_hub_action_instance_v2`. Open: flow variables / stages / inputs get SDK-minted ids; PDI behaviour (O-5)."
   - id: "P-28"
     title: "portal, workspace, catalog emitters"
     pillar: "P"
     effort: "M"
-    status: "done"
+    status: "dropped"
     phase: null
     done: "2026-09-30"
     gates: ["O-5", "O-7"]
-    notes: "**Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `src/api/fluent-ui.ts`: 20 emitters (portal, `SPPage` tree, widgets + sidecars, themes, menus, route maps, providers, includes, `Workspace`, `Dashboard`, `UxListMenuConfig`, `Applicability`, catalog items / producers / sets / client scripts / UI policies) type-checked and built by P-29; UIB and `sp_ng_template` stay `Record()`. Open: `SPPage` takes no `$id` (SDK-minted sys_id, noted per file); PDI behaviour (O-5)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `src/api/fluent-ui.ts`: 20 emitters (portal, `SPPage` tree, widgets + sidecars, themes, menus, route maps, providers, includes, `Workspace`, `Dashboard`, `UxListMenuConfig`, `Applicability`, catalog items / producers / sets / client scripts / UI policies) type-checked and built by P-29; UIB and `sp_ng_template` stay `Record()`. Open: `SPPage` takes no `$id` (SDK-minted sys_id, noted per file); PDI behaviour (O-5)."
   - id: "P-29"
     title: "round-trip verification harness"
     pillar: "P"
     effort: "M"
-    status: "partial"
+    status: "dropped"
     phase: null
     done: "2026-10-01"
     gates: ["O-2", "O-5"]
-    notes: "**Partly done 2026-10-01 (local).** `npm run fluent:verify` (`scripts/fluent-verify.mjs`) + `test/fluent-sdk-oracle.test.js`: strict `tsc` against the SDK 4.12.2 types and offline `now-sdk build` of all 27 goldens in conflict-free projects; every declared key must come out under its sys_id and no `DELETE` may be emitted (93 keyed records among 100 built). Open: per-field comparison with instance records (O-2 / O-5 fixtures)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Partly done 2026-10-01 (local).** `npm run fluent:verify` (`scripts/fluent-verify.mjs`) + `test/fluent-sdk-oracle.test.js`: strict `tsc` against the SDK 4.12.2 types and offline `now-sdk build` of all 27 goldens in conflict-free projects; every declared key must come out under its sys_id and no `DELETE` may be emitted (93 keyed records among 100 built). Open: per-field comparison with instance records (O-2 / O-5 fixtures)."
   - id: "N-0"
     title: "tool-budget headroom"
     pillar: "N"

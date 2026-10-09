@@ -513,7 +513,7 @@ test("list_artifacts: base query first, missing fields, active refusal, degrade 
   });
 });
 
-test("the artifacts package is opt-in and holds exactly the six tools", () => {
+test("the artifacts package is opt-in and holds exactly the five tools", () => {
   const pkg = PACKAGES.find((p) => p.name === "artifacts");
   assert.ok(pkg);
   assert.deepEqual(
@@ -523,7 +523,6 @@ test("the artifacts package is opt-in and holds exactly the six tools", () => {
       "servicenow_get_artifact",
       "servicenow_explain_artifact",
       "servicenow_get_artifact_dependencies",
-      "servicenow_generate_fluent",
       "servicenow_upsert_artifact",
     ],
   );

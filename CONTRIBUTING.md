@@ -30,7 +30,7 @@ see the [README](README.md#configure-credentials) for the resolution order.
 ```bash
 npm run check      # the full gate: build, lint, format check, tests with
                    # coverage thresholds (lines 94 / branches 82 / functions 97,
-                   # in .c8rc.json), Fluent action table check, eval mock drift
+                   # in .c8rc.json), eval mock drift
                    # (eval:mocks:check), tool-surface scan
                    # (scan:surface), tarball guard (pack:check), prod audit
 npm run verify     # the same minus coverage/audit — the fast inner loop
@@ -60,16 +60,6 @@ plugin's own `mcp__plugin_servicenow-mcp-ai_servicenow__<tool>`) and URLs off th
 description against the manifest's `description_sha256`. It exits 1 on a
 finding; `--json` prints the findings. An intended finding is excused in
 `ALLOWLIST` in `scripts/scan-surface.mjs`, with a reason, as a reviewed edit.
-
-`npm run fluent:verify` (P-29) is the Fluent round-trip oracle. It type-checks
-every golden in `test/fixtures/fluent/` against the pinned `@servicenow/sdk`
-dev dependency (exactly 4.12.2, owner gate O-7) and builds the goldens offline
-with `now-sdk build`. Flags: `--no-build` (type check only), `--json`, `--keep`.
-`test/fluent-sdk-oracle.test.js` runs it, so it is part of `npm test`; without
-the SDK (`npm ci --omit=dev`) it is skipped. After an SDK bump, regenerate the
-flow emitter's `action.core` input table with `npm run fluent:actions`.
-`npm run check` runs `fluent:actions -- --check`, which fails while that table
-is stale.
 
 `npm run eval:skills` (N-49) runs the `claude plugin eval` suite in `evals/`:
 for every plugin skill, one case whose prompt must load the skill and one whose

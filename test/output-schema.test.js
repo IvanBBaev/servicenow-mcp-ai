@@ -144,6 +144,9 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * and `language` on `servicenow_document_app` (opt-in docs package),
  * measured 26,719 / 118,225 / 119,595 / 134,756 (all +227 B; core +0 B):
  * the budgets become 26,880 / 118,272 / 119,808 / 134,912.
+ * ADR 0010, 2026-10-10 (B15): `servicenow_generate_fluent` leaves the opt-in
+ * artifacts package (100 tools), measured 27,084 / 119,204 / 120,574 /
+ * 135,914: the budgets ratchet down to 27,136 / 119,296 / 120,576 / 135,936.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

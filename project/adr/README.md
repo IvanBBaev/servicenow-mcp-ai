@@ -41,7 +41,7 @@ and the open questions behind them wait in [TODO.md](../TODO.md).
 | ADR                                                         | Title                                                         | Status                          | Source                                      |
 | ----------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------- | ------------------------------------------- |
 | [0001](0001-approve-breaking-change-register.md)            | Approve the 3.0 breaking-change register (O-4)                | accepted 2026-10-01             | ROADMAP-V3.md §O, TODO.md, DONE.md batch 17 |
-| [0002](0002-servicenow-sdk-exact-dev-dependency.md)         | `@servicenow/sdk` 4.12.2 exact as a dev dependency (O-7)      | accepted 2026-10-01             | ROADMAP-V3.md §O, SDK-PARITY.md §7, P-29    |
+| [0002](0002-servicenow-sdk-exact-dev-dependency.md)         | `@servicenow/sdk` 4.12.2 exact as a dev dependency (O-7)      | superseded by 0010              | ROADMAP-V3.md §O, SDK-PARITY.md §7, P-29    |
 | [0003](0003-acorn-runtime-parser.md)                        | `acorn` as a runtime parser dependency (S-12)                 | accepted 2026-10-01             | ROADMAP-V3.md §S-12, TODO.md, DONE.md       |
 | [0004](0004-twin-http-clients.md)                           | Twin HTTP clients and the parity drift guard (ARCH-10)        | superseded by 0007             | TODO.md, ARCHITECTURE.md §11                |
 | [0005](0005-jira-surface.md)                                | The dark Jira Cloud surface (ARCH-14, O-1)                    | superseded by 0007             | TODO.md, ARCHITECTURE.md §11, ROADMAP E-8   |
@@ -49,6 +49,7 @@ and the open questions behind them wait in [TODO.md](../TODO.md).
 | [0007](0007-delete-jira-scaffold.md) | Delete the dark Jira scaffold (O-1 NO-GO) | accepted 2026-10-09 | ROADMAP-V3.md §O, §E-8, B10 |
 | [0008](0008-full-protocol-2026-07-28-conformance.md) | Full MCP 2026-07-28 conformance, dual protocol (O-19) | accepted 2026-10-10 (part) | ROADMAP-V3.md §O, PROTOCOL-BREAKING-REPORT |
 | [0009](0009-drop-sampling-summaries.md) | Drop N-9 sampling summaries (O-19, O-12 moot) | accepted 2026-10-10 | ROADMAP-V3.md §O, ADR 0008 |
+| [0010](0010-drop-fluent-generation.md) | Drop Fluent generation; source control belongs to syncrona | accepted 2026-10-10 | ROADMAP-V3.md B15, P-26 … P-29 |
 
 Open gates without a record (as of 2026-10-10): O-2, O-3,
 O-5, O-6, O-8, O-9, O-11, O-14 … O-22 (O-12 moot under 0009); O-10 (c) and (d) stay open under 0006; the end of the legacy window (O-19) stays open under 0008.

@@ -165,12 +165,6 @@
       "expected": ["servicenow_generate_er_diagram"]
     },
     {
-      "id": "pos-generate-fluent",
-      "kind": "positive",
-      "prompt": "Convert this business rule into ServiceNow SDK source code I can keep in git.",
-      "expected": ["servicenow_generate_fluent"]
-    },
-    {
       "id": "pos-generate-table-flow",
       "kind": "positive",
       "prompt": "Make a Mermaid diagram of everything that runs when an incident is inserted.",

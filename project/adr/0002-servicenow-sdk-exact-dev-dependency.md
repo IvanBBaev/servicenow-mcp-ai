@@ -1,10 +1,10 @@
 # 0002 — `@servicenow/sdk` 4.12.2 exact as a dev dependency (O-7)
 
-- **Status:** accepted
+- **Status:** superseded
 - **Date:** 2026-10-01
 - **Owner gate / ID:** O-7 (SDK parity epic; the P-29 oracle)
 - **Supersedes:** —
-- **Superseded by:** —
+- **Superseded by:** [0010](0010-drop-fluent-generation.md)
 
 ## Context
 
@@ -25,9 +25,9 @@ serves as the P-29 type-check oracle ([ROADMAP-V3.md](../ROADMAP-V3.md) §O;
 
 ## Consequences
 
-- P-29 landed in part on 2026-10-01: [`scripts/fluent-verify.mjs`](../../scripts/fluent-verify.mjs)
+- P-29 landed in part on 2026-10-01: `scripts/fluent-verify.mjs` (removed by ADR 0010)
   (`npm run fluent:verify`) type-checks every Fluent golden with strict `tsc` and runs
-  `now-sdk build` offline; [`test/fluent-sdk-oracle.test.js`](../../test/fluent-sdk-oracle.test.js)
+  `now-sdk build` offline; `test/fluent-sdk-oracle.test.js`
   runs it and skips when the SDK is absent ([SDK-PARITY.md](../SDK-PARITY.md), P-29).
 - P-26 … P-28 are SDK-verified against 4.12.2 ([DONE.md](../DONE.md) batch 17).
 - The SDK is never a runtime dependency, so it does not change the published package.

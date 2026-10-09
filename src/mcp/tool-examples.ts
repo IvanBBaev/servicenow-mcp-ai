@@ -161,10 +161,6 @@ export const TOOL_EXAMPLES: Record<ToolName, ToolExample> = {
     summary: "ER diagram of incident and problem.",
     arguments: { tables: ["incident", "problem"], columns: "keys", depth: 1 },
   },
-  servicenow_generate_fluent: {
-    summary: "Fluent source for one business rule.",
-    arguments: { artifactType: "business_rule", sys_id: ID },
-  },
   servicenow_generate_table_flow: {
     summary: "Mermaid flow of an update on incident.",
     arguments: { table: "incident", operation: "update" },
