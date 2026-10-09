@@ -101,9 +101,13 @@ async function captureLogs(fn) {
 /**
  * Let the event loop turn (real I/O included — the snapshot writes files)
  * until `done()` holds; bounded so a regression fails instead of hanging.
+ * The bound is real time, not a turn count: on a loaded runner thousands of
+ * setImmediate turns can pass before one threadpool write completes.
+ * `performance.now()` is not faked by the mock timers.
  */
-async function waitFor(done, what, limit = 5_000) {
-  for (let i = 0; i < limit && !done(); i++) await flushAsync(1);
+async function waitFor(done, what, limitMs = 10_000) {
+  const deadline = performance.now() + limitMs;
+  while (!done() && performance.now() < deadline) await flushAsync(1);
   assert.ok(done(), `timed out waiting for ${what}`);
 }
 
