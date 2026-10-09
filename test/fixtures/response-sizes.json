@@ -3,13 +3,13 @@
   "cases": {
     "query_table.incident-100-columns": {
       "tool": "servicenow_query_table",
-      "textBytes": 3097,
-      "structuredBytes": 3097
+      "textBytes": 3113,
+      "structuredBytes": 3113
     },
     "query_table.incident-200-rows": {
       "tool": "servicenow_query_table",
-      "textBytes": 2531,
-      "structuredBytes": 2531
+      "textBytes": 2549,
+      "structuredBytes": 2549
     },
     "get_record.incident-100-columns": {
       "tool": "servicenow_get_record",

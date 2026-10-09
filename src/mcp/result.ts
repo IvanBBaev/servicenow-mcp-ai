@@ -178,12 +178,22 @@ export function queryCompleteness(
   return {};
 }
 
+/**
+ * Where a paged read started (`offset`), so a size-truncated page can say
+ * where the next call should continue (N-40). Left out for a `fetchAll` read,
+ * whose rows do not follow the offset order.
+ */
+export interface QueryPaging {
+  offset: number;
+}
+
 export function okQueryResult(
   records: SnRecord[],
   total?: number,
   capped?: boolean,
   info?: QueryCompleteness,
   extra: Record<string, unknown> = {},
+  paging?: QueryPaging,
 ): ToolResult {
   // DF-5: mask sensitive values before anything is serialised for the model.
   const redaction = redactRecords(records);
@@ -207,6 +217,9 @@ export function okQueryResult(
 
   // N-61: binary search on the row count keeps the most rows that fit (the
   // old halving loop could keep half as many as fit).
+  // N-40: a paged read continues right after the kept rows. If the instance
+  // withheld rows inside the page, this offset is at or before the true
+  // position, so the next page may repeat a row but never skips one.
   const truncatedText = (kept: number): string =>
     stringify({
       count: records.length,
@@ -214,7 +227,8 @@ export function okQueryResult(
       returned: kept,
       truncated: true,
       ...extra,
-      note: `Result too large (${fullText.length} chars > ${maxChars}). Showing the first ${kept} of ${records.length} records.${capped ? (info?.truncatedReason === "scan_limit" ? " The full set was itself partial (scan limit reached)." : " The full set was itself capped at SN_MAX_RECORDS.") : ""} Narrow the query, select fewer fields, or lower the limit — or pass format:"file" to write the full result to a file under SN_DOCS_DIR.`,
+      ...(paging ? { next_offset: paging.offset + kept } : {}),
+      note: `Result too large (${fullText.length} chars > ${maxChars}). Showing the first ${kept} of ${records.length} records.${capped ? (info?.truncatedReason === "scan_limit" ? " The full set was itself partial (scan limit reached)." : " The full set was itself capped at SN_MAX_RECORDS.") : ""} Narrow the query, select fewer fields, or lower the limit${paging ? `, continue with offset:${paging.offset + kept}` : ""} — or pass format:"file" to write the full result to a file under SN_DOCS_DIR.`,
       records: records.slice(0, kept),
     });
   let lo = 0;
@@ -236,6 +250,7 @@ export function okQueryResult(
     returned: 0,
     truncated: true,
     ...extra,
+    ...(paging ? { next_offset: paging.offset } : {}),
     note: 'Result too large to display. Narrow the query or select fewer fields — or pass format:"file" to write the full result to a file under SN_DOCS_DIR.',
     records: [],
   });

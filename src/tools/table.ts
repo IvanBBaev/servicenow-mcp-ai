@@ -379,6 +379,19 @@ export const specs: AnyToolSpec[] = [
       const { records, total, truncated, truncatedReason, filtered } =
         await queryTable({ ...args, onProgress: fetchAllProgress(args.table) });
       const info = { truncatedReason, filtered };
+      // N-40: a paged read names the offset of the next page while the
+      // instance has more rows (`sysparm_offset` counts row positions, so a
+      // page short of rows the instance withheld still advances by `limit`).
+      // Without a count, a full page means there may be more.
+      const paging = args.fetchAll ? undefined : { offset: args.offset ?? 0 };
+      if (paging) {
+        const next = paging.offset + (args.limit ?? 10);
+        const more =
+          total === undefined
+            ? records.length >= (args.limit ?? 10)
+            : next < total;
+        if (more) extra.next_offset = next;
+      }
       if (format === "csv") {
         const { records: safe } = redactRecords(records);
         const { csv, escaped, bom } = renderCsv(safe, args.fields, {
@@ -430,7 +443,7 @@ export const specs: AnyToolSpec[] = [
           truncated,
           info,
           extra,
-        )) ?? okQueryResult(rows, total, truncated, info, extra)
+        )) ?? okQueryResult(rows, total, truncated, info, extra, paging)
       );
     },
   }),
