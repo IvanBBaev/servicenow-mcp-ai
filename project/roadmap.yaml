@@ -455,11 +455,11 @@ items:
     title: "security policy + community files"
     pillar: "D"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-09-28"
+    done: "2026-10-09"
     gates: []
-    notes: "**Done 2026-09-28 (local) bar owner switches.** SECURITY.md v2, CODE_OF_CONDUCT, SUPPORT, CODEOWNERS, issue forms, PR template, `release.yml`. Open: private vulnerability reporting, labels."
+    notes: "**Done 2026-10-09.** SECURITY.md v2, CODE_OF_CONDUCT, SUPPORT, CODEOWNERS, issue forms, PR template, `release.yml` (2026-09-28); owner switches 2026-10-09: private vulnerability reporting enabled, and the `release.yml` labels `breaking`, `security`, `changed`, `ci`, `internal` and `skip-changelog` created on GitHub."
   - id: "M-9"
     title: "long-running ops as MCP tasks"
     pillar: "M"
