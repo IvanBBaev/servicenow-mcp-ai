@@ -3,6 +3,7 @@ import { queryTable, type SnRecord } from "./table.js";
 import { resolveArtifactType } from "./artifacts.js";
 import { scopeClause } from "./scripts.js";
 import { snString } from "./shared.js";
+import { unifiedDiff } from "./unified-diff.js";
 import { rethrowIfCancelled } from "../core/errors.js";
 import {
   ARTIFACT_TYPES,
@@ -394,6 +395,22 @@ export interface ArtifactDiff {
    * is still named in `fields`.
    */
   elementDiff?: Record<string, CompositionDiff>;
+  /**
+   * N-31: only with `raw` — per composition field in `elementDiff`, the
+   * unified diff a → b of the pretty-printed JSON (the hunk the element diff
+   * replaces).
+   */
+  rawDiff?: Record<string, string>;
+}
+
+/** N-31: a composition value as diffable text (pretty JSON). */
+function compositionText(v: unknown): string {
+  if (typeof v !== "string") return JSON.stringify(v ?? [], null, 2) ?? "";
+  try {
+    return JSON.stringify(JSON.parse(v), null, 2);
+  } catch {
+    return v;
+  }
 }
 
 /** The registry fields of a type decoded as UIB compositions. */
@@ -478,10 +495,13 @@ export function changedArtifactPairs(
  * Diff one type between two sides: records matched by sys_id, then natural
  * key; a pair differs when its hash does, and the diff names the top-level
  * fields and counts the child changes (children matched the same way).
+ * With `raw` (the two side labels) a changed composition also carries its
+ * JSON hunk in `rawDiff` (N-31).
  */
 export function diffArtifactType(
   a: ArtifactTypeSnapshot,
   b: ArtifactTypeSnapshot,
+  opts: { raw?: { a: string; b: string } } = {},
 ): ArtifactDiff[] {
   const type = a.type;
   const { pairs, onlyA, onlyB } = pairUp(a.records, b.records);
@@ -512,6 +532,21 @@ export function diffArtifactType(
       }
     }
     const elementDiff = elementDiffs(type, fields, l.fields, r.fields);
+    const raw = opts.raw;
+    const rawDiff =
+      raw && elementDiff
+        ? Object.fromEntries(
+            Object.keys(elementDiff).map((f) => [
+              f,
+              unifiedDiff(
+                compositionText(l.fields[f]),
+                compositionText(r.fields[f]),
+                `${raw.a}/${l.key}.${f}`,
+                `${raw.b}/${r.key}.${f}`,
+              ),
+            ]),
+          )
+        : undefined;
     out.push({
       type,
       key: l.key,
@@ -519,6 +554,7 @@ export function diffArtifactType(
       ...(fields.length ? { fields } : {}),
       ...(Object.keys(children).length ? { children } : {}),
       ...(elementDiff ? { elementDiff } : {}),
+      ...(rawDiff ? { rawDiff } : {}),
     });
   }
   return out.sort((x, y) => x.key.localeCompare(y.key));

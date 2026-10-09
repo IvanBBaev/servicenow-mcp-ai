@@ -131,6 +131,12 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid (live).",
         ),
+      raw: z
+        .boolean()
+        .optional()
+        .describe(
+          "With types: add the JSON diff behind each UIB element diff.",
+        ),
       format: formatInput,
     },
     logFields: (args) => ({
@@ -138,6 +144,7 @@ export const specs: AnyToolSpec[] = [
       b: args.b,
       fromSnapshot: args.from_snapshot === true,
       sections: args.sections?.length,
+      raw: args.raw === true,
     }),
     handler: async ({
       a,
@@ -147,6 +154,7 @@ export const specs: AnyToolSpec[] = [
       types,
       scope,
       mermaid,
+      raw,
       format,
     }) => {
       const result = await compareInstances({
@@ -157,6 +165,7 @@ export const specs: AnyToolSpec[] = [
         types,
         scope,
         mermaid,
+        raw,
       });
       return deliverJson(result, `compare-${result.a}-vs-${result.b}`, format);
     },

@@ -381,6 +381,24 @@ test("compare types: a UIB macroponent gets a per-element composition diff (N-31
         readFileSync(path.join(docs, r.report), "utf8"),
         /composition \[elements \+1 -1 ~1\]/,
       );
+      assert.equal(d.rawDiff, undefined, "no JSON hunk without raw");
+      const raw = await compareInstances({
+        a: "default",
+        b: "b",
+        types: ["uib_macroponent"],
+        raw: true,
+      });
+      const hunk = raw.artifactDiffs[0].rawDiff.composition;
+      assert.match(hunk, new RegExp(`^--- default/${M1}\\.composition`, "m"));
+      assert.match(hunk, new RegExp(`^\\+\\+\\+ b/${M1}\\.composition`, "m"));
+      assert.match(hunk, /^- +"title": "A"$/m);
+      assert.match(hunk, /^\+ +"title": "B"$/m);
+      const report = readFileSync(path.join(docs, raw.report), "utf8");
+      assert.match(report, /### Composition JSON diffs/);
+      assert.match(
+        report,
+        new RegExp(`#### uib_macroponent: ${d.key} \\(composition\\)`),
+      );
     },
     data,
   );

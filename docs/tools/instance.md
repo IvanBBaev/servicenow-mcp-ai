@@ -49,6 +49,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `types` | string[] | no | Registry types (with children) or ['all']; default none. |
 | `scope` | string | no | Scope for types. |
 | `mermaid` | boolean | no | With types: diff changed flow/workflow/portal/experience diagrams as Mermaid (live). |
+| `raw` | boolean | no | With types: add the JSON diff behind each UIB element diff. |
 | `format` | "json" \| "file" | no | 'json' (default) or 'file': write the full (redacted) JSON to <profile>/exports/, return { path, bytes, preview } + summary. |
 | `instance` | string | no | Profile (default active) |
 

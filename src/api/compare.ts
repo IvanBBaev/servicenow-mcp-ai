@@ -74,6 +74,11 @@ export interface CompareOptions {
    * sources as text. Default false; never counted as drift.
    */
   mermaid?: boolean;
+  /**
+   * N-31: with `types`, add the unified JSON diff of each changed UIB
+   * composition (`rawDiff`) next to its element diff (the first MAX_DIFFS).
+   */
+  raw?: boolean;
 }
 
 interface ColumnDiff {
@@ -678,6 +683,7 @@ export async function compareInstances(
   // -- registry artefacts (P-20) ----------------------------------------------
   const artifactDiffs: ArtifactDiff[] = [];
   const withMermaid = opts.mermaid === true && types.length > 0;
+  const withRaw = opts.raw === true && types.length > 0;
   const mermaidPairs: MermaidPair[] = [];
   for (const type of types) {
     const sideA = await step(`artifact ${type}: ${a}`, () =>
@@ -687,7 +693,9 @@ export async function compareInstances(
       artifactsFor(b, type, typeScope, fromSnapshot, warnings),
     );
     if (sideA && sideB) {
-      artifactDiffs.push(...diffArtifactType(sideA, sideB));
+      artifactDiffs.push(
+        ...diffArtifactType(sideA, sideB, withRaw ? { raw: { a, b } } : {}),
+      );
       if (withMermaid && hasMermaid(type)) {
         mermaidPairs.push(
           ...changedArtifactPairs(sideA, sideB).map(
@@ -696,6 +704,14 @@ export async function compareInstances(
         );
       }
     }
+  }
+  // N-31: the same cap as the script diffs, counted per composition field.
+  let rawCount = 0;
+  for (const d of artifactDiffs) {
+    if (!d.rawDiff) continue;
+    const kept = Object.entries(d.rawDiff).filter(() => rawCount++ < MAX_DIFFS);
+    if (kept.length > 0) d.rawDiff = Object.fromEntries(kept);
+    else delete d.rawDiff;
   }
   const mermaidDiffs = withMermaid
     ? await diffMermaid(a, b, mermaidPairs, warnings)
@@ -812,6 +828,26 @@ export async function compareInstances(
                   "",
                 ]
               : ["No differences.", ""]),
+            ...(withRaw
+              ? [
+                  "### Composition JSON diffs",
+                  "",
+                  `The JSON hunk behind each element diff above (at most ${MAX_DIFFS}).`,
+                  "",
+                  ...(artifactDiffs.some((d) => d.rawDiff)
+                    ? artifactDiffs.flatMap((d) =>
+                        Object.entries(d.rawDiff ?? {}).flatMap(([f, diff]) => [
+                          `#### ${d.type}: ${d.key} (${f})`,
+                          "",
+                          "```diff",
+                          diff.replace(/```/g, "` ` `"),
+                          "```",
+                          "",
+                        ]),
+                      )
+                    : ["No composition differences.", ""]),
+                ]
+              : []),
             ...(withMermaid
               ? [
                   "### Mermaid diffs",

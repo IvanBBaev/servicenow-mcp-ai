@@ -805,6 +805,10 @@
             "description": "With types: diff changed flow/workflow/portal/experience diagrams as Mermaid (live).",
             "type": "boolean"
           },
+          "raw": {
+            "description": "With types: add the JSON diff behind each UIB element diff.",
+            "type": "boolean"
+          },
           "scope": {
             "description": "Scope for types.",
             "maxLength": 128,
@@ -841,8 +845,8 @@
       },
       "sizes": {
         "description": 175,
-        "inputSchema": 1269,
-        "paramDescriptions": 520,
+        "inputSchema": 1370,
+        "paramDescriptions": 581,
         "outputSchema": 0
       }
     },
