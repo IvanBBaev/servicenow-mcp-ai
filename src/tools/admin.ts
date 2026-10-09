@@ -318,8 +318,20 @@ function instanceChanged(profile: string, nextHost: string): boolean {
 const NO_SESSION =
   "Packages can only be listed or toggled on a running MCP server.";
 
+/** Where a 2026-07-28 client changes its package set: configuration, not a tool call. */
+const PACKAGES_BY_CONFIG =
+  "Set SN_TOOL_PACKAGES (or the profile's packages) and restart the server; servicenow_find_tools finds tools without changing tools/list.";
+
 /** Shared body of servicenow_enable_package / servicenow_disable_package (M-5). */
 function togglePackage(name: string, on: boolean) {
+  // O-19 (d): on 2026-07-28 tools/list, prompts/list and resources/list are fixed per server
+  // and must not change as a side effect of a request; the runtime toggle is legacy-only.
+  if (onModernWire()) {
+    return fail(
+      "Packages are fixed per server on this protocol revision (2026-07-28): tools/list, prompts/list and resources/list do not change during a connection. Nothing was changed.",
+      { code: "NO_PACKAGE_SESSION", hint: PACKAGES_BY_CONFIG },
+    );
+  }
   const session = currentPackageSession();
   if (!session) return fail(NO_SESSION, { code: "NO_PACKAGE_SESSION" });
   try {
@@ -877,7 +889,9 @@ export const specs: AnyToolSpec[] = [
         matches,
         ...(disabled.length
           ? {
-              hint: `Enable with servicenow_enable_package: ${disabled.join(", ")}.`,
+              hint: onModernWire()
+                ? `Disabled packages: ${disabled.join(", ")}. ${PACKAGES_BY_CONFIG}`
+                : `Enable with servicenow_enable_package: ${disabled.join(", ")}.`,
             }
           : {}),
       });
