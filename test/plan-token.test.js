@@ -19,6 +19,7 @@ import { runSpec, buildInputSchema } from "../build/mcp/define.js";
 import { setServer } from "../build/mcp/context.js";
 import {
   PLAN_TOKEN_MAX,
+  checkPlanToken,
   consumePlanToken,
   issuePlanToken,
   planArgsHash,
@@ -342,6 +343,31 @@ test("token: the store is bounded (oldest plan dropped) and cleared by a fresh r
   const kept = issuePlanToken(plan).token;
   freshRuntime();
   assert.equal(consumePlanToken(kept, plan).reason, "unknown");
+});
+
+test("token: checkPlanToken validates without consuming or evicting", (t) => {
+  freshRuntime();
+  const plan = { profile: "dev", tool: "t", argsHash: "h" };
+  const { token } = issuePlanToken(plan);
+  assert.deepEqual(checkPlanToken(token, plan), { ok: true });
+  assert.deepEqual(checkPlanToken(token, plan), { ok: true }, "still valid");
+  assert.deepEqual(checkPlanToken(token, { ...plan, argsHash: "x" }), {
+    ok: false,
+    reason: "args_changed",
+  });
+  assert.deepEqual(checkPlanToken(undefined, plan), {
+    ok: false,
+    reason: "missing",
+  });
+  assert.deepEqual(consumePlanToken(token, plan), { ok: true });
+  assert.equal(checkPlanToken(token, plan).reason, "unknown", "consumed");
+
+  const late = issuePlanToken(plan).token;
+  t.mock.timers.enable({ apis: ["Date"], now: Date.now() + 86_400_000 });
+  assert.equal(checkPlanToken(late, plan).reason, "expired");
+  assert.equal(checkPlanToken(late, plan).reason, "expired", "not evicted");
+  assert.equal(consumePlanToken(late, plan).reason, "expired");
+  assert.equal(checkPlanToken(late, plan).reason, "unknown", "consume evicts");
 });
 
 test("token: SN_WRITE_MODE=apply bypasses the check (trusted operator)", async () => {

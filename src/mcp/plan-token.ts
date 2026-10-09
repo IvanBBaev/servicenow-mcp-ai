@@ -134,21 +134,19 @@ export type PlanTokenCheck =
     };
 
 /**
- * Check and consume a token. Only a full match consumes it (single use); a
- * mismatch leaves it valid so the caller can retry with the planned arguments.
+ * Check a token without touching the store: no consumption, no eviction of
+ * an expired plan. A multi-round confirmation (MRTR, 2026-07-28 wire) checks
+ * on the round that asks the user and consumes only on the round that runs
+ * the write, so asking does not burn the token.
  */
-export function consumePlanToken(
+export function checkPlanToken(
   token: string | undefined,
   expected: { profile: string; tool: string; argsHash: string },
 ): PlanTokenCheck {
   if (!token) return { ok: false, reason: "missing" };
-  const store = plans();
-  const plan = store.get(token);
+  const plan = plans().get(token);
   if (!plan) return { ok: false, reason: "unknown" };
-  if (plan.expiresAt <= Date.now()) {
-    store.delete(token);
-    return { ok: false, reason: "expired" };
-  }
+  if (plan.expiresAt <= Date.now()) return { ok: false, reason: "expired" };
   if (plan.tool !== expected.tool) return { ok: false, reason: "wrong_tool" };
   if (plan.profile !== expected.profile) {
     return { ok: false, reason: "wrong_profile" };
@@ -156,6 +154,21 @@ export function consumePlanToken(
   if (plan.argsHash !== expected.argsHash) {
     return { ok: false, reason: "args_changed" };
   }
-  store.delete(token);
   return { ok: true };
+}
+
+/**
+ * Check and consume a token. Only a full match consumes it (single use); a
+ * mismatch leaves it valid so the caller can retry with the planned arguments.
+ * An expired plan is dropped.
+ */
+export function consumePlanToken(
+  token: string | undefined,
+  expected: { profile: string; tool: string; argsHash: string },
+): PlanTokenCheck {
+  const check = checkPlanToken(token, expected);
+  if (token && (check.ok || check.reason === "expired")) {
+    plans().delete(token);
+  }
+  return check;
 }
