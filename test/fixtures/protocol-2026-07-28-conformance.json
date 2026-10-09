@@ -3164,7 +3164,7 @@
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-status-notifications",
       "applies": "tasks",
       "status": "pending",
-      "step": "tasks"
+      "step": "listen"
     },
     {
       "id": "tasks-29",
@@ -3173,7 +3173,7 @@
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-status-notifications",
       "applies": "tasks",
       "status": "pending",
-      "step": "tasks"
+      "step": "listen"
     },
     {
       "id": "tasks-30",
@@ -3209,7 +3209,7 @@
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#protocol-errors",
       "applies": "tasks",
       "status": "pending",
-      "step": "tasks"
+      "step": "listen"
     },
     {
       "id": "tasks-34",
