@@ -28,21 +28,6 @@ const TOOL_CAPS = {
  * makes its entry stale, and the stale check fails until it is removed.
  */
 const OVERSIZE_ALLOW = {
-  servicenow_get_status: {
-    caps: { total: 4480, outputSchema: 3840 },
-    reason:
-      "The M-1 status contract (policy, profiles, packages, features) is one output schema; N-60 (shallow output schemas) shrinks it.",
-  },
-  servicenow_explain_artifact: {
-    caps: { total: 3840, outputSchema: 2560 },
-    reason:
-      "Summary, when, fields, children, references and decoded values are each typed for code-mode clients; N-60.",
-  },
-  servicenow_get_artifact_dependencies: {
-    caps: { total: 3584 },
-    reason:
-      "Direction, depth and the typed node / edge graph; the input and output each stay under their caps.",
-  },
   servicenow_upsert_artifact: {
     caps: { total: 3456, inputSchema: 3072 },
     reason:

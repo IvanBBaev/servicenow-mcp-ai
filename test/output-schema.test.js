@@ -116,6 +116,12 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * in the opt-in history package, measured 29,307 / 126,041 / 127,411 /
  * 143,618 (all +859 B; core +0 B): the budgets become 29,440 / 126,208 /
  * 127,488 / 143,872.
+ * N-60, 2026-10-09 (owner, O-10 (c)): the published outputSchema is shallow
+ * (top-level names, types and `required`; the full shape stays in the
+ * manifest, the tool docs and the tool reference), measured 26,583 / 116,580
+ * / 117,950 / 133,111 (all −9,461 B; core −2,724 B): the budgets ratchet down
+ * to 26,624 / 116,736 / 118,016 / 133,120. The N-5 / N-16 / N-1 / N-22
+ * allowance above is still counted as growth from here.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

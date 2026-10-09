@@ -9,6 +9,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { registerAllTools } from "../build/mcp/registry.js";
 import { currentRuntime } from "../build/core/runtime.js";
+import { shallowOutputSchema } from "../build/mcp/lean-list.js";
 import { withEnv } from "./helpers.js";
 
 /**
@@ -50,8 +51,15 @@ function paramDescriptionBytes(schema) {
   return bytes;
 }
 
-/** Per-tool component sizes of one published tool. */
-export function toolSizes(tool) {
+/**
+ * Per-tool component sizes of one published tool. The outputSchema is
+ * measured in its wire form (N-60, shallow), so a manifest built from the full
+ * schemas records what a client receives; on a wire tool it is a no-op.
+ */
+export function toolSizes(input) {
+  const tool = input.outputSchema
+    ? { ...input, outputSchema: shallowOutputSchema(input.outputSchema) }
+    : input;
   return {
     name: tool.name,
     total: size(tool),

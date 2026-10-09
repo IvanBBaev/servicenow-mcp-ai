@@ -161,7 +161,10 @@ export function describeAllTools(): ToolInfo[] {
   }));
 }
 
-/** A tool's registered JSON Schemas, exactly as tools/list publishes them. */
+/**
+ * A tool's registered JSON Schemas as tools/list publishes them, except that
+ * the outputSchema is the full shape (N-60: the wire carries its shallow form).
+ */
 export interface ToolSchemas {
   name: string;
   inputSchema: Record<string, unknown>;
@@ -182,7 +185,8 @@ function toolSchemas(spec: AnyToolSpec): ToolSchemas {
   const output = buildOutputSchema(spec);
   return {
     name: spec.name,
-    // N-58: the lean form, as the wired tools/list handler publishes it.
+    // N-58: the lean form, as the wired tools/list handler publishes it
+    // (N-60: the output schema before its shallow wire form).
     inputSchema: leanJsonSchema(
       toJsonSchemaCompat(buildInputSchema(spec, { legacy: false }), {
         strictUnions: true,

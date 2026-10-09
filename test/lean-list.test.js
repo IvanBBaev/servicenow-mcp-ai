@@ -5,6 +5,7 @@ import {
   leanJsonSchema,
   leanTool,
   leanToolsList,
+  shallowOutputSchema,
   wireAnnotations,
 } from "../build/mcp/lean-list.js";
 import { baselineEnv } from "./helpers.js";
@@ -163,6 +164,45 @@ test("rule 2: execution goes only when it is the forbidden default", () => {
   );
 });
 
+test("rule 7: the output schema keeps top-level names, types and required (N-60)", () => {
+  const full = {
+    type: "object",
+    description: "dropped",
+    properties: {
+      count: { type: "number", minimum: 0 },
+      rows: { type: "array", items: { type: "object", properties: {} } },
+      http: {
+        type: "object",
+        properties: { proxy: { type: "string" } },
+        required: ["proxy"],
+        additionalProperties: false,
+      },
+      next: { anyOf: [{ type: "string" }, { type: "null" }] },
+      kind: { type: "string", enum: ["a", "b"] },
+      either: { anyOf: [{ type: "string" }, {}] },
+      raw: {},
+    },
+    required: ["count", "rows"],
+    additionalProperties: {},
+  };
+  const shallow = shallowOutputSchema(full);
+  assert.deepEqual(shallow, {
+    type: "object",
+    properties: {
+      count: { type: "number" },
+      rows: { type: "array" },
+      http: { type: "object" },
+      next: { type: ["string", "null"] },
+      kind: { type: "string" },
+      either: {},
+      raw: {},
+    },
+    required: ["count", "rows"],
+    additionalProperties: {},
+  });
+  assert.deepEqual(shallowOutputSchema(shallow), shallow, "idempotent");
+});
+
 /** Every schema node of a published tool, keywords only. */
 function* schemaNodes(schema) {
   if (!schema || typeof schema !== "object" || Array.isArray(schema)) return;
@@ -226,6 +266,21 @@ for (const [profile, env] of Object.entries(PROFILES)) {
             { type: "string" },
             tool.name,
           );
+        }
+      }
+      // Rule 7 (N-60): the wire output schema is shallow, with the same
+      // top-level names, required list and open additionalProperties.
+      if (original.outputSchema) {
+        const { properties = {}, required } = original.outputSchema;
+        assert.deepEqual(
+          Object.keys(tool.outputSchema.properties ?? {}),
+          Object.keys(properties),
+          tool.name,
+        );
+        assert.deepEqual(tool.outputSchema.required, required, tool.name);
+        assert.deepEqual(tool.outputSchema.additionalProperties, {}, tool.name);
+        for (const prop of Object.values(tool.outputSchema.properties ?? {})) {
+          assert.deepEqual(Object.keys(prop), "type" in prop ? ["type"] : []);
         }
       }
       // Idempotent: a second pass changes nothing.

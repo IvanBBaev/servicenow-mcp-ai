@@ -17,6 +17,7 @@ import {
   toolReferenceUri,
 } from "../build/mcp/resources.js";
 import { currentRuntime } from "../build/core/runtime.js";
+import { shallowOutputSchema } from "../build/mcp/lean-list.js";
 import { baselineEnv, freshRuntime, withEnv } from "./helpers.js";
 
 /**
@@ -117,7 +118,13 @@ test("every tool has a reference whose schemas match tools/list", async () => {
       const ref = await read(client, tool.name);
       assert.equal(ref.description, tool.description, tool.name);
       assert.deepEqual(ref.inputSchema, tool.inputSchema, tool.name);
-      assert.deepEqual(ref.outputSchema, tool.outputSchema ?? null, tool.name);
+      // N-60: the reference keeps the full output shape; tools/list carries
+      // its shallow form.
+      assert.deepEqual(
+        ref.outputSchema && shallowOutputSchema(ref.outputSchema),
+        tool.outputSchema ?? null,
+        tool.name,
+      );
       assert.equal(ref.registered, true, tool.name);
     }
     assert.equal(tools.length, describeAllTools().length);

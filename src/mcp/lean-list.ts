@@ -5,8 +5,9 @@
  * zod shapes are unchanged.
  *
  * Wired by `wireLeanToolsList` from `registerAllTools` (O-10 (b), decided
- * 2026-10-06, ADR 0006); `describeToolSchemas` applies the same schema rules,
- * so the manifest and the tool reference match the wire.
+ * 2026-10-06, ADR 0006); `describeToolSchemas` applies the same schema rules
+ * except rule 7, so the manifest and the tool reference keep the full output
+ * shape.
  *
  * Rules (project/TOKEN-OPTIMIZATION-PLAN-2026-10.md, N-58):
  *  1. drop `$schema` in input and output schemas;
@@ -15,7 +16,12 @@
  *     `maxLength` >= n — the pattern already bounds the length;
  *  4. drop `maximum` / `minimum` equal to ±(2^53−1) (zod's int bounds);
  *  5. drop `propertyNames: {type: "string"}` (always true for JSON keys);
- *  6. omit annotation hints a client already assumes (see wireAnnotations).
+ *  6. omit annotation hints a client already assumes (see wireAnnotations);
+ *  7. N-60 (O-10 (c), owner 2026-10-09): the published outputSchema is
+ *     shallow — top-level property names, their JSON types and `required`
+ *     (see shallowOutputSchema). The full shape stays in the manifest, the
+ *     tool docs and `servicenow://reference/tools/{name}`, and the server
+ *     still validates `structuredContent` against the full zod shape.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -83,6 +89,55 @@ export function leanJsonSchema(schema: Json): Json {
   return out;
 }
 
+/** Top-level keywords a shallow output schema keeps (rule 7). */
+const SHALLOW_KEEP = ["type", "properties", "required", "additionalProperties"];
+
+/**
+ * The JSON type(s) of one property schema, or `{}` (any) when it has none:
+ * `{type}` as declared, and a union of typed branches (`anyOf` / `oneOf`,
+ * e.g. a nullable field) as a type list. Nested properties, items, enums
+ * and descriptions are dropped.
+ */
+function shallowType(schema: unknown): Json {
+  if (!isObject(schema)) return {};
+  if (typeof schema.type === "string" || Array.isArray(schema.type)) {
+    return { type: schema.type };
+  }
+  const branches = schema.anyOf ?? schema.oneOf;
+  if (!Array.isArray(branches) || !branches.length) return {};
+  const types = new Set<unknown>();
+  for (const branch of branches) {
+    const { type } = shallowType(branch);
+    if (type === undefined) return {};
+    for (const t of [type].flat()) types.add(t);
+  }
+  const list = [...types];
+  return { type: list.length === 1 ? list[0] : list };
+}
+
+/**
+ * Rule 7 (N-60): the shallow form of an output schema. Keeps the top-level
+ * `type`, `required` and `additionalProperties` (`{}` for the loose objects
+ * the tools register, so a payload may carry more keys), and reduces each
+ * property to its JSON type. Idempotent. A published shallow schema only
+ * loosens the full one, so every payload the server accepts validates.
+ */
+export function shallowOutputSchema(schema: Json): Json {
+  const out: Json = {};
+  for (const key of SHALLOW_KEEP) {
+    if (schema[key] !== undefined) out[key] = schema[key];
+  }
+  if (isObject(schema.properties)) {
+    out.properties = Object.fromEntries(
+      Object.entries(schema.properties).map(([name, s]) => [
+        name,
+        shallowType(s),
+      ]),
+    );
+  }
+  return out;
+}
+
 /**
  * Rule 6, the safe annotation rule. Omitted: `openWorldHint: true`,
  * `idempotentHint: false`, `readOnlyHint: false`, and `destructiveHint: true`
@@ -111,7 +166,7 @@ export function leanTool(tool: Json): Json {
     out.inputSchema = leanJsonSchema(tool.inputSchema);
   }
   if (isObject(tool.outputSchema)) {
-    out.outputSchema = leanJsonSchema(tool.outputSchema);
+    out.outputSchema = shallowOutputSchema(leanJsonSchema(tool.outputSchema));
   }
   if (isObject(tool.execution)) {
     const { taskSupport, ...rest } = tool.execution;
