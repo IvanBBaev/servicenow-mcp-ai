@@ -42,6 +42,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `sys_id` | string | no | sys_ux_page_registry sys_id (or 'path'). |
 | `path` | string | no | Experience path, e.g. 'now/sow' (or 'sys_id'). |
 | `format` | "json" \| "markdown" \| "mermaid" \| "file" | no | json (default), markdown (report + diagram), mermaid (page map) or file (JSON to exports/). |
+| `detail` | "elements" \| "bindings" \| "events" \| "scripts"[] | no | Depth: element props/components, bindings, event chains, script bodies. file default: all. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

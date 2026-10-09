@@ -2130,6 +2130,15 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "detail": {
+            "description": "Depth: element props/components, bindings, event chains, script bodies. file default: all.",
+            "items": {
+              "enum": ["elements", "bindings", "events", "scripts"],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "type": "array"
+          },
           "format": {
             "description": "json (default), markdown (report + diagram), mermaid (page map) or file (JSON to exports/).",
             "enum": ["json", "markdown", "mermaid", "file"],
@@ -2167,8 +2176,8 @@
       },
       "sizes": {
         "description": 194,
-        "inputSchema": 548,
-        "paramDescriptions": 209,
+        "inputSchema": 770,
+        "paramDescriptions": 301,
         "outputSchema": 139
       }
     },

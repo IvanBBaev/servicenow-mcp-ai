@@ -136,21 +136,30 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "json (default), markdown (report + diagram), mermaid (page map) or file (JSON to exports/).",
         ),
+      detail: z
+        .array(z.enum(UI_EXPERIENCE_DETAILS))
+        .max(4)
+        .optional()
+        .describe(
+          "Depth: element props/components, bindings, event chains, script bodies. file default: all.",
+        ),
     },
     logFields: (args) => ({
       sys_id: args.sys_id,
       path: args.path,
       format: args.format,
+      detail: args.detail?.join(","),
     }),
-    handler: async ({ sys_id, path, format }) => {
-      // N-26: the file format carries the full depth (element props and
-      // bindings, event chains, component resolution, script bodies) — it
-      // lands in exports/, not in the context. A `detail` input waits for the
-      // tools/list budget (O-10).
+    handler: async ({ sys_id, path, format, detail }) => {
+      // N-26: `detail` picks the depth (element props and components,
+      // bindings, event chains, script bodies) for any format; the file
+      // format defaults to the full depth, since it lands in exports/.
+      const levels =
+        detail ?? (format === "file" ? UI_EXPERIENCE_DETAILS : undefined);
       const result = await explainUiExperience({
         sys_id,
         path,
-        ...(format === "file" ? { detail: UI_EXPERIENCE_DETAILS } : {}),
+        ...(levels ? { detail: levels } : {}),
       });
       const name = `ui-experience-${path ?? sys_id}`;
       if (format === "json" || format === undefined) {

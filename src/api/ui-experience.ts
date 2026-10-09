@@ -65,10 +65,9 @@
  * empty input schema (info). Omitted when no broker trips a rule. The
  * transform script is read for the check but echoed only with `scripts`.
  *
- * The tool reaches the full depth through `format: "file"` (the JSON lands in
- * exports/, not in the context); a dedicated `detail` input waits for the
- * tools/list budget (O-10). Prop, binding and handler shapes are
- * verified:false until O-5.
+ * The tool takes the levels through its `detail` input; `format: "file"`
+ * defaults to the full depth (the JSON lands in exports/, not in the
+ * context). Prop, binding and handler shapes are verified:false until O-5.
  *
  * Layout: the result and option shapes are in ui-experience-types.ts, the
  * Mermaid and Markdown renderers in ui-experience-render.ts; this module

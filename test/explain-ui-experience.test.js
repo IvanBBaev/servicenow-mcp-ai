@@ -1370,6 +1370,48 @@ test("N-26: API levels are independent; markdown renders the deep sections", asy
   assert.match(md2, /`list_1`\.selected = @state\.selectedTab → client state/);
 });
 
+test("N-26: the detail input sets the depth inline; file keeps the full depth", async () => {
+  const inline = payload(
+    await run(
+      { path: "now/acme", detail: ["events"] },
+      instance(deepFixture()),
+    ),
+  );
+  assert.deepEqual(inline.detail.levels, ["events"]);
+  const home = inline.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(home.eventChains.length, 2);
+  assert.equal(home.bindings, undefined);
+
+  const md = payload(
+    await run(
+      { path: "now/acme", format: "markdown", detail: ["bindings"] },
+      instance(deepFixture()),
+    ),
+  );
+  assert.match(md.markdown, /Bindings:/);
+
+  const plain = payload(
+    await run({ path: "now/acme" }, instance(deepFixture())),
+  );
+  assert.equal(plain.detail, undefined);
+
+  const dir = mkdtempSync(path.join(tmpdir(), "sn-n26-"));
+  try {
+    const out = payload(
+      await withEnv({ SN_DOCS_DIR: dir }, () =>
+        run(
+          { path: "now/acme", format: "file", detail: ["scripts"] },
+          instance(deepFixture()),
+        ),
+      ),
+    );
+    const written = JSON.parse(readFileSync(out.file, "utf8"));
+    assert.deepEqual(written.detail.levels, ["scripts"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("N-26: prop and handler readers are tolerant and bounded", async () => {
   const { classifyProp, eventMappings, ELEMENT_MAX_PROPS } =
     await import("../build/core/artifacts/uib-composition.js");
