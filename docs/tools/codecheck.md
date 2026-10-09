@@ -20,7 +20,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | yes | Script type (default and opt-in types). |
+| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "graphql_resolver" \| "graphql_type_resolver" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | yes | Script type (default and opt-in types). |
 | `sys_id` | string | yes | Script sys_id. |
 | `instance` | string | no | Profile (default active) |
 

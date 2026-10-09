@@ -13,7 +13,7 @@ sn_source_hash: <masked>
 
 Every artefact type this server knows (servicenow_artifact_types), with what this scope has of it and, when nothing was collected, why. [Overview](overview.md) · [Applications](apps.md)
 
-- **Types:** 142
+- **Types:** 144
 - **Collected:** 12
 
 ## Types
@@ -65,6 +65,8 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `js_module` | server | `sys_module` | no | no — no records in this scope |
 | `rest_message` | server | `sys_rest_message` | no | yes (1) |
 | `graphql_api` | server | `sys_graphql_schema` | no | no — no records in this scope |
+| `graphql_resolver` | server | `sys_graphql_resolver` | no | no — no records in this scope |
+| `graphql_type_resolver` | server | `sys_graphql_typeresolver` | no | no — no records in this scope |
 | `alias` | server | `sys_alias` | no | no — no records in this scope |
 | `alias_template` | server | `sys_alias_templates` | no | no — no records in this scope |
 | `retry_policy` | server | `sys_retry_policy` | no | no — no records in this scope |

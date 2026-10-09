@@ -1677,6 +1677,8 @@
               "sp_widget",
               "catalog_client_script",
               "dictionary_script",
+              "graphql_resolver",
+              "graphql_type_resolver",
               "uib_client_script",
               "uib_client_script_include",
               "uib_data_broker_transform",
@@ -1687,7 +1689,7 @@
               "sp_css",
               "sp_search_source"
             ],
-            "description": "Script type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source."
+            "description": "Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source."
           },
           "sys_id": {
             "type": "string",
@@ -1970,6 +1972,8 @@
               "sp_widget",
               "catalog_client_script",
               "dictionary_script",
+              "graphql_resolver",
+              "graphql_type_resolver",
               "uib_client_script",
               "uib_client_script_include",
               "uib_data_broker_transform",
@@ -2598,7 +2602,7 @@
             "description": "Substring to search for."
           },
           "type": {
-            "description": "One type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "One type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
             "type": "string",
             "enum": [
               "business_rule",
@@ -2625,6 +2629,8 @@
               "sp_widget",
               "catalog_client_script",
               "dictionary_script",
+              "graphql_resolver",
+              "graphql_type_resolver",
               "uib_client_script",
               "uib_client_script_include",
               "uib_data_broker_transform",

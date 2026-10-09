@@ -453,6 +453,43 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     verified: false,
     metaFields: ["schema_namespace", "requires_authentication", "active"],
   },
+  // N-29: the GraphQL resolver scripts behind GraphQL data brokers join
+  // script intelligence as opt-in types (O-10, 2026-10-10). The tables are
+  // the graphql_api children; unverified until O-5.
+  {
+    ...BASE,
+    type: "graphql_resolver",
+    group: "server",
+    sdkApi: "none",
+    sdkSince: null,
+    table: "sys_graphql_resolver",
+    nameField: "name",
+    scriptFields: ["script"],
+    refFields: [
+      { field: "schema", table: "sys_graphql_schema", type: "graphql_api" },
+    ],
+    tiers: READ_TIER,
+    verified: false,
+    scriptToolsOptIn: true,
+    metaFields: ["schema"],
+  },
+  {
+    ...BASE,
+    type: "graphql_type_resolver",
+    group: "server",
+    sdkApi: "none",
+    sdkSince: null,
+    table: "sys_graphql_typeresolver",
+    nameField: "name",
+    scriptFields: ["script"],
+    refFields: [
+      { field: "schema", table: "sys_graphql_schema", type: "graphql_api" },
+    ],
+    tiers: READ_TIER,
+    verified: false,
+    scriptToolsOptIn: true,
+    metaFields: ["schema"],
+  },
   {
     ...BASE,
     type: "alias",

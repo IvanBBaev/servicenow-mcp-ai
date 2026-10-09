@@ -628,6 +628,8 @@ test("P-9: search_code extended:true finds code in sp_widget.client_script and s
       assert.deepEqual(
         calls.map((c) => tableOf(c.url)).slice(SCRIPT_TYPE_NAMES.length),
         [
+          "sys_graphql_resolver",
+          "sys_graphql_typeresolver",
           "sys_ux_client_script",
           "sys_ux_client_script_include",
           "sys_ux_data_broker_transform",

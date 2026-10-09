@@ -3588,7 +3588,7 @@
             "type": "string"
           },
           "type": {
-            "description": "Script type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
             "enum": [
               "business_rule",
               "script_include",
@@ -3614,6 +3614,8 @@
               "sp_widget",
               "catalog_client_script",
               "dictionary_script",
+              "graphql_resolver",
+              "graphql_type_resolver",
               "uib_client_script",
               "uib_client_script_include",
               "uib_data_broker_transform",
@@ -3642,8 +3644,8 @@
       },
       "sizes": {
         "description": 70,
-        "inputSchema": 1072,
-        "paramDescriptions": 260,
+        "inputSchema": 1156,
+        "paramDescriptions": 301,
         "outputSchema": 149
       }
     },
@@ -4242,6 +4244,8 @@
               "sp_widget",
               "catalog_client_script",
               "dictionary_script",
+              "graphql_resolver",
+              "graphql_type_resolver",
               "uib_client_script",
               "uib_client_script_include",
               "uib_data_broker_transform",
@@ -4270,7 +4274,7 @@
       },
       "sizes": {
         "description": 163,
-        "inputSchema": 895,
+        "inputSchema": 938,
         "paramDescriptions": 83,
         "outputSchema": 176
       }
@@ -5125,7 +5129,7 @@
             "type": "string"
           },
           "type": {
-            "description": "Script type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
             "enum": [
               "business_rule",
               "script_include",
@@ -5151,6 +5155,8 @@
               "sp_widget",
               "catalog_client_script",
               "dictionary_script",
+              "graphql_resolver",
+              "graphql_type_resolver",
               "uib_client_script",
               "uib_client_script_include",
               "uib_data_broker_transform",
@@ -5179,8 +5185,8 @@
       },
       "sizes": {
         "description": 108,
-        "inputSchema": 1506,
-        "paramDescriptions": 430,
+        "inputSchema": 1590,
+        "paramDescriptions": 471,
         "outputSchema": 174
       }
     },
@@ -6057,7 +6063,7 @@
             "type": "string"
           },
           "type": {
-            "description": "One type; opt-in (read only when named): uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "One type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
             "enum": [
               "business_rule",
               "script_include",
@@ -6083,6 +6089,8 @@
               "sp_widget",
               "catalog_client_script",
               "dictionary_script",
+              "graphql_resolver",
+              "graphql_type_resolver",
               "uib_client_script",
               "uib_client_script_include",
               "uib_data_broker_transform",
@@ -6111,8 +6119,8 @@
       },
       "sizes": {
         "description": 237,
-        "inputSchema": 1508,
-        "paramDescriptions": 485,
+        "inputSchema": 1592,
+        "paramDescriptions": 526,
         "outputSchema": 172
       }
     },

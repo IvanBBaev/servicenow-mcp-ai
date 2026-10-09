@@ -568,6 +568,8 @@ test("P-9: script-bearing rows are opt-in script types, never in the default vie
     OPT_IN_SCRIPT_TYPE_NAMES,
   );
   assert.deepEqual(OPT_IN_SCRIPT_TYPE_NAMES, [
+    "graphql_resolver",
+    "graphql_type_resolver",
     "uib_client_script",
     "uib_client_script_include",
     "uib_data_broker_transform",
