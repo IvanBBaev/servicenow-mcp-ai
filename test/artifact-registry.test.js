@@ -249,6 +249,36 @@ test("every sdkApi is on the baseline list; SDK_BASELINE is 4.13.6", () => {
   assert.deepEqual(interceptor.children[0].scriptFields, ["script"]);
 });
 
+test("P-7 guide-audit rows CORE-18, 19, 21 and CUI-6 sys_ui_formatter are registered", () => {
+  const expected = {
+    assignment_rule: ["core", "sysrule_assignment"],
+    knowledge_base: ["core", "kb_knowledge_base"],
+    security_attribute: ["core", "sys_security_attribute"],
+    security_data_filter: ["core", "sys_security_data_filter"],
+    formatter: ["classic-ui", "sys_ui_formatter"],
+  };
+  for (const [type, [group, table]] of Object.entries(expected)) {
+    const t = getArtifactType(type);
+    assert.equal(t.group, group, type);
+    assert.equal(t.table, table, type);
+    assert.equal(t.verified, false, `${type} waits for O-5`);
+  }
+  assert.deepEqual(
+    getArtifactType("knowledge_base").children.map((c) => c.table),
+    [
+      "kb_uc_can_read_mtom",
+      "kb_uc_can_contribute_mtom",
+      "kb_uc_cannot_read_mtom",
+      "kb_uc_cannot_contribute_mtom",
+    ],
+  );
+  assert.deepEqual(getArtifactType("assignment_rule").scriptFields, ["script"]);
+  assert.equal(
+    getArtifactType("security_data_filter").refFields[0].type,
+    "security_attribute",
+  );
+});
+
 test("seeded breadth: the P-1 representative types are registered", () => {
   const tables = new Set(ARTIFACT_TYPES.map((t) => t.table));
   const childTables = new Set(

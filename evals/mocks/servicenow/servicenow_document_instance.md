@@ -5,4 +5,4 @@
 type: fixed
 ---
 
-{"profile":"default","path":"default/README.md","documents":[{"kind":"instance","target":"README","path":"default/README.md","status":"created","bytes":3260,"caveats":3},{"kind":"discovery_overview","target":"overview","path":"default/discovery/overview.md","status":"created","bytes":2717,"caveats":3},{"kind":"artifact_types","target":"artifact-types","path":"default/artifact-types.md","status":"created","bytes":10955,"caveats":2}],"files":6,"partial":false}
+{"profile":"default","path":"default/README.md","documents":[{"kind":"instance","target":"README","path":"default/README.md","status":"created","bytes":3260,"caveats":3},{"kind":"discovery_overview","target":"overview","path":"default/discovery/overview.md","status":"created","bytes":2717,"caveats":3},{"kind":"artifact_types","target":"artifact-types","path":"default/artifact-types.md","status":"created","bytes":11322,"caveats":2}],"files":6,"partial":false}

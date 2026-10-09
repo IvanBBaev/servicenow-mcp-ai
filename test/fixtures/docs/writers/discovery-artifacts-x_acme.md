@@ -13,7 +13,7 @@ sn_source_hash: <masked>
 
 Every artefact type this server knows (servicenow_artifact_types), with what this scope has of it and, when nothing was collected, why. [Overview](overview.md) · [Applications](apps.md)
 
-- **Types:** 137
+- **Types:** 142
 - **Collected:** 12
 
 ## Types
@@ -53,6 +53,10 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `role` | core | `sys_user_role` | no | yes (1) |
 | `cross_scope_privilege` | core | `sys_scope_privilege` | no | no — no records in this scope |
 | `user_criteria` | core | `user_criteria` | no | no — no records in this scope |
+| `assignment_rule` | core | `sysrule_assignment` | no | no — no records in this scope |
+| `knowledge_base` | core | `kb_knowledge_base` | no | no — no records in this scope |
+| `security_attribute` | core | `sys_security_attribute` | no | no — no records in this scope |
+| `security_data_filter` | core | `sys_security_data_filter` | no | no — no records in this scope |
 | `field_style` | core | `sys_ui_style` | no | no — no records in this scope |
 | `schedule` | core | `cmn_schedule` | no | no — no records in this scope |
 | `event` | core | `sysevent_register` | no | no — no records in this scope |
@@ -72,6 +76,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `workspace_form_action` | classic-ui | `sys_ux_form_action` | no | no — no records in this scope |
 | `form` | classic-ui | `sys_ui_form` | no | no — no records in this scope |
 | `ui_section` | classic-ui | `sys_ui_section` | no | no — no records in this scope |
+| `formatter` | classic-ui | `sys_ui_formatter` | no | no — no records in this scope |
 | `list` | classic-ui | `sys_ui_list` | no | no — no records in this scope |
 | `application_menu` | classic-ui | `sys_app_application` | no | no — no records in this scope |
 | `interceptor` | classic-ui | `sys_wizard` | no | no — no records in this scope |
