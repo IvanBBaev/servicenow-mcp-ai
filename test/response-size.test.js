@@ -188,6 +188,24 @@ const CASES = [
   ],
 ];
 
+/**
+ * A file result (N-61) names its absolute path, which depends on where the
+ * checkout lives: pin it, so the golden is the same on every machine.
+ */
+function pinFilePath(result) {
+  const pin = (text) =>
+    text.replace(/"file":"(?:[^"\\]|\\.)*"/g, '"file":"<file>"');
+  return {
+    ...result,
+    content: result.content.map((c) =>
+      c.type === "text" ? { ...c, text: pin(c.text) } : c,
+    ),
+    ...(result.structuredContent?.file
+      ? { structuredContent: { ...result.structuredContent, file: "<file>" } }
+      : {}),
+  };
+}
+
 async function measure(name, args) {
   const spec = ALL_TOOLS.find((t) => t.name === name);
   assert.ok(spec, `${name} is registered`);
@@ -196,7 +214,7 @@ async function measure(name, args) {
   const double = createFetchDouble({ fallback: synthetic }).install();
   try {
     const result = await runSpec(spec, args);
-    return { spec, result };
+    return { spec, result: pinFilePath(result) };
   } finally {
     double.restore();
   }
