@@ -1010,6 +1010,20 @@
               "file"
             ]
           },
+          "detail": {
+            "description": "Depth: element props/components, bindings, event chains, script bodies. file default: all.",
+            "maxItems": 4,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "elements",
+                "bindings",
+                "events",
+                "scripts"
+              ]
+            }
+          },
           "instance": {
             "description": "Profile (default active)",
             "type": "string",
