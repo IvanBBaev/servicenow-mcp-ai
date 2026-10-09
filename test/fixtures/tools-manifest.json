@@ -4739,11 +4739,20 @@
         },
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "count": { "type": "number" },
+          "entries": { "items": {}, "type": "array" }
+        },
+        "required": ["count", "entries"],
+        "type": "object"
+      },
       "sizes": {
         "description": 167,
         "inputSchema": 258,
         "paramDescriptions": 78,
-        "outputSchema": 0
+        "outputSchema": 153
       }
     },
     {
@@ -5495,11 +5504,21 @@
         "required": ["path"],
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "content": { "type": "string" },
+          "mimeType": { "type": "string" },
+          "path": { "type": "string" }
+        },
+        "required": ["path", "content", "mimeType"],
+        "type": "object"
+      },
       "sizes": {
         "description": 86,
         "inputSchema": 412,
         "paramDescriptions": 155,
-        "outputSchema": 0
+        "outputSchema": 181
       }
     },
     {
@@ -5678,12 +5697,21 @@
         "required": ["sys_id"],
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "executionId": { "type": "string" },
+          "mode": { "type": "string" },
+          "status": { "type": "string" }
+        },
+        "type": "object"
+      },
       "legacyParams": { "suite_sys_id": "sys_id" },
       "sizes": {
         "description": 186,
         "inputSchema": 646,
         "paramDescriptions": 310,
-        "outputSchema": 0
+        "outputSchema": 142
       }
     },
     {
@@ -5725,12 +5753,21 @@
         "required": ["sys_id"],
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "executionId": { "type": "string" },
+          "mode": { "type": "string" },
+          "status": { "type": "string" }
+        },
+        "type": "object"
+      },
       "legacyParams": { "test_sys_id": "sys_id" },
       "sizes": {
         "description": 228,
         "inputSchema": 640,
         "paramDescriptions": 304,
-        "outputSchema": 0
+        "outputSchema": 142
       }
     },
     {
@@ -5880,11 +5917,20 @@
         "required": ["text"],
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "count": { "type": "number" },
+          "matches": { "items": {}, "type": "array" }
+        },
+        "required": ["count", "matches"],
+        "type": "object"
+      },
       "sizes": {
         "description": 124,
         "inputSchema": 566,
         "paramDescriptions": 208,
-        "outputSchema": 0
+        "outputSchema": 153
       }
     },
     {
@@ -6750,12 +6796,21 @@
         "required": ["artifactType", "key", "values"],
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "message": { "type": "string" },
+          "mode": { "type": "string" },
+          "result": {}
+        },
+        "type": "object"
+      },
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 219,
         "inputSchema": 2727,
         "paramDescriptions": 1184,
-        "outputSchema": 0
+        "outputSchema": 123
       }
     },
     {
@@ -6982,11 +7037,20 @@
         "required": ["path", "content"],
         "type": "object"
       },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "bytes": { "type": "number" },
+          "path": { "type": "string" }
+        },
+        "required": ["path", "bytes"],
+        "type": "object"
+      },
       "sizes": {
         "description": 224,
         "inputSchema": 551,
         "paramDescriptions": 195,
-        "outputSchema": 0
+        "outputSchema": 137
       }
     }
   ]

@@ -77,7 +77,13 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `executionId` | string |  |
+| `status` | string |  |
 
 ## servicenow_run_atf_suite
 
@@ -96,7 +102,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `executionId` | string |  |
+| `status` | string |  |
 
 ## servicenow_get_atf_result
 

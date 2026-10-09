@@ -3159,6 +3159,26 @@
         ],
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content",
+          "mimeType"
+        ],
+        "additionalProperties": {}
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3441,6 +3461,23 @@
           "text"
         ],
         "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "matches": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "count",
+          "matches"
+        ],
+        "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,

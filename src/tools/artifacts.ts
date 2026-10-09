@@ -19,6 +19,7 @@ import {
   tableName,
   type AnyToolSpec,
 } from "../mcp/define.js";
+import { WRITE_OUTPUT } from "../mcp/output-shapes.js";
 import {
   applyArtifactPlan,
   assertNotPlanOnly,
@@ -594,6 +595,7 @@ export const specs: AnyToolSpec[] = [
       update_set: updateSetInput,
       apply: applyInput,
     },
+    output: WRITE_OUTPUT,
     logFields: (args) => ({
       artifactType: args.artifactType,
       children: args.children?.length ?? 0,

@@ -103,6 +103,14 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * (all +3,831 B; core +0 B): the budgets become 28,672 / 123,392 / 124,672 /
  * 140,288. The 29 tools left without one are in
  * `test/fixtures/output-shape-register.json`.
+ * N-36, 2026-10-09 (owner): `servicenow_find_tools` joins every profile,
+ * +761 B each: 29,440 / 124,160 / 125,440 / 141,056.
+ * N-54, 2026-10-09 (owner, O-10: about +1 KB more on `all`, `core`
+ * unchanged): the 7 stable-shape tools that were past the first allowance
+ * gain an outputSchema (ATF runs, docs store, upsert_artifact), measured
+ * 29,307 / 125,182 / 126,552 / 142,759 (all +1,143 B; core +0 B): the budgets
+ * become 29,440 / 125,184 / 126,720 / 142,848. `explain_portal` moves to the
+ * register as a delivery tool (inline JSON or a file reference).
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(
@@ -268,6 +276,11 @@ test("the shared N-54 output shapes pass the SDK output validation", async () =>
     ["servicenow_lookup_directory", { kind: "user", term: "abel" }],
     ["servicenow_get_record_history", { table: "incident", sys_id: id }],
     ["servicenow_list_writes", {}],
+    ["servicenow_write_doc", { path: "n54.md", content: "# N-54" }],
+    ["servicenow_read_doc", { path: "n54.md" }],
+    ["servicenow_list_docs", {}],
+    ["servicenow_search_docs", { text: "N-54" }],
+    ["servicenow_run_atf_test", { sys_id: id }],
   ];
   try {
     await withEnv({ SN_TOOL_PACKAGES: "all", SN_DOCS_DIR: dir }, () =>

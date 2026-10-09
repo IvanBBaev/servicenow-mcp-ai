@@ -20,6 +20,7 @@ import {
   tableName,
   type AnyToolSpec,
 } from "../mcp/define.js";
+import { listOutput } from "../mcp/output-shapes.js";
 
 /**
  * Self-documentation package: read/write a local Markdown knowledge base and
@@ -76,6 +77,7 @@ export const specs: AnyToolSpec[] = [
       openWorldHint: false,
     },
     input: { profile: profileArg },
+    output: listOutput("entries"),
     handler: ({ profile }) => docsList({ profile }).then(ok),
   }),
 
@@ -98,6 +100,7 @@ export const specs: AnyToolSpec[] = [
       ),
       profile: profileArg,
     },
+    output: { path: z.string(), content: z.string(), mimeType: z.string() },
     logFields: (args) => ({ path: args.path, profile: args.profile }),
     handler: ({ path, profile }) => docsRead(path, { profile }).then(ok),
   }),
@@ -126,6 +129,7 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("true: only generated; false: only hand-written."),
     },
+    output: listOutput("matches"),
     logFields: (args) => ({
       textLength: args.text.length,
       profile: args.profile,
@@ -160,6 +164,7 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Replace a generated document."),
     },
+    output: { path: z.string(), bytes: z.number() },
     logFields: (args) => ({
       path: args.path,
       profile: args.profile,

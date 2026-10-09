@@ -18,6 +18,13 @@ import {
 import { shouldApply, planPreview, applyInput } from "../mcp/write-mode.js";
 import { journaledWrite } from "../core/write-journal.js";
 
+/** N-54: a run tool answers with a plan preview or the CI/CD run. */
+const RUN_OUTPUT = {
+  mode: z.string().optional(),
+  executionId: z.string().optional(),
+  status: z.string().optional(),
+};
+
 /** S-10: optional wait for the run to finish (non-breaking; default 0 = no wait). */
 const waitSeconds = z
   .number()
@@ -104,6 +111,7 @@ export const specs: AnyToolSpec[] = [
       wait_seconds: waitSeconds,
       apply: applyInput,
     },
+    output: RUN_OUTPUT,
     handler: async ({ sys_id, wait_seconds, apply }) => {
       if (!shouldApply(apply)) {
         return planPreview({
@@ -144,6 +152,7 @@ export const specs: AnyToolSpec[] = [
       wait_seconds: waitSeconds,
       apply: applyInput,
     },
+    output: RUN_OUTPUT,
     handler: async ({ sys_id, wait_seconds, apply }) => {
       if (!shouldApply(apply)) {
         return planPreview({
