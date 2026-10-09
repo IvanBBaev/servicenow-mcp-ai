@@ -295,7 +295,7 @@ async function step<T>(table: string, fn: () => Promise<T>): Promise<Step<T>> {
 }
 
 /** The user's sys_id and active role names (inherited rows included). */
-async function readUserRoles(
+export async function readUserRoles(
   user: string,
 ): Promise<{ sysId?: string; roles: string[] }> {
   const field = isSysId(user) ? "sys_id" : "user_name";
