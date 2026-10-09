@@ -249,17 +249,17 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     key: "SN_MAX_RESULT_CHARS",
     section: "results",
     since: V110,
-    default: 100_000,
+    default: 48_000,
     description:
-      'Character budget for a query result before it is truncated for the client; the truncation note names `format:"file"`. A snapshot, compare or diagram result over the budget is returned in full with a `note`.',
+      'Character budget for a tool result (48,000 since O-21 (b), under Claude Code\'s 50,000 threshold). A larger result goes to a file while `SN_OVERSIZE_TO_FILE` is on; otherwise it is shrunk with a note naming `format:"file"`, and a snapshot, compare or diagram result is returned in full with a `note`.',
   }),
   bool({
     key: "SN_OVERSIZE_TO_FILE",
     section: "results",
     since: NEXT,
-    default: false,
+    default: true,
     description:
-      "S-11: write a snapshot, compare or diagram result over `SN_MAX_RESULT_CHARS` to a file under `SN_DOCS_DIR` (`<profile>/exports/`, `<profile>/diagrams/`) and return `{path, bytes, preview}` instead.",
+      "S-11 / N-61 (default on since O-21 (b)): write a `query_table` (JSON lines), snapshot, compare or diagram result over `SN_MAX_RESULT_CHARS` to a file under `SN_DOCS_DIR` (`<profile>/exports/`, `<profile>/diagrams/`) and return `{path, bytes, preview}` instead.",
   }),
   bool(
     {

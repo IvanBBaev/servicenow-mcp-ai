@@ -8,8 +8,8 @@
     },
     "query_table.incident-200-rows": {
       "tool": "servicenow_query_table",
-      "textBytes": 99195,
-      "structuredBytes": 99195
+      "textBytes": 2715,
+      "structuredBytes": 2715
     },
     "get_record.incident-100-columns": {
       "tool": "servicenow_get_record",

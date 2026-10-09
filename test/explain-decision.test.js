@@ -206,12 +206,15 @@ test("P-11: an empty decision table, a rejected input read and a capped row read
     order: String(i),
     answer: "x",
   }));
-  const degraded = await explain({
-    ...DECISION,
-    sys_decision_input: () =>
-      jsonResponse(403, { error: { message: "ACL denied" } }),
-    sys_decision_question: many,
-  });
+  // The 200-row cap is under test, not the M-6 size budget (48,000 by default).
+  const degraded = await withEnv({ SN_MAX_RESULT_CHARS: "100000" }, () =>
+    explain({
+      ...DECISION,
+      sys_decision_input: () =>
+        jsonResponse(403, { error: { message: "ACL denied" } }),
+      sys_decision_question: many,
+    }),
+  );
   assert.equal(degraded.error, undefined, degraded.error);
   const x = degraded.explanation;
   assert.deepEqual(x.inputs, []);

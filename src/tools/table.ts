@@ -12,10 +12,21 @@ import {
   type UpsertDecision,
 } from "../api/table.js";
 import { ServiceNowError } from "../core/errors.js";
-import { ok, okQueryResult, queryCompleteness } from "../mcp/result.js";
+import {
+  ok,
+  okQueryResult,
+  queryCompleteness,
+  type QueryCompleteness,
+  type ToolResult,
+} from "../mcp/result.js";
 import { redactRecords } from "../mcp/redact.js";
 import { renderCsv } from "../mcp/csv.js";
-import { csvBom, csvFormulaGuard } from "../core/settings.js";
+import {
+  csvBom,
+  csvFormulaGuard,
+  getMaxResultChars,
+  oversizeToFile,
+} from "../core/settings.js";
 import { openExport } from "../mcp/file-result.js";
 import type { SnRecord } from "../api/table.js";
 import {
@@ -139,6 +150,44 @@ async function queryToFile(
       ? { columns: columns ?? [], _meta: { csv: { escaped, bom } } }
       : {}),
     ...delivery,
+  });
+}
+
+/**
+ * N-61 (O-21 (b)) — the automatic file result: a JSON read over
+ * SN_MAX_RESULT_CHARS, with SN_OVERSIZE_TO_FILE on (the default), is written
+ * to `exports/<table>-<timestamp>.jsonl` from the rows already read (no
+ * second request) and returns the `format:"file"` shape with a note.
+ */
+async function oversizeQueryToFile(
+  table: string,
+  records: SnRecord[],
+  total: number | undefined,
+  truncated: boolean | undefined,
+  info: QueryCompleteness,
+): Promise<ToolResult | undefined> {
+  if (!oversizeToFile()) return undefined;
+  const safe = redactRecords(records);
+  const lines = safe.records.map((r) => JSON.stringify(r) + "\n").join("");
+  const max = getMaxResultChars();
+  if (lines.length <= max) return undefined;
+  const sink = await openExport(table, "jsonl");
+  try {
+    await sink.write(lines);
+  } catch (e) {
+    await sink.abort();
+    throw e;
+  }
+  const delivery = await sink.close();
+  return ok({
+    format: "file",
+    file_format: "jsonl",
+    rows: safe.records.length,
+    ...(total === undefined ? {} : { total }),
+    ...queryCompleteness(safe.records.length, total, truncated, info),
+    ...(safe.redacted > 0 ? { redacted: safe.redacted } : {}),
+    ...delivery,
+    note: `Result was over SN_MAX_RESULT_CHARS (${max}): written to a file (SN_OVERSIZE_TO_FILE).`,
   });
 }
 
@@ -287,7 +336,15 @@ export const specs: AnyToolSpec[] = [
           _meta: { csv: { escaped, bom } },
         });
       }
-      return okQueryResult(records, total, truncated, info);
+      return (
+        (await oversizeQueryToFile(
+          args.table,
+          records,
+          total,
+          truncated,
+          info,
+        )) ?? okQueryResult(records, total, truncated, info)
+      );
     },
   }),
 

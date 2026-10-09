@@ -13,6 +13,9 @@ import {
   type AnyToolSpec,
 } from "../mcp/define.js";
 
+/** N-61: tables an unfiltered `servicenow_list_tables` call returns. */
+export const LIST_TABLES_DEFAULT_LIMIT = 200;
+
 export const specs: AnyToolSpec[] = [
   defineTool({
     name: "servicenow_list_tables",
@@ -34,6 +37,17 @@ export const specs: AnyToolSpec[] = [
     },
     handler: async ({ filter }) => {
       const tables = await listTables(filter);
+      // N-61 (O-21 (b), ruled a fix): an unfiltered call lists the first
+      // LIST_TABLES_DEFAULT_LIMIT tables (thousands otherwise) with a hint.
+      if (!filter?.trim() && tables.length > LIST_TABLES_DEFAULT_LIMIT) {
+        return ok({
+          count: LIST_TABLES_DEFAULT_LIMIT,
+          total: tables.length,
+          truncated: true,
+          note: `Showing the first ${LIST_TABLES_DEFAULT_LIMIT} of ${tables.length} tables (by name). Pass filter (a name or label fragment) to narrow the list.`,
+          tables: tables.slice(0, LIST_TABLES_DEFAULT_LIMIT),
+        });
+      }
       return ok({ count: tables.length, tables });
     },
   }),

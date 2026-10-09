@@ -385,25 +385,31 @@ test("deliverJson: inline, oversize note, gated auto-file", async () => {
   const small = out(await deliverJson(data, "compare-dev-vs-prod", undefined));
   assert.deepEqual(small, data);
 
-  await withEnv({ SN_MAX_RESULT_CHARS: "100" }, async () => {
-    const noted = out(await deliverJson(data, "compare-dev-vs-prod", "json"));
-    assert.deepEqual(noted.items, data.items, "content unchanged");
-    assert.match(noted.note, /over SN_MAX_RESULT_CHARS \(100\).*format:"file"/);
-
-    await withEnv({ SN_OVERSIZE_TO_FILE: "true" }, async () => {
-      const auto = out(
-        await deliverJson(data, "compare-dev-vs-prod", undefined),
-      );
-      assert.equal(auto.format, "file");
-      assert.equal(auto.items_count, 50);
-      assert.match(auto.note, /SN_OVERSIZE_TO_FILE/);
+  await withEnv(
+    { SN_MAX_RESULT_CHARS: "100", SN_OVERSIZE_TO_FILE: "false" },
+    async () => {
+      const noted = out(await deliverJson(data, "compare-dev-vs-prod", "json"));
+      assert.deepEqual(noted.items, data.items, "content unchanged");
       assert.match(
-        auto.path,
-        /^default\/exports\/compare-dev-vs-prod-.*\.json$/,
+        noted.note,
+        /over SN_MAX_RESULT_CHARS \(100\).*format:"file"/,
       );
-      assert.deepEqual(JSON.parse(readFileSync(auto.file, "utf8")), data);
-    });
-  });
+
+      await withEnv({ SN_OVERSIZE_TO_FILE: "true" }, async () => {
+        const auto = out(
+          await deliverJson(data, "compare-dev-vs-prod", undefined),
+        );
+        assert.equal(auto.format, "file");
+        assert.equal(auto.items_count, 50);
+        assert.match(auto.note, /SN_OVERSIZE_TO_FILE/);
+        assert.match(
+          auto.path,
+          /^default\/exports\/compare-dev-vs-prod-.*\.json$/,
+        );
+        assert.deepEqual(JSON.parse(readFileSync(auto.file, "utf8")), data);
+      });
+    },
+  );
 });
 
 // --- snapshot / compare tools ----------------------------------------------
@@ -539,13 +545,15 @@ test("a 300-column ER diagram crosses the cap into diagrams/<name>.mmd", async (
       assert.equal(body.note, undefined);
     }),
   );
-  // Over the cap without the gate: returned in full, with a note.
-  await withEnv({ SN_MAX_RESULT_CHARS: "5000" }, () =>
-    withFetch(wideTable(300), async () => {
-      const body = out(await call("servicenow_generate_er_diagram", args));
-      assert.match(body.mermaid, /u_column_299/);
-      assert.match(body.note, /format:"file"/);
-    }),
+  // Over the cap with the gate off: returned in full, with a note.
+  await withEnv(
+    { SN_MAX_RESULT_CHARS: "5000", SN_OVERSIZE_TO_FILE: "false" },
+    () =>
+      withFetch(wideTable(300), async () => {
+        const body = out(await call("servicenow_generate_er_diagram", args));
+        assert.match(body.mermaid, /u_column_299/);
+        assert.match(body.note, /format:"file"/);
+      }),
   );
 });
 
@@ -568,4 +576,53 @@ test('generate_table_flow format:"file" writes flow-<table>-<op>.mmd', async () 
       lintMermaid(text);
     },
   );
+});
+
+// --- N-61 (O-21 (b)): the automatic file result on query_table -------------
+
+test("query_table over SN_MAX_RESULT_CHARS goes to a JSON-lines file by default", async () => {
+  const data = rows(40, (i) => ({ short_description: `row ${i} `.repeat(20) }));
+  await withEnv({ SN_MAX_RESULT_CHARS: "2000" }, () =>
+    withFetch(listHandler(data), async () => {
+      const before = listExports().length;
+      const res = out(
+        await call("servicenow_query_table", { table: "incident", limit: 40 }),
+      );
+      assert.equal(res.format, "file");
+      assert.equal(res.file_format, "jsonl");
+      assert.equal(res.rows, 40);
+      assert.match(res.note, /SN_OVERSIZE_TO_FILE/);
+      assert.match(res.path, /^default\/exports\/incident-.*\.jsonl$/);
+      assert.equal(res.records, undefined, "no rows inline");
+      const lines = readFileSync(res.file, "utf8").trimEnd().split("\n");
+      assert.equal(lines.length, 40);
+      assert.equal(JSON.parse(lines[39]).sys_id, "s039");
+      assert.equal(listExports().length, before + 1);
+    }),
+  );
+  // With the gate off the read is shrunk inline instead; no file is written.
+  await withEnv(
+    { SN_MAX_RESULT_CHARS: "2000", SN_OVERSIZE_TO_FILE: "false" },
+    () =>
+      withFetch(listHandler(data), async () => {
+        const before = listExports().length;
+        const res = out(
+          await call("servicenow_query_table", {
+            table: "incident",
+            limit: 40,
+          }),
+        );
+        assert.equal(res.truncated, true);
+        assert.ok(res.records.length < 40);
+        assert.equal(listExports().length, before);
+      }),
+  );
+  // Under the cap the result stays inline.
+  await withFetch(listHandler(data.slice(0, 2)), async () => {
+    const res = out(
+      await call("servicenow_query_table", { table: "incident", limit: 2 }),
+    );
+    assert.equal(res.format, undefined);
+    assert.equal(res.records.length, 2);
+  });
 });

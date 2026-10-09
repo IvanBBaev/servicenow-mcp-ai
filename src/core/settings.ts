@@ -21,7 +21,7 @@ import {
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_RETRIES = 2;
 export const DEFAULT_MAX_RECORDS = 10_000;
-export const DEFAULT_MAX_RESULT_CHARS = 100_000;
+export const DEFAULT_MAX_RESULT_CHARS = 48_000;
 
 /** ServiceNow caps a single Table API page at 1000 rows. */
 export const MAX_PAGE_SIZE = 1000;
@@ -553,10 +553,11 @@ export function csvBom(): boolean {
 }
 
 /**
- * S-11 — `SN_OVERSIZE_TO_FILE` (default off): a snapshot, compare or diagram
- * result over SN_MAX_RESULT_CHARS is written to the docs store and returned as
- * `{ path, bytes, preview }` instead of inline. Off, such a result is still
- * returned in full with a `note` naming the overflow and `format:"file"`.
+ * S-11 / N-61 — `SN_OVERSIZE_TO_FILE` (default on, O-21 (b)): a query_table,
+ * snapshot, compare or diagram result over SN_MAX_RESULT_CHARS is written to
+ * the docs store and returned as `{ path, bytes, preview }` instead of inline.
+ * Off, a snapshot, compare or diagram result is returned in full with a `note`
+ * naming the overflow and `format:"file"`, and a query result is truncated.
  */
 export function oversizeToFile(): boolean {
   return readBool("SN_OVERSIZE_TO_FILE");
