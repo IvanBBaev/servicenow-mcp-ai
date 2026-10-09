@@ -1,4 +1,5 @@
 import { policyResourcePayload } from "./policy-view.js";
+import { TOOL_EXAMPLES } from "./tool-examples.js";
 import {
   McpServer,
   ResourceTemplate,
@@ -299,6 +300,16 @@ function errorCodesBySource(): Record<string, string[]> {
 }
 
 /** N-37: one tool's full reference as a JSON payload. */
+/** N-37 / N-54: the example call of a tool, when it has one. */
+function exampleOf(name: string) {
+  return (
+    TOOL_EXAMPLES as Record<
+      string,
+      (typeof TOOL_EXAMPLES)[keyof typeof TOOL_EXAMPLES] | undefined
+    >
+  )[name];
+}
+
 export function toolReferencePayload(
   src: ToolsReferenceSource,
   tool: ToolInfo,
@@ -315,6 +326,7 @@ export function toolReferencePayload(
     annotations: tool.annotations,
     inputSchema: detail.inputSchema,
     outputSchema: detail.outputSchema ?? null,
+    ...(exampleOf(tool.name) ? { example: exampleOf(tool.name) } : {}),
     ...(detail.legacyParams ? { legacyParams: detail.legacyParams } : {}),
     ...(detail.deprecatedParams
       ? { deprecatedParams: detail.deprecatedParams }
@@ -352,7 +364,7 @@ export function registerToolReferenceTemplate(
     {
       title: "Tool reference (one tool)",
       description:
-        "One tool's full definition: description, input and output JSON Schema, annotations, package and whether it is registered, parameter aliases and the error codes. URI: servicenow://reference/tools/<tool name>.",
+        "One tool's full definition: description, input and output JSON Schema, an example call, annotations, package and whether it is registered, parameter aliases and the error codes. URI: servicenow://reference/tools/<tool name>.",
       mimeType: JSON_MIME,
     },
     (uri, variables) => {

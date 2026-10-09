@@ -184,3 +184,35 @@ test("an unknown tool is an InvalidParams McpError with NOT_FOUND", async () => 
     );
   });
 });
+
+test("N-37 / N-54: every tool's reference carries an example call that its input schema accepts", async () => {
+  const { z } = await import("zod");
+  const { ALL_TOOLS } = await import("../build/mcp/registry.js");
+  const { TOOL_EXAMPLES } = await import("../build/mcp/tool-examples.js");
+  assert.deepEqual(
+    Object.keys(TOOL_EXAMPLES).sort(),
+    ALL_TOOLS.map((t) => t.name).sort(),
+    "one example per tool, none for a removed tool",
+  );
+  await withServer({ SN_TOOL_PACKAGES: "all" }, async (client) => {
+    const { tools } = await client.listTools();
+    for (const spec of ALL_TOOLS) {
+      const example = TOOL_EXAMPLES[spec.name];
+      assert.ok(
+        example.summary.length > 0 && example.summary.length <= 80,
+        spec.name,
+      );
+      const parsed = z.object(spec.input).safeParse(example.arguments);
+      assert.ok(
+        parsed.success,
+        `${spec.name}: ${parsed.error?.issues.map((i) => `${i.path.join(".")} ${i.message}`).join("; ")}`,
+      );
+      const listed = tools.find((t) => t.name === spec.name);
+      for (const key of Object.keys(example.arguments)) {
+        assert.ok(key in listed.inputSchema.properties, `${spec.name}: ${key}`);
+      }
+      const ref = await read(client, spec.name);
+      assert.deepEqual(ref.example, example, spec.name);
+    }
+  });
+});
