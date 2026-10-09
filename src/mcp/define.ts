@@ -449,7 +449,7 @@ function withStructuredContent(
  * GUID column's shape (letters, digits, `_`, `-`; at most 32), which still
  * rejects the `/`, `?`, `^` and whitespace that would change the URL or query.
  */
-export const SYS_ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
+export const SYS_ID_SHAPE_RE = /^[A-Za-z0-9_-]{1,32}$/;
 
 /** A table name: letters, digits and `_` (sys_db_object.name, at most 80). */
 export const TABLE_NAME_RE = /^[A-Za-z0-9_]{1,80}$/;
@@ -467,12 +467,15 @@ export const ENCODED_QUERY_MAX = 8000;
 /** Default maximum length of a long free text (an email body, a description). */
 export const LONG_TEXT_MAX = 1_048_576;
 
-/** A sys_id (see SYS_ID_RE). */
+/** A sys_id (see SYS_ID_SHAPE_RE). */
 export function sysId() {
   return z
     .string()
     .max(32)
-    .regex(SYS_ID_RE, "must be a sys_id (letters, digits, '_' or '-'; ≤ 32)");
+    .regex(
+      SYS_ID_SHAPE_RE,
+      "must be a sys_id (letters, digits, '_' or '-'; ≤ 32)",
+    );
 }
 
 /** A table name (see TABLE_NAME_RE). */
