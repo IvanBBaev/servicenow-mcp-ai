@@ -374,10 +374,13 @@ export async function getRecord(
   table: string,
   sysId: string,
   fields?: string[],
+  displayValue?: "true" | "false" | "all",
 ): Promise<SnRecord> {
   assertTableAllowed(table);
   const params = new URLSearchParams();
   if (fields?.length) params.set("sysparm_fields", fields.join(","));
+  // N-62: sent only when asked, so a default read is unchanged.
+  if (displayValue) params.set("sysparm_display_value", displayValue);
   if (!includeReferenceLinks()) {
     params.set("sysparm_exclude_reference_link", "true");
   }

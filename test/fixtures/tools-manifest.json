@@ -321,6 +321,10 @@
             "description": "Include a count (sysparm_count).",
             "type": "boolean"
           },
+          "displayValue": {
+            "description": "Add display values (sysparm_display_value=all).",
+            "type": "boolean"
+          },
           "group_by": {
             "description": "Fields to group by.",
             "items": {
@@ -392,8 +396,8 @@
       },
       "sizes": {
         "description": 104,
-        "inputSchema": 1450,
-        "paramDescriptions": 282,
+        "inputSchema": 1548,
+        "paramDescriptions": 331,
         "outputSchema": 70
       }
     },
@@ -3332,6 +3336,11 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "displayValue": {
+            "description": "As in query_table.",
+            "enum": ["true", "false", "all", "display"],
+            "type": "string"
+          },
           "fields": {
             "description": "Columns (default all).",
             "items": {
@@ -3368,8 +3377,8 @@
       },
       "sizes": {
         "description": 50,
-        "inputSchema": 547,
-        "paramDescriptions": 91,
+        "inputSchema": 655,
+        "paramDescriptions": 111,
         "outputSchema": 59
       }
     },
@@ -5445,8 +5454,8 @@
         "additionalProperties": false,
         "properties": {
           "displayValue": {
-            "description": "Return display values ('true'), raw values ('false', default) or both ('all').",
-            "enum": ["true", "false", "all"],
+            "description": "'true' display, 'false' raw (default), 'all' both, 'display' compact ([sys_id, name] refs).",
+            "enum": ["true", "false", "all", "display"],
             "type": "string"
           },
           "explain": {
@@ -5454,18 +5463,23 @@
             "type": "boolean"
           },
           "fetchAll": {
-            "description": "Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset.",
+            "description": "All matches (up to SN_MAX_RECORDS), not one page: sys_id cursor without an ORDERBY (stable while rows change), else offset.",
             "type": "boolean"
           },
           "fields": {
-            "description": "Columns (default all).",
-            "items": {
-              "maxLength": 255,
-              "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
-              "type": "string"
-            },
-            "maxItems": 200,
-            "type": "array"
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 255,
+                  "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$",
+                  "type": "string"
+                },
+                "maxItems": 200,
+                "type": "array"
+              },
+              { "const": "summary", "type": "string" }
+            ],
+            "description": "Columns (default all); 'summary': the list view's."
           },
           "fileFormat": {
             "description": "With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys).",
@@ -5473,8 +5487,8 @@
             "type": "string"
           },
           "format": {
-            "description": "'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS.",
-            "enum": ["json", "csv", "file"],
+            "description": "'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/ → { path, bytes, preview }.",
+            "enum": ["json", "csv", "table", "file"],
             "type": "string"
           },
           "instance": {
@@ -5496,6 +5510,10 @@
             "description": "Records to skip (paging).",
             "minimum": 0,
             "type": "integer"
+          },
+          "omitEmpty": {
+            "description": "Drop empty cells; columns are listed.",
+            "type": "boolean"
           },
           "query": {
             "description": "Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'.",
@@ -5537,7 +5555,9 @@
           "format": { "type": "string" },
           "note": { "type": "string" },
           "records": { "items": {}, "type": "array" },
-          "rows": { "type": "number" },
+          "rows": {
+            "anyOf": [{ "type": "number" }, { "items": {}, "type": "array" }]
+          },
           "total": { "type": "number" },
           "truncated": { "type": "boolean" }
         },
@@ -5545,9 +5565,9 @@
       },
       "sizes": {
         "description": 225,
-        "inputSchema": 2228,
-        "paramDescriptions": 1083,
-        "outputSchema": 258
+        "inputSchema": 2369,
+        "paramDescriptions": 1112,
+        "outputSchema": 268
       }
     },
     {

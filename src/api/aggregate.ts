@@ -17,6 +17,8 @@ export interface AggregateOptions {
   sumFields?: string[];
   groupBy?: string[];
   having?: string;
+  /** N-62: `sysparm_display_value=all`, so a group-by value carries its display value too. */
+  displayValue?: boolean;
 }
 
 export async function aggregate(opts: AggregateOptions): Promise<unknown> {
@@ -30,6 +32,7 @@ export async function aggregate(opts: AggregateOptions): Promise<unknown> {
     sysparm_sum_fields: opts.sumFields,
     sysparm_group_by: opts.groupBy,
     sysparm_having: opts.having,
+    sysparm_display_value: opts.displayValue ? "all" : undefined,
   });
 
   const { data } = await snRequest<{ result: unknown }>({

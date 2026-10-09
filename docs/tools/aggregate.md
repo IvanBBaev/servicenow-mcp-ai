@@ -27,6 +27,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | `sum_fields` | string[] | no | Numeric fields to sum. |
 | `group_by` | string[] | no | Fields to group by. |
 | `having` | string | no | HAVING clause (sysparm_having). |
+| `displayValue` | boolean | no | Add display values (sysparm_display_value=all). |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

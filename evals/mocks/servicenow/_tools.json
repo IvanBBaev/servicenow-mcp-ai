@@ -1472,6 +1472,16 @@
               "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$"
             }
           },
+          "displayValue": {
+            "description": "As in query_table.",
+            "type": "string",
+            "enum": [
+              "true",
+              "false",
+              "all",
+              "display"
+            ]
+          },
           "instance": {
             "description": "Profile (default active)",
             "type": "string",
@@ -2192,14 +2202,22 @@
             "maxLength": 8000
           },
           "fields": {
-            "description": "Columns (default all).",
-            "maxItems": 200,
-            "type": "array",
-            "items": {
-              "type": "string",
-              "maxLength": 255,
-              "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$"
-            }
+            "description": "Columns (default all); 'summary': the list view's.",
+            "anyOf": [
+              {
+                "maxItems": 200,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "maxLength": 255,
+                  "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$"
+                }
+              },
+              {
+                "type": "string",
+                "const": "summary"
+              }
+            ]
           },
           "limit": {
             "description": "Max records (default 10).",
@@ -2213,16 +2231,21 @@
             "minimum": 0
           },
           "displayValue": {
-            "description": "Return display values ('true'), raw values ('false', default) or both ('all').",
+            "description": "'true' display, 'false' raw (default), 'all' both, 'display' compact ([sys_id, name] refs).",
             "type": "string",
             "enum": [
               "true",
               "false",
-              "all"
+              "all",
+              "display"
             ]
           },
+          "omitEmpty": {
+            "description": "Drop empty cells; columns are listed.",
+            "type": "boolean"
+          },
           "fetchAll": {
-            "description": "Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset.",
+            "description": "All matches (up to SN_MAX_RECORDS), not one page: sys_id cursor without an ORDERBY (stable while rows change), else offset.",
             "type": "boolean"
           },
           "view": {
@@ -2248,11 +2271,12 @@
             "type": "boolean"
           },
           "format": {
-            "description": "'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS.",
+            "description": "'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/ → { path, bytes, preview }.",
             "type": "string",
             "enum": [
               "json",
               "csv",
+              "table",
               "file"
             ]
           },
@@ -2301,7 +2325,10 @@
             "type": "string"
           },
           "rows": {
-            "type": "number"
+            "type": [
+              "number",
+              "array"
+            ]
           },
           "explain": {}
         },

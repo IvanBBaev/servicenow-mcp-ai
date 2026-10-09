@@ -183,6 +183,7 @@ export function okQueryResult(
   total?: number,
   capped?: boolean,
   info?: QueryCompleteness,
+  extra: Record<string, unknown> = {},
 ): ToolResult {
   // DF-5: mask sensitive values before anything is serialised for the model.
   const redaction = redactRecords(records);
@@ -197,6 +198,7 @@ export function okQueryResult(
     count: records.length,
     ...meta,
     ...capInfo,
+    ...extra,
     records,
   });
   if (fullText.length <= maxChars) {
@@ -211,6 +213,7 @@ export function okQueryResult(
       ...meta,
       returned: kept,
       truncated: true,
+      ...extra,
       note: `Result too large (${fullText.length} chars > ${maxChars}). Showing the first ${kept} of ${records.length} records.${capped ? (info?.truncatedReason === "scan_limit" ? " The full set was itself partial (scan limit reached)." : " The full set was itself capped at SN_MAX_RECORDS.") : ""} Narrow the query, select fewer fields, or lower the limit — or pass format:"file" to write the full result to a file under SN_DOCS_DIR.`,
       records: records.slice(0, kept),
     });
@@ -232,6 +235,7 @@ export function okQueryResult(
     ...meta,
     returned: 0,
     truncated: true,
+    ...extra,
     note: 'Result too large to display. Narrow the query or select fewer fields — or pass format:"file" to write the full result to a file under SN_DOCS_DIR.',
     records: [],
   });

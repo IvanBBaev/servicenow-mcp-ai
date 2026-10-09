@@ -51,6 +51,18 @@ import {
   planUpdateSetBinding,
 } from "../api/updatesets.js";
 import { fetchAllProgress } from "../core/progress.js";
+import {
+  compactRecords,
+  EMPTY_OMITTED_NOTE,
+  omitEmpty,
+  summaryFields,
+  toTableForm,
+} from "../api/compact-read.js";
+
+/** N-62: `displayValue` with the opt-in compact `display` mode. */
+const displayValueInput = z
+  .enum(["true", "false", "all", "display"])
+  .optional();
 
 /**
  * A ServiceNow field value. The Table API accepts flat scalar values only;
@@ -165,6 +177,7 @@ async function oversizeQueryToFile(
   total: number | undefined,
   truncated: boolean | undefined,
   info: QueryCompleteness,
+  extra: Record<string, unknown> = {},
 ): Promise<ToolResult | undefined> {
   if (!oversizeToFile()) return undefined;
   const safe = redactRecords(records);
@@ -186,6 +199,7 @@ async function oversizeQueryToFile(
     ...(total === undefined ? {} : { total }),
     ...queryCompleteness(safe.records.length, total, truncated, info),
     ...(safe.redacted > 0 ? { redacted: safe.redacted } : {}),
+    ...extra,
     ...delivery,
     note: `Result was over SN_MAX_RESULT_CHARS (${max}): written to a file (SN_OVERSIZE_TO_FILE).`,
   });
@@ -226,7 +240,7 @@ export const specs: AnyToolSpec[] = [
       note: z.string().optional(),
       records: z.array(z.unknown()).optional(),
       format: z.string().optional(),
-      rows: z.number().optional(),
+      rows: z.union([z.number(), z.array(z.unknown())]).optional(),
       explain: z.unknown().optional(),
     },
     input: {
@@ -236,7 +250,10 @@ export const specs: AnyToolSpec[] = [
         .describe(
           "Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'.",
         ),
-      fields: fieldList().optional().describe("Columns (default all)."),
+      fields: z
+        .union([fieldList(), z.literal("summary")])
+        .optional()
+        .describe("Columns (default all); 'summary': the list view's."),
       limit: z
         .number()
         .int()
@@ -250,17 +267,18 @@ export const specs: AnyToolSpec[] = [
         .nonnegative()
         .optional()
         .describe("Records to skip (paging)."),
-      displayValue: z
-        .enum(["true", "false", "all"])
+      displayValue: displayValueInput.describe(
+        "'true' display, 'false' raw (default), 'all' both, 'display' compact ([sys_id, name] refs).",
+      ),
+      omitEmpty: z
+        .boolean()
         .optional()
-        .describe(
-          "Return display values ('true'), raw values ('false', default) or both ('all').",
-        ),
+        .describe("Drop empty cells; columns are listed."),
       fetchAll: z
         .boolean()
         .optional()
         .describe(
-          "Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset.",
+          "All matches (up to SN_MAX_RECORDS), not one page: sys_id cursor without an ORDERBY (stable while rows change), else offset.",
         ),
       view: shortText()
         .optional()
@@ -283,10 +301,10 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("sysparm_suppress_pagination_header."),
       format: z
-        .enum(["json", "csv", "file"])
+        .enum(["json", "csv", "table", "file"])
         .optional()
         .describe(
-          "'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS.",
+          "'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/ → { path, bytes, preview }.",
         ),
       fileFormat: z
         .enum(["csv", "jsonl"])
@@ -302,21 +320,53 @@ export const specs: AnyToolSpec[] = [
         ),
     },
     logFields: (args) => ({ table: args.table }),
-    handler: async ({ format, fileFormat, explain, ...args }) => {
+    handler: async ({
+      format,
+      fileFormat,
+      explain,
+      omitEmpty: omit,
+      ...input
+    }) => {
       // N-15: a static explain against the chain's indexes; no records read.
       if (explain) {
         const { indexes, rowEstimate, warnings } = await describeTableIndexes(
-          args.table,
+          input.table,
         );
         return ok({
           explain: {
-            ...explainQuery(args.query ?? "", indexes),
+            ...explainQuery(input.query ?? "", indexes),
             indexes: indexes.length,
             ...(rowEstimate !== undefined ? { rowEstimate } : {}),
             ...(warnings.length ? { warnings } : {}),
           },
         });
       }
+      // N-62 (O-21 (a)): the compact forms are opt-in; without them the
+      // read below is the plain one.
+      const summary =
+        input.fields === "summary"
+          ? await summaryFields(input.table)
+          : undefined;
+      const fields = summary?.fields ?? (input.fields as string[] | undefined);
+      const compact = input.displayValue === "display";
+      const tabular = format === "csv" || format === "file";
+      const args = {
+        ...input,
+        fields,
+        displayValue:
+          input.displayValue === "display"
+            ? tabular
+              ? ("true" as const)
+              : ("all" as const)
+            : input.displayValue,
+      };
+      const extra: Record<string, unknown> = summary
+        ? {
+            field_set: "summary",
+            fields: summary.fields,
+            ...(summary.warnings ? { warnings: summary.warnings } : {}),
+          }
+        : {};
       if (format === "file") return queryToFile(args, fileFormat ?? "csv");
       const { records, total, truncated, truncatedReason, filtered } =
         await queryTable({ ...args, onProgress: fetchAllProgress(args.table) });
@@ -332,18 +382,47 @@ export const specs: AnyToolSpec[] = [
           rows: safe.length,
           ...(total === undefined ? {} : { total }),
           ...queryCompleteness(safe.length, total, truncated, info),
+          ...extra,
           content: csv,
           _meta: { csv: { escaped, bom } },
+        });
+      }
+      let rows: SnRecord[] = records;
+      if (compact && !tabular) {
+        const c = await compactRecords(args.table, records, fields);
+        rows = c.records;
+        if (c.warning) {
+          extra.warnings = [...((extra.warnings as string[]) ?? []), c.warning];
+        }
+      }
+      if (format === "table") {
+        const { records: safe, redacted } = redactRecords(rows);
+        return ok({
+          ...queryCompleteness(safe.length, total, truncated, info),
+          ...toTableForm(safe, { columns: fields, total, truncated }),
+          ...(redacted > 0 ? { redacted } : {}),
+          ...extra,
+        });
+      }
+      if (omit) {
+        const columns = fields ?? [...new Set(rows.flatMap(Object.keys))];
+        const trimmed = omitEmpty(rows);
+        rows = trimmed.records;
+        Object.assign(extra, {
+          columns,
+          empty_omitted: trimmed.emptyOmitted,
+          empty_note: EMPTY_OMITTED_NOTE,
         });
       }
       return (
         (await oversizeQueryToFile(
           args.table,
-          records,
+          rows,
           total,
           truncated,
           info,
-        )) ?? okQueryResult(records, total, truncated, info)
+          extra,
+        )) ?? okQueryResult(rows, total, truncated, info, extra)
       );
     },
   }),
@@ -364,10 +443,20 @@ export const specs: AnyToolSpec[] = [
       table: tableName().describe("Table, e.g. 'incident'."),
       sys_id: sysId().describe("Record sys_id."),
       fields: fieldList().optional().describe("Columns (default all)."),
+      displayValue: displayValueInput.describe("As in query_table."),
     },
     logFields: (args) => ({ table: args.table }),
-    handler: async ({ table, sys_id, fields }) =>
-      ok(await getRecord(table, sys_id, fields)),
+    handler: async ({ table, sys_id, fields, displayValue }) => {
+      if (displayValue !== "display") {
+        return ok(await getRecord(table, sys_id, fields, displayValue));
+      }
+      // N-62: the compact display form (opt-in, O-21 (a)).
+      const record = await getRecord(table, sys_id, fields, "all");
+      const c = await compactRecords(table, [record], fields);
+      return ok(
+        c.warning ? { ...c.records[0], _warnings: [c.warning] } : c.records[0],
+      );
+    },
   }),
 
   defineTool({

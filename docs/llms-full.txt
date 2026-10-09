@@ -2294,17 +2294,18 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table, e.g. 'incident'. |
 | `query` | string | no | Encoded query (sysparm_query), e.g. 'active=true^priority=1^ORDERBYDESCsys_created_on'. |
-| `fields` | string[] | no | Columns (default all). |
+| `fields` | string[] \| "summary" | no | Columns (default all); 'summary': the list view's. |
 | `limit` | integer | no | Max records (default 10). |
 | `offset` | integer | no | Records to skip (paging). |
-| `displayValue` | "true" \| "false" \| "all" | no | Return display values ('true'), raw values ('false', default) or both ('all'). |
-| `fetchAll` | boolean | no | Page through all matches (up to SN_MAX_RECORDS) instead of one page: by sys_id cursor without an ORDERBY (stable while rows change), else by offset. |
+| `displayValue` | "true" \| "false" \| "all" \| "display" | no | 'true' display, 'false' raw (default), 'all' both, 'display' compact ([sys_id, name] refs). |
+| `omitEmpty` | boolean | no | Drop empty cells; columns are listed. |
+| `fetchAll` | boolean | no | All matches (up to SN_MAX_RECORDS), not one page: sys_id cursor without an ORDERBY (stable while rows change), else offset. |
 | `view` | string | no | UI view's fields (sysparm_view); 'fields' wins. |
 | `queryCategory` | string | no | sysparm_query_category, e.g. a read replica. |
 | `noCount` | boolean | no | Skip the row count (sysparm_no_count): faster on huge tables; 'total' unknown. |
 | `queryNoDomain` | boolean | no | Query all accessible domains (sysparm_query_no_domain). |
 | `suppressPaginationHeader` | boolean | no | sysparm_suppress_pagination_header. |
-| `format` | "json" \| "csv" \| "file" | no | 'json' (default), 'csv', or 'file': write the full (redacted) result to <profile>/exports/, return { path, bytes, preview } — for results over SN_MAX_RESULT_CHARS. |
+| `format` | "json" \| "csv" \| "table" \| "file" | no | 'json' (default), 'csv', 'table' (columns + rows) or 'file': the full (redacted) result to <profile>/exports/ → { path, bytes, preview }. |
 | `fileFormat` | "csv" \| "jsonl" | no | With format 'file': 'csv' (default; columns from 'fields' or the first page) or 'jsonl' (one record per line, all keys). |
 | `explain` | boolean | no | Read no records: which conditions can use an index, with cost notes (advice). |
 | `instance` | string | no | Profile (default active) |
@@ -2321,7 +2322,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `note` | string |  |
 | `records` | any[] |  |
 | `format` | string |  |
-| `rows` | number |  |
+| `rows` | number \| any[] |  |
 | `explain` | any |  |
 
 ## servicenow_get_record
@@ -2337,6 +2338,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `table` | string | yes | Table, e.g. 'incident'. |
 | `sys_id` | string | yes | Record sys_id. |
 | `fields` | string[] | no | Columns (default all). |
+| `displayValue` | "true" \| "false" \| "all" \| "display" | no | As in query_table. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output
@@ -2524,6 +2526,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | `sum_fields` | string[] | no | Numeric fields to sum. |
 | `group_by` | string[] | no | Fields to group by. |
 | `having` | string | no | HAVING clause (sysparm_having). |
+| `displayValue` | boolean | no | Add display values (sysparm_display_value=all). |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

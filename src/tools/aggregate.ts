@@ -40,6 +40,10 @@ export const specs: AnyToolSpec[] = [
       having: encodedQuery()
         .optional()
         .describe("HAVING clause (sysparm_having)."),
+      displayValue: z
+        .boolean()
+        .optional()
+        .describe("Add display values (sysparm_display_value=all)."),
     },
     logFields: (args) => ({ table: args.table }),
     handler: async (args) => {
@@ -65,6 +69,7 @@ export const specs: AnyToolSpec[] = [
         sumFields: args.sum_fields,
         groupBy: args.group_by,
         having: args.having,
+        displayValue: args.displayValue,
       });
       return ok({ result });
     },

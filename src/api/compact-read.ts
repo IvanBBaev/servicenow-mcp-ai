@@ -5,11 +5,11 @@ import { cached, schemaCacheScope } from "../core/cache.js";
 import { rethrowIfCancelled } from "../core/errors.js";
 
 /**
- * N-62 — platform-aware compact reads (dark core; no tool wires it yet). The
- * `query_table` / `get_record` options (`fields:"summary"`,
- * `display_value:"display"`, `omit_empty`, `format:"table"`) and their
- * defaults wait for O-21 (a); the default-view query, the display-field
- * fallback order and the journal handling are unverified until O-5.
+ * N-62 — platform-aware compact reads, opt-in only (O-21 (a)): `query_table`
+ * takes `fields:"summary"`, `displayValue:"display"`, `omitEmpty` and
+ * `format:"table"`, `get_record` takes `displayValue:"display"`; a default
+ * read is unchanged. The default-view query, the display-field fallback order
+ * and the journal handling are unverified until O-5.
  */
 
 /** List columns kept from a layout, besides sys_id, the display field and sys_updated_on. */
@@ -219,6 +219,31 @@ export function compactDisplayRecord(
   return out;
 }
 
+/**
+ * Compact `display_value=all` records by the table's dictionary. A failed
+ * dictionary read is a warning, not an error: the cells then collapse like
+ * the table form (`[value, display]` when they differ).
+ */
+export async function compactRecords(
+  table: string,
+  records: SnRecord[],
+  named: Iterable<string> = [],
+): Promise<{ records: Record<string, CompactValue>[]; warning?: string }> {
+  let columns: ColumnInfo[] = [];
+  let warning: string | undefined;
+  try {
+    columns = await describeTable(table);
+  } catch (e) {
+    rethrowIfCancelled(e);
+    warning = `dictionary (${table}): unavailable — ${e instanceof Error ? e.message : String(e)}`;
+  }
+  const keep = new Set(named);
+  return {
+    records: records.map((r) => compactDisplayRecord(r, columns, keep)),
+    ...(warning ? { warning } : {}),
+  };
+}
+
 // ── omit_empty ───────────────────────────────────────────────────────────
 
 /** The note a response carries next to `empty_omitted`. */
@@ -269,6 +294,16 @@ export const TABLE_FORM_CELL =
   "scalar = value (equal to its display value); [value, display] = value with a " +
   "different display value (a reference is [sys_id, display]); null = absent";
 
+/** An already compacted `[value, display]` cell (compactDisplayRecord). */
+function isCompactPair(v: unknown): v is [string, string] {
+  return (
+    Array.isArray(v) &&
+    v.length === 2 &&
+    typeof v[0] === "string" &&
+    typeof v[1] === "string"
+  );
+}
+
 /**
  * Encode records as `{columns, rows, cell, total, truncated}`. A value pair
  * collapses to a scalar when value and display match, else `[value,
@@ -276,7 +311,7 @@ export const TABLE_FORM_CELL =
  * cells. Redaction must run on the records before they get here.
  */
 export function toTableForm(
-  records: SnRecord[],
+  records: Record<string, unknown>[],
   opts: {
     columns?: string[];
     total?: number;
@@ -292,6 +327,7 @@ export function toTableForm(
   const rows = kept.map((r) =>
     columns.map((c) => {
       const v = r[c];
+      if (isCompactPair(v)) return v;
       const pair = asPair(v);
       return pair ? collapse(pair) : scalar(v);
     }),
