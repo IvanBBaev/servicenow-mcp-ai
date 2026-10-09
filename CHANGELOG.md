@@ -77,6 +77,11 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Added
 
+- **N-22: `role_history` on `servicenow_lookup_directory` and the `access_review` document kind.** With `role_history`
+  (kind `user`, one match) the result gains the user's role grants and revokes of the last 90 days, newest first.
+  `servicenow_document_instance` gains `access_review` (`access-review.md`): privileged roles, their holders with the
+  grant path, dormant accounts and recent revokes. It holds account data, so it carries its own caveat and follows the
+  `directory` package (`SN_PACKAGES_DENY=directory` refuses it before any read). tools/list: all +170 B, core +0 B.
 - **N-16: `with_results` on `servicenow_list_atf_tests` and `servicenow_list_atf_suites`.** With the flag, each test or
   suite gains its last result, its pass rate over the last 20 runs and a `flaky` flag (edits to the test restart the flip
   count); a `history` section reports the window, the rows scanned, truncation and the definitions check, or why the
