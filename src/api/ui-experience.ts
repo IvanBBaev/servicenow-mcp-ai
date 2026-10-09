@@ -87,7 +87,7 @@ import {
   type UibStateProperty,
 } from "../core/artifacts/uib-composition.js";
 import { ServiceNowError } from "../core/errors.js";
-import { trackProgress, type ProgressTracker } from "../core/progress.js";
+import { trackProgress } from "../core/progress.js";
 import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label } from "./mermaid.js";
 import { readEncodedQuery, type EncodedQueryTerm } from "./query-explain.js";
@@ -104,7 +104,14 @@ import {
   lintUibBroker,
   type UibBrokerFinding,
 } from "./uib-broker-lint.js";
-import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
+import { snString, degradeStatus } from "./shared.js";
+import {
+  boundedRead,
+  boundedReadIn,
+  noteMissing,
+  type ReadCtx,
+  type Unreadable,
+} from "./bounded-read.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
 import {
   WORKSPACE_CAVEAT,
@@ -188,12 +195,6 @@ export interface ExplainUiExperienceOptions {
   path?: string;
   /** N-26: opt-in depth (one level or several); none by default. */
   detail?: UiExperienceDetail | readonly UiExperienceDetail[];
-}
-
-export interface Unreadable {
-  table: string;
-  status?: number;
-  reason: string;
 }
 
 /** A decoded JSON column: its reading, or the raw value when it did not. */
@@ -521,101 +522,6 @@ export interface ExplainUiExperienceResult {
   available?: boolean;
 }
 
-interface Ctx {
-  caveats: string[];
-  unreadable: Unreadable[];
-  missing: Record<string, string[]>;
-  progress: ProgressTracker;
-}
-
-function noteMissing(
-  ctx: Ctx,
-  table: string,
-  fields: string[],
-  rows: SnRecord[],
-): void {
-  if (!rows.length) return;
-  const missing = fields.filter((f) => rows.every((r) => !(f in r)));
-  if (!missing.length) return;
-  const seen = new Set(ctx.missing[table] ?? []);
-  for (const f of missing) seen.add(f);
-  ctx.missing[table] = [...seen];
-}
-
-/**
- * One bounded read. A degradable instance error (400 / 403 / 404, which
- * includes a policy denial) is recorded as a caveat and yields no rows.
- */
-async function read(
-  ctx: Ctx,
-  table: string,
-  query: string,
-  fields: string[],
-): Promise<SnRecord[]> {
-  ctx.progress.tick(table);
-  if (ctx.unreadable.some((u) => u.table === table)) return [];
-  try {
-    const { records, total } = await queryTable({
-      table,
-      query,
-      fields,
-      limit: CHILD_LIMIT,
-      displayValue: "false",
-    });
-    if (
-      records.length >= CHILD_LIMIT &&
-      (total === undefined || total > records.length)
-    ) {
-      ctx.caveats.push(
-        `${table}: read capped at ${CHILD_LIMIT} rows; the page map may be incomplete.`,
-      );
-    }
-    noteMissing(ctx, table, fields, records);
-    return records;
-  } catch (error) {
-    const status = degradeStatus(error);
-    if (status === undefined) throw error;
-    const reason = (error as Error).message;
-    ctx.unreadable.push({ table, status, reason });
-    ctx.caveats.push(
-      `${table} could not be read (${status}): ${reason} That part of the page map is omitted.`,
-    );
-    return [];
-  }
-}
-
-/**
- * `prefix^fieldIN ids` over chunks of `IN_CHUNK`, capped at `CHILD_LIMIT`
- * rows. Ids that are not SAFE_ID (a malformed reference) are dropped.
- */
-async function readIn(
-  ctx: Ctx,
-  table: string,
-  field: string,
-  ids: Iterable<string>,
-  fields: string[],
-  opts: { order?: string; prefix?: string } = {},
-): Promise<SnRecord[]> {
-  const list = [...new Set(ids)].filter((id) => SAFE_ID.test(id));
-  const out: SnRecord[] = [];
-  for (let i = 0; i < list.length; i += IN_CHUNK) {
-    const chunk = list.slice(i, i + IN_CHUNK);
-    const query = `${opts.prefix ? `${opts.prefix}^` : ""}${field}IN${chunk.join(",")}${
-      opts.order ? `^ORDERBY${opts.order}` : ""
-    }`;
-    out.push(...(await read(ctx, table, query, fields)));
-    if (out.length >= CHILD_LIMIT) {
-      if (i + IN_CHUNK < list.length) {
-        ctx.caveats.push(
-          `${table}: stopped after ${out.length} rows; the page map may be incomplete.`,
-        );
-      }
-      break;
-    }
-  }
-  return out;
-}
-
 const str = (row: SnRecord, field: string): string => snString(row[field]);
 const opt = (row: SnRecord, field: string): string | undefined =>
   str(row, field) || undefined;
@@ -714,7 +620,7 @@ const MACROPONENT_FIELDS = [
 
 /** Resolve the root: the page registry record, by sys_id or path. */
 async function readRoot(
-  ctx: Ctx,
+  ctx: ReadCtx,
   value: string,
 ): Promise<{ row: SnRecord } | { unreadable: Unreadable }> {
   const table = "sys_ux_page_registry";
@@ -804,8 +710,9 @@ export async function explainUiExperience(
   const levels = detailLevels(opts.detail);
   const want = (l: UiExperienceDetail): boolean => levels.includes(l);
   const withProps = want("elements") || want("bindings");
-  const ctx: Ctx = {
+  const ctx: ReadCtx = {
     caveats: [UNVERIFIED_CAVEAT],
+    scope: "the page map",
     unreadable: [],
     missing: {},
     progress: trackProgress(),
@@ -854,7 +761,7 @@ export async function explainUiExperience(
   };
 
   // Page properties (P-15: landing page, list and dashboard configuration).
-  const propRows = await readIn(
+  const propRows = await boundedReadIn(
     ctx,
     "sys_ux_page_property",
     "page",
@@ -882,7 +789,7 @@ export async function explainUiExperience(
   // App config → routes → screen variants.
   const configId = opt(row, "admin_panel");
   if (configId) {
-    const cfg = await readIn(
+    const cfg = await boundedReadIn(
       ctx,
       "sys_ux_app_config",
       "sys_id",
@@ -904,7 +811,7 @@ export async function explainUiExperience(
     );
   }
   const routeRows = configId
-    ? await readIn(
+    ? await boundedReadIn(
         ctx,
         "sys_ux_app_route",
         "app_config",
@@ -915,7 +822,7 @@ export async function explainUiExperience(
         },
       )
     : [];
-  const screenRows = await readIn(
+  const screenRows = await boundedReadIn(
     ctx,
     "sys_ux_screen",
     "screen_type",
@@ -959,7 +866,7 @@ export async function explainUiExperience(
     ...ids(routeRows, "parent_macroponent"),
     ...ids(screenRows, "macroponent"),
   ];
-  const macroRows = await readIn(
+  const macroRows = await boundedReadIn(
     ctx,
     "sys_ux_macroponent",
     "sys_id",
@@ -969,7 +876,7 @@ export async function explainUiExperience(
       ...(want("elements") ? ["required_translations"] : []),
     ],
   );
-  const scriptRows = await readIn(
+  const scriptRows = await boundedReadIn(
     ctx,
     "sys_ux_client_script",
     "macroponent",
@@ -1059,7 +966,7 @@ export async function explainUiExperience(
       ...fields,
       ...(want("scripts") && !fields.includes("script") ? ["script"] : []),
     ];
-    const rows = await readIn(ctx, table, "sys_id", pending, read);
+    const rows = await boundedReadIn(ctx, table, "sys_id", pending, read);
     for (const b of rows) {
       const id = str(b, "sys_id");
       if (!pending.delete(id)) continue;
@@ -1084,7 +991,7 @@ export async function explainUiExperience(
     );
   }
   if (found.size) {
-    const aclRows = await readIn(
+    const aclRows = await boundedReadIn(
       ctx,
       "sys_security_acl",
       "name",
@@ -1106,12 +1013,14 @@ export async function explainUiExperience(
 
   // P-15: dashboards and list menus referenced by the page properties.
   if (referenced.size) {
-    const dashRows = await readIn(ctx, "par_dashboard", "sys_id", referenced, [
+    const dashRows = await boundedReadIn(
+      ctx,
+      "par_dashboard",
       "sys_id",
-      "name",
-      "active",
-    ]);
-    const tabRows = await readIn(
+      referenced,
+      ["sys_id", "name", "active"],
+    );
+    const tabRows = await boundedReadIn(
       ctx,
       "par_dashboard_tab",
       "dashboard",
@@ -1119,7 +1028,7 @@ export async function explainUiExperience(
       ["sys_id", "dashboard", "name", "order"],
       { order: "order" },
     );
-    const widgetRows = await readIn(
+    const widgetRows = await boundedReadIn(
       ctx,
       "par_dashboard_widget",
       "tab",
@@ -1150,14 +1059,14 @@ export async function explainUiExperience(
       });
     }
 
-    const menuRows = await readIn(
+    const menuRows = await boundedReadIn(
       ctx,
       "sys_ux_list_menu_config",
       "sys_id",
       referenced,
       ["sys_id", "name", "active"],
     );
-    const catRows = await readIn(
+    const catRows = await boundedReadIn(
       ctx,
       "sys_ux_list_category",
       "configuration",
@@ -1165,7 +1074,7 @@ export async function explainUiExperience(
       ["sys_id", "configuration", "title", "order"],
       { order: "order" },
     );
-    const listRows = await readIn(
+    const listRows = await boundedReadIn(
       ctx,
       "sys_ux_list",
       "category",
@@ -1173,7 +1082,7 @@ export async function explainUiExperience(
       ["sys_id", "category", "title", "table", "condition", "columns", "order"],
       { order: "order" },
     );
-    const m2mRows = await readIn(
+    const m2mRows = await boundedReadIn(
       ctx,
       "sys_ux_applicability_m2m_list",
       "list",
@@ -1223,14 +1132,14 @@ export async function explainUiExperience(
   const formItems: SnRecord[] = [];
   const formActions = new Map<string, SnRecord>();
   if (scope && SAFE_ID.test(scope)) {
-    const layoutRows = await read(
+    const layoutRows = await boundedRead(
       ctx,
       "sys_ux_form_action_layout",
       `sys_scope=${scope}^ORDERBYname`,
       ["sys_id", "name", "table"],
     );
     formItems.push(
-      ...(await readIn(
+      ...(await boundedReadIn(
         ctx,
         "sys_ux_form_action_layout_item",
         "form_action_layout",
@@ -1239,7 +1148,7 @@ export async function explainUiExperience(
         { order: "order" },
       )),
     );
-    for (const a of await readIn(
+    for (const a of await boundedReadIn(
       ctx,
       "sys_ux_form_action",
       "sys_id",
@@ -1294,7 +1203,7 @@ export async function explainUiExperience(
       l.items.flatMap((i) => (i.applicability ? [i.applicability] : [])),
     ),
   ]);
-  for (const a of await readIn(
+  for (const a of await boundedReadIn(
     ctx,
     "sys_ux_applicability",
     "sys_id",
@@ -1360,16 +1269,16 @@ function listConditionTerms(condition: string): {
  * Agent / Configurable Workspace classification (uib-workspace.ts).
  */
 async function readWorkspace(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainUiExperienceResult,
   row: SnRecord,
   macroRows: SnRecord[],
   configId: string | undefined,
 ): Promise<void> {
   const io: WorkspaceIo = {
-    read: (table, query, fields) => read(ctx, table, query, fields),
+    read: (table, query, fields) => boundedRead(ctx, table, query, fields),
     readIn: (table, field, list, fields, opts) =>
-      readIn(ctx, table, field, list, fields, opts),
+      boundedReadIn(ctx, table, field, list, fields, opts),
   };
   const expId = str(row, "sys_id");
   const rootId = opt(row, "root_macroponent");
@@ -1407,7 +1316,7 @@ async function readWorkspace(
     ...(configId ? [configId] : []),
   ]);
   const categories = (
-    await readIn(
+    await boundedReadIn(
       ctx,
       "sys_ux_registry_m2m_category",
       "page_registry",
@@ -1421,7 +1330,7 @@ async function readWorkspace(
   const scope = opt(row, "sys_scope");
   const inScope = async (table: string, fields: string[]) =>
     scope && SAFE_ID.test(scope)
-      ? (await read(ctx, table, `sys_scope=${scope}`, fields)).filter(
+      ? (await boundedRead(ctx, table, `sys_scope=${scope}`, fields)).filter(
           (r) => !("sys_scope" in r) || str(r, "sys_scope") === scope,
         )
       : [];
@@ -1456,7 +1365,7 @@ async function readWorkspace(
  * `uib-broker-mutates-no-acl` does not fire then.
  */
 function readBrokerHints(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainUiExperienceResult,
   rows: Map<string, SnRecord>,
 ): void {
@@ -1501,7 +1410,7 @@ function readBrokerHints(
  * metrics land on the macroponent too (readTranslations).
  */
 function readPageHints(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainUiExperienceResult,
   macroRows: SnRecord[],
 ): void {
@@ -1541,7 +1450,7 @@ function readPageHints(
  * and its translatable strings against `required_translations`.
  */
 function readTranslations(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainUiExperienceResult,
   macroRows: SnRecord[],
 ): void {
@@ -1632,7 +1541,7 @@ const OOB_TAG = /^(now|sn)-/;
  * client scripts and brokers.
  */
 async function readDetail(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainUiExperienceResult,
   levels: UiExperienceDetail[],
   macroRows: SnRecord[],
@@ -1712,7 +1621,7 @@ async function readDetail(
     }
     const events = new Map(
       (
-        await readIn(ctx, "sys_ux_event", "sys_id", eventIds, [
+        await boundedReadIn(ctx, "sys_ux_event", "sys_id", eventIds, [
           "sys_id",
           "name",
           "label",
@@ -1870,7 +1779,7 @@ function resolveHandler(
  * sys_ux_lib_component.tag; an unknown `now-*` / `sn-*` tag is OOB by name.
  */
 async function resolveComponents(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainUiExperienceResult,
 ): Promise<void> {
   const used = new Map<string, Map<string, string[]>>();
@@ -1891,8 +1800,20 @@ async function resolveComponents(
   const tags = [...all].filter((i) => !isSysId(i));
   const libFields = ["sys_id", "name", "tag", "category"];
   const libRows = [
-    ...(await readIn(ctx, "sys_ux_lib_component", "sys_id", sysIds, libFields)),
-    ...(await readIn(ctx, "sys_ux_lib_component", "tag", tags, libFields)),
+    ...(await boundedReadIn(
+      ctx,
+      "sys_ux_lib_component",
+      "sys_id",
+      sysIds,
+      libFields,
+    )),
+    ...(await boundedReadIn(
+      ctx,
+      "sys_ux_lib_component",
+      "tag",
+      tags,
+      libFields,
+    )),
   ];
   const lib = new Map<string, SnRecord>();
   for (const r of libRows) {
@@ -1902,7 +1823,7 @@ async function resolveComponents(
   const known = new Map<string, SnRecord>();
   const loaded = result.macroponents.map((m) => m.sys_id);
   const toRead = sysIds.filter((i) => !lib.has(i));
-  for (const r of await readIn(
+  for (const r of await boundedReadIn(
     ctx,
     "sys_ux_macroponent",
     "sys_id",

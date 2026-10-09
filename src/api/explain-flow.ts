@@ -53,10 +53,17 @@
 import { detectFlowValues } from "../core/artifacts/flow-values.js";
 import { decodeField } from "../core/artifacts/decoders.js";
 import { ServiceNowError } from "../core/errors.js";
-import { trackProgress, type ProgressTracker } from "../core/progress.js";
-import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
+import { trackProgress } from "../core/progress.js";
+import { tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label, type Arrow, type Shape } from "./mermaid.js";
-import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
+import { snString, degradeStatus } from "./shared.js";
+import {
+  boundedRead,
+  boundedReadIn,
+  noteMissing,
+  type ReadCtx,
+  type Unreadable,
+} from "./bounded-read.js";
 import { queryTable, type SnRecord } from "./table.js";
 import { isSysId } from "../core/sys-id.js";
 
@@ -118,12 +125,6 @@ export interface ExplainFlowOptions {
   migration?: boolean;
   /** Flow / subflow: call levels to expand (0 = none). */
   depth?: number;
-}
-
-export interface Unreadable {
-  table: string;
-  status?: number;
-  reason: string;
 }
 
 export interface Ref {
@@ -437,107 +438,9 @@ export interface ExplainFlowResult {
 
 // --- bounded reads (the P-16 pattern) -----------------------------------------
 
-interface Ctx {
-  caveats: string[];
-  unreadable: Unreadable[];
-  missing: Record<string, string[]>;
-  progress: ProgressTracker;
-}
-
-function noteMissing(
-  ctx: Ctx,
-  table: string,
-  fields: string[],
-  rows: SnRecord[],
-): void {
-  if (!rows.length) return;
-  const missing = fields.filter((f) => rows.every((r) => !(f in r)));
-  if (!missing.length) return;
-  const seen = new Set(ctx.missing[table] ?? []);
-  for (const f of missing) seen.add(f);
-  ctx.missing[table] = [...seen];
-}
-
-/**
- * One bounded read. A degradable instance error (400 / 403 / 404, which
- * includes a policy denial) is recorded as a caveat and yields no rows.
- */
-async function read(
-  ctx: Ctx,
-  table: string,
-  query: string,
-  fields: string[],
-  limit = CHILD_LIMIT,
-): Promise<SnRecord[]> {
-  ctx.progress.tick(table);
-  if (ctx.unreadable.some((u) => u.table === table)) return [];
-  try {
-    const { records, total } = await queryTable({
-      table,
-      query,
-      fields,
-      limit,
-      displayValue: "false",
-    });
-    if (
-      limit === CHILD_LIMIT &&
-      records.length >= limit &&
-      (total === undefined || total > records.length)
-    ) {
-      ctx.caveats.push(
-        `${table}: read capped at ${CHILD_LIMIT} rows; the result may be incomplete.`,
-      );
-    }
-    noteMissing(ctx, table, fields, records);
-    return records;
-  } catch (error) {
-    const status = degradeStatus(error);
-    if (status === undefined) throw error;
-    const reason = (error as Error).message;
-    ctx.unreadable.push({ table, status, reason });
-    ctx.caveats.push(
-      `${table} could not be read (${status}): ${reason} That part is omitted.`,
-    );
-    return [];
-  }
-}
-
-/** `field IN ids` over chunks of `IN_CHUNK`, capped at `CHILD_LIMIT` rows. */
-async function readIn(
-  ctx: Ctx,
-  table: string,
-  field: string,
-  ids: Iterable<string>,
-  fields: string[],
-  suffix = "",
-): Promise<SnRecord[]> {
-  const list = [...new Set(ids)].filter((id) => SAFE_ID.test(id));
-  const out: SnRecord[] = [];
-  for (let i = 0; i < list.length; i += IN_CHUNK) {
-    const chunk = list.slice(i, i + IN_CHUNK);
-    out.push(
-      ...(await read(
-        ctx,
-        table,
-        `${field}IN${chunk.join(",")}${suffix}`,
-        fields,
-      )),
-    );
-    if (out.length >= CHILD_LIMIT) {
-      if (i + IN_CHUNK < list.length) {
-        ctx.caveats.push(
-          `${table}: stopped after ${out.length} rows; the result may be incomplete.`,
-        );
-      }
-      break;
-    }
-  }
-  return out;
-}
-
 /** Read the root record by sys_id; an unreadable table degrades. */
 async function readRoot(
-  ctx: Ctx,
+  ctx: ReadCtx,
   table: string,
   sysId: string,
   fields: string[],
@@ -821,13 +724,18 @@ interface RawStep {
 }
 
 /** Read the step rows of a flow (or of a snapshot) from all six tables. */
-async function readSteps(ctx: Ctx, owner: string): Promise<RawStep[]> {
+async function readSteps(ctx: ReadCtx, owner: string): Promise<RawStep[]> {
   const out: RawStep[] = [];
   const keys = new Set<string>();
   const byKind = new Map<StepKind, Set<string>>();
   for (const t of STEP_TABLES) {
     const fields = [...STEP_BASE, t.refField, `${t.refField}.name`];
-    const rows = await read(ctx, t.table, `flow=${owner}^ORDERBYorder`, fields);
+    const rows = await boundedRead(
+      ctx,
+      t.table,
+      `flow=${owner}^ORDERBYorder`,
+      fields,
+    );
     if (rows.length) {
       const tables = byKind.get(t.kind) ?? new Set<string>();
       tables.add(t.table);
@@ -852,7 +760,7 @@ async function readSteps(ctx: Ctx, owner: string): Promise<RawStep[]> {
 
 /** Build the ordered step tree from `ui_id` / `parent_ui_id`. */
 function buildTree(
-  ctx: Ctx,
+  ctx: ReadCtx,
   raw: RawStep[],
   labels: Map<string, string>,
 ): FlowStep[] {
@@ -971,24 +879,35 @@ function variable(row: SnRecord): FlowVariable {
 }
 
 async function readVariables(
-  ctx: Ctx,
+  ctx: ReadCtx,
   table: string,
   flowId: string,
   fields = VAR_FIELDS,
 ): Promise<FlowVariable[]> {
-  const rows = await read(ctx, table, `model=${flowId}^ORDERBYorder`, fields);
+  const rows = await boundedRead(
+    ctx,
+    table,
+    `model=${flowId}^ORDERBYorder`,
+    fields,
+  );
   return rows.map(variable);
 }
 
 async function readTrigger(
-  ctx: Ctx,
+  ctx: ReadCtx,
   flowId: string,
   labels: Map<string, string>,
 ): Promise<FlowTrigger | null> {
   let found: { row: SnRecord; source: string } | undefined;
   let extra = 0;
   for (const table of TRIGGER_TABLES) {
-    const rows = await read(ctx, table, `flow=${flowId}`, TRIGGER_FIELDS, 5);
+    const rows = await boundedRead(
+      ctx,
+      table,
+      `flow=${flowId}`,
+      TRIGGER_FIELDS,
+      5,
+    );
     if (!rows.length) continue;
     if (found) extra += rows.length;
     else {
@@ -1006,7 +925,7 @@ async function readTrigger(
   const defId = str(row, "trigger_definition");
   let definition: FlowTrigger["definition"] = null;
   if (defId) {
-    const defs = await readIn(
+    const defs = await boundedReadIn(
       ctx,
       "sys_hub_trigger_definition",
       "sys_id",
@@ -1034,7 +953,7 @@ async function readTrigger(
   };
 }
 
-async function readRoles(ctx: Ctx, raw: string): Promise<Ref[]> {
+async function readRoles(ctx: ReadCtx, raw: string): Promise<Ref[]> {
   const parts = raw
     .split(",")
     .map((s) => s.trim())
@@ -1043,7 +962,7 @@ async function readRoles(ctx: Ctx, raw: string): Promise<Ref[]> {
   const ids = parts.filter((p) => isSysId(p));
   const names = new Map<string, string>();
   if (ids.length) {
-    for (const r of await readIn(ctx, "sys_user_role", "sys_id", ids, [
+    for (const r of await boundedReadIn(ctx, "sys_user_role", "sys_id", ids, [
       "sys_id",
       "name",
     ])) {
@@ -1059,11 +978,11 @@ const isErrorLevel = (level: string): boolean =>
   /^(error|2)$/i.test(level.trim());
 
 async function readFlowRuns(
-  ctx: Ctx,
+  ctx: ReadCtx,
   flowId: string,
   limit: number,
 ): Promise<Run[]> {
-  const rows = await read(
+  const rows = await boundedRead(
     ctx,
     "sys_flow_context",
     `flow=${flowId}^ORDERBYDESCsys_created_on`,
@@ -1094,13 +1013,13 @@ async function readFlowRuns(
   );
   if (!runs.length) return runs;
   ctx.caveats.push(LOG_LEVEL_CAVEAT);
-  const logs = await readIn(
+  const logs = await boundedReadIn(
     ctx,
     "sys_flow_log",
     "context",
     runs.map((r) => r.sys_id),
     ["sys_id", "context", "level", "message", "sys_created_on"],
-    "^ORDERBYDESCsys_created_on",
+    { suffix: "^ORDERBYDESCsys_created_on" },
   );
   const byRun = new Map(runs.map((r) => [r.sys_id, r]));
   for (const log of logs) {
@@ -1120,7 +1039,7 @@ async function readFlowRuns(
 }
 
 async function explainFlowDefinition(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainFlowResult,
   sysId: string,
   kind: "flow" | "subflow",
@@ -1163,7 +1082,7 @@ async function explainFlowDefinition(
   result.outputs = await readVariables(ctx, "sys_hub_flow_output", sysId);
   result.variables = await readVariables(ctx, "sys_hub_flow_variable", sysId);
   result.stages = (
-    await read(ctx, "sys_hub_flow_stage", `flow=${sysId}^ORDERBYorder`, [
+    await boundedRead(ctx, "sys_hub_flow_stage", `flow=${sysId}^ORDERBYorder`, [
       "sys_id",
       "label",
       "value",
@@ -1182,7 +1101,7 @@ async function explainFlowDefinition(
     basis: "never-published",
   };
   if (master && SAFE_ID.test(master) && master !== sysId) {
-    const snap = await read(
+    const snap = await boundedRead(
       ctx,
       "sys_hub_flow_snapshot",
       `sys_id=${master}`,
@@ -1267,11 +1186,11 @@ const ACTIVITY_FIELDS = [
 ];
 
 async function readWorkflowRuns(
-  ctx: Ctx,
+  ctx: ReadCtx,
   wfId: string,
   limit: number,
 ): Promise<Run[]> {
-  const rows = await read(
+  const rows = await boundedRead(
     ctx,
     "wf_context",
     `workflow=${wfId}^ORDERBYDESCsys_created_on`,
@@ -1301,22 +1220,22 @@ const refOf = (r: SnRecord): Ref =>
 
 /** The migration report for one workflow, or (no id) for the instance. */
 async function migrationReport(
-  ctx: Ctx,
+  ctx: ReadCtx,
   wfId: string | undefined,
   wfName?: string,
 ): Promise<MigrationReport> {
   const scope = wfId ? `workflow=${wfId}` : "workflowISNOTEMPTY";
-  const items = await read(ctx, "sc_cat_item", scope, [
+  const items = await boundedRead(ctx, "sc_cat_item", scope, [
     "sys_id",
     "name",
     "workflow",
   ]);
-  const slas = await read(ctx, "contract_sla", scope, [
+  const slas = await boundedRead(ctx, "contract_sla", scope, [
     "sys_id",
     "name",
     "workflow",
   ]);
-  const running = await read(
+  const running = await boundedRead(
     ctx,
     "wf_context",
     `${wfId ? `workflow=${wfId}^` : ""}state=executing`,
@@ -1358,10 +1277,13 @@ async function migrationReport(
   }
   if (wfId && wfName) entry(wfId).name = wfName;
   if (!wfId && entries.size) {
-    for (const w of await readIn(ctx, "wf_workflow", "sys_id", entries.keys(), [
+    for (const w of await boundedReadIn(
+      ctx,
+      "wf_workflow",
       "sys_id",
-      "name",
-    ])) {
+      entries.keys(),
+      ["sys_id", "name"],
+    )) {
       const e = entries.get(str(w, "sys_id"));
       if (e && opt(w, "name")) e.name = str(w, "name");
     }
@@ -1386,7 +1308,7 @@ async function migrationReport(
 }
 
 async function explainWorkflow(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainFlowResult,
   sysId: string | undefined,
   runs: number,
@@ -1412,7 +1334,7 @@ async function explainWorkflow(
       : {}),
   };
 
-  const versions = await read(
+  const versions = await boundedRead(
     ctx,
     "wf_workflow_version",
     `workflow=${sysId}^ORDERBYDESCsys_updated_on`,
@@ -1441,7 +1363,7 @@ async function explainWorkflow(
   let activityRows: SnRecord[] = [];
   if (versionId && SAFE_ID.test(versionId)) {
     activityRows = (
-      await read(
+      await boundedRead(
         ctx,
         "wf_activity",
         `workflow_version=${versionId}^ORDERBYorder`,
@@ -1454,7 +1376,7 @@ async function explainWorkflow(
   }
   if (!activityRows.length) {
     // The registry keys activities by `workflow` (unverified, O-5).
-    activityRows = await read(
+    activityRows = await boundedRead(
       ctx,
       "wf_activity",
       `workflow=${sysId}^ORDERBYorder`,
@@ -1468,13 +1390,13 @@ async function explainWorkflow(
   }
   const activityIds = activityRows.map((a) => str(a, "sys_id"));
   const conditionRows = activityIds.length
-    ? await readIn(
+    ? await boundedReadIn(
         ctx,
         "wf_condition",
         "activity",
         activityIds,
         ["sys_id", "activity", "name", "order"],
-        "^ORDERBYorder",
+        { suffix: "^ORDERBYorder" },
       )
     : [];
   const conditions = new Map(conditionRows.map((c) => [str(c, "sys_id"), c]));
@@ -1508,7 +1430,7 @@ async function explainWorkflow(
   result.activities = activities;
 
   const transitionRows = activityIds.length
-    ? await readIn(ctx, "wf_transition", "from", activityIds, [
+    ? await boundedReadIn(ctx, "wf_transition", "from", activityIds, [
         "sys_id",
         "from",
         "to",
@@ -1536,7 +1458,7 @@ async function explainWorkflow(
   result.stages =
     versionId && SAFE_ID.test(versionId)
       ? (
-          await read(
+          await boundedRead(
             ctx,
             "wf_stage",
             `workflow_version=${versionId}^ORDERBYorder`,
@@ -1586,17 +1508,17 @@ const ACTION_VAR_FIELDS = [...VAR_FIELDS, "name"];
 
 /** The sys_hub_step_instance steps of each action, by `order`. */
 async function readActionSteps(
-  ctx: Ctx,
+  ctx: ReadCtx,
   actionIds: string[],
 ): Promise<Map<string, FlowStep[]>> {
   if (!ctx.caveats.includes(ACTION_CAVEAT)) ctx.caveats.push(ACTION_CAVEAT);
-  const rows = await readIn(
+  const rows = await boundedReadIn(
     ctx,
     "sys_hub_step_instance",
     "action",
     actionIds,
     ACTION_STEP_FIELDS,
-    "^ORDERBYorder",
+    { suffix: "^ORDERBYorder" },
   );
   const out = new Map<string, FlowStep[]>();
   for (const row of rows) {
@@ -1658,7 +1580,7 @@ function callsIn(steps: FlowStep[], path: string[]): Call[] {
  * cycle. Returns the number of distinct callees expanded.
  */
 async function expandCalls(
-  ctx: Ctx,
+  ctx: ReadCtx,
   steps: FlowStep[],
   rootId: string,
   depth: number,
@@ -1706,7 +1628,7 @@ async function expandCalls(
     }
     const flows = new Map(
       (
-        await readIn(
+        await boundedReadIn(
           ctx,
           "sys_hub_flow",
           "sys_id",
@@ -1760,7 +1682,7 @@ async function expandCalls(
 }
 
 async function explainActionDefinition(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainFlowResult,
   sysId: string,
 ): Promise<ExplainFlowResult> {
@@ -1872,11 +1794,11 @@ const labelOf = (row: SnRecord): string =>
   opt(row, "label") ?? opt(row, "name") ?? str(row, "sys_id");
 
 async function readPlaybookRuns(
-  ctx: Ctx,
+  ctx: ReadCtx,
   pdId: string,
   limit: number,
 ): Promise<Run[]> {
-  const rows = await read(
+  const rows = await boundedRead(
     ctx,
     "sys_pd_context",
     `process_definition=${pdId}^ORDERBYDESCsys_created_on`,
@@ -1897,7 +1819,7 @@ async function readPlaybookRuns(
     }),
   );
   if (!runs.length) return runs;
-  const acts = await readIn(
+  const acts = await boundedReadIn(
     ctx,
     "sys_pd_activity_context",
     "context",
@@ -1916,7 +1838,7 @@ async function readPlaybookRuns(
 }
 
 async function explainPlaybook(
-  ctx: Ctx,
+  ctx: ReadCtx,
   result: ExplainFlowResult,
   sysId: string,
   runs: number,
@@ -1957,7 +1879,7 @@ async function explainPlaybook(
   };
 
   const laneRows = (
-    await read(
+    await boundedRead(
       ctx,
       "sys_pd_lane",
       `process_definition=${sysId}^ORDERBYorder`,
@@ -1965,13 +1887,13 @@ async function explainPlaybook(
     )
   ).sort((a, b) => num(a, "order") - num(b, "order"));
   const activityRows = laneRows.length
-    ? await readIn(
+    ? await boundedReadIn(
         ctx,
         "sys_pd_activity",
         "lane",
         laneRows.map((l) => str(l, "sys_id")),
         PD_ACTIVITY_FIELDS,
-        "^ORDERBYorder",
+        { suffix: "^ORDERBYorder" },
       )
     : [];
   const defIds = activityRows
@@ -1979,18 +1901,20 @@ async function explainPlaybook(
     .filter(Boolean);
   const defs = new Map(
     (defIds.length
-      ? await readIn(ctx, "sys_pd_activity_definition", "sys_id", defIds, [
+      ? await boundedReadIn(
+          ctx,
+          "sys_pd_activity_definition",
           "sys_id",
-          "label",
-          "name",
-        ])
+          defIds,
+          ["sys_id", "label", "name"],
+        )
       : []
     ).map((d) => [str(d, "sys_id"), labelOf(d)]),
   );
   const activityIds = activityRows.map((a) => str(a, "sys_id"));
   const timers = (
     activityIds.length
-      ? await readIn(
+      ? await boundedReadIn(
           ctx,
           "sys_pd_timer_attributes",
           "activity",
@@ -2058,7 +1982,7 @@ async function explainPlaybook(
   });
 
   result.triggers = (
-    await read(
+    await boundedRead(
       ctx,
       "sys_pd_trigger_instance",
       `process_definition=${sysId}`,
@@ -2089,7 +2013,7 @@ async function explainPlaybook(
     PD_VAR_FIELDS,
   );
   result.variants = (
-    await read(
+    await boundedRead(
       ctx,
       "sys_pd_process_variant",
       `process_definition=${sysId}^ORDERBYorder`,
@@ -2151,7 +2075,7 @@ export async function explainFlow(
     Math.max(Math.trunc(opts.depth ?? EXPLAIN_FLOW_DEPTH.default), 0),
     EXPLAIN_FLOW_DEPTH.max,
   );
-  const ctx: Ctx = {
+  const ctx: ReadCtx = {
     caveats: [
       kind === "workflow"
         ? WORKFLOW_CAVEAT

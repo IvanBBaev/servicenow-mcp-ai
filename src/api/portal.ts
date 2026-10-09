@@ -23,10 +23,17 @@
  */
 import { decodeField } from "../core/artifacts/decoders.js";
 import { ServiceNowError } from "../core/errors.js";
-import { trackProgress, type ProgressTracker } from "../core/progress.js";
-import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
+import { trackProgress } from "../core/progress.js";
+import { tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label } from "./mermaid.js";
-import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
+import { snString, degradeStatus } from "./shared.js";
+import {
+  boundedRead,
+  boundedReadIn,
+  noteMissing,
+  type ReadCtx,
+  type Unreadable,
+} from "./bounded-read.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
 import { isSysId } from "../core/sys-id.js";
 
@@ -56,12 +63,6 @@ export interface ExplainPortalOptions {
   page?: string;
   /** Nested-row depth. */
   depth?: number;
-}
-
-export interface Unreadable {
-  table: string;
-  status?: number;
-  reason: string;
 }
 
 export interface Ref {
@@ -224,99 +225,6 @@ export interface ExplainPortalResult {
   available?: boolean;
 }
 
-/** Read state shared by every step: caveats, progress and field checks. */
-interface Ctx {
-  caveats: string[];
-  unreadable: Unreadable[];
-  missing: Record<string, string[]>;
-  progress: ProgressTracker;
-}
-
-function noteMissing(
-  ctx: Ctx,
-  table: string,
-  fields: string[],
-  rows: SnRecord[],
-): void {
-  if (!rows.length) return;
-  const missing = fields.filter((f) => rows.every((r) => !(f in r)));
-  if (!missing.length) return;
-  const seen = new Set(ctx.missing[table] ?? []);
-  for (const f of missing) seen.add(f);
-  ctx.missing[table] = [...seen];
-}
-
-/**
- * One bounded read. A degradable instance error (400 / 403 / 404, which
- * includes a policy denial) is recorded as a caveat and yields no rows.
- */
-async function read(
-  ctx: Ctx,
-  table: string,
-  query: string,
-  fields: string[],
-  limit = CHILD_LIMIT,
-): Promise<SnRecord[]> {
-  ctx.progress.tick(table);
-  if (ctx.unreadable.some((u) => u.table === table)) return [];
-  try {
-    const { records, total } = await queryTable({
-      table,
-      query,
-      fields,
-      limit,
-      displayValue: "false",
-    });
-    if (
-      records.length >= limit &&
-      (total === undefined || total > records.length) &&
-      limit === CHILD_LIMIT
-    ) {
-      ctx.caveats.push(
-        `${table}: read capped at ${CHILD_LIMIT} rows; the tree may be incomplete.`,
-      );
-    }
-    noteMissing(ctx, table, fields, records);
-    return records;
-  } catch (error) {
-    const status = degradeStatus(error);
-    if (status === undefined) throw error;
-    const reason = (error as Error).message;
-    ctx.unreadable.push({ table, status, reason });
-    ctx.caveats.push(
-      `${table} could not be read (${status}): ${reason} That part of the tree is omitted.`,
-    );
-    return [];
-  }
-}
-
-/** `field IN ids` over chunks of `IN_CHUNK`, capped at `CHILD_LIMIT` rows. */
-async function readIn(
-  ctx: Ctx,
-  table: string,
-  field: string,
-  ids: Iterable<string>,
-  fields: string[],
-  order?: string,
-): Promise<SnRecord[]> {
-  const list = [...new Set(ids)].filter((id) => SAFE_ID.test(id));
-  const out: SnRecord[] = [];
-  for (let i = 0; i < list.length; i += IN_CHUNK) {
-    const chunk = list.slice(i, i + IN_CHUNK);
-    const query = `${field}IN${chunk.join(",")}${order ? `^ORDERBY${order}` : ""}`;
-    out.push(...(await read(ctx, table, query, fields)));
-    if (out.length >= CHILD_LIMIT) {
-      if (i + IN_CHUNK < list.length) {
-        ctx.caveats.push(
-          `${table}: stopped after ${out.length} rows; the tree may be incomplete.`,
-        );
-      }
-      break;
-    }
-  }
-  return out;
-}
-
 const str = (row: SnRecord, field: string): string => snString(row[field]);
 const opt = (row: SnRecord, field: string): string | undefined =>
   str(row, field) || undefined;
@@ -463,7 +371,7 @@ interface LayoutRows {
 }
 
 async function readLayout(
-  ctx: Ctx,
+  ctx: ReadCtx,
   pageIds: string[],
   depth: number,
 ): Promise<LayoutRows> {
@@ -474,24 +382,24 @@ async function readLayout(
     instances: [],
     omitted: new Map(),
   };
-  out.containers = await readIn(
+  out.containers = await boundedReadIn(
     ctx,
     "sp_container",
     "sp_page",
     pageIds,
     CONTAINER_FIELDS,
-    "order",
+    { order: "order" },
   );
   if (!out.containers.length) return out;
   const seen = new Set<string>();
   let level = (
-    await readIn(
+    await boundedReadIn(
       ctx,
       "sp_row",
       "sp_container",
       out.containers.map((c) => str(c, "sys_id")),
       ROW_FIELDS,
-      "order",
+      { order: "order" },
     )
   ).filter((r) => !str(r, "sp_column"));
   for (let d = 1; level.length; d++) {
@@ -499,33 +407,33 @@ async function readLayout(
     for (const r of level) seen.add(str(r, "sys_id"));
     out.rows.push(...level);
     if (!level.length) break;
-    const columns = await readIn(
+    const columns = await boundedReadIn(
       ctx,
       "sp_column",
       "sp_row",
       level.map((r) => str(r, "sys_id")),
       COLUMN_FIELDS,
-      "order",
+      { order: "order" },
     );
     out.columns.push(...columns);
     const colIds = columns.map((c) => str(c, "sys_id"));
     out.instances.push(
-      ...(await readIn(
+      ...(await boundedReadIn(
         ctx,
         "sp_instance",
         "sp_column",
         colIds,
         INSTANCE_FIELDS,
-        "order",
+        { order: "order" },
       )),
     );
-    const nested = await readIn(
+    const nested = await boundedReadIn(
       ctx,
       "sp_row",
       "sp_column",
       colIds,
       ROW_FIELDS,
-      "order",
+      { order: "order" },
     );
     if (d >= depth) {
       if (nested.length) {
@@ -636,7 +544,7 @@ const CSS_INCLUDE_FIELDS = ["sys_id", "name", "source", "url", "sp_css"];
 
 /** Resolve the root: the portal or page record, by sys_id or natural key. */
 async function readRoot(
-  ctx: Ctx,
+  ctx: ReadCtx,
   table: string,
   keyField: string,
   value: string,
@@ -708,8 +616,9 @@ export async function explainPortal(
     Math.max(Math.trunc(opts.depth ?? PORTAL_DEPTH.default), 1),
     PORTAL_DEPTH.max,
   );
-  const ctx: Ctx = {
+  const ctx: ReadCtx = {
     caveats: [UNVERIFIED_CAVEAT],
+    scope: "the tree",
     unreadable: [],
     missing: {},
     progress: trackProgress(),
@@ -784,27 +693,27 @@ export async function explainPortal(
     const themeId = str(portal, "theme");
     result.theme = null;
     if (SAFE_ID.test(themeId)) {
-      const [theme] = await read(ctx, "sp_theme", `sys_id=${themeId}`, [
+      const [theme] = await boundedRead(ctx, "sp_theme", `sys_id=${themeId}`, [
         "sys_id",
         "name",
         "header",
         "footer",
       ]);
       if (theme) {
-        themeJs = await read(
+        themeJs = await boundedRead(
           ctx,
           "m2m_sp_theme_js_include",
           `sp_theme=${themeId}^ORDERBYorder`,
           ["sys_id", "sp_js_include", "order"],
         );
-        themeCss = await read(
+        themeCss = await boundedRead(
           ctx,
           "m2m_sp_theme_css_include",
           `sp_theme=${themeId}^ORDERBYorder`,
           ["sys_id", "sp_css_include", "order"],
         );
         const hf = byId(
-          await readIn(
+          await boundedReadIn(
             ctx,
             "sp_header_footer",
             "sys_id",
@@ -839,12 +748,14 @@ export async function explainPortal(
     const menuId = str(portal, "sp_rectangle_menu");
     result.menu = null;
     if (SAFE_ID.test(menuId)) {
-      const [menu] = await read(ctx, "sp_instance_menu", `sys_id=${menuId}`, [
-        "sys_id",
-        "title",
-      ]);
+      const [menu] = await boundedRead(
+        ctx,
+        "sp_instance_menu",
+        `sys_id=${menuId}`,
+        ["sys_id", "title"],
+      );
       if (menu) {
-        const items = await read(
+        const items = await boundedRead(
           ctx,
           "sp_rectangle_menu_item",
           `sp_rectangle_menu=${menuId}^ORDERBYorder`,
@@ -878,7 +789,7 @@ export async function explainPortal(
       addPage(str(m, "route_from_page"), "route_from");
       addPage(str(m, "route_to_page"), "route_to");
     }
-    pageRows = await readIn(
+    pageRows = await boundedReadIn(
       ctx,
       "sp_page",
       "sys_id",
@@ -930,7 +841,7 @@ export async function explainPortal(
       layout.instances.map((i) => str(i, "sp_widget")).filter(Boolean),
     ),
   ];
-  const widgetRows = await readIn(
+  const widgetRows = await boundedReadIn(
     ctx,
     "sp_widget",
     "sys_id",
@@ -963,7 +874,7 @@ export async function explainPortal(
 
   // Widget dependencies.
   const wIds = widgetRows.map((w) => str(w, "sys_id"));
-  const depLinks = await readIn(
+  const depLinks = await boundedReadIn(
     ctx,
     "m2m_sp_widget_dependency",
     "sp_widget",
@@ -971,7 +882,7 @@ export async function explainPortal(
     ["sys_id", "sp_widget", "sp_dependency"],
   );
   const deps = byId(
-    await readIn(
+    await boundedReadIn(
       ctx,
       "sp_dependency",
       "sys_id",
@@ -980,24 +891,24 @@ export async function explainPortal(
     ),
   );
   const depIds = [...deps.keys()];
-  const depJs = await readIn(
+  const depJs = await boundedReadIn(
     ctx,
     "m2m_sp_dependency_js_include",
     "sp_dependency",
     depIds,
     ["sys_id", "sp_dependency", "sp_js_include", "order"],
-    "order",
+    { order: "order" },
   );
-  const depCss = await readIn(
+  const depCss = await boundedReadIn(
     ctx,
     "m2m_sp_dependency_css_include",
     "sp_dependency",
     depIds,
     ["sys_id", "sp_dependency", "sp_css_include", "order"],
-    "order",
+    { order: "order" },
   );
   const jsRows = byId(
-    await readIn(
+    await boundedReadIn(
       ctx,
       "sp_js_include",
       "sys_id",
@@ -1006,7 +917,7 @@ export async function explainPortal(
     ),
   );
   const cssRows = byId(
-    await readIn(
+    await boundedReadIn(
       ctx,
       "sp_css_include",
       "sys_id",
@@ -1023,7 +934,7 @@ export async function explainPortal(
       css(str(r, "sp_css_include")),
     );
   }
-  const providerLinks = await readIn(
+  const providerLinks = await boundedReadIn(
     ctx,
     "m2m_sp_ng_pro_sp_widget",
     "sp_widget",
@@ -1031,7 +942,7 @@ export async function explainPortal(
     ["sys_id", "sp_widget", "sp_angular_provider"],
   );
   const providers = byId(
-    await readIn(
+    await boundedReadIn(
       ctx,
       "sp_angular_provider",
       "sys_id",
@@ -1040,7 +951,7 @@ export async function explainPortal(
     ),
   );
   const templates = groupBy(
-    await readIn(ctx, "sp_ng_template", "sp_widget", wIds, [
+    await boundedReadIn(ctx, "sp_ng_template", "sp_widget", wIds, [
       "sys_id",
       "id",
       "sp_widget",
@@ -1142,13 +1053,13 @@ const ROUTE_FIELDS = [
 
 /** Route maps matching `query`, skipped when the root id is not query-safe. */
 async function readRoutes(
-  ctx: Ctx,
+  ctx: ReadCtx,
   rootId: string,
   query: string,
   fields: string[],
 ): Promise<SnRecord[]> {
   return SAFE_ID.test(rootId)
-    ? read(ctx, "sp_page_route_map", query, fields)
+    ? boundedRead(ctx, "sp_page_route_map", query, fields)
     : [];
 }
 
