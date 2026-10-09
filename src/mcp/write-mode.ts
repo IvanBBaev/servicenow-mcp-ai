@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { getWriteMode, writeModeHold } from "../core/settings.js";
 import { ok, type ToolResult } from "./result.js";
 import type { WriteAction } from "../core/write-journal.js";
@@ -6,13 +5,7 @@ import { activeProfile } from "../core/config.js";
 import { currentCall } from "../core/request-context.js";
 import { issuePlanToken } from "./plan-token.js";
 
-/** The shared plan-and-apply gate input every Table-style write tool exposes (DF-2). */
-export const applyInput = z
-  .boolean()
-  .optional()
-  .describe(
-    "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
-  );
+export { applyInput } from "./params.js";
 
 /**
  * DF-2 — decide whether a write tool should execute or only preview.

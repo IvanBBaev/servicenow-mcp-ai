@@ -9,6 +9,7 @@ import {
   UPDATE_SET_STATES,
 } from "../api/updatesets.js";
 import { okStructured } from "../mcp/result.js";
+import { updateSetRef } from "../mcp/params.js";
 import {
   defineTool,
   encodedQuery,
@@ -22,12 +23,6 @@ const READ_ONLY = {
   idempotentHint: true,
   openWorldHint: true,
 } as const;
-
-const updateSetInput = shortText(100)
-  .min(1)
-  .describe(
-    "Update set sys_id or exact name (a shared name resolves to the one in progress).",
-  );
 
 const limit = (bounds: { default: number; max: number }, what: string) =>
   z
@@ -95,7 +90,7 @@ export const specs: AnyToolSpec[] = [
     package: "updatesets",
     annotations: READ_ONLY,
     input: {
-      update_set: updateSetInput,
+      update_set: updateSetRef,
       type: shortText(100)
         .optional()
         .describe("Only this type label, e.g. 'Business Rule'."),
@@ -143,7 +138,7 @@ export const specs: AnyToolSpec[] = [
     package: "updatesets",
     annotations: READ_ONLY,
     input: {
-      update_set: updateSetInput,
+      update_set: updateSetRef,
       with_profile: shortText(64)
         .optional()
         .describe("Profile to compare against live; this or with_snapshot."),

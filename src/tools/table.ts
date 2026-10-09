@@ -3,6 +3,7 @@ import { explainQuery } from "../api/query-explain.js";
 import { scopeQueryToDomain } from "../api/domain-separation.js";
 import { sdkGuard, type SdkGuardTarget } from "../mcp/sdk-guard.js";
 import { z } from "zod";
+import { updateSetInput } from "../mcp/params.js";
 import {
   queryTable,
   getRecord,
@@ -80,14 +81,6 @@ const inputDisplayValueInput = z
   .optional()
   .describe(
     "Values are display values the instance resolves (sysparm_input_display_value); default false: raw.",
-  );
-
-/** S-6: the update set an applied customization write is recorded in. */
-export const updateSetInput = shortText(100)
-  .min(1)
-  .optional()
-  .describe(
-    "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
   );
 
 /**

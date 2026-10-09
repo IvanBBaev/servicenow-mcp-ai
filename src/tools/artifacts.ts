@@ -33,7 +33,8 @@ import { assertTableWriteAllowed, assertWriteAllowed } from "../core/policy.js";
 import { applyInput, planPreview, shouldApply } from "../mcp/write-mode.js";
 import { sdkGuard } from "../mcp/sdk-guard.js";
 import { bindingPlanDetail, planUpdateSetBinding } from "../api/updatesets.js";
-import { assertUpsertUnchanged, updateSetInput } from "./table.js";
+import { assertUpsertUnchanged } from "./table.js";
+import { updateSetInput } from "../mcp/params.js";
 
 // A plain string, not an enum: the registry has dozens of types and an enum
 // would cost tokens in every tools/list (SDK-PARITY §5(d)). The resource lists

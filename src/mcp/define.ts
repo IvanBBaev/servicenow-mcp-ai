@@ -32,6 +32,9 @@ import { confirmDestructiveApply } from "./confirm.js";
 import type { JournalInput } from "../core/write-journal.js";
 import { EMAIL_ADDRESS_RE } from "../api/shared.js";
 import { legacyToolNames, type ToolName } from "./naming.js";
+import { instanceParam, planTokenParam } from "./params.js";
+
+export { instanceParam, planTokenParam };
 
 /**
  * The MCP behaviour hints every tool must declare (M-8 / GAP L4-07): all four
@@ -549,19 +552,6 @@ export function email() {
 export function recipients(max = 50) {
   return z.array(email()).min(1).max(max);
 }
-
-/** The automatic `instance` (connection profile) parameter (MI-3). */
-export const instanceParam = shortText(128)
-  .optional()
-  .describe("Profile (default active)");
-
-/**
- * H-3: the automatic `plan_token` parameter of a destructive-apply tool. Its
- * description stays short — tools/list is budgeted (M-6).
- */
-export const planTokenParam = shortText(64)
-  .optional()
-  .describe("Plan preview token (apply:true)");
 
 /**
  * The registered input schema of a spec: its own shape plus the automatic
