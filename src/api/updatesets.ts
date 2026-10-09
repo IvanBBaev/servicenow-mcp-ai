@@ -3,7 +3,7 @@ import { queryTable, type SnRecord } from "./table.js";
 import { getTableChain } from "./meta.js";
 import { RECORD_SECTIONS } from "./snapshot.js";
 import { assertProfile, readSnapshotJson, COMPARE_CAVEATS } from "./compare.js";
-import { snString, assertNoCaret, expectResult } from "./shared.js";
+import { snString, assertNoCaret, expectResult, IN_CHUNK } from "./shared.js";
 import { snRequest } from "../core/http.js";
 import { uibCompleteness } from "./uib-completeness.js";
 import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
@@ -427,7 +427,6 @@ export async function getUpdateSet(
 
 export const COMPARE_LIMIT = { default: 100, max: 500 } as const;
 const MAX_DIFF_FIELDS = 20;
-const IN_CHUNK = 100;
 
 export type CompareStatus =
   | "same"

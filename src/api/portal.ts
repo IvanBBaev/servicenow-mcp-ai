@@ -26,7 +26,7 @@ import { ServiceNowError } from "../core/errors.js";
 import { trackProgress, type ProgressTracker } from "../core/progress.js";
 import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label } from "./mermaid.js";
-import { snString } from "./shared.js";
+import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
 
 /** Default and maximum nested-row depth (a row inside a column). */
@@ -34,12 +34,6 @@ export const PORTAL_DEPTH = { default: 3, max: 6 } as const;
 
 /** Pages whose full layout is read; the others are listed with a summary. */
 export const LAYOUT_PAGES = 5;
-
-/** Ids per `fieldIN…` query (keeps the URL short). */
-const IN_CHUNK = 100;
-
-/** Statuses an unverified SP table degrades on instead of failing. */
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
 
 const SYS_ID = /^[0-9a-f]{32}$/;
 
@@ -237,13 +231,6 @@ interface Ctx {
   unreadable: Unreadable[];
   missing: Record<string, string[]>;
   progress: ProgressTracker;
-}
-
-function degradeStatus(error: unknown): number | undefined {
-  if (!(error instanceof ServiceNowError)) return undefined;
-  return error.status !== undefined && DEGRADE_STATUSES.has(error.status)
-    ? error.status
-    : undefined;
 }
 
 function noteMissing(

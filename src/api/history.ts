@@ -1,6 +1,6 @@
 import { ServiceNowError } from "../core/errors.js";
 import { assertTableAllowed } from "../core/policy.js";
-import { assertNoCaret, snString } from "./shared.js";
+import { assertNoCaret, snString, degradeStatus } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 
 /**
@@ -35,8 +35,6 @@ const JOURNAL_FIELDS = [
   "sys_created_by",
   "sys_created_on",
 ];
-
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
 
 /** `YYYY-MM-DD` with an optional ` HH:MM:SS`. */
 const SINCE_RE = /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}:\d{2}))?$/;
@@ -136,8 +134,8 @@ async function readSource(
       },
     };
   } catch (error) {
-    const status = error instanceof ServiceNowError ? error.status : undefined;
-    if (status === undefined || !DEGRADE_STATUSES.has(status)) throw error;
+    const status = degradeStatus(error);
+    if (status === undefined) throw error;
     return {
       records: [],
       report: { read: false, status, reason: (error as Error).message },

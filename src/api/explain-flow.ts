@@ -56,7 +56,7 @@ import { ServiceNowError } from "../core/errors.js";
 import { trackProgress, type ProgressTracker } from "../core/progress.js";
 import { CHILD_LIMIT, tableAvailable } from "./artifacts.js";
 import { MermaidDoc, ident, label, type Arrow, type Shape } from "./mermaid.js";
-import { snString } from "./shared.js";
+import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 
 /** Call-expansion depth: default (a flow's calls one level down) and max. */
@@ -79,12 +79,6 @@ export const INPUTS_PER_STEP = 50;
 
 /** Characters of an undecodable `values` column returned raw. */
 export const RAW_PREVIEW = 1000;
-
-/** Ids per `fieldIN…` query (keeps the URL short). */
-const IN_CHUNK = 100;
-
-/** Statuses an unverified table degrades on instead of failing. */
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
 
 /** A record id safe to splice into an encoded query. */
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -447,13 +441,6 @@ interface Ctx {
   unreadable: Unreadable[];
   missing: Record<string, string[]>;
   progress: ProgressTracker;
-}
-
-function degradeStatus(error: unknown): number | undefined {
-  if (!(error instanceof ServiceNowError)) return undefined;
-  return error.status !== undefined && DEGRADE_STATUSES.has(error.status)
-    ? error.status
-    : undefined;
 }
 
 function noteMissing(

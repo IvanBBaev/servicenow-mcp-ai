@@ -1,7 +1,7 @@
 import { ServiceNowError } from "../core/errors.js";
 import { assertTableAllowed, assertWriteAllowed } from "../core/policy.js";
 import { REDACTED } from "../core/redaction.js";
-import { snString } from "./shared.js";
+import { snString, degradeStatus } from "./shared.js";
 import { queryTable, updateRecord, type SnRecord } from "./table.js";
 
 /**
@@ -35,8 +35,6 @@ export const PROPERTY_NAME_RE = /^[A-Za-z0-9_.-]{1,255}$/;
 const SECRET_NAME =
   /password|secret|token|credential|private[_.]?key|api[_.]?key/i;
 const SECRET_TYPES = new Set(["password", "password2"]);
-
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
 
 export function assertPropertyName(name: string, field = "name"): void {
   if (!PROPERTY_NAME_RE.test(name)) {
@@ -125,8 +123,8 @@ export async function getProperties(
         : {}),
     };
   } catch (error) {
-    const status = error instanceof ServiceNowError ? error.status : undefined;
-    if (status === undefined || !DEGRADE_STATUSES.has(status)) throw error;
+    const status = degradeStatus(error);
+    if (status === undefined) throw error;
     return {
       count: 0,
       properties: [],

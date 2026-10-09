@@ -7,7 +7,13 @@ import {
 import { getCredentials, activeProfile } from "../core/config.js";
 import { cached } from "../core/cache.js";
 import { ServiceNowError } from "../core/errors.js";
-import { assertNoCaret, expectResult, snParams, snString } from "./shared.js";
+import {
+  assertNoCaret,
+  expectResult,
+  snParams,
+  snString,
+  degradeStatus,
+} from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 
 /**
@@ -122,9 +128,6 @@ const REL_FIELDS = [
   "child.sys_class_name",
 ];
 
-/** Instance statuses a read degrades on instead of failing (ACL, missing table). */
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
-
 export type RelationDirection = "both" | "outbound" | "inbound";
 
 export interface CiRelationQuery {
@@ -177,8 +180,8 @@ export async function listCiRelations(
       limit,
     }));
   } catch (error) {
-    const status = error instanceof ServiceNowError ? error.status : undefined;
-    if (status === undefined || !DEGRADE_STATUSES.has(status)) throw error;
+    const status = degradeStatus(error);
+    if (status === undefined) throw error;
     return {
       ci: opts.ci,
       direction,
@@ -280,8 +283,8 @@ export async function identifyCis(payload: IrePayload): Promise<unknown> {
   } catch (error) {
     // The policy already passed: a 400/403/404 here is the instance (no IRE
     // query endpoint, ACL) — degrade so the plan preview still renders.
-    const status = error instanceof ServiceNowError ? error.status : undefined;
-    if (status === undefined || !DEGRADE_STATUSES.has(status)) throw error;
+    const status = degradeStatus(error);
+    if (status === undefined) throw error;
     return { degraded: { status, reason: (error as Error).message } };
   }
 }

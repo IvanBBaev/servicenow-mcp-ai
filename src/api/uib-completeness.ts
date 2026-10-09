@@ -1,5 +1,5 @@
 import { queryTable, type SnRecord } from "./table.js";
-import { snString } from "./shared.js";
+import { snString, IN_CHUNK } from "./shared.js";
 import { rethrowIfCancelled } from "../core/errors.js";
 import {
   BROKER_TABLES,
@@ -43,7 +43,6 @@ import {
 export const MAX_PAGES = 20;
 /** Levels of nested macroponents followed below a page's macroponent. */
 export const NESTED_DEPTH = 3;
-const IN_CHUNK = 100;
 const ROW_LIMIT = 500;
 const SYS_ID = /^[0-9a-f]{32}$/;
 /** `<table>_<sys_id>` — the update name of a captured record (O-5). */

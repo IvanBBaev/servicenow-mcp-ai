@@ -19,6 +19,21 @@ export function expectResult<T>(
   return data.result;
 }
 
+/** Rows per `fieldIN…` list in one read (keeps the encoded query URL short). */
+export const IN_CHUNK = 100;
+
+/** Instance statuses a read degrades on instead of failing: bad query, ACL, missing or unverified table. */
+const DEGRADE_STATUSES: ReadonlySet<number> = new Set([400, 403, 404]);
+
+/** The HTTP status of an instance error a read may degrade on (400, 403, 404), else undefined. */
+export function degradeStatus(error: unknown): number | undefined {
+  if (!(error instanceof ServiceNowError)) return undefined;
+  const { status } = error;
+  return status !== undefined && DEGRADE_STATUSES.has(status)
+    ? status
+    : undefined;
+}
+
 /**
  * Coerce a ServiceNow record value to a string. With sysparm_display_value=all
  * a field arrives as `{ value, display_value }` — stringifying that blindly

@@ -33,7 +33,7 @@ import {
   type KeyValue,
   type SnRecord,
 } from "./table.js";
-import { snString } from "./shared.js";
+import { snString, degradeStatus } from "./shared.js";
 import { scopeClause } from "./scripts.js";
 import { DOMAIN_FIELDS, keepDomainFields } from "./domain-separation.js";
 
@@ -42,9 +42,6 @@ export const CHILD_LIMIT = 200;
 
 /** Default and maximum page size of `listArtifacts`. */
 export const LIST_LIMIT = { default: 50, max: 1000 } as const;
-
-/** Instance statuses an unverified type degrades on instead of failing. */
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
 
 const AUDIT_FIELDS = ["sys_updated_on", "sys_updated_by"];
 
@@ -65,15 +62,6 @@ export function resolveArtifactType(type: string): ArtifactType {
     );
   }
   return descriptor;
-}
-
-/** The HTTP status of an instance error an unverified type may degrade on. */
-function degradeStatus(error: unknown): number | undefined {
-  if (!(error instanceof ServiceNowError)) return undefined;
-  const status = error.status;
-  return status !== undefined && DEGRADE_STATUSES.has(status)
-    ? status
-    : undefined;
 }
 
 /**

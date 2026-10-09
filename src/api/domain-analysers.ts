@@ -52,7 +52,7 @@
 import { protectedEntry } from "../core/policy.js";
 import { ServiceNowError } from "../core/errors.js";
 import { decodeValues, type StepInput } from "./explain-flow.js";
-import { snString } from "./shared.js";
+import { snString, IN_CHUNK } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 import { scriptCalls } from "./script-ast.js";
 import {
@@ -118,9 +118,6 @@ export const DOMAIN_FINDINGS_TOP = 100;
 
 /** A wait-for-duration above this many seconds is a long wait (1 day). */
 export const LONG_WAIT_SECONDS = 86_400;
-
-/** Ids per `fieldIN…` query (keeps the URL short). */
-const IN_CHUNK = 100;
 
 /** A record id safe to splice into an encoded query. */
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;

@@ -67,7 +67,7 @@ import {
   type SecurityFinding,
   type SecurityScan,
 } from "./security.js";
-import { assertNoCaret, mdTable, snString } from "./shared.js";
+import { assertNoCaret, mdTable, snString, IN_CHUNK } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 import { WORKSPACE_CATEGORY } from "./uib-workspace.js";
 
@@ -1701,9 +1701,6 @@ async function readSection(
     return { table, rows: [], unreadable: true };
   }
 }
-
-/** Rows per `IN` list in one read (keeps the encoded query URL short). */
-const IN_CHUNK = 100;
 
 /** {@link readSection} over `field IN values`, in chunks; no values, no read. */
 async function readSectionIn(

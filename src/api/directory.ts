@@ -1,6 +1,6 @@
 import { ServiceNowError } from "../core/errors.js";
 import { assertTableAllowed } from "../core/policy.js";
-import { assertNoCaret, snString } from "./shared.js";
+import { assertNoCaret, snString, degradeStatus } from "./shared.js";
 import { queryTable, type SnRecord } from "./table.js";
 
 /**
@@ -74,8 +74,6 @@ const KINDS: Record<DirectoryKind, KindSpec> = {
     order: "ORDERBYname",
   },
 };
-
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
 
 export interface DirectoryQuery {
   kind: DirectoryKind;
@@ -212,8 +210,8 @@ async function readDetail(
       truncated: total !== undefined && total > records.length,
     };
   } catch (error) {
-    const status = error instanceof ServiceNowError ? error.status : undefined;
-    if (status === undefined || !DEGRADE_STATUSES.has(status)) throw error;
+    const status = degradeStatus(error);
+    if (status === undefined) throw error;
     return {
       ok: false,
       reason: { table: d.table, status, reason: (error as Error).message },

@@ -104,7 +104,7 @@ import {
   lintUibBroker,
   type UibBrokerFinding,
 } from "./uib-broker-lint.js";
-import { snString } from "./shared.js";
+import { snString, degradeStatus, IN_CHUNK } from "./shared.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
 import {
   WORKSPACE_CAVEAT,
@@ -123,12 +123,6 @@ import {
   type WorkspaceIo,
   workspaceLines,
 } from "./uib-workspace.js";
-
-/** Ids per `fieldIN…` query (keeps the URL short). */
-const IN_CHUNK = 100;
-
-/** Statuses an unverified UIB table degrades on instead of failing. */
-const DEGRADE_STATUSES = new Set([400, 403, 404]);
 
 const SYS_ID = /^[0-9a-f]{32}$/;
 
@@ -533,13 +527,6 @@ interface Ctx {
   unreadable: Unreadable[];
   missing: Record<string, string[]>;
   progress: ProgressTracker;
-}
-
-function degradeStatus(error: unknown): number | undefined {
-  if (!(error instanceof ServiceNowError)) return undefined;
-  return error.status !== undefined && DEGRADE_STATUSES.has(error.status)
-    ? error.status
-    : undefined;
 }
 
 function noteMissing(
