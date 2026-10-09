@@ -1085,11 +1085,11 @@ items:
     title: "tool discovery instead of a bigger budget"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: "B"
     done: null
     gates: ["O-10"]
-    notes: "Phase B, with O-10. `servicenow_find_tools` in `core`, on-demand packages, `core` ≤ 20 KB, a discovery budget profile (TK-06). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**`servicenow_find_tools` done 2026-10-09** (admin, always on, +761 B on every profile, budgets raised with the owner's O-10 approval of 2026-10-09): ranks the session's permitted tools by intent and names the package to enable. Open, carried by N-63: `attachment` out of `core` (O-4), `discovery` as the default budget profile, `core` ≤ 22 KB, per-session enabling (O-19 (d)). Phase B, with O-10. `servicenow_find_tools` in `core`, on-demand packages, `core` ≤ 20 KB, a discovery budget profile (TK-06). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-37"
     title: "lean definitions and per-tool reference"
     pillar: "N"
@@ -1332,7 +1332,7 @@ items:
     phase: "T3"
     done: null
     gates: ["O-4", "O-10", "O-19"]
-    notes: "Phase T3, waits for O-10 (b), O-19 (d) and O-4 entries (TK-43, TK-45). Refines N-36 (`core` ≈ 21 KB, restated ≤ 22 KB): `attachment` out of `core`, `find_tools` in, `discovery` as the default budget profile; per-connection `tools/list` rule of 2026-07-28 decided first. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: "Phase T3, waits for O-10 (b), O-19 (d) and O-4 entries (TK-43, TK-45). Refines N-36 (`core` ≈ 21 KB, restated ≤ 22 KB): `attachment` out of `core`, `find_tools` in (done 2026-10-09 under N-36), `discovery` as the default budget profile; per-connection `tools/list` rule of 2026-07-28 decided first. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-64"
     title: "selective consolidation"
     pillar: "N"
