@@ -492,7 +492,7 @@ test("N-29 / N-30: broker, declarative action, theme and AW rows stay out of the
     const t = getArtifactType(type);
     assert.deepEqual(t.scriptFields, [], type);
     assert.deepEqual(t.metaFields, ["mutates_server_data"], type);
-    assert.equal(t.jsonFields[0].field, "properties", type);
+    assert.equal(t.jsonFields[0].field, "props", type);
     assert.notEqual(t.scriptToolsOptIn, true, type);
   }
   const da = getArtifactType("ux_declarative_action");
@@ -715,4 +715,34 @@ test("registry lint: one descriptor per table, known exceptions documented (N-34
     [...byTable].filter(([, types]) => types.length > 1),
   );
   assert.deepEqual(duplicates, KNOWN_DUPLICATE_TABLES);
+});
+
+test("O-5: UI rows use the column names confirmed on a PDI", () => {
+  const t = (type) => getArtifactType(type);
+  const json = (row) => (row.jsonFields ?? []).map((j) => j.field);
+  const refs = (row) => (row.refFields ?? []).map((r) => r.field);
+  for (const type of [
+    "uib_data_broker_transform",
+    "uib_data_broker_scriptlet",
+    "uib_data_broker_rest",
+    "uib_data_broker_graphql",
+  ]) {
+    assert.deepEqual(json(t(type)), ["props"], type);
+  }
+  assert.deepEqual(json(t("uib_route")), ["optional_parameters"]);
+  assert.deepEqual(json(t("uib_app_config").children[0]), []);
+  assert.ok(!refs(t("uib_screen")).includes("applicability"));
+  assert.equal(t("uib_component").nameField, "tag");
+  assert.deepEqual(json(t("uib_component")), []);
+  assert.equal(t("uib_form_action").nameField, "name");
+  assert.deepEqual(refs(t("uib_form_action")), [
+    "ui_action",
+    "declarative_action",
+  ]);
+  assert.deepEqual(refs(t("uib_form_action_layout").children[0]), ["action"]);
+  assert.equal(t("ux_declarative_action_definition").nameField, "name");
+  assert.deepEqual(json(t("ux_declarative_action_payload")), [
+    "payload_template",
+  ]);
+  assert.deepEqual(t("sp_dependency").writeFields, ["module", "page_load"]);
 });
