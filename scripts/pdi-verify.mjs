@@ -9,7 +9,8 @@
 //     reference target table;
 //   - reader calls in build/api and build/tools: an object literal with a
 //     `table` and a `fields` array (queryTable and friends), literal or a
-//     top-level const of the same file (spreads included).
+//     top-level const of the same file (spreads included), plus the field
+//     names in the static parts of its encoded `query`.
 //
 // The instance side is sys_db_object (with the super_class chain, so an
 // inherited field counts) and sys_dictionary. Only GETs go out, through the
@@ -162,6 +163,68 @@ function resolveList(n, consts, seen = new Set()) {
   );
 }
 
+/** Placeholder for a `${…}` part of a template literal query. */
+const HOLE = "\u0001";
+
+/**
+ * Every `const` declared anywhere in the file, by name (a name may be bound
+ * in several functions), so `{ table, query }` with a local `query` resolves.
+ */
+function allConstants(ast) {
+  const all = new Map();
+  walk(ast, (n) => {
+    if (n.type !== "VariableDeclaration" || n.kind !== "const") return;
+    for (const d of n.declarations) {
+      if (d.id.type !== "Identifier" || !d.init) continue;
+      all.set(d.id.name, [...(all.get(d.id.name) ?? []), d.init]);
+    }
+  });
+  return all;
+}
+
+/** The possible static texts of a query expression, `${…}` parts as HOLE. */
+function queryTexts(n, consts, seen = new Set()) {
+  if (n?.type === "Identifier") {
+    if (seen.has(n.name) || !consts.has(n.name)) return [];
+    const next = new Set(seen).add(n.name);
+    return consts.get(n.name).flatMap((init) => queryTexts(init, consts, next));
+  }
+  if (n?.type === "TemplateLiteral") {
+    return [n.quasis.map((q) => q.value.cooked).join(HOLE)];
+  }
+  if (n?.type === "ConditionalExpression") {
+    return [
+      ...queryTexts(n.consequent, consts, seen),
+      ...queryTexts(n.alternate, consts, seen),
+    ];
+  }
+  if (n?.type === "BinaryExpression" && n.operator === "+") {
+    const left = queryTexts(n.left, consts, seen);
+    const right = queryTexts(n.right, consts, seen);
+    return (left.length ? left : [HOLE]).flatMap((l) =>
+      (right.length ? right : [HOLE]).map((r) => l + r),
+    );
+  }
+  const text = literal(n);
+  return text === null ? [] : [text];
+}
+
+/**
+ * Field names of an encoded query: the lower-case head of each term, before
+ * its upper-case or symbolic operator. Terms that start with a `${…}` part
+ * are skipped, as are `javascript:` values.
+ */
+function queryFields(text) {
+  const out = [];
+  for (let term of text.split(/\^NQ|\^OR|\^/)) {
+    term = term.replace(/^(ORDERBYDESC|ORDERBY|GROUPBY)/, "");
+    const m = /^[a-z][a-z0-9_.]*/.exec(term);
+    if (!m || m[0] === "javascript") continue;
+    out.push(m[0]);
+  }
+  return out;
+}
+
 function collectReaders() {
   for (const dir of ["api", "tools"]) {
     const base = path.join(build, dir);
@@ -173,6 +236,7 @@ function collectReaders() {
         sourceType: "module",
       });
       const consts = fileConstants(ast);
+      const locals = allConstants(ast);
       const src = `reader:${dir}/${rel}`;
       walk(ast, (n) => {
         if (n.type !== "ObjectExpression") return;
@@ -186,6 +250,9 @@ function collectReaders() {
         if (!table) return;
         for (const f of resolveList(props.get("fields"), consts)) {
           addField(table, f, src);
+        }
+        for (const text of queryTexts(props.get("query"), locals)) {
+          for (const f of queryFields(text)) addField(table, f, src);
         }
       });
     }
