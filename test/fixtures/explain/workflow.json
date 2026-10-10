@@ -17,11 +17,10 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "workflow 'Acme approval' (wf_workflow); active; scope x_acme_app; 4 child record(s) in 3 table(s); unverified type. Legacy approval workflow.",
+  "summary": "workflow 'Acme approval' (wf_workflow); scope x_acme_app; 4 child record(s) in 3 table(s); unverified type. Legacy approval workflow.",
   "when": null,
   "fields": {
     "name": "Acme approval",
-    "active": "true",
     "description": "Legacy approval workflow."
   },
   "children": [
@@ -42,21 +41,20 @@
     },
     {
       "table": "wf_activity",
-      "parentField": "workflow",
+      "parentField": "workflow_version",
+      "parentTable": "wf_workflow_version",
       "verified": false,
       "count": 2,
       "items": [
         {
           "sys_id": "3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b",
           "name": "Begin",
-          "order": "1",
-          "workflow": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
+          "workflow_version": "2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b"
         },
         {
           "sys_id": "4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b4b",
           "name": "Approval - User",
-          "order": "2",
-          "workflow": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b"
+          "workflow_version": "2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b"
         }
       ]
     },

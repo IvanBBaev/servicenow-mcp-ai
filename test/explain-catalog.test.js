@@ -346,8 +346,7 @@ test("P-8: every catalog / quality / AI / application row is registered and unve
     "sn_aia_agent_config:agent",
     "sn_aia_agent_tool_m2m:agent",
     "sn_aia_tool:sys_id:sn_aia_agent_tool_m2m",
-    "sn_aia_trigger_configuration:agent",
-    "sn_aia_version:agent",
+    "sn_aia_version:target_id",
   ]);
   assert.deepEqual(validateArtifactTypes(), []);
 

@@ -537,11 +537,11 @@ test("P-9: the rows carry their child tables", () => {
   assert.ok(children("flow_context").includes("sys_flow_log"));
   assert.ok(children("playbook").includes("sys_pd_activity"));
   assert.ok(children("decision_table").includes("sys_decision_question"));
-  // wf_activity keeps parentField `workflow` (get_flow reads it the same way).
+  // wf_activity hangs off the workflow version (O-5: no `workflow` column).
   const wf = getArtifactType("workflow").children;
   assert.equal(
     wf.find((c) => c.table === "wf_activity").parentField,
-    "workflow",
+    "workflow_version",
   );
   assert.equal(
     wf.find((c) => c.table === "wf_condition").parentTable,
