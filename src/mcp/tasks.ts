@@ -276,6 +276,8 @@ export class SnTaskStore {
     }
     entry.error = error;
     entry.task.status = "failed";
+    // ext-tasks: a failed task says why in statusMessage too.
+    entry.task.statusMessage = error.message;
     entry.task.lastUpdatedAt = this.stamp();
     this.running.delete(taskId);
   }

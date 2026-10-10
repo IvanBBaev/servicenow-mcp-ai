@@ -636,7 +636,11 @@ test("e2e: a 2026-07-28 task tool call answers a task, polled across requests to
         const task = created.result;
         assert.equal(task.resultType, "task");
         assert.equal(task.status, "working");
-        assert.equal(typeof task.taskId, "string");
+        assert.match(
+          task.taskId,
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+          "a random (v4 UUID) task id",
+        );
         assert.equal(typeof task.createdAt, "string");
         assert.equal(typeof task.lastUpdatedAt, "string");
         assert.ok("ttlMs" in task);
@@ -653,6 +657,7 @@ test("e2e: a 2026-07-28 task tool call answers a task, polled across requests to
             },
           )
         ).result;
+        assert.equal(working.resultType, "complete");
         assert.equal(working.status, "working");
         assert.equal("result" in working, false);
 
@@ -662,6 +667,7 @@ test("e2e: a 2026-07-28 task tool call answers a task, polled across requests to
           task.taskId,
           (t) => t.status !== "working",
         );
+        assert.equal(done.resultType, "complete");
         assert.equal(done.status, "completed");
         assert.notEqual(done.result.isError, true, JSON.stringify(done.result));
         assert.equal(done.result.structuredContent.format, "file");
@@ -786,7 +792,7 @@ test("e2e: without the extension, or with run_as_task:false, a 2026-07-28 call s
             tasks,
           });
           assert.equal(res.error, undefined, JSON.stringify(res.error));
-          assert.notEqual(res.result.resultType, "task");
+          assert.equal(res.result.resultType, "complete");
           assert.notEqual(res.result.isError, true, JSON.stringify(res.result));
         }
       });

@@ -210,6 +210,7 @@ test("store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error", as
   const failed = store.modernTask(bad.taskId, "modern:");
   assert.equal(failed.status, "failed");
   assert.deepEqual(failed.error, { code: -32603, message: "boom" });
+  assert.equal(failed.statusMessage, "boom");
   assert.equal("result" in failed, false);
   assert.equal(store.runningCount(), 0);
   assert.throws(
