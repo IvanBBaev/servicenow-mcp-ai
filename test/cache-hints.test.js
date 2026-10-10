@@ -193,3 +193,17 @@ test("N-38: the legacy wire carries no ttlMs / cacheScope", async () => {
     assert.equal(seen.length, 5 + STATIC_URIS.length + DYNAMIC_URIS.length);
   });
 });
+
+// cache-03/04: a list's hint is bound per method, so every page of one list
+// would carry it; the server answers each list in one page (no nextCursor),
+// and that page carries the method's hint.
+test("N-38: every 2026-07-28 list answers in a single page that carries the method's hint", async () => {
+  await withClient({ pin: MODERN }, buildHintedServer, async (client, wire) => {
+    for (const [method, call] of Object.entries(CACHEABLE_LISTS)) {
+      const page = await call(client);
+      assert.equal(page.nextCursor, undefined, `${method} returned a cursor`);
+      assert.equal(wire.get(method).nextCursor, undefined, method);
+      assertHint(wire.get(method), LIST_CACHE_HINTS[method], method);
+    }
+  });
+});
