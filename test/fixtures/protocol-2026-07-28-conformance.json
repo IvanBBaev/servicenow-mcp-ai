@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 212,
+  "pendingCeiling": 157,
   "requirements": [
     {
       "id": "base-01",
@@ -443,8 +443,13 @@
       "text": "On notifications delivered via a `subscriptions/listen` stream, the server MUST include `io.modelcontextprotocol/subscriptionId` in `_meta` so the client can correlate the notification with the originating subscription request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): the acknowledgement comes first and every stream notification carries the subscription ID",
+        "test/protocol-listen.test.js :: listen (HTTP): acknowledgement first, then on shutdown a completion result and its cancellation",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout"
+      ]
     },
     {
       "id": "base-42",
@@ -518,8 +523,10 @@
       "text": "The server MUST NOT send notification types the client has not explicitly requested.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions#opening-a-stream",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): only the requested notification types reach the stream"
+      ]
     },
     {
       "id": "base-50",
@@ -527,8 +534,13 @@
       "text": "The server MUST send `notifications/subscriptions/acknowledged` as the first message carrying the subscription's ID in `_meta` under `io.modelcontextprotocol/subscriptionId`, and MUST NOT send any notification on the subscription before it.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions#acknowledgment",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): the acknowledgement comes first and every stream notification carries the subscription ID",
+        "test/protocol-listen.test.js :: listen (HTTP): acknowledgement first, then on shutdown a completion result and its cancellation",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout"
+      ]
     },
     {
       "id": "base-51",
@@ -536,8 +548,13 @@
       "text": "The server MUST send `notifications/subscriptions/acknowledged` as the first message carrying the subscription's ID in `_meta` under `io.modelcontextprotocol/subscriptionId`, and MUST NOT send any notification on the subscription before it.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions#acknowledgment",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): the acknowledgement comes first and every stream notification carries the subscription ID",
+        "test/protocol-listen.test.js :: listen (HTTP): acknowledgement first, then on shutdown a completion result and its cancellation",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout"
+      ]
     },
     {
       "id": "base-52",
@@ -545,8 +562,13 @@
       "text": "The server tears it down (e.g., during shutdown) — it SHOULD send a successful `subscriptions/listen` response to signal a graceful end (see Graceful Closure), then close the stream.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions#cancellation",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): shutdown answers the listen request with a completion result, then cancels it",
+        "test/protocol-listen.test.js :: listen (HTTP): acknowledgement first, then on shutdown a completion result and its cancellation",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout"
+      ]
     },
     {
       "id": "base-53",
@@ -554,8 +576,13 @@
       "text": "When the server ends a subscription on its own initiative (for example, during shutdown), it SHOULD respond to the original `subscriptions/listen` request with a completion result before closing the stream.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/subscriptions#graceful-closure",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): shutdown answers the listen request with a completion result, then cancels it",
+        "test/protocol-listen.test.js :: listen (HTTP): acknowledgement first, then on shutdown a completion result and its cancellation",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout"
+      ]
     },
     {
       "id": "base-54",
@@ -692,8 +719,10 @@
       "text": "Servers MUST implement `server/discover`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning#protocol-version-negotiation",
       "applies": "always",
-      "status": "pending",
-      "step": "discover"
+      "status": "covered",
+      "tests": [
+        "test/protocol-discover.test.js :: discover: server/discover is implemented and answers a complete result"
+      ]
     },
     {
       "id": "lifecycle-03",
@@ -746,8 +775,12 @@
       "text": "Add `server/discover`: servers MUST implement this RPC to advertise their supported protocol versions, capabilities, and identity.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/changelog#major-changes",
       "applies": "always",
-      "status": "pending",
-      "step": "discover"
+      "status": "covered",
+      "tests": [
+        "test/protocol-discover.test.js :: discover: supportedVersions advertises 2026-07-28; 2025-11-25 stays negotiable via initialize",
+        "test/protocol-discover.test.js :: discover: capabilities declare tools, resources and prompts with listChanged, and logging",
+        "test/protocol-discover.test.js :: discover: the result names the server identity in _meta serverInfo"
+      ]
     },
     {
       "id": "discover-01",
@@ -755,8 +788,10 @@
       "text": "Servers MUST implement it.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/discover",
       "applies": "always",
-      "status": "pending",
-      "step": "discover"
+      "status": "covered",
+      "tests": [
+        "test/protocol-discover.test.js :: discover: server/discover is implemented and answers a complete result"
+      ]
     },
     {
       "id": "discover-02",
@@ -764,8 +799,11 @@
       "text": "Servers SHOULD include this field.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/discover#discoverresult",
       "applies": "always",
-      "status": "pending",
-      "step": "discover"
+      "status": "covered",
+      "tests": [
+        "test/protocol-discover.test.js :: discover: the result names the server identity in _meta serverInfo",
+        "test/protocol-discover.test.js :: discover: the result carries the server instructions"
+      ]
     },
     {
       "id": "stdio-01",
@@ -1648,8 +1686,13 @@
       "text": "A server MUST send `notifications/cancelled` referencing a `subscriptions/listen` request ID when it tears down that subscription stream (see Subscriptions).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): shutdown answers the listen request with a completion result, then cancels it",
+        "test/protocol-listen.test.js :: listen (HTTP): acknowledgement first, then on shutdown a completion result and its cancellation",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout"
+      ]
     },
     {
       "id": "cancel-02",
@@ -1693,8 +1736,13 @@
       "text": "Server-sent cancellation notifications MUST reference a `subscriptions/listen` request, to terminate that subscription stream",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation#behavior-requirements",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): shutdown answers the listen request with a completion result, then cancels it",
+        "test/protocol-listen.test.js :: listen (HTTP): acknowledgement first, then on shutdown a completion result and its cancellation",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout"
+      ]
     },
     {
       "id": "cancel-07",
@@ -2362,8 +2410,12 @@
       "text": "This set MAY be empty and MAY change over time (see List Changed Notification), but MUST NOT vary per-connection or as a side effect of other requests on the connection.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#capabilities",
       "applies": "always",
-      "status": "pending",
-      "step": "packages"
+      "status": "covered",
+      "tests": [
+        "test/protocol-packages.test.js :: packages: two 2026-07-28 requests see identical tools, prompts and resources lists",
+        "test/protocol-packages.test.js :: packages: a 2026-07-28 enable_package / disable_package is refused and the lists stay identical",
+        "test/protocol-packages.test.js :: packages: on a pinned 2026-07-28 stdio connection enable_package does not change the lists"
+      ]
     },
     {
       "id": "tools-05",
@@ -2382,8 +2434,10 @@
       "text": "When the list of available tools changes, servers that declared the `listChanged` capability SHOULD send a notification to clients that have opened a `subscriptions/listen` stream with `toolsListChanged: true`:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/tools#list-changed-notification",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): tools, prompts and resources list_changed reach an open stream"
+      ]
     },
     {
       "id": "tools-07",
@@ -2645,8 +2699,10 @@
       "text": "When the list of available resources changes, servers that declared the `listChanged` capability SHOULD send a notification:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources#list-changed-notification",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): tools, prompts and resources list_changed reach an open stream"
+      ]
     },
     {
       "id": "resources-05",
@@ -2768,8 +2824,10 @@
       "text": "Servers that support prompts MUST declare the `prompts` capability in their `DiscoverResult`:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/prompts#capabilities",
       "applies": "always",
-      "status": "pending",
-      "step": "discover"
+      "status": "covered",
+      "tests": [
+        "test/protocol-discover.test.js :: discover: capabilities declare tools, resources and prompts with listChanged, and logging"
+      ]
     },
     {
       "id": "prompts-02",
@@ -2788,8 +2846,12 @@
       "text": "This set MAY be empty and MAY change over time (see List Changed Notification), but MUST NOT vary per-connection or as a side effect of other requests on the connection.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/prompts#capabilities",
       "applies": "always",
-      "status": "pending",
-      "step": "packages"
+      "status": "covered",
+      "tests": [
+        "test/protocol-packages.test.js :: packages: two 2026-07-28 requests see identical tools, prompts and resources lists",
+        "test/protocol-packages.test.js :: packages: a 2026-07-28 enable_package / disable_package is refused and the lists stay identical",
+        "test/protocol-packages.test.js :: packages: on a pinned 2026-07-28 stdio connection enable_package does not change the lists"
+      ]
     },
     {
       "id": "prompts-04",
@@ -2797,8 +2859,10 @@
       "text": "When the list of available prompts changes, servers that declared the `listChanged` capability SHOULD send a notification to clients that have opened a `subscriptions/listen` stream with `promptsListChanged: true`:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/prompts#list-changed-notification",
       "applies": "always",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): tools, prompts and resources list_changed reach an open stream"
+      ]
     },
     {
       "id": "prompts-05",
@@ -2920,8 +2984,10 @@
       "text": "A server MUST NOT return `CreateTaskResult` to a client that did not include the extension capability on its request, regardless of prior declarations.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#capability-negotiation",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: without the extension, or with run_as_task:false, a 2026-07-28 call stays synchronous (M-9)"
+      ]
     },
     {
       "id": "tasks-02",
@@ -2947,8 +3013,10 @@
       "text": "Servers MUST set `resultType` to `\"task\"` when returning a `CreateTaskResult` so that clients can distinguish it from a standard result.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#polymorphic-results",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-05",
@@ -2956,8 +3024,10 @@
       "text": "Servers MUST NOT set `resultType` to `\"task\"` on result types other than `CreateTaskResult`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#polymorphic-results",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: without the extension, or with run_as_task:false, a 2026-07-28 call stays synchronous (M-9)"
+      ]
     },
     {
       "id": "tasks-06",
@@ -2974,8 +3044,10 @@
       "text": "A server MUST NOT return `CreateTaskResult` until the task is durably created — that is, until a `tasks/get` for the returned `taskId` would resolve.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-creation",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-08",
@@ -3001,8 +3073,10 @@
       "text": "Upon receiving a `tasks/get` request, the server MUST check the status of the task and respond accordingly:",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-11",
@@ -3010,8 +3084,10 @@
       "text": "If the status is `working`, the server MUST return a a `Task` object with status `working`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-12",
@@ -3037,8 +3113,11 @@
       "text": "If the status is `completed`, the server MUST return a `Task` object with status `completed` and a `result` field containing the final result of the task.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)",
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-15",
@@ -3046,8 +3125,10 @@
       "text": "If the status is `cancelled`, the server MUST return a `Task` object with status `cancelled`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: tasks/cancel stops a 2026-07-28 task and answers {} (M-9)"
+      ]
     },
     {
       "id": "tasks-16",
@@ -3055,8 +3136,10 @@
       "text": "If the status is `failed`, the server MUST return a `Task` object with status `failed` and the error that occurred during execution.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-17",
@@ -3064,8 +3147,10 @@
       "text": "The `resultType` field MUST be set to `\"complete\"` on this object as it is the standard result shape for the `tasks/get` request.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-18",
@@ -3091,8 +3176,10 @@
       "text": "On success, the server MUST acknowledge the request with an empty result.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-21",
@@ -3100,8 +3187,10 @@
       "text": "Servers SHOULD return a JSON-RPC error if the `taskId` does not correspond to a known task.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: 2026-07-28 task errors — unknown task, undeclared extension, removed methods (M-9)"
+      ]
     },
     {
       "id": "tasks-22",
@@ -3118,8 +3207,10 @@
       "text": "The `resultType` field MUST be set to `\"complete\"` on `UpdateTaskResult` as it is the standard result shape for the `tasks/update` request.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-24",
@@ -3127,8 +3218,10 @@
       "text": "The `notifications/cancelled` notification MUST NOT be used for task cancellation.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-cancellation",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: tasks/cancel stops a 2026-07-28 task and answers {} (M-9)"
+      ]
     },
     {
       "id": "tasks-25",
@@ -3136,8 +3229,10 @@
       "text": "On success, the server MUST acknowledge the request with an empty result.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: tasks/cancel stops a 2026-07-28 task and answers {} (M-9)"
+      ]
     },
     {
       "id": "tasks-26",
@@ -3145,8 +3240,10 @@
       "text": "Servers SHOULD return a JSON-RPC error if the `taskId` does not correspond to a known task.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: 2026-07-28 task errors — unknown task, undeclared extension, removed methods (M-9)"
+      ]
     },
     {
       "id": "tasks-27",
@@ -3154,8 +3251,10 @@
       "text": "The `resultType` field MUST be set to `\"complete\"` on `CancelTaskResult` as it is the standard result shape for the `tasks/cancel` request.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: tasks/cancel stops a 2026-07-28 task and answers {} (M-9)"
+      ]
     },
     {
       "id": "tasks-28",
@@ -3163,8 +3262,14 @@
       "text": "If a client requests task status notifications but does not declare the `io.modelcontextprotocol/tasks` extension capability, the server MUST return a JSON-RPC error specifying the missing capabilities:",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-status-notifications",
       "applies": "tasks",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): a taskIds filter without the tasks extension is refused with -32021",
+        "test/protocol-listen.test.js :: listen (HTTP): a taskIds filter is refused with -32021 without the tasks extension and honoured as empty with it",
+        "test/protocol-listen.test.js :: listen (stdio): a declaring client's taskIds filter is honoured as empty",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): a taskIds filter without the tasks extension is refused with -32021 and data.requiredCapabilities",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): a taskIds filter without the tasks extension is refused with -32021 and data.requiredCapabilities"
+      ]
     },
     {
       "id": "tasks-29",
@@ -3172,8 +3277,11 @@
       "text": "`notifications/progress` and `notifications/message` notifications MUST NOT be sent on the `subscriptions/listen` stream for a task, and are not supported on tasks in general in this specification.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-status-notifications",
       "applies": "tasks",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): no notifications/progress or notifications/message travel on a listen stream",
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-30",
@@ -3181,8 +3289,10 @@
       "text": "Servers MUST return standard JSON-RPC errors for the following protocol error cases:",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#protocol-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: 2026-07-28 task errors — unknown task, undeclared extension, removed methods (M-9)"
+      ]
     },
     {
       "id": "tasks-31",
@@ -3190,8 +3300,10 @@
       "text": "Servers MUST return this error for `tasks/get`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#protocol-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: 2026-07-28 task errors — unknown task, undeclared extension, removed methods (M-9)"
+      ]
     },
     {
       "id": "tasks-32",
@@ -3199,8 +3311,10 @@
       "text": "Servers SHOULD return this error for `tasks/update` and `tasks/cancel`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#protocol-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: 2026-07-28 task errors — unknown task, undeclared extension, removed methods (M-9)"
+      ]
     },
     {
       "id": "tasks-33",
@@ -3208,8 +3322,13 @@
       "text": "Servers MUST return this error for non-declaring clients requesting task notifications on `subscriptions/listen`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#protocol-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "listen"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen.test.js :: listen (stdio): a taskIds filter without the tasks extension is refused with -32021",
+        "test/protocol-listen.test.js :: listen (HTTP): a taskIds filter is refused with -32021 without the tasks extension and honoured as empty with it",
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): a taskIds filter without the tasks extension is refused with -32021 and data.requiredCapabilities",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): a taskIds filter without the tasks extension is refused with -32021 and data.requiredCapabilities"
+      ]
     },
     {
       "id": "tasks-34",
@@ -3217,8 +3336,10 @@
       "text": "Servers MUST return this error for non-declaring clients issuing `tasks/get`, `tasks/update`, and `tasks/cancel` requests.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#protocol-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: 2026-07-28 task errors — unknown task, undeclared extension, removed methods (M-9)"
+      ]
     },
     {
       "id": "tasks-35",
@@ -3235,8 +3356,10 @@
       "text": "The `tasks/get` response SHOULD include a `statusMessage` field with diagnostic information about the failure, and MUST include the `error` field with the JSON-RPC error.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-execution-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-37",
@@ -3244,8 +3367,10 @@
       "text": "The `tasks/get` response SHOULD include a `statusMessage` field with diagnostic information about the failure, and MUST include the `error` field with the JSON-RPC error.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-execution-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-38",
@@ -3253,8 +3378,10 @@
       "text": "The `failed` status MUST NOT be used to represent non-JSON-RPC errors, such as a tool result that completed with `isError: true`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-execution-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-39",
@@ -3262,8 +3389,10 @@
       "text": "Errors within the context of a protocol method result MUST use the `completed` status with the error details in the `result` field.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-execution-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-40",
@@ -3271,8 +3400,10 @@
       "text": "If the underlying request resulted in a JSON-RPC error, the task uses `failed` status and the `error` field MUST contain that JSON-RPC error.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-execution-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-41",
@@ -3280,8 +3411,10 @@
       "text": "If the request completed with a result (even if `isError: true` for tool results), the task uses `completed` status and the `result` field MUST contain that result.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-execution-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/tasks.test.js :: store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error"
+      ]
     },
     {
       "id": "tasks-42",
@@ -3289,8 +3422,10 @@
       "text": "Servers MUST generate them with sufficient entropy that a third party cannot enumerate or guess them.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#security-considerations",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)"
+      ]
     },
     {
       "id": "tasks-43",
@@ -3327,8 +3462,11 @@
       "text": "New implementations SHOULD NOT adopt it; existing implementations SHOULD migrate to logging to `stderr` for stdio transports, or to OpenTelemetry for structured observability.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging",
       "applies": "always",
-      "status": "pending",
-      "step": "logging"
+      "status": "covered",
+      "tests": [
+        "test/log-bridge.test.js :: a 2025 call logs through its request channel, still filtered by setLevel (M-8)",
+        "test/log-bridge.test.js :: a 2026-07-28 request gets lines at or above its level, request-scoped (M-8)"
+      ]
     },
     {
       "id": "deprecated-04",
@@ -3336,8 +3474,12 @@
       "text": "New implementations SHOULD NOT adopt it; existing implementations SHOULD migrate to logging to `stderr` for stdio transports, or to OpenTelemetry for structured observability.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging",
       "applies": "always",
-      "status": "pending",
-      "step": "logging"
+      "status": "covered",
+      "tests": [
+        "test/log-bridge.test.js :: a 2025 call logs through its request channel, still filtered by setLevel (M-8)",
+        "test/log-bridge.test.js :: a 2026-07-28 request gets lines at or above its level, request-scoped (M-8)",
+        "test/protocol-logging-hygiene.test.js :: logs go to stderr only and never carry credentials, headers or the query"
+      ]
     },
     {
       "id": "deprecated-05",
@@ -3356,8 +3498,12 @@
       "text": "The server MUST NOT emit `notifications/message` for a request that does not include this field.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging#per-request-log-level",
       "applies": "always",
-      "status": "pending",
-      "step": "logging"
+      "status": "covered",
+      "tests": [
+        "test/log-bridge.test.js :: a 2026-07-28 request without a log level gets no notification (M-8)",
+        "test/log-bridge.test.js :: outside a call, nothing is sent before a 2025 client initializes (M-8)",
+        "test/protocol-dual-spawn.test.js :: modern wire: log notifications only for a request that sets a level (M-8)"
+      ]
     },
     {
       "id": "deprecated-07",
@@ -3365,8 +3511,11 @@
       "text": "`notifications/message` is request-scoped: the server MUST NOT deliver it on a `subscriptions/listen` stream or on any stream other than the one carrying the response to the request that set the log level.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging#per-request-log-level",
       "applies": "always",
-      "status": "pending",
-      "step": "logging"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 request gets log notifications only when its _meta sets a level (M-8)",
+        "test/log-bridge.test.js :: a 2026-07-28 request over the rate cap gets no summary (M-8)"
+      ]
     },
     {
       "id": "deprecated-08",
@@ -3374,8 +3523,10 @@
       "text": "If the `io.modelcontextprotocol/logLevel` value carried in a request's `_meta` is not a recognized log level, the server SHOULD reject that request with a standard JSON-RPC error:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/logging#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "logging"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 request gets log notifications only when its _meta sets a level (M-8)"
+      ]
     },
     {
       "id": "deprecated-09",
@@ -3419,8 +3570,12 @@
       "text": "Log level is now set per-request via `io.modelcontextprotocol/logLevel` in `_meta`; servers MUST NOT emit `notifications/message` for requests that did not include this field (SEP-2575).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/changelog#major-changes",
       "applies": "always",
-      "status": "pending",
-      "step": "logging"
+      "status": "covered",
+      "tests": [
+        "test/log-bridge.test.js :: a 2026-07-28 request without a log level gets no notification (M-8)",
+        "test/log-bridge.test.js :: outside a call, nothing is sent before a 2025 client initializes (M-8)",
+        "test/protocol-dual-spawn.test.js :: modern wire: log notifications only for a request that sets a level (M-8)"
+      ]
     },
     {
       "id": "deprecated-13",

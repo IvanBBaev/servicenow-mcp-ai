@@ -32,7 +32,7 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 100     | 212     | 52  |
+| 364   | 155     | 157     | 52  |
 
 Pending rows by step:
 
@@ -41,13 +41,10 @@ Pending rows by step:
 | `wire`     | 33   | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
 | `http`     | 36   | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
 | `mrtr`     | 34   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
-| `tasks`    | 40   | N-35 step 2: hand-rolled tasks extension                                                               |
+| `tasks`    | 12   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
-| `listen`   | 14   | N-35 step 1: `subscriptions/listen`                                                                    |
-| `logging`  | 6    | N-35 step 1: per-request log level; no `notifications/message` without it                              |
 | `cache`    | 6    | N-38: `ttlMs` / `cacheScope`                                                                           |
-| `discover` | 5    | N-35 step 1: `server/discover`                                                                         |
-| `packages` | 3    | O-19 (d): lists fixed per server, deterministic order                                                  |
+| `packages` | 1    | O-19 (d): lists fixed per server, deterministic order                                                  |
 
 The n/a rows cover features the server never uses: client-supplied `$ref` resolution, custom
 transports, URL-mode elicitation, roots and sampling (ADR 0009), the legacy HTTP+SSE transport,
@@ -61,6 +58,16 @@ authorization.
 - The rows were taken from the spec text once. If the spec gets an erratum, edit the affected
   rows by hand and say so in the commit.
 - Do not add a covered row on the strength of code reading alone. It needs a test.
+
+## Coverage notes
+
+- `deprecated-03` (do not adopt `logging/setLevel`): the modern wire takes the level from each
+  request's `_meta` only. During the legacy window, lines logged outside a call still reach 2025
+  sessions through `sendLoggingMessage`.
+- `tasks-36` / `tasks-37` (`statusMessage` on a failed task) are pinned by a store-level test,
+  not end to end.
+- `tools-06`, `prompts-04`, `resources-04` (`list_changed` on a listen stream) are pinned on
+  stdio. Over HTTP the lists are fixed per server (O-19 d), so nothing publishes `list_changed`.
 
 ## Owner decisions
 
