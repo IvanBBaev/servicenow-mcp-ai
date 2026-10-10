@@ -27,7 +27,7 @@
     "model_table": "incident",
     "apply_import_set": "true",
     "apply_soap": "false",
-    "use_as_ui_policy": "true",
+    "enforce_ui": "true",
     "active": "true",
     "conditions": "state=6",
     "reverse_if_false": "true"

@@ -63,7 +63,7 @@
       }
     ],
     "lines": [
-      "State model 'Acme task lifecycle' on state: 3 state(s), 3 transition(s).",
+      "State model 'Acme task lifecycle' on x_acme_task.state: 3 state(s), 3 transition(s).",
       "States: New (1), Work in progress (2), Closed (3).",
       "New (1) -> Work in progress (2)",
       "Work in progress (2) -> Closed (3) when close_notesISNOTEMPTY",
@@ -79,20 +79,20 @@
       "items": [
         {
           "sys_id": "22222222222222222222222222222222",
+          "state_label": "New",
           "sttrm_model": "11111111111111111111111111111111",
-          "label": "New",
           "state_value": "1"
         },
         {
           "sys_id": "33333333333333333333333333333333",
+          "state_label": "Work in progress",
           "sttrm_model": "11111111111111111111111111111111",
-          "label": "Work in progress",
           "state_value": "2"
         },
         {
           "sys_id": "44444444444444444444444444444444",
+          "state_label": "Closed",
           "sttrm_model": "11111111111111111111111111111111",
-          "label": "Closed",
           "state_value": "3"
         }
       ]
@@ -130,12 +130,12 @@
       "items": [
         {
           "sys_id": "88888888888888888888888888888888",
-          "condition": "close_notesISNOTEMPTY",
-          "transition": "66666666666666666666666666666666"
+          "sttrm_state_transition": "66666666666666666666666666666666",
+          "condition": "close_notesISNOTEMPTY"
         },
         {
           "sys_id": "99999999999999999999999999999999",
-          "transition": "66666666666666666666666666666666"
+          "sttrm_state_transition": "66666666666666666666666666666666"
         }
       ]
     }

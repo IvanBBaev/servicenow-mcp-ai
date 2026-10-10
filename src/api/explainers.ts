@@ -94,7 +94,8 @@ const explainStateModel: Explainer = (ctx) => {
   const states = rowsOf(ctx, "sttrm_state").map((r) => ({
     sys_id: snString(r.sys_id),
     value: pick(r, ["state_value", "value", "state"]),
-    label: pick(r, ["label", "name", "display_name"]),
+    // O-5: the PDI column is `state_label`.
+    label: pick(r, ["state_label", "label", "name", "display_name"]),
   }));
   const byId = new Map(states.map((s) => [s.sys_id, s]));
   const byValue = new Map(states.map((s) => [s.value, s]));
@@ -108,7 +109,7 @@ const explainStateModel: Explainer = (ctx) => {
 
   const conditions = new Map<string, string[]>();
   for (const r of rowsOf(ctx, "sttrm_transition_condition")) {
-    const key = snString(r.transition);
+    const key = pick(r, ["sttrm_state_transition", "transition"]);
     const text = pick(r, ["condition", "condition_string", "name", "label"]);
     if (!key || !text) continue;
     conditions.set(key, [...(conditions.get(key) ?? []), text]);
@@ -130,7 +131,7 @@ const explainStateModel: Explainer = (ctx) => {
     };
   });
 
-  const table = snString(record.table);
+  const table = pick(record, ["table_name", "table"]);
   const field = pick(record, ["state_field", "field"]);
   const on = [table, field].filter(Boolean).join(".");
   const lines = [
@@ -325,7 +326,10 @@ const explainDataPolicy: Explainer = (ctx) => {
   const channels = [
     ...(flag("apply_import_set") ? ["import sets"] : []),
     ...(flag("apply_soap") ? ["web services"] : []),
-    ...(flag("use_as_ui_policy") ? ["forms (as a UI policy)"] : []),
+    // O-5: the PDI column is `enforce_ui`.
+    ...(flag("enforce_ui") || flag("use_as_ui_policy")
+      ? ["forms (as a UI policy)"]
+      : []),
   ];
   return fieldEffects(ctx, "sys_data_policy_rule", "model_table", [
     channels.length

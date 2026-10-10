@@ -478,18 +478,23 @@ test("explain golden — state model transitions", async () => {
       sys_scope: APP_ID,
     },
     sttrm_state: [
-      { sys_id: id("2"), sttrm_model: id("1"), state_value: "1", label: "New" },
+      {
+        sys_id: id("2"),
+        sttrm_model: id("1"),
+        state_value: "1",
+        state_label: "New",
+      },
       {
         sys_id: id("3"),
         sttrm_model: id("1"),
         state_value: "2",
-        label: "Work in progress",
+        state_label: "Work in progress",
       },
       {
         sys_id: id("4"),
         sttrm_model: id("1"),
         state_value: "3",
-        label: "Closed",
+        state_label: "Closed",
       },
     ],
     sttrm_state_transition: [
@@ -509,10 +514,10 @@ test("explain golden — state model transitions", async () => {
     sttrm_transition_condition: [
       {
         sys_id: id("8"),
-        transition: id("6"),
+        sttrm_state_transition: id("6"),
         condition: "close_notesISNOTEMPTY",
       },
-      { sys_id: id("9"), transition: id("6"), condition: "" },
+      { sys_id: id("9"), sttrm_state_transition: id("6"), condition: "" },
     ],
   });
   assert.deepEqual(out.explanation.lines.slice(2), [
@@ -584,7 +589,7 @@ test("explain golden — data policy field effects", async () => {
       reverse_if_false: "true",
       apply_import_set: "true",
       apply_soap: "false",
-      use_as_ui_policy: "true",
+      enforce_ui: "true",
       active: "true",
       sys_scope: APP_ID,
     },
