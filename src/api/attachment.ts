@@ -1,6 +1,7 @@
 import { snRequest } from "../core/http.js";
 import {
   assertTableAllowed,
+  assertTableWriteAllowed,
   assertWriteAllowed,
   isTableAllowed,
 } from "../core/policy.js";
@@ -66,6 +67,19 @@ export async function getAttachmentMeta(
   // H-4: an attachment is governed by the table of the record it hangs on,
   // so get / download / delete cannot reach a denied table's files.
   if (meta.table_name) assertTableAllowed(meta.table_name);
+  return meta;
+}
+
+/**
+ * H-11: adding or removing an attachment is a write to the parent record's
+ * table, so the table's write policy (deny/allow lists and the protected-
+ * tables default) applies, not only the read check.
+ */
+export async function getWritableAttachmentMeta(
+  attachmentSysId: string,
+): Promise<AttachmentMeta> {
+  const meta = await getAttachmentMeta(attachmentSysId);
+  if (meta.table_name) assertTableWriteAllowed(meta.table_name);
   return meta;
 }
 
@@ -247,7 +261,8 @@ export async function uploadAttachment(args: {
   contentBase64: string;
   contentType?: string;
 }): Promise<AttachmentMeta> {
-  assertTableAllowed(args.table);
+  // H-11: an upload is a write to the parent record's table.
+  assertTableWriteAllowed(args.table);
   assertWriteAllowed("attachment upload");
   const upload = prepareUpload(args);
   const params = new URLSearchParams({
@@ -327,8 +342,9 @@ export async function deleteAttachment(
   attachmentSysId: string,
 ): Promise<{ deleted: true; sys_id: string }> {
   assertWriteAllowed("attachment delete");
-  // H-4: read the metadata first so the parent table's policy applies.
-  await getAttachmentMeta(attachmentSysId);
+  // H-4 / H-11: read the metadata first so the parent table's write policy
+  // applies before the DELETE is sent.
+  await getWritableAttachmentMeta(attachmentSysId);
   await snRequest<unknown>({
     method: "DELETE",
     path: `/api/now/attachment/${encodeURIComponent(attachmentSysId)}`,

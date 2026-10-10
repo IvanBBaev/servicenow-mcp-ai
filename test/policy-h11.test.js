@@ -302,6 +302,80 @@ test("protected tables: batch writes and set_property meet the rule; reads do no
   );
 });
 
+test("attachments: uploads and deletes are writes to the parent table (protected default)", async () => {
+  const fetcher = (url, init) => {
+    if ((init?.method ?? "GET") === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+    if (new URL(url).pathname.startsWith("/api/now/attachment")) {
+      return jsonResponse(200, {
+        result: { sys_id: SYS_ID, table_name: "sys_script", file_name: "a" },
+      });
+    }
+    return jsonResponse(200, { result: { sys_id: SYS_ID } });
+  };
+  const upload = {
+    table: "sys_script",
+    sys_id: SYS_ID,
+    file_name: "a.txt",
+    content_base64: "aGk=",
+  };
+  freshRuntime();
+  await withEnv(
+    { SN_WRITE_MODE: "apply", SN_PROTECTED_TABLES_WRITE: "deny" },
+    () =>
+      withFetch(fetcher, async (calls) => {
+        for (const [name, args] of [
+          ["servicenow_upload_attachment", upload],
+          ["servicenow_upload_attachment", { ...upload, apply: false }],
+          ["servicenow_delete_attachment", { sys_id: SYS_ID }],
+          ["servicenow_delete_attachment", { sys_id: SYS_ID, apply: false }],
+          [
+            "servicenow_batch",
+            {
+              requests: [
+                { method: "DELETE", url: `/api/now/attachment/${SYS_ID}` },
+              ],
+            },
+          ],
+        ]) {
+          const res = out(await call(name, args));
+          assert.equal(
+            res.code,
+            "POLICY_DENIED",
+            `${name} ${JSON.stringify(res)}`,
+          );
+          assert.match(res.error, /sys_script/, name);
+        }
+        assert.equal(mutating(calls).length, 0);
+        // Reading the attachment stays a read.
+        const meta = out(
+          await call("servicenow_get_attachment", { sys_id: SYS_ID }),
+        );
+        assert.equal(meta.error, undefined, JSON.stringify(meta));
+      }),
+  );
+  // An exact allow re-enables the write, as for any protected table.
+  freshRuntime();
+  await withEnv(
+    {
+      SN_WRITE_MODE: "apply",
+      SN_PROTECTED_TABLES_WRITE: "deny",
+      SN_TABLES_ALLOW: "sys_script",
+    },
+    () =>
+      withFetch(fetcher, async (calls) => {
+        const res = out(await call("servicenow_upload_attachment", upload));
+        assert.equal(res.code, undefined, JSON.stringify(res));
+        assert.equal(mutating(calls).length, 1);
+        assert.match(
+          mutating(calls)[0].url,
+          /attachment\/file\?table_name=sys_script/,
+        );
+      }),
+  );
+});
+
 test("SN_IMPORT_SET_TABLES: the staging table must match a pattern", async () => {
   await scenario(
     { SN_WRITE_MODE: "apply", SN_IMPORT_SET_TABLES: "u_*,imp_*" },

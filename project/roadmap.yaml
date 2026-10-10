@@ -441,7 +441,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: ["O-4"]
-    notes: "**Done 2026-10-01 (local; BREAKING B11, O-4) bar the policy file.** Glob patterns, one evaluator + `explain_policy` + `servicenow://policy`, protected tables write-denied by default, import-set default `u_*,imp_*`, write caps 500 (HTTP session) / 100 deletes / 50 batch writes, prod marker. Open: `SN_TABLE_POLICY_FILE` (format unspecified), attachments as parent-table writes."
+    notes: "**Done 2026-10-01 (local; BREAKING B11, O-4) bar the policy file.** Glob patterns, one evaluator + `explain_policy` + `servicenow://policy`, protected tables write-denied by default, import-set default `u_*,imp_*`, write caps 500 (HTTP session) / 100 deletes / 50 batch writes, prod marker. Attachments as parent-table writes done 2026-10-10 (upload, delete, batch delete by id). Open: `SN_TABLE_POLICY_FILE` (format unspecified)."
   - id: "S-13"
     title: "capability preflight v2"
     pillar: "S"

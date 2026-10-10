@@ -13,7 +13,7 @@ import {
   getBatchUnmapped,
   getMaxBatchWrites,
 } from "../core/settings.js";
-import { getAttachmentMeta } from "./attachment.js";
+import { getAttachmentMeta, getWritableAttachmentMeta } from "./attachment.js";
 import { ServiceNowError } from "../core/errors.js";
 import { reportProgress } from "../core/progress.js";
 import { noteSecretRecords } from "./secret-columns.js";
@@ -196,9 +196,15 @@ async function assertAttachmentScope(
   index: number,
   named: string[],
 ): Promise<void> {
-  if (!tablePolicyActive()) return;
   const path = pathOf(req.url);
   const byId = ATTACHMENT_BY_ID.exec(path);
+  // H-11: deleting an attachment by id writes to its parent's table, so the
+  // write policy (including the protected-tables default) always applies.
+  if (byId?.[1] && req.method !== "GET") {
+    await getWritableAttachmentMeta(decodeURIComponent(byId[1]));
+    return;
+  }
+  if (!tablePolicyActive()) return;
   if (byId?.[1]) {
     await getAttachmentMeta(decodeURIComponent(byId[1]));
     return;

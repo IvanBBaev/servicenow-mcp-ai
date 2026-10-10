@@ -37,6 +37,7 @@ These are the 3.0 changes the owner approved on 2026-10-01 (O-4). Each write-saf
 - **B11: protected system tables are write-denied by default (H-11).**
   - `SN_PROTECTED_TABLES_WRITE` now defaults to `deny`. Creates, updates, deletes, upserts, reverts, import-set inserts, CMDB writes and batch writes on these tables return `POLICY_DENIED`: `sys_user`, `sys_user_has_role`, `sys_user_role`, `sys_user_grmember`, `sys_security_acl`, `sys_security_acl_role`, `sys_properties`, `oauth_entity`, `sys_auth_profile_basic`, `sys_script`, `sys_ws_operation`, `sys_public`, `sys_ldap*`, `sys_certificate`, `sys_data_source` and `sys_rest_message*`.
   - This means `servicenow_set_property` and business-rule writes are refused by default. Reads are not affected.
+  - Attachments count as writes to the parent record's table. `servicenow_upload_attachment`, `servicenow_delete_attachment` (preview and apply) and a batch `DELETE /api/now/attachment/<sys_id>` are refused when the parent table is protected or write-denied; reading an attachment stays a read.
   - **Migration:** to open one table, add it as an exact entry in `SN_TABLES_ALLOW`. To restore the 2.x behaviour, set `SN_PROTECTED_TABLES_WRITE=allow`.
 - **Import sets accept staging tables named `u_*` and `imp_*` by default (H-11).** `SN_IMPORT_SET_TABLES` used to be unrestricted and now defaults to `u_*,imp_*`. Scoped staging tables such as `x_acme_stage` are refused until you list them.
   - **Migration:** add the table's pattern to `SN_IMPORT_SET_TABLES`, or set it to `*`.

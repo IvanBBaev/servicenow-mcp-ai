@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   listAttachments,
   getAttachmentMeta,
+  getWritableAttachmentMeta,
   uploadAttachment,
   downloadAttachment,
   deleteAttachment,
@@ -10,6 +11,7 @@ import {
   sanitizeFileName,
 } from "../api/attachment.js";
 import { ok } from "../mcp/result.js";
+import { assertTableWriteAllowed } from "../core/policy.js";
 import {
   defineTool,
   shortText,
@@ -119,7 +121,9 @@ export const specs: AnyToolSpec[] = [
     }) => {
       if (!shouldApply(apply)) {
         // Never echo the base64 payload — preview the validated envelope only
-        // (sanitised name, effective type, decoded size, sha256).
+        // (sanitised name, effective type, decoded size, sha256). H-11: the
+        // preview fails like apply when the parent table is not writable.
+        assertTableWriteAllowed(table);
         const upload = prepareUpload({
           fileName: file_name,
           contentBase64: content_base64,
@@ -183,7 +187,7 @@ export const specs: AnyToolSpec[] = [
     },
     handler: async ({ sys_id, apply }) => {
       if (!shouldApply(apply)) {
-        const before = await getAttachmentMeta(sys_id);
+        const before = await getWritableAttachmentMeta(sys_id);
         return planPreview({
           action: "delete",
           table: "sys_attachment",
