@@ -110,11 +110,51 @@ These tables have no `super_class` and no `sys_scope` column, so the default
 scope), `kb_knowledge_base`, `sys_user_preference`, `sys_pd_context`,
 `wf_context`, `sys_flow_context`.
 
+## Re-run after the fixes
+
+Date: 2026-10-10, same PDI. The verifier now also resolves same-file
+`const` table and field lists (a42105e), so it checks **273 tables and
+1,339 names**. What is left: **5 tables and 12 fields**, all of them
+explained below. Every reader bug and every non-breaking registry mismatch
+in the tables above is fixed:
+
+| Area                                            | Commit(s)                 |
+| ----------------------------------------------- | ------------------------- |
+| `api/flows-designer` flow runs                  | 0678927                   |
+| `api/flows` trigger inputs                      | 6abfbb3                   |
+| `api/flows` workflow state, global rules        | 4d8fe30                   |
+| `api/upgrade`                                   | 65b411c                   |
+| Registry: UI / process / platform rows          | 4bc142c, 66fc4d4, 2bd8a54 |
+| Registry: flow step inputs, `sys_script.global` | 3732ece                   |
+| Explainers: state model, data policy            | 59bcf6d                   |
+| `api/meta` indexes, `api/importset` run fields  | 485bc67                   |
+
+Flow step inputs: the plain `sys_hub_action_instance` has no `values` — its
+`action_inputs` is a glide_var whose values live in `sys_variable_value`. The
+encoded inputs are read from `sys_hub_action_instance_v2.values`,
+`sys_hub_sub_flow_instance_v2.subflow_inputs` and
+`sys_hub_flow_logic_instance_v2.values`. `sys_index` has no `name` or
+`col_name`; an index is named from `logical_table_name` and
+`col_name_string`. The PDI admin gets a 403 on `sys_index` over REST.
+
+Still open:
+
+- **Plugin-gated or absent tables (5):** `change_risk_asmt`,
+  `change_risk_asmt_threshold`, `sys_package_dependency`,
+  `sys_scope_dependency`, `sys_ux_composite_definition` — unchanged.
+- **Scope field (7):** `sys_scope` on `kb_knowledge_base`, `sys_app`,
+  `sys_flow_context`, `sys_pd_context`, `sys_repo_config`,
+  `sys_user_preference`, `wf_context` (see above). Needs an owner decision
+  per type: no scope filter, or a different field.
+- **BREAKING key fields (4, O-4):** `sys_declarative_action_definition.action_name`
+  (real: `name`), `sys_declarative_action_payload_definition.key`
+  (`action_key`), `sys_ux_event.name` (`event_name`),
+  `sys_ux_form_action_layout_item.form_action_layout` (`layout_group`). They
+  are registry key fields, so renaming them changes the output keys.
+
 ## Next steps
 
-Fixes land per module, each with its tests: the registry modules
-(platform, process, UI, scripts, model) and the readers in `api/flows`,
-`api/flows-designer`, `api/flows-lanes` and `api/upgrade`. Renames that
-change a tool's output shape are BREAKING and wait for the owner (O-4). The
-two plugin-gated tables stay as they are until a PDI with the plugin can
-confirm them.
+The non-breaking fixes are in (see the re-run above). The four key-field
+renames wait for the owner (O-4). The scope-field types need an owner
+decision. The plugin-gated tables stay as they are until a PDI with the
+plugin can confirm them. The registry `verified` flags are not changed yet.
