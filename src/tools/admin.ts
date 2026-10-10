@@ -139,14 +139,18 @@ const SECRET_FIELDS = {
 
 type SecretName = keyof typeof SECRET_FIELDS;
 
-/** Human summary of a credential change — values of secrets are never shown. */
+/**
+ * Human summary of a credential change — values of secrets are never shown.
+ * The instance shows as a bare host (validated before this runs): a form
+ * prompt carries no clickable URL (2026-07-28, elicitation).
+ */
 function describeChange(
   clean: Partial<ServiceNowCredentials>,
   settings: Partial<Record<AuthSetting, string>>,
   secrets: readonly SecretName[],
 ): string {
   return [
-    clean.instance ? `instance → ${clean.instance}` : null,
+    clean.instance ? `instance → ${resolveHost(clean.instance)}` : null,
     clean.user ? `user → ${clean.user}` : null,
     clean.password ? "password → (new value)" : null,
     settings.AUTH ? `auth → ${settings.AUTH}` : null,

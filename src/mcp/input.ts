@@ -74,9 +74,10 @@ export interface Question {
  * - `answered` — the user answered (accept / decline / cancel);
  * - `unsupported` — this client cannot be asked (no form elicitation);
  * - `failed` — the prompt failed at the protocol level (legacy wire);
- * - `rejected` — a modern retry whose state or answer is not acceptable
- *   (replayed, minted for another call, no answer);
- * - `pending` — the modern wire's first round: return `result` as is.
+ * - `rejected` — a modern retry whose state is not acceptable (replayed,
+ *   minted for another call, responses without a state);
+ * - `pending` — a modern round (the first, or a retry without the answer,
+ *   asked again): return `result` as is.
  */
 export type Answer =
   | {
@@ -283,27 +284,7 @@ async function askModern(
         error: "the retry carried input responses without its requestState",
       };
     }
-    const payload: StatePayload = {
-      v: 1,
-      purpose: question.purpose,
-      tool: binding.tool,
-      profile: binding.profile,
-      args: digest,
-      nonce: issueNonce(),
-    };
-    const requestState = await codec().mint(payload, round.ctx);
-    return {
-      status: "pending",
-      result: inputRequired({
-        inputRequests: {
-          [question.key]: inputRequired.elicit({
-            message: question.message,
-            requestedSchema: question.requestedSchema,
-          }),
-        },
-        requestState,
-      }),
-    };
+    return ask(round, question, digest);
   }
 
   // The verify hook (mrtrServerOptions) has decoded the state already; a
@@ -347,16 +328,43 @@ async function askModern(
     };
   }
   const response = inputResponse(round.responses, question.key);
-  if (response.kind !== "elicit") {
-    return {
-      status: "rejected",
-      error: "the retry carried no answer to the prompt",
-    };
-  }
+  // A valid retry without the answer is asked again (fresh nonce), not
+  // refused: the spent state cannot be reused either way.
+  if (response.kind !== "elicit") return ask(round, question, digest);
   return {
     status: "answered",
     action: response.action,
     ...(response.content ? { content: response.content } : {}),
+  };
+}
+
+/** One `input_required` round: the question and a freshly minted state. */
+async function ask(
+  round: InputRound,
+  question: Question,
+  digest: string,
+): Promise<Answer> {
+  const { binding } = question;
+  const payload: StatePayload = {
+    v: 1,
+    purpose: question.purpose,
+    tool: binding.tool,
+    profile: binding.profile,
+    args: digest,
+    nonce: issueNonce(),
+  };
+  const requestState = await codec().mint(payload, round.ctx);
+  return {
+    status: "pending",
+    result: inputRequired({
+      inputRequests: {
+        [question.key]: inputRequired.elicit({
+          message: question.message,
+          requestedSchema: question.requestedSchema,
+        }),
+      },
+      requestState,
+    }),
   };
 }
 
