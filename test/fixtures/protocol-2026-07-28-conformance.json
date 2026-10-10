@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 68,
+  "pendingCeiling": 57,
   "requirements": [
     {
       "id": "base-01",
@@ -190,8 +190,11 @@
       "text": "Servers SHOULD NOT require that a client reuse the same connection or process to perform related operations.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#statelessness",
       "applies": "always",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/http-transport-v2.test.js :: e2e: a 2026-07-28 destructive apply redeems the plan_token of an earlier request (N-35)",
+        "test/plan-token.test.js :: modern HTTP (N-35): a token outlives its request's runtime, bound to the principal"
+      ]
     },
     {
       "id": "base-15",
@@ -520,8 +523,11 @@
       "text": "Servers MUST NOT initiate JSON-RPC requests, and clients do not send JSON-RPC responses.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: base-44 / http-10: the modern HTTP leg never sends the client a request, even while asking",
+        "test/protocol-mrtr-modern.test.js :: base-44: a push request from a modern-served instance fails before any wire traffic"
+      ]
     },
     {
       "id": "base-45",
@@ -904,8 +910,10 @@
       "text": "The server MUST NOT write JSON-RPC _requests_ to `stdout`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio#receiving-messages",
       "applies": "stdio",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: stdio-03: the stdio entry point writes no JSON-RPC request to stdout on the modern wire"
+      ]
     },
     {
       "id": "stdio-04",
@@ -1048,8 +1056,10 @@
       "text": "The server MUST NOT send independent JSON-RPC _requests_ on this stream.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#receiving-messages",
       "applies": "http",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: base-44 / http-10: the modern HTTP leg never sends the client a request, even while asking"
+      ]
     },
     {
       "id": "http-11",
@@ -2029,8 +2039,10 @@
       "text": "Servers MUST NOT send `InputRequiredResult` responses on any other client requests.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#supported-requests",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: mrtr-02: input_required is answered to tools/call only"
+      ]
     },
     {
       "id": "mrtr-03",
@@ -2096,8 +2108,10 @@
       "text": "To prevent replay, servers SHOULD include the following inside the integrity-protected `requestState` payload and verify each on receipt: the authenticated principal, rejecting state presented by a different principal.; a short expiry (TTL), rejecting state presented after it lapses; an identifier for the originating request, e.g. the method name and a digest of its salient parameters, rejecting state presented on a request that does not match.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: mrtr-08: the state is bound to the principal, the method, the tool, the profile and the arguments, with an expiry"
+      ]
     },
     {
       "id": "mrtr-09",
@@ -2161,8 +2175,10 @@
       "text": "Servers SHOULD validate that the data provided by the client is a valid `InputResponses` object and that the information inside can be correctly parsed.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: mrtr-14: an unparseable answer never counts as one; it is asked again"
+      ]
     },
     {
       "id": "mrtr-15",
@@ -2170,8 +2186,10 @@
       "text": "Protocol errors (malformed JSON, invalid schema, internal server errors) SHOULD return a JSON-RPC error response with an appropriate error code and message.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: mrtr-15: a malformed request or requestState is a JSON-RPC error"
+      ]
     },
     {
       "id": "mrtr-16",
@@ -2179,8 +2197,10 @@
       "text": "If additional, unexpected parameters are provided in the `InputResponses` object, the server SHOULD ignore any information it does not recognize or need.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: mrtr-16: unknown inputResponses keys and fields are ignored"
+      ]
     },
     {
       "id": "mrtr-17",
@@ -2188,8 +2208,10 @@
       "text": "If the client fails to send all the information requested in a previous `InputRequests`, and the missing information is necessary for the server to process the request, the server SHOULD respond with a new `InputRequiredResult` requesting the missing information again, rather than returning an error.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: mrtr-17: a retry without the answer is asked again with a fresh state, not refused"
+      ]
     },
     {
       "id": "mrtr-18",
@@ -2398,8 +2420,10 @@
       "text": "SHOULD NOT include URLs intended to be clickable in any field of a form mode elicitation request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#safe-url-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-mrtr-modern.test.js :: mrtr-38: form prompts carry no clickable URL"
+      ]
     },
     {
       "id": "mrtr-39",
