@@ -42,6 +42,14 @@ import { canonicalJson } from "./plan-token.js";
 /** The first protocol revision of the MRTR era. ISO dates order lexically. */
 const MODERN_REVISION = "2026-07-28";
 
+/**
+ * How long a legacy elicitation may wait for its answer: the SDK default,
+ * pinned here because it is the only request this server ever sends. It is a
+ * hard cap — progress never extends it — so a client that never answers
+ * cannot hold the call (and its plan) open.
+ */
+export const ELICIT_TIMEOUT_MS = 60_000;
+
 /** Issued, unused nonces held at once; the oldest is dropped beyond this. */
 export const INPUT_NONCE_MAX = 1000;
 
@@ -239,10 +247,17 @@ async function askLegacy(question: Question): Promise<Answer> {
     return { status: "unsupported" };
   }
   try {
-    const res = await server.server.elicitInput({
-      message: question.message,
-      requestedSchema: question.requestedSchema,
-    });
+    const res = await server.server.elicitInput(
+      {
+        message: question.message,
+        requestedSchema: question.requestedSchema,
+      },
+      {
+        timeout: ELICIT_TIMEOUT_MS,
+        maxTotalTimeout: ELICIT_TIMEOUT_MS,
+        resetTimeoutOnProgress: false,
+      },
+    );
     return {
       status: "answered",
       action: res.action,
