@@ -346,6 +346,12 @@ export async function searchCode(
     const descriptor = SCRIPT_TYPES[typeName] ?? OPT_IN_SCRIPT_TYPES[typeName];
     if (!descriptor) continue;
     const artifact = getArtifactType(typeName)!;
+    // H-4: an all-types sweep skips a policy-denied table, as the Code Search
+    // API path drops its hits; an explicit `type` still fails loudly.
+    if (!opts.type && !isTableAllowed(descriptor.table)) {
+      unreadable.push(typeName);
+      continue;
+    }
     const remaining = limit - matches.length;
 
     const codeQuery = descriptor.scriptFields

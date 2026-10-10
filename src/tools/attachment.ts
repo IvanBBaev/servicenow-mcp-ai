@@ -9,6 +9,7 @@ import {
   prepareUpload,
   describeUpload,
   sanitizeFileName,
+  type AttachmentMeta,
 } from "../api/attachment.js";
 import { ok } from "../mcp/result.js";
 import { assertTableWriteAllowed } from "../core/policy.js";
@@ -195,7 +196,10 @@ export const specs: AnyToolSpec[] = [
           before,
         });
       }
-      const before = await captureBefore(() => getAttachmentMeta(sys_id));
+      // H-4 (g): one metadata read serves the journal and the policy check.
+      const before = (await captureBefore(() =>
+        getWritableAttachmentMeta(sys_id),
+      )) as AttachmentMeta | undefined;
       const result = await journaledWrite(
         {
           action: "delete",
@@ -203,7 +207,7 @@ export const specs: AnyToolSpec[] = [
           sys_id,
           before,
         },
-        () => deleteAttachment(sys_id),
+        () => deleteAttachment(sys_id, before),
       );
       return ok({ message: "Attachment deleted", ...result });
     },

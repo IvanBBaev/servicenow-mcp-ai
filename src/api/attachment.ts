@@ -340,11 +340,15 @@ export async function downloadAttachment(
 /** Delete an attachment by its sys_id. */
 export async function deleteAttachment(
   attachmentSysId: string,
+  /** Metadata already returned by {@link getWritableAttachmentMeta}; skips a second read. */
+  checked?: AttachmentMeta,
 ): Promise<{ deleted: true; sys_id: string }> {
   assertWriteAllowed("attachment delete");
   // H-4 / H-11: read the metadata first so the parent table's write policy
   // applies before the DELETE is sent.
-  await getWritableAttachmentMeta(attachmentSysId);
+  if (checked?.sys_id !== attachmentSysId) {
+    await getWritableAttachmentMeta(attachmentSysId);
+  }
   await snRequest<unknown>({
     method: "DELETE",
     path: `/api/now/attachment/${encodeURIComponent(attachmentSysId)}`,

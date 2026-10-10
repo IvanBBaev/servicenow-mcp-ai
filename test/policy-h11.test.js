@@ -376,6 +376,28 @@ test("attachments: uploads and deletes are writes to the parent table (protected
   );
 });
 
+test("attachments: a delete apply reads the metadata once (H-4 g)", async () => {
+  freshRuntime();
+  await withEnv({ SN_WRITE_MODE: "apply" }, () =>
+    withFetch(
+      (url, init) =>
+        (init?.method ?? "GET") === "DELETE"
+          ? new Response(null, { status: 204 })
+          : jsonResponse(200, {
+              result: { sys_id: SYS_ID, table_name: "incident" },
+            }),
+      async (calls) => {
+        const res = out(
+          await call("servicenow_delete_attachment", { sys_id: SYS_ID }),
+        );
+        assert.equal(res.code, undefined, JSON.stringify(res));
+        const verbs = calls.map((c) => c.init?.method ?? "GET");
+        assert.deepEqual(verbs, ["GET", "DELETE"]);
+      },
+    ),
+  );
+});
+
 test("SN_IMPORT_SET_TABLES: the staging table must match a pattern", async () => {
   await scenario(
     { SN_WRITE_MODE: "apply", SN_IMPORT_SET_TABLES: "u_*,imp_*" },

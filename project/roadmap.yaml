@@ -126,7 +126,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: ["O-4"]
-    notes: "**Done 2026-10-01 (local; BREAKING B8, O-4).** Nested batch refused, tables from query/body, attachment parent-table checks, backing tables for plugin APIs, `change_conflicts` plan/apply, sweep test; `SN_BATCH_UNMAPPED` defaults to `deny`, `SN_BATCH_MAX_REQUESTS` to 50. Open: the Code Search LIKE fallback refuses the whole search on a denied default table."
+    notes: "**Done 2026-10-01 (local; BREAKING B8, O-4).** Nested batch refused, tables from query/body, attachment parent-table checks, backing tables for plugin APIs, `change_conflicts` plan/apply, sweep test; `SN_BATCH_UNMAPPED` defaults to `deny`, `SN_BATCH_MAX_REQUESTS` to 50. The Code Search LIKE fallback skips a denied default table (`unreadable`) since 2026-10-10."
   - id: "H-5"
     title: "journal v2 + deep redaction"
     pillar: "H"

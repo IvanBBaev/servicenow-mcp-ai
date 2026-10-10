@@ -496,7 +496,9 @@
       apply reads the metadata twice (journal `before` + the policy check) — one extra GET.
       **Resolved 2026-10-01 (O-4 approved):** (a) `SN_BATCH_UNMAPPED=deny` and
       `SN_BATCH_MAX_REQUESTS=50` are the defaults (B8); (b) the `SN_BATCH_UNMAPPED=allow` knob is
-      the one documented (breaking register fixed); (c) moot — ships in 3.0. Still open: (d)–(g).
+      the one documented (breaking register fixed); (c) moot — ships in 3.0. **2026-10-10:** (f) the
+      LIKE path skips a denied type and lists it under `unreadable`; (g) one metadata read on
+      delete apply. Still open: (d), (e).
 - [x] **Test hermeticity** — done 2026-09-26 (uncommitted): with `HTTPS_PROXY` set in the shell
       (corporate / cloud dev environments) 553 tests failed and `test/tasks.test.js` spun at 100 %
       CPU — H-10's dispatcher asks for the optional `undici` package. `baselineEnv()` in
