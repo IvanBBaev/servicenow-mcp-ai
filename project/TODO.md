@@ -475,6 +475,9 @@
       `sys_script` writes are now refused by default, and the 50-batch-write cap is only reachable
       with `SN_BATCH_MAX_REQUESTS` raised above 50. Still open: (b), (c), (d) (no format was ever
       specified, so the policy file is not built), (e), (f).
+      **(c) implemented 2026-10-10 (99b1ec1), awaiting owner confirmation:** upload, delete
+      (preview and apply) and a batch delete by id meet the parent table's write policy, protected
+      default included; reverting is one commit.
 - [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (uncommitted).** Attachments follow
       the parent table; plugin-API tools check backing tables; Code Search hits filtered; batch:
       nested batch refused, tables from query/body, attachment-by-id resolved under a table policy,
