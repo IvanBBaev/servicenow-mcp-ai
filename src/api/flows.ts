@@ -67,9 +67,9 @@ async function businessRules(
   try {
     const { records } = await queryTable({
       table: "sys_script",
-      // In an encoded query `^OR` binds to the clause right before it, so this
-      // reads "(collection in chain OR global) AND active AND when AND action".
-      query: `collectionIN${tables.join(",")}^ORglobal=true^active=true^when=${when}^${OPERATION_FIELD[operation]}=true^ORDERBYorder`,
+      // O-5: sys_script has no `global` column; a global rule has
+      // collection=global.
+      query: `collectionIN${[...tables, "global"].join(",")}^active=true^when=${when}^${OPERATION_FIELD[operation]}=true^ORDERBYorder`,
       fields: [
         "sys_id",
         "name",
@@ -78,7 +78,6 @@ async function businessRules(
         "condition",
         "filter_condition",
         "collection",
-        "global",
         // N-12: absent without domain separation; the dot-walk is O-5.
         ...domainTraceFields(),
       ],
@@ -88,8 +87,7 @@ async function businessRules(
     return byOrder(
       records.map((r) => {
         const collection = snString(r.collection);
-        const isGlobal =
-          snString(r.global) === "true" || collection === "global";
+        const isGlobal = collection === "global";
         return {
           phase: when as ChainEntry["phase"],
           type: "business_rule",
@@ -226,21 +224,27 @@ async function workflowsForTable(
 ): Promise<ChainEntry[]> {
   if (operation !== "insert" && operation !== "update") return [];
   try {
+    // O-5: table, active and condition live on the published version.
     const { records } = await queryTable({
-      table: "wf_workflow",
-      query: `table=${table}^active=true`,
-      fields: ["sys_id", "name", "condition", ...domainTraceFields()],
+      table: "wf_workflow_version",
+      query: `table=${table}^active=true^published=true`,
+      fields: [
+        "workflow",
+        "workflow.name",
+        "condition",
+        ...domainTraceFields("workflow."),
+      ],
       displayValue: "false",
       limit: 100,
     });
     return records.map((r) => ({
       phase: "workflow" as const,
       type: "workflow",
-      name: snString(r.name),
+      name: snString(r["workflow.name"]),
       condition: snString(r.condition) || undefined,
-      sys_id: snString(r.sys_id) || undefined,
+      sys_id: snString(r.workflow) || undefined,
       table,
-      ...recordDomain(r),
+      ...recordDomain(r, "workflow."),
     }));
   } catch (e) {
     warnings.push(`workflows: ${e instanceof Error ? e.message : String(e)}`);
@@ -552,15 +556,13 @@ export async function traceTableFlow(
   }
   const { scripts } = await listScripts({
     type: "business_rule",
-    // `^OR` binds to the clause right before it: (collection in chain OR
-    // global) AND active.
-    query: `collectionIN${tables.join(",")}^ORglobal=true^active=true^ORDERBYwhen^ORDERBYorder`,
+    // O-5: a global rule has collection=global (sys_script has no `global`).
+    query: `collectionIN${[...tables, "global"].join(",")}^active=true^ORDERBYwhen^ORDERBYorder`,
     limit: 500,
   });
   const entries = scripts.map((rule): TableFlowEntry => {
     const collection = snString(rule.collection);
-    const isGlobal =
-      snString(rule.global) === "true" || collection === "global";
+    const isGlobal = collection === "global";
     const orderText =
       rule.order !== undefined ? snString(rule.order) : undefined;
     return {

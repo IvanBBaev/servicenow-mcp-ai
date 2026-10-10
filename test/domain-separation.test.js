@@ -240,7 +240,6 @@ function traceHandler(rule) {
             order: "100",
             when: "before",
             collection: "incident",
-            global: "false",
             ...rule,
           },
         ],
@@ -362,10 +361,13 @@ function laneHandler(extra) {
         ],
       });
     }
-    if (table === "wf_workflow") {
-      assert.ok(fields.split(",").includes("sys_domain"));
+    if (table === "wf_workflow_version") {
+      assert.ok(fields.split(",").includes("workflow.sys_domain"));
+      const domain = Object.fromEntries(
+        Object.entries(extra.workflow).map(([k, v]) => [`workflow.${k}`, v]),
+      );
       return jsonResponse(200, {
-        result: [{ sys_id: "w1", name: "Legacy", ...extra.workflow }],
+        result: [{ workflow: "w1", "workflow.name": "Legacy", ...domain }],
       });
     }
     if (table === "sysevent_email_action") {

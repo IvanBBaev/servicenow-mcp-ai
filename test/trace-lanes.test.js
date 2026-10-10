@@ -52,20 +52,20 @@ const LANE_RECORDS = {
       field: "",
       table: "incident",
     },
-    // A parent script that is not inherited never reaches an incident form.
+    // A parent script that does not apply to extended tables never reaches an incident form.
     {
       sys_id: "c3",
       name: "Task only",
       type: "onLoad",
       table: "task",
-      inherited: "false",
+      applies_extended: "false",
     },
     {
       sys_id: "c4",
       name: "Task shared",
       type: "onSubmit",
       table: "task",
-      inherited: "true",
+      applies_extended: "true",
     },
   ],
   sys_ui_policy: [

@@ -43,7 +43,7 @@ const inputs = (o) =>
 const V2 = "sys_hub_trigger_instance_v2";
 
 const RULES_QUERY =
-  /^collectionINincident,task\^ORglobal=true\^active=true\^when=\w+\^action_\w+=true\^ORDERBYorder$/;
+  /^collectionINincident,task,global\^active=true\^when=\w+\^action_\w+=true\^ORDERBYorder$/;
 
 test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)", async () => {
   await withFetch(
@@ -62,7 +62,6 @@ test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)",
                 when: "before",
                 condition: "priority=1",
                 collection: "incident",
-                global: "false",
               },
             ],
           });
@@ -75,7 +74,6 @@ test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)",
                 order: "200",
                 when: "after",
                 collection: "incident",
-                global: "false",
               },
             ],
           });
@@ -94,7 +92,8 @@ test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)",
         });
       if (table === "sys_variable_value")
         return jsonResponse(200, { result: [] });
-      if (table === "wf_workflow") return jsonResponse(200, { result: [] });
+      if (table === "wf_workflow_version")
+        return jsonResponse(200, { result: [] });
       if (table === "sysevent_email_action")
         return jsonResponse(200, {
           result: [
@@ -130,7 +129,10 @@ test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)",
         .map((c) => queryOf(c.url));
       assert.equal(ruleQueries.length, 4); // display, before, after, async
       for (const q of ruleQueries) {
-        assert.ok(q.includes("collectionINincident,task^ORglobal=true"), q);
+        assert.ok(
+          q.includes("collectionINincident,task,global^active=true"),
+          q,
+        );
         assert.ok(q.endsWith("ORDERBYorder"), q);
         assert.match(q, RULES_QUERY);
       }
@@ -171,7 +173,7 @@ test("traceTableEvent rejects a caret in the table before any request (FT-2)", a
 test("a failing section becomes a warning, not a failed trace (FT-2)", async () => {
   await withFetch(
     (url) => {
-      if (tableOf(url) === "wf_workflow")
+      if (tableOf(url) === "wf_workflow_version")
         return jsonResponse(403, { error: { message: "no access" } });
       return jsonResponse(200, { result: [] });
     },
@@ -201,7 +203,6 @@ test("an incident trace sees task and global rules in order (S-1)", async () => 
                 order: "150",
                 when: "before",
                 collection: "global",
-                global: "true",
               },
               {
                 sys_id: "i1",
@@ -209,7 +210,6 @@ test("an incident trace sees task and global rules in order (S-1)", async () => 
                 order: "100",
                 when: "before",
                 collection: "incident",
-                global: "false",
               },
               {
                 sys_id: "t1",
@@ -217,7 +217,6 @@ test("an incident trace sees task and global rules in order (S-1)", async () => 
                 order: "50",
                 when: "before",
                 collection: "task",
-                global: "false",
               },
             ],
           });
@@ -313,7 +312,7 @@ test("flow triggers are filtered by the traced operation (S-1)", async () => {
     assert.equal(trace.chain.filter((c) => c.phase === "workflow").length, 0);
     // Nothing record-triggered fires on a read, so the triggers are not read.
     assert.ok(!calls.some((c) => /^sys_hub_trigger/.test(tableOf(c.url))));
-    assert.ok(!calls.some((c) => tableOf(c.url) === "wf_workflow"));
+    assert.ok(!calls.some((c) => tableOf(c.url) === "wf_workflow_version"));
   });
 });
 
@@ -349,9 +348,11 @@ test("notifications are filtered by the traced operation (S-1)", async () => {
     if (table === "sys_db_object") return chainResponse(queryOf(url));
     if (table === "sysevent_email_action")
       return jsonResponse(200, { result: notifications });
-    if (table === "wf_workflow")
+    if (table === "wf_workflow_version")
       return jsonResponse(200, {
-        result: [{ sys_id: "w1", name: "Legacy approval", condition: "" }],
+        result: [
+          { workflow: "w1", "workflow.name": "Legacy approval", condition: "" },
+        ],
       });
     return jsonResponse(200, { result: [] });
   };
@@ -404,7 +405,7 @@ test("a failing table-chain lookup falls back to the table alone with a warning 
         .map((c) => queryOf(c.url));
       assert.ok(ruleQueries.length > 0);
       for (const q of ruleQueries)
-        assert.ok(q.startsWith("collectionINincident^ORglobal=true^"), q);
+        assert.ok(q.startsWith("collectionINincident,global^"), q);
     },
   );
 });
@@ -593,5 +594,66 @@ test("v1 triggers read their table and condition from sys_variable_value (O-5)",
       condition: "active=true",
       when: "every",
     });
+  });
+});
+
+test("legacy workflows read active / condition from the published version and activities by version (O-5)", async () => {
+  const handler = (url) => {
+    const table = tableOf(url);
+    const q = queryOf(url);
+    if (table === "wf_workflow_version") {
+      if (q === "published=true^active=true")
+        return jsonResponse(200, { result: [{ workflow: "w1" }] });
+      return jsonResponse(200, {
+        result: [
+          {
+            sys_id: "v1",
+            workflow: "w1",
+            active: "true",
+            condition: "priority=1",
+          },
+        ],
+      });
+    }
+    if (table === "wf_workflow") {
+      if (/\/wf_workflow\/w1/.test(url))
+        return jsonResponse(200, {
+          result: { sys_id: "w1", name: "Approve", table: "sc_req_item" },
+        });
+      return jsonResponse(200, {
+        result: [{ sys_id: "w1", name: "Approve", table: "sc_req_item" }],
+      });
+    }
+    if (table === "wf_activity")
+      return jsonResponse(200, {
+        result: [
+          { name: "Begin", activity_definition: "d1" },
+          { name: "End", activity_definition: "d2" },
+        ],
+      });
+    throw new Error("unexpected table " + table);
+  };
+  await withFetch(handler, async (calls) => {
+    const list = await listFlows({ kind: "workflow", active: true });
+    assert.equal(list.flows[0].active, "true");
+    const wfQuery = calls
+      .map((c) => c.url)
+      .find((u) => tableOf(u) === "wf_workflow");
+    assert.match(queryOf(wfQuery), /^sys_idINw1\^ORDERBYname$/);
+
+    const flow = await getFlow("w1", "workflow");
+    assert.equal(flow.active, "true");
+    assert.deepEqual(flow.trigger, {
+      table: "sc_req_item",
+      condition: "priority=1",
+    });
+    assert.deepEqual(
+      flow.steps.map((s) => s.action),
+      ["Begin", "End"],
+    );
+    const act = calls
+      .map((c) => c.url)
+      .find((u) => tableOf(u) === "wf_activity");
+    assert.equal(queryOf(act), "workflow_version=v1^ORDERBYy^ORDERBYx");
   });
 });

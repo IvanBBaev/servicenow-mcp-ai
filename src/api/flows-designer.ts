@@ -43,23 +43,37 @@ export async function listFlows(
   if (opts.table?.trim()) assertNoCaret(opts.table, "table");
 
   if (kind === "workflow") {
+    // O-5: `active` lives on wf_workflow_version, not wf_workflow.
     const clauses: string[] = [];
+    if (opts.active !== undefined) {
+      const activeIds = await publishedActiveWorkflows();
+      if (opts.active && activeIds.length === 0) {
+        return { kind, count: 0, flows: [] };
+      }
+      if (activeIds.length) {
+        clauses.push(
+          `sys_id${opts.active ? "IN" : "NOT IN"}${activeIds.join(",")}`,
+        );
+      }
+    }
     if (opts.table?.trim()) clauses.push(`table=${opts.table.trim()}`);
-    if (opts.active !== undefined) clauses.push(`active=${opts.active}`);
     if (opts.name?.trim()) clauses.push(`nameLIKE${opts.name.trim()}`);
     clauses.push("ORDERBYname");
     const { records } = await queryTable({
       table: "wf_workflow",
       query: clauses.join("^"),
-      fields: ["sys_id", "name", "active", "description", "table"],
+      fields: ["sys_id", "name", "description", "table"],
       displayValue: "false",
       limit: opts.limit ?? 50,
     });
+    const active = await publishedVersions(
+      records.map((r) => snString(r.sys_id)),
+    );
     const flows = records.map((r) => ({
       kind,
       sys_id: snString(r.sys_id),
       name: snString(r.name),
-      active: snString(r.active) || undefined,
+      active: active.get(snString(r.sys_id))?.active || undefined,
       description: snString(r.description) || undefined,
       table: snString(r.table) || undefined,
     }));
@@ -129,30 +143,33 @@ export async function getFlow(
     const wf = await getRecord("wf_workflow", sysId, [
       "sys_id",
       "name",
-      "active",
       "description",
       "table",
-      "condition",
     ]);
-    const { records: activities } = await queryTable({
-      table: "wf_activity",
-      query: `workflow=${sysId}^ORDERBYorder`,
-      fields: ["name", "order", "activity_definition"],
-      displayValue: "false",
-      limit: 200,
-    });
+    // O-5: active / condition are on the published version, and wf_activity
+    // hangs off that version (no `workflow` or `order` column), so steps
+    // follow the canvas: top to bottom, then left to right.
+    const version = (await publishedVersions([sysId])).get(sysId);
+    const { records: activities } = version
+      ? await queryTable({
+          table: "wf_activity",
+          query: `workflow_version=${version.sys_id}^ORDERBYy^ORDERBYx`,
+          fields: ["name", "activity_definition"],
+          displayValue: "false",
+          limit: 200,
+        })
+      : { records: [] };
     return {
       kind,
       sys_id: snString(wf.sys_id),
       name: snString(wf.name),
-      active: snString(wf.active) || undefined,
+      active: version?.active || undefined,
       description: snString(wf.description) || undefined,
       trigger: {
         table: snString(wf.table) || undefined,
-        condition: snString(wf.condition) || undefined,
+        condition: version?.condition || undefined,
       },
       steps: activities.map((a) => ({
-        order: a.order !== undefined ? Number(snString(a.order)) : undefined,
         action: snString(a.name),
         type: snString(a.activity_definition) || undefined,
       })),
@@ -191,6 +208,47 @@ export async function getFlow(
       type: snString(a.action_type) || undefined,
     })),
   };
+}
+
+interface WorkflowVersion {
+  sys_id: string;
+  active: string;
+  condition: string;
+}
+
+/** The published wf_workflow_version of each workflow. */
+async function publishedVersions(
+  ids: string[],
+): Promise<Map<string, WorkflowVersion>> {
+  const out = new Map<string, WorkflowVersion>();
+  if (ids.length === 0) return out;
+  const { records } = await queryTable({
+    table: "wf_workflow_version",
+    query: `published=true^workflowIN${ids.join(",")}`,
+    fields: ["sys_id", "workflow", "active", "condition"],
+    displayValue: "false",
+    limit: ids.length * 2,
+  });
+  for (const r of records) {
+    out.set(snString(r.workflow), {
+      sys_id: snString(r.sys_id),
+      active: snString(r.active),
+      condition: snString(r.condition),
+    });
+  }
+  return out;
+}
+
+/** Workflows whose published version is active. */
+async function publishedActiveWorkflows(): Promise<string[]> {
+  const { records } = await queryTable({
+    table: "wf_workflow_version",
+    query: "published=true^active=true",
+    fields: ["workflow"],
+    displayValue: "false",
+    limit: 1000,
+  });
+  return [...new Set(records.map((r) => snString(r.workflow)))].filter(Boolean);
 }
 
 /** Flows with a trigger (v1 or v2) whose `table` input is this table. */

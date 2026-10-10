@@ -149,7 +149,6 @@ const OWN_RULES = [
     when: "before",
     order: "100",
     collection: "incident",
-    global: "false",
   },
   {
     sys_id: "2",
@@ -157,7 +156,6 @@ const OWN_RULES = [
     when: "after",
     order: "200",
     collection: "incident",
-    global: "false",
   },
 ];
 
@@ -168,7 +166,6 @@ const LANE_RULES = [
     when: "display",
     order: "10",
     collection: "incident",
-    global: "false",
   },
   {
     sys_id: "t1",
@@ -176,7 +173,6 @@ const LANE_RULES = [
     when: "before",
     order: "50",
     collection: "task",
-    global: "false",
   },
   {
     sys_id: "i1",
@@ -184,7 +180,6 @@ const LANE_RULES = [
     when: "before",
     order: "100",
     collection: "incident",
-    global: "false",
   },
   {
     sys_id: "g1",
@@ -192,7 +187,6 @@ const LANE_RULES = [
     when: "after",
     order: "150",
     collection: "global",
-    global: "true",
   },
   {
     sys_id: "i2",
@@ -200,7 +194,6 @@ const LANE_RULES = [
     when: "after",
     order: "200",
     collection: "incident",
-    global: "false",
   },
   {
     sys_id: "a1",
@@ -208,7 +201,6 @@ const LANE_RULES = [
     when: "async",
     order: "",
     collection: "incident",
-    global: "false",
   },
 ];
 
@@ -252,7 +244,7 @@ const traceFetch = (url) => {
       ],
     });
   if (table === "sys_variable_value") return jsonResponse(200, { result: [] });
-  if (table === "wf_workflow") return jsonResponse(200, { result: [] });
+  if (table === "wf_workflow_version") return jsonResponse(200, { result: [] });
   if (table === "sysevent_email_action")
     return jsonResponse(200, {
       result: [

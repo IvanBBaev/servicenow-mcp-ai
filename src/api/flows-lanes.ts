@@ -55,7 +55,7 @@ function orderOf(r: Record<string, unknown>): number | undefined {
 
 /**
  * Client lane: client scripts, then UI policies in `order`. A parent's entry
- * counts only when flagged inherited. A `query` trace keeps what runs on form
+ * counts only when flagged to apply to extended tables. A `query` trace keeps what runs on form
  * load; the lifecycle view (no operation) keeps everything.
  */
 async function clientLane(
@@ -68,12 +68,12 @@ async function clientLane(
     const { records } = await queryTable({
       table: "sys_script_client",
       query: `tableIN${tables.join(",")}^active=true^ORDERBYname`,
-      fields: ["sys_id", "name", "type", "field", "table", "inherited"],
+      fields: ["sys_id", "name", "type", "field", "table", "applies_extended"],
       displayValue: "false",
       limit: 200,
     });
     return records
-      .filter((r) => applies(traced, snString(r.table), r.inherited))
+      .filter((r) => applies(traced, snString(r.table), r.applies_extended))
       .filter((r) => operation !== "query" || snString(r.type) === "onLoad")
       .map((r) => {
         const type = snString(r.type);
