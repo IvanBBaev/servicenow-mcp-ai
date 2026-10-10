@@ -18,10 +18,17 @@
  *   The result goes first, so a client that honours graceful closure still
  *   sees it; the late cancellation is for an already completed request,
  *   which receivers ignore (cancel-10).
+ *
+ * The stdio wire also gets a per-request version check (lifecycle-01): the
+ * SDK classifies only the opening message and then pins the connection, so
+ * a later request naming an unsupported revision would be served. The
+ * protocol is stateless, so every request is checked and answered with
+ * -32022 like the HTTP entry does.
  */
 import {
   PROTOCOL_VERSION_META_KEY,
   SUBSCRIPTION_ID_META_KEY,
+  UnsupportedProtocolVersionError,
   isJSONRPCRequest,
   isJSONRPCResultResponse,
   type JSONRPCErrorResponse,
@@ -34,6 +41,8 @@ import {
 import { envelopeDeclaresTasks, tasksExtensionRequired } from "./tasks.js";
 
 const LISTEN = "subscriptions/listen";
+/** The modern revisions served (the SDK keeps its own list internal). */
+const SUPPORTED_MODERN_VERSIONS = ["2026-07-28"];
 const TEARDOWN_REASON = "Subscription closed by the server.";
 
 type Meta = Record<string, unknown>;
@@ -70,6 +79,30 @@ export function listenRejection(
 }
 
 /**
+ * The -32022 answer to a request whose envelope names a protocol revision
+ * this server does not serve; undefined for every other message. A missing
+ * or non-string claim is left to the entry (legacy, or -32602).
+ */
+export function versionRejection(
+  message: unknown,
+): JSONRPCErrorResponse | undefined {
+  if (!isJSONRPCRequest(message)) return;
+  const meta = asRecord(asRecord(message.params)?._meta);
+  const requested = meta?.[PROTOCOL_VERSION_META_KEY];
+  if (typeof requested !== "string") return;
+  if (SUPPORTED_MODERN_VERSIONS.includes(requested)) return;
+  const error = new UnsupportedProtocolVersionError({
+    supported: [...SUPPORTED_MODERN_VERSIONS],
+    requested,
+  });
+  return {
+    jsonrpc: "2.0",
+    id: message.id,
+    error: { code: error.code, message: error.message, data: error.data },
+  };
+}
+
+/**
  * The notifications/cancelled that follows the completion result of a
  * listen stream the server ended; undefined for every other message.
  */
@@ -90,15 +123,16 @@ export function listenTeardownCancel(
 }
 
 /**
- * Wraps the stdio wire handed to serveStdio: refused listen requests are
- * answered here and never reach the entry; a listen completion result is
- * followed by its cancellation.
+ * Wraps the stdio wire handed to serveStdio: requests naming an
+ * unsupported revision and refused listen requests are answered here and
+ * never reach the entry; a listen completion result is followed by its
+ * cancellation.
  */
 export function guardListenWire(inner: Transport): Transport {
   const wire: Transport = {
     async start() {
       inner.onmessage = (message, extra) => {
-        const rejection = listenRejection(message);
+        const rejection = versionRejection(message) ?? listenRejection(message);
         if (!rejection) return wire.onmessage?.(message, extra);
         inner.send(rejection).catch((error: Error) => wire.onerror?.(error));
       };
