@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { defineRuntimePart, currentRuntime } from "../core/runtime.js";
 import { getPlanTokenTtlSec } from "../core/settings.js";
+import { currentSession } from "../core/request-context.js";
 
 /**
  * H-3 — plan tokens: a plan preview of a write tool carries a `plan_token`
@@ -40,7 +41,42 @@ const plansPart = defineRuntimePart(
   (state) => state.clear(),
 );
 
-const plans = (): Map<string, PlanRecord> => currentRuntime().get(plansPart);
+// N-35 (owner, 2026-10-10): a stateless 2026-07-28 HTTP request runs on its
+// own child runtime, so a session-scoped token would die with the preview's
+// request. On that leg the plans live on the process runtime instead, one
+// store per principal (the bearer clientId, as M-9 binds tasks): a token is
+// honoured only for the caller it was issued to, and one caller's plans never
+// evict another's.
+const principalPlansPart = defineRuntimePart(
+  "plan-tokens-principal",
+  () => new Map<string, Map<string, PlanRecord>>(),
+  (state) => state.clear(),
+  { scope: "process" },
+);
+
+/** The plans of the current caller; `create` false never adds a store. */
+function plans(create = false): Map<string, PlanRecord> {
+  const runtime = currentRuntime();
+  const principal = currentSession()?.principal;
+  if (principal === undefined) return runtime.get(plansPart);
+  const byPrincipal = runtime.get(principalPlansPart);
+  let store = byPrincipal.get(principal);
+  if (!store) {
+    store = new Map();
+    if (create) byPrincipal.set(principal, store);
+  }
+  return store;
+}
+
+/** Drop a token; an emptied per-principal store goes with it. */
+function forget(token: string): void {
+  const store = plans();
+  store.delete(token);
+  const principal = currentSession()?.principal;
+  if (principal !== undefined && store.size === 0) {
+    currentRuntime().get(principalPlansPart).delete(principal);
+  }
+}
 
 /**
  * The arguments that do not change what a write does: the apply switch, the
@@ -112,7 +148,7 @@ export function issuePlanToken(plan: {
   argsHash: string;
 }): { token: string; expiresAt: string } {
   const now = Date.now();
-  const store = plans();
+  const store = plans(true);
   prune(store, now);
   const token = PREFIX + randomLetters(TOKEN_LETTERS);
   const expiresAt = now + getPlanTokenTtlSec() * 1000;
@@ -168,7 +204,7 @@ export function consumePlanToken(
 ): PlanTokenCheck {
   const check = checkPlanToken(token, expected);
   if (token && (check.ok || check.reason === "expired")) {
-    plans().delete(token);
+    forget(token);
   }
   return check;
 }

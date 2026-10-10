@@ -29,6 +29,8 @@ import {
   getPlanTokenTtlSec,
 } from "../build/core/settings.js";
 import { buildServerInstructions } from "../build/mcp/server-info.js";
+import { createRuntime, runWithRuntime } from "../build/core/runtime.js";
+import { runInSession } from "../build/core/request-context.js";
 import {
   baselineEnv,
   freshRuntime,
@@ -656,4 +658,58 @@ test("profiles: a plan for one profile cannot be applied on another; lines land 
     assert.equal(deletes.length, 1);
     assert.match(deletes[0].url, /dev11111\.service-now\.com/);
   });
+});
+
+test("modern HTTP (N-35): a token outlives its request's runtime, bound to the principal", async () => {
+  const parent = createRuntime();
+  const plan = {
+    profile: "default",
+    tool: "servicenow_delete_record",
+    argsHash: planArgsHash({ table: "incident", sys_id: SYS_ID }),
+  };
+  /** One modern request: a child runtime in a session for `principal`. */
+  const request = async (principal, fn) => {
+    const runtime = createRuntime({ parent });
+    try {
+      return runInSession({ id: "", principal }, () =>
+        runWithRuntime(runtime, fn),
+      );
+    } finally {
+      await runtime.dispose();
+    }
+  };
+  try {
+    const { token } = await request("modern:", () => issuePlanToken(plan));
+    assert.deepEqual(
+      await request("modern:other", () => checkPlanToken(token, plan)),
+      { ok: false, reason: "unknown" },
+      "another principal cannot see the token",
+    );
+    assert.deepEqual(
+      await request(undefined, () => checkPlanToken(token, plan)),
+      { ok: false, reason: "unknown" },
+      "nor can a 2025 session on the same process",
+    );
+    assert.deepEqual(
+      await request("modern:", () => consumePlanToken(token, plan)),
+      { ok: true },
+    );
+    assert.deepEqual(
+      await request("modern:", () => consumePlanToken(token, plan)),
+      { ok: false, reason: "unknown" },
+      "still single use",
+    );
+
+    // One principal filling its store never evicts another's plans.
+    const kept = await request("modern:a", () => issuePlanToken(plan).token);
+    await request("modern:b", () => {
+      for (let i = 0; i <= PLAN_TOKEN_MAX; i++) issuePlanToken(plan);
+    });
+    assert.deepEqual(
+      await request("modern:a", () => checkPlanToken(kept, plan)),
+      { ok: true },
+    );
+  } finally {
+    await parent.dispose();
+  }
 });

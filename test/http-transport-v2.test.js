@@ -715,6 +715,52 @@ test("e2e: a 2026-07-28 task tool call answers a task, polled across requests to
   }
 });
 
+test("e2e: a 2026-07-28 destructive apply redeems the plan_token of an earlier request (N-35)", async () => {
+  const sysId = "a".repeat(32);
+  const env = { SN_DOCS_DIR: mkdtempSync(path.join(tmpdir(), "sn-n35-pt-")) };
+  const deletes = [];
+  const instance = (url, init) => {
+    if (init?.method === "DELETE") {
+      deletes.push(url);
+      return new Response(null, { status: 204 });
+    }
+    return jsonResponse(200, {
+      result: { sys_id: sysId, number: "INC1", sys_mod_count: "1" },
+    });
+  };
+  const del = (args) => ({
+    name: "servicenow_delete_record",
+    arguments: { table: "incident", sys_id: sysId, ...args },
+  });
+  try {
+    await withHttp(env, async (port) => {
+      await withFetch(instance, async () => {
+        const call = (args) =>
+          modernCall(port, "tools/call", del(args), {
+            name: "servicenow_delete_record",
+            tasks: false,
+          });
+        const preview = (await call({})).result;
+        assert.notEqual(preview.isError, true, JSON.stringify(preview));
+        const token = payload(preview).plan_token;
+        assert.match(token, /^pt[a-z]+$/);
+        assert.equal(deletes.length, 0);
+
+        // The preview's request runtime is gone; its token is not.
+        const applied = (await call({ apply: true, plan_token: token })).result;
+        assert.notEqual(applied.isError, true, JSON.stringify(applied));
+        assert.equal(deletes.length, 1);
+
+        const replay = (await call({ apply: true, plan_token: token })).result;
+        assert.equal(replay.isError, true, "single use across requests");
+        assert.equal(deletes.length, 1);
+      });
+    });
+  } finally {
+    rmSync(env.SN_DOCS_DIR, { recursive: true, force: true });
+  }
+});
+
 test("e2e: tasks/cancel stops a 2026-07-28 task and answers {} (M-9)", async () => {
   const env = M9_ENV();
   try {

@@ -157,6 +157,7 @@ export class ModernHttpHandler {
     if (scope) {
       scope.server = server;
       scope.logSink = createLogBridge(server.server);
+      scope.principal = `modern:${ctx.authInfo?.clientId ?? ""}`;
     }
     // The handler chains its own onclose after ours.
     const previous = server.server.onclose;

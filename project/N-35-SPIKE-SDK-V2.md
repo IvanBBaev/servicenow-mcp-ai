@@ -94,6 +94,10 @@ the elicitation flows need the MRTR `input_required` path first.
    runtime per request (`src/mcp/http-modern.ts`). `buildMcpServer(runtime,
 serverOptions)` takes extra server options. tools/list is identical on both
    wires; the legacy byte budget is unchanged (delta 0).
+   Plan tokens (owner, 2026-10-10): a per-request runtime would drop the
+   preview's token before the apply, so on the modern HTTP leg the plans live
+   on the process runtime, one store per principal (`modern:<bearer clientId>`,
+   as M-9 binds tasks; `SessionScope.principal`, set in `ModernHttpHandler`).
 2. **MRTR `input_required`** for the elicitation flows (credentials, confirm),
    on top of the factory.
 3. **Log bridge (M-8)** off the deprecated logging API.

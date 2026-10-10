@@ -162,6 +162,13 @@ export interface SessionScope {
   server?: unknown;
   /** The session's MCP log sink (a per-session log bridge). */
   logSink?: unknown;
+  /**
+   * The caller a stateless 2026-07-28 HTTP request runs for
+   * (`modern:<bearer clientId>`, anonymous clients share `modern:`). Set only
+   * on that leg: state that must outlive one request (plan tokens) is keyed
+   * by it on the process runtime.
+   */
+  principal?: string;
 }
 
 const sessionAls = new AsyncLocalStorage<SessionScope>();
