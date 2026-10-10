@@ -34,10 +34,13 @@ import { isSysId } from "../core/sys-id.js";
  * `review-upgrade` prompt.
  *
  * Read-only and bounded; never throws except on a cancel. A failed read
- * degrades to `available:false`. Table, field and choice names
- * (sys_upgrade_history_log disposition / resolution_status, how a base
- * version is marked in sys_update_version — source_table) are unverified
- * until O-5 (PDI).
+ * degrades to `available:false`. Column names and the disposition /
+ * resolution_status choices were checked against a PDI dictionary (O-5);
+ * a base version is a sys_update_version whose source_table is
+ * sys_upgrade_history or sys_store_app (sys_sync_history is Team
+ * Development push / pull, so customer). The PDI admin gets a 403 on
+ * sys_store_app and sys_upgrade_history_log rows, so their values were
+ * not sampled.
  */
 
 /** Upgrades read per history. */
@@ -166,16 +169,44 @@ export function artifactTypeOfTable(table: string): string | undefined {
     : undefined;
 }
 
+/**
+ * sys_upgrade_history_log.disposition values that are a skip (O-5, PDI
+ * choice list): Skipped, Skipped Error, Skipped Manual Merge, Skipped Apply
+ * Once, Skipped (second pass).
+ */
+const SKIP_DISPOSITIONS = new Set(["4", "9", "10", "11", "104"]);
+
 /** True for a disposition that the upgrade skipped (label or value). */
 export function isSkipDisposition(disposition: string): boolean {
-  return /skip/i.test(disposition);
+  return /skip/i.test(disposition) || SKIP_DISPOSITIONS.has(disposition.trim());
 }
+
+/**
+ * Resolutions that close a skip, as values; labels normalise to them
+ * ("Reviewed and Merged" → reviewed_merged). O-5 (PDI) choice list:
+ * not_reviewed, reviewed, reviewed_merged, reviewed_retained,
+ * reviewed_reverted, always_retain.
+ */
+const CLOSED_RESOLUTIONS = new Set([
+  "reviewed",
+  "reviewed_merged",
+  "reviewed_retained",
+  "reviewed_reverted",
+  "always_retain",
+  "resolved",
+  "merged",
+  "reverted",
+  "retained",
+]);
 
 /** True for a resolution that closes a skip (reviewed and decided). */
 export function isResolved(resolution: string): boolean {
-  return /^(resolved|reviewed[_ ]?(retained|merged|reverted)?|merged|reverted|retained)$/i.test(
-    resolution.trim(),
-  );
+  const key = resolution
+    .trim()
+    .toLowerCase()
+    .replace(/\s+and\s+/g, " ")
+    .replace(/\s+/g, "_");
+  return CLOSED_RESOLUTIONS.has(key);
 }
 
 /** Upgrades and patches, newest first. */
@@ -628,7 +659,7 @@ async function readScopeCustomisations(
 /**
  * NX-21 — installed store apps with a newer version available, and for each
  * one the customised artefacts in its scope that the update would touch.
- * sys_store_app.update_available / latest_version are unverified until O-5.
+ * sys_store_app.update_available / latest_version exist on the PDI (O-5).
  */
 export async function readStoreUpdates({
   limit = STORE_APP_LIMIT,
