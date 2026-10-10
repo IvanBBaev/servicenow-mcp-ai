@@ -128,3 +128,10 @@ serverOptions)` takes extra server options. tools/list is identical on both
    binary) and the conformance matrix gate each of the above.
 7. Measure `tools/list` on the modern wire separately; the legacy budget in
    `test/output-schema.test.js` stays as is.
+   **Done:** `test/tools-list-modern.test.js` sends tools/list on the
+   2026-07-28 wire in process (`createMcpHandler` → `buildMcpServer`) for
+   every surface profile. The modern tools array is byte-identical to the
+   legacy one on all four profiles, so the legacy budget covers both wires.
+   The envelope around it (`resultType`, the N-38 cache hints and the SDK's
+   `_meta` server info) measures 962 B, capped at 1024 B; most of it is the
+   M-1 data-URI icon. tools/list delta 0.
