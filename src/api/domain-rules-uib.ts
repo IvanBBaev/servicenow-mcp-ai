@@ -38,25 +38,25 @@ const BROKER_READS: readonly (readonly [
     "sys_ux_data_broker_transform",
     "uib_data_broker_transform",
     "transform",
-    ["sys_id", "name", "mutates_server_data", "properties", "script"],
+    ["sys_id", "name", "mutates_server_data", "props", "script"],
   ],
   [
     "sys_ux_data_broker_scriptlet",
     "uib_data_broker_scriptlet",
     "scriptlet",
-    ["sys_id", "name", "properties"],
+    ["sys_id", "name", "mutates_server_data", "props"],
   ],
   [
     "sys_ux_data_broker_rest",
     "uib_data_broker_rest",
     "rest",
-    ["sys_id", "name", "mutates_server_data", "properties"],
+    ["sys_id", "name", "mutates_server_data", "props"],
   ],
   [
     "sys_ux_data_broker_graphql",
     "uib_data_broker_graphql",
     "graphql",
-    ["sys_id", "name", "mutates_server_data", "properties"],
+    ["sys_id", "name", "mutates_server_data", "props"],
   ],
 ];
 
@@ -260,7 +260,7 @@ export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
     for (const b of brokers) {
       const findings = lintUibBroker({
         kind: b.kind,
-        properties: raw(b.row, "properties"),
+        props: raw(b.row, "props"),
         script: raw(b.row, "script"),
       });
       for (const f of findings) {

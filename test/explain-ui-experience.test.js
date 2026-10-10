@@ -235,7 +235,7 @@ function fixture() {
         sys_id: BROKER_T,
         name: "Incident list",
         mutates_server_data: "false",
-        properties: '[{"name":"table","type":"string"}]',
+        props: '[{"name":"table","type":"string"}]',
         script: "function transform(input) { return []; }",
       },
     ],
@@ -243,7 +243,8 @@ function fixture() {
       {
         sys_id: BROKER_S,
         name: "Counter",
-        properties: '[{"name":"count","type":"number"}]',
+        mutates_server_data: "false",
+        props: '[{"name":"count","type":"number"}]',
       },
     ],
     sys_security_acl: [
@@ -570,6 +571,7 @@ test("data brokers, their ux_data_broker ACLs and unresolved brokers", async () 
       sys_id: BROKER_S,
       table: "sys_ux_data_broker_scriptlet",
       name: "Counter",
+      mutates_server_data: "false",
       acls: [],
     },
   ]);
@@ -588,14 +590,14 @@ test("N-29: REST / GraphQL brokers resolve, broker hints flag the three rules", 
   tables.sys_ux_data_broker_transform[0].script =
     "function transform(input) {\n  var gr = new GlideRecord('incident');\n  gr.query();\n}";
   // The scriptlet declares no input.
-  tables.sys_ux_data_broker_scriptlet[0].properties = "[]";
+  tables.sys_ux_data_broker_scriptlet[0].props = "[]";
   // BROKER_X lives in the GraphQL table: it mutates and has no ACL.
   tables.sys_ux_data_broker_graphql = [
     {
       sys_id: BROKER_X,
       name: "Graph writer",
       mutates_server_data: "true",
-      properties: '[{"name":"id"}]',
+      props: '[{"name":"id"}]',
     },
   ];
   const mock = instance(tables);
