@@ -30,7 +30,7 @@ import { isSysId } from "../core/sys-id.js";
  * `available:false`. Each other section that fails degrades on its own to
  * `available:false` with a reason. Table, field and choice names
  * (sysapproval_approver sysapproval / group / due_date, task_sla stage /
- * business_percentage / business_time_left) are unverified until O-5 (PDI).
+ * business_percentage / business_time_left) were checked on a PDI (O-5).
  */
 
 /** Approval rows read per task. */
@@ -411,9 +411,6 @@ export async function pendingApprovals({
   }
 }
 
-const UNVERIFIED =
-  "_Table, field and choice names (sysapproval_approver, task_sla) are unverified until O-5 (PDI)._";
-
 function sectionHead<T>(
   title: string,
   s: Section<T>,
@@ -504,7 +501,7 @@ export function taskContextMarkdown(ctx: TaskContext | Unavailable): string[] {
       );
     }
   }
-  return [...out, UNVERIFIED];
+  return out;
 }
 
 /** Markdown for the pending-approvals view. */
@@ -513,11 +510,7 @@ export function pendingApprovalsMarkdown(
 ): string[] {
   if (!p.available) return [`Unavailable: ${p.unavailableReason}`];
   if (p.rows.length === 0) {
-    return [
-      `_No requested approvals for ${mdEscape(p.approver)}._`,
-      "",
-      UNVERIFIED,
-    ];
+    return [`_No requested approvals for ${mdEscape(p.approver)}._`];
   }
   return [
     `${p.rows.length} requested approval(s) for ${mdEscape(p.approver)}${p.truncated ? " (first rows only — truncated)" : ""}, oldest due first.`,
@@ -533,7 +526,5 @@ export function pendingApprovalsMarkdown(
         r.due,
       ]),
     ),
-    "",
-    UNVERIFIED,
   ];
 }

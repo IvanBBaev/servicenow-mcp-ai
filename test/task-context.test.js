@@ -207,7 +207,7 @@ test("a change with two approval groups renders its approvals", async () => {
     assert.match(md, /\| Dave DBA \| DBA \| Requested \|/);
     assert.match(md, /### Task SLAs\n\n_No task SLAs\._/);
     assert.doesNotMatch(md, /### Journal/);
-    assert.match(md, /unverified until O-5/);
+    assert.doesNotMatch(md, /unverified until O-5/);
   });
 });
 

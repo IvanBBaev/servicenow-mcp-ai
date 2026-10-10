@@ -21,7 +21,7 @@ import { queryTable } from "./table.js";
  * unreadable table gives `available: false`. Running a scan (phase D,
  * {@link runInstanceScan}) is a write behind the ATF rails.
  * Table and field names (scan_result, scan_finding, check.*, source_table,
- * source) are unverified until O-5 (PDI).
+ * source, muted) were checked on a PDI (O-5).
  */
 
 export const SCAN_RESULT_TABLE = "scan_result";
@@ -140,7 +140,9 @@ export async function readInstanceScan(
   try {
     ({ records } = await queryTable({
       table: SCAN_FINDING_TABLE,
-      query: result ? `result=${result.sys_id}` : "active=true",
+      // scan_finding has no `active` column; an unknown field is ignored and
+      // would read every finding, so fall back to the unmuted ones.
+      query: result ? `result=${result.sys_id}` : "muted=false",
       fields: [
         "check.name",
         "check.priority",
@@ -241,7 +243,7 @@ export function renderInstanceScan(report: InstanceScanReport): string[] {
     lines.push("");
   }
   lines.push(
-    "Read-only: the latest stored result is shown, no scan is run. Our lint runs on a table (`scope`) or with `extended`; without either the agreement set is empty. Table and field names are unverified until O-5 (PDI).",
+    "Read-only: the latest stored result is shown, no scan is run. Our lint runs on a table (`scope`) or with `extended`; without either the agreement set is empty.",
     "",
   );
   return lines;
