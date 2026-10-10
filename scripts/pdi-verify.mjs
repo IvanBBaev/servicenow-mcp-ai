@@ -8,7 +8,8 @@
 //     key, script, meta, json, ref, write, unique, parent link) and every
 //     reference target table;
 //   - reader calls in build/api and build/tools: an object literal with a
-//     literal `table` and a literal `fields` array (queryTable and friends).
+//     `table` and a `fields` array (queryTable and friends), literal or a
+//     top-level const of the same file (spreads included).
 //
 // The instance side is sys_db_object (with the super_class chain, so an
 // inherited field counts) and sys_dictionary. Only GETs go out, through the
@@ -123,6 +124,44 @@ function walk(node, visit) {
   }
 }
 
+/**
+ * The file's top-level `const` strings and string arrays, so a reader that
+ * passes `table: TABLE` or `fields: [...BASE_FIELDS, "x"]` is still checked.
+ * Names imported from another file stay unresolved.
+ */
+function fileConstants(ast) {
+  const consts = new Map();
+  for (const stmt of ast.body) {
+    const decl =
+      stmt.type === "ExportNamedDeclaration" ? stmt.declaration : stmt;
+    if (decl?.type !== "VariableDeclaration" || decl.kind !== "const") continue;
+    for (const d of decl.declarations) {
+      if (d.id.type === "Identifier" && d.init) consts.set(d.id.name, d.init);
+    }
+  }
+  return consts;
+}
+
+function resolveString(n, consts) {
+  if (n?.type === "Identifier" && consts.has(n.name)) {
+    return literal(consts.get(n.name));
+  }
+  return literal(n);
+}
+
+function resolveList(n, consts, seen = new Set()) {
+  if (n?.type === "Identifier" && consts.has(n.name) && !seen.has(n.name)) {
+    seen.add(n.name);
+    return resolveList(consts.get(n.name), consts, seen);
+  }
+  if (n?.type !== "ArrayExpression") return [];
+  return n.elements.flatMap((el) =>
+    el?.type === "SpreadElement"
+      ? resolveList(el.argument, consts, seen)
+      : [resolveString(el, consts)],
+  );
+}
+
 function collectReaders() {
   for (const dir of ["api", "tools"]) {
     const base = path.join(build, dir);
@@ -133,6 +172,7 @@ function collectReaders() {
         ecmaVersion: "latest",
         sourceType: "module",
       });
+      const consts = fileConstants(ast);
       const src = `reader:${dir}/${rel}`;
       walk(ast, (n) => {
         if (n.type !== "ObjectExpression") return;
@@ -142,10 +182,11 @@ function collectReaders() {
             props.set(p.key.name ?? p.key.value, p.value);
           }
         }
-        const table = literal(props.get("table"));
-        const fields = props.get("fields");
-        if (!table || fields?.type !== "ArrayExpression") return;
-        for (const el of fields.elements) addField(table, literal(el), src);
+        const table = resolveString(props.get("table"), consts);
+        if (!table) return;
+        for (const f of resolveList(props.get("fields"), consts)) {
+          addField(table, f, src);
+        }
       });
     }
   }
