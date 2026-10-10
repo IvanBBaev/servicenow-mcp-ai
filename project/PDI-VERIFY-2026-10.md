@@ -1,0 +1,120 @@
+# O-5 — table and field names checked against a PDI
+
+Date: 2026-10-10. Instance: the owner's PDI (`ven03019`, basic auth). Read-only:
+only GETs on `sys_db_object` and `sys_dictionary`. Tool:
+`scripts/pdi-verify.mjs` (needs `npm run build`; run with a raised
+`SN_MAX_RECORDS`, e.g. `SN_MAX_RECORDS=5000 node scripts/pdi-verify.mjs`).
+
+## Method
+
+The script reads the names from two places:
+
+- the artefact registry (`ARTIFACT_TYPES`). For each type and child it takes
+  the table, every named field (name, scope, active, applies-to, order,
+  parent link, key, script, client, markup, secret, meta, when, write,
+  unique, scope-prefix, JSON and ref fields), the parent keys and `alsoMatch`
+  pairs, and each reference target table;
+- reader calls in `build/api` and `build/tools`: any object literal with a
+  literal `table` and a literal `fields` array.
+
+On the instance side, a table exists if it has a `sys_db_object` row. A field
+exists if the table or any ancestor in its `super_class` chain has a
+`sys_dictionary` row for it. Dot-walked fields are checked by their first
+segment only.
+
+## Totals
+
+265 tables and 1,309 `table.field` names. **5 tables and 74 fields are
+missing** on the PDI. The suggested names below come from the real
+dictionary columns of each table.
+
+A missing name is not always a code bug. Plugins that are not active on the
+PDI hide their tables. Dot-walked and computed values in readers are not
+checked. The `verified` flags in the registry are not changed by this report.
+
+## Missing tables
+
+| Table                         | Used by                               | Finding                                                                                   |
+| ----------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `change_risk_asmt`            | `risk_assessment`                     | Plugin `com.snc.change_management.risk_assessment` is inactive on the PDI — unverifiable. |
+| `change_risk_asmt_threshold`  | `risk_assessment` child               | Same plugin — unverifiable.                                                               |
+| `sys_package_dependency`      | `application` child                   | Not present. The PDI has `sys_package_dependency_m2m` and `sys_package_dependency_item`.  |
+| `sys_scope_dependency`        | `app_dependency`, `application` child | Not present; no equivalent found.                                                         |
+| `sys_ux_composite_definition` | `uib_composite_definition`            | Not present; only `sys_ux_composite_data*` tables exist.                                  |
+
+## Reader bugs (wrong results today)
+
+These names are read by code paths outside the artefact registry, so a call
+returns empty columns or matches nothing.
+
+| Name                                                            | Reader                            | Real column(s)                                                        |
+| --------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------------- |
+| `sys_flow_context.table`                                        | `api/flows-designer`              | `source_table`                                                        |
+| `sys_flow_context.document_id`                                  | `api/flows-designer`              | `source_record`                                                       |
+| `sys_hub_trigger_instance.condition / table_name / when_to_run` | `api/flows`, `api/flows-designer` | Not columns; the trigger inputs live in `trigger_inputs` (glide_var). |
+| `wf_workflow.active`, `wf_workflow.condition`                   | `api/flows`, `api/flows-designer` | On `wf_workflow_version`.                                             |
+| `wf_activity.order`                                             | `api/flows-designer`              | No such column.                                                       |
+| `sys_script.global`                                             | `api/flows`                       | No such column on `sys_script`.                                       |
+| `sys_script_client.inherited`                                   | `api/flows-lanes`                 | `applies_extended` (and `global`).                                    |
+| `sys_upgrade_history.state`                                     | `api/upgrade`                     | No such column (closest: `summary_complete_status`).                  |
+| `sys_upgrade_history_log.application`                           | `api/upgrade`                     | No such column (closest: `application_category`, `plugin`).           |
+
+## Registry mismatches
+
+| Artefact (child)                                            | Name in code                                                | Real column(s)                                                                |
+| ----------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `data_lookup`                                               | `dl_definition.table`                                       | `source_table` (also `matcher_table`)                                         |
+| `data_lookup` > `dl_definition_rel_match`                   | `definition`, `source_field`                                | `dl_definition`, `source_table_field`                                         |
+| `data_lookup` > `dl_definition_rel_set`                     | `definition`, `target_field`                                | `dl_definition`, `source_table_field` / `matcher_table_field`                 |
+| `pa_script`                                                 | `facts_table`, `fields`                                     | `table`, `arguments`                                                          |
+| `pa_breakdown`, `pa_indicator`                              | `active`                                                    | No such column.                                                               |
+| `dashboard` > `par_dashboard_widget`                        | `tab`                                                       | `canvas`                                                                      |
+| `ai_agent`, `ai_agentic_workflow`                           | `active`                                                    | No such column on `sn_aia_agent` / `sn_aia_usecase`.                          |
+| `ai_agent` > `sn_aia_trigger_configuration`                 | `agent`                                                     | `usecase`                                                                     |
+| `ai_agent` > `sn_aia_version`                               | `agent`                                                     | `target_id` + `target_table` (document id)                                    |
+| `sp_dependency`                                             | `include_on_page_load`                                      | `page_load`                                                                   |
+| `state_model`                                               | `sttrm_model.table`                                         | `table_name`                                                                  |
+| `state_model` > `sttrm_state`                               | `label`, `model`                                            | `state_label`, `sttrm_model`                                                  |
+| `state_model` > `sttrm_state_transition`                    | `model`                                                     | No such column (`from_state`, `to_state`, `name`).                            |
+| `state_model` > `sttrm_transition_condition`                | `transition`                                                | `sttrm_state_transition`                                                      |
+| `data_policy`                                               | `use_as_ui_policy`                                          | `enforce_ui`                                                                  |
+| `ux_declarative_action_definition`                          | `action_name`, `label`                                      | `name` / `dispatch_action`; no `label`                                        |
+| `ux_declarative_action_payload`                             | `key`, `payload`                                            | `action_key`, `payload_template`                                              |
+| `graphql_api`                                               | `schema_namespace`                                          | `namespace` / `application_namespace`                                         |
+| `graphql_api`, `graphql_type_resolver`                      | `sys_graphql_typeresolver.name`                             | `type_name`                                                                   |
+| `flow`, `subflow` > `sys_hub_action_instance`               | `values`                                                    | `action_inputs`                                                               |
+| `flow_action` > `sys_hub_step_instance`                     | `values`                                                    | `inputs`                                                                      |
+| `flow`, `subflow` > `sys_hub_sub_flow_instance_v2`          | `values`                                                    | `subflow_inputs`                                                              |
+| `workflow` > `wf_activity`                                  | `workflow`, `order`                                         | `workflow_version`; no `order`                                                |
+| `workflow`                                                  | `wf_workflow.active`                                        | On `wf_workflow_version`.                                                     |
+| `js_module`                                                 | `sys_module.name`                                           | `path` (also `content`)                                                       |
+| `source_control`                                            | `branch`, `application`, `sys_scope`                        | `current_branch`; no `application` / `sys_scope`                              |
+| `rest_message`                                              | `use_mid_server`                                            | No such column.                                                               |
+| `business_rule`                                             | `sys_script.global`                                         | No such column.                                                               |
+| `security_data_filter`                                      | `condition`, `table`, `name`                                | `filter`, `table_name`; no `name`                                             |
+| `uib_route`, `uib_app_config` > `sys_ux_app_route`          | `parameters`                                                | `fields`, `optional_parameters`                                               |
+| `uib_data_broker_*` (graphql, rest, scriptlet, transform)   | `properties`                                                | `props` (on the `sys_ux_data_broker` base)                                    |
+| `uib_event`                                                 | `sys_ux_event.name`                                         | `event_name` (also `label`)                                                   |
+| `uib_form_action`, `workspace_form_action`                  | `action` / `action_name`, `label`, `order`, `applicability` | `declarative_action` / `ui_action`, `name`, `specificity`; no `applicability` |
+| `uib_form_action_layout` > `sys_ux_form_action_layout_item` | `form_action`, `form_action_layout`                         | `action`, `layout_group`                                                      |
+| `uib_component`                                             | `sys_ux_lib_component.name`, `properties`                   | `tag`, `source_script`; no `properties`                                       |
+| `uib_screen`                                                | `applicability`                                             | `screen_condition`                                                            |
+| `inbound_email_action`                                      | `condition`                                                 | `filter_condition` / `condition_script`                                       |
+
+## Scope field on tables without `sys_scope`
+
+These tables have no `super_class` and no `sys_scope` column, so the default
+`scopeField` does not apply. A scope filter on them matches nothing.
+
+`sys_app` (it is itself a `sys_scope` subclass, so its own `sys_id` is the
+scope), `kb_knowledge_base`, `sys_user_preference`, `sys_pd_context`,
+`wf_context`, `sys_flow_context`.
+
+## Next steps
+
+Fixes land per module, each with its tests: the registry modules
+(platform, process, UI, scripts, model) and the readers in `api/flows`,
+`api/flows-designer`, `api/flows-lanes` and `api/upgrade`. Renames that
+change a tool's output shape are BREAKING and wait for the owner (O-4). The
+two plugin-gated tables stay as they are until a PDI with the plugin can
+confirm them.
