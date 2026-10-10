@@ -264,6 +264,25 @@ test("code search: hits on a denied table are dropped", async () => {
   );
 });
 
+test("code search: the LIKE path skips a denied script type; an explicit type is refused", async () => {
+  await scenario({ SN_TABLES_DENY: "sys_script_include" }, async (calls) => {
+    const res = out(await call("servicenow_search_code", { text: "gs.info" }));
+    assert.equal(res.error, undefined, JSON.stringify(res));
+    assert.ok(res.unreadable?.includes("script_include"), JSON.stringify(res));
+    assert.ok(
+      calls.every((c) => !c.url.includes("/table/sys_script_include")),
+      "the denied table is never queried",
+    );
+    const typed = out(
+      await call("servicenow_search_code", {
+        text: "gs.info",
+        type: "script_include",
+      }),
+    );
+    assert.equal(typed.code, "POLICY_DENIED", JSON.stringify(typed));
+  });
+});
+
 // --- batch ------------------------------------------------------------------
 
 const batchOk = () =>
