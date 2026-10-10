@@ -539,6 +539,263 @@ test("e2e: a 2026-07-28 request gets log notifications only when its _meta sets 
   });
 });
 
+/**
+ * One raw 2026-07-28 JSON-RPC request: the client SDK refuses a
+ * `resultType: "task"` answer, so the M-9 tests speak the wire directly.
+ * `tasks` declares the tasks extension in the request's envelope.
+ */
+async function modernCall(port, method, params, { name, tasks = true } = {}) {
+  const res = await rawRequest(port, {
+    method: "POST",
+    headers: {
+      ...MCP_HEADERS,
+      "mcp-protocol-version": "2026-07-28",
+      "mcp-method": method,
+      ...(name ? { "mcp-name": name } : {}),
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method,
+      params: {
+        ...params,
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+          "io.modelcontextprotocol/clientInfo": { name: "m9", version: "0" },
+          "io.modelcontextprotocol/clientCapabilities": tasks
+            ? { extensions: { "io.modelcontextprotocol/tasks": {} } }
+            : {},
+          ...params?._meta,
+        },
+      },
+    }),
+  });
+  // JSON or a one-message SSE stream.
+  const text = res.headers["content-type"]?.includes("text/event-stream")
+    ? res.text
+        .split("\n")
+        .filter((l) => l.startsWith("data:"))
+        .map((l) => l.slice(5))
+        .at(-1)
+    : res.text;
+  return JSON.parse(text);
+}
+
+/** An empty result (`{}`) once the SDK's envelope stamps are set aside. */
+function assertEmpty(result) {
+  const rest = { ...result };
+  delete rest._meta;
+  assert.deepEqual(rest, { resultType: "complete" });
+}
+
+const queryFile = (args = {}) => ({
+  name: "servicenow_query_table",
+  arguments: { table: "incident", limit: 2, format: "file", ...args },
+});
+
+/** A fetch double whose table reads wait for `release()`. */
+function gatedTable() {
+  let release;
+  const gate = new Promise((resolve) => (release = resolve));
+  const handler = async () => {
+    await gate;
+    return jsonResponse(
+      200,
+      { result: [{ sys_id: "a1", number: "INC1" }] },
+      { "x-total-count": "1" },
+    );
+  };
+  return { handler, release };
+}
+
+async function pollTask(port, taskId, until) {
+  for (let i = 0; i < 200; i++) {
+    const task = (
+      await modernCall(port, "tasks/get", { taskId }, { name: taskId })
+    ).result;
+    if (until(task)) return task;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`task ${taskId} never settled`);
+}
+
+const M9_ENV = () => ({
+  SN_EXPERIMENTAL_TASKS: "1",
+  SN_DOCS_DIR: mkdtempSync(path.join(tmpdir(), "sn-m9-")),
+});
+
+test("e2e: a 2026-07-28 task tool call answers a task, polled across requests to its result (M-9)", async () => {
+  const env = M9_ENV();
+  try {
+    await withHttp(env, async (port) => {
+      const { handler, release } = gatedTable();
+      await withFetch(handler, async () => {
+        const created = await modernCall(port, "tools/call", queryFile(), {
+          name: "servicenow_query_table",
+        });
+        const task = created.result;
+        assert.equal(task.resultType, "task");
+        assert.equal(task.status, "working");
+        assert.equal(typeof task.taskId, "string");
+        assert.equal(typeof task.createdAt, "string");
+        assert.equal(typeof task.lastUpdatedAt, "string");
+        assert.ok("ttlMs" in task);
+        assert.equal(typeof task.pollIntervalMs, "number");
+
+        // The creating request's runtime is gone; the task is not.
+        const working = (
+          await modernCall(
+            port,
+            "tasks/get",
+            { taskId: task.taskId },
+            {
+              name: task.taskId,
+            },
+          )
+        ).result;
+        assert.equal(working.status, "working");
+        assert.equal("result" in working, false);
+
+        release();
+        const done = await pollTask(
+          port,
+          task.taskId,
+          (t) => t.status !== "working",
+        );
+        assert.equal(done.status, "completed");
+        assert.notEqual(done.result.isError, true, JSON.stringify(done.result));
+        assert.equal(done.result.structuredContent.format, "file");
+        assert.equal(done.result.structuredContent.rows, 1);
+        assert.equal("error" in done, false);
+
+        assertEmpty(
+          (
+            await modernCall(
+              port,
+              "tasks/update",
+              {
+                taskId: task.taskId,
+                inputResponses: {},
+              },
+              { name: task.taskId },
+            )
+          ).result,
+        );
+      });
+    });
+  } finally {
+    rmSync(env.SN_DOCS_DIR, { recursive: true, force: true });
+  }
+});
+
+test("e2e: tasks/cancel stops a 2026-07-28 task and answers {} (M-9)", async () => {
+  const env = M9_ENV();
+  try {
+    await withHttp(env, async (port) => {
+      const { handler, release } = gatedTable();
+      await withFetch(handler, async () => {
+        const { taskId } = (
+          await modernCall(port, "tools/call", queryFile(), {
+            name: "servicenow_query_table",
+          })
+        ).result;
+        const cancel = await modernCall(
+          port,
+          "tasks/cancel",
+          { taskId },
+          {
+            name: taskId,
+          },
+        );
+        assertEmpty(cancel.result);
+        release();
+        const task = (
+          await modernCall(port, "tasks/get", { taskId }, { name: taskId })
+        ).result;
+        assert.equal(task.status, "cancelled");
+        assert.equal("result" in task, false);
+        // Cancelling a terminal task is still {}.
+        assertEmpty(
+          (await modernCall(port, "tasks/cancel", { taskId }, { name: taskId }))
+            .result,
+        );
+      });
+    });
+  } finally {
+    rmSync(env.SN_DOCS_DIR, { recursive: true, force: true });
+  }
+});
+
+test("e2e: 2026-07-28 task errors — unknown task, undeclared extension, removed methods (M-9)", async () => {
+  const env = M9_ENV();
+  try {
+    await withHttp(env, async (port) => {
+      for (const method of ["tasks/get", "tasks/cancel", "tasks/update"]) {
+        const unknown = await modernCall(
+          port,
+          method,
+          { taskId: "nope" },
+          {
+            name: "nope",
+          },
+        );
+        assert.equal(unknown.error?.code, -32602, `${method} unknown task`);
+
+        const undeclared = await modernCall(
+          port,
+          method,
+          { taskId: "nope" },
+          { name: "nope", tasks: false },
+        );
+        assert.equal(undeclared.error?.code, -32021, `${method} undeclared`);
+        assert.deepEqual(undeclared.error.data.requiredCapabilities, {
+          extensions: { "io.modelcontextprotocol/tasks": {} },
+        });
+      }
+      for (const method of ["tasks/list", "tasks/result"]) {
+        const gone = await modernCall(
+          port,
+          method,
+          { taskId: "nope" },
+          {
+            name: "nope",
+          },
+        );
+        assert.equal(gone.error?.code, -32601, `${method} is not on the wire`);
+      }
+    });
+  } finally {
+    rmSync(env.SN_DOCS_DIR, { recursive: true, force: true });
+  }
+});
+
+test("e2e: without the extension, or with run_as_task:false, a 2026-07-28 call stays synchronous (M-9)", async () => {
+  const env = M9_ENV();
+  try {
+    await withHttp(env, async (port) => {
+      const { handler, release } = gatedTable();
+      release();
+      await withFetch(handler, async () => {
+        for (const [args, tasks] of [
+          [{ run_as_task: true }, false],
+          [{ run_as_task: false }, true],
+          [{ format: "json" }, true],
+        ]) {
+          const res = await modernCall(port, "tools/call", queryFile(args), {
+            name: "servicenow_query_table",
+            tasks,
+          });
+          assert.equal(res.error, undefined, JSON.stringify(res.error));
+          assert.notEqual(res.result.resultType, "task");
+          assert.notEqual(res.result.isError, true, JSON.stringify(res.result));
+        }
+      });
+    });
+  } finally {
+    rmSync(env.SN_DOCS_DIR, { recursive: true, force: true });
+  }
+});
+
 test("HTTP: requests without a valid session are refused with JSON-RPC errors", async () => {
   await withHttp({ SN_HTTP_MAX_SESSIONS: "1" }, async (port) => {
     const get = await rawRequest(port, { method: "GET", headers: MCP_HEADERS });

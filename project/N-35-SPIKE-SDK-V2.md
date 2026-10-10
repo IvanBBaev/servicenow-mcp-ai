@@ -105,6 +105,20 @@ serverOptions)` takes extra server options. tools/list is identical on both
    `sendLoggingMessage` (kept for the deprecation window). Token bucket and
    `logging/setLevel` unchanged for 2025 clients; tools/list delta 0.
 4. **Tasks extension (M-9)** on top of the hand-rolled handlers.
+   **Done:** behind `SN_EXPERIMENTAL_TASKS`, the server declares
+   `extensions["io.modelcontextprotocol/tasks"]`. On the 2026-07-28 wire a
+   task tool called by a client whose envelope declares the extension answers
+   `{ resultType: "task", taskId, status, ttlMs, pollIntervalMs, … }` and runs
+   in the background (`run_as_task` is stripped; `run_as_task:false` keeps a
+   call synchronous, no declaration means synchronous). `tasks/get` returns the
+   flat task with `result` (completed — a tool error included) or `error`
+   (failed — JSON-RPC errors only); `tasks/update` and `tasks/cancel` answer
+   `{}`; an unknown task is -32602, an undeclared client -32021;
+   `tasks/list` / `tasks/result` are not on the modern wire. The background
+   run sends no progress or log notifications. Modern tasks live in the
+   process runtime's store, bound to the principal (bearer `clientId`), and a
+   request runtime is disposed only once its task work has settled. The 2025
+   `run_as_task` path is unchanged; tools/list delta 0 (flag off).
 5. **N-38** `ttlMs` / `cacheScope` on list results on the modern wire.
 6. A dual-protocol spawn test (legacy and 2026-07-28 against the built
    binary) and the conformance matrix gate each of the above.

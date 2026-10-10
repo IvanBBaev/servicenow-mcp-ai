@@ -19,6 +19,7 @@ import {
 } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
 import { createLogBridge } from "./log-bridge.js";
+import { taskWorkSettled } from "./tasks.js";
 import { MAX_INIT_BODY_BYTES } from "./http-sessions.js";
 
 /**
@@ -29,7 +30,9 @@ import { MAX_INIT_BODY_BYTES } from "./http-sessions.js";
  * the factory, serves the exchange and closes it. Every request runs on its
  * own child runtime (`createRuntime({ parent })`), disposed when its server
  * closes, so plan tokens, package toggles and the `use_instance` profile of
- * one request never leak into another. 2025-era traffic never reaches this
+ * one request never leak into another. A task the request started (M-9,
+ * ext-tasks) outlives the response: the runtime is disposed once its
+ * background work has settled, and the task itself lives on the parent. 2025-era traffic never reaches this
  * leg (`legacy: 'reject'`): `HttpSessionManager` keeps serving it with
  * sessions.
  */
@@ -121,7 +124,7 @@ export class ModernHttpHandler {
     const previous = server.server.onclose;
     server.server.onclose = () => {
       previous?.();
-      void runtime.dispose();
+      void taskWorkSettled(runtime).then(() => runtime.dispose());
     };
     return server;
   }

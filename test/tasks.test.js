@@ -99,6 +99,7 @@ test("withTaskSupport: unchanged when off, the tasks capability when on", async 
     assert.deepEqual(opts.capabilities, {
       logging: {},
       tasks: { list: {}, cancel: {} },
+      extensions: { "io.modelcontextprotocol/tasks": {} },
     });
     assert.equal("taskStore" in opts, false, "N-35: no SDK task store");
     assert.equal(
@@ -172,6 +173,50 @@ test("store: TTL expiry drops the entry and aborts its work", async () => {
   assert.ok(controller.signal.aborted, "expired running task aborted");
   assert.equal(store.runningCount(), 0);
   assert.deepEqual(await store.listTasks(), { tasks: [] });
+});
+
+test("store: the 2026-07-28 view — ttlMs, pollIntervalMs, result or error", async () => {
+  const store = new SnTaskStore(clock());
+  const ok = await store.createTask({}, 1, REQ, "modern:");
+  const view = store.modernTask(ok.taskId, "modern:");
+  assert.deepEqual(Object.keys(view).sort(), [
+    "createdAt",
+    "lastUpdatedAt",
+    "pollIntervalMs",
+    "status",
+    "taskId",
+    "ttlMs",
+  ]);
+  assert.equal(view.ttlMs, TASK_TTL_MS);
+  assert.equal(view.pollIntervalMs, 2000);
+  assert.equal(store.modernTask(ok.taskId, "modern:other"), null);
+  assert.equal(store.modernTask("nope"), null);
+
+  const result = { content: [{ type: "text", text: "x" }], isError: true };
+  await store.storeTaskResult(ok.taskId, "completed", result, "modern:");
+  const done = store.modernTask(ok.taskId, "modern:");
+  assert.equal(done.status, "completed");
+  assert.deepEqual(done.result, result, "a tool error still completes");
+  assert.equal("error" in done, false);
+
+  const bad = await store.createTask({}, 2, REQ, "modern:");
+  const controller = new AbortController();
+  store.track(bad.taskId, controller);
+  store.storeTaskError(
+    bad.taskId,
+    { code: -32603, message: "boom" },
+    "modern:",
+  );
+  const failed = store.modernTask(bad.taskId, "modern:");
+  assert.equal(failed.status, "failed");
+  assert.deepEqual(failed.error, { code: -32603, message: "boom" });
+  assert.equal("result" in failed, false);
+  assert.equal(store.runningCount(), 0);
+  assert.throws(
+    () =>
+      store.storeTaskError(bad.taskId, { code: 1, message: "x" }, "modern:"),
+    /already failed/,
+  );
 });
 
 test("store: cancel aborts, session binding hides foreign tasks", async () => {
@@ -511,6 +556,15 @@ test("e2e: query_table file export as a task — handle, get, result, list", asy
           );
           assert.equal(done.status, "completed");
           assert.equal(store.runningCount(), 0);
+
+          // tasks/update belongs to the 2026-07-28 extension only.
+          await assert.rejects(
+            client.request(
+              { method: "tasks/update", params: { taskId } },
+              CancelTaskResultSchema,
+            ),
+            (err) => err.code === -32601,
+          );
         } finally {
           await close();
         }

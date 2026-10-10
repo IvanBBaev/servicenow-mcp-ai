@@ -23,7 +23,11 @@ import { warnIfTlsVerifyOff } from "./core/dispatcher.js";
 import type { Runtime } from "./core/runtime.js";
 import { SERVER_VERSION } from "./core/identity.js";
 import { LIST_CACHE_HINTS } from "./mcp/cache-hints.js";
-import { installTaskHandlers, withTaskSupport } from "./mcp/tasks.js";
+import {
+  installTaskHandlers,
+  wireModernTasks,
+  withTaskSupport,
+} from "./mcp/tasks.js";
 import {
   buildServerInstructions,
   serverImplementation,
@@ -62,6 +66,7 @@ export function buildMcpServer(
   );
   installTaskHandlers(server, runtime);
   registerAllTools(server, runtime);
+  wireModernTasks(server, runtime);
   registerResources(server);
   registerPrompts(server, effectivePackages().enabled);
   return server;

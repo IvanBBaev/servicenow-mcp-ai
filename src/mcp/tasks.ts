@@ -6,9 +6,13 @@ import type {
   ServerOptions,
 } from "@modelcontextprotocol/server";
 import {
+  CLIENT_CAPABILITIES_META_KEY,
+  LOG_LEVEL_META_KEY,
+  MissingRequiredClientCapabilityError,
   ProtocolError,
   ProtocolErrorCode,
   RELATED_TASK_META_KEY,
+  type CallToolResult,
   type Request,
   type RequestId,
   type Result,
@@ -57,6 +61,15 @@ import { fail, ok, type ToolResult } from "./result.js";
  * every plain call of such a tool into a create-and-poll loop. The capability
  * declares `tasks.list` and `tasks.cancel` only, so a task-augmented
  * tools/call is rejected by the SDK instead of being half-supported.
+ *
+ * The 2026-07-28 wire speaks the tasks extension instead (ext-tasks,
+ * wireModernTasks): the server declares `extensions[TASKS_EXTENSION]`, a
+ * client opts in per request in its envelope, and creating a task is the
+ * server's choice — `run_as_task` is stripped there. tasks/get answers the
+ * flat task (`ttlMs`, `pollIntervalMs`, `result` or `error`), tasks/update
+ * and tasks/cancel answer `{}`, and the background run sends no progress or
+ * log notifications. A modern request has no session, so its tasks live in
+ * the parent runtime's store, bound to the principal (principalOf).
  *
  * With the flag off nothing here is reachable: no task store, no `tasks`
  * capability, and the input schemas (tools/list) are byte-identical to a build
@@ -122,12 +135,21 @@ export function acceptsRunAsTask(spec: AnyToolSpec): boolean {
   return tasksEnabled() && TASK_TOOLS.has(spec.name);
 }
 
+/** The JSON-RPC error a failed 2026-07-28 task carries (ext-tasks). */
+export interface TaskError {
+  code: number;
+  message: string;
+  data?: unknown;
+}
+
 interface Entry {
   task: Task;
   request: Request;
   requestId: RequestId;
   sessionId?: string;
   result?: Result;
+  /** Set on a `failed` task of the 2026-07-28 extension. */
+  error?: TaskError;
   /** Epoch ms after which the entry is dropped. */
   expiresAt: number;
 }
@@ -241,6 +263,33 @@ export class SnTaskStore {
     this.running.delete(taskId);
   }
 
+  /**
+   * Fail `taskId` with a JSON-RPC error (the 2026-07-28 extension: `failed`
+   * is for errors only; a tool result, even `isError`, is `completed`).
+   */
+  storeTaskError(taskId: string, error: TaskError, sessionId?: string): void {
+    const entry = this.mustGet(taskId, sessionId);
+    if (isTerminal(entry.task.status)) {
+      throw new Error(
+        `Task ${taskId} is already ${entry.task.status}; its result is final.`,
+      );
+    }
+    entry.error = error;
+    entry.task.status = "failed";
+    entry.task.lastUpdatedAt = this.stamp();
+    this.running.delete(taskId);
+  }
+
+  /**
+   * The task as the 2026-07-28 extension shows it (tasks/get): `ttlMs` and
+   * `pollIntervalMs`, plus `result` once completed or `error` once failed.
+   * Null when unknown, expired or bound to another principal.
+   */
+  modernTask(taskId: string, sessionId?: string): ModernTask | null {
+    const entry = this.entry(taskId, sessionId);
+    return entry ? toModernTask(entry) : null;
+  }
+
   // eslint-disable-next-line @typescript-eslint/require-await -- async TaskStore contract; sync throws must reject
   async getTaskResult(taskId: string, sessionId?: string): Promise<Result> {
     const entry = this.mustGet(taskId, sessionId);
@@ -314,6 +363,38 @@ export class SnTaskStore {
   }
 }
 
+/** A task on the 2026-07-28 wire (ext-tasks `Task`). */
+export interface ModernTask {
+  taskId: string;
+  status: Task["status"];
+  statusMessage?: string;
+  createdAt: string;
+  lastUpdatedAt: string;
+  ttlMs: number | null;
+  pollIntervalMs?: number;
+  result?: Result;
+  error?: TaskError;
+}
+
+function toModernTask(entry: Entry): ModernTask {
+  const { task } = entry;
+  return {
+    taskId: task.taskId,
+    status: task.status,
+    ...(task.statusMessage ? { statusMessage: task.statusMessage } : {}),
+    createdAt: task.createdAt,
+    lastUpdatedAt: task.lastUpdatedAt,
+    ttlMs: task.ttl ?? null,
+    ...(task.pollInterval !== undefined
+      ? { pollIntervalMs: task.pollInterval }
+      : {}),
+    ...(task.status === "completed" && entry.result
+      ? { result: entry.result }
+      : {}),
+    ...(task.status === "failed" && entry.error ? { error: entry.error } : {}),
+  };
+}
+
 /**
  * Redact a tool result before it is retained: deep over the object (covers
  * structuredContent and PII in text), and inside JSON text content so a named
@@ -366,6 +447,12 @@ export function withTaskSupport(options: ServerOptions): ServerOptions {
     capabilities: {
       ...options.capabilities,
       tasks: { list: {}, cancel: {} },
+      // 2026-07-28: the tasks extension (ext-tasks), served by
+      // wireModernTasks and the modern branches of installTaskHandlers.
+      extensions: {
+        ...options.capabilities?.extensions,
+        [TASKS_EXTENSION]: {},
+      },
     },
   };
 }
@@ -387,6 +474,10 @@ export function requestTaskStore(
 
 const taskIdParams = z.looseObject({ taskId: z.string() });
 const listParams = z.looseObject({ cursor: z.string().optional() }).optional();
+const updateParams = z.looseObject({
+  taskId: z.string(),
+  inputResponses: z.record(z.string(), z.unknown()).optional(),
+});
 
 /** A task id unknown to (or hidden from) the session: -32602. */
 function notFound(taskId: string): ProtocolError {
@@ -411,6 +502,47 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+/** The 2026-07-28 tasks extension identifier (ext-tasks). */
+export const TASKS_EXTENSION = "io.modelcontextprotocol/tasks";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** True for a request that carries the 2026-07-28 per-request envelope. */
+function isModernRequest(ctx: ServerContext): boolean {
+  return ctx.mcpReq.envelope !== undefined;
+}
+
+/** True when the request's envelope declares the tasks extension. */
+export function clientDeclaresTasks(ctx: ServerContext): boolean {
+  const envelope = ctx.mcpReq.envelope as Record<string, unknown> | undefined;
+  const capabilities = envelope?.[CLIENT_CAPABILITIES_META_KEY];
+  if (!isRecord(capabilities) || !isRecord(capabilities.extensions)) {
+    return false;
+  }
+  return isRecord(capabilities.extensions[TASKS_EXTENSION]);
+}
+
+/** -32021 for a modern tasks/* request whose client did not declare it. */
+function requireTasksDeclared(ctx: ServerContext): void {
+  if (clientDeclaresTasks(ctx)) return;
+  throw new MissingRequiredClientCapabilityError(
+    { requiredCapabilities: { extensions: { [TASKS_EXTENSION]: {} } } },
+    "Missing required client capability",
+  );
+}
+
+/**
+ * Who owns a 2026-07-28 task: the authenticated client (bearer `clientId`),
+ * or the one anonymous principal of an unauthenticated server. Modern
+ * requests have no session, so this is the binding a later tasks/get is
+ * checked against. The prefix keeps it apart from 2025 session ids.
+ */
+function principalOf(ctx: ServerContext): string {
+  return `modern:${ctx.http?.authInfo?.clientId ?? ""}`;
+}
+
 /**
  * Serve tasks/get, tasks/result, tasks/list and tasks/cancel from the
  * runtime's store (N-35: SDK v1 installed these from `taskStore`; v2 has no
@@ -421,11 +553,18 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
 export function installTaskHandlers(server: McpServer, runtime: Runtime): void {
   if (!tasksEnabled()) return;
   const store = taskStoreFor(runtime);
+  const home = runtime.parent ?? runtime;
   const proto = server.server;
   proto.setRequestHandler(
     "tasks/get",
     { params: taskIdParams },
     async ({ taskId }, ctx: ServerContext) => {
+      if (isModernRequest(ctx)) {
+        requireTasksDeclared(ctx);
+        const task = taskStoreFor(home).modernTask(taskId, principalOf(ctx));
+        if (!task) throw notFound(taskId);
+        return { ...task };
+      }
       const task = await store.getTask(taskId, ctx.sessionId);
       if (!task) throw notFound(taskId);
       return { ...task };
@@ -472,6 +611,18 @@ export function installTaskHandlers(server: McpServer, runtime: Runtime): void {
     "tasks/cancel",
     { params: taskIdParams },
     async ({ taskId }, ctx: ServerContext) => {
+      if (isModernRequest(ctx)) {
+        // ext-tasks: an empty ack; cancelling a final task is a no-op.
+        requireTasksDeclared(ctx);
+        const owner = principalOf(ctx);
+        const modern = taskStoreFor(home);
+        const task = modern.modernTask(taskId, owner);
+        if (!task) throw notFound(taskId);
+        if (!isTerminal(task.status)) {
+          await modern.updateTaskStatus(taskId, "cancelled", undefined, owner);
+        }
+        return {};
+      }
       const task = await store.getTask(taskId, ctx.sessionId);
       if (!task) throw notFound(taskId);
       if (isTerminal(task.status)) {
@@ -487,6 +638,25 @@ export function installTaskHandlers(server: McpServer, runtime: Runtime): void {
         ctx.sessionId,
       );
       return { ...(await store.getTask(taskId, ctx.sessionId))! };
+    },
+  );
+  // ext-tasks only. No task of this server ever asks for input, so there is
+  // never an outstanding key: every response is ignored, as the spec asks.
+  proto.setRequestHandler(
+    "tasks/update",
+    { params: updateParams },
+    ({ taskId }, ctx: ServerContext) => {
+      if (!isModernRequest(ctx)) {
+        throw new ProtocolError(
+          ProtocolErrorCode.MethodNotFound,
+          "Method not found",
+        );
+      }
+      requireTasksDeclared(ctx);
+      if (!taskStoreFor(home).modernTask(taskId, principalOf(ctx))) {
+        throw notFound(taskId);
+      }
+      return {};
     },
   );
 }
@@ -627,4 +797,236 @@ export async function runMaybeAsTask(
       : {}),
     _meta: { [RELATED_TASK_META_KEY]: { taskId: task.taskId } },
   };
+}
+
+/** The SDK's request-handler table (`Protocol._requestHandlers`). */
+type RequestHandler = (
+  request: unknown,
+  ctx: ServerContext,
+) => Promise<unknown>;
+
+interface CallRequest {
+  method: string;
+  params: {
+    name: string;
+    arguments?: Record<string, unknown>;
+    _meta?: Record<string, unknown>;
+  };
+}
+
+/** Background task work per runtime, so its disposal can wait for it. */
+const held = new WeakMap<Runtime, Set<Promise<void>>>();
+
+function hold(runtime: Runtime, work: Promise<void>): void {
+  let set = held.get(runtime);
+  if (!set) {
+    set = new Set();
+    held.set(runtime, set);
+  }
+  set.add(work);
+  void work.finally(() => set.delete(work));
+}
+
+/**
+ * Resolves once every 2026-07-28 task started on `runtime` has finished. The
+ * modern HTTP leg disposes a request's runtime only then: the task outlives
+ * the request that created it (http-modern.ts).
+ */
+export async function taskWorkSettled(runtime: Runtime): Promise<void> {
+  await Promise.all([...(held.get(runtime) ?? [])]);
+}
+
+/** `record` without `key` (the same object when it has none). */
+function without<T extends Record<string, unknown>>(
+  record: T | undefined,
+  key: string,
+): T | undefined {
+  if (!record || !(key in record)) return record;
+  const rest = { ...record };
+  delete rest[key];
+  return rest;
+}
+
+/** The call without `run_as_task` (a modern request never takes it). */
+function withoutRunAsTask(request: CallRequest): CallRequest {
+  const args = request.params.arguments;
+  if (!args || !("run_as_task" in args)) return request;
+  const rest = { ...args };
+  delete rest.run_as_task;
+  return { ...request, params: { ...request.params, arguments: rest } };
+}
+
+/**
+ * True when a call of `name` with `args` becomes a task on the modern wire:
+ * a registered, enabled task tool, query_table only with format:"file", and
+ * not opted out with `run_as_task:false`.
+ */
+function createsTask(
+  name: string,
+  args: Record<string, unknown> | undefined,
+  tools: Record<string, { enabled: boolean } | undefined>,
+): boolean {
+  if (!TASK_TOOLS.has(name) || !tools[name]?.enabled) return false;
+  if (args?.run_as_task === false) return false;
+  return name !== "servicenow_query_table" || args?.format === "file";
+}
+
+/**
+ * The context the background work runs with: the task's own abort signal,
+ * no progress token and no log level (ext-tasks: no notifications/progress
+ * or notifications/message for a task), and a send path that goes nowhere
+ * because the creating request has already been answered.
+ */
+function backgroundContext(
+  ctx: ServerContext,
+  signal: AbortSignal,
+): ServerContext {
+  const envelope = without(
+    ctx.mcpReq.envelope as Record<string, unknown> | undefined,
+    LOG_LEVEL_META_KEY,
+  );
+  const meta = without(ctx.mcpReq._meta, "progressToken");
+  const mcpReq = {
+    ...ctx.mcpReq,
+    signal,
+    notify: () => Promise.resolve(),
+    log: () => Promise.resolve(),
+  };
+  if (envelope) mcpReq.envelope = envelope;
+  if (meta) mcpReq._meta = meta;
+  else delete mcpReq._meta;
+  return { ...ctx, mcpReq };
+}
+
+/** A thrown error as the `error` of a failed task. */
+function taskError(error: unknown): TaskError {
+  if (error instanceof ProtocolError) {
+    return {
+      code: error.code,
+      message: error.message,
+      ...(error.data !== undefined ? { data: error.data } : {}),
+    };
+  }
+  return {
+    code: ProtocolErrorCode.InternalError,
+    message: error instanceof Error ? error.message : String(error),
+  };
+}
+
+/** Run `call` to its end and record the outcome on the task. */
+async function settleTask(
+  store: SnTaskStore,
+  taskId: string,
+  owner: string,
+  controller: AbortController,
+  call: () => Promise<unknown>,
+): Promise<void> {
+  let outcome: { result: Result } | { error: TaskError };
+  try {
+    const done = await call();
+    // A task tool never asks for input; should one, nobody can answer it.
+    outcome = {
+      result: isPendingInput(done)
+        ? fail(
+            "This call needs the user's confirmation, which a background task cannot ask for. Nothing was changed.",
+            {
+              code: "CONFIRM_REQUIRED",
+              hint: "Call the tool with run_as_task:false to confirm the change.",
+            },
+          )
+        : (done as Result),
+    };
+  } catch (error) {
+    outcome = { error: taskError(error) };
+  }
+  store.untrack(taskId);
+  if (controller.signal.aborted) return; // cancelled or expired
+  try {
+    // ext-tasks: a tool result, isError included, completes the task;
+    // only a JSON-RPC error fails it.
+    if ("result" in outcome) {
+      await store.storeTaskResult(taskId, "completed", outcome.result, owner);
+    } else {
+      store.storeTaskError(taskId, outcome.error, owner);
+    }
+  } catch (error) {
+    logger.debug("task result dropped", {
+      taskId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * M-9 on the 2026-07-28 wire — the tasks extension (ext-tasks). Wraps the
+ * protocol-level tools/call handler McpServer installed (the way
+ * wireLeanToolsList wraps tools/list), so the background run still goes
+ * through the SDK's input validation, output validation and projection and
+ * yields a real CallToolResult.
+ *
+ * - A modern request never takes `run_as_task` (it is stripped): the
+ *   extension makes task creation server-directed.
+ * - A task tool called by a client whose envelope declares the extension
+ *   answers `{ resultType: "task", taskId, status: "working", ttlMs,
+ *   pollIntervalMs, … }` at once and runs in the background; the client polls
+ *   tasks/get. `run_as_task:false` keeps a call synchronous.
+ * - Without the declaration the call runs synchronously, as in core MCP.
+ * - The task lives in the store of the parent (process) runtime, bound to
+ *   the principal: a modern request has no session, and its own runtime ends
+ *   with the response. That runtime's disposal waits for the work
+ *   (taskWorkSettled).
+ *
+ * Call it after the tools are registered; a no-op when the flag is off.
+ */
+export function wireModernTasks(server: McpServer, runtime: Runtime): void {
+  if (!tasksEnabled()) return;
+  const handlers = (server.server as unknown as { _requestHandlers?: unknown })
+    ._requestHandlers;
+  if (!(handlers instanceof Map)) return;
+  const original = (handlers as Map<string, RequestHandler>).get("tools/call");
+  if (!original) return;
+  const tools = (
+    server as unknown as {
+      _registeredTools: Record<string, { enabled: boolean } | undefined>;
+    }
+  )._registeredTools;
+  const home = runtime.parent ?? runtime;
+  const wrapped: RequestHandler = async (request, ctx) => {
+    if (!isModernRequest(ctx)) return original(request, ctx);
+    const { name, arguments: args } = (request as CallRequest).params;
+    const call = withoutRunAsTask(request as CallRequest);
+    if (!createsTask(name, args, tools) || !clientDeclaresTasks(ctx)) {
+      return original(call, ctx);
+    }
+    const owner = principalOf(ctx);
+    const store = taskStoreFor(home);
+    const task = await store.createTask({}, ctx.mcpReq.id, call, owner);
+    const controller = new AbortController();
+    store.track(task.taskId, controller);
+    const background: CallRequest = {
+      ...call,
+      params: {
+        ...call.params,
+        ...(call.params._meta
+          ? { _meta: without(call.params._meta, "progressToken") }
+          : {}),
+      },
+    };
+    const bgCtx = backgroundContext(ctx, controller.signal);
+    hold(
+      runtime,
+      settleTask(store, task.taskId, owner, controller, () =>
+        original(background, bgCtx),
+      ),
+    );
+    logger.info("task started", { tool: name, taskId: task.taskId });
+    return { resultType: "task", ...store.modernTask(task.taskId, owner) };
+  };
+  server.server.setRequestHandler(
+    "tools/call",
+    async (request, ctx) =>
+      // A CreateTaskResult is a valid tools/call answer on the 2026 wire;
+      // the SDK's static result type predates the extension.
+      (await wrapped(request, ctx)) as CallToolResult,
+  );
 }
