@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 55,
+  "pendingCeiling": 43,
   "requirements": [
     {
       "id": "base-01",
@@ -814,8 +814,10 @@
       "text": "If one party supports an extension but the other does not, the supporting party MUST either revert to core protocol behavior or reject the request with an appropriate error.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning#extension-negotiation",
       "applies": "always",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: lifecycle-04 / tasks-02: an undeclared client gets the core result of a task tool, never -32021"
+      ]
     },
     {
       "id": "lifecycle-05",
@@ -3220,8 +3222,10 @@
       "text": "If a server is unable to service a request to a client that does not declare this extension capability without returning `CreateTaskResult`, the server MUST return an error with the code `-32021` (Missing Required Client Capability), indicating the required extension in the error response:",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#capability-negotiation",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: lifecycle-04 / tasks-02: an undeclared client gets the core result of a task tool, never -32021"
+      ]
     },
     {
       "id": "tasks-03",
@@ -3229,8 +3233,8 @@
       "text": "This specification may be extended to support tasks over other request types in the future; implementations SHOULD be designed to accommodate additional request types in future revisions of this specification.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#supported-methods",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "n/a",
+      "reason": "Design guidance about request types a future revision may add; it describes no behaviour of this revision to test."
     },
     {
       "id": "tasks-04",
@@ -3260,8 +3264,10 @@
       "text": "This status MUST NOT be used for non-JSON-RPC errors.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-status",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-06: an isError tool result completes the task; only a JSON-RPC error fails it"
+      ]
     },
     {
       "id": "tasks-07",
@@ -3280,8 +3286,10 @@
       "text": "In eventually-consistent environments, the server MUST wait for consistency before responding.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-creation",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-08: a created task is visible to the very next tasks/get"
+      ]
     },
     {
       "id": "tasks-09",
@@ -3289,8 +3297,10 @@
       "text": "Server implementations that use multi round-trip requests in conjunction with task creation (for example, a tool that requires elicitation over `InputRequiredResult` before creating a task) SHOULD resolve all MRTR exchanges _synchronously_ before responding with a `CreateTaskResult`.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-creation",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-09 / tasks-12 / tasks-13 / tasks-18 / tasks-19: input is asked synchronously; a task never enters input_required"
+      ]
     },
     {
       "id": "tasks-10",
@@ -3320,8 +3330,10 @@
       "text": "If the status is `input_required`, the server MUST return a `Task` object with status `input_required` and an `inputRequests` field defined in Multi Round-Trip Requests.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-09 / tasks-12 / tasks-13 / tasks-18 / tasks-19: input is asked synchronously; a task never enters input_required"
+      ]
     },
     {
       "id": "tasks-13",
@@ -3329,8 +3341,10 @@
       "text": "The `inputRequests` field MUST contain all outstanding requests from the server to the client that need to be fulfilled before the task can proceed.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-09 / tasks-12 / tasks-13 / tasks-18 / tasks-19: input is asked synchronously; a task never enters input_required"
+      ]
     },
     {
       "id": "tasks-14",
@@ -3383,8 +3397,10 @@
       "text": "Each request key in `inputRequests` MUST be unique over the lifetime of a single task.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-update-requests",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-09 / tasks-12 / tasks-13 / tasks-18 / tasks-19: input is asked synchronously; a task never enters input_required"
+      ]
     },
     {
       "id": "tasks-19",
@@ -3392,8 +3408,10 @@
       "text": "A server MUST NOT reuse a key for a subsequent server-to-client request after a response for that key has been delivered, and MUST NOT use the same key to refer to two distinct requests over a task's lifetime.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#task-update-requests",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-09 / tasks-12 / tasks-13 / tasks-18 / tasks-19: input is asked synchronously; a task never enters input_required"
+      ]
     },
     {
       "id": "tasks-20",
@@ -3423,8 +3441,10 @@
       "text": "A server SHOULD ignore any `inputResponses` responses mapped to a key that is not currently outstanding for the task — including keys that were never issued, keys that have already been answered, and keys whose corresponding request has been superseded.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#response",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-22: tasks/update ignores input responses for keys that are not outstanding"
+      ]
     },
     {
       "id": "tasks-23",
@@ -3572,8 +3592,10 @@
       "text": "Servers SHOULD provide informative error messages to describe the cause of errors.",
       "source": "https://github.com/modelcontextprotocol/ext-tasks/blob/main/specification/2026-07-28/tasks.md#protocol-errors",
       "applies": "tasks",
-      "status": "pending",
-      "step": "tasks"
+      "status": "covered",
+      "tests": [
+        "test/protocol-tasks-modern.test.js :: tasks-35: task errors say what went wrong"
+      ]
     },
     {
       "id": "tasks-36",

@@ -32,7 +32,7 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 253     | 55      | 56  |
+| 364   | 264     | 43      | 57  |
 
 Pending rows by step:
 
@@ -41,7 +41,7 @@ Pending rows by step:
 | `wire`     | 0    | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
 | `http`     | 0    | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
 | `mrtr`     | 7    | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
-| `tasks`    | 12   | N-35 step 2: hand-rolled tasks extension                                                               |
+| `tasks`    | 0    | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
 | `cache`    | 0    | N-38: `ttlMs` / `cacheScope`                                                                           |
 | `packages` | 1    | O-19 (d): lists fixed per server, deterministic order                                                  |
@@ -64,6 +64,10 @@ authorization.
 - `deprecated-03` (do not adopt `logging/setLevel`): the modern wire takes the level from each
   request's `_meta` only. During the legacy window, lines logged outside a call still reach 2025
   sessions through `sendLoggingMessage`.
+- The `tasks` rows are pinned by `test/protocol-tasks-modern.test.js`. Input is asked
+  synchronously, so no task ever enters `input_required`: `tasks-12`, `tasks-13`, `tasks-18` and
+  `tasks-19` (the `inputRequests` of such a task) hold vacuously. `tasks-03` (accommodate request
+  types a future revision may add) is n/a: it describes no behaviour of this revision.
 - `tasks-36` / `tasks-37` (`statusMessage` on a failed task) are pinned by a store-level test,
   not end to end.
 - `tools-06`, `prompts-04`, `resources-04` (`list_changed` on a listen stream) are pinned on
