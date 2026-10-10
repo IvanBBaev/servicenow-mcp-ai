@@ -4,12 +4,13 @@
  * value or range, the platform default that applies when no sys_properties row
  * exists, a severity and a rationale.
  *
- * Every property name, expectation and default is unverified until O-5 (PDI);
- * `since` / `until` mark the release families a rule applies to once that is
- * known. Bump HARDENING_RULES_VERSION on any change to the table.
+ * The property names were checked on a PDI (O-5, project/PDI-VERIFY-2026-10.md);
+ * a property with no row there keeps its documented default, which stays
+ * unverified. `since` / `until` mark the release families a rule applies to
+ * once that is known. Bump HARDENING_RULES_VERSION on any change to the table.
  */
 
-export const HARDENING_RULES_VERSION = "1";
+export const HARDENING_RULES_VERSION = "2";
 
 export type HardeningSeverity = "high" | "medium" | "low";
 
@@ -103,9 +104,8 @@ export const HARDENING_RULES: readonly HardeningRule[] = [
     source: `${HSH} — HTML escaping`,
   },
   {
-    property: "glide.ui.security.allow_codetags",
+    property: "glide.ui.security.allow_codetag",
     expect: { equals: "false" },
-    default: "false",
     severity: "medium",
     rationale: "Disallows [code] tags that render raw HTML in journal fields.",
     source: `${HSH} — code tags`,

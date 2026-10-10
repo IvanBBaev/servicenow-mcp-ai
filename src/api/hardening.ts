@@ -229,7 +229,7 @@ export function renderHardening(report: HardeningReport): string[] {
   }
   lines.push(
     "",
-    "Property names, expected values and defaults are unverified until O-5 (PDI); a property row hidden by its read roles counts as not set.",
+    "Property names were checked on a PDI (O-5); expected values and defaults are unverified. A property row hidden by its read roles counts as not set.",
     "",
   );
   return lines;

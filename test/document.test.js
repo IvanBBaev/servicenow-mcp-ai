@@ -773,7 +773,7 @@ test("golden: security doc with the ACL matrix and every check", async () => {
     assert.match(md, /acl-public-role/);
     assert.match(md, /acl-elevated-privilege/);
     assert.match(md, /table-no-acl/);
-    assert.match(md, /## Hardening\n\nRule table v1: /);
+    assert.match(md, /## Hardening\n\nRule table v2: /);
     golden("security.md", md);
   });
 });

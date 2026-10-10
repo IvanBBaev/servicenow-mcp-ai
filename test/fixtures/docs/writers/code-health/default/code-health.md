@@ -6,7 +6,7 @@ sn_kind: code-health
 sn_profile: default
 sn_instance: dev00000.service-now.com
 sn_generated_at: <generatedAt>
-sn_source_hash: sha256:23d4365076cec4cbbc7970dc72cdc582ab757b1880122f8e7caa728fd01f7005
+sn_source_hash: sha256:1684625be75dbac659f426d52473ec8bbf0193d6f5340b2808995fa767c08161
 ---
 
 # Code health — profile `default`
@@ -63,7 +63,7 @@ Generated <generatedAt>.
 
 ## Security — hardening
 
-Rule table v1: 0 pass, 0 fail (high 0, medium 0, low 0), 18 not set, 0 unreadable.
+Rule table v2: 0 pass, 0 fail (high 0, medium 0, low 0), 18 not set, 0 unreadable.
 
 | Property | Status | Severity | Expected | Value | Rationale |
 | --- | --- | --- | --- | --- | --- |
@@ -75,7 +75,7 @@ Rule table v1: 0 pass, 0 fail (high 0, medium 0, low 0), 18 not set, 0 unreadabl
 | `glide.security.strict_elevate_privilege` | not_set | medium | true | (no row; default unknown) | Elevated-privilege roles grant their access only after the session elevates. |
 | `glide.ui.escape_text` | not_set | medium | true | (no row; default true) | Escapes text fields rendered in the UI (stored XSS). |
 | `glide.html.escape_script` | not_set | medium | true | (no row; default true) | Escapes script tags in HTML fields (stored XSS). |
-| `glide.ui.security.allow_codetags` | not_set | medium | false | (no row; default false) | Disallows [code] tags that render raw HTML in journal fields. |
+| `glide.ui.security.allow_codetag` | not_set | medium | false | (no row; default unknown) | Disallows [code] tags that render raw HTML in journal fields. |
 | `glide.set_x_frame_options` | not_set | medium | true | (no row; default true) | Sends X-Frame-Options so other sites cannot frame the UI (clickjacking). |
 | `glide.cookies.http_only` | not_set | medium | true | (no row; default true) | Marks session cookies HttpOnly so page scripts cannot read them. |
 | `glide.ui.secure_cookies` | not_set | medium | true | (no row; default unknown) | Marks cookies Secure so they never travel over plain HTTP. |
@@ -86,7 +86,7 @@ Rule table v1: 0 pass, 0 fail (high 0, medium 0, low 0), 18 not set, 0 unreadabl
 | `glide.ui.session_timeout` | not_set | low | ≤ 30 | (no row; default 30) | Ends idle UI sessions within 30 minutes. |
 | `glide.ui.forgetme` | not_set | low | true | (no row; default unknown) | Hides the "Remember me" option that keeps a login for days. |
 
-Property names, expected values and defaults are unverified until O-5 (PDI); a property row hidden by its read roles counts as not set.
+Property names were checked on a PDI (O-5); expected values and defaults are unverified. A property row hidden by its read roles counts as not set.
 
 ## Instance Scan
 
