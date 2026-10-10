@@ -246,7 +246,12 @@ export class HttpSessionManager {
     this.pending += 1;
     const runtime = createRuntime({ parent: this.options.parent });
     const subject = subjectOf(req);
-    const scope: SessionScope = { id: "", ...(subject ? { subject } : {}) };
+    const login = loginOf(req);
+    const scope: SessionScope = {
+      id: "",
+      ...(subject ? { subject } : {}),
+      ...(login ? { login } : {}),
+    };
     let session: HttpSession | undefined;
     try {
       const server = runWithRuntime(runtime, () =>
@@ -386,4 +391,11 @@ export function subjectOf(req: IncomingMessage): string | undefined {
   const auth = (req as IncomingMessage & { auth?: AuthInfo }).auth;
   const subject = auth?.extra?.subject;
   return typeof subject === "string" ? subject : undefined;
+}
+
+/** N-17 phase 2: the subject's `SN_HTTP_OAUTH_USER_MATCH` claim, if any. */
+export function loginOf(req: IncomingMessage): string | undefined {
+  const auth = (req as IncomingMessage & { auth?: AuthInfo }).auth;
+  const login = auth?.extra?.login;
+  return typeof login === "string" ? login : undefined;
 }

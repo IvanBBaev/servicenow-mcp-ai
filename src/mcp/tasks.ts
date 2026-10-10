@@ -769,6 +769,7 @@ export async function runMaybeAsTask(
     ...(extra.sessionId ? { sessionId: extra.sessionId } : {}),
     ...(extra.input ? { input: extra.input } : {}),
     signal: controller.signal,
+    background: true,
   };
   void (async () => {
     let result: ToolResult;

@@ -1,6 +1,7 @@
 import { getSchemaCacheTtlMs, getSchemaCacheMax } from "./settings.js";
 import { currentRuntime, defineRuntimePart } from "./runtime.js";
 import { activeProfile, getCredentials } from "./config.js";
+import { delegatedSubject, subjectId } from "./delegation.js";
 
 /**
  * Tiny TTL + LRU cache for near-static reads (table lists, schemas, CMDB class
@@ -69,10 +70,25 @@ export interface SchemaCacheStats {
   expired: number;
 }
 
+/**
+ * N-17: the key prefix of the subject a delegated request runs as. Each
+ * subject reads with its own ServiceNow ACLs, so its entries never answer
+ * for another subject or for the shared credential (which has no prefix —
+ * and no key of its own starts with `@`).
+ */
+function subjectPrefix(): string {
+  const subject = delegatedSubject();
+  return subject ? `@${subjectId(subject)}@` : "";
+}
+
 /** Run `fn` through the cache under `key`; a TTL of 0 disables caching. */
-export async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
+export async function cached<T>(
+  rawKey: string,
+  fn: () => Promise<T>,
+): Promise<T> {
   const ttlMs = getSchemaCacheTtlMs();
   if (ttlMs <= 0) return fn();
+  const key = subjectPrefix() + rawKey;
   const { store, counters } = state();
   const hit = store.get(key);
   if (hit) {
@@ -124,10 +140,12 @@ function insert(
  */
 export function peekSchemaCache(prefix: string): [string, unknown][] {
   const now = Date.now();
+  const scope = subjectPrefix();
+  const full = scope + prefix;
   const out: [string, unknown][] = [];
   for (const [key, entry] of state().store) {
-    if (entry.expiresAt > now && key.startsWith(prefix)) {
-      out.push([key, entry.value]);
+    if (entry.expiresAt > now && key.startsWith(full)) {
+      out.push([key.slice(scope.length), entry.value]);
     }
   }
   return out;

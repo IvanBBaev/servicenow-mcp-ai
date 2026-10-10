@@ -71,6 +71,11 @@ export interface OAuthResourceConfig {
   jwksUri?: string;
   /** Scopes every request needs. */
   scopes?: string[];
+  /**
+   * N-17 phase 2: a claim copied to `extra.login` when it is a non-empty
+   * string — the value a linked ServiceNow account must match.
+   */
+  userClaim?: string;
 }
 
 /** The outcome of checking one request's `Authorization` header. */
@@ -357,6 +362,9 @@ export class OAuthResourceServer {
         : typeof claims.azp === "string"
           ? claims.azp
           : "";
+    const login = this.config.userClaim
+      ? claims[this.config.userClaim]
+      : undefined;
     return {
       ok: true,
       subject: claims.sub,
@@ -366,7 +374,10 @@ export class OAuthResourceServer {
         scopes: granted,
         expiresAt: claims.exp,
         resource: new URL(this.resource),
-        extra: { subject: claims.sub },
+        extra: {
+          subject: claims.sub,
+          ...(typeof login === "string" && login ? { login } : {}),
+        },
       },
     };
   }

@@ -23,7 +23,9 @@ import {
   getHttpAllowedOrigins,
   httpRequireToken,
   getHttpOAuth,
+  getHttpUserTokens,
 } from "../core/settings.js";
+import { CALLBACK_PATH, completeLink } from "../core/user-tokens.js";
 import { logger, setLogSink } from "../core/logging.js";
 import { currentRuntime } from "../core/runtime.js";
 import { hasCredentials } from "../core/config.js";
@@ -284,6 +286,32 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
     .end(JSON.stringify(body));
 }
 
+const escapeHtml = (text: string): string =>
+  text.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ]!,
+  );
+
+/** N-17 phase 2: the page the account-link callback shows in the browser. */
+function sendLinkPage(res: ServerResponse, status: number, text: string): void {
+  const title = status === 200 ? "Account linked" : "Account not linked";
+  res
+    .writeHead(status, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Content-Security-Policy":
+        "default-src 'none'; style-src 'unsafe-inline'",
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY",
+    })
+    .end(
+      `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:36rem;margin:4rem auto;padding:0 1rem}</style></head><body><h1>${title}</h1><p>${escapeHtml(text)}</p></body></html>`,
+    );
+}
+
 /** How long a `/readyz?probe=1` result is reused. */
 export const READY_PROBE_CACHE_MS = 5_000;
 let lastProbe: { at: number; result: ConnectionProbe } | null = null;
@@ -310,7 +338,15 @@ async function startHttp(
   const host = getHttpHost();
   const token = getHttpToken();
   const oauthSettings = getHttpOAuth();
-  const oauth = oauthSettings ? new OAuthResourceServer(oauthSettings) : null;
+  // N-17 phase 2: validated at startup — a missing key or issuer refuses
+  // to start rather than failing the first delegated call.
+  const userTokens = getHttpUserTokens();
+  const oauth = oauthSettings
+    ? new OAuthResourceServer({
+        ...oauthSettings,
+        ...(userTokens ? { userClaim: userTokens.claim } : {}),
+      })
+    : null;
   const loopback = isLoopbackHost(host);
   if (!token && !oauth && !loopback) {
     // D-5 / H-7 (B6): a container binds 0.0.0.0 — without a token anyone who
@@ -396,6 +432,20 @@ async function startHttp(
           "Access-Control-Allow-Origin": "*",
         })
         .end(JSON.stringify(oauth.metadata()));
+      return;
+    }
+    // N-17 phase 2: the instance redirects the user's browser here after an
+    // account link — no bearer (the OAuth `state` binds it to the subject).
+    if (userTokens && req.method === "GET" && path === CALLBACK_PATH) {
+      const params = new URL(req.url ?? "/", "http://localhost").searchParams;
+      const outcome = await completeLink(params);
+      sendLinkPage(
+        res,
+        outcome.ok ? 200 : outcome.status,
+        outcome.ok
+          ? `Your ServiceNow account on ${outcome.host} is linked. You can close this window and return to your MCP client.`
+          : outcome.message,
+      );
       return;
     }
     if (!originAllowed(req.headers.origin)) {

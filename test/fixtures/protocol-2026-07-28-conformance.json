@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 8,
+  "pendingCeiling": 2,
   "requirements": [
     {
       "id": "base-01",
@@ -2392,8 +2392,11 @@
       "text": "URL mode elicitation requests MUST specify `mode: \"url\"`, a `message`, and include these additional parameters:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-requests",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 2025 session gets -32042 with the link"
+      ]
     },
     {
       "id": "mrtr-25",
@@ -2401,8 +2404,11 @@
       "text": "The `url` parameter MUST contain a valid URL.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-requests",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 2025 session gets -32042 with the link"
+      ]
     },
     {
       "id": "mrtr-26",
@@ -2410,8 +2416,12 @@
       "text": "However, if state is stored, servers implementing elicitation MUST securely associate this state with individual users following the guidelines in the security best practices document.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#statefulness",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored",
+        "test/user-tokens.test.js :: N-17 user tokens: the schema cache is per subject while delegated"
+      ]
     },
     {
       "id": "mrtr-27",
@@ -2419,8 +2429,11 @@
       "text": "State storage MUST be protected against unauthorized access",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#statefulness",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 401 refreshes once and rotates the stored refresh token"
+      ]
     },
     {
       "id": "mrtr-28",
@@ -2428,8 +2441,11 @@
       "text": "For remote MCP servers, user identification MUST be derived from credentials acquired via MCP authorization when possible (e.g.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#statefulness",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a token without the match claim cannot be delegated"
+      ]
     },
     {
       "id": "mrtr-29",
@@ -2437,8 +2453,10 @@
       "text": "MCP servers MUST NOT rely on URL mode elicitation to authorize users for themselves.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-for-oauth-flows",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-30",
@@ -2446,8 +2464,10 @@
       "text": "The third-party credentials MUST NOT transit through the MCP client: The client must never see third-party credentials to protect the security boundary",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#understanding-the-distinction",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-31",
@@ -2455,8 +2475,11 @@
       "text": "The MCP server MUST NOT use the client's credentials for the third-party service: That would be token passthrough, which is forbidden",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#understanding-the-distinction",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: N-17 user tokens: a delegated request reports a per-subject marker, never the shared credential"
+      ]
     },
     {
       "id": "mrtr-32",
@@ -2464,8 +2487,10 @@
       "text": "The MCP server MUST NOT transmit credentials obtained through URL mode elicitation to the MCP client.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#understanding-the-distinction",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-33",
@@ -2498,8 +2523,11 @@
       "text": "Servers MUST bind elicitation requests to the client and user identity",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#security-considerations",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-36",
@@ -2507,8 +2535,10 @@
       "text": "MUST NOT include sensitive information about the end-user, including credentials, personally identifiable information, etc., in the URL sent to the client in a URL elicitation request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#safe-url-handling",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-37",
@@ -2516,8 +2546,10 @@
       "text": "MUST NOT provide a URL which is pre-authenticated to access a protected resource, as the URL could be used to impersonate the user by a malicious client.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#safe-url-handling",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-38",
@@ -2536,8 +2568,10 @@
       "text": "SHOULD use HTTPS URLs for non-development environments.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#safe-url-handling",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-40",
@@ -2545,8 +2579,11 @@
       "text": "Servers MUST NOT rely on client-provided user identification without server verification, as this can be forged.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#identifying-the-user",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a token without the match claim cannot be delegated",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-41",
@@ -2554,8 +2591,12 @@
       "text": "Instead, servers SHOULD follow security best practices.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#identifying-the-user",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 401 refreshes once and rotates the stored refresh token"
+      ]
     },
     {
       "id": "mrtr-42",
@@ -2587,8 +2628,10 @@
       "text": "The MCP Server MUST verify the identity of the user who opens the URL before accepting information.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#phishing",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-45",
@@ -2596,8 +2639,10 @@
       "text": "To prevent this attack, the server MUST ensure that the user who started the elicitation request (the end-user who is accessing the server via the MCP client) is the same user who completes the authorization flow.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#phishing",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-46",
@@ -2605,8 +2650,11 @@
       "text": "In all implementations, the server MUST ensure that the mechanism to determine the user's identity is resilient to attacks where an attacker can modify the elicitation URL.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#phishing",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "cache-01",

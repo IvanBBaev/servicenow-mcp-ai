@@ -427,8 +427,22 @@ docker run --rm -p 127.0.0.1:3000:3000 \
   `https://mcp.example.com/mcp`). Clients discover the issuer from
   `/.well-known/oauth-protected-resource` and send its JWT access tokens; the token must
   name the resource as its audience. Optional: `SN_HTTP_OAUTH_SCOPES`,
-  `SN_HTTP_OAUTH_AUDIENCE`, `SN_HTTP_OAUTH_JWKS_URI`. The instance is still called with
-  the configured service account.
+  `SN_HTTP_OAUTH_AUDIENCE`, `SN_HTTP_OAUTH_JWKS_URI`. By default the instance is still
+  called with the configured service account.
+- **Per-user ServiceNow access (N-17 phase 2):** add `SN_HTTP_OAUTH_USER_TOKENS=true`, a
+  32-byte `SN_HTTP_OAUTH_TOKEN_KEY` (base64 or hex, e.g. `openssl rand -base64 32`) and an
+  OAuth client on the instance (`SN_OAUTH_CLIENT_ID` / `SN_OAUTH_CLIENT_SECRET`, refresh
+  tokens enabled) whose redirect URL is `/oauth/servicenow/callback` on the
+  `SN_HTTP_OAUTH_RESOURCE` origin. The first call from a user returns a link to the
+  instance's sign-in page (URL elicitation; a 2025 session gets `-32042`, a client without
+  URL elicitation and a `run_as_task` background run get an error carrying the link). After
+  the user signs in, the server checks that the account's `sys_user` field matches the
+  token's claim (`SN_HTTP_OAUTH_USER_MATCH`, default `email=email`), keeps the refresh token
+  AES-256-GCM encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`, and from then on calls the instance as
+  that user, so ServiceNow ACLs apply per user. Limits: pending links live in the process
+  (run one replica), there is no unlink tool (delete the store entry or revoke the token on
+  the instance), only JWT access tokens are supported, and requests authorized with
+  `SN_HTTP_TOKEN` still use the shared credential.
 - `/data` holds the docs directory (`SN_DOCS_DIR=/data/docs`) and the env file
   (`SN_ENV_FILE=/data/.env`); mount a volume there to keep them.
 - Every `<KEY>_FILE` secret source is described in [Secrets from files](#secrets-from-files).
@@ -672,6 +686,7 @@ Container secrets (D-5): <KEY>_FILE=/path loads <KEY> from that file at startup 
 | `SN_OAUTH_CLIENT_SECRET_FILE` | no | — | next | D-5: read `SN_OAUTH_CLIENT_SECRET` from this file (Docker / Kubernetes secrets). |
 | `SN_OAUTH_REFRESH_TOKEN_FILE` | no | — | next | D-5: read `SN_OAUTH_REFRESH_TOKEN` from this file (Docker / Kubernetes secrets). A rotated refresh token is then kept in memory only (update the file yourself). |
 | `SN_HTTP_TOKEN_FILE` | no | — | next | D-5: read `SN_HTTP_TOKEN` from this file (Docker / Kubernetes secrets). |
+| `SN_HTTP_OAUTH_TOKEN_KEY_FILE` | no | — | next | D-5: read `SN_HTTP_OAUTH_TOKEN_KEY` from this file (Docker / Kubernetes secrets). |
 
 #### Profiles and the env file
 
@@ -813,6 +828,10 @@ stdio (default, one local client) or Streamable HTTP for remote and agent client
 | `SN_HTTP_OAUTH_AUDIENCE` | no | — | next | N-17: extra `aud` values accepted besides `SN_HTTP_OAUTH_RESOURCE`, for an authorization server that issues its own audience identifiers. |
 | `SN_HTTP_OAUTH_JWKS_URI` | no | — | next | N-17: the issuer's JWKS URI. Unset = discovered from the issuer's OpenID Connect or RFC 8414 metadata. |
 | `SN_HTTP_OAUTH_SCOPES` | no | — | next | N-17: scopes every request's token must carry; published as `scopes_supported` and in the `WWW-Authenticate` challenge. A token without them gets 403 `insufficient_scope`. |
+| `SN_HTTP_OAUTH_USER_TOKENS` | no | off | next | N-17: call ServiceNow as the OAuth subject instead of the shared profile credential. Each subject links its own ServiceNow account once (Authorization Code + PKCE through a URL elicitation, callback at `/oauth/servicenow/callback` on the `SN_HTTP_OAUTH_RESOURCE` origin) with the profile's `SN_OAUTH_CLIENT_ID` / `SN_OAUTH_CLIENT_SECRET`; the refresh token is kept encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`. Requires `SN_HTTP_OAUTH_ISSUER` and `SN_HTTP_OAUTH_TOKEN_KEY`. |
+| `SN_HTTP_OAUTH_USER_MATCH` | no | `email=email` | next | N-17: `<token claim>=<sys_user field>` — a linked ServiceNow account is accepted only when its `sys_user` field equals the subject's claim (case-insensitive), so nobody can link someone else's account. |
+| `SN_HTTP_OAUTH_TOKEN_KEY` | no | — | next | N-17: the AES-256-GCM key (32 bytes, base64 or hex) that encrypts the per-user refresh tokens at rest. Rotating it drops every link. |
+| `SN_HTTP_OAUTH_TOKEN_STORE` | no | `oauth-user-tokens.json` next to the env file | next | N-17: the encrypted per-user token store (written 0600, its directory 0700). |
 | `SN_HTTP_REQUIRE_TOKEN` | no | off | next | H-7: refuse to start the http transport on a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN` (instead of logging a warning). |
 | `SN_HTTP_SESSION_TTL_SEC` | no | `1800` | next | H-7: idle TTL of an http session in seconds; an idle session is closed and its runtime disposed. `0` keeps sessions until the client sends DELETE. |
 | `SN_HTTP_MAX_SESSIONS` | no | `64` | next | H-7: cap on concurrent http sessions; a new session beyond it is refused with 503. |

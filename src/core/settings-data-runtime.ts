@@ -524,6 +524,43 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
       "N-17: scopes every request's token must carry; published as `scopes_supported` and in the `WWW-Authenticate` challenge. A token without them gets 403 `insufficient_scope`.",
   }),
   bool({
+    key: "SN_HTTP_OAUTH_USER_TOKENS",
+    section: "transport",
+    since: NEXT,
+    default: false,
+    defaultText: "off",
+    example: "0",
+    description:
+      "N-17: call ServiceNow as the OAuth subject instead of the shared profile credential. Each subject links its own ServiceNow account once (Authorization Code + PKCE through a URL elicitation, callback at `/oauth/servicenow/callback` on the `SN_HTTP_OAUTH_RESOURCE` origin) with the profile's `SN_OAUTH_CLIENT_ID` / `SN_OAUTH_CLIENT_SECRET`; the refresh token is kept encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`. Requires `SN_HTTP_OAUTH_ISSUER` and `SN_HTTP_OAUTH_TOKEN_KEY`.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_USER_MATCH",
+    section: "transport",
+    since: NEXT,
+    default: "email=email",
+    example: "preferred_username=user_name",
+    description:
+      "N-17: `<token claim>=<sys_user field>` — a linked ServiceNow account is accepted only when its `sys_user` field equals the subject's claim (case-insensitive), so nobody can link someone else's account.",
+  }),
+  secret({
+    key: "SN_HTTP_OAUTH_TOKEN_KEY",
+    section: "transport",
+    since: NEXT,
+    fileSource: true,
+    example: "base64-encoded-32-byte-key",
+    description:
+      "N-17: the AES-256-GCM key (32 bytes, base64 or hex) that encrypts the per-user refresh tokens at rest. Rotating it drops every link.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_TOKEN_STORE",
+    section: "transport",
+    since: NEXT,
+    defaultText: "`oauth-user-tokens.json` next to the env file",
+    example: "/var/lib/servicenow-mcp/oauth-user-tokens.json",
+    description:
+      "N-17: the encrypted per-user token store (written 0600, its directory 0700).",
+  }),
+  bool({
     key: "SN_HTTP_REQUIRE_TOKEN",
     section: "transport",
     since: NEXT,

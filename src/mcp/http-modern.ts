@@ -163,6 +163,8 @@ export class ModernHttpHandler {
       if (typeof subject === "string") {
         scope.subject = subject;
         scope.principal = `modern:sub:${subject}`;
+        const login = ctx.authInfo?.extra?.login;
+        if (typeof login === "string") scope.login = login;
       } else {
         scope.principal = `modern:${ctx.authInfo?.clientId ?? ""}`;
       }

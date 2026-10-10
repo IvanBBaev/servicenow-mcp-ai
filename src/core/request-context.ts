@@ -175,6 +175,11 @@ export interface SessionScope {
    * bound to the subject that initialized it.
    */
   subject?: string;
+  /**
+   * N-17 phase 2: the subject's `SN_HTTP_OAUTH_USER_MATCH` claim (e.g. its
+   * email) — the value a linked ServiceNow account must match.
+   */
+  login?: string;
 }
 
 const sessionAls = new AsyncLocalStorage<SessionScope>();

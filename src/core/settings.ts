@@ -397,6 +397,56 @@ export function getHttpOAuth(): HttpOAuthSettings | undefined {
   };
 }
 
+/**
+ * N-17 phase 2 — per-user ServiceNow tokens. Set when
+ * `SN_HTTP_OAUTH_USER_TOKENS` is on; the subject's `claim` must equal the
+ * linked account's `sys_user.<field>`. The key and the issuer are required.
+ */
+export interface HttpUserTokenSettings {
+  claim: string;
+  field: string;
+  key: Buffer;
+  storePath?: string;
+}
+
+export function getHttpUserTokens(): HttpUserTokenSettings | undefined {
+  if (!readBool("SN_HTTP_OAUTH_USER_TOKENS")) return undefined;
+  if (!readString("SN_HTTP_OAUTH_ISSUER")) {
+    throw new Error(
+      "SN_HTTP_OAUTH_USER_TOKENS is on but SN_HTTP_OAUTH_ISSUER is not set — per-user tokens need an authenticated OAuth subject",
+    );
+  }
+  const match = readString("SN_HTTP_OAUTH_USER_MATCH") ?? "email=email";
+  const m = /^([A-Za-z0-9_.:-]+)=([a-z0-9_]+)$/.exec(match);
+  if (!m) {
+    throw new Error(
+      `SN_HTTP_OAUTH_USER_MATCH must be <claim>=<sys_user field> (got "${match}")`,
+    );
+  }
+  const raw = readString("SN_HTTP_OAUTH_TOKEN_KEY");
+  const key = raw ? decodeKey(raw) : undefined;
+  if (!key) {
+    throw new Error(
+      "SN_HTTP_OAUTH_USER_TOKENS is on but SN_HTTP_OAUTH_TOKEN_KEY is missing or not a 32-byte base64/hex key",
+    );
+  }
+  const storePath = readString("SN_HTTP_OAUTH_TOKEN_STORE");
+  return {
+    claim: m[1]!,
+    field: m[2]!,
+    key,
+    ...(storePath ? { storePath } : {}),
+  };
+}
+
+/** A 32-byte key from 64 hex chars or base64; undefined otherwise. */
+function decodeKey(raw: string): Buffer | undefined {
+  const key = /^[0-9a-fA-F]{64}$/.test(raw)
+    ? Buffer.from(raw, "hex")
+    : Buffer.from(raw, "base64");
+  return key.length === 32 ? key : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // H-7 — HTTP transport v2 (sessions, DNS-rebinding protection, keep-alive)
 // ---------------------------------------------------------------------------
