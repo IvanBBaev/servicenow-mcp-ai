@@ -23,6 +23,7 @@ import { warnIfTlsVerifyOff } from "./core/dispatcher.js";
 import type { Runtime } from "./core/runtime.js";
 import { SERVER_VERSION } from "./core/identity.js";
 import { LIST_CACHE_HINTS } from "./mcp/cache-hints.js";
+import { mapSchemaErrorsToInvalidParams } from "./mcp/params-errors.js";
 import {
   installTaskHandlers,
   wireModernTasks,
@@ -64,6 +65,8 @@ export function buildMcpServer(
       capabilities: { logging: {}, ...serverOptions.capabilities },
     }),
   );
+  // N-35: a spec-schema failure is -32602, not a -32603 zod dump.
+  mapSchemaErrorsToInvalidParams(server);
   installTaskHandlers(server, runtime);
   registerAllTools(server, runtime);
   wireModernTasks(server, runtime);
