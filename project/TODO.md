@@ -1,4 +1,4 @@
-# TODO — status as of 2026-09-23
+# TODO — status as of 2026-10-10
 
 > **2026-09 update.** On 2026-09-02 `npm run check` was **red** on its last step
 > (`npm audit --omit=dev --audit-level=high` — two HIGH transitive advisories via
@@ -182,10 +182,10 @@
 - [x] **P-5 · Generic artifact reads** — done 2026-09-24 (uncommitted). Owner questions: opt-in
       package vs reader/developer (SDK-PARITY §5(d)); list default 50 / max 1000, 200 children per
       level; which types declare `secretFields`.
-- [ ] **Pack size (blocking `npm run check`):** 1416.6 KB unpacked after batch 12, over the 800 KB `pack:check` ceiling (1298.7 KB after batch 11, 1222.8 KB after batch 10, 1136.2 KB after batch 9, 984.5 KB after batch 8, 868.7 KB after batch 7, 794.0 KB after batch 6) — raise the ceiling
+- [x] **Pack size (blocking `npm run check`):** 1416.6 KB unpacked after batch 12, over the 800 KB `pack:check` ceiling (1298.7 KB after batch 11, 1222.8 KB after batch 10, 1136.2 KB after batch 9, 984.5 KB after batch 8, 868.7 KB after batch 7, 794.0 KB after batch 6) — raise the ceiling
       or trim the package before the next feature batch. S-15's first writer
       (`src/api/document.ts` + goldens) will not fit under 800 KB — decide before it starts
-      (INSTANCE-DOCS pass 2 §7).
+      (INSTANCE-DOCS pass 2 §7). **Resolved:** the ceiling was raised to 3 MB (owner, 2026-10-05; commit 05de939, `scripts/pack-check.mjs`).
 - [x] **S-5 · Trace v2** — done 2026-09-25 (uncommitted). Owner questions: lane placement in the
       chain is a modelling choice; scheduled jobs matched by `scriptLIKE<table>` (false positives);
       transform maps on the traced table only; script-fired events missed; lane columns unverified (O-5).
@@ -198,25 +198,25 @@
       tool results left out.
 - [x] **P-6 · explain_artifact** — done 2026-09-25 (uncommitted). Owner questions: opt-in package
       vs reader/developer; budget split 1/20 per value, 4/5 per result; `whenFields` descriptor field.
-- [ ] **Next up (2026-09-24):** **H-3** plan-token binding + elicitation (BREAKING parts wait for
+- [x] **Next up (2026-09-24):** **H-3** plan-token binding + elicitation (BREAKING parts wait for
       O-4; the opt-in part landed 2026-09-26, see below). H-11 and every BREAKING item wait for O-4. Five **high** findings gate 3.0.0: L1-03 and
-      L1-10 (done in H-10), L3-01 (H-11, BREAKING → O-4), L5-01 (M-6/E-6), L6-01 (D-2).
+      L1-10 (done in H-10), L3-01 (H-11, BREAKING → O-4), L5-01 (M-6/E-6), L6-01 (D-2). **Resolved:** O-4 approved 2026-10-01 (ADR 0001); H-3 landed (d2336f5, 3c4dea3) and H-11 / L3-01 landed (e2656b1, 3c4dea3); L5-01 closed under M-6 (batch 15, 88358f9).
 - [ ] **Owner decisions from the 2026-09-25 instance-docs pass:** (a) raise the `pack:check`
-      ceiling (1 MB) or trim before S-15; (b) accept a generic `servicenow_document_kind` tool
+      ceiling (1 MB) or trim before S-15 (resolved: ceiling raised to 3 MB, 05de939, owner 2026-10-05); (b) accept a generic `servicenow_document_kind` tool
       (73rd) so the `security` kind ships with `document_table` before the E-7 split, or hold it
-      for `document_instance`; (c) restate M-6's tool-count budget (86 today after batch 9).
-- [ ] **Owner decisions from batch 8 (2026-09-25):** (a) S-11 — default `SN_OVERSIZE_TO_FILE` on?
+      for `document_instance`; (c) restate M-6's tool-count budget (86 today after batch 9) (resolved: O-10 (a)+(b) decided 2026-10-06, ADR 0006).
+- [ ] **Owner decisions from batch 8 (2026-09-25):** (a) S-11 — default `SN_OVERSIZE_TO_FILE` on? (resolved: on by default, O-21 (b) decided 2026-10-09, d071f09)
       keep `readOnlyHint` on `format:"file"` reads or refuse them under `SN_READONLY`? export
       retention / size cap under `exports/`; the `preview_truncated` name; CSV columns come from the
       first page only. (b) S-6 — always restore the previous update set? preference writes are not
       journalled; the switch lock is per process; `canSet` is a heuristic; scoped sets also switch
       `updateSetForScope<app>`; fail closed on an invalid `SN_UPDATE_SET`? bind the other write
       packages (catalog, change, knowledge) later? (c) P-9 — keep the `scriptToolsOptIn` /
-      `extended` split, and when do opt-in types join lint and snapshot; `wf_activity` parent
+      `extended` split, and when do opt-in types join lint and snapshot (resolved: lint in P-18, d5169bb; snapshot in P-20, db67cd9); `wf_activity` parent
       field and `FLOW_CHILDREN` tables need a live instance (O-5). (d) P-7 — `available`
       semantics (table present vs readable); field names unverified (O-5); `choice_set` has no
       `sdkSince`. (e) `test/cancel-progress.test.js` "a cancelled snapshot stops issuing requests
-      within one retry window" is timing-sensitive under load — widen its headroom?
+      within one retry window" is timing-sensitive under load — widen its headroom? (resolved: the wait is bounded by real time, 2acdff8)
 - [ ] **Owner decisions from batch 9 (2026-09-26):** (a) S-10b — syslog level values, the
       `sys_trigger` states treated as stuck, the `sys_email` fields, reading `sys_semaphore`, Stats
       API `having` support, the orphan-reference query and its ACL effect, `javascript:` clauses in
@@ -229,7 +229,7 @@
       document; `sys_app` / `sys_store_app` fields; property values omitted from documents; ID-23:
       expose `security` via `document_kind` or `document_instance`?; where-used lost its 40-edge
       Mermaid cap (now `mermaidTruncated`). (e) E-7 — a cancelled compare now throws `CANCELLED`;
-      collector signatures are ctx-first; `expectJson` skipped. (f) The pack ceiling (1136.2 KB).
+      collector signatures are ctx-first; `expectJson` skipped. (f) The pack ceiling (1136.2 KB) (resolved: 3 MB, 05de939).
 - [ ] **Owner decisions from batch 10 (S-15, 2026-09-26):** (a) ID-23 — `security` is reachable
       only through `document_instance({kinds:["security"]})`; ship `servicenow_document_kind`
       (88th tool) or leave it there? (b) the README is written first, so its links may point at
@@ -241,8 +241,8 @@
       `sc_cat_item.sc_catalogs`, `item_option_new.type` codes and `sys_ws_definition` /
       `sys_rest_message` / `sys_data_source` field names need a live instance (O-5); (f)
       "Collected in this run" on `artifact-types.md` means "a document of this run read the type's
-      table", not "records found"; (g) `depth` (S-16) not shipped yet; (h) tool count 88 after the batch 10 merge — M-6's
-      budget; (i) the pack ceiling — 1416.6 KB unpacked after batch 12 (1298.7 KB after batch 11).
+      table", not "records found"; (g) `depth` (S-16) not shipped yet (resolved: shipped in batch 12, 736f136); (h) tool count 88 after the batch 10 merge — M-6's
+      budget (resolved: ADR 0006); (i) the pack ceiling — 1416.6 KB unpacked after batch 12 (1298.7 KB after batch 11) (resolved: 3 MB, 05de939).
 - [ ] **Owner decisions from batch 10 (M-9)** (2026-09-26, `SN_EXPERIMENTAL_TASKS`): (a) native
       task augmentation — advertise `tasks.requests.tools.call` and register the task tools with
       the SDK's `registerToolTask` (`execution.taskSupport:"optional"`)? The SDK then turns every
@@ -263,16 +263,16 @@
       as JSON, the m2m include tables. (c) Bounds: full layout for 5 pages (`LAYOUT_PAGES`), depth
       default 3 / max 6 — right defaults? (d) Classic widget options stored in `sp_instance`
       columns (not `widget_parameters`) are not mapped; a `widget_parameters` key absent from
-      `option_schema` lands in `unknownOptions`. (e) The pack grows further past the 800 KB ceiling.
+      `option_schema` lands in `unknownOptions`. (e) The pack grows further past the 800 KB ceiling (resolved: 3 MB, 05de939).
 - [ ] **Owner decisions from batch 10 (M-6, 2026-09-26):** (a) the `tools/list` budget — measured
       `all` 124,050 / `core` 30,560 against the 45,000 / 14,000 targets; the test ratchets at
       125,000 / 31,000 ("owner to restate (M-6 budget)"); after the batch 10 merge (88 tools) `all`
-      measured 127,239 and the ratchet moved to 128,000. Restate, or trim? (b) The bulk is parameter
+      measured 127,239 and the ratchet moved to 128,000. Restate, or trim? (resolved: ADR 0006, O-10 (a)+(b) 2026-10-06) (b) The bulk is parameter
       descriptions; trim them further, and should `core` keep `get_status`'s ~3.6 KB output schema?
       (c) `structuredContent` duplicates the text payload (e.g. `query_table`, `get_record`) — keep
-      it always, or make it opt-in? (d) Manifest `since` is 2.0.1 for every tool — backfill from
+      it always, or make it opt-in? (resolved: opt-in `SN_STRUCTURED=false`, O-21 (d), 3af9a45) (d) Manifest `since` is 2.0.1 for every tool — backfill from
       history? (e) Tools added by later batches must regenerate the manifest and raise the budget
-      constants (about 760 bytes of headroom on `all` after batch 10). (f) M-9 interplay: a task-capable
+      constants (about 760 bytes of headroom on `all` after batch 10) (resolved: budgets are data in `test/fixtures/token-budgets.json`, ADR 0006). (f) M-9 interplay: a task-capable
       tool's output schema has every field optional while `SN_EXPERIMENTAL_TASKS` is on, so the
       task handle validates — accept, or give handles their own result type?
 - [ ] **Owner decisions from round 9 (token-optimization plan, 2026-10-05):** see
@@ -280,11 +280,11 @@
       as data with an automatic tightening ratchet; (b) restated targets — `discovery` ≤ 22 KB
       (stretch 14 KB), `all` ≤ 120 KB (with N-54) non-default — and the N-58 / N-63 wire changes
       (**(a) and (b) decided 2026-10-06**, [ADR 0006](adr/0006-tools-list-budget-ratchet.md)); (c) shallow
-      output schemas (N-60; **decided 2026-10-09**, shallow on the wire, full in the reference — done in 90dea84); (d) N-18 eval models and API budget (**decided 2026-10-09**: `claude-sonnet-5-5`, three repeats with McNemar, baseline and after each, roughly $60–90 in all; the owner provides `ANTHROPIC_API_KEY` and the run waits for it). O-19 (d) per-connection
+      output schemas (N-60; **decided 2026-10-09**, shallow on the wire, full in the reference — done in 3271fa3); (d) N-18 eval models and API budget (**decided 2026-10-09**: `claude-sonnet-5-5`, three repeats with McNemar, baseline and after each, roughly $60–90 in all; the owner provides `ANTHROPIC_API_KEY` and the run waits for it). O-19 (d) per-connection
       `tools/list` vs M-5 / N-63 (**decided 2026-10-10**, fixed per server on the 2026-07-28 wire, [ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)). O-21 (**decided 2026-10-09**): (a) compact reads (N-62) are opt-in only, defaults stay
       byte-identical; (b) 48 k result cap with the automatic file result on, and the `list_tables`
       default limit ruled a bug fix (N-61, done); (c) Claude Code `_meta` hints (N-65) on by default
-      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. Done 2026-10-09: (a) fc2f949, (c) b9e46e7, (d) 9d92986 (`SN_STRUCTURED=false`). O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63).
+      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. Done 2026-10-09: (a) 7cdf79c, (b) d071f09, (c) f5071f9, (d) 3af9a45 (`SN_STRUCTURED=false`). O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63).
 - [ ] **Owner decisions from batch 11 (D-4, 2026-09-26):** (a) client syntaxes not verified
       against a live client — Zed `context_servers` (`"source": "custom"` + flat `command` /
       `args`; older Zed builds nest `command: {path, args}`), the JetBrains AI Assistant menu path
@@ -305,17 +305,17 @@
       the rest (`redaction`, `docs`, `limits`, `profileSource`, `writeMode`) at ~450 more bytes?
       (b) `profiles` stays a string list for compatibility; rename `profileDetails` to `profiles`
       in the O-4 breaking window (M-2)? (c) Per-profile `env` (dev/test/prod) has no source until
-      H-11 / L3-03 — `profileDetails` omits it. (d) The instructions name the active instance host
+      H-11 / L3-03 — `profileDetails` omits it (resolved: `profileDetails` carries `env` since H-11, e2656b1). (d) The instructions name the active instance host
       but never the user or the env-file path (get_status shows the path) — acceptable? Cap 2 KB,
       measured 511 B (core, configured) / 868 B (all packages, unconfigured). (e) `NOT_CONFIGURED`
       is tagged on the existing "not configured" / "requires …" errors (messages unchanged); M-2
-      makes `code` mandatory. (f) Icon: a brand-neutral inline SVG (not the ServiceNow logo);
+      makes `code` mandatory (resolved: M-2 error contract landed, 3c4dea3). (f) Icon: a brand-neutral inline SVG (not the ServiceNow logo);
       `websiteUrl` is the GitHub Pages site. (g) Write counters are per runtime (reset on dispose),
       counted per journal line (a batch counts its sub-requests); plans are not counted.
 - [ ] **Owner decisions from batch 11 (P-10/P-13, 2026-09-26):** (a) `servicenow_explain_flow`
       sits in the `flows` package, so the `reader` / `developer` profiles gain it — keep it there, or
       move it to an opt-in package (`artifacts`, a new `explain`)? (b) The `tools/list` budget moved
-      again: `all` measured 129,083 with 89 tools and the ratchet is now 130,000. (c) `get_flow` does
+      again: `all` measured 129,083 with 89 tools and the ratchet is now 130,000 (resolved: ADR 0006). (c) `get_flow` does
       not delegate to `explain_flow` (S-5 bullet, SDK-PARITY P-10): its `FlowDetail` contract differs,
       so a delegation is a behaviour change — do it under O-4, or leave `get_flow` as the light read?
       (d) Every Flow Designer and workflow field is unverified (O-5): the `values` compression
@@ -327,21 +327,21 @@
       `migration` read runtime tables (`sys_flow_context`, `sys_flow_log`, `wf_context`) — opt-in,
       off by default; acceptable in `flows`? (f) Bounds: runs default 5 / max 20, 10 log errors per
       run, step depth 32, 50 inputs per step, 1,000-char raw preview — right defaults? (g) The pack
-      grows further past the 800 KB ceiling.
+      grows further past the 800 KB ceiling (resolved: 3 MB, 05de939).
 - [ ] **Owner decisions from batch 11 (E-6, 2026-09-26):** (a) O-2 — the redacted PDI fixture
       corpus and the optional live smoke job (secrets-gated) are not started. (b) `--help` /
-      `--version` spawn tests wait for D-1 (no such flags today). (c) L9-03 folder layout stays
-      deferred — the new suites sit flat in `test/`. (d) Property runs: 100 per property by
+      `--version` spawn tests wait for D-1 (no such flags today) (resolved: `test/cli-spawn.test.js`, 736f136). (c) L9-03 folder layout stays
+      deferred — the new suites sit flat in `test/` (resolved: L9-03 recursive test layout, 738c61a). (d) Property runs: 100 per property by
       default (`SN_FC_RUNS`, fixed `SN_FC_SEED`); add a nightly or CI leg with `SN_FC_RUNS=800` and
       a random seed? (e) Extension lint: `extension/` has no ESLint config and the root config
-      ignores it — the new CI job typechecks only; add a lint config there, or lint it from the root?
+      ignores it — the new CI job typechecks only; add a lint config there, or lint it from the root? (resolved: `extension/eslint.config.mjs`, 88358f9)
       (f) The policy-glob property covers the host and MIME allow-lists only; the table glob lands
-      with H-11 / L3-01. (g) Three defects found by the properties, kept as `todo` tests, src
+      with H-11 / L3-01 (resolved: table-glob property in `test/property-policy.test.js`, dffb229). (g) Three defects found by the properties, kept as `todo` tests, src
       untouched: **F1** — `formatEnvValue` writes a quoted value that ends in `\` as `'…\'`; dotenv
       reads `\'` as an escaped quote and swallows the next line (e.g. a password `pa#ss\` loses the
       following key); **F2** — U+2028 / U+2029 are written unquoted and break dotenv's line split;
       **F3** — `docsWriteRaw` accepts `index.md` / `index.json`, which the store silently rebuilds
-      after the write. Fix F1/F2 in the env writer and reject the store's own files in F3?
+      after the write. Fix F1/F2 in the env writer and reject the store's own files in F3? (resolved: F1/F2 by E-2, 3c4dea3; F3 by 9062c28)
       **Update 2026-10-01 (E-2):** F1 and F2 are resolved by the switch to Node's env-file
       parser (`process.loadEnvFile` / `util.parseEnv`), which has neither hazard; both are now
       regular tests. **F3 resolved 2026-10-09 (owner):** `docsWriteRaw` refuses the store's root `index.md` / `index.json` with 400; the todo test is a regular test.
@@ -352,7 +352,7 @@
       four? (b) Without `apps`, discovery scopes come from `sys_app` only (non-global, capped at
       `INSTANCE_TARGETS_MAX`, the rest reported as skipped) — store apps (`sys_store_app`) are
       not included; add them? (c) ~~The D-8 `PreToolUse` hook waits for H-3 / O-4~~ — **done
-      2026-10-01:** `hooks/hooks.json` + `hooks/require-plan-token.mjs` deny a token-less
+      2026-10-01 (3c4dea3):** `hooks/hooks.json` + `hooks/require-plan-token.mjs` deny a token-less
       destructive `apply:true` (presence check only, fails open, honours
       `SN_DESTRUCTIVE_CONFIRM=off`; `SN_WRITE_MODE=apply` is not visible to it). (d) Slash
       commands (`commands/*.md`) were skipped — the plugin skills are already invocable as
@@ -360,7 +360,7 @@
       `~/.claude/skills/discovery` should delegate to `servicenow_document_instance({depth})` when
       a configured profile exists and keep `curl` as the fallback — a harness change outside this
       repo, not done. (f) `pack:check` stays over the 800 KB ceiling (the skills are not in the
-      tarball; the growth is `src/api/document.ts`).
+      tarball; the growth is `src/api/document.ts`) (resolved: 3 MB, 05de939).
 - [ ] **Owner decisions from batch 12 (P-11, 2026-09-26):** (a) `explain_flow` now expands
       subflow / action calls by default (`depth` 1): every flow read costs up to four more bounded
       reads per level (actions, their steps, called subflows and their step tables) and expands OOB
@@ -373,30 +373,30 @@
       SDK-PARITY target is R/X/A/S — the `A`/`S` tiers wait for P-17 / P-20. (e) `kind:"action"` does
       not read `sys_hub_action_type_snapshot` (published vs draft) — a later item? (f) The `tools/list`
       `all` budget measured 129,926 (ratchet unchanged at 130,000; core 31,151) and the pack grows
-      further past the 800 KB ceiling (1,312.7 KB).
+      further past the 800 KB ceiling (1,312.7 KB) (resolved: ADR 0006 budgets; 3 MB ceiling, 05de939).
 - [ ] **Owner decisions from batch 12 (P-17, 2026-09-26):** (a) `servicenow_artifact_dependencies`
       sits in the opt-in `artifacts` package — keep it there (it is not in `reader` / `developer`)?
       (b) The `tools/list` budget moved again: `all` measured 133,469 with 90 tools and the ratchet
-      is now 134,000; `core` is unchanged at 31,151. (c) Inbound flow-step edges use a `valuesLIKE`
+      is now 134,000; `core` is unchanged at 31,151 (resolved: ADR 0006). (c) Inbound flow-step edges use a `valuesLIKE`
       query, so steps whose `values` are stored base64 + gzip are not found (O-5 still open; the
       result carries a caveat). (d) Script callers come from `search_code` over the default script
       types (not the `extended` set) and are re-checked for a real call (`new X(`, `X.method(`,
       `GlideAjax('X')`); a name mentioned only in a comment line with a call shape still counts.
       (e) Bounds: depth default 1 / max 3, 25 rows per inbound source (max 100), 150 nodes — right
       defaults? (f) Tables are leaves (no dictionary walk); a record reached only by an inbound edge
-      is not expanded outbound. (g) The pack grows further past the 800 KB ceiling.
+      is not expanded outbound. (g) The pack grows further past the 800 KB ceiling (resolved: 3 MB, 05de939).
 - [ ] **Owner decisions from batch 12 (M-5, 2026-09-26):** (a) A client can now widen the
       surface beyond `SN_TOOL_PACKAGES` with `servicenow_enable_package`, write packages included;
       only `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` bound it. Add an off switch (e.g.
       `SN_DYNAMIC_PACKAGES=off`) or an allow-list for toggles? (b) The M-1 server instructions are a
       startup snapshot and are not refreshed after a toggle. (c) The overview prompt always tells
-      the model to treat the profile as production until the H-11 environment marker lands. (d) A
+      the model to treat the profile as production until the H-11 environment marker lands (resolved: the prompt reads `SN_ENV` / `SN_PROFILE_<NAME>_ENV` and warns only for unmarked profiles, `src/mcp/prompts.ts`, H-11 e2656b1). (d) A
       call to a disabled tool now returns the SDK's "Tool X disabled" instead of "not found". (e)
       Package resource templates are registered / `remove()`d rather than toggled (the SDK ignores
       `enabled` on templates) — revisit on an SDK upgrade. (f) The core `tools/list` budget rose to
       35,000 (measured 34,426) for the three new admin tools; `all` to 133,000 (132,949); the merged
       batch 12 tree (93 tools) measured 137,276 / 34,426, ratchets 138,000 / 35,000 — M-6
-      budget restatement is still open. (g) Enable accepts one package per call — accept a list or
+      budget restatement is still open (resolved: ADR 0006). (g) Enable accepts one package per call — accept a list or
       named profiles? (h) `get_status` reports the session set only after a toggle; the configured
       set otherwise.
 - [ ] **Owner decisions from batch 12 (D-1, 2026-09-26):** (a) `init` accepts only
@@ -409,9 +409,9 @@
       bundle is one JSON file, not a zip; secret masking is by key-name heuristic plus a scrub of
       the masked values — instance and user names stay visible. (f) `doctor` text output is ASCII
       whenever stdout is not a TTY (piped / CI). (g) `init` writes through `persistEnv`, so the E-6
-      defects F1/F2 (a value ending in `\`, U+2028/U+2029) apply to wizard answers too. (h) The
-      pack grew to 1328.6 KB unpacked (ceiling 800 KB, pending the owner).
-- [ ] **H-3 · Plan tokens + elicitation — partly done 2026-09-26 (uncommitted), non-breaking.**
+      defects F1/F2 (a value ending in `\`, U+2028/U+2029) apply to wizard answers too (resolved: F1/F2 fixed by E-2, 3c4dea3). (h) The
+      pack grew to 1328.6 KB unpacked (ceiling 800 KB, pending the owner) (resolved: 3 MB, 05de939).
+- [ ] **H-3 · Plan tokens + elicitation — partly done 2026-09-26 (committed d2336f5), non-breaking.**
       `SN_DESTRUCTIVE_CONFIRM=off|token|elicit` (default `off`) + `SN_PLAN_TOKEN_TTL_SEC`; six
       destructive-apply tools gain `plan_token`; `PLAN_REQUIRED` / `CONFIRM_DECLINED`; 16 tests.
       Owner decisions: (a) the 3.0 default — `token` or `elicit` (B4, O-4)? (b) the token is an
@@ -425,37 +425,37 @@
       **Resolved 2026-10-01 (O-4 approved):** (a) the default is `token` (B4; `off` opts out);
       the in-H-3 items above all landed (H-3 remainder, H-4, H-11). (b)–(e) stay as built unless
       the owner says otherwise. Left: O-5 PDI verification.
-- [ ] **P-21 · Application documentation detail — done 2026-09-26 (uncommitted) bar UIB
+- [ ] **P-21 · Application documentation detail — done 2026-09-26 (committed dfaedfa) bar UIB
       experiences (P-14).** `document_app({detail})`; 2 tests. Owner decisions: (a) `detail` is
       opt-in — make it the default for `document_app` (and pass it from `document_instance`)?
       (b) bounds 10 diagrams per type, 10 dependency roots, 50 lint rows per type; (c) the
       dependency graph merges each root's outbound edges only (no inbound walk).
-- [ ] **P-20 · Snapshot / compare over the registry — done 2026-09-26 (uncommitted) bar flow
+- [ ] **P-20 · Snapshot / compare over the registry — done 2026-09-26 (committed db67cd9) bar flow
       snapshots.** `types` / `scope` on both tools; 8 tests. Owner decisions: (a) flows from
       `sys_hub_flow_snapshot` need the published/draft authority confirmed (O-5); (b) nested
       children (portal layout rows / columns / instances) are skipped with a warning — walk them?
       (c) secret fields are masked, so a changed secret is not drift — hash them instead? (d)
       `["all"]` reads every registry type (about 100 primary reads plus children) — cap it? (e)
-      the `all` tools/list budget rose to 141,000 (measured 140,142).
-- [x] **P-18 · Registry-driven lint and search** — done 2026-09-26 (uncommitted): three portal
+      the `all` tools/list budget rose to 141,000 (measured 140,142) (resolved: ADR 0006).
+- [x] **P-18 · Registry-driven lint and search** — done 2026-09-26 (committed d5169bb): three portal
       rules, `lint_script` opt-in types, `code_health({extended, limit})` registry sweep,
       `where_used({extended})`; 6 tests. Owner decisions: (a) the sweep is opt-in (`extended`) —
       about 30 bounded reads; make it the default? (b) per-type default 50 / max 200; (c) the
       `sp-param-unvalidated` sinks (encoded query, GlideRecord / GlideAggregate table name,
       `gs.eval`, `GlideEvaluator`) — more? (d) findings verified on mocks only (O-5).
-- [x] **H-3 remainder** — done 2026-09-26 (uncommitted): `expected_mod_count` → `STALE_RECORD` on
+- [x] **H-3 remainder** — done 2026-09-26 (committed 062f4be): `expected_mod_count` → `STALE_RECORD` on
       update / delete, `unknown_fields` from the schema cache, email `body_preview` (2 KB) +
       `body_sha256`, `expected_*` outside the plan-token hash; 5 tests. Owner decisions: (a) no
       `force` flag — omitting `expected_mod_count` applies unchecked; make the check automatic
       when a `plan_token` is used? (b) `unknown_fields` only when the schema is cached — read it
       on demand in plan mode instead (one dictionary read per table)? (c) the email preview cap
       2,048 characters.
-- [x] **P-22 · SDK-managed write guard** — done 2026-09-26 (uncommitted): `SN_SDK_MANAGED_WRITES`
+- [x] **P-22 · SDK-managed write guard** — done 2026-09-26 (committed ec15c17): `SN_SDK_MANAGED_WRITES`
       (default `warn`), `sdkManaged` in plans and results, `SDK_MANAGED_SCOPE` under `deny`; 9 tests.
       Owner decisions: (a) O-6 authority order is still the P-3 default; (b) the guard skips batch
       sub-requests and a create without `sys_scope` (resolving the user's current app scope costs
       a preference read per create) — extend? (c) `deny` as the 4.0 default (breaking register).
-- [ ] **H-11 · Policy model v2 — done 2026-09-26 (uncommitted) bar the BREAKING defaults.** Glob
+- [ ] **H-11 · Policy model v2 — done 2026-09-26 (committed e2656b1) bar the BREAKING defaults.** Glob
       patterns + one evaluator (`explain_policy`, `servicenow://policy`), `POLICY_DENIED`,
       `SN_PROTECTED_TABLES_WRITE` (default `allow`), `SN_IMPORT_SET_TABLES`, write caps (`WRITE_CAP`),
       `SN_ENV` / `SN_PROFILE_<NAME>_ENV` + per-profile `WRITE_MODE` + `PROD_WRITES` ack; 17 tests.
@@ -478,7 +478,7 @@
       **(c) implemented 2026-10-10 (99b1ec1), awaiting owner confirmation:** upload, delete
       (preview and apply) and a batch delete by id meet the parent table's write policy, protected
       default included; reverting is one commit.
-- [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (uncommitted).** Attachments follow
+- [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (committed 1917f57).** Attachments follow
       the parent table; plugin-API tools check backing tables; Code Search hits filtered; batch:
       nested batch refused, tables from query/body, attachment-by-id resolved under a table policy,
       `SN_BATCH_UNMAPPED` (default `allow`), `SN_BATCH_MAX_REQUESTS` (default 1000), bodies in the
@@ -498,13 +498,13 @@
       `SN_BATCH_MAX_REQUESTS=50` are the defaults (B8); (b) the `SN_BATCH_UNMAPPED=allow` knob is
       the one documented (breaking register fixed); (c) moot — ships in 3.0. **2026-10-10:** (f) the
       LIKE path skips a denied type and lists it under `unreadable`; (g) one metadata read on
-      delete apply. Still open: (d), (e).
-- [x] **Test hermeticity** — done 2026-09-26 (uncommitted): with `HTTPS_PROXY` set in the shell
+      delete apply (748765b). Still open: (d), (e).
+- [x] **Test hermeticity** — done 2026-09-26 (committed d2336f5): with `HTTPS_PROXY` set in the shell
       (corporate / cloud dev environments) 553 tests failed and `test/tasks.test.js` spun at 100 %
       CPU — H-10's dispatcher asks for the optional `undici` package. `baselineEnv()` in
       `test/helpers.js` now clears `SN_HTTPS_PROXY` / `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY`
       (both cases); the suite is green with a proxy in the environment.
-- [ ] **Open items from batch 18 (M-7, 2026-10-03, uncommitted).**
+- [ ] **Open items from batch 18 (M-7, 2026-10-03, committed 3c4dea3).**
   - Next minor: remove the legacy tool aliases, the `legacyParams` maps and
     `SN_LEGACY_TOOL_NAMES`; remove the old `servicenow://{profile}/schema/{table}` template; keep
     or drop `class_name` on the CMDB tools (documented as deprecated, always accepted today).
@@ -520,7 +520,7 @@
     with the flag (the hook cannot read the server's env).
   - With `SN_LEGACY_TOOL_NAMES=1`, `tools/list` grows about 20 KB (`all`); the budget test
     measures the default (flag off).
-- [ ] **Open items from batch 18 (M-2, 2026-10-02, uncommitted).**
+- [ ] **Open items from batch 18 (M-2, 2026-10-02, committed 3c4dea3).**
   - Acceptance deviation: the manifest carries one global `errorCodes` table (manifest v3) instead
     of a per-tool code list — most tools can raise most codes (profile, policy, instance HTTP), so
     a per-tool list would be noise. Confirm, or ask for per-tool lists.
@@ -531,7 +531,7 @@
   - A resource `McpError` reaches clients as `MCP error -32602: MCP error -32602: …` (the SDK's
     `McpError` prefixes its message on the server and again when the client rebuilds it) — SDK
     behaviour, not fixed.
-- [ ] **Open items from N-6 (`ops` v2, 2026-10-03, uncommitted).**
+- [ ] **Open items from N-6 (`ops` v2, 2026-10-03, committed c83a91d).**
   - O-5 on a PDI: `sys_outbound_http_log` (`url`, `http_method`, `response_status`,
     `response_time`, `rest_message`; is the log on by default, and what is its retention?),
     `syslog_transaction` (`url`, `response_time`), `ecc_agent` (`status`, `version`,
@@ -541,49 +541,49 @@
     `tools/list` bytes; N-0 / O-10.)
   - The filter-field dictionary guard adds two cached metadata reads each for `integrations` and
     `transactions`, also in `overview`.
-- [ ] **Owner decisions from batch 17 (2026-10-01, uncommitted).**
+- [ ] **Owner decisions from batch 17 (2026-10-01, committed 3c4dea3).**
   - ~~P-29~~ (moot 2026-10-10, ADR 0010): `SPPage`, flow variables, stages, action inputs / outputs and process inputs take no `$id`
     in SDK 4.12.2, so `now-sdk build` mints new sys_ids — installing generated Fluent on the
     source instance can duplicate those records. Accept with the per-file note, or refuse to emit
     pages until the SDK supports `$id`? O-2 / O-5: fixtures for the per-field instance comparison.
-  - H-11: the `SN_TABLE_POLICY_FILE` format; attachments as parent-table writes.
-  - H-4: the Code Search LIKE fallback refuses the whole search on a denied default table.
+  - H-11: the `SN_TABLE_POLICY_FILE` format; attachments as parent-table writes (resolved: implemented 2026-10-10 in 99b1ec1, awaiting owner confirmation).
+  - H-4: the Code Search LIKE fallback refuses the whole search on a denied default table (resolved: the LIKE path skips a denied type, 748765b).
   - E-2: TypeScript 7 waits for typescript-eslint support.
-  - `pack:check`: 2012.7 KB vs the 800 KB ceiling (still open).
-- [ ] **Owner decisions from batch 16 (2026-09-30, uncommitted).**
+  - `pack:check`: 2012.7 KB vs the 800 KB ceiling (resolved: 3 MB, 05de939, owner 2026-10-05).
+- [ ] **Owner decisions from batch 16 (2026-09-30, committed 88358f9).**
   - ~~O-7~~ approved 2026-10-01; the P-29 oracle now verifies the shapes (was: O-7, now also gating P-27 / P-28): the SDK dev dependency + 4.12.2 target; the P-29 oracle
     would verify the `Flow` / `Subflow` / `Action` / `PlaybookDefinition` and portal / workspace /
-    catalog property names, which are taken from SDK-PARITY and are unverified.
+    catalog property names, which are taken from SDK-PARITY and are unverified (resolved: moot, Fluent generation dropped, ADR 0010).
   - P-27: `wfa.dataPill` without a type argument; step-output pills emitted as text; the subflow
-    call shape. O-5 / O-9: verify generated flows on a PDI.
+    call shape. O-5 / O-9: verify generated flows on a PDI (resolved: moot, P-27 dropped, ADR 0010).
   - P-28: the passthrough camelCase fields of `Dashboard` / `UxListMenuConfig` / `Applicability`;
-    standalone `io_set_item` rows emitted as `Record()`; UIB stays `Record()` (no Fluent API).
-- [ ] **Owner decisions from batch 15 (2026-09-30, uncommitted).**
+    standalone `io_set_item` rows emitted as `Record()`; UIB stays `Record()` (no Fluent API) (resolved: moot, P-28 dropped, ADR 0010).
+- [ ] **Owner decisions from batch 15 (2026-09-30, committed 88358f9).**
   - O-7: may `@servicenow/sdk` be a dev dependency (type-check oracle for P-26), and is 4.12.2 the
-    target SDK for generated Fluent? Until then P-26 output is only proven to parse.
+    target SDK for generated Fluent? Until then P-26 output is only proven to parse (resolved: O-7 approved 2026-10-01, then superseded by ADR 0010 — Fluent generation dropped).
   - P-20: keep reading the published flow snapshot by default? (A flow whose `master_snapshot` has
     child rows hashes differently from snapshots stored before batch 15 — one-time drift against old
     `from_snapshot` files.) Are the Mermaid diff caps (10 records, 120 lines) right? O-5: confirm
     snapshot child rows are keyed by the snapshot sys_id.
-  - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` now 149,000).
-  - E-6: the O-2 PDI fixture corpus + live smoke job; L9-03 layout (still deferred).
-- [ ] **Owner decisions from batch 14 (2026-09-30, uncommitted).**
-  - E-4: flip `SN_STRICT_SETTINGS` on by default in 3.0? B5: drop the implicit `.env` fallback?
-  - H-7: B6 `SN_HTTP_REQUIRE_TOKEN` default on; B12 `use_instance` `persist` over stdio; a default
+  - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` now 149,000) (resolved: ADR 0006).
+  - E-6: the O-2 PDI fixture corpus + live smoke job; L9-03 layout (still deferred) (resolved for L9-03: 738c61a).
+- [ ] **Owner decisions from batch 14 (2026-09-30, committed 88358f9).**
+  - E-4: flip `SN_STRICT_SETTINGS` on by default in 3.0? B5: drop the implicit `.env` fallback? (resolved: B5 approved for 3.0 under O-4, ADR 0001, 2026-10-01; the default flip is not implemented yet)
+  - H-7: B6 `SN_HTTP_REQUIRE_TOKEN` default on; B12 `use_instance` `persist` over stdio (resolved: B6 and B12 approved for 3.0 under O-4, ADR 0001, 2026-10-01; not implemented yet); a default
     `SN_HTTP_ALLOWED_HOSTS` for non-loopback binds; the OAuth (MCP authorization) design.
   - P-24: `SCOPE_PREFIX` warn vs refuse; cross-scope duplicate semantics; the `sp_dependency.module` field.
   - O-5 verification on a PDI: P-24 fields, flow `master_snapshot` behaviour (P-25), the `sys_ux_*`
     (P-14 / P-15) and `sys_pd_*` (P-12) tables.
   - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` raised to 146,500 in
-    `test/output-schema.test.js`).
+    `test/output-schema.test.js`) (resolved: ADR 0006).
   - P-19: severity of `uib-data-broker-no-acl`. P-21: UIB depth beyond page-map diagrams.
   - D-6: publish the extension only after 3.0.0; delete the stale registry entries; the Open VSX
     namespace and `OVSX_PAT` secret; the `exports` map (B10).
-- [ ] **Owner decisions from batch 13 (2026-09-28, uncommitted).**
+- [ ] **Owner decisions from batch 13 (2026-09-28, committed 88358f9).**
       **D-5:** (a) publish the image (GHCR / Docker Hub) and pin base images by digest? (b) list on
       Smithery / Glama? (c) a public `/healthz` so `HEALTHCHECK` can use HTTP instead of TCP? (d)
       warn on world-readable secret files (Docker secrets are 0444)? (e) `removeComments` would cut
-      our JS 1,430 → 1,166 KB — still over 800; raise the ceiling or bundle? The SDK tree is ~93 %
+      our JS 1,430 → 1,166 KB — still over 800; raise the ceiling or bundle? (resolved: ceiling 3 MB, 05de939) The SDK tree is ~93 %
       of the install. **D-7:** (f) marketplace publish; (g) keep the HTTP transport option? (h)
       extension unit tests run only in CI. **D-9:** (i) enable private vulnerability reporting;
       (j) confirm the 3 / 7 / 30-day targets and "< 2.0 unsupported"; (k) the fallback e-mail in
@@ -594,11 +594,11 @@
       yet for business rules / script includes); (q) `apps.current_app` unverified (O-5), and a
       child create takes the current app's scope, not its parent's; (r) add `prune_children`,
       whole-artefact revert, child staleness? (s) a plan token on a tool with
-      `destructiveHint:false`; (t) `tools/list` `all` budget 144,000 (measured 143,644).
-      **All:** (u) pack 1596.2 KB unpacked vs the 800 KB ceiling.
+      `destructiveHint:false`; (t) `tools/list` `all` budget 144,000 (measured 143,644) (resolved: ADR 0006).
+      **All:** (u) pack 1596.2 KB unpacked vs the 800 KB ceiling (resolved: 3 MB, 05de939).
 - [ ] **SDK parity epic** (P-1…P-29, owner gates O-5…O-9) — post-3.0 (3.x minors; only P-22's
       `deny` default is a 4.0 break); plan in [SDK-PARITY.md](SDK-PARITY.md), rows 55–83 of
-      ROADMAP-V3 §"Sequencing".
+      ROADMAP-V3 §"Sequencing" (resolved for P-26…P-29: dropped, ADR 0010).
 - Everything else in the plan is 🔴 not started and waits for the owner to pick the cut
   (recommended: ROADMAP-V3 §"Sequencing", items 1–19 + 25–29 + 46–50 + 52).
 
