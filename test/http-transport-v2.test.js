@@ -570,16 +570,19 @@ async function modernCall(port, method, params, { name, tasks = true } = {}) {
       },
     }),
   });
-  // JSON or a one-message SSE stream.
-  const text = res.headers["content-type"]?.includes("text/event-stream")
+  // JSON or an SSE stream; `messages` keeps every frame, the answer last.
+  const messages = res.headers["content-type"]?.includes("text/event-stream")
     ? res.text
         .split("\n")
         .filter((l) => l.startsWith("data:"))
-        .map((l) => l.slice(5))
-        .at(-1)
-    : res.text;
-  return JSON.parse(text);
+        .map((l) => JSON.parse(l.slice(5)))
+    : [JSON.parse(res.text)];
+  return { ...messages.at(-1), messages };
 }
+
+/** The notifications a raw exchange carried besides its answer. */
+const notificationsOf = (res) =>
+  res.messages.filter((m) => m.id === undefined).map((m) => m.method);
 
 /** An empty result (`{}`) once the SDK's envelope stamps are set aside. */
 function assertEmpty(result) {
@@ -620,6 +623,8 @@ async function pollTask(port, taskId, until) {
 }
 
 const M9_ENV = () => ({
+  // Debug lines exist, so an empty notification list proves the filter.
+  SN_LOG_LEVEL: "debug",
   SN_EXPERIMENTAL_TASKS: "1",
   SN_DOCS_DIR: mkdtempSync(path.join(tmpdir(), "sn-m9-")),
 });
@@ -630,9 +635,25 @@ test("e2e: a 2026-07-28 task tool call answers a task, polled across requests to
     await withHttp(env, async (port) => {
       const { handler, release } = gatedTable();
       await withFetch(handler, async () => {
-        const created = await modernCall(port, "tools/call", queryFile(), {
-          name: "servicenow_query_table",
-        });
+        // A progress token and a log level the background run must not use.
+        const created = await modernCall(
+          port,
+          "tools/call",
+          {
+            ...queryFile(),
+            _meta: {
+              progressToken: "p1",
+              "io.modelcontextprotocol/logLevel": "debug",
+            },
+          },
+          { name: "servicenow_query_table" },
+        );
+        // ext-tasks: the background run reports through tasks/get only.
+        assert.deepEqual(
+          notificationsOf(created),
+          [],
+          "no progress or log notifications for a task (tasks-29)",
+        );
         const task = created.result;
         assert.equal(task.resultType, "task");
         assert.equal(task.status, "working");
@@ -714,6 +735,8 @@ test("e2e: tasks/cancel stops a 2026-07-28 task and answers {} (M-9)", async () 
           },
         );
         assertEmpty(cancel.result);
+        // ext-tasks: tasks/cancel replaces notifications/cancelled.
+        assert.deepEqual(notificationsOf(cancel), []);
         release();
         const task = (
           await modernCall(port, "tasks/get", { taskId }, { name: taskId })
