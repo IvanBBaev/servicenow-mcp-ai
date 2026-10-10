@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 70,
+  "pendingCeiling": 68,
   "requirements": [
     {
       "id": "base-01",
@@ -2531,8 +2531,11 @@
       "text": "Servers MUST be aware that responses with a `\"public\"` `cacheScope` may be shared between callers even if the Result is coming from an authenticated endpoint.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#security-considerations",
       "applies": "always",
-      "status": "pending",
-      "step": "cache"
+      "status": "covered",
+      "tests": [
+        "test/protocol-cache-scope.test.js :: cache scope: a public result carries nothing of the caller, the instance or the credentials — two callers get identical results",
+        "test/protocol-cache-scope.test.js :: cache scope: access is checked on every call, never inferred from a cached public list"
+      ]
     },
     {
       "id": "cache-06",
@@ -2552,8 +2555,11 @@
       "text": "MUST apply appropriate per-primitive access controls, and MUST NOT rely on `cacheScope` alone to prevent unauthorized access to primitives.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#security-considerations",
       "applies": "always",
-      "status": "pending",
-      "step": "cache"
+      "status": "covered",
+      "tests": [
+        "test/protocol-cache-scope.test.js :: cache scope: a public result carries nothing of the caller, the instance or the credentials — two callers get identical results",
+        "test/protocol-cache-scope.test.js :: cache scope: access is checked on every call, never inferred from a cached public list"
+      ]
     },
     {
       "id": "tools-01",
@@ -2875,7 +2881,8 @@
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources#capabilities",
       "applies": "always",
       "status": "pending",
-      "step": "packages"
+      "step": "packages",
+      "ownerQuestion": 1
     },
     {
       "id": "resources-04",

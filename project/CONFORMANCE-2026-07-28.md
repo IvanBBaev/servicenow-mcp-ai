@@ -32,7 +32,7 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 238     | 70      | 56  |
+| 364   | 240     | 68      | 56  |
 
 Pending rows by step:
 
@@ -43,7 +43,7 @@ Pending rows by step:
 | `mrtr`     | 19   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 12   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
-| `cache`    | 2    | N-38: `ttlMs` / `cacheScope`                                                                           |
+| `cache`    | 0    | N-38: `ttlMs` / `cacheScope`                                                                           |
 | `packages` | 1    | O-19 (d): lists fixed per server, deterministic order                                                  |
 
 The n/a rows cover features the server never uses: client-supplied `$ref` resolution, custom
@@ -73,7 +73,9 @@ authorization.
   never uses URL mode.
 - `cache-03` / `cache-04` (one scope on every page) are covered because the server does not
   paginate: every 2026-07-28 list is a single page carrying its method's hint. `cache-05` and
-  `cache-07` stay pending: no test checks the scope per caller yet.
+  `cache-07` are pinned over raw HTTP: two callers on different instances, users and clients get
+  identical public results, and a call is refused by policy even when the shared tools list
+  names it.
 - `base-42` (W3C trace formats): the server accepts the client's keys and emits none of its
   own, so the emit side holds vacuously. `prompts-08` and `completion-02` are pinned on their
   `-32602` paths; `-32603` cannot be triggered and `-32601` is unreachable while completions
@@ -90,9 +92,10 @@ The owner decided these on 2026-10-10. They came up while classifying the rows, 
 rows carry `ownerQuestion` with the decision's number. The rows stay pending until their step
 lands with a test.
 
-1. **Dynamic `resources/list` entries** (`resources-02`): the per-profile entries stay in the
+1. **Dynamic `resources/list` entries** (`resources-02`, `resources-03`): the per-profile entries stay in the
    list. On the 2026-07-28 wire the list carries `ttlMs: 0` and `cacheScope: private`. This is a
-   known deviation from the "fixed list" rule.
+   known deviation from the "fixed list" rule, so `resources-03` (the list must not vary as a side
+   effect of other requests) stays pending: reading a table schema adds its entry.
 2. **`request_secrets` form mode (D-2)** (`mrtr-19`, `mrtr-20`, `mrtr-42`): on the 2026-07-28
    wire, `set_credentials` refuses form-mode secret elicitation and returns a hint to use the env
    file or secret files. The legacy wire is unchanged.
