@@ -107,7 +107,7 @@ test("history: newest first, rendered as a table", async () => {
               to_version: "glide-yokohama",
               upgrade_started: "2026-09-01 00:00:00",
               upgrade_finished: "2026-09-01 02:00:00",
-              state: "complete",
+              summary_complete_status: "complete",
             },
           ],
         }),
@@ -116,6 +116,12 @@ test("history: newest first, rendered as a table", async () => {
       const h = await readUpgradeHistory();
       assert.equal(h.available, true);
       assert.equal(h.upgrades[0].toVersion, "glide-yokohama");
+      // O-5 (PDI): the state comes from summary_complete_status.
+      assert.equal(h.upgrades[0].state, "complete");
+      assert.match(
+        new URL(calls[0].url).searchParams.get("sysparm_fields"),
+        /summary_complete_status/,
+      );
       assert.match(
         new URL(calls[0].url).searchParams.get("sysparm_query"),
         /ORDERBYDESCupgrade_started/,
@@ -133,7 +139,7 @@ test("skipped: unresolved skips grouped by application and artefact type", async
     sys_id: file_name.slice(-4),
     file_name,
     target_name: file_name,
-    application,
+    plugin: application,
     disposition,
     resolution_status,
   });
@@ -185,6 +191,8 @@ test("skipped: unresolved skips grouped by application and artefact type", async
         `upgrade_history=${UPG}^ORDERBYfile_name`,
       );
       assert.equal(q.get("sysparm_display_value"), "true");
+      // O-5 (PDI): the application is the plugin, else application_category.
+      assert.match(q.get("sysparm_fields"), /plugin,application_category/);
       const md = renderSkipped(s).join("\n");
       assert.match(md, /4 unresolved skipped record\(s\) of 6 log row\(s\)/);
       assert.match(md, /### Global — business_rule/);
@@ -470,7 +478,7 @@ test("N-1: the upgrade document holds the history, the newest upgrade's skips an
               sys_id: UPG,
               from_version: "glide-xanadu",
               to_version: "glide-yokohama",
-              state: "Complete",
+              summary_complete_status: "Complete",
             },
           ],
         }),
@@ -481,7 +489,8 @@ test("N-1: the upgrade document holds the history, the newest upgrade's skips an
               sys_id: "a1",
               file_name: BR,
               target_name: BR,
-              application: "Global",
+              plugin: "",
+              application_category: "Global",
               disposition: "Skipped",
               resolution_status: "Not Reviewed",
             },
@@ -497,6 +506,8 @@ test("N-1: the upgrade document holds the history, the newest upgrade's skips an
       assert.match(doc.markdown, /^# Upgrade readiness — profile /m);
       assert.match(doc.markdown, /^## Skipped records — `glide-yokohama`$/m);
       assert.match(doc.markdown, /business_rule/);
+      // The empty plugin falls back to application_category.
+      assert.match(doc.markdown, /Global/);
       assert.match(doc.markdown, /^## Store app updates$/m);
       assert.match(doc.markdown, /review_upgrade with update_name/);
       assert.ok(
