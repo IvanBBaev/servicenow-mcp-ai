@@ -1080,7 +1080,7 @@ items:
     phase: "R"
     done: "2026-10-10"
     gates: []
-    notes: "**Step 1 (spike) done 2026-10-10** ([N-35-SPIKE-SDK-V2.md](N-35-SPIKE-SDK-V2.md)): runs on `@modelcontextprotocol/server` 2.3.1 + `@modelcontextprotocol/node` 2.1.1 with legacy-wire parity, 0 B tools/list; ctx adapter, hand-rolled `tasks/*` handlers, `completable(...).optional()`, unknown/disabled tool is -32602. Open: server factory with modern serving (`serveStdio` / `createMcpHandler`), then MRTR, M-8, M-9, N-38. Phase R (spike) then B. **O-19 decided 2026-10-10** ([ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)): full 2026-07-28 conformance, legacy revisions kept; `@modelcontextprotocol/server` 2.3.1 negotiates both. MCP SDK v2 split packages; stateless HTTP replaces `Mcp-Session-Id` (H-7); log bridge off deprecated Logging (M-8); tasks extension (M-9); N-9 re-scoped; CIMD for N-17 (TK-01 … TK-05). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Step 1 (spike) done 2026-10-10** ([N-35-SPIKE-SDK-V2.md](N-35-SPIKE-SDK-V2.md)): runs on `@modelcontextprotocol/server` 2.3.1 + `@modelcontextprotocol/node` 2.1.1 with legacy-wire parity, 0 B tools/list; ctx adapter, hand-rolled `tasks/*` handlers, `completable(...).optional()`, unknown/disabled tool is -32602. **Step 2 done 2026-10-10 (main 7809f8a, local):** the 2026-07-28 era served on stdio and modern HTTP next to the legacy wire (a modern POST ignores a stray `Mcp-Session-Id`, an unsupported revision is refused on every stdio request, spec-schema failures are a one-line -32602), `server/discover`, package lists fixed per server (O-19 (d)), request-scoped log bridge (M-8), MRTR `input_required` rounds with plan tokens bound to the principal, the tasks extension (M-9), `subscriptions/listen` guards, `ttlMs` / `cacheScope` hints (N-38), a hard cap on the one sent request (cancel-04/05); 0 B tools/list. Conformance matrix `test/fixtures/protocol-2026-07-28-conformance.json` with a shrink-only pending ratchet: 364 rows, 264 covered, 57 n/a, 43 pending, all owner-gated (35 auth rows behind N-17 / O-15, six MRTR identity / state rows, the mrtr-20 D-2 deviation, resources-03). Open: those 43 rows. Phase R (spike) then B. **O-19 decided 2026-10-10** ([ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)): full 2026-07-28 conformance, legacy revisions kept; `@modelcontextprotocol/server` 2.3.1 negotiates both. MCP SDK v2 split packages; stateless HTTP replaces `Mcp-Session-Id` (H-7); log bridge off deprecated Logging (M-8); tasks extension (M-9); N-9 re-scoped; CIMD for N-17 (TK-01 … TK-05). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-36"
     title: "tool discovery instead of a bigger budget"
     pillar: "N"
@@ -1103,11 +1103,11 @@ items:
     title: "cache-friendly listing"
     pillar: "N"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: "B"
-    done: null
+    done: "2026-10-10"
     gates: []
-    notes: "**Deterministic list order done 2026-10-05 (local):** package resources register after the always-on ones in manifest order and re-register in that order on enable, so a disable/enable round trip no longer reorders `resources/list` / templates; a test pins identical tools/prompts/resources/templates across fresh and toggled sessions. Package switches are already batched to one `list_changed` per list by the SDK debounce. Open: `ttlMs` / `cacheScope` wait for N-35 (O-19). Phase B, after N-35. Deterministic list order, `ttlMs` / `cacheScope`, batched package switches (TK-09). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Deterministic list order done 2026-10-05 (local):** package resources register after the always-on ones in manifest order and re-register in that order on enable, so a disable/enable round trip no longer reorders `resources/list` / templates; a test pins identical tools/prompts/resources/templates across fresh and toggled sessions. Package switches are already batched to one `list_changed` per list by the SDK debounce. **`ttlMs` / `cacheScope` done 2026-10-10 (N-35 step 2):** every 2026-07-28 list is one page carrying its method's cache hint. Phase B, after N-35. Deterministic list order, `ttlMs` / `cacheScope`, batched package switches (TK-09). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-39"
     title: "one channel per payload"
     pillar: "N"
