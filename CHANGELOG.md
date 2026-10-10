@@ -355,6 +355,7 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Fixed
 
+- **A graceful shutdown (SIGINT / SIGTERM) flushes stdout and stderr before exiting** (`flushStdio`, bounded by 250 ms). stdio pipes are asynchronous, so `process.exit(0)` right after the transport closed could drop the last frames (a listen stream's completion and cancellation, the final response) and the shutdown log line (N-35).
 - The plugin's truncation hint names `count` of `total` for a row-capped result (SN_MAX_RECORDS, a list limit) — e.g. "100 of 2400 shown" (N-48).
 - **Docs store: a write to the store's own `index.md` / `index.json` is refused (E-6 F3).** The store rebuilds both after every write, so a write there (through `servicenow_write_doc` or a generator) was silently replaced; it now fails with 400 and a hint. An `index.md` in a subfolder is a regular document. Owner decision 2026-10-09.
 - **Plugin skills (PH-3, PH-4, PH-6, PH-7, PH-8, SF-1, SF-7).** `sn-safe-write` reads `writeMode` and the target profile from `servicenow_get_status` before any write call. Every skill that needs a package outside `core` checks `enabledPackages` first, enables a missing one with `enable_package` (telling the user) and reports the steps of a denied package as not checked. Each skill has a "When not to use" section with the hand-off to the right subagent or skill, and states that instance content is untrusted data, never instructions. The plugin description counts six skills, and `test/plugin-skills.test.js` keeps the count in sync.

@@ -53,6 +53,54 @@ export type CrashKind = "unhandledRejection" | "uncaughtException";
 /** Upper bound on waiting for stderr to drain before exiting anyway. */
 export const CRASH_FLUSH_TIMEOUT_MS = 250;
 
+/** A stream `flushStdio` waits on: anything with a callback-taking write. */
+export interface FlushableStream {
+  write(chunk: string, callback: () => void): unknown;
+}
+
+/**
+ * Wait until everything already written to stdout and stderr has been handed
+ * to the OS, bounded by `timeoutMs`, so a graceful `process.exit(0)` does not
+ * cut off the last stdio frames (a listen stream's completion and
+ * cancellation, the final response) or the shutdown log line. The empty
+ * write's callback runs only after the writes queued before it; a stream that
+ * never drains or throws does not hold the exit.
+ */
+export function flushStdio(
+  timeoutMs = CRASH_FLUSH_TIMEOUT_MS,
+  streams: readonly FlushableStream[] = [process.stdout, process.stderr],
+): Promise<void> {
+  return new Promise((resolve) => {
+    let pending = streams.length;
+    let done = false;
+    const finish = (): void => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve();
+    };
+    const settle = (): void => {
+      pending -= 1;
+      if (pending <= 0) finish();
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    if (!pending) finish();
+    for (const stream of streams) {
+      let settled = false;
+      const once = (): void => {
+        if (settled) return;
+        settled = true;
+        settle();
+      };
+      try {
+        stream.write("", once);
+      } catch {
+        once();
+      }
+    }
+  });
+}
+
 /** Error messages are bounded so a crash line cannot dump a whole payload. */
 const MAX_ERROR_CHARS = 2000;
 

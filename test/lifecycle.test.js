@@ -11,6 +11,7 @@ import {
   registerDisposer,
   handleCrash,
   crashFields,
+  flushStdio,
 } from "../build/core/lifecycle.js";
 import { cached, getSchemaCacheStats } from "../build/core/cache.js";
 import { pluginCall, pluginAvailability } from "../build/api/plugin.js";
@@ -444,4 +445,35 @@ test("HTTP transport: a bind failure rejects start-up instead of crashing later"
   } finally {
     await new Promise((resolve) => blocker.close(resolve));
   }
+});
+
+test("flushStdio: waits for every stream's queued writes before resolving", async () => {
+  const callbacks = [];
+  const stream = { write: (_chunk, cb) => callbacks.push(cb) };
+  let resolved = false;
+  const flushed = flushStdio(5_000, [stream, stream]).then(() => {
+    resolved = true;
+  });
+  await new Promise((r) => setImmediate(r));
+  assert.equal(callbacks.length, 2);
+  callbacks[0]();
+  await new Promise((r) => setImmediate(r));
+  assert.equal(resolved, false, "one stream still draining");
+  callbacks[1]();
+  await flushed;
+  assert.equal(resolved, true);
+});
+
+test("flushStdio: a stream that never drains or throws does not hold the exit", async () => {
+  const stuck = { write: () => true };
+  const broken = {
+    write: () => {
+      throw new Error("EPIPE");
+    },
+  };
+  const started = Date.now();
+  await flushStdio(30, [stuck, broken]);
+  assert.ok(Date.now() - started >= 25, "bounded by the timeout");
+  await flushStdio(5_000, [broken]);
+  await flushStdio(5_000, []);
 });

@@ -4,7 +4,7 @@ import {
   closeHttpTransport,
   closeStdioTransport,
 } from "./mcp/transport.js";
-import { installCrashHandlers } from "./core/lifecycle.js";
+import { flushStdio, installCrashHandlers } from "./core/lifecycle.js";
 import { startOtelSubscriber } from "./core/otel.js";
 import { hasCredentials } from "./core/config.js";
 import { getTransport } from "./core/settings.js";
@@ -136,6 +136,8 @@ export async function startServer(runtime: Runtime): Promise<void> {
     } catch {
       // ignore errors raised while closing during shutdown
     }
+    // stdio pipes are asynchronous: let the last frames and log lines out.
+    await flushStdio();
     process.exit(0);
   };
   // SIGTERM behaves exactly like SIGINT (E-9): graceful close, exit 0.
