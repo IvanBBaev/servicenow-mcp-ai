@@ -32,7 +32,7 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 155     | 157     | 52  |
+| 364   | 172     | 140     | 52  |
 
 Pending rows by step:
 
@@ -40,10 +40,10 @@ Pending rows by step:
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------ |
 | `wire`     | 33   | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
 | `http`     | 36   | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
-| `mrtr`     | 34   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
+| `mrtr`     | 19   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 12   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
-| `cache`    | 6    | N-38: `ttlMs` / `cacheScope`                                                                           |
+| `cache`    | 4    | N-38: `ttlMs` / `cacheScope`                                                                           |
 | `packages` | 1    | O-19 (d): lists fixed per server, deterministic order                                                  |
 
 The n/a rows cover features the server never uses: client-supplied `$ref` resolution, custom
@@ -68,6 +68,12 @@ authorization.
   not end to end.
 - `tools-06`, `prompts-04`, `resources-04` (`list_changed` on a listen stream) are pinned on
   stdio. Over HTTP the lists are fixed per server (O-19 d), so nothing publishes `list_changed`.
+- `mrtr-19` / `mrtr-42` (no secrets through form mode) are covered by decision 2: the modern
+  wire refuses the request. `mrtr-20` (use URL mode instead) stays pending, since the server
+  never uses URL mode.
+- `cache-03` … `cache-05` and `cache-07` stay pending: the hints are per method, so every page
+  and every caller gets the same scope, but no test pages through a list or checks scope per
+  caller yet.
 
 ## Owner decisions
 

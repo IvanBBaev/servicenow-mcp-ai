@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 157,
+  "pendingCeiling": 140,
   "requirements": [
     {
       "id": "base-01",
@@ -1881,8 +1881,11 @@
       "text": "Servers MUST send server-to-client requests (such as `roots/list`, `sampling/createMessage`, or `elicitation/create`) using the MRTR pattern.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-guard.test.js :: MRTR guard: elicitInput / createMessage / listRoots appear only in src/mcp/input.ts",
+        "test/mrtr-input.test.js :: MRTR: destructive apply → input_required → accepted retry applies exactly once; a replay is refused"
+      ]
     },
     {
       "id": "mrtr-02",
@@ -1899,8 +1902,10 @@
       "text": "`inputRequests` keys are server assigned identifiers and MUST be unique within the scope of the request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: destructive apply → input_required → accepted retry applies exactly once; a replay is refused"
+      ]
     },
     {
       "id": "mrtr-04",
@@ -1908,8 +1913,10 @@
       "text": "`inputRequests` values are request objects that MUST be one of `ElicitRequest`, `CreateMessageRequest`, or `ListRootsRequest`",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: destructive apply → input_required → accepted retry applies exactly once; a replay is refused"
+      ]
     },
     {
       "id": "mrtr-05",
@@ -1917,8 +1924,11 @@
       "text": "If a client request contains a `requestState` field, servers MUST treat `requestState` as an attacker-controlled input.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a tampered requestState is refused before the handler runs",
+        "test/mrtr-input.test.js :: MRTR: an expired requestState is refused"
+      ]
     },
     {
       "id": "mrtr-06",
@@ -1926,8 +1936,11 @@
       "text": "If `requestState` influences authorization, resource access, or business logic, servers MUST protect its integrity (e.g.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a tampered requestState is refused before the handler runs",
+        "test/mrtr-input.test.js :: MRTR: an expired requestState is refused"
+      ]
     },
     {
       "id": "mrtr-07",
@@ -1935,8 +1948,11 @@
       "text": "HMAC or AEAD) and MUST reject state that fails verification.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a tampered requestState is refused before the handler runs",
+        "test/mrtr-input.test.js :: MRTR: an expired requestState is refused"
+      ]
     },
     {
       "id": "mrtr-08",
@@ -1953,8 +1969,10 @@
       "text": "Servers for which a given `requestState` must be consumed at most once (e.g., one-time redemptions) MUST enforce that invariant server-side.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: destructive apply → input_required → accepted retry applies exactly once; a replay is refused"
+      ]
     },
     {
       "id": "mrtr-10",
@@ -1962,8 +1980,10 @@
       "text": "Servers MUST include at least one of `inputRequests` or `requestState` in every `InputRequiredResult` response.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: destructive apply → input_required → accepted retry applies exactly once; a replay is refused"
+      ]
     },
     {
       "id": "mrtr-11",
@@ -1971,8 +1991,10 @@
       "text": "Servers MUST NOT send an `inputRequests` that the client has not declared support for in its capabilities.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a request that does not declare form elicitation is never asked"
+      ]
     },
     {
       "id": "mrtr-12",
@@ -1980,8 +2002,10 @@
       "text": "For example, if a client does not declare support for `elicitation`, the server MUST NOT include any `elicitation/create` requests in the `inputRequests` field.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a request that does not declare form elicitation is never asked"
+      ]
     },
     {
       "id": "mrtr-13",
@@ -1989,8 +2013,11 @@
       "text": "Servers MUST NOT assume that clients will fulfill the `inputRequests` or retry the original request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#server-requirements-basic-workflow",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a decline refuses, journals nothing applied and burns the plan token",
+        "test/mrtr-input.test.js :: MRTR: a retry without a requestState is refused and writes nothing"
+      ]
     },
     {
       "id": "mrtr-14",
@@ -2034,8 +2061,11 @@
       "text": "Servers MUST validate request state as described in the server requirements above.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/mrtr#security-considerations",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a tampered requestState is refused before the handler runs",
+        "test/mrtr-input.test.js :: MRTR: an expired requestState is refused"
+      ]
     },
     {
       "id": "mrtr-19",
@@ -2043,8 +2073,11 @@
       "text": "Servers MUST NOT use form mode elicitation to request sensitive information such as passwords, API keys, access tokens, or payment credentials",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#user-interaction-model",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr",
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR D-2: secrets are never requested through a form on the modern wire",
+        "test/mrtr-input.test.js :: MRTR H-2: a credential change goes through input_required; the state never carries the password"
+      ],
       "ownerQuestion": 2
     },
     {
@@ -2063,8 +2096,10 @@
       "text": "Servers MUST NOT send elicitation requests with modes that are not supported by the client.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#capabilities",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR: a request that does not declare form elicitation is never asked"
+      ]
     },
     {
       "id": "mrtr-22",
@@ -2263,8 +2298,11 @@
       "text": "Servers MUST NOT request sensitive information (passwords, API keys, etc.) via form mode",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#form-mode-security",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr",
+      "status": "covered",
+      "tests": [
+        "test/mrtr-input.test.js :: MRTR D-2: secrets are never requested through a form on the modern wire",
+        "test/mrtr-input.test.js :: MRTR H-2: a credential change goes through input_required; the state never carries the password"
+      ],
       "ownerQuestion": 2
     },
     {
@@ -2311,8 +2349,11 @@
       "text": "Servers MUST include caching hints on results with `resultType: \"complete\"` returned by the following operations:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#cacheable-results",
       "applies": "always",
-      "status": "pending",
-      "step": "cache"
+      "status": "covered",
+      "tests": [
+        "test/cache-hints.test.js :: N-38: 2026-07-28 lists and server/discover carry the decided hints",
+        "test/cache-hints.test.js :: N-38: static references read 1 h public, other reads 0 private"
+      ]
     },
     {
       "id": "cache-02",
@@ -2320,8 +2361,11 @@
       "text": "Servers MUST provide a `ttlMs` value that is `>= 0`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#time-to-live-ttl-field",
       "applies": "always",
-      "status": "pending",
-      "step": "cache"
+      "status": "covered",
+      "tests": [
+        "test/cache-hints.test.js :: N-38: 2026-07-28 lists and server/discover carry the decided hints",
+        "test/cache-hints.test.js :: N-38: static references read 1 h public, other reads 0 private"
+      ]
     },
     {
       "id": "cache-03",
