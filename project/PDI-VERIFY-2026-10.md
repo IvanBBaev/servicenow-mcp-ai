@@ -152,6 +152,36 @@ Still open:
   `sys_ux_form_action_layout_item.form_action_layout` (`layout_group`). They
   are registry key fields, so renaming them changes the output keys.
 
+## Second pass: queries, payloads and JSON shapes
+
+Date: 2026-10-10, same PDI. The verifier also reads the field names in the
+static parts of each reader's encoded `query` (6572cc8): **1,351 names**; the
+only new miss was `scan_finding.active`. Row samples (GET only) covered what
+the dictionary cannot show — property names, reference targets, choice
+values, payloads and JSON columns:
+
+| Area                        | Finding                                                                                                                                                                                     | Commit  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Hardening rules             | The code-tag property is `glide.ui.security.allow_codetag` (singular); its default is dropped (unknown). Rule table v2.                                                                     | e7755d8 |
+| Access review               | `included_in_role` references `sys_user_has_role`, so the containing role is `included_in_role.role.name`. The `sys_audit_delete` payload format matches the parser.                        | 65430f6 |
+| Task context, instance scan | `scan_finding` has no `active`; open findings are `muted=false`.                                                                                                                            | c72111d |
+| Upgrade store (N-1)         | `resolution_status` labels and the skip disposition values (4, 9, 10, 11, 104) normalised.                                                                                                  | a00d470 |
+| Decision tables, playbooks  | Condition column `condition_to_run`; trigger type through `trigger_type.name`; runs by `process_definition.source` (`sys_pd_context` references `sys_pd_snapshot`); absent columns dropped. | e1b0aa6 |
+| UI Builder (N-25)           | Children nest under `overrides.composition` with a `slot`; event handlers have `type` / `event` / `operation` / `clientScript`; the broker input schema column is `props`.                  | 3f104f7 |
+
+Caveats from this pass:
+
+- The newest `scan_result` on the PDI is a run with 0 findings (2026-08-21),
+  so "latest scan" reads come back empty there. Whether to fall back to the
+  newest run with findings is an owner choice.
+- The PDI admin gets a 403 on `sys_store_app` over REST.
+- Hardening: `glide.stax.allow_entity_resolution` and
+  `glide.login.no_blank_password` have no row on the PDI, so their defaults
+  stay unverified.
+- UI Builder follow-ups (new coverage, not fixes): element `eventMappings`
+  are not read yet; one OOB composition holds a raw control character and
+  decodes as `decoded:false`.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
