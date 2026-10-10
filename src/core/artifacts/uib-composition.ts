@@ -5,7 +5,10 @@
  *
  * - `composition` — the component tree: an array of elements, each with an
  *   `elementId`, a `definition` (`{id, type}`, the component or macroponent it
- *   renders) and nested elements under `slots` / `children`;
+ *   renders) and nested elements. On a live instance (O-5, verified against
+ *   258 OOB macroponents) child elements sit in `overrides.composition`,
+ *   each naming its parent slot in `slot` (a string, or null for the default
+ *   slot); `slots` / `children` are also accepted;
  * - `data` — data resources: elements whose `definition.id` names a data
  *   broker record;
  * - `state_properties` — client state (`[{name, valueType, initialValue}]`);
@@ -16,15 +19,19 @@
  * every reader here is tolerant: it takes what it recognises, counts what it
  * skips, and never throws. The `uib-composition` decoder only accepts a value
  * that looks like a composition (an array of objects with an `elementId`); any
- * other shape comes back raw with `decoded:false`. All shapes are unverified
- * until gate O-5 (a PDI) confirms them.
+ * other shape comes back raw with `decoded:false`. O-5 (a PDI) confirmed the
+ * composition, `data`, `state_properties` and `internal_event_mappings`
+ * shapes on OOB records: every row decoded, and `internal_event_mappings` is
+ * the `{source: [handlers]}` map (`{}` when nothing is wired).
  *
  * N-26 adds opt-in depth on top of the same walk: element props / config /
  * overrides with their binding expressions (`compositionTree(v, {props:
  * true})`), and structured event handlers (`eventMappings`). The prop and
  * handler shapes (`propertyValues`, `{type: "STATE_BINDING", binding:
  * {address}}`, `{type, definition, targetId, operationName, parameters}`) are
- * modelled on UI Builder exports and are verified:false until O-5.
+ * modelled on UI Builder exports. O-5 confirmed `propertyValues` and found
+ * handlers encoded as typed sub-objects (see {@link UibEventHandler}); the
+ * binding shapes are still unverified.
  */
 
 /** Elements walked per composition (the rest are counted, not listed). */
@@ -210,6 +217,7 @@ function propsOf(item: Obj): { props: UibProp[]; omitted: number } {
             ? v.props
             : undefined
         : undefined;
+      if (k === "composition" && isComposition(v)) continue; // children
       if (inner) {
         for (const [p, pv] of Object.entries(inner)) {
           add("overrides", `${k}.${p}`, pv);
@@ -272,6 +280,19 @@ export function slotsOf(el: Obj): [string, unknown[]][] {
     }
   }
   if (Array.isArray(el.children)) out.push(["default", el.children]);
+  // The live encoding (O-5): children in `overrides.composition`, grouped by
+  // their `slot` name in first-seen order.
+  const nested = isObj(el.overrides) ? el.overrides.composition : undefined;
+  if (isComposition(nested)) {
+    const bySlot = new Map<string, unknown[]>();
+    for (const child of nested) {
+      const name = text(child.slot) ?? "default";
+      const items = bySlot.get(name);
+      if (items) items.push(child);
+      else bySlot.set(name, [child]);
+    }
+    out.push(...bySlot);
+  }
   return out;
 }
 
@@ -419,13 +440,26 @@ export interface UibEventWiring {
 }
 
 /** A short name for one handler entry. */
+/**
+ * A field of a handler's typed sub-object, e.g. `clientScript.sysId` or
+ * `operation.operationName` (the live encoding, O-5).
+ */
+const subText = (h: Obj, key: string, field: string): string | undefined => {
+  const v = h[key];
+  return isObj(v) ? text(v[field]) : undefined;
+};
+
 function handlerName(h: unknown): string | undefined {
   if (typeof h === "string") return h || undefined;
   if (!isObj(h)) return undefined;
   const def = isObj(h.definition) ? h.definition : {};
   return (
     text(def.id) ??
+    subText(h, "clientScript", "sysId") ??
+    subText(h, "event", "apiName") ??
+    subText(h, "event", "sysId") ??
     text(h.operationName) ??
+    subText(h, "operation", "operationName") ??
     text(h.name) ??
     text(h.type) ??
     text(h.targetId) ??
@@ -491,8 +525,11 @@ export function eventWiring(value: unknown): UibEventWiring[] | null {
 
 /**
  * One event handler with the fields that say what it targets (N-26, UX-03).
- * verified:false until O-5: the field names are modelled on UI Builder
- * exports (`definition`, `type`, `targetId`, `operationName`, `parameters`).
+ * The UI Builder export shape (`definition`, `type`, `targetId`,
+ * `operationName`, `parameters`) is accepted, and so is the encoding O-5
+ * found on a PDI: `{type: EVENT | CLIENT_SCRIPT | DATABROKER_OP, targetId,
+ * event: {apiName, sysId}, clientScript: {sysId}, operation: {dataBrokerId,
+ * operationName}}`, with the unused sub-objects null.
  */
 export interface UibEventHandler {
   /** The short name {@link eventWiring} reports. */
@@ -535,14 +572,20 @@ function structuredHandler(h: unknown): UibEventHandler | undefined {
   };
   const name = handlerName(h);
   const type = text(h.type) ?? text(def.type);
-  const definitionId = text(def.id);
+  const definitionId =
+    text(def.id) ??
+    subText(h, "clientScript", "sysId") ??
+    subText(h, "event", "sysId");
   const targetId =
     text(h.targetId) ??
     text(h.target) ??
     text(h.elementId) ??
     text(h.dataResourceId);
   const operation =
-    text(h.operationName) ?? text(h.operation) ?? param("operationName");
+    text(h.operationName) ??
+    text(h.operation) ??
+    subText(h, "operation", "operationName") ??
+    param("operationName");
   const property =
     text(h.propName) ??
     text(h.stateName) ??

@@ -1,4 +1,4 @@
-import { classifyProp, slotsOf } from "./uib-composition.js";
+import { classifyProp, isComposition, slotsOf } from "./uib-composition.js";
 
 /**
  * N-31 (UX-21) — a per-element diff of two UI Builder macroponent
@@ -156,6 +156,7 @@ function stable(value: unknown): string {
 /** Keys of an element that hold structure or props, not attributes. */
 const STRUCTURAL = new Set([
   "elementId",
+  "slot",
   "slots",
   "children",
   "propertyValues",
@@ -189,6 +190,7 @@ export function elementProps(el: Obj): Map<string, unknown> {
             ? v.props
             : undefined
         : undefined;
+      if (k === "composition" && isComposition(v)) continue; // children
       if (inner) {
         for (const [p, pv] of Object.entries(inner)) {
           out.set(`overrides.${k}.${p}`, pv);

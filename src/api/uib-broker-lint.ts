@@ -14,16 +14,19 @@ import type { UibRule, UibSeverity } from "./uib-script-lint.js";
  *   access (`canRead` / `canWrite` / `canCreate` / `canDelete`, a role check,
  *   or `GlideRecordSecure`);
  * - `uib-broker-no-input-schema` (info) — the broker declares no input
- *   schema (`properties` empty).
+ *   schema (`props` empty).
  *
  * Pure: no network, no I/O, never throws. The script rule parses with acorn
  * (./script-ast.ts) and falls back to a regex when the source does not parse.
  *
- * ASSUMPTION (unverified until O-5, PDI): `mutates_server_data` and
- * `properties` exist on every broker table; the REST and GraphQL broker
- * tables (`sys_ux_data_broker_rest`, `sys_ux_data_broker_graphql`) are not in
- * the SDK inventory. A field the instance did not return (`undefined`) is
- * unknown, so its rule does not fire.
+ * O-5 (a PDI) confirmed the fields on all four broker tables: the input
+ * schema is `props` (a string column on the base `sys_ux_data_broker`
+ * holding an array of `{name, label, fieldType, mandatory, ...}`, or empty),
+ * and `mutates_server_data` comes back as "true" / "false". The REST and
+ * GraphQL broker tables (`sys_ux_data_broker_rest`,
+ * `sys_ux_data_broker_graphql`) exist but are not in the SDK inventory. A
+ * field the instance did not return (`undefined`) is unknown, so its rule
+ * does not fire.
  */
 
 /** The broker rule catalogue (same shape as UIB_SCRIPT_RULES). */
@@ -41,7 +44,7 @@ export const UIB_BROKER_RULES: readonly UibRule[] = [
   {
     id: "uib-broker-no-input-schema",
     severity: "info",
-    hint: "Declare every input in the broker's `properties` (name, type, mandatory) so UI Builder can bind them and the broker can trust their shape; an empty schema is fine only for a broker that takes no input.",
+    hint: "Declare every input in the broker's `props` (name, type, mandatory) so UI Builder can bind them and the broker can trust their shape; an empty schema is fine only for a broker that takes no input.",
   },
 ];
 
@@ -64,8 +67,8 @@ export interface UibBrokerRow {
   kind: UibBrokerKind;
   /** Raw field value; undefined when not returned (unknown). */
   mutates_server_data?: unknown;
-  /** Raw `properties` JSON (or decoded); undefined when not returned. */
-  properties?: unknown;
+  /** Raw `props` JSON (or decoded); undefined when not returned. */
+  props?: unknown;
   /** Transform script; undefined when not read. */
   script?: unknown;
 }
@@ -99,7 +102,7 @@ export function brokerMutates(value: unknown): boolean | undefined {
 }
 
 /**
- * Whether `properties` declares at least one input; undefined when the field
+ * Whether `props` declares at least one input; undefined when the field
  * was not returned or does not decode.
  */
 export function hasInputSchema(value: unknown): boolean | undefined {
@@ -198,10 +201,10 @@ export function lintUibBroker(
       );
     }
   }
-  if (hasInputSchema(row.properties) === false) {
+  if (hasInputSchema(row.props) === false) {
     add(
       "uib-broker-no-input-schema",
-      "The broker declares no input schema (`properties` is empty).",
+      "The broker declares no input schema (`props` is empty).",
     );
   }
   return out;

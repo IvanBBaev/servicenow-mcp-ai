@@ -58,7 +58,7 @@
  * declared `required_translations`, with a bounded sample).
  *
  * N-29 (UX-11) resolves REST and GraphQL data brokers too
- * (sys_ux_data_broker_rest / _graphql, O-5: unverified) and adds broker
+ * (sys_ux_data_broker_rest / _graphql, confirmed on a PDI by O-5) and adds broker
  * hints: `brokerHints` lists the uib-broker-lint.ts findings of each broker
  * that has any — a mutating broker with no ux_data_broker ACL (error), a
  * transform querying with GlideRecord without an access check (warn), an
@@ -182,22 +182,25 @@ const PAGE_HINT_CAVEAT =
   "Page hints (uib-page-weight) treat a data resource with no on-demand evaluation mode as fired on page load, and read `when` conditions from data resource shapes that have not been confirmed on a live instance (gate O-5).";
 
 const BROKER_HINT_CAVEAT =
-  "Broker hints (N-29) read `mutates_server_data`, `properties` and the REST / GraphQL broker tables (sys_ux_data_broker_rest / _graphql), which have not been confirmed on a live instance (gate O-5); the GlideRecord rule is a static check of the transform script.";
+  "Broker hints (N-29) read `mutates_server_data` and the `props` input schema of the transform, scriptlet, REST and GraphQL broker tables; the GlideRecord rule is a static check of the transform script.";
 
-/** N-29: broker tables in resolution order, with the fields read (O-5). */
+/** N-29: broker tables in resolution order, with the fields read (O-5: confirmed on a PDI). */
 const UI_BROKER_READS: readonly (readonly [string, string[]])[] = [
   [
     "sys_ux_data_broker_transform",
-    ["sys_id", "name", "mutates_server_data", "properties", "script"],
+    ["sys_id", "name", "mutates_server_data", "props", "script"],
   ],
-  ["sys_ux_data_broker_scriptlet", ["sys_id", "name", "properties"]],
+  [
+    "sys_ux_data_broker_scriptlet",
+    ["sys_id", "name", "mutates_server_data", "props"],
+  ],
   [
     "sys_ux_data_broker_rest",
-    ["sys_id", "name", "mutates_server_data", "properties"],
+    ["sys_id", "name", "mutates_server_data", "props"],
   ],
   [
     "sys_ux_data_broker_graphql",
-    ["sys_id", "name", "mutates_server_data", "properties"],
+    ["sys_id", "name", "mutates_server_data", "props"],
   ],
 ];
 
@@ -640,7 +643,7 @@ export async function explainUiExperience(
     }
   }
   // N-29: transform, scriptlet, then REST and GraphQL brokers (the latter
-  // only for ids still unresolved — O-5: unverified tables). `properties`
+  // only for ids still unresolved). `props`
   // and the transform `script` are read for the broker hints; the script is
   // echoed only with `scripts` depth.
   const brokerRows = new Map<string, SnRecord>();
@@ -1066,7 +1069,7 @@ function readBrokerHints(
       {
         kind,
         mutates_server_data: field(row, "mutates_server_data"),
-        properties: field(row, "properties"),
+        props: field(row, "props"),
         script: kind === "transform" ? field(row, "script") : undefined,
       },
       aclKnown ? { hasAcl: b.acls.length > 0 } : {},
