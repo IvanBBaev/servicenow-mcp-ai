@@ -482,6 +482,47 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       "DF-6: when set, http requests must send `Authorization: Bearer <token>`. **Required** whenever `SN_HTTP_HOST` is not loopback (e.g. `0.0.0.0` in the Docker image) — without it every client that reaches the port is accepted, and a warning is logged.",
   }),
+  str({
+    key: "SN_HTTP_OAUTH_ISSUER",
+    section: "transport",
+    since: NEXT,
+    example: "https://login.example.com/realms/mcp",
+    description:
+      "N-17: issuer of the OAuth 2.1 / OpenID Connect authorization server whose JWT access tokens the http transport accepts (signature checked against its JWKS; `iss`, `aud`, `exp`, `nbf` and scopes enforced). Enables RFC 9728 metadata at `/.well-known/oauth-protected-resource`. Requires `SN_HTTP_OAUTH_RESOURCE`; `SN_HTTP_TOKEN` is still accepted next to it.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_RESOURCE",
+    section: "transport",
+    since: NEXT,
+    example: "https://mcp.example.com/mcp",
+    description:
+      "N-17: this server's canonical public URI (RFC 8707 resource indicator). A token is accepted only when its `aud` names it (or an `SN_HTTP_OAUTH_AUDIENCE` value).",
+  }),
+  list({
+    key: "SN_HTTP_OAUTH_AUDIENCE",
+    section: "transport",
+    since: NEXT,
+    example: "api://servicenow-mcp",
+    description:
+      "N-17: extra `aud` values accepted besides `SN_HTTP_OAUTH_RESOURCE`, for an authorization server that issues its own audience identifiers.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_JWKS_URI",
+    section: "transport",
+    since: NEXT,
+    example:
+      "https://login.example.com/realms/mcp/protocol/openid-connect/certs",
+    description:
+      "N-17: the issuer's JWKS URI. Unset = discovered from the issuer's OpenID Connect or RFC 8414 metadata.",
+  }),
+  list({
+    key: "SN_HTTP_OAUTH_SCOPES",
+    section: "transport",
+    since: NEXT,
+    example: "servicenow.mcp",
+    description:
+      "N-17: scopes every request's token must carry; published as `scopes_supported` and in the `WWW-Authenticate` challenge. A token without them gets 403 `insufficient_scope`.",
+  }),
   bool({
     key: "SN_HTTP_REQUIRE_TOKEN",
     section: "transport",

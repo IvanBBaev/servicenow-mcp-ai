@@ -4,13 +4,12 @@ import {
   type Server,
   type ServerResponse,
 } from "node:http";
-import { timingSafeEqual } from "node:crypto";
 import {
   serveStdio,
   StdioServerTransport,
   type StdioServerHandle,
 } from "@modelcontextprotocol/server/stdio";
-import type { McpServer } from "@modelcontextprotocol/server";
+import type { AuthInfo, McpServer } from "@modelcontextprotocol/server";
 import {
   getTransport,
   getHttpPort,
@@ -23,6 +22,7 @@ import {
   getHttpAllowedHosts,
   getHttpAllowedOrigins,
   httpRequireToken,
+  getHttpOAuth,
 } from "../core/settings.js";
 import { logger, setLogSink } from "../core/logging.js";
 import { currentRuntime } from "../core/runtime.js";
@@ -35,6 +35,11 @@ import {
   type ServerFactory,
 } from "./http-sessions.js";
 import { ModernHttpHandler } from "./http-modern.js";
+import {
+  OAuthResourceServer,
+  staticBearerMatches,
+  type AuthOutcome,
+} from "./http-auth.js";
 import { guardListenWire } from "./listen.js";
 import { testConnection, type ConnectionProbe } from "../api/diagnostics.js";
 
@@ -46,10 +51,30 @@ export function httpAuthorized(
   authHeader: string | undefined,
   token: string,
 ): boolean {
-  const expected = `Bearer ${token}`;
-  const got = authHeader ?? "";
-  if (got.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+  return staticBearerMatches(authHeader, token);
+}
+
+/**
+ * N-17: authorize one request. The static `SN_HTTP_TOKEN` matches first;
+ * otherwise an OAuth resource server, when configured, validates the token.
+ * With neither configured every request passes.
+ */
+async function authorize(
+  header: string | undefined,
+  token: string | undefined,
+  oauth: OAuthResourceServer | null,
+): Promise<AuthOutcome> {
+  if (token && staticBearerMatches(header, token)) return { ok: true };
+  if (oauth) return oauth.authenticate(header);
+  if (token) {
+    return {
+      ok: false,
+      status: 401,
+      challenge: "Bearer",
+      message: "Unauthorized",
+    };
+  }
+  return { ok: true };
 }
 
 /**
@@ -284,8 +309,10 @@ async function startHttp(
   const port = getHttpPort();
   const host = getHttpHost();
   const token = getHttpToken();
+  const oauthSettings = getHttpOAuth();
+  const oauth = oauthSettings ? new OAuthResourceServer(oauthSettings) : null;
   const loopback = isLoopbackHost(host);
-  if (!token && !loopback) {
+  if (!token && !oauth && !loopback) {
     // D-5 / H-7 (B6): a container binds 0.0.0.0 — without a token anyone who
     // can reach the port drives the instance with the configured credentials.
     if (httpRequireToken()) {
@@ -359,6 +386,18 @@ async function startHttp(
       jsonRpcError(res, 403, -32000, "Forbidden: Host not allowed");
       return;
     }
+    // N-17 (RFC 9728): the metadata is public — a client reads it before it
+    // has a token, possibly from a browser.
+    if (oauth && req.method === "GET" && oauth.metadataPaths().includes(path)) {
+      res
+        .writeHead(200, {
+          "Content-Type": "application/json",
+          "Cache-Control": "max-age=3600",
+          "Access-Control-Allow-Origin": "*",
+        })
+        .end(JSON.stringify(oauth.metadata()));
+      return;
+    }
     if (!originAllowed(req.headers.origin)) {
       jsonRpcError(res, 403, -32000, "Forbidden: Origin not allowed");
       return;
@@ -367,10 +406,19 @@ async function startHttp(
       jsonRpcError(res, 503, -32000, "Server is shutting down");
       return;
     }
-    if (token && !httpAuthorized(req.headers.authorization, token)) {
-      res.writeHead(401, { "WWW-Authenticate": "Bearer" }).end("Unauthorized");
+    const auth = await authorize(req.headers.authorization, token, oauth);
+    if (!auth.ok) {
+      res
+        .writeHead(auth.status, {
+          ...(auth.challenge ? { "WWW-Authenticate": auth.challenge } : {}),
+          "Cache-Control": "no-store",
+        })
+        .end(auth.message);
       return;
     }
+    // The SDK hands `req.auth` to the request context as `authInfo`.
+    if (auth.auth)
+      (req as IncomingMessage & { auth?: AuthInfo }).auth = auth.auth;
     if (serveMetrics && isMetricsRequest(req.method, req.url)) {
       let body: string;
       try {
@@ -444,7 +492,8 @@ async function startHttp(
   logger.info("HTTP transport listening", {
     host,
     port,
-    authenticated: Boolean(token),
+    authenticated: Boolean(token || oauth),
+    ...(oauth ? { oauthResource: oauth.resource } : {}),
     sessionTtlSec: getHttpSessionTtlSec(),
     maxSessions: getHttpMaxSessions(),
   });

@@ -422,6 +422,13 @@ docker run --rm -p 127.0.0.1:3000:3000 \
   so the published port works; without a token every client that reaches the port
   drives your instance with the configured credentials (the server logs a warning).
   Clients send `Authorization: Bearer <token>`; terminate TLS in front of the container.
+- **OAuth instead of a shared token (N-17):** set `SN_HTTP_OAUTH_ISSUER` (your OIDC
+  provider) and `SN_HTTP_OAUTH_RESOURCE` (this server's public URL, e.g.
+  `https://mcp.example.com/mcp`). Clients discover the issuer from
+  `/.well-known/oauth-protected-resource` and send its JWT access tokens; the token must
+  name the resource as its audience. Optional: `SN_HTTP_OAUTH_SCOPES`,
+  `SN_HTTP_OAUTH_AUDIENCE`, `SN_HTTP_OAUTH_JWKS_URI`. The instance is still called with
+  the configured service account.
 - `/data` holds the docs directory (`SN_DOCS_DIR=/data/docs`) and the env file
   (`SN_ENV_FILE=/data/.env`); mount a volume there to keep them.
 - Every `<KEY>_FILE` secret source is described in [Secrets from files](#secrets-from-files).
@@ -801,6 +808,11 @@ stdio (default, one local client) or Streamable HTTP for remote and agent client
 | `SN_PORT` | no | `3000` | 2.0.0 | DF-6: TCP port for the http transport. |
 | `SN_HTTP_HOST` | no | `127.0.0.1` | 2.0.0 | DF-6: bind address for the http transport (loopback by default). |
 | `SN_HTTP_TOKEN` | no | — | 2.0.0 | DF-6: when set, http requests must send `Authorization: Bearer <token>`. **Required** whenever `SN_HTTP_HOST` is not loopback (e.g. `0.0.0.0` in the Docker image) — without it every client that reaches the port is accepted, and a warning is logged. |
+| `SN_HTTP_OAUTH_ISSUER` | no | — | next | N-17: issuer of the OAuth 2.1 / OpenID Connect authorization server whose JWT access tokens the http transport accepts (signature checked against its JWKS; `iss`, `aud`, `exp`, `nbf` and scopes enforced). Enables RFC 9728 metadata at `/.well-known/oauth-protected-resource`. Requires `SN_HTTP_OAUTH_RESOURCE`; `SN_HTTP_TOKEN` is still accepted next to it. |
+| `SN_HTTP_OAUTH_RESOURCE` | no | — | next | N-17: this server's canonical public URI (RFC 8707 resource indicator). A token is accepted only when its `aud` names it (or an `SN_HTTP_OAUTH_AUDIENCE` value). |
+| `SN_HTTP_OAUTH_AUDIENCE` | no | — | next | N-17: extra `aud` values accepted besides `SN_HTTP_OAUTH_RESOURCE`, for an authorization server that issues its own audience identifiers. |
+| `SN_HTTP_OAUTH_JWKS_URI` | no | — | next | N-17: the issuer's JWKS URI. Unset = discovered from the issuer's OpenID Connect or RFC 8414 metadata. |
+| `SN_HTTP_OAUTH_SCOPES` | no | — | next | N-17: scopes every request's token must carry; published as `scopes_supported` and in the `WWW-Authenticate` challenge. A token without them gets 403 `insufficient_scope`. |
 | `SN_HTTP_REQUIRE_TOKEN` | no | off | next | H-7: refuse to start the http transport on a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN` (instead of logging a warning). |
 | `SN_HTTP_SESSION_TTL_SEC` | no | `1800` | next | H-7: idle TTL of an http session in seconds; an idle session is closed and its runtime disposed. `0` keeps sessions until the client sends DELETE. |
 | `SN_HTTP_MAX_SESSIONS` | no | `64` | next | H-7: cap on concurrent http sessions; a new session beyond it is refused with 503. |

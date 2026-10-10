@@ -169,6 +169,12 @@ export interface SessionScope {
    * by it on the process runtime.
    */
   principal?: string;
+  /**
+   * N-17: the `sub` of the OAuth access token the request was authorized
+   * with (HTTP transport with SN_HTTP_OAUTH_ISSUER only). A 2025 session is
+   * bound to the subject that initialized it.
+   */
+  subject?: string;
 }
 
 const sessionAls = new AsyncLocalStorage<SessionScope>();

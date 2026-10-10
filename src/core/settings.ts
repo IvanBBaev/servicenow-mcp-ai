@@ -365,6 +365,38 @@ export function getHttpToken(): string | undefined {
   return readString("SN_HTTP_TOKEN");
 }
 
+/**
+ * N-17 — the HTTP transport as an OAuth 2.1 resource server. Set when
+ * `SN_HTTP_OAUTH_ISSUER` names the authorization server; `SN_HTTP_OAUTH_RESOURCE`
+ * (this server's canonical URI) is then required. Unset = static bearer only.
+ */
+export interface HttpOAuthSettings {
+  issuer: string;
+  resource: string;
+  audiences: string[];
+  jwksUri?: string;
+  scopes: string[];
+}
+
+export function getHttpOAuth(): HttpOAuthSettings | undefined {
+  const issuer = readString("SN_HTTP_OAUTH_ISSUER");
+  if (!issuer) return undefined;
+  const resource = readString("SN_HTTP_OAUTH_RESOURCE");
+  if (!resource) {
+    throw new Error(
+      "SN_HTTP_OAUTH_ISSUER is set but SN_HTTP_OAUTH_RESOURCE is not — set it to this server's public URI (the token audience)",
+    );
+  }
+  const jwksUri = readString("SN_HTTP_OAUTH_JWKS_URI");
+  return {
+    issuer,
+    resource,
+    audiences: parseNameList(process.env.SN_HTTP_OAUTH_AUDIENCE),
+    ...(jwksUri ? { jwksUri } : {}),
+    scopes: parseNameList(process.env.SN_HTTP_OAUTH_SCOPES),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // H-7 — HTTP transport v2 (sessions, DNS-rebinding protection, keep-alive)
 // ---------------------------------------------------------------------------

@@ -157,7 +157,15 @@ export class ModernHttpHandler {
     if (scope) {
       scope.server = server;
       scope.logSink = createLogBridge(server.server);
-      scope.principal = `modern:${ctx.authInfo?.clientId ?? ""}`;
+      // N-17: an OAuth caller is keyed by its subject, so one user's plan
+      // token cannot be redeemed by another user of the same client.
+      const subject = ctx.authInfo?.extra?.subject;
+      if (typeof subject === "string") {
+        scope.subject = subject;
+        scope.principal = `modern:sub:${subject}`;
+      } else {
+        scope.principal = `modern:${ctx.authInfo?.clientId ?? ""}`;
+      }
     }
     // The handler chains its own onclose after ours.
     const previous = server.server.onclose;
