@@ -30,16 +30,9 @@ const LEGACY_SCRIPT_TYPES = {
     table: "sys_script",
     nameField: "name",
     appliesToField: "collection",
-    // `global` marks the rules that run on every table (S-1: the table-flow
-    // diagram lists them alongside the inherited ones).
-    metaFields: [
-      "collection",
-      "global",
-      "when",
-      "order",
-      "active",
-      "condition",
-    ],
+    // O-5: sys_script has no `global` column; a rule that runs on every
+    // table has `collection=global`.
+    metaFields: ["collection", "when", "order", "active", "condition"],
     scriptFields: ["script"],
   },
   script_include: {

@@ -81,15 +81,17 @@ const REVERSE_SOURCES: readonly ReverseSource[] = (() => {
   return [...out.values()];
 })();
 
-/** Flow step tables whose `values` column holds decoded step inputs. */
-const FLOW_STEP_TABLES: readonly string[] = [
-  ...new Set(
+/** Flow step tables and the column that holds their encoded step inputs. */
+const FLOW_STEP_TABLES: readonly { table: string; field: string }[] = [
+  ...new Map(
     ARTIFACT_TYPES.filter((t) => t.table === "sys_hub_flow").flatMap((t) =>
-      t.children
-        .filter((c) => c.jsonFields?.some((j) => j.decoder === "flow-values"))
-        .map((c) => c.table),
+      t.children.flatMap((c) =>
+        (c.jsonFields ?? [])
+          .filter((j) => j.decoder === "flow-values")
+          .map((j) => [c.table, { table: c.table, field: j.field }] as const),
+      ),
     ),
-  ),
+  ).values(),
 ];
 
 const FLOW_VALUES_CAVEAT =
@@ -205,27 +207,27 @@ async function scriptUsers(
 
   graph.caveats.add(FLOW_VALUES_CAVEAT);
   const reads = await Promise.all(
-    FLOW_STEP_TABLES.map(async (table) => {
+    FLOW_STEP_TABLES.map(async ({ table, field }) => {
       try {
         const res = await queryTable({
           table,
-          query: `valuesLIKE${name}`,
-          fields: ["sys_id", "flow", "flow.name", "values"],
+          query: `${field}LIKE${name}`,
+          fields: ["sys_id", "flow", "flow.name", field],
           displayValue: "false",
           limit,
         });
-        return { table, rows: res.records };
+        return { table, field, rows: res.records };
       } catch (error) {
         graph.fail(node.id, table, error);
-        return { table, rows: [] as SnRecord[] };
+        return { table, field, rows: [] as SnRecord[] };
       }
     }),
   );
-  for (const { table, rows } of reads) {
+  for (const { table, field, rows } of reads) {
     for (const row of rows) {
       const flow = snString(row.flow);
       if (!isSysId(flow)) continue;
-      const decoded = decodeField("flow-values", snString(row.values));
+      const decoded = decodeField("flow-values", snString(row[field]));
       if (!decoded.decoded || !jsonCalls(decoded.value, name)) continue;
       const flowName = snString(row["flow.name"]);
       out.push({
@@ -237,7 +239,7 @@ async function scriptUsers(
           ...(flowName ? { name: flowName } : {}),
         },
         via: "flow_step",
-        field: "values",
+        field,
         source: table,
       });
     }

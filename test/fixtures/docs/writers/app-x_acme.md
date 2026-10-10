@@ -64,9 +64,9 @@ _None._
 
 #### `business_rule` (`sys_script`, 1)
 
-| name | active | sdkManaged | collection | global | when | order | condition |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Default step order | true | unknown | x_acme_step |  | before | 100 |  |
+| name | active | sdkManaged | collection | when | order | condition |
+| --- | --- | --- | --- | --- | --- | --- |
+| Default step order | true | unknown | x_acme_step | before | 100 |  |
 
 #### `script_include` (`sys_script_include`, 1)
 

@@ -254,7 +254,7 @@ const CASES = {
           trigger_type: "record_create",
         },
       ],
-      sys_hub_action_instance: [
+      sys_hub_action_instance_v2: [
         {
           sys_id: "4a".repeat(16),
           flow: "1a".repeat(16),
@@ -494,12 +494,15 @@ test("an invalid JSON field never fails the call", async () => {
     sys_id: "1a".repeat(16),
   });
   const values = flow.decoded.find((d) => d.field === "values");
-  assert.equal(values.source, "sys_hub_action_instance");
+  assert.equal(values.source, "sys_hub_action_instance_v2");
   assert.equal(values.decoded, false);
   assert.equal(values.decoder, "flow-values");
   assert.equal(values.via, undefined);
   assert.match(values.reason, /did not inflate: .* \d+ bytes returned raw\./);
-  assert.equal(values.raw, CASES.flow.tables.sys_hub_action_instance[0].values);
+  assert.equal(
+    values.raw,
+    CASES.flow.tables.sys_hub_action_instance_v2[0].values,
+  );
 
   const portal = await explainWith(CASES.portal.tables, {
     artifactType: "sp_page",
