@@ -486,7 +486,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26** (part 1 + batch 10). Open: `document_kind` (owner, ID-23). Stretch; after S-14 — `document_table` + the `security` kind and `document_app` (over the P-5 collector) can land on 2.x now; `document_instance` after the E-7 collector split; S-7 only for `choices` (ID-08…ID-11, ID-22…ID-25)."
+    notes: "**Done 2026-09-26** (part 1 + batch 10). `servicenow_document_table`, `servicenow_document_app` and `servicenow_document_instance` (security / catalog / integrations sections) have landed; the generators are split per kind in `src/api/doc-*.ts` (E-7, 982c7cf). Open: a generic `document_kind` tool (owner, ID-23); S-7 only for `choices` (ID-08…ID-11, ID-22…ID-25)."
   - id: "S-16"
     title: "native discovery"
     pillar: "S"
