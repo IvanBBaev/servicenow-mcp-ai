@@ -32,14 +32,14 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 172     | 140     | 52  |
+| 364   | 203     | 105     | 56  |
 
 Pending rows by step:
 
 | step       | rows | delivered by                                                                                           |
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------ |
 | `wire`     | 33   | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
-| `http`     | 36   | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
+| `http`     | 1    | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
 | `mrtr`     | 19   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 12   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
@@ -74,6 +74,11 @@ authorization.
 - `cache-03` … `cache-05` and `cache-07` stay pending: the hints are per method, so every page
   and every caller gets the same scope, but no test pages through a list or checks scope per
   caller yet.
+- The `http` rows are pinned end to end against the shipped transport by
+  `test/protocol-http-modern.test.js` (raw POSTs, real status codes and SSE frames).
+  `http-32`, `http-37`, `http-43` and `http-45` are n/a: they apply to a recognized
+  `Mcp-Param-{Name}` header, and no tool declares `x-mcp-header`. `base-14` (no connection
+  affinity) stays pending until plan tokens stop depending on the serving process.
 
 ## Owner decisions
 

@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 140,
+  "pendingCeiling": 105,
   "requirements": [
     {
       "id": "base-01",
@@ -386,8 +386,10 @@
       "text": "On HTTP, the response status MUST be `400 Bad Request`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a malformed envelope and a missing client capability are refused with 400"
+      ]
     },
     {
       "id": "base-36",
@@ -416,8 +418,10 @@
       "text": "On HTTP, the response status MUST be `400 Bad Request`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a malformed envelope and a missing client capability are refused with 400"
+      ]
     },
     {
       "id": "base-39",
@@ -683,8 +687,11 @@
       "text": "For HTTP, the response status code MUST be 400 Bad Request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/schema#headermismatcherror",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present",
+        "test/protocol-http-modern.test.js :: modern HTTP: Mcp-Method and Mcp-Name are required and must match the body"
+      ]
     },
     {
       "id": "errors-09",
@@ -692,8 +699,10 @@
       "text": "For HTTP, the response status code MUST be 400 Bad Request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/schema#missingrequiredclientcapabilityerror",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a malformed envelope and a missing client capability are refused with 400"
+      ]
     },
     {
       "id": "errors-10",
@@ -701,8 +710,10 @@
       "text": "For HTTP, the response status code MUST be 400 Bad Request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/schema#unsupportedprotocolversionerror",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present"
+      ]
     },
     {
       "id": "lifecycle-01",
@@ -929,8 +940,10 @@
       "text": "If the server accepts it, the server MUST return HTTP status code `202 Accepted` with no body.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#sending-messages",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: an accepted notification gets 202 with no body; a malformed one an HTTP error"
+      ]
     },
     {
       "id": "http-07",
@@ -938,8 +951,10 @@
       "text": "If the server cannot accept it, it MUST return an HTTP error status code (e.g., `400 Bad Request`).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#sending-messages",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: an accepted notification gets 202 with no body; a malformed one an HTTP error"
+      ]
     },
     {
       "id": "http-08",
@@ -947,8 +962,10 @@
       "text": "If the body is a JSON-RPC _request_, the server MUST return either `Content-Type: application/json` (a single JSON object) or `Content-Type: text/event-stream` (an SSE response stream).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#sending-messages",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a request is answered as JSON or as SSE that carries X-Accel-Buffering: no, only its own notifications and ends with the response"
+      ]
     },
     {
       "id": "http-09",
@@ -956,8 +973,10 @@
       "text": "These notifications MUST relate to the originating client request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#receiving-messages",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a request is answered as JSON or as SSE that carries X-Accel-Buffering: no, only its own notifications and ends with the response"
+      ]
     },
     {
       "id": "http-10",
@@ -974,8 +993,10 @@
       "text": "The final JSON-RPC _response_ SHOULD terminate the stream.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#receiving-messages",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a request is answered as JSON or as SSE that carries X-Accel-Buffering: no, only its own notifications and ends with the response"
+      ]
     },
     {
       "id": "http-12",
@@ -983,8 +1004,10 @@
       "text": "When initiating an SSE stream, servers SHOULD include the `X-Accel-Buffering: no` header in the HTTP response.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#receiving-messages",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a request is answered as JSON or as SSE that carries X-Accel-Buffering: no, only its own notifications and ends with the response"
+      ]
     },
     {
       "id": "http-13",
@@ -992,8 +1015,10 @@
       "text": "Closing the SSE response stream MUST be treated by the server as cancellation of that request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#cancellation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: closing the response stream cancels the request and stops its upstream work"
+      ]
     },
     {
       "id": "http-14",
@@ -1001,8 +1026,10 @@
       "text": "The server SHOULD stop work on the cancelled request as soon as practical and MUST NOT send any further messages for it.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#cancellation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: closing the response stream cancels the request and stops its upstream work"
+      ]
     },
     {
       "id": "http-15",
@@ -1010,8 +1037,10 @@
       "text": "The server SHOULD stop work on the cancelled request as soon as practical and MUST NOT send any further messages for it.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#cancellation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: closing the response stream cancels the request and stops its upstream work"
+      ]
     },
     {
       "id": "http-16",
@@ -1019,8 +1048,10 @@
       "text": "If the values do not match, the server MUST reject the request with `400 Bad Request` and a `HeaderMismatch` JSON-RPC error (see Server Validation).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present"
+      ]
     },
     {
       "id": "http-17",
@@ -1028,8 +1059,10 @@
       "text": "If the server does not implement the requested protocol version (whether the version is unknown to the server, or is a known version the server has chosen not to support), it MUST respond with `400 Bad Request` and an `UnsupportedProtocolVersionError` listing its supported versions.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present"
+      ]
     },
     {
       "id": "http-18",
@@ -1037,8 +1070,10 @@
       "text": "If the server does not implement the requested RPC method, it MUST respond with `404 Not Found` and a JSON-RPC error with code `-32601` (`Method not found`).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: an unknown method is 404 with -32601"
+      ]
     },
     {
       "id": "http-19",
@@ -1046,8 +1081,10 @@
       "text": "A server that does not support such clients MUST reject a request without the header per Server Validation.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#protocol-version-header",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present"
+      ]
     },
     {
       "id": "http-20",
@@ -1055,8 +1092,11 @@
       "text": "These headers are REQUIRED for compliance.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#standard-request-headers",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present",
+        "test/protocol-http-modern.test.js :: modern HTTP: Mcp-Method and Mcp-Name are required and must match the body"
+      ]
     },
     {
       "id": "http-21",
@@ -1160,8 +1200,10 @@
       "text": "These markers are case-sensitive and MUST appear exactly as shown (lowercase).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a Base64 sentinel Mcp-Name is decoded before the comparison; only the lowercase markers count"
+      ]
     },
     {
       "id": "http-30",
@@ -1169,8 +1211,10 @@
       "text": "Servers and intermediaries that need to inspect these values MUST decode them accordingly.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a Base64 sentinel Mcp-Name is decoded before the comparison; only the lowercase markers count"
+      ]
     },
     {
       "id": "http-31",
@@ -1178,8 +1222,10 @@
       "text": "In particular, servers MUST decode an encoded `Mcp-Name` or `Mcp-Param-{Name}` value before comparing it to the corresponding request body value during Server Validation.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#value-encoding",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a Base64 sentinel Mcp-Name is decoded before the comparison; only the lowercase markers count"
+      ]
     },
     {
       "id": "http-32",
@@ -1187,8 +1233,8 @@
       "text": "Servers MUST reject requests with a recognized `Mcp-Param-{Name}` header that contains invalid characters (see Value Encoding).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-behavior-for-custom-headers",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "n/a",
+      "reason": "Applies only to a recognized Mcp-Param-{Name} header, and no tool declares x-mcp-header, so the server recognizes none (pinned by the protocol-http-modern x-mcp-header test)."
     },
     {
       "id": "http-33",
@@ -1196,8 +1242,11 @@
       "text": "Any server that processes the message body MUST validate that encoded header values, after decoding if Base64-encoded, match the corresponding values in the request body.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-behavior-for-custom-headers",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: Mcp-Method and Mcp-Name are required and must match the body",
+        "test/protocol-http-modern.test.js :: modern HTTP: a Base64 sentinel Mcp-Name is decoded before the comparison; only the lowercase markers count"
+      ]
     },
     {
       "id": "http-34",
@@ -1205,8 +1254,10 @@
       "text": "Servers MUST reject requests with a `400 Bad Request` HTTP status and JSON-RPC error code `-32020` (`HeaderMismatch`) if any validation fails.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-behavior-for-custom-headers",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: Mcp-Method and Mcp-Name are required and must match the body"
+      ]
     },
     {
       "id": "http-35",
@@ -1214,8 +1265,10 @@
       "text": "Clients and servers MUST use case-insensitive comparisons for header names.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#case-sensitivity",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: header names compare case-insensitively, header values case-sensitively"
+      ]
     },
     {
       "id": "http-36",
@@ -1223,8 +1276,10 @@
       "text": "Servers that process the request body MUST reject requests where the values specified in the headers do not match the corresponding values in the request body.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: Mcp-Method and Mcp-Name are required and must match the body"
+      ]
     },
     {
       "id": "http-37",
@@ -1232,8 +1287,8 @@
       "text": "When validating integer parameter values, servers SHOULD compare the header value and the body value numerically rather than as strings (e.g., `42.0` and `42` are considered equal).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "n/a",
+      "reason": "Applies only to a recognized Mcp-Param-{Name} header, and no tool declares x-mcp-header, so the server recognizes none (pinned by the protocol-http-modern x-mcp-header test)."
     },
     {
       "id": "http-38",
@@ -1241,8 +1296,11 @@
       "text": "When rejecting a request due to header validation failure, servers MUST return HTTP status `400 Bad Request` and MUST include a JSON-RPC error response using the following error code:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: Mcp-Method and Mcp-Name are required and must match the body",
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present"
+      ]
     },
     {
       "id": "http-39",
@@ -1250,8 +1308,10 @@
       "text": "For headers that permit the Base64 sentinel encoding (`Mcp-Name` and `Mcp-Param-{Name}`), servers MUST decode encoded values (see Value Encoding) before comparing them to the body value.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-validation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: a Base64 sentinel Mcp-Name is decoded before the comparison; only the lowercase markers count"
+      ]
     },
     {
       "id": "http-40",
@@ -1286,8 +1346,8 @@
       "text": "Server MUST validate header matches body",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-behavior-for-custom-headers",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "n/a",
+      "reason": "Applies only to a recognized Mcp-Param-{Name} header, and no tool declares x-mcp-header, so the server recognizes none (pinned by the protocol-http-modern x-mcp-header test)."
     },
     {
       "id": "http-44",
@@ -1295,8 +1355,10 @@
       "text": "Server MUST NOT expect the header",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-behavior-for-custom-headers",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: no tool declares x-mcp-header, so no Mcp-Param header is expected and an unknown one is ignored"
+      ]
     },
     {
       "id": "http-45",
@@ -1304,8 +1366,8 @@
       "text": "Server MUST reject the request",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#server-behavior-for-custom-headers",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "n/a",
+      "reason": "Applies only to a recognized Mcp-Param-{Name} header, and no tool declares x-mcp-header, so the server recognizes none (pinned by the protocol-http-modern x-mcp-header test)."
     },
     {
       "id": "http-46",
@@ -1313,8 +1375,10 @@
       "text": "For the HTTP transport, this value MUST match the MCP-Protocol-Version header; otherwise the server MUST return a 400 Bad Request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/schema#requestmetaobject",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: MCP-Protocol-Version must match the envelope, name a supported version and be present"
+      ]
     },
     {
       "id": "auth-01",
@@ -1709,8 +1773,10 @@
       "text": "The server MUST treat a client disconnect as cancellation of that request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation#transport-specific-cancellation",
       "applies": "http",
-      "status": "pending",
-      "step": "http"
+      "status": "covered",
+      "tests": [
+        "test/protocol-http-modern.test.js :: modern HTTP: closing the response stream cancels the request and stops its upstream work"
+      ]
     },
     {
       "id": "cancel-04",
