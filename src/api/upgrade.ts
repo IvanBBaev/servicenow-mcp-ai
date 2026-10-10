@@ -12,11 +12,11 @@ import { isSysId } from "../core/sys-id.js";
  * of one upgrade, and for one skipped record the base-system version against
  * the customer version.
  *
- * - history: sys_upgrade_history rows (from / to version, dates, state),
- *   newest first;
+ * - history: sys_upgrade_history rows (from / to version, dates, state —
+ *   the summary_complete_status column), newest first;
  * - skipped: the sys_upgrade_history_log rows of one upgrade whose
  *   disposition is a skip and that are not resolved, grouped by application
- *   and artefact type (the registry, by the table in the update name);
+ *   (the plugin column, else application_category) and artefact type (the registry, by the table in the update name);
  * - record: the sys_update_version rows of one skipped update name. The
  *   versions an upgrade wrote are the base versions; the newest is the new
  *   base, the one before it the old base. The customer version is the
@@ -192,7 +192,8 @@ export async function readUpgradeHistory({
         "to_version",
         "upgrade_started",
         "upgrade_finished",
-        "state",
+        // O-5 (PDI): sys_upgrade_history has no `state` column.
+        "summary_complete_status",
       ],
       displayValue: "false",
       limit,
@@ -205,7 +206,7 @@ export async function readUpgradeHistory({
         toVersion: snString(r.to_version),
         started: snString(r.upgrade_started),
         finished: snString(r.upgrade_finished),
-        state: snString(r.state),
+        state: snString(r.summary_complete_status),
       })),
       truncated: truncated === true || records.length >= limit,
     };
@@ -261,7 +262,9 @@ export async function readSkipped(
         "sys_id",
         "file_name",
         "target_name",
-        "application",
+        // O-5 (PDI): sys_upgrade_history_log has no `application` column.
+        "plugin",
+        "application_category",
         "disposition",
         "resolution_status",
       ],
@@ -284,7 +287,7 @@ export async function readSkipped(
         table,
         ...(artifactType ? { artifactType } : {}),
         name: snString(r.target_name),
-        application: snString(r.application),
+        application: snString(r.plugin) || snString(r.application_category),
         disposition,
         resolution,
       });
