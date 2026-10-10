@@ -365,11 +365,18 @@ export async function describeTableDetails(
 }
 
 /**
- * N-15 — sys_index table and fields. Unverified until O-5 (PDI): the reader
- * tolerates a missing field and turns an unreadable table into a warning.
+ * N-15 — sys_index table and fields, checked against the dictionary on a PDI
+ * (O-5): there is no `name` column and the columns are `col_name_string`.
+ * The reader tolerates a missing field and turns an unreadable table into a
+ * warning (a PDI admin gets a 403 on it over REST).
  */
 const INDEX_TABLE = "sys_index";
-const INDEX_FIELDS = ["name", "logical_table_name", "col_name", "unique_index"];
+const INDEX_FIELDS = [
+  "sys_id",
+  "logical_table_name",
+  "col_name_string",
+  "unique_index",
+];
 
 /**
  * N-15 — the indexes of a table's chain (a parent's index serves an extended
@@ -399,7 +406,7 @@ export async function describeTableIndexes(table: string): Promise<{
       () =>
         queryTable({
           table: INDEX_TABLE,
-          query: `logical_table_nameIN${chain.join(",")}^ORDERBYname`,
+          query: `logical_table_nameIN${chain.join(",")}^ORDERBYlogical_table_name`,
           fields: INDEX_FIELDS,
           displayValue: "false",
           fetchAll: true,
@@ -408,15 +415,19 @@ export async function describeTableIndexes(table: string): Promise<{
     if (truncated)
       warnings.push(`${INDEX_TABLE}: hit the SN_MAX_RECORDS cap — partial.`);
     indexes = records
-      .map((r) => ({
-        name: snString(r.name),
-        table: snString(r.logical_table_name),
-        fields: snString(r.col_name)
+      .map((r) => {
+        const table = snString(r.logical_table_name);
+        const fields = snString(r.col_name_string)
           .split(",")
           .map((f) => f.trim())
-          .filter(Boolean),
-        unique: snString(r.unique_index) === "true",
-      }))
+          .filter(Boolean);
+        return {
+          name: `${table}(${fields.join(",")})`,
+          table,
+          fields,
+          unique: snString(r.unique_index) === "true",
+        };
+      })
       .filter((ix) => ix.fields.length > 0);
   } catch (e) {
     unavailable(INDEX_TABLE, e);

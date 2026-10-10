@@ -55,7 +55,6 @@ export async function getImportSetRow(
 const RUN_FIELDS = [
   "sys_id",
   "state",
-  "completion_code",
   "total",
   "inserts",
   "updates",

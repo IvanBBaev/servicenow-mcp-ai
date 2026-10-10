@@ -339,22 +339,23 @@ function indexHandler({ failIndex = false, failStats = false } = {}) {
     const q = u.searchParams.get("sysparm_query") ?? "";
     if (u.pathname.includes("/table/sys_index")) {
       if (failIndex) return jsonResponse(403, { error: { message: "no" } });
-      assert.match(q, /^logical_table_nameINu_det,u_base\^ORDERBYname/);
+      assert.match(
+        q,
+        /^logical_table_nameINu_det,u_base\^ORDERBYlogical_table_name/,
+      );
       return jsonResponse(200, {
         result: [
           {
-            name: "u_base_number",
             logical_table_name: "u_base",
-            col_name: "number",
+            col_name_string: "number",
             unique_index: "true",
           },
           {
-            name: "u_det_state_opened",
             logical_table_name: "u_det",
-            col_name: "state, opened_at",
+            col_name_string: "state, opened_at",
             unique_index: "false",
           },
-          { name: "empty", logical_table_name: "u_det", col_name: "" },
+          { logical_table_name: "u_det", col_name_string: "" },
         ],
       });
     }
@@ -375,13 +376,13 @@ test("describeTableIndexes reads the chain's indexes and a row estimate (N-15)",
       assert.equal(r.rowEstimate, 12345);
       assert.deepEqual(r.indexes, [
         {
-          name: "u_base_number",
+          name: "u_base(number)",
           table: "u_base",
           fields: ["number"],
           unique: true,
         },
         {
-          name: "u_det_state_opened",
+          name: "u_det(state,opened_at)",
           table: "u_det",
           fields: ["state", "opened_at"],
           unique: false,
@@ -422,7 +423,7 @@ test("describe_table details:true carries indexes and rowEstimate (N-15)", async
       assert.equal(body.rowEstimate, 12345);
       assert.deepEqual(
         body.indexes.map((i) => i.name),
-        ["u_base_number", "u_det_state_opened"],
+        ["u_base(number)", "u_det(state,opened_at)"],
       );
       assert.deepEqual(body.warnings, []);
       assert.equal(res.structuredContent.rowEstimate, 12345);
@@ -453,7 +454,7 @@ test("query_table explain:true explains the query against the indexes without re
       assert.deepEqual(
         explain.conditions.map((c) => [c.field, c.indexed, c.index]),
         [
-          ["number", true, "u_base_number"],
+          ["number", true, "u_base(number)"],
           ["short_description", false, undefined],
         ],
       );
