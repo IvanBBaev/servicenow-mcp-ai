@@ -32,7 +32,7 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 251     | 57      | 56  |
+| 364   | 253     | 55      | 56  |
 
 Pending rows by step:
 
@@ -40,7 +40,7 @@ Pending rows by step:
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------ |
 | `wire`     | 0    | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
 | `http`     | 0    | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
-| `mrtr`     | 9    | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
+| `mrtr`     | 7    | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 12   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
 | `cache`    | 0    | N-38: `ttlMs` / `cacheScope`                                                                           |
@@ -88,8 +88,8 @@ authorization.
   the token outlives its request's runtime and is bound to the principal rather than to a connection.
 - The `mrtr` rows are pinned by `test/protocol-mrtr-modern.test.js`. `mrtr-14` (an unparseable
   answer) follows the SDK: a malformed entry is dropped and asked again, never applied, and a
-  non-object `inputResponses` is not a JSON-RPC error. `cancel-04` / `cancel-05` stay pending:
-  the server has no request timeout to test against. `mrtr-26`, `mrtr-27`, `mrtr-28`, `mrtr-35`,
+  non-object `inputResponses` is not a JSON-RPC error. `cancel-04` / `cancel-05` are pinned by
+  the explicit 60 s cap on a sent elicitation, which progress never extends. `mrtr-26`, `mrtr-27`, `mrtr-28`, `mrtr-35`,
   `mrtr-40` and `mrtr-41` (state storage and identity) stay pending.
 
 ## Owner decisions

@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 57,
+  "pendingCeiling": 55,
   "requirements": [
     {
       "id": "base-01",
@@ -1860,8 +1860,10 @@
       "text": "Implementations SHOULD establish timeouts for all sent requests, to prevent hung connections and resource exhaustion.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation#timeouts",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-request-timeouts.test.js :: cancel-04 / cancel-05: a sent request times out on a hard cap that progress never extends"
+      ]
     },
     {
       "id": "cancel-05",
@@ -1869,8 +1871,10 @@
       "text": "However, implementations SHOULD always enforce a maximum timeout, regardless of progress notifications, to limit the impact of a misbehaving client or server.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation#timeouts",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/protocol-request-timeouts.test.js :: cancel-04 / cancel-05: a sent request times out on a hard cap that progress never extends"
+      ]
     },
     {
       "id": "cancel-06",
