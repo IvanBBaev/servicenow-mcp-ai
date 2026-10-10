@@ -1,0 +1,41 @@
+name: Live smoke
+
+# E-6 / O-2: read-only smoke of the PDI scenarios (test/fixtures/pdi/pdi.js)
+# against a real instance. Credentials come from the SN_INSTANCE / SN_USER /
+# SN_PASSWORD repository secrets; with none configured the run is a no-op.
+# Never part of `npm run check` — PDIs hibernate, so a red run here is a
+# signal to look, not a release gate.
+on:
+  schedule:
+    - cron: "41 5 * * 2" # Tuesdays 05:41 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SN_INSTANCE: ${{ secrets.SN_INSTANCE }}
+      SN_USER: ${{ secrets.SN_USER }}
+      SN_PASSWORD: ${{ secrets.SN_PASSWORD }}
+    steps:
+      - if: env.SN_INSTANCE == ''
+        run: echo "::notice::SN_INSTANCE secret is not set; live smoke skipped."
+      - if: env.SN_INSTANCE != ''
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - if: env.SN_INSTANCE != ''
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.SN_INSTANCE != ''
+        run: npm ci
+      - if: env.SN_INSTANCE != ''
+        run: npm run test:live

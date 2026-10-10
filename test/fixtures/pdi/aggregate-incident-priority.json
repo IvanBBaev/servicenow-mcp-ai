@@ -1,0 +1,202 @@
+{
+  "id": "aggregate-incident-priority",
+  "tool": "servicenow_aggregate",
+  "args": {
+    "table": "incident",
+    "count": true,
+    "group_by": [
+      "priority"
+    ]
+  },
+  "exchanges": [
+    {
+      "method": "GET",
+      "path": "/api/now/stats/incident",
+      "search": "?sysparm_count=true&sysparm_group_by=priority",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json;charset=UTF-8"
+      },
+      "body": {
+        "result": [
+          {
+            "stats": {
+              "count": "25"
+            },
+            "groupby_fields": [
+              {
+                "field": "priority",
+                "value": "1"
+              }
+            ]
+          },
+          {
+            "stats": {
+              "count": "4"
+            },
+            "groupby_fields": [
+              {
+                "field": "priority",
+                "value": "2"
+              }
+            ]
+          },
+          {
+            "stats": {
+              "count": "6"
+            },
+            "groupby_fields": [
+              {
+                "field": "priority",
+                "value": "3"
+              }
+            ]
+          },
+          {
+            "stats": {
+              "count": "3"
+            },
+            "groupby_fields": [
+              {
+                "field": "priority",
+                "value": "4"
+              }
+            ]
+          },
+          {
+            "stats": {
+              "count": "12"
+            },
+            "groupby_fields": [
+              {
+                "field": "priority",
+                "value": "5"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "result": {
+    "isError": false,
+    "structuredContent": {
+      "result": [
+        {
+          "stats": {
+            "count": "25"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "4"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "2"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "6"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "3"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "3"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "4"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "12"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "5"
+            }
+          ]
+        }
+      ]
+    },
+    "data": {
+      "result": [
+        {
+          "stats": {
+            "count": "25"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "1"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "4"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "2"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "6"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "3"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "3"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "4"
+            }
+          ]
+        },
+        {
+          "stats": {
+            "count": "12"
+          },
+          "groupby_fields": [
+            {
+              "field": "priority",
+              "value": "5"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

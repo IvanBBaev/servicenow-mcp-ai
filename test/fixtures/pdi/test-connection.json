@@ -1,0 +1,38 @@
+{
+  "id": "test-connection",
+  "tool": "servicenow_test_connection",
+  "args": {},
+  "exchanges": [
+    {
+      "method": "GET",
+      "path": "/api/now/table/sys_user",
+      "search": "?sysparm_limit=1&sysparm_fields=sys_id",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json;charset=UTF-8",
+        "x-total-count": "692",
+        "link": "<https://pdi.example.service-now.com/api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id&sysparm_offset=0>;rel=\"first\",<https://pdi.example.service-now.com/api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id&sysparm_offset=-1>;rel=\"prev\",<https://pdi.example.service-now.com/api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id&sysparm_offset=1>;rel=\"next\",<https://pdi.example.service-now.com/api/now/table/sys_user?sysparm_limit=1&sysparm_fields=sys_id&sysparm_offset=691>;rel=\"last\""
+      },
+      "body": {
+        "result": [
+          {
+            "sys_id": "0075af5e1b9d0b1042932170604bcb02"
+          }
+        ]
+      }
+    }
+  ],
+  "result": {
+    "isError": false,
+    "structuredContent": {
+      "ok": true,
+      "status": 200,
+      "user": "user1@example.com"
+    },
+    "data": {
+      "ok": true,
+      "status": 200,
+      "user": "user1@example.com"
+    }
+  }
+}

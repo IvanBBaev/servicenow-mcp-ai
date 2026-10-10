@@ -1,0 +1,150 @@
+{
+  "id": "list-tables-incident",
+  "tool": "servicenow_list_tables",
+  "args": {
+    "filter": "incident"
+  },
+  "exchanges": [
+    {
+      "method": "GET",
+      "path": "/api/now/table/sys_db_object",
+      "search": "?sysparm_query=nameLIKEincident%5EORlabelLIKEincident%5EORDERBYname&sysparm_fields=name%2Clabel%2Csuper_class.name&sysparm_limit=1000&sysparm_display_value=false&sysparm_exclude_reference_link=true",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json;charset=UTF-8",
+        "x-total-count": "8"
+      },
+      "body": {
+        "result": [
+          {
+            "name": "incident",
+            "super_class.name": "task",
+            "label": "Incident"
+          },
+          {
+            "name": "incident_alert",
+            "super_class.name": "comm_plan",
+            "label": "Incident Communication Plan"
+          },
+          {
+            "name": "incident_alert_task",
+            "super_class.name": "comm_task",
+            "label": "Incident Communication Task"
+          },
+          {
+            "name": "incident_fact_table",
+            "super_class.name": "",
+            "label": "Incident Fact Table"
+          },
+          {
+            "name": "incident_task",
+            "super_class.name": "task",
+            "label": "Incident Task"
+          },
+          {
+            "name": "major_incident_trigger_rule",
+            "super_class.name": "sys_metadata",
+            "label": "Major Incident Trigger Rule"
+          },
+          {
+            "name": "sn_sow_inc_post_incident_review",
+            "super_class.name": "",
+            "label": "Post Incident Review"
+          },
+          {
+            "name": "sn_sow_mim_usage",
+            "super_class.name": "",
+            "label": "Major Incident Management usage"
+          }
+        ]
+      }
+    }
+  ],
+  "result": {
+    "isError": false,
+    "structuredContent": {
+      "count": 8,
+      "tables": [
+        {
+          "name": "incident",
+          "label": "Incident",
+          "superClass": "task"
+        },
+        {
+          "name": "incident_alert",
+          "label": "Incident Communication Plan",
+          "superClass": "comm_plan"
+        },
+        {
+          "name": "incident_alert_task",
+          "label": "Incident Communication Task",
+          "superClass": "comm_task"
+        },
+        {
+          "name": "incident_fact_table",
+          "label": "Incident Fact Table"
+        },
+        {
+          "name": "incident_task",
+          "label": "Incident Task",
+          "superClass": "task"
+        },
+        {
+          "name": "major_incident_trigger_rule",
+          "label": "Major Incident Trigger Rule",
+          "superClass": "sys_metadata"
+        },
+        {
+          "name": "sn_sow_inc_post_incident_review",
+          "label": "Post Incident Review"
+        },
+        {
+          "name": "sn_sow_mim_usage",
+          "label": "Major Incident Management usage"
+        }
+      ]
+    },
+    "data": {
+      "count": 8,
+      "tables": [
+        {
+          "name": "incident",
+          "label": "Incident",
+          "superClass": "task"
+        },
+        {
+          "name": "incident_alert",
+          "label": "Incident Communication Plan",
+          "superClass": "comm_plan"
+        },
+        {
+          "name": "incident_alert_task",
+          "label": "Incident Communication Task",
+          "superClass": "comm_task"
+        },
+        {
+          "name": "incident_fact_table",
+          "label": "Incident Fact Table"
+        },
+        {
+          "name": "incident_task",
+          "label": "Incident Task",
+          "superClass": "task"
+        },
+        {
+          "name": "major_incident_trigger_rule",
+          "label": "Major Incident Trigger Rule",
+          "superClass": "sys_metadata"
+        },
+        {
+          "name": "sn_sow_inc_post_incident_review",
+          "label": "Post Incident Review"
+        },
+        {
+          "name": "sn_sow_mim_usage",
+          "label": "Major Incident Management usage"
+        }
+      ]
+    }
+  }
+}

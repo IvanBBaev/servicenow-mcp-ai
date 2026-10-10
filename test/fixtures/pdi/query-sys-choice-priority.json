@@ -1,0 +1,42 @@
+{
+  "id": "query-sys-choice-priority",
+  "tool": "servicenow_query_table",
+  "args": {
+    "table": "sys_choice",
+    "query": "name=incident^element=priority^language=en^inactive=false^ORDERBYsequence",
+    "fields": [
+      "label",
+      "value",
+      "sequence"
+    ],
+    "limit": 10
+  },
+  "exchanges": [
+    {
+      "method": "GET",
+      "path": "/api/now/table/sys_choice",
+      "search": "?sysparm_query=name%3Dincident%5Eelement%3Dpriority%5Elanguage%3Den%5Einactive%3Dfalse%5EORDERBYsequence&sysparm_fields=label%2Cvalue%2Csequence&sysparm_limit=10&sysparm_display_value=false&sysparm_exclude_reference_link=true",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json;charset=UTF-8",
+        "x-total-count": "0"
+      },
+      "body": {
+        "result": []
+      }
+    }
+  ],
+  "result": {
+    "isError": false,
+    "structuredContent": {
+      "count": 0,
+      "total": 0,
+      "records": []
+    },
+    "data": {
+      "count": 0,
+      "total": 0,
+      "records": []
+    }
+  }
+}
