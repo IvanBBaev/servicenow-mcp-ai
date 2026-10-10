@@ -222,7 +222,7 @@ test("child resolution: unnamed tables, value links, the parent chain", async ()
       artifactType: "state_model",
       ...base,
       children: [
-        { table: "sttrm_state", fields: { label: "New" } },
+        { table: "sttrm_state", fields: { state_label: "New" } },
         { table: "sttrm_transition_condition", fields: {}, parent: 0 },
       ],
     },
@@ -232,7 +232,9 @@ test("child resolution: unnamed tables, value links, the parent chain", async ()
     {
       artifactType: "state_model",
       ...base,
-      children: [{ table: "sttrm_state", fields: { label: "New" }, parent: 0 }],
+      children: [
+        { table: "sttrm_state", fields: { state_label: "New" }, parent: 0 },
+      ],
     },
     (err) => {
       assert.equal(err.code, "CHILD_PARENT_INVALID");

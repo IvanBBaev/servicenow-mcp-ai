@@ -90,10 +90,16 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     sdkSince: "4.10",
     table: "sttrm_model",
     children: [
-      { table: "sttrm_state", parentField: "model", nameField: "label" },
+      {
+        table: "sttrm_state",
+        parentField: "sttrm_model",
+        nameField: "state_label",
+      },
+      // A transition has no model column: it hangs off its `from_state`.
       {
         table: "sttrm_state_transition",
-        parentField: "model",
+        parentField: "from_state",
+        parentTable: "sttrm_state",
         nameField: "name",
         refFields: [
           { field: "from_state", table: "sttrm_state" },
@@ -102,7 +108,7 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
       },
       {
         table: "sttrm_transition_condition",
-        parentField: "transition",
+        parentField: "sttrm_state_transition",
         parentTable: "sttrm_state_transition",
       },
     ],
@@ -110,8 +116,8 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: SEED_TIERS,
     verified: false,
-    appliesToField: "table",
-    metaFields: ["table", "state_field"],
+    appliesToField: "table_name",
+    metaFields: ["table_name", "state_field"],
   },
   {
     ...BASE,
@@ -273,7 +279,8 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     sdkApi: "Record",
     sdkSince: null,
     table: "sys_security_data_filter",
-    nameField: "name",
+    // No name column: the description names the filter.
+    nameField: "description",
     activeField: "active",
     scriptFields: [],
     refFields: [
@@ -285,9 +292,9 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     ],
     tiers: SEED_TIERS,
     verified: false,
-    appliesToField: "table",
-    metaFields: ["table", "mode", "active"],
-    whenFields: ["table", "condition", "security_attribute", "mode"],
+    appliesToField: "table_name",
+    metaFields: ["table_name", "mode", "active"],
+    whenFields: ["table_name", "filter", "security_attribute", "mode"],
   },
   {
     ...BASE,
@@ -377,8 +384,9 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     sdkApi: "none",
     sdkSince: null,
     table: "sys_module",
-    nameField: "name",
-    scriptFields: [],
+    // A module is named by its path; `content` holds the source.
+    nameField: "path",
+    scriptFields: ["content"],
     tiers: SEED_TIERS,
     verified: false,
   },
@@ -417,7 +425,7 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: SEED_TIERS,
     verified: false,
-    metaFields: ["rest_endpoint", "authentication_type", "use_mid_server"],
+    metaFields: ["rest_endpoint", "authentication_type"],
   },
   {
     ...BASE,
@@ -442,7 +450,7 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
       {
         table: "sys_graphql_typeresolver",
         parentField: "schema",
-        nameField: "name",
+        nameField: "type_name",
         scriptFields: ["script"],
       },
     ],
@@ -451,7 +459,12 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: SEED_TIERS,
     verified: false,
-    metaFields: ["schema_namespace", "requires_authentication", "active"],
+    metaFields: [
+      "namespace",
+      "application_namespace",
+      "requires_authentication",
+      "active",
+    ],
   },
   // N-29: the GraphQL resolver scripts behind GraphQL data brokers join
   // script intelligence as opt-in types (O-10, 2026-10-10). The tables are
@@ -480,7 +493,7 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     sdkApi: "none",
     sdkSince: null,
     table: "sys_graphql_typeresolver",
-    nameField: "name",
+    nameField: "type_name",
     scriptFields: ["script"],
     refFields: [
       { field: "schema", table: "sys_graphql_schema", type: "graphql_api" },
@@ -546,13 +559,13 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     children: [
       {
         table: "dl_definition_rel_match",
-        parentField: "definition",
-        nameField: "source_field",
+        parentField: "dl_definition",
+        nameField: "source_table_field",
       },
       {
         table: "dl_definition_rel_set",
-        parentField: "definition",
-        nameField: "target_field",
+        parentField: "dl_definition",
+        nameField: "source_table_field",
       },
     ],
     nameField: "name",
@@ -560,8 +573,8 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: SEED_TIERS,
     verified: false,
-    appliesToField: "table",
-    metaFields: ["table", "matcher_table", "active"],
+    appliesToField: "source_table",
+    metaFields: ["source_table", "matcher_table", "active"],
   },
   {
     ...BASE,
@@ -601,7 +614,13 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     verified: false,
     appliesToField: "table",
     metaFields: ["table", "type", "action", "order", "active"],
-    whenFields: ["type", "order", "condition", "stop_processing"],
+    whenFields: [
+      "type",
+      "order",
+      "filter_condition",
+      "condition_script",
+      "stop_processing",
+    ],
   },
   {
     ...BASE,
@@ -657,7 +676,7 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
       "model_table",
       "apply_import_set",
       "apply_soap",
-      "use_as_ui_policy",
+      "enforce_ui",
       "active",
     ],
     whenFields: ["conditions", "reverse_if_false", "inherit"],
@@ -670,13 +689,21 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     sdkApi: "UiAction",
     sdkSince: "4.0",
     table: "sys_ux_form_action",
-    nameField: "label",
+    nameField: "name",
     activeField: "active",
     scriptFields: [],
+    refFields: [
+      { field: "ui_action", table: "sys_ui_action" },
+      {
+        field: "declarative_action",
+        table: "sys_declarative_action_assignment",
+        type: "ux_declarative_action",
+      },
+    ],
     tiers: SEED_TIERS,
     verified: false,
     appliesToField: "table",
-    metaFields: ["table", "action_name", "order", "active"],
+    metaFields: ["table", "action_type", "specificity", "active"],
   },
   {
     ...BASE,
@@ -914,10 +941,12 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
         orderField: "order",
         nameField: "name",
       },
+      // A widget sits on a canvas, which links the dashboard and its tab.
+      { table: "par_dashboard_canvas", parentField: "dashboard" },
       {
         table: "par_dashboard_widget",
-        parentField: "tab",
-        parentTable: "par_dashboard_tab",
+        parentField: "canvas",
+        parentTable: "par_dashboard_canvas",
       },
       { table: "par_dashboard_permission", parentField: "dashboard" },
     ],
