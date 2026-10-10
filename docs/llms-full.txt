@@ -3554,7 +3554,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
 | `flow` | string | no | Flow sys_id. |
-| `record` | string | no | Record the flow ran against (document_id). |
+| `record` | string | no | Record the flow ran against (source_record). |
 | `limit` | integer | no |  |
 | `instance` | string | no | Profile (default active) |
 

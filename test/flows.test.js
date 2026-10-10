@@ -490,14 +490,15 @@ test("getFlowRuns needs a flow or record, then reads sys_flow_context (FT-3)", a
   await withFetch(
     (url) => {
       assert.equal(tableOf(url), "sys_flow_context");
-      assert.match(queryOf(url), /document_id=rec1/);
+      assert.match(queryOf(url), /source_record=rec1/);
       return jsonResponse(200, {
         result: [
           {
             sys_id: "c1",
             name: "SLA flow",
             state: "Complete",
-            document_id: "rec1",
+            source_table: "incident",
+            source_record: "rec1",
             sys_created_on: "2026-01-01",
           },
         ],
@@ -507,6 +508,7 @@ test("getFlowRuns needs a flow or record, then reads sys_flow_context (FT-3)", a
       const { count, runs } = await getFlowRuns({ record: "rec1" });
       assert.equal(count, 1);
       assert.equal(runs[0].state, "Complete");
+      assert.equal(runs[0].table, "incident");
       assert.equal(runs[0].recordId, "rec1");
     },
   );

@@ -159,7 +159,7 @@ export const specs: AnyToolSpec[] = [
       flow: sysId().optional().describe("Flow sys_id."),
       record: sysId()
         .optional()
-        .describe("Record the flow ran against (document_id)."),
+        .describe("Record the flow ran against (source_record)."),
       limit: z.number().int().positive().max(1000).optional(),
     },
     handler: (args) => getFlowRuns(args).then(ok),

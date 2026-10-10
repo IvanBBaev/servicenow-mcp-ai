@@ -222,7 +222,7 @@ export interface FlowRun {
 export interface FlowRunsOptions {
   /** Flow sys_id to scope by (matches sys_flow_context.flow). */
   flow?: string;
-  /** Record sys_id (document_id) the flow ran against. */
+  /** Record sys_id (source_record) the flow ran against. */
   record?: string;
   limit?: number;
 }
@@ -242,7 +242,7 @@ export async function getFlowRuns(
   }
   if (opts.record?.trim()) {
     assertNoCaret(opts.record, "record");
-    clauses.push(`document_id=${opts.record.trim()}`);
+    clauses.push(`source_record=${opts.record.trim()}`);
   }
   if (clauses.length === 0) {
     throw new ServiceNowError(
@@ -258,8 +258,8 @@ export async function getFlowRuns(
       "sys_id",
       "name",
       "state",
-      "table",
-      "document_id",
+      "source_table",
+      "source_record",
       "sys_created_on",
       "sys_updated_on",
     ],
@@ -270,8 +270,8 @@ export async function getFlowRuns(
     sys_id: snString(r.sys_id),
     name: snString(r.name),
     state: snString(r.state) || undefined,
-    table: snString(r.table) || undefined,
-    recordId: snString(r.document_id) || undefined,
+    table: snString(r.source_table) || undefined,
+    recordId: snString(r.source_record) || undefined,
     started: snString(r.sys_created_on) || undefined,
     updated: snString(r.sys_updated_on) || undefined,
   }));
