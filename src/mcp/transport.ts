@@ -35,6 +35,7 @@ import {
   type ServerFactory,
 } from "./http-sessions.js";
 import { ModernHttpHandler } from "./http-modern.js";
+import { guardListenWire } from "./listen.js";
 import { testConnection, type ConnectionProbe } from "../api/diagnostics.js";
 
 /**
@@ -79,7 +80,10 @@ export async function connectTransport(
     return "http";
   }
   if (modern) {
+    // N-35: the listen guards sit on the wire, so the -32021 refusal and the
+    // teardown cancellation never touch a 2025 connection.
     stdio = serveStdio(() => factory(currentRuntime()), {
+      transport: guardListenWire(new StdioServerTransport()),
       onerror: (error) => {
         logger.warn("stdio transport error", { error: error.message });
       },
@@ -113,10 +117,18 @@ let draining = false;
 export const DRAIN_TIMEOUT_MS = 5_000;
 
 /**
+ * The least time a shutdown leaves the closing listen streams to flush their
+ * completion and cancellation, even after a drain that used its whole budget.
+ */
+const LISTEN_FLUSH_MIN_MS = 250;
+
+/**
  * E-9 / H-7: stop the HTTP transport gracefully (no-op for stdio or when
  * nothing is listening): stop accepting connections, answer new requests with
  * 503, wait up to `drainMs` for in-flight tool calls, then close every session
- * (disposing its runtime) and drop the remaining connections.
+ * (disposing its runtime) and drop the remaining connections. An open
+ * subscriptions/listen stream is not waited for: it is ended gracefully once
+ * the drain is over and its last frames are flushed before the drop.
  */
 export async function closeHttpTransport(
   drainMs: number = DRAIN_TIMEOUT_MS,
@@ -131,8 +143,8 @@ export async function closeHttpTransport(
     listener.close(() => resolve()),
   );
   listener.closeIdleConnections();
+  const deadline = Date.now() + drainMs;
   if (manager) {
-    const deadline = Date.now() + drainMs;
     const inFlight = (): number =>
       manager.inFlightPosts + (modern?.inFlight ?? 0);
     while (inFlight() > 0 && Date.now() < deadline) {
@@ -140,7 +152,7 @@ export async function closeHttpTransport(
     }
     await manager.closeAll();
   }
-  await modern?.close();
+  await modern?.close(Math.max(deadline - Date.now(), LISTEN_FLUSH_MIN_MS));
   sessions = null;
   modernHandler = null;
   listener.closeAllConnections();

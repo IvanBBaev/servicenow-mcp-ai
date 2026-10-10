@@ -516,23 +516,40 @@ function isModernRequest(ctx: ServerContext): boolean {
   return ctx.mcpReq.envelope !== undefined;
 }
 
-/** True when the request's envelope declares the tasks extension. */
-export function clientDeclaresTasks(ctx: ServerContext): boolean {
-  const envelope = ctx.mcpReq.envelope as Record<string, unknown> | undefined;
-  const capabilities = envelope?.[CLIENT_CAPABILITIES_META_KEY];
+/**
+ * True when a request's `_meta` (its 2026-07-28 envelope) declares the tasks
+ * extension in its clientCapabilities. Shared by the handlers (through
+ * clientDeclaresTasks) and the raw-message listen guard (listen.ts).
+ */
+export function envelopeDeclaresTasks(envelope: unknown): boolean {
+  const capabilities = isRecord(envelope)
+    ? envelope[CLIENT_CAPABILITIES_META_KEY]
+    : undefined;
   if (!isRecord(capabilities) || !isRecord(capabilities.extensions)) {
     return false;
   }
   return isRecord(capabilities.extensions[TASKS_EXTENSION]);
 }
 
+/** True when the request's envelope declares the tasks extension. */
+export function clientDeclaresTasks(ctx: ServerContext): boolean {
+  return envelopeDeclaresTasks(ctx.mcpReq.envelope);
+}
+
+/** The -32021 error for a client that did not declare the tasks extension. */
+export function tasksExtensionRequired(
+  message: string,
+): MissingRequiredClientCapabilityError {
+  return new MissingRequiredClientCapabilityError(
+    { requiredCapabilities: { extensions: { [TASKS_EXTENSION]: {} } } },
+    message,
+  );
+}
+
 /** -32021 for a modern tasks/* request whose client did not declare it. */
 function requireTasksDeclared(ctx: ServerContext): void {
   if (clientDeclaresTasks(ctx)) return;
-  throw new MissingRequiredClientCapabilityError(
-    { requiredCapabilities: { extensions: { [TASKS_EXTENSION]: {} } } },
-    "Missing required client capability",
-  );
+  throw tasksExtensionRequired("Missing required client capability");
 }
 
 /**

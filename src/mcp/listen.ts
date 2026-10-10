@@ -20,8 +20,6 @@
  *   which receivers ignore (cancel-10).
  */
 import {
-  CLIENT_CAPABILITIES_META_KEY,
-  MissingRequiredClientCapabilityError,
   PROTOCOL_VERSION_META_KEY,
   SUBSCRIPTION_ID_META_KEY,
   isJSONRPCRequest,
@@ -33,9 +31,7 @@ import {
   type Transport,
   type TransportSendOptions,
 } from "@modelcontextprotocol/server";
-
-/** The ext-tasks capability key a client declares under `extensions`. */
-export const TASKS_EXTENSION = "io.modelcontextprotocol/tasks";
+import { envelopeDeclaresTasks, tasksExtensionRequired } from "./tasks.js";
 
 const LISTEN = "subscriptions/listen";
 const TEARDOWN_REASON = "Subscription closed by the server.";
@@ -62,11 +58,8 @@ export function listenRejection(
   if (meta?.[PROTOCOL_VERSION_META_KEY] === undefined) return;
   const filter = asRecord(params?.notifications);
   if (!filter || !("taskIds" in filter)) return;
-  const capabilities = asRecord(meta[CLIENT_CAPABILITIES_META_KEY]);
-  const extensions = asRecord(capabilities?.extensions);
-  if (extensions && TASKS_EXTENSION in extensions) return;
-  const error = new MissingRequiredClientCapabilityError(
-    { requiredCapabilities: { extensions: { [TASKS_EXTENSION]: {} } } },
+  if (envelopeDeclaresTasks(meta)) return;
+  const error = tasksExtensionRequired(
     "Task status notifications need the io.modelcontextprotocol/tasks extension.",
   );
   return {

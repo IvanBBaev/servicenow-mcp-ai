@@ -13,12 +13,12 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { buildMcpServer } from "../build/server.js";
 import { setServer } from "../build/mcp/context.js";
 import {
-  TASKS_EXTENSION,
   guardListenFetch,
   guardListenWire,
   listenRejection,
   listenTeardownCancel,
 } from "../build/mcp/listen.js";
+import { TASKS_EXTENSION } from "../build/mcp/tasks.js";
 import { baselineEnv, freshRuntime, withEnv } from "./helpers.js";
 
 baselineEnv();

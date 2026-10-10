@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { toNodeHandler } from "@modelcontextprotocol/node";
 import {
   createMcpHandler,
+  isJSONRPCRequest,
   type McpHttpHandler,
   type McpRequestContext,
   type McpServer,
@@ -20,6 +21,7 @@ import {
 import { logger } from "../core/logging.js";
 import { createLogBridge } from "./log-bridge.js";
 import { taskWorkSettled } from "./tasks.js";
+import { guardListenFetch } from "./listen.js";
 import { MAX_INIT_BODY_BYTES } from "./http-sessions.js";
 
 /**
@@ -35,6 +37,11 @@ import { MAX_INIT_BODY_BYTES } from "./http-sessions.js";
  * background work has settled, and the task itself lives on the parent. 2025-era traffic never reaches this
  * leg (`legacy: 'reject'`): `HttpSessionManager` keeps serving it with
  * sessions.
+ *
+ * A subscriptions/listen stream (N-35) is not a request in flight: it stays
+ * open until the client or the server ends it, so a graceful shutdown does
+ * not wait for it. `close()` ends it instead — the completion result and its
+ * cancellation (listen.ts) — and waits, bounded, until both are flushed.
  */
 
 /** Builds one McpServer for one modern request on the request's runtime. */
@@ -56,6 +63,8 @@ export class ModernHttpHandler {
   private readonly node: ReturnType<typeof toNodeHandler>;
   /** Requests in flight — what a graceful shutdown waits for. */
   private open = 0;
+  /** Open listen streams, each settling once its response has closed. */
+  private readonly listens = new Map<ServerResponse, Promise<void>>();
 
   constructor(private readonly options: ModernHttpOptions) {
     const onerror = (error: Error): void => {
@@ -67,13 +76,18 @@ export class ModernHttpHandler {
       maxRequestBodySize: MAX_INIT_BODY_BYTES,
       onerror,
     });
-    this.node = toNodeHandler(this.handler, {
-      onerror,
-      maxRequestBodySize: MAX_INIT_BODY_BYTES,
-    });
+    // N-35: the listen guards wrap the modern leg only; 2025 sessions
+    // (http-sessions.ts) never pass through this handler.
+    this.node = toNodeHandler(
+      { ...this.handler, fetch: guardListenFetch(this.handler.fetch) },
+      {
+        onerror,
+        maxRequestBodySize: MAX_INIT_BODY_BYTES,
+      },
+    );
   }
 
-  /** Requests in flight. */
+  /** Requests in flight (open listen streams excluded). */
   get inFlight(): number {
     return this.open;
   }
@@ -86,12 +100,21 @@ export class ModernHttpHandler {
   ): Promise<void> {
     const runtime = createRuntime({ parent: this.options.parent });
     const scope: SessionScope = { id: "" };
-    this.open += 1;
+    const listen = isListenRequest(body);
+    if (listen) {
+      this.listens.set(
+        res,
+        new Promise((resolve) => res.once("close", () => resolve())),
+      );
+    } else {
+      this.open += 1;
+    }
     let settled = false;
     const done = (): void => {
       if (settled) return;
       settled = true;
-      this.open -= 1;
+      if (listen) this.listens.delete(res);
+      else this.open -= 1;
       // The factory never ran (a rejected request): nothing closes the
       // server that would dispose the runtime, so release it here.
       if (!scope.server) void runtime.dispose();
@@ -106,9 +129,24 @@ export class ModernHttpHandler {
     }
   }
 
-  /** Abort in-flight modern exchanges and close their servers. */
-  close(): Promise<void> {
-    return this.handler.close();
+  /**
+   * Abort in-flight modern exchanges and close their servers; end every
+   * open listen stream gracefully and wait up to `flushMs` for those
+   * responses to close, so the completion and cancellation frames reach the
+   * client before the transport drops its connections.
+   */
+  async close(flushMs = 0): Promise<void> {
+    const listening = [...this.listens.values()];
+    await this.handler.close();
+    if (!listening.length) return;
+    let timer: NodeJS.Timeout | undefined;
+    await Promise.race([
+      Promise.all(listening),
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, flushMs);
+      }),
+    ]);
+    clearTimeout(timer);
   }
 
   /** The McpServerFactory: runs inside `handle`'s request context. */
@@ -128,4 +166,9 @@ export class ModernHttpHandler {
     };
     return server;
   }
+}
+
+/** True for a subscriptions/listen request body. */
+function isListenRequest(body: unknown): boolean {
+  return isJSONRPCRequest(body) && body.method === "subscriptions/listen";
 }
