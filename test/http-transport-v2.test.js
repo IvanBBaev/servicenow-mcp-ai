@@ -1201,3 +1201,48 @@ test("idle TTL 0 keeps sessions until DELETE", async () => {
   assert.deepEqual(await manager.sweep(Number.MAX_SAFE_INTEGER), []);
   await manager.closeAll();
 });
+
+test("HTTP: a 2026-07-28 POST ignores a stray Mcp-Session-Id; a 2025 one still gets 404 (N-35)", async () => {
+  await withHttp({}, async (port) => {
+    const discover = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "server/discover",
+      params: {
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+          "io.modelcontextprotocol/clientInfo": {
+            name: "h7-stray",
+            version: "0",
+          },
+          "io.modelcontextprotocol/clientCapabilities": {},
+        },
+      },
+    };
+    const modern = await rawRequest(port, {
+      method: "POST",
+      headers: {
+        ...MCP_HEADERS,
+        "mcp-protocol-version": "2026-07-28",
+        "mcp-method": "server/discover",
+        "mcp-session-id": "no-such-session",
+      },
+      body: JSON.stringify(discover),
+    });
+    assert.equal(modern.status, 200, modern.text);
+    assert.match(modern.text, /"supportedVersions"/);
+    assert.equal(modern.headers["mcp-session-id"], undefined);
+
+    const legacy = await rawRequest(port, {
+      method: "POST",
+      headers: {
+        ...MCP_HEADERS,
+        "mcp-protocol-version": "2025-11-25",
+        "mcp-session-id": "no-such-session",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }),
+    });
+    assert.equal(legacy.status, 404);
+    assert.equal(JSON.parse(legacy.text).error.code, -32001);
+  });
+});

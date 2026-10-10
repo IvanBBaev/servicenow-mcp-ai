@@ -124,6 +124,19 @@ const isInitialize = (body: unknown): boolean =>
     ? body.some((m) => isInitializeRequest(m))
     : isInitializeRequest(body);
 
+/** The first 2026-era protocol revision; later revisions sort after it. */
+const MODERN_REVISION = "2026-07-28";
+
+/** A POST whose MCP-Protocol-Version header names a 2026-07-28+ revision. */
+const isModernPost = (req: IncomingMessage): boolean => {
+  const version = req.headers["mcp-protocol-version"];
+  return (
+    req.method === "POST" &&
+    typeof version === "string" &&
+    version >= MODERN_REVISION
+  );
+};
+
 export class HttpSessionManager {
   private readonly sessions = new Map<string, HttpSession>();
   /** Sessions being initialized (not yet in the map), for the cap. */
@@ -164,7 +177,14 @@ export class HttpSessionManager {
   /** Route one MCP request (anything that is not a health or metrics probe). */
   async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const header = req.headers["mcp-session-id"];
-    const id = Array.isArray(header) ? header[0] : header;
+    // N-35: the 2026-07-28 leg is stateless, so a modern POST ignores a
+    // stray Mcp-Session-Id (SHOULD ignore) instead of a 404 for it.
+    const id =
+      this.options.modern && isModernPost(req)
+        ? undefined
+        : Array.isArray(header)
+          ? header[0]
+          : header;
     if (id) {
       const session = this.sessions.get(id);
       if (!session) {
