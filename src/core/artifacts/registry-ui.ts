@@ -16,7 +16,6 @@ export const UI_TYPES: readonly ArtifactType[] = [
         table: "sys_ux_app_route",
         parentField: "app_config",
         nameField: "name",
-        jsonFields: [{ field: "parameters", decoder: "json", writable: false }],
         refFields: [
           {
             field: "parent_macroponent",
@@ -41,7 +40,6 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     jsonFields: [
-      { field: "parameters", decoder: "json", writable: false },
       { field: "optional_parameters", decoder: "json", writable: false },
     ],
     refFields: [
@@ -126,7 +124,6 @@ export const UI_TYPES: readonly ArtifactType[] = [
         table: "sys_ux_app_config",
         type: "uib_app_config",
       },
-      { field: "applicability", table: "sys_ux_applicability" },
     ],
     tiers: READ_TIER,
     verified: false,
@@ -209,9 +206,9 @@ export const UI_TYPES: readonly ArtifactType[] = [
     sdkSince: null,
     table: "sys_ux_data_broker_transform",
     nameField: "name",
-    // Server-side transform; `properties` is the broker's input schema.
+    // Server-side transform; `props` is the broker's input schema.
     scriptFields: ["script"],
-    jsonFields: [{ field: "properties", decoder: "json", writable: false }],
+    jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
     verified: false,
     scriptToolsOptIn: true,
@@ -228,7 +225,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     // Client-side scriptlet: runs in the browser.
     scriptFields: ["script"],
     clientFields: ["script"],
-    jsonFields: [{ field: "properties", decoder: "json", writable: false }],
+    jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
     verified: false,
     scriptToolsOptIn: true,
@@ -255,10 +252,9 @@ export const UI_TYPES: readonly ArtifactType[] = [
     sdkApi: "Record",
     sdkSince: null,
     table: "sys_ux_lib_component",
-    nameField: "name",
+    nameField: "tag",
     keyFields: ["tag"],
     scriptFields: [],
-    jsonFields: [{ field: "properties", decoder: "json", writable: false }],
     tiers: READ_TIER,
     verified: false,
   },
@@ -294,11 +290,15 @@ export const UI_TYPES: readonly ArtifactType[] = [
     sdkApi: "Record",
     sdkSince: null,
     table: "sys_ux_form_action",
-    nameField: "label",
+    nameField: "name",
     scriptFields: [],
     refFields: [
-      { field: "action", table: "sys_ui_action" },
-      { field: "applicability", table: "sys_ux_applicability" },
+      { field: "ui_action", table: "sys_ui_action" },
+      {
+        field: "declarative_action",
+        table: "sys_declarative_action_assignment",
+        type: "ux_declarative_action",
+      },
     ],
     tiers: READ_TIER,
     verified: false,
@@ -317,7 +317,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
         orderField: "order",
         refFields: [
           {
-            field: "form_action",
+            field: "action",
             table: "sys_ux_form_action",
             type: "uib_form_action",
           },
@@ -354,7 +354,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     table: "sys_ux_data_broker_rest",
     nameField: "name",
     scriptFields: [],
-    jsonFields: [{ field: "properties", decoder: "json", writable: false }],
+    jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
     verified: false,
     metaFields: ["mutates_server_data"],
@@ -368,7 +368,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     table: "sys_ux_data_broker_graphql",
     nameField: "name",
     scriptFields: [],
-    jsonFields: [{ field: "properties", decoder: "json", writable: false }],
+    jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
     verified: false,
     metaFields: ["mutates_server_data"],
@@ -426,7 +426,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     sdkApi: "Record",
     sdkSince: null,
     table: "sys_declarative_action_definition",
-    nameField: "label",
+    nameField: "name",
     keyFields: ["action_name"],
     scriptFields: [],
     tiers: READ_TIER,
@@ -442,7 +442,9 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "label",
     keyFields: ["key"],
     scriptFields: [],
-    jsonFields: [{ field: "payload", decoder: "json", writable: false }],
+    jsonFields: [
+      { field: "payload_template", decoder: "json", writable: false },
+    ],
     tiers: READ_TIER,
     verified: false,
   },
@@ -641,7 +643,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     tiers: READ_TIER,
     verified: false,
     // P-24 (U, O-5): SP-3 fields; `module` is the Angular module name.
-    writeFields: ["module", "include_on_page_load"],
+    writeFields: ["module", "page_load"],
     unique: [{ fields: ["name"] }, { fields: ["module"] }],
   },
   {
