@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 105,
+  "pendingCeiling": 70,
   "requirements": [
     {
       "id": "base-01",
@@ -43,8 +43,10 @@
       "text": "All implementations MUST support the base protocol, versioning, and the message patterns.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: the spawned stdio entry serves the base protocol — discover, versioned requests, -32022 for an unsupported revision and a listen stream"
+      ]
     },
     {
       "id": "base-02",
@@ -85,8 +87,10 @@
       "text": "The `result` MUST include a `resultType` field to indicate the type of the result.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#result-responses",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every result carries resultType and names the server in _meta serverInfo"
+      ]
     },
     {
       "id": "base-06",
@@ -94,8 +98,10 @@
       "text": "The set of supported `ResultType` values MUST be created from the set defined in the core protocol and include any additional values of supported extensions that are advertised via capabilities.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#resulttype",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: resultType values come from the core set, plus task only while the tasks extension is advertised"
+      ]
     },
     {
       "id": "base-07",
@@ -139,8 +145,10 @@
       "text": "The receiver MUST NOT send a response.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#notifications",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: client notifications get no response, whatever they carry"
+      ]
     },
     {
       "id": "base-11",
@@ -148,8 +156,10 @@
       "text": "Notifications MUST NOT include an ID.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#notifications",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: no notification the server sends carries an id"
+      ]
     },
     {
       "id": "base-12",
@@ -157,8 +167,11 @@
       "text": "Servers MUST NOT rely on prior requests over the same connection to establish context (e.g., capabilities, protocol version, client identity).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#statelessness",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: requests after discover still need their own envelope; nothing carries over from earlier requests",
+        "test/protocol-wire.test.js :: wire: client capabilities are read from each request, never inferred from a prior one"
+      ]
     },
     {
       "id": "base-13",
@@ -332,8 +345,10 @@
       "text": "Certain key names are reserved by MCP for protocol-level metadata, as specified below; implementations MUST NOT make assumptions about values at these keys.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: unknown reserved _meta keys and extra clientInfo fields are tolerated, not interpreted"
+      ]
     },
     {
       "id": "base-30",
@@ -341,8 +356,11 @@
       "text": "If specified, MUST be a series of labels separated by dots (`.`), followed by a slash (`/`).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every _meta key the server emits follows the naming rules",
+        "test/protocol-wire.test.js :: wire: the _meta key checker rejects what the rules forbid"
+      ]
     },
     {
       "id": "base-31",
@@ -350,8 +368,11 @@
       "text": "Labels MUST start with a letter and end with a letter or digit; interior characters can be letters, digits, or hyphens (`-`).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every _meta key the server emits follows the naming rules",
+        "test/protocol-wire.test.js :: wire: the _meta key checker rejects what the rules forbid"
+      ]
     },
     {
       "id": "base-32",
@@ -359,8 +380,11 @@
       "text": "Implementations SHOULD use reverse DNS notation (e.g., `com.example/` rather than `example.com/`).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every _meta key the server emits follows the naming rules",
+        "test/protocol-wire.test.js :: wire: the _meta key checker rejects what the rules forbid"
+      ]
     },
     {
       "id": "base-33",
@@ -368,8 +392,11 @@
       "text": "Unless empty, MUST begin and end with an alphanumeric character (`[a-z0-9A-Z]`).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every _meta key the server emits follows the naming rules",
+        "test/protocol-wire.test.js :: wire: the _meta key checker rejects what the rules forbid"
+      ]
     },
     {
       "id": "base-34",
@@ -377,8 +404,10 @@
       "text": "A request missing any required field is malformed; the server MUST reject it with JSON-RPC error code `-32602` (Invalid params).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: a request missing a required field is refused with -32602"
+      ]
     },
     {
       "id": "base-35",
@@ -409,8 +438,11 @@
       "text": "If processing a request requires a capability the client did not include in `io.modelcontextprotocol/clientCapabilities`, the server MUST return a `MissingRequiredClientCapabilityError` (`-32021`) whose `data.requiredCapabilities` lists the missing capabilities.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-listen-e2e.test.js :: listen e2e (stdio entry): a taskIds filter without the tasks extension is refused with -32021 and data.requiredCapabilities",
+        "test/protocol-listen-e2e.test.js :: listen e2e (HTTP entry): a taskIds filter without the tasks extension is refused with -32021 and data.requiredCapabilities"
+      ]
     },
     {
       "id": "base-38",
@@ -429,8 +461,10 @@
       "text": "Servers SHOULD include the following `io.modelcontextprotocol/*` field in every result's `_meta`, unless specifically configured not to do so, to identify themselves without relying on any prior connection state:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every result carries resultType and names the server in _meta serverInfo"
+      ]
     },
     {
       "id": "base-40",
@@ -438,8 +472,10 @@
       "text": "Implementations SHOULD NOT use them to change the behavior of the client or server, and SHOULD NOT rely on them for security decisions.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: a different or absent clientInfo changes no result"
+      ]
     },
     {
       "id": "base-41",
@@ -461,8 +497,10 @@
       "text": "When present, their values MUST follow W3C Trace Context and W3C Baggage formats respectively.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#meta",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: trace-context keys are accepted from the client and any the server emits follow the W3C formats"
+      ]
     },
     {
       "id": "base-43",
@@ -491,8 +529,10 @@
       "text": "JSON-RPC messages MUST be UTF-8 encoded.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports#messages",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: the spawned stdio entry reads and writes UTF-8 — non-ASCII text survives the round trip byte-exact"
+      ]
     },
     {
       "id": "base-46",
@@ -594,8 +634,10 @@
       "text": "Servers implementing this protocol version MUST include this field.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/schema#result",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every result carries resultType and names the server in _meta serverInfo"
+      ]
     },
     {
       "id": "base-55",
@@ -603,8 +645,11 @@
       "text": "Servers MUST NOT infer capabilities from prior requests.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/schema#requestmetaobject",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: requests after discover still need their own envelope; nothing carries over from earlier requests",
+        "test/protocol-wire.test.js :: wire: client capabilities are read from each request, never inferred from a prior one"
+      ]
     },
     {
       "id": "errors-01",
@@ -636,8 +681,11 @@
       "text": "Implementations MUST NOT emit any code from this sub-range that is not defined by this specification and MUST use defined codes only with their specified meanings.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#error-codes",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: emitted error codes in the reserved ranges are defined ones, used with their meanings",
+        "test/protocol-wire.test.js :: wire: src emits no code from the MCP reserved sub-range other than -32020, -32021 and -32022"
+      ]
     },
     {
       "id": "errors-04",
@@ -645,8 +693,11 @@
       "text": "Implementations MUST NOT emit any code from this sub-range that is not defined by this specification and MUST use defined codes only with their specified meanings.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#error-codes",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: emitted error codes in the reserved ranges are defined ones, used with their meanings",
+        "test/protocol-wire.test.js :: wire: src emits no code from the MCP reserved sub-range other than -32020, -32021 and -32022"
+      ]
     },
     {
       "id": "errors-05",
@@ -678,8 +729,10 @@
       "text": "The message SHOULD be limited to a concise single sentence.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/schema#error",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: error messages are one concise sentence on a single line"
+      ]
     },
     {
       "id": "errors-08",
@@ -721,8 +774,11 @@
       "text": "If the server does not implement the requested version (whether the version is unknown to the server, or is a known version the server has chosen not to support), it MUST respond with an `UnsupportedProtocolVersionError` listing the versions it does support:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning#protocol-version-negotiation",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every request naming an unsupported revision is refused with -32022 and the supported list, not only the opening one (lifecycle-01)",
+        "test/protocol-wire.test.js :: wire: versionRejection leaves claim-less (legacy) and non-string claims to the entry"
+      ]
     },
     {
       "id": "lifecycle-02",
@@ -741,8 +797,10 @@
       "text": "Extension identifiers MUST follow the `_meta` key naming rules, with a mandatory prefix.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/versioning#extension-negotiation",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: advertised extension identifiers carry a valid, mandatory prefix"
+      ]
     },
     {
       "id": "lifecycle-04",
@@ -777,8 +835,10 @@
       "text": "Clients SHOULD identify themselves on each request (`io.modelcontextprotocol/clientInfo`), and servers SHOULD identify themselves in each result's `_meta` (`io.modelcontextprotocol/serverInfo`).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/changelog#major-changes",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: every result carries resultType and names the server in _meta serverInfo"
+      ]
     },
     {
       "id": "lifecycle-08",
@@ -865,8 +925,10 @@
       "text": "Servers SHOULD stop work on a cancelled request as soon as practical and MUST NOT send any further messages for it.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio#cancellation",
       "applies": "stdio",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: a cancelled request stops its ServiceNow call and gets no further message — no result, error or progress"
+      ]
     },
     {
       "id": "stdio-06",
@@ -874,8 +936,10 @@
       "text": "Servers SHOULD exit promptly when their standard input is closed or reads return end-of-file.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio#shutdown",
       "applies": "stdio",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: the spawned stdio entry exits promptly once stdin is closed"
+      ]
     },
     {
       "id": "http-01",
@@ -1764,8 +1828,10 @@
       "text": "Servers MUST NOT send `notifications/cancelled` for any other purpose.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: the server sends notifications/cancelled only to close a listen stream it ended"
+      ]
     },
     {
       "id": "cancel-03",
@@ -1851,8 +1917,10 @@
       "text": "Invalid cancellation notifications SHOULD be ignored: Unknown request IDs; Already completed requests; Malformed notifications",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/cancellation#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: invalid cancellations are ignored and the server keeps serving"
+      ]
     },
     {
       "id": "progress-01",
@@ -1916,8 +1984,10 @@
       "text": "Progress notifications MUST stop after completion",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/patterns/progress#implementation-notes",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: progress notifications for a request stop once it is answered"
+      ]
     },
     {
       "id": "paging-01",
@@ -2439,8 +2509,10 @@
       "text": "Servers MUST apply the same `cacheScope` to all response pages for a given list request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#interaction-with-pagination",
       "applies": "always",
-      "status": "pending",
-      "step": "cache"
+      "status": "covered",
+      "tests": [
+        "test/cache-hints.test.js :: N-38: every 2026-07-28 list answers in a single page that carries the method's hint"
+      ]
     },
     {
       "id": "cache-04",
@@ -2448,8 +2520,10 @@
       "text": "For example, if the first page of a `tools/list` response has `cacheScope: \"private\"`, all subsequent pages for that request MUST also be `\"private\"`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/caching#interaction-with-pagination",
       "applies": "always",
-      "status": "pending",
-      "step": "cache"
+      "status": "covered",
+      "tests": [
+        "test/cache-hints.test.js :: N-38: every 2026-07-28 list answers in a single page that carries the method's hint"
+      ]
     },
     {
       "id": "cache-05",
@@ -3009,8 +3083,10 @@
       "text": "Servers SHOULD return standard JSON-RPC errors for common failure cases: Invalid prompt name: `-32602` (Invalid params); Missing required arguments: `-32602` (Invalid params); Internal errors: `-32603` (Internal error)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/prompts#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: prompts/get answers -32602 for an unknown prompt and for missing required arguments"
+      ]
     },
     {
       "id": "prompts-09",
@@ -3029,8 +3105,10 @@
       "text": "Both parties SHOULD respect capability negotiation",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/prompts#implementation-considerations",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: prompts are advertised and served to a client that declares no capabilities"
+      ]
     },
     {
       "id": "prompts-11",
@@ -3061,8 +3139,10 @@
       "text": "Servers SHOULD return standard JSON-RPC errors for common failure cases: Method not found: `-32601` (Capability not supported); Invalid prompt name: `-32602` (Invalid params); Missing required arguments: `-32602` (Invalid params); Internal errors: `-32603` (Internal error)",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/utilities/completion#error-handling",
       "applies": "always",
-      "status": "pending",
-      "step": "wire"
+      "status": "covered",
+      "tests": [
+        "test/protocol-wire.test.js :: wire: completion/complete answers -32602 for an unknown prompt and for a missing argument"
+      ]
     },
     {
       "id": "completion-03",

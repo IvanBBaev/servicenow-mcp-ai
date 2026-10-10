@@ -32,18 +32,18 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 203     | 105     | 56  |
+| 364   | 238     | 70      | 56  |
 
 Pending rows by step:
 
 | step       | rows | delivered by                                                                                           |
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------ |
-| `wire`     | 33   | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
+| `wire`     | 0    | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
 | `http`     | 1    | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
 | `mrtr`     | 19   | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 12   | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
-| `cache`    | 4    | N-38: `ttlMs` / `cacheScope`                                                                           |
+| `cache`    | 2    | N-38: `ttlMs` / `cacheScope`                                                                           |
 | `packages` | 1    | O-19 (d): lists fixed per server, deterministic order                                                  |
 
 The n/a rows cover features the server never uses: client-supplied `$ref` resolution, custom
@@ -71,9 +71,13 @@ authorization.
 - `mrtr-19` / `mrtr-42` (no secrets through form mode) are covered by decision 2: the modern
   wire refuses the request. `mrtr-20` (use URL mode instead) stays pending, since the server
   never uses URL mode.
-- `cache-03` … `cache-05` and `cache-07` stay pending: the hints are per method, so every page
-  and every caller gets the same scope, but no test pages through a list or checks scope per
-  caller yet.
+- `cache-03` / `cache-04` (one scope on every page) are covered because the server does not
+  paginate: every 2026-07-28 list is a single page carrying its method's hint. `cache-05` and
+  `cache-07` stay pending: no test checks the scope per caller yet.
+- `base-42` (W3C trace formats): the server accepts the client's keys and emits none of its
+  own, so the emit side holds vacuously. `prompts-08` and `completion-02` are pinned on their
+  `-32602` paths; `-32603` cannot be triggered and `-32601` is unreachable while completions
+  are always advertised.
 - The `http` rows are pinned end to end against the shipped transport by
   `test/protocol-http-modern.test.js` (raw POSTs, real status codes and SSE frames).
   `http-32`, `http-37`, `http-43` and `http-45` are n/a: they apply to a recognized
