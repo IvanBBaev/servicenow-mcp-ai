@@ -27,12 +27,15 @@ import {
 } from "./explain-flow-model.js";
 
 // --- playbooks (P-12) ------------------------------------------------------------
+// Column names follow the sys_dictionary of a live instance (O-5): conditions
+// live in `condition_to_run`, timers point at their activity through the
+// document_id `source`, and a run's `process_definition` is the
+// sys_pd_snapshot it ran, whose `source` is the definition.
 
 const PD_FIELDS = [
   "sys_id",
   "label",
   "name",
-  "table",
   "status",
   "active",
   "description",
@@ -44,7 +47,7 @@ const LANE_FIELDS = [
   "label",
   "name",
   "order",
-  "condition",
+  "condition_to_run",
 ];
 
 const PD_ACTIVITY_FIELDS = [
@@ -54,7 +57,7 @@ const PD_ACTIVITY_FIELDS = [
   "name",
   "order",
   "activity_definition",
-  "condition",
+  "condition_to_run",
 ];
 
 const PD_TRIGGER_FIELDS = [
@@ -64,18 +67,15 @@ const PD_TRIGGER_FIELDS = [
   "trigger_definition",
   "trigger_definition.name",
   "trigger_type",
-  "table",
-  "condition",
+  "trigger_type.name",
 ];
 
-const TIMER_FIELDS = ["sys_id", "activity", "name", "type", "duration"];
+const TIMER_FIELDS = ["sys_id", "source", "duration_type", "timer_duration"];
 
 const VARIANT_FIELDS = [
   "sys_id",
   "process_definition",
   "label",
-  "name",
-  "active",
   "condition",
   "order",
 ];
@@ -94,8 +94,15 @@ async function readPlaybookRuns(
   const rows = await boundedRead(
     ctx,
     "sys_pd_context",
-    `process_definition=${pdId}^ORDERBYDESCsys_created_on`,
-    ["sys_id", "name", "state", "sys_created_on", "ended", "table", "document"],
+    `process_definition.source=${pdId}^ORDERBYDESCsys_created_on`,
+    [
+      "sys_id",
+      "name",
+      "state",
+      "sys_created_on",
+      "input_table",
+      "input_record",
+    ],
     limit,
   );
   const runs = rows.map(
@@ -106,9 +113,8 @@ async function readPlaybookRuns(
       ...(opt(r, "sys_created_on")
         ? { started: str(r, "sys_created_on") }
         : {}),
-      ...(opt(r, "ended") ? { ended: str(r, "ended") } : {}),
-      ...(opt(r, "table") ? { table: str(r, "table") } : {}),
-      ...(opt(r, "document") ? { record: str(r, "document") } : {}),
+      ...(opt(r, "input_table") ? { table: str(r, "input_table") } : {}),
+      ...(opt(r, "input_record") ? { record: str(r, "input_record") } : {}),
     }),
   );
   if (!runs.length) return runs;
@@ -161,7 +167,6 @@ export async function explainPlaybook(
     ...(opt(row, "label") && opt(row, "name")
       ? { internal_name: str(row, "name") }
       : {}),
-    ...(opt(row, "table") ? { table: str(row, "table") } : {}),
     ...(opt(row, "status") ? { status: str(row, "status") } : {}),
     ...(bool(row, "active") !== undefined
       ? { active: bool(row, "active") }
@@ -210,7 +215,7 @@ export async function explainPlaybook(
       ? await boundedReadIn(
           ctx,
           "sys_pd_timer_attributes",
-          "activity",
+          "source",
           activityIds,
           TIMER_FIELDS,
         )
@@ -218,13 +223,14 @@ export async function explainPlaybook(
   ).map(
     (t): PdTimer => ({
       sys_id: str(t, "sys_id"),
-      activity: str(t, "activity"),
-      ...(opt(t, "name") ? { name: str(t, "name") } : {}),
-      ...(opt(t, "type") ? { type: str(t, "type") } : {}),
-      ...(opt(t, "duration") ? { duration: str(t, "duration") } : {}),
+      activity: str(t, "source"),
+      ...(opt(t, "duration_type") ? { type: str(t, "duration_type") } : {}),
+      ...(opt(t, "timer_duration")
+        ? { duration: str(t, "timer_duration") }
+        : {}),
     }),
   );
-  // Read by `activity IN (...)`, so every timer belongs to one activity.
+  // Read by `source IN (...)`, so every timer belongs to one activity.
   const timersOf = new Map<string, PdTimer[]>();
   for (const t of timers) {
     const list = timersOf.get(t.activity!) ?? [];
@@ -250,7 +256,9 @@ export async function explainPlaybook(
       sys_id: str(l, "sys_id"),
       name: labelOf(l),
       order: num(l, "order"),
-      ...(opt(l, "condition") ? { condition: str(l, "condition") } : {}),
+      ...(opt(l, "condition_to_run")
+        ? { condition: str(l, "condition_to_run") }
+        : {}),
       activities: acts.map((a, j): PdActivity => {
         const defId = str(a, "activity_definition");
         const defName = defs.get(defId);
@@ -267,7 +275,9 @@ export async function explainPlaybook(
                   : { sys_id: defId },
               }
             : {}),
-          ...(opt(a, "condition") ? { condition: str(a, "condition") } : {}),
+          ...(opt(a, "condition_to_run")
+            ? { condition: str(a, "condition_to_run") }
+            : {}),
           ...(own ? { timers: own } : {}),
         };
       }),
@@ -288,9 +298,9 @@ export async function explainPlaybook(
       ...(ref(t, "trigger_definition")
         ? { definition: ref(t, "trigger_definition") }
         : {}),
-      ...(opt(t, "trigger_type") ? { type: str(t, "trigger_type") } : {}),
-      ...(opt(t, "table") ? { table: str(t, "table") } : {}),
-      ...(opt(t, "condition") ? { condition: str(t, "condition") } : {}),
+      ...(opt(t, "trigger_type")
+        ? { type: opt(t, "trigger_type.name") ?? str(t, "trigger_type") }
+        : {}),
     }),
   );
   result.inputs = await readVariables(
@@ -316,7 +326,6 @@ export async function explainPlaybook(
     (v): PdVariant => ({
       sys_id: str(v, "sys_id"),
       name: labelOf(v),
-      ...(bool(v, "active") !== undefined ? { active: bool(v, "active") } : {}),
       ...(opt(v, "condition") ? { condition: str(v, "condition") } : {}),
       ...(optNum(v, "order") !== undefined
         ? { order: optNum(v, "order") }
