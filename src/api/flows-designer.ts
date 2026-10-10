@@ -1,6 +1,14 @@
 import { queryTable, getRecord } from "./table.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { ServiceNowError } from "../core/errors.js";
+import {
+  TRIGGER_V1,
+  TRIGGER_V2,
+  V1_INPUTS,
+  v1Inputs,
+  v1TableQuery,
+  v2Inputs,
+} from "./flow-triggers.js";
 
 /**
  * FT-1 Flow Designer and legacy workflow reading, and FT-3 execution
@@ -61,16 +69,7 @@ export async function listFlows(
   // Flow Designer: a table filter means "flows whose trigger is on that table".
   let flowIdFilter = "";
   if (opts.table?.trim()) {
-    const { records } = await queryTable({
-      table: "sys_hub_trigger_instance",
-      query: `table_name=${opts.table.trim()}`,
-      fields: ["flow"],
-      displayValue: "false",
-      limit: 500,
-    });
-    const ids = [
-      ...new Set(records.map((r) => snString(r.flow)).filter(Boolean)),
-    ];
+    const ids = await flowIdsOnTable(opts.table.trim());
     if (ids.length === 0) return { kind, count: 0, flows: [] };
     flowIdFilter = `sys_idIN${ids.join(",")}^`;
   }
@@ -168,22 +167,7 @@ export async function getFlow(
   ]);
   let trigger: FlowTrigger | undefined;
   try {
-    const { records } = await queryTable({
-      table: "sys_hub_trigger_instance",
-      query: `flow=${sysId}`,
-      fields: ["table_name", "trigger_type", "condition", "when_to_run"],
-      displayValue: "false",
-      limit: 1,
-    });
-    const t = records[0];
-    if (t) {
-      trigger = {
-        table: snString(t.table_name) || undefined,
-        type: snString(t.trigger_type) || undefined,
-        condition: snString(t.condition) || undefined,
-        when: snString(t.when_to_run) || undefined,
-      };
-    }
+    trigger = await readTrigger(sysId);
   } catch {
     // trigger optional
   }
@@ -207,6 +191,74 @@ export async function getFlow(
       type: snString(a.action_type) || undefined,
     })),
   };
+}
+
+/** Flows with a trigger (v1 or v2) whose `table` input is this table. */
+async function flowIdsOnTable(table: string): Promise<string[]> {
+  const { records: vars } = await queryTable({
+    table: V1_INPUTS.table,
+    query: v1TableQuery([table]),
+    fields: [...V1_INPUTS.fields],
+    displayValue: "false",
+    limit: 500,
+  });
+  const ids = new Set<string>();
+  const v1 = [...v1Inputs(vars).keys()];
+  if (v1.length) {
+    const { records } = await queryTable({
+      table: TRIGGER_V1,
+      query: `sys_idIN${v1.join(",")}`,
+      fields: ["flow"],
+      displayValue: "false",
+      limit: 500,
+    });
+    for (const r of records) ids.add(snString(r.flow));
+  }
+  const { records: v2 } = await queryTable({
+    table: TRIGGER_V2,
+    query: "",
+    fields: ["flow", "trigger_inputs"],
+    displayValue: "false",
+    limit: 500,
+  });
+  for (const r of v2) {
+    if (v2Inputs(r.trigger_inputs).table === table) ids.add(snString(r.flow));
+  }
+  ids.delete("");
+  return [...ids];
+}
+
+/** The flow's first trigger: v2 first, then v1 with its sys_variable_value inputs. */
+async function readTrigger(flowId: string): Promise<FlowTrigger | undefined> {
+  for (const table of [TRIGGER_V2, TRIGGER_V1]) {
+    const { records } = await queryTable({
+      table,
+      query: `flow=${flowId}`,
+      fields: ["sys_id", "trigger_type", "trigger_inputs"],
+      displayValue: "false",
+      limit: 1,
+    });
+    const t = records[0];
+    if (!t) continue;
+    let inputs = v2Inputs(t.trigger_inputs);
+    if (table === TRIGGER_V1) {
+      const { records: vars } = await queryTable({
+        table: V1_INPUTS.table,
+        query: `${V1_INPUTS.prefix}^document_key=${snString(t.sys_id)}`,
+        fields: [...V1_INPUTS.fields],
+        displayValue: "false",
+        limit: 50,
+      });
+      inputs = { ...inputs, ...v1Inputs(vars).get(snString(t.sys_id)) };
+    }
+    return {
+      table: inputs.table || undefined,
+      type: snString(t.trigger_type) || undefined,
+      condition: inputs.condition || undefined,
+      when: inputs.trigger_strategy || undefined,
+    };
+  }
+  return undefined;
 }
 
 export interface FlowRun {

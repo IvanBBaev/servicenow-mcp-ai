@@ -346,14 +346,16 @@ function laneHandler(extra) {
         result: [{ name: "incident", "super_class.name": "" }],
       });
     }
-    if (table === "sys_hub_trigger_instance") {
+    if (table === "sys_hub_trigger_instance_v2") {
       assert.ok(fields.split(",").includes("flow.sys_domain"));
       return jsonResponse(200, {
         result: [
           {
             flow: "f1",
             "flow.name": "Notify",
-            table_name: "incident",
+            trigger_inputs: JSON.stringify([
+              { name: "table", value: "incident" },
+            ]),
             trigger_type: "record_create",
             ...extra.flow,
           },

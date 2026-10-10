@@ -271,9 +271,10 @@ function fixture() {
         flow: FLOW,
         trigger_definition: TDEF,
         trigger_type: "record_create",
-        table: "incident",
-        condition: "priority=1",
-        values: "",
+        trigger_inputs: JSON.stringify([
+          { name: "table", value: "incident" },
+          { name: "condition", value: "priority=1" },
+        ]),
       },
     ],
     sys_hub_trigger_definition: [

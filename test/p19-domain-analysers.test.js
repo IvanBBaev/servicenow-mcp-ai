@@ -144,9 +144,13 @@ const FLOW_TABLES = {
     return FLOWS;
   },
   sys_hub_trigger_instance_v2: [
-    { sys_id: "t1", flow: "f1", table: "sys_user_has_role", values: "" },
-    { sys_id: "t2", flow: "f2", table: "incident", values: "" },
-    { sys_id: "t4", flow: "f4", table: "sys_user", values: "" },
+    {
+      sys_id: "t1",
+      flow: "f1",
+      trigger_inputs: vals({ table: "sys_user_has_role" }),
+    },
+    { sys_id: "t2", flow: "f2", trigger_inputs: vals({ table: "incident" }) },
+    { sys_id: "t4", flow: "f4", trigger_inputs: vals({ table: "sys_user" }) },
   ],
   sys_hub_action_instance_v2: [
     // f1: unguarded REST.

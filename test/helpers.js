@@ -143,6 +143,8 @@ export const METADATA_TABLES = [
   /^sys_user_role(_contains)?$/,
   // Flow Designer definition tables, versioned ones included (…_v2).
   /^sys_hub_[a-z0-9_]+$/,
+  // O-5: a v1 flow trigger's inputs (read with document=sys_hub_trigger_instance).
+  /^sys_variable_value$/,
   /^wf_workflow$/,
   /^sysevent_email_action$/,
   // Script-bearing configuration the where-used scan reads (scripts.ts).

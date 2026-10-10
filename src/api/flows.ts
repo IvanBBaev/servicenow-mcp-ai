@@ -1,4 +1,13 @@
-import { queryTable } from "./table.js";
+import { queryTable, type SnRecord } from "./table.js";
+import {
+  TRIGGER_V1,
+  TRIGGER_V2,
+  type TriggerInputs,
+  V1_INPUTS,
+  v1Inputs,
+  v1TableQuery,
+  v2Inputs,
+} from "./flow-triggers.js";
 import { getTableChain } from "./meta.js";
 import { listScripts } from "./scripts.js";
 import { assertNoCaret, snString } from "./shared.js";
@@ -124,7 +133,7 @@ function triggerFires(triggerType: string, operation: TableOperation): boolean {
 
 /**
  * Flow Designer flows triggered on the table or one of its parents (via
- * sys_hub_trigger_instance), filtered to the triggers that fire on the
+ * sys_hub_trigger_instance and _v2), filtered to the triggers that fire on the
  * operation. Nothing record-triggered fires on a read.
  */
 async function flowsForTable(
@@ -134,31 +143,68 @@ async function flowsForTable(
 ): Promise<ChainEntry[]> {
   if (operation === "query") return [];
   const traced = tables[0] ?? "";
+  const fields = [
+    "sys_id",
+    "flow",
+    "flow.name",
+    "trigger_type",
+    // N-12: the flow's domain (the trigger's own is not what runs).
+    ...domainTraceFields("flow."),
+  ];
   try {
-    const { records } = await queryTable({
-      table: "sys_hub_trigger_instance",
-      query: `table_nameIN${tables.join(",")}^flow.active=true`,
-      fields: [
-        "flow",
-        "flow.name",
-        "table_name",
-        "condition",
-        "trigger_type",
-        // N-12: the flow's domain (the trigger's own is not what runs).
-        ...domainTraceFields("flow."),
-      ],
+    // v1 triggers: the `table` input lives in sys_variable_value.
+    const { records: vars } = await queryTable({
+      table: V1_INPUTS.table,
+      query: v1TableQuery(tables),
+      fields: [...V1_INPUTS.fields],
       displayValue: "false",
       limit: 100,
     });
-    return records
-      .filter((r) => triggerFires(snString(r.trigger_type), operation))
-      .map((r) => ({
+    const v1 = v1Inputs(vars);
+    const found: { row: SnRecord; inputs: TriggerInputs }[] = [];
+    if (v1.size) {
+      const ids = [...v1.keys()].join(",");
+      const { records: conds } = await queryTable({
+        table: V1_INPUTS.table,
+        query: `${V1_INPUTS.prefix}^document_keyIN${ids}^variable.element=condition`,
+        fields: [...V1_INPUTS.fields],
+        displayValue: "false",
+        limit: 100,
+      });
+      for (const [id, c] of v1Inputs(conds)) Object.assign(v1.get(id) ?? {}, c);
+      const { records } = await queryTable({
+        table: TRIGGER_V1,
+        query: `sys_idIN${ids}^flow.active=true`,
+        fields,
+        displayValue: "false",
+        limit: 100,
+      });
+      for (const row of records) {
+        found.push({ row, inputs: v1.get(snString(row.sys_id)) ?? {} });
+      }
+    }
+    // v2 triggers: the inputs are packed in trigger_inputs, so the table
+    // filter runs here.
+    const { records: v2 } = await queryTable({
+      table: TRIGGER_V2,
+      query: "flow.active=true",
+      fields: [...fields, "trigger_inputs"],
+      displayValue: "false",
+      limit: 500,
+    });
+    for (const row of v2) {
+      const inputs = v2Inputs(row.trigger_inputs);
+      if (tables.includes(inputs.table ?? "")) found.push({ row, inputs });
+    }
+    return found
+      .filter(({ row }) => triggerFires(snString(row.trigger_type), operation))
+      .map(({ row: r, inputs }) => ({
         phase: "flow" as const,
         type: snString(r.trigger_type) || "flow",
         name: snString(r["flow.name"]) || snString(r.flow),
-        condition: snString(r.condition) || undefined,
+        condition: inputs.condition || undefined,
         sys_id: snString(r.flow) || undefined,
-        ...origin(traced, snString(r.table_name)),
+        ...origin(traced, inputs.table ?? ""),
         ...recordDomain(r, "flow."),
       }));
   } catch (e) {

@@ -238,17 +238,20 @@ const traceFetch = (url) => {
       result: LANE_RULES.filter((r) => r.when === when),
     });
   }
-  if (table === "sys_hub_trigger_instance")
+  if (table === "sys_hub_trigger_instance_v2")
     return jsonResponse(200, {
       result: [
         {
           flow: "f1",
           "flow.name": "Incident SLA",
-          table_name: "incident",
+          trigger_inputs: JSON.stringify([
+            { name: "table", value: "incident" },
+          ]),
           trigger_type: "record_update",
         },
       ],
     });
+  if (table === "sys_variable_value") return jsonResponse(200, { result: [] });
   if (table === "wf_workflow") return jsonResponse(200, { result: [] });
   if (table === "sysevent_email_action")
     return jsonResponse(200, {
