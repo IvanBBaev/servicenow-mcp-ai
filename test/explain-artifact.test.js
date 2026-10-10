@@ -271,7 +271,6 @@ const CASES = {
       wf_workflow: {
         sys_id: "1b".repeat(16),
         name: "Acme approval",
-        active: "true",
         description: "Legacy approval workflow.",
         sys_scope: APP_ID,
       },
@@ -287,15 +286,13 @@ const CASES = {
       wf_activity: [
         {
           sys_id: "3b".repeat(16),
-          workflow: "1b".repeat(16),
+          workflow_version: "2b".repeat(16),
           name: "Begin",
-          order: "1",
         },
         {
           sys_id: "4b".repeat(16),
-          workflow: "1b".repeat(16),
+          workflow_version: "2b".repeat(16),
           name: "Approval - User",
-          order: "2",
         },
       ],
       wf_transition: [
@@ -363,7 +360,6 @@ const CASES = {
         sys_id: "1e".repeat(16),
         name: "Acme triage agent",
         description: "Routes incidents.",
-        active: "true",
         sys_scope: APP_ID,
       },
       sn_aia_agent_tool_m2m: [

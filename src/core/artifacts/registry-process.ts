@@ -85,7 +85,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
         parentField: "action",
         orderField: "order",
         jsonFields: [
-          { field: "values", decoder: "flow-values", writable: false },
+          { field: "inputs", decoder: "flow-values", writable: false },
         ],
       },
     ],
@@ -223,8 +223,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { table: "wf_workflow_version", parentField: "workflow" },
       {
         table: "wf_activity",
-        parentField: "workflow",
-        orderField: "order",
+        parentField: "workflow_version",
+        parentTable: "wf_workflow_version",
         nameField: "name",
       },
       {
@@ -248,7 +248,6 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       },
     ],
     nameField: "name",
-    activeField: "active",
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
@@ -575,16 +574,16 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
         parentKey: "tool",
         nameField: "name",
       },
-      { table: "sn_aia_trigger_configuration", parentField: "agent" },
-      { table: "sn_aia_version", parentField: "agent" },
+      // `target_id` is a document id (with `target_table`); sys_ids are
+      // unique, so the id alone links the version to its agent.
+      { table: "sn_aia_version", parentField: "target_id" },
     ],
     nameField: "name",
-    activeField: "active",
     scriptFields: [],
     tiers: SEED_TIERS,
     verified: false,
     licensed: AI_AGENTS_APP,
-    metaFields: ["description", "active"],
+    metaFields: ["description"],
   },
   {
     ...BASE,
@@ -608,14 +607,14 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
           { field: "agent", table: "sn_aia_agent", type: "ai_agent" },
         ],
       },
+      { table: "sn_aia_trigger_configuration", parentField: "usecase" },
     ],
     nameField: "name",
-    activeField: "active",
     scriptFields: [],
     tiers: SEED_TIERS,
     verified: false,
     licensed: AI_AGENTS_APP,
-    metaFields: ["description", "team", "active"],
+    metaFields: ["description", "team"],
   },
   {
     ...BASE,
@@ -705,7 +704,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
-    metaFields: ["url", "branch", "application"],
+    metaFields: ["url", "current_branch", "sys_app"],
   },
   // -- N-8: reports and Performance Analytics (SDK-PARITY §4.13) -----------
   // Read-only seeds. O-5: verify on a live instance — every table and field
@@ -791,7 +790,6 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       },
     ],
     nameField: "name",
-    activeField: "active",
     scriptFields: [],
     // O-5: verify on a live instance.
     refFields: [
@@ -809,7 +807,6 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       "conditions",
       "frequency",
       "formula",
-      "active",
     ],
   },
   {
@@ -846,14 +843,13 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       },
     ],
     nameField: "name",
-    activeField: "active",
     scriptFields: [],
     // O-5: verify on a live instance.
     refFields: [{ field: "dimension", table: "pa_dimensions" }],
     tiers: SEED_TIERS,
     verified: false,
     licensed: PERFORMANCE_ANALYTICS,
-    metaFields: ["dimension", "active"],
+    metaFields: ["dimension"],
   },
   {
     ...BASE,
@@ -869,8 +865,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     tiers: SEED_TIERS,
     verified: false,
     licensed: PERFORMANCE_ANALYTICS,
-    appliesToField: "facts_table",
-    metaFields: ["facts_table", "fields"],
+    appliesToField: "table",
+    metaFields: ["table", "arguments"],
   },
   {
     ...BASE,
