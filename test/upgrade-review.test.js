@@ -57,6 +57,35 @@ test("update names, registry types, dispositions, resolutions", () => {
   assert.equal(isResolved(""), false);
 });
 
+test("O-5: PDI disposition and resolution choices, as labels and values", () => {
+  for (const d of [
+    "Skipped",
+    "Skipped Error",
+    "Skipped Apply Once",
+    "Skipped (second pass)",
+  ]) {
+    assert.equal(isSkipDisposition(d), true, d);
+  }
+  for (const v of ["4", "9", "10", "11", "104"]) {
+    assert.equal(isSkipDisposition(v), true, v);
+  }
+  for (const v of ["1", "7", "8", "202", "Unchanged and Customized"]) {
+    assert.equal(isSkipDisposition(v), false, v);
+  }
+  for (const r of [
+    "Reviewed",
+    "Reviewed and Merged",
+    "Reviewed and Retained",
+    "Reviewed and Reverted",
+    "Always Retain",
+    "reviewed_merged",
+    "always_retain",
+  ]) {
+    assert.equal(isResolved(r), true, r);
+  }
+  assert.equal(isResolved("not_reviewed"), false);
+});
+
 test("payload fields drop the volatile system fields and keep CDATA", () => {
   const f = payloadFields(payload("if (a < b) go();"));
   assert.deepEqual(f, {
