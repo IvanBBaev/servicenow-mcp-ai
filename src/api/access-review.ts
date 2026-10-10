@@ -22,9 +22,10 @@ import { isSysId } from "../core/sys-id.js";
  *
  * Read-only and bounded; never throws except on a cancel. Each read that
  * fails degrades to `available:false` (roles, holders) or
- * `revokes.available:false` (audit). Table and field names
- * (sys_user_has_role.granted_by / included_in_role, sys_audit_delete
- * tablename / documentkey) are unverified until O-5 (PDI).
+ * `revokes.available:false` (audit). Table and field names and the
+ * sys_audit_delete payload format were checked on a PDI (O-5): granted_by is
+ * the granting group, included_in_role is the containing sys_user_has_role row
+ * (so its role is `included_in_role.role`).
  */
 
 /** Roles that are privileged whatever their elevated_privilege flag says. */
@@ -142,7 +143,7 @@ export function privilegedContainers(
 
 function grantOf(r: Record<string, unknown>): PrivilegedGrant {
   const group = snString(r["granted_by.name"]);
-  const container = snString(r["included_in_role.name"]);
+  const container = snString(r["included_in_role.role.name"]);
   const inherited = snString(r.inherited) === "true";
   const by = snString(r.sys_created_by);
   const on = snString(r.sys_created_on);
@@ -309,7 +310,7 @@ export async function readAccessReview({
         "role.name",
         "inherited",
         "granted_by.name",
-        "included_in_role.name",
+        "included_in_role.role.name",
         "sys_created_by",
         "sys_created_on",
       ],
@@ -394,7 +395,7 @@ export function renderAccessReview(review: AccessReview): string[] {
     );
   }
   lines.push(
-    "Granted by / on are the role row's creator and creation date. Field names (granted_by, included_in_role, last_login_time) and the revoke source (sys_audit_delete) are unverified until O-5 (PDI).",
+    "Granted by / on are the role row's creator and creation date.",
     "",
   );
   return lines;
@@ -457,7 +458,7 @@ function payloadField(
 /**
  * The user and role of a deleted sys_user_has_role row, read from its
  * sys_audit_delete XML payload (`<user>…</user>`, `<role display_value="…">…</role>`).
- * The payload format is unverified until O-5 (PDI).
+ * The payload format was checked on a PDI (O-5).
  */
 export function deletedRoleRow(payload: string): {
   user?: string;
@@ -507,7 +508,7 @@ export async function readRoleHistory({
         "role.name",
         "inherited",
         "granted_by.name",
-        "included_in_role.name",
+        "included_in_role.role.name",
         "state",
         "sys_created_by",
         "sys_created_on",
@@ -616,7 +617,7 @@ export function renderRoleHistory(history: RoleHistory): string[] {
     );
   }
   lines.push(
-    "A grant's by / on are the role row's creator and creation date; a revoke is a deleted role row from sys_audit_delete. The payload format and field names are unverified until O-5 (PDI).",
+    "A grant's by / on are the role row's creator and creation date; a revoke is a deleted role row from sys_audit_delete.",
     "",
   );
   return lines;
