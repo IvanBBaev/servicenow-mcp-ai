@@ -657,6 +657,10 @@ const explainCatalogUiPolicy: Explainer = (ctx) =>
   ]);
 
 // -- decision tables (P-11) -----------------------------------------------------
+// Columns per the sys_dictionary of a live instance (O-5): sys_decision has
+// answer_table (no `table`); sys_decision_question has condition, answer
+// (document_id), label, default_answer, active, order; sys_decision_input
+// extends var_dictionary (element, label, internal_type, order).
 
 const DECISION_CAVEAT =
   "sys_decision, sys_decision_input and sys_decision_question and their fields (condition, answer, default_answer) are verified:false: unconfirmed on a live instance (gate O-5).";
@@ -666,28 +670,20 @@ const explainDecisionTable: Explainer = (ctx) => {
   const inputs = byOrder(
     allRows(ctx, "sys_decision_input").map((r) => ({
       sys_id: snString(r.sys_id),
-      element: pick(r, ["element", "name"]),
-      label: pick(r, ["label", "element", "name"]),
+      element: snString(r.element),
+      label: pick(r, ["label", "element"]),
       order: snString(r.order),
-      ...(pick(r, ["internal_type", "type"])
-        ? { type: pick(r, ["internal_type", "type"]) }
-        : {}),
+      ...(snString(r.internal_type) ? { type: snString(r.internal_type) } : {}),
     })),
   );
   const rows = byOrder(
     allRows(ctx, "sys_decision_question").map((r) => {
-      const condition = pick(r, [
-        "condition",
-        "conditions",
-        "decision_condition",
-      ]);
-      const answer = pick(r, ["answer", "result", "answer_value"]);
+      const condition = snString(r.condition);
+      const answer = snString(r.answer);
       return {
         sys_id: snString(r.sys_id),
         order: snString(r.order),
-        ...(pick(r, ["label", "name"])
-          ? { label: pick(r, ["label", "name"]) }
-          : {}),
+        ...(snString(r.label) ? { label: snString(r.label) } : {}),
         ...(condition ? { condition } : {}),
         ...(answer ? { answer } : {}),
         ...(snString(r.default_answer) === "true"
@@ -697,7 +693,7 @@ const explainDecisionTable: Explainer = (ctx) => {
       };
     }),
   );
-  const answerTable = pick(record, ["answer_table", "table"]);
+  const answerTable = snString(record.answer_table);
   const capped = ["sys_decision_input", "sys_decision_question"].filter((t) =>
     ctx.children.some((c) => c.table === t && c.truncated),
   );

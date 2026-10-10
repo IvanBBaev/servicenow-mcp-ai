@@ -4,6 +4,7 @@
 // opt-in runs (sys_pd_context + sys_pd_activity_context). Acceptance: the lanes
 // render as Mermaid subgraphs (golden playbook.mmd). An instance without the
 // sys_pd_* family answers available:false with a caveat, never an error.
+// Column names follow the PDI dictionary (O-5): see decision-playbook-o5.test.js.
 // Regenerate the golden deliberately with `UPDATE_GOLDEN=1 npm test`.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -46,7 +47,6 @@ function fixture() {
         sys_id: PB,
         label: "Laptop Onboarding",
         name: "laptop_onboarding",
-        table: "sn_hr_core_case",
         status: "published",
         active: "true",
         description: "Guides an agent\nthrough onboarding.",
@@ -59,7 +59,7 @@ function fixture() {
         process_definition: PB,
         label: "Fulfil",
         order: "200",
-        condition: "state=2",
+        condition_to_run: "state=2",
       },
       { sys_id: L1, process_definition: PB, label: "Intake", order: "100" },
       { sys_id: L3, process_definition: PB, label: "Close", order: "300" },
@@ -72,7 +72,7 @@ function fixture() {
         label: "Approve Request",
         order: "200",
         activity_definition: D2,
-        condition: "approval=requested",
+        condition_to_run: "approval=requested",
       },
       {
         sys_id: A1,
@@ -102,8 +102,13 @@ function fixture() {
       { sys_id: D2, name: "approval" },
     ],
     sys_pd_timer_attributes: [
-      { sys_id: "tm1", activity: A4, name: "Delivery SLA", duration: "2 days" },
-      { sys_id: "tm2", activity: A4, type: "reminder" },
+      {
+        sys_id: "tm1",
+        source: A4,
+        duration_type: "explicit_duration",
+        timer_duration: "2 days",
+      },
+      { sys_id: "tm2", source: A4, duration_type: "relative_duration" },
     ],
     sys_pd_trigger_instance: [
       {
@@ -111,14 +116,13 @@ function fixture() {
         process_definition: PB,
         trigger_definition: "td1",
         "trigger_definition.name": "Record Created",
-        table: "sn_hr_core_case",
-        condition: "hr_service=laptop",
       },
       {
         sys_id: "tr2",
         process_definition: PB,
         name: "Manual start",
-        trigger_type: "manual",
+        trigger_type: "tt1",
+        "trigger_type.name": "manual",
       },
     ],
     sys_pd_process_input: [
@@ -147,34 +151,34 @@ function fixture() {
         sys_id: "v1",
         process_definition: PB,
         label: "EMEA",
-        active: "true",
         condition: "location.region=emea",
         order: "1",
       },
       {
         sys_id: "v2",
         process_definition: PB,
-        name: "legacy",
-        active: "false",
+        label: "Legacy",
         order: "2",
       },
     ],
     sys_pd_context: [
       {
         sys_id: "pc1",
-        process_definition: PB,
+        // A run points at the snapshot it ran; the snapshot's source is the PB.
+        process_definition: "snap",
+        "process_definition.source": PB,
         name: "Laptop Onboarding",
         state: "in_progress",
         sys_created_on: "2026-09-20 08:00:00",
-        table: "sn_hr_core_case",
-        document: "hr1",
+        input_table: "sn_hr_core_case",
+        input_record: "hr1",
       },
       {
         sys_id: "pc2",
-        process_definition: PB,
+        process_definition: "snap",
+        "process_definition.source": PB,
         state: "complete",
         sys_created_on: "2026-09-10 08:00:00",
-        ended: "2026-09-12 08:00:00",
       },
     ],
     sys_pd_activity_context: [
@@ -190,10 +194,11 @@ function fixture() {
 
 function matchTerm(row, term) {
   let m;
-  if ((m = /^(\w+)IN(.*)$/.exec(term))) {
+  if ((m = /^([\w.]+)IN(.*)$/.exec(term))) {
     return m[2].split(",").includes(String(row[m[1]] ?? ""));
   }
-  if ((m = /^(\w+)=(.*)$/.exec(term))) return String(row[m[1]] ?? "") === m[2];
+  if ((m = /^([\w.]+)=(.*)$/.exec(term)))
+    return String(row[m[1]] ?? "") === m[2];
   throw new Error(`unsupported term ${term}`);
 }
 
@@ -271,7 +276,6 @@ test("P-12: the playbook's lanes, activities, triggers, variables and variants",
     sys_id: PB,
     name: "Laptop Onboarding",
     internal_name: "laptop_onboarding",
-    table: "sn_hr_core_case",
     status: "published",
     active: true,
     description: "Guides an agent\nthrough onboarding.",
@@ -321,14 +325,8 @@ test("P-12: the playbook's lanes, activities, triggers, variables and variants",
     ["asset_tag"],
   );
   assert.deepEqual(res.variants, [
-    {
-      sys_id: "v1",
-      name: "EMEA",
-      active: true,
-      condition: "location.region=emea",
-      order: 1,
-    },
-    { sys_id: "v2", name: "legacy", active: false, order: 2 },
+    { sys_id: "v1", name: "EMEA", condition: "location.region=emea", order: 1 },
+    { sys_id: "v2", name: "Legacy", order: 2 },
   ]);
   assert.equal(res.runs, undefined);
   assert.ok(!mock.reads.includes("sys_pd_context"));
@@ -351,7 +349,8 @@ test("P-12: opt-in runs read sys_pd_context with activity states", async () => {
       ["pc2", "complete", undefined, { unknown: 1 }],
     ],
   );
-  assert.equal(res.runs[1].ended, "2026-09-12 08:00:00");
+  assert.equal(res.runs[0].table, "sn_hr_core_case");
+  assert.equal(res.runs[1].ended, undefined);
   assert.equal(res.counts.runs, 2);
   const tables = fixture();
   tables.sys_pd_context = [];
@@ -373,7 +372,7 @@ test("P-12 acceptance: the fixture playbook renders lanes as Mermaid subgraphs",
   assert.match(res.mermaid, new RegExp(`act_${A1} --> act_${A2}`));
   assert.match(res.mermaid, /2\.2 wait_delivery · 2 timer\(s\)/);
   assert.match(res.mermaid, /1\.2 Approve Request · approval/);
-  assert.match(res.mermaid, /Trigger: Record Created · sn_hr_core_case/);
+  assert.match(res.mermaid, /Trigger: Record Created/);
   const file = path.join(FIXTURES, "playbook.mmd");
   if (process.env.UPDATE_GOLDEN === "1") {
     mkdirSync(FIXTURES, { recursive: true });
@@ -394,16 +393,16 @@ test("P-12: the markdown report and the file format", async () => {
   );
   assert.match(md, /- Internal name: laptop_onboarding/);
   assert.match(md, /- Description: Guides an agent through onboarding\./);
-  assert.match(md, /## Triggers[\s\S]*condition: hr_service=laptop/);
+  assert.match(md, /## Triggers[\s\S]*Manual start/);
   assert.match(md, /- \*\*2 Fulfil\*\* · condition: state=2/);
   assert.match(md, /- 1\.1 Collect Details _\(Form\)_/);
   assert.match(md, new RegExp(`- 2\\.2 wait_delivery _\\(${id("e")}\\)_`));
-  assert.match(md, /- timer Delivery SLA \(2 days\)/);
-  assert.match(md, /- timer reminder$/m);
+  assert.match(md, /- timer explicit_duration \(2 days\)/);
+  assert.match(md, /- timer relative_duration$/m);
   assert.match(md, /- \*\*3 Close\*\*\n {2}- _No activities\._/);
   assert.match(md, /## Inputs[\s\S]*\| case \| Case \|/);
   assert.match(md, /## Outputs/);
-  assert.match(md, /- legacy \(inactive\)/);
+  assert.match(md, /- Legacy$/m);
   assert.match(md, /- EMEA · condition: location\.region=emea/);
   assert.match(md, /\(pc1\)\n {2}- activities: complete 2, in_progress 1/);
   assert.match(md, /```mermaid\n[\s\S]*subgraph lane_/);
