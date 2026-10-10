@@ -473,35 +473,38 @@ test("explain golden — state model transitions", async () => {
     sttrm_model: {
       sys_id: id("1"),
       name: "Acme task lifecycle",
-      table: "x_acme_task",
+      table_name: "x_acme_task",
       state_field: "state",
       sys_scope: APP_ID,
     },
     sttrm_state: [
-      { sys_id: id("2"), model: id("1"), state_value: "1", label: "New" },
+      { sys_id: id("2"), sttrm_model: id("1"), state_value: "1", label: "New" },
       {
         sys_id: id("3"),
-        model: id("1"),
+        sttrm_model: id("1"),
         state_value: "2",
         label: "Work in progress",
       },
-      { sys_id: id("4"), model: id("1"), state_value: "3", label: "Closed" },
+      {
+        sys_id: id("4"),
+        sttrm_model: id("1"),
+        state_value: "3",
+        label: "Closed",
+      },
     ],
     sttrm_state_transition: [
       {
         sys_id: id("5"),
-        model: id("1"),
         from_state: id("2"),
         to_state: id("3"),
       },
       {
         sys_id: id("6"),
-        model: id("1"),
         name: "Close",
         from_state: id("3"),
         to_state: "3",
       },
-      { sys_id: id("7"), model: id("1"), from_state: "", to_state: "9" },
+      { sys_id: id("7"), from_state: "", to_state: "9" },
     ],
     sttrm_transition_condition: [
       {

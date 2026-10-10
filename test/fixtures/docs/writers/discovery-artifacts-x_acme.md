@@ -219,9 +219,9 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 
 ### `rest_message`
 
-| name | sdkManaged | rest_endpoint | authentication_type | use_mid_server |
-| --- | --- | --- | --- | --- |
-| Weather | unknown | https://api.example.com/weather | no_authentication |  |
+| name | sdkManaged | rest_endpoint | authentication_type |
+| --- | --- | --- | --- |
+| Weather | unknown | https://api.example.com/weather | no_authentication |
 
 ## classic-ui
 
