@@ -14,9 +14,10 @@ import type { CapabilityReport, MatrixGroup } from "./capabilities.js";
  *   needs. Only decidable when the `roles` matrix group could read the
  *   account's roles; otherwise `rolesKnown` is false and `excess` is empty.
  *
- * Role names are the platform's out-of-box ones; which package needs which
- * role is unverified until O-5 (PDI), so the advice is informational and never
- * changes the doctor verdict.
+ * Role names are the platform's out-of-box ones, checked on a PDI (O-5);
+ * maint and security_admin are counted there but their rows are hidden from a
+ * non-elevated read. Which package needs which role is a judgement, so the
+ * advice is informational and never changes the doctor verdict.
  */
 
 /** Which enabled packages depend on each table-preflight capability. */

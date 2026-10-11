@@ -45,8 +45,10 @@ const SCHEMA_TABLES = ["sys_db_object", "sys_dictionary"];
 /**
  * Every distinct artefact table the script-intelligence readers touch: the
  * primary tables of the registry types exposed through the script tools (P-1).
- * Verified types only: the S-4 widened types are unverified until O-5, and a
- * missing optional table must not flip `script_intelligence` to unavailable.
+ * Verified types only: the tables and script fields of the S-4 widened types
+ * were checked on a PDI (O-5), but their `verified` flag waits for the owner,
+ * and a missing optional table must not flip `script_intelligence` to
+ * unavailable.
  */
 const ARTEFACT_TABLES = [
   ...new Set(
