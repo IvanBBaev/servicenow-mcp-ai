@@ -31,7 +31,10 @@
  * {address}}`, `{type, definition, targetId, operationName, parameters}`) are
  * modelled on UI Builder exports. O-5 confirmed `propertyValues` and found
  * handlers encoded as typed sub-objects (see {@link UibEventHandler}); the
- * binding shapes are still unverified.
+ * binding shapes are still unverified. O-5 also found most wiring on the
+ * elements themselves: each composition element carries an `eventMappings`
+ * array (`[{sourceEventApiName, targets: [handler]}]`, read by
+ * {@link elementEventMappings}); `internal_event_mappings` is often `{}`.
  */
 
 /** Elements walked per composition (the rest are counted, not listed). */
@@ -617,4 +620,41 @@ function structuredHandlersOf(v: unknown): UibEventHandler[] {
  */
 export function eventMappings(value: unknown): UibEventMapping[] | null {
   return walkMappings(value, structuredHandlersOf);
+}
+
+/**
+ * The event wiring declared on the composition elements themselves (N-26,
+ * O-5): each element's `eventMappings` (`[{sourceEventApiName |
+ * sourceEventDefinition.apiName, targets: [handler]}]`), with the element as
+ * the source. Walks the same slots and depth as {@link compositionTree};
+ * bounded by COMPOSITION_MAX_ELEMENTS mappings. Never throws.
+ */
+export function elementEventMappings(value: unknown): UibEventMapping[] {
+  const out: UibEventMapping[] = [];
+  const walk = (items: unknown[], depth: number): void => {
+    for (const item of items) {
+      if (out.length >= COMPOSITION_MAX_ELEMENTS) return;
+      if (!isObj(item) || typeof item.elementId !== "string") continue;
+      const mappings = Array.isArray(item.eventMappings)
+        ? item.eventMappings
+        : [];
+      for (const mp of mappings) {
+        if (!isObj(mp) || out.length >= COMPOSITION_MAX_ELEMENTS) continue;
+        const event =
+          text(mp.sourceEventApiName) ??
+          subText(mp, "sourceEventDefinition", "apiName") ??
+          text(mp.event) ??
+          text(mp.eventName);
+        out.push({
+          source: item.elementId,
+          ...(event ? { event } : {}),
+          handlers: structuredHandlersOf(mp.targets ?? mp.handlers),
+        });
+      }
+      if (depth + 1 >= COMPOSITION_MAX_DEPTH) continue;
+      for (const [, sub] of slotsOf(item)) walk(sub, depth + 1);
+    }
+  };
+  if (Array.isArray(value)) walk(value, 0);
+  return out;
 }

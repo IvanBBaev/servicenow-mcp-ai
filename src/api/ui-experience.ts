@@ -44,7 +44,8 @@
  * - `bindings` — every binding expression (`@data.*`, `@state.*`,
  *   `@context.*`, `@payload.*`) with the data resource / broker or state
  *   property it resolves to;
- * - `events` — source element → event → handler → target, where the target
+ * - `events` — source element → event → handler → target (from
+ *   `internal_event_mappings` and each element's own `eventMappings`), where the target
  *   is a client script, a broker operation, a state change or a page event
  *   (`sys_ux_event`);
  * - `scripts` — client-script and broker script bodies.
@@ -77,12 +78,14 @@ import { decodeField } from "../core/artifacts/decoders.js";
 import {
   compositionTree,
   dataResources,
+  elementEventMappings,
   eventMappings,
   eventWiring,
   stateProperties,
   type UibDataResource,
   type UibElement,
   type UibEventHandler,
+  type UibEventMapping,
 } from "../core/artifacts/uib-composition.js";
 import { ServiceNowError } from "../core/errors.js";
 import { trackProgress } from "../core/progress.js";
@@ -1290,7 +1293,10 @@ async function readDetail(
     );
     const decoded = macroRows.map((row) => ({
       id: str(row, "sys_id"),
-      mappings: decodedMappings(str(row, "internal_event_mappings")),
+      mappings: [
+        ...decodedMappings(str(row, "internal_event_mappings")),
+        ...decodedElementMappings(str(row, "composition")),
+      ],
     }));
     // Handler ids that are neither a client script nor known: sys_ux_event.
     const eventIds = new Set<string>();
@@ -1340,6 +1346,7 @@ async function readDetail(
           ...(element ? { element: element.elementId } : {}),
           ...(element?.component ? { component: element.component } : {}),
           ...(event ? { event } : {}),
+          ...(mp.origin ? { origin: mp.origin } : {}),
           targets: mp.handlers.map((h) =>
             resolveHandler(h, { scripts, resources, states, brokers, events }),
           ),
@@ -1358,10 +1365,23 @@ async function readDetail(
   }
 }
 
-function decodedMappings(raw: string) {
+function decodedMappings(raw: string): DecodedMapping[] {
   const d = decodeField("json", raw);
   return d.decoded ? (eventMappings(d.value) ?? []) : [];
 }
+
+/** The wiring on the composition elements (O-5: most live wiring is here). */
+function decodedElementMappings(raw: string): DecodedMapping[] {
+  const d = decodeField("json", raw);
+  return d.decoded
+    ? elementEventMappings(d.value).map((mp) => ({
+        ...mp,
+        origin: "element" as const,
+      }))
+    : [];
+}
+
+type DecodedMapping = UibEventMapping & { origin?: "element" };
 
 /** What one binding expression points at (N-26, UX-02). */
 function resolveBinding(

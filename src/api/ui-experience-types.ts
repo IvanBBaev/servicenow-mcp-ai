@@ -147,6 +147,8 @@ export interface UxEventChain {
   element?: string;
   component?: string;
   event?: string;
+  /** `element` when wired in the element's own `eventMappings` (O-5). */
+  origin?: "element";
   targets: UxEventTarget[];
 }
 
