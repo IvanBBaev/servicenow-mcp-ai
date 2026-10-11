@@ -190,23 +190,25 @@ Caveats from this pass:
 | b5cb05b | ATF `success_with_warnings` counts as a pass; i18n coverage tables and fields confirmed; `sys_restricted_caller_access.status` is an integer choice, now mapped to `requested` / `denied` / `allowed` / `invalidated` (an output value change).                                                                                                                                                             |
 | 8591ca4 | UI Builder: per-element `eventMappings` are read into the event chains (`origin: "element"`); tools/list delta 0 B.                                                                                                                                                                                                                                                                                         |
 | bc411b2 | UI Builder data resources: all seven PDI `definition.type` values map to a table (COMPOSITE, CLIENT_STATE, CONTROLLER added); import names with spaces resolve.                                                                                                                                                                                                                                             |
+| 7e9718e | Registry GraphQL names confirmed (`sys_graphql_typeresolver` names by `type_name`; `namespace` / `application_namespace`, already fixed in 2bd8a54); broker comments record the confirmed tables. Comments only.                                                                                                                                                                                            |
+| 4d794b6 | UI Builder: composition `definition.id` values are `sys_ux_macroponent` sys_ids (17/17 sampled, primitives included), so that table is read first; built-ins whose id equals their type (REPEATER, MACROPONENT_VIEWPORT_HEADLESS) count as `oob` instead of `unresolved`.                                                                                                                                   |
+| ba87579 | Privilege and capabilities comments: 8 of 10 elevated roles are visible (`maint` and `security_admin` rows are hidden); the 15 S-4 widened types and their script fields exist. The registry `verified` flags are unchanged.                                                                                                                                                                                |
 
-Gate on the merged tip: 2415/2415, pack 2547.2 KB.
+Gate on the merged tip: 2418/2418, pack 2548.0 KB.
 
 Still unverified after this pass:
 
-- Elevation: the `security_admin` row in `sys_user_role` is hidden from the
-  PDI admin's reads (total 1, count 0), so its `elevated_privilege` flag and
-  the write gating cannot be checked with GETs.
+- Elevation: the `security_admin` and `maint` rows in `sys_user_role` are
+  counted but hidden from the PDI admin's reads, so their
+  `elevated_privilege` flag and the write gating cannot be checked with GETs.
 - The field-ACL fallback order.
 - Whether a non-separated instance omits `sys_domain` or returns it empty
   (this PDI is domain-separated).
+- S-4 widened script field types, for the `verified` flags:
+  `sys_dictionary.default_value` and `sys_rest_message_fn`
+  `rest_endpoint` / `content` are strings, `sys_ui_macro.xml` and
+  `sys_ui_page.html` are xml, `sp_widget.css` is css.
 - Whether ATF step or suite edits bump `sys_updated_on` / `sys_mod_count`.
-- Whether a UI Builder composition `definition.id` is a `sys_ux_macroponent`
-  sys_id.
-- Registry GraphQL names (in progress): `sys_graphql_typeresolver` has no
-  `name` column; `schema_namespace` on the GraphQL API does not exist
-  (`namespace` / `application_namespace`).
 
 ## Next steps
 
