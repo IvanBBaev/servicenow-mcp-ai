@@ -92,6 +92,20 @@ test("recordDomain: domain-specific rows only; global and absent are silent", ()
   assert.deepEqual([...DOMAIN_FIELDS], ["sys_domain", "sys_overrides"]);
 });
 
+test("recordDomain: a global sys_overrides (seen on a PDI) is not an override (O-5)", () => {
+  assert.deepEqual(
+    recordDomain({ sys_domain: "global", sys_overrides: "global" }),
+    {},
+  );
+  assert.deepEqual(
+    recordDomain({
+      sys_domain: { value: DOMAIN_ID, display_value: "ACME" },
+      sys_overrides: { value: "Global", display_value: "" },
+    }),
+    { domain: "ACME" },
+  );
+});
+
 test("probe: an active domain is reported with the user's domain and cached", async () => {
   await withFetch(
     (url) => {

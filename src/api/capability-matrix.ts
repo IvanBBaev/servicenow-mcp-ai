@@ -528,9 +528,10 @@ export async function probeCapabilityMatrix(
  * One cached GET of the user's own sys_user row asking for `sys_domain` /
  * `sys_domain_path` with display values. The fields exist only when domain
  * separation is installed, so a row that carries a domain means it is active;
- * a row without one means it is not detected. Unverified until O-5 (PDI):
- * whether a non-separated instance omits `sys_domain` or returns it empty,
- * and `sys_domain_path` (not read by any other code yet).
+ * a row without one means it is not detected. Checked on a domain-separated
+ * PDI (O-5): sys_user carries `sys_domain` (`global` for admin) and
+ * `sys_domain_path` (`/` for global). Still unverified: whether a
+ * non-separated instance omits `sys_domain` or returns it empty.
  */
 export async function probeDomainSeparation(): Promise<MatrixEntry> {
   const { instance, user } = getCredentials();
@@ -639,7 +640,8 @@ const WORKSPACE_PROBE_TABLES = [
  * configs (`sys_aw_master_config`). `detail.kind` is `configurable`, `agent`,
  * `mixed` (both: a migration is pending or in progress) or `none`. A 404 on
  * the Agent Workspace table counts as none (the plugin is not installed).
- * Unverified until O-5 (PDI): the category sys_id on every release.
+ * The category sys_id was checked on a PDI (O-5): the `Workspace` experience
+ * category; other releases are unverified.
  */
 export async function probeWorkspaces(): Promise<MatrixEntry> {
   const { instance, user } = getCredentials();

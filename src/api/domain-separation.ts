@@ -13,10 +13,13 @@ import { snString } from "./shared.js";
  * domain separation the fields are absent from every response, so nothing is
  * attributed and the output stays byte-identical.
  *
- * Unverified until O-5 (PDI): `sys_overrides` and the `sys_domain.name`
- * dot-walk are not read by any other code yet, and whether a non-separated
- * instance returns an empty `sys_domain` instead of omitting it is not
- * confirmed. `sys_domain` itself is already in the Fluent ignore list.
+ * Checked on a domain-separated PDI (O-5): `sys_domain` and `sys_overrides`
+ * exist on sys_script, sys_script_client, sys_ui_action, sys_ui_policy and
+ * wf_workflow (not on sys_script_include, sysauto_script, sys_security_acl,
+ * sys_hub_flow or sys_ui_page); the `sys_domain.name` dot-walk resolves; and
+ * a few rows hold the literal `global` in `sys_overrides`, which is not an
+ * override. Whether a non-separated instance returns an empty `sys_domain`
+ * instead of omitting it is still unverified.
  */
 
 /** Fields a list read requests so a record can be attributed to its domain. */
@@ -48,13 +51,14 @@ export const DOMAIN_CAVEAT =
 export interface RecordDomain {
   /** Domain name (or sys_id when only that was read), never `global`. */
   domain?: string;
-  /** sys_id of the record this one overrides in its domain. */
+  /** sys_id of the record this one overrides in its domain, never `global`. */
   overrides?: string;
 }
 
 /**
  * The domain attribution of a row: the domain when it is set and not the
- * global one, and the overridden record when there is one. A row read with
+ * global one, and the overridden record when there is one (a `global`
+ * value, seen on a PDI, is not one). A row read with
  * `sysparm_display_value=all` prefers the display value; a `sys_domain.name`
  * dot-walk wins over a bare sys_id. `prefix` reads the fields through a
  * reference (e.g. `flow.` on a trigger row: the flow's domain, not the
@@ -78,7 +82,9 @@ export function recordDomain(
     (v) => v.toLowerCase() === GLOBAL_DOMAIN,
   );
   if (domain && !isGlobal) out.domain = domain;
-  if (overrides) out.overrides = overrides;
+  if (overrides && overrides.toLowerCase() !== GLOBAL_DOMAIN) {
+    out.overrides = overrides;
+  }
   return out;
 }
 
