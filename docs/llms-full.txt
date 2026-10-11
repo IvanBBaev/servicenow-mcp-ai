@@ -451,7 +451,7 @@ docker run --rm -p 127.0.0.1:3000:3000 \
   tokens enabled) whose redirect URL is `/oauth/servicenow/callback` on the
   `SN_HTTP_OAUTH_RESOURCE` origin. The first call from a user returns a link to the
   instance's sign-in page (URL elicitation; a 2025 session gets `-32042`, a client without
-  URL elicitation and a `run_as_task` background run get an error carrying the link). After
+  URL elicitation and a background task get an error carrying the link). After
   the user signs in, the server checks that the account's `sys_user` field matches the
   token's claim (`SN_HTTP_OAUTH_USER_MATCH`, default `email=email`), keeps the refresh token
   AES-256-GCM encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`, and from then on calls the instance as

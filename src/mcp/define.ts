@@ -37,6 +37,7 @@ import { createSecretRegistry } from "../core/secret-columns.js";
 import { confirmDestructiveApply } from "./confirm.js";
 import {
   inputRoundFromContext,
+  isBackground,
   isPendingInput,
   requestUrlElicitation,
   runWithInputRound,
@@ -185,7 +186,7 @@ export interface CallExtra {
   log?: RequestLog;
   /** MRTR: the call is served on the 2026-07-28 wire (input.ts). */
   input?: InputRound;
-  /** M-9: a `run_as_task` background run — no request can carry a prompt. */
+  /** M-9: a background task run (`run_as_task` or ext-tasks) — no request can carry a prompt. */
   background?: boolean;
 }
 
@@ -208,6 +209,7 @@ export function callExtraFromContext(
     ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
     requestId: req.id,
     signal: req.signal,
+    ...(isBackground(ctx) ? { background: true } : {}),
     ...(req._meta ? { _meta: req._meta } : {}),
     sendNotification: (notification) => req.notify(notification),
     log: {

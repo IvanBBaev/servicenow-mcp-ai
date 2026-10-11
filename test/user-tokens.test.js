@@ -657,6 +657,90 @@ test("e2e N-17 user tokens: a 2025 session gets -32042 with the link", async () 
   });
 });
 
+/** One 2026-07-28 request of any method (tasks/* name the task id). */
+async function modernRpc(port, authorization, method, params, capabilities) {
+  const res = await rawRequest(port, {
+    method: "POST",
+    path: "/mcp",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+      authorization,
+      "mcp-protocol-version": "2026-07-28",
+      "mcp-method": method,
+      "mcp-name": params.name ?? params.taskId,
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method,
+      params: {
+        ...params,
+        _meta: {
+          "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+          "io.modelcontextprotocol/clientInfo": { name: "n17", version: "0" },
+          "io.modelcontextprotocol/clientCapabilities": capabilities,
+        },
+      },
+    }),
+  });
+  assert.equal(res.status, 200, res.text);
+  return parseMessages(res).at(-1);
+}
+
+test("e2e N-17 user tokens: a background task gets the link in a failed result, never a prompt", async () => {
+  await withServers(
+    { SN_EXPERIMENTAL_TASKS: "1" },
+    async ({ port, bearer }) => {
+      const sn = instanceDouble();
+      // The client takes URL elicitation and tasks: the run still cannot
+      // prompt, since the request that created the task has returned.
+      const caps = {
+        ...URL_CAPS,
+        extensions: { "io.modelcontextprotocol/tasks": {} },
+      };
+      await withFetch(sn.handler, async () => {
+        const created = (
+          await modernRpc(
+            port,
+            bearer("alice"),
+            "tools/call",
+            {
+              name: "servicenow_query_table",
+              arguments: { table: "incident", limit: 1, format: "file" },
+            },
+            caps,
+          )
+        ).result;
+        assert.equal(created?.resultType, "task", JSON.stringify(created));
+
+        let task;
+        for (let i = 0; i < 100; i++) {
+          task = (
+            await modernRpc(
+              port,
+              bearer("alice"),
+              "tasks/get",
+              { taskId: created.taskId },
+              caps,
+            )
+          ).result;
+          if (task?.status !== "working") break;
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        // A tool error completes the task; its result carries the link.
+        assert.equal(task.status, "completed", JSON.stringify(task));
+        assert.equal(task.result.isError, true);
+        const text = JSON.stringify(task.result);
+        assert.match(text, /NOT_CONFIGURED/);
+        assert.match(text, /oauth_auth\.do/);
+        assert.equal("inputRequests" in task.result, false);
+        assert.equal(sn.seen.length, 0, "nothing reached the instance");
+      });
+    },
+  );
+});
+
 test("e2e N-17 user tokens: off, the callback route does not exist", async () => {
   await withServers(
     { SN_HTTP_OAUTH_USER_TOKENS: undefined },

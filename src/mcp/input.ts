@@ -145,6 +145,19 @@ export function inputRoundFromContext(
   };
 }
 
+/** M-9: the request objects of 2026-07-28 background task runs. */
+const backgroundRequests = new WeakSet<object>();
+
+/** Mark `ctx` as a background task run: no request can carry a prompt. */
+export function markBackground(ctx: ServerContext): void {
+  backgroundRequests.add(ctx.mcpReq);
+}
+
+/** True when `ctx` is a background task run (markBackground). */
+export function isBackground(ctx: ServerContext): boolean {
+  return backgroundRequests.has(ctx.mcpReq);
+}
+
 /** Run `fn` with the call's input round (undefined: the legacy wire). */
 export function runWithInputRound<T>(
   round: InputRound | undefined,
