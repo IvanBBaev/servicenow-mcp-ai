@@ -190,6 +190,9 @@ export const METADATA_TABLES = [
   /^m2m_app_theme$/,
   /^sys_ux_registry_m2m_category$/,
   /^sys_aw_(master_config|list)$/,
+  // N-30 UX action configurations and their action-assignment m2m.
+  /^sys_ux_action_config$/,
+  /^sys_ux_m2m_action_assignment_action_config$/,
   // N-7 translation coverage: UI messages, labels, translated text and fields, languages.
   /^sys_ui_message$/,
   /^sys_documentation$/,
