@@ -194,8 +194,9 @@ Caveats from this pass:
 | 4d794b6 | UI Builder: composition `definition.id` values are `sys_ux_macroponent` sys_ids (17/17 sampled, primitives included), so that table is read first; built-ins whose id equals their type (REPEATER, MACROPONENT_VIEWPORT_HEADLESS) count as `oob` instead of `unresolved`.                                                                                                                                   |
 | ba87579 | Privilege and capabilities comments: 8 of 10 elevated roles are visible (`maint` and `security_admin` rows are hidden); the 15 S-4 widened types and their script fields exist. The registry `verified` flags are unchanged.                                                                                                                                                                                |
 | 3adfca6 | Workspace action configurations (N-30): the experience-restricted m2m is `sys_ux_m2m_action_assignment_action_config`, reached from the experience's `actionConfigId` page property; `explain_ui_experience.actionConfigs` is an optional key, tools/list delta 0 B. No dedicated side panel or form config table exists beyond `sys_ux_form_action_layout`.                                                |
+| b1132f1 | Workspace action exclusions (N-30): `sys_workspace_declarative_action_exclusion` has `action_assignment`, `table`, `exclude_self`, `exclude_all_child_tables` and `view` (475 rows, 33 with a view); read into the optional `actionExclusions` key, tools/list delta 0 B.                                                                                                                                   |
 
-Gate on the merged tip: 2425/2425, pack 2550.8 KB.
+Gate on the merged tip: 2431/2431, pack 2553.6 KB.
 
 Still unverified after this pass:
 
