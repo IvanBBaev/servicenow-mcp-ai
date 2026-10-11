@@ -193,6 +193,8 @@ export const METADATA_TABLES = [
   // N-30 UX action configurations and their action-assignment m2m.
   /^sys_ux_action_config$/,
   /^sys_ux_m2m_action_assignment_action_config$/,
+  // N-30 action exclusions (an action hidden on a table).
+  /^sys_workspace_declarative_action_exclusion$/,
   // N-7 translation coverage: UI messages, labels, translated text and fields, languages.
   /^sys_ui_message$/,
   /^sys_documentation$/,
