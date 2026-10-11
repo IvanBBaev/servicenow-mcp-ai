@@ -320,8 +320,9 @@ export async function uibCompleteness(
     for (const b of brokers) brokerIds.add(b.id);
   }
   // Transform and scriptlet tables are read for every broker id (a data
-  // resource type may be missing); the REST and GraphQL tables only for the
-  // brokers whose type names them, so an instance without them is not read.
+  // resource type may be missing); every other BROKER_TABLES table (REST,
+  // GraphQL, composite, client-state proxy, controller) only for the brokers
+  // whose type names it, so an instance without it is not read.
   const typed = new Map<string, Set<string>>();
   for (const brokers of brokersBy.values()) {
     for (const b of brokers) {
