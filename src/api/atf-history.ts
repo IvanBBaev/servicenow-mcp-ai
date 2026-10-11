@@ -37,11 +37,11 @@ import { isSysId } from "../core/sys-id.js";
  * Read-only and bounded; never throws except on a cancel. A failed read
  * degrades to `available:false` with a reason, per section. Table, field and
  * choice names (sys_atf_test_result test / parent / run_time,
- * sys_atf_test_suite_result test_suite, the status values) are unverified
- * until O-5 (PDI). So are, for the unchanged-test check, sys_atf_test /
- * sys_atf_test_suite `sys_updated_on` / `sys_mod_count` as a definition
- * version: whether editing a step (sys_atf_step) or a suite's membership
- * (sys_atf_test_suite_test) bumps the parent record is not verified either.
+ * sys_atf_test_suite_result test_suite, the status values) were checked on a
+ * PDI (O-5). Whether editing a step (sys_atf_step) or a suite's membership
+ * (sys_atf_test_suite_test) bumps the parent's `sys_updated_on` /
+ * `sys_mod_count`, used as the definition version for the unchanged-test
+ * check, is not verified.
  */
 
 /** Runs per test or suite looked at, by default. */
@@ -154,7 +154,8 @@ const unavailable = (reason: string): Unavailable => ({
 /** Outcome of a status value or label. */
 export function outcomeOf(status: string): AtfOutcome {
   const s = status.trim();
-  if (/^(success|successful|pass(ed)?)$/i.test(s)) return "pass";
+  // `success_with_warnings` is the PDI value of a run that passed with warnings.
+  if (/^(success(ful|_with_warnings)?|pass(ed)?)$/i.test(s)) return "pass";
   if (/^(fail(ure|ed)?|error)$/i.test(s)) return "fail";
   return "other";
 }
@@ -422,9 +423,6 @@ export function withAtfResults<T extends { sys_id?: string }>(
   });
 }
 
-const UNVERIFIED =
-  "_Table, field and choice names are unverified until O-5 (PDI)._";
-
 const pct = (rate: number | null): string =>
   rate === null ? "—" : `${Math.round(rate * 100)}%`;
 
@@ -479,5 +477,5 @@ export function renderAtfHistory(
   if (h.tests) out.push(...renderSection("Tests", h.tests, h.window, names));
   if (h.suites) out.push(...renderSection("Suites", h.suites, h.window, names));
   if (out.length === 0) return ["_No tests or suites requested._"];
-  return [...out, UNVERIFIED];
+  return out;
 }
