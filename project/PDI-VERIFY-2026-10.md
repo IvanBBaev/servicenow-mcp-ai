@@ -193,8 +193,9 @@ Caveats from this pass:
 | 7e9718e | Registry GraphQL names confirmed (`sys_graphql_typeresolver` names by `type_name`; `namespace` / `application_namespace`, already fixed in 2bd8a54); broker comments record the confirmed tables. Comments only.                                                                                                                                                                                            |
 | 4d794b6 | UI Builder: composition `definition.id` values are `sys_ux_macroponent` sys_ids (17/17 sampled, primitives included), so that table is read first; built-ins whose id equals their type (REPEATER, MACROPONENT_VIEWPORT_HEADLESS) count as `oob` instead of `unresolved`.                                                                                                                                   |
 | ba87579 | Privilege and capabilities comments: 8 of 10 elevated roles are visible (`maint` and `security_admin` rows are hidden); the 15 S-4 widened types and their script fields exist. The registry `verified` flags are unchanged.                                                                                                                                                                                |
+| 3adfca6 | Workspace action configurations (N-30): the experience-restricted m2m is `sys_ux_m2m_action_assignment_action_config`, reached from the experience's `actionConfigId` page property; `explain_ui_experience.actionConfigs` is an optional key, tools/list delta 0 B. No dedicated side panel or form config table exists beyond `sys_ux_form_action_layout`.                                                |
 
-Gate on the merged tip: 2418/2418, pack 2548.0 KB.
+Gate on the merged tip: 2425/2425, pack 2550.8 KB.
 
 Still unverified after this pass:
 
