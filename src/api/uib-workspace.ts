@@ -596,6 +596,87 @@ export async function readActionConfigs(
   });
 }
 
+/**
+ * A declarative action hidden on one of the workspace's tables. The
+ * excluded assignment usually sits on a base table (`global` on a PDI), so it
+ * is not among the actions read for the workspace's own tables.
+ */
+export interface UxActionExclusion {
+  sys_id: string;
+  /** The table the exclusion names. */
+  table: string;
+  action_assignment: string;
+  action_name?: string;
+  label?: string;
+  /** The table the excluded assignment is on. */
+  assignmentTable?: string;
+  /** Hidden on `table` itself. */
+  exclude_self: boolean;
+  /** Hidden on every table extending `table`. */
+  exclude_all_child_tables: boolean;
+  /** sys_ui_view name the exclusion is limited to. */
+  view?: string;
+}
+
+const EXCLUSION_ASSIGNMENT_FIELDS = ["action_name", "label", "table"] as const;
+
+/**
+ * Action exclusions (`sys_workspace_declarative_action_exclusion`, checked on
+ * a PDI, O-5) on `tables`, with the excluded assignment's name and table read
+ * through dot-walks. Only exclusions naming one of `tables` are read: one on
+ * a parent table with `exclude_all_child_tables` is not found from a child.
+ * Rows on other tables (an ignored filter) are dropped.
+ */
+export async function readActionExclusions(
+  io: WorkspaceIo,
+  tables: Iterable<string>,
+): Promise<UxActionExclusion[]> {
+  const wanted = new Set([...tables].filter((t) => SAFE_TABLE.test(t)));
+  if (!wanted.size) return [];
+  const rows = (
+    await io.readIn(
+      "sys_workspace_declarative_action_exclusion",
+      "table",
+      wanted,
+      [
+        "sys_id",
+        "table",
+        "action_assignment",
+        ...EXCLUSION_ASSIGNMENT_FIELDS.map((f) => `action_assignment.${f}`),
+        "exclude_self",
+        "exclude_all_child_tables",
+        "view.name",
+      ],
+    )
+  ).filter((r) => wanted.has(str(r, "table")) && opt(r, "action_assignment"));
+  return rows
+    .map((r) => {
+      const assignmentTable = opt(r, "action_assignment.table");
+      return {
+        sys_id: str(r, "sys_id"),
+        table: str(r, "table"),
+        action_assignment: str(r, "action_assignment"),
+        ...(opt(r, "action_assignment.action_name")
+          ? { action_name: opt(r, "action_assignment.action_name") }
+          : {}),
+        ...(opt(r, "action_assignment.label")
+          ? { label: opt(r, "action_assignment.label") }
+          : {}),
+        ...(assignmentTable ? { assignmentTable } : {}),
+        exclude_self: str(r, "exclude_self") === "true",
+        exclude_all_child_tables: str(r, "exclude_all_child_tables") === "true",
+        ...(opt(r, "view.name") ? { view: opt(r, "view.name") } : {}),
+      };
+    })
+    .sort(
+      (a, b) =>
+        a.table.localeCompare(b.table) ||
+        (a.label ?? a.action_name ?? a.action_assignment).localeCompare(
+          b.label ?? b.action_name ?? b.action_assignment,
+        ),
+    );
+}
+
 export interface ClassifyInput {
   path?: string;
   categories: string[];
@@ -730,6 +811,7 @@ export function workspaceLines(
     themes: UxTheme[];
     workspace: UxWorkspaceClass;
     actionConfigs?: UxActionConfig[];
+    actionExclusions?: UxActionExclusion[];
   },
   out: string[],
 ): void {
@@ -739,6 +821,7 @@ export function workspaceLines(
     !result.actions.length &&
     !result.themes.length &&
     !result.actionConfigs?.length &&
+    !result.actionExclusions?.length &&
     !w.signals.length &&
     !w.migration.length
   ) {
@@ -819,6 +902,18 @@ export function workspaceLines(
       );
       out.push(
         `- **${c.name ?? c.sys_id}**${c.active === "false" ? " _(inactive)_" : ""}: ${names.join(", ") || "no assignments"}`,
+      );
+    }
+  }
+  if (result.actionExclusions?.length) {
+    out.push("", "### Action exclusions", "");
+    for (const x of result.actionExclusions) {
+      const where = [
+        ...(x.exclude_self ? ["this table"] : []),
+        ...(x.exclude_all_child_tables ? ["child tables"] : []),
+      ];
+      out.push(
+        `- ${x.table}: **${x.label ?? x.action_name ?? x.action_assignment}**${x.assignmentTable ? ` (from ${x.assignmentTable})` : ""} hidden on ${where.join(" and ") || "nothing"}${x.view ? ` · view ${x.view}` : ""}`,
       );
     }
   }

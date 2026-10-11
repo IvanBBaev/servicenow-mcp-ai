@@ -110,6 +110,7 @@ import {
   formViews,
   listColumns,
   readActionConfigs,
+  readActionExclusions,
   readDeclarativeActions,
   readThemes,
   type WorkspaceIo,
@@ -1002,6 +1003,8 @@ async function readWorkspace(
   result.actions = (await readDeclarativeActions(io, tables)).sort(
     (a, b) => (a.table ?? "").localeCompare(b.table ?? "") || a.order - b.order,
   );
+  const actionExclusions = await readActionExclusions(io, tables);
+  if (actionExclusions.length) result.actionExclusions = actionExclusions;
   result.forms = formViews(result.actions, result.formActionLayouts);
   result.themes = await readThemes(io, [
     expId,
@@ -1053,6 +1056,7 @@ async function readWorkspace(
     result.actions.length ||
     result.themes.length ||
     result.actionConfigs ||
+    result.actionExclusions ||
     result.workspace.signals.length
   ) {
     ctx.caveats.push(WORKSPACE_CAVEAT);
