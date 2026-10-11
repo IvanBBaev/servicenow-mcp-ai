@@ -21,12 +21,18 @@ import { isSysId } from "../core/sys-id.js";
  * Pure: no I/O. The dependency graph (`get_artifact_dependencies`) turns these
  * into edges, the S-9 structural pass (`where_used`) into structural refs.
  *
- * Unverified until gate O-5 (a PDI): that `definition.id` is the
- * sys_ux_macroponent sys_id for composition elements; the broker table per
- * data resource `definition.type`; the `imports['…']` call form.
+ * O-5 (a PDI) confirmed the data resource side: `definition.id` is the
+ * sys_id of a record in the table its `definition.type` names (seven types on
+ * the PDI, CONTROLLER being a sys_ux_controller rather than a broker), and an
+ * import key is the include's `api_name`, `scope.name`, whose name may hold
+ * spaces. Still unverified: that `definition.id` is the sys_ux_macroponent
+ * sys_id for composition elements.
  */
 
-/** Data broker tables by data resource `definition.type` (O-5: unverified). */
+/**
+ * Data resource tables by `definition.type` (O-5). Composite, client state
+ * and controller resources have no registry type.
+ */
 export const BROKER_TABLES: Readonly<
   Record<string, { table: string; type?: string }>
 > = {
@@ -43,15 +49,18 @@ export const BROKER_TABLES: Readonly<
     table: "sys_ux_data_broker_graphql",
     type: "uib_data_broker_graphql",
   },
+  COMPOSITE: { table: "sys_ux_data_broker_composite" },
+  CLIENT_STATE: { table: "sys_ux_data_broker_proxy" },
+  CONTROLLER: { table: "sys_ux_controller" },
 };
 
 /**
  * The parent table of every data broker table: a broker whose data resource
- * has no recognised `definition.type` is placed here (O-5: unverified).
+ * has no recognised `definition.type` is placed here.
  */
 export const BROKER_BASE_TABLE = "sys_ux_data_broker";
 
-/** Every table a data broker can live in. */
+/** Every table a data resource can point at. */
 export const BROKER_TABLE_NAMES: readonly string[] = [
   ...new Set([
     ...Object.values(BROKER_TABLES).map((b) => b.table),
@@ -156,7 +165,7 @@ export function macroponentUses(row: Record<string, unknown>): MacroponentUses {
 /**
  * The client script include sys_ids in a UIB client script's `includes`
  * list (pure): a comma-separated glide_list, de-duplicated; values that are
- * not sys_ids are dropped. O-5: the field is unverified.
+ * not sys_ids are dropped. O-5: a glide_list of sys_ux_client_script_include.
  */
 export function uibIncludeIds(value: string): string[] {
   const ids = new Set<string>();
@@ -170,16 +179,17 @@ export function uibIncludeIds(value: string): string[] {
 /**
  * Client script include names a UIB client script imports (pure):
  * `imports['global.MyInclude']`, `imports["MyInclude"]` and
- * `imports.MyInclude`. A scoped name yields its last segment, as the include
- * record's `name` holds it (O-5: unverified).
+ * `imports.MyInclude`. The key is the include's `api_name`; the scope prefix
+ * is dropped, as the include record's `name` holds the rest (O-5), spaces
+ * and dots included (`imports['x_acme.Load Pendo']` → `Load Pendo`).
  */
 export function uibImports(text: string): string[] {
   if (!text || !text.includes("imports")) return [];
   const names = new Set<string>();
   for (const m of text.matchAll(
-    /\bimports\s*\[\s*(["'`])([A-Za-z0-9_$.-]+)\1\s*\]/g,
+    /\bimports\s*\[\s*(["'`])([^"'`\]\r\n]+)\1\s*\]/g,
   )) {
-    names.add(m[2]!.split(".").pop()!);
+    names.add(m[2]!.trim().replace(/^[A-Za-z0-9_]+\./, ""));
   }
   for (const m of text.matchAll(/\bimports\s*\.\s*([A-Za-z_$][\w$]*)/g)) {
     names.add(m[1]!);
