@@ -87,8 +87,12 @@ export interface UxScriptBody {
 /**
  * N-26 (UX-04): what an element's `definition.id` renders. `oob` is a
  * `now-*` / `sn-*` component (by its tag, with or without a
- * sys_ux_lib_component row), `custom` any other sys_ux_lib_component,
- * `macroponent` a nested sys_ux_macroponent. `artifactType` is the registry
+ * sys_ux_lib_component row) or a framework construct whose id is its type
+ * (`REPEATER`, `MACROPONENT_VIEWPORT_HEADLESS`), `custom` any other
+ * sys_ux_lib_component, `macroponent` a nested sys_ux_macroponent (O-5: on a
+ * PDI every MACROPONENT / MACROPONENT_VIEWPORT element's `definition.id` is a
+ * sys_ux_macroponent sys_id, even primitives such as Button or Input, and no
+ * element has type COMPONENT). `artifactType` is the registry
  * type to pass to get_artifact / explain_artifact.
  */
 export interface UxComponent {

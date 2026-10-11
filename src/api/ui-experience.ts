@@ -1483,8 +1483,11 @@ function resolveHandler(
 
 /**
  * Resolve each element's `definition.id` (N-26, UX-04): sys_ids against
- * sys_ux_lib_component and sys_ux_macroponent, tags against
- * sys_ux_lib_component.tag; an unknown `now-*` / `sn-*` tag is OOB by name.
+ * sys_ux_macroponent first (O-5: every live MACROPONENT / MACROPONENT_VIEWPORT
+ * id is one) and sys_ux_lib_component for the rest, tags against
+ * sys_ux_lib_component.tag; an unknown `now-*` / `sn-*` tag is OOB by name,
+ * and so is a framework construct whose id is its own type (`REPEATER`,
+ * `MACROPONENT_VIEWPORT_HEADLESS`), which is not looked up.
  */
 async function resolveComponents(
   ctx: ReadCtx,
@@ -1492,6 +1495,7 @@ async function resolveComponents(
 ): Promise<void> {
   const used = new Map<string, Map<string, string[]>>();
   const all = new Set<string>();
+  const builtIn = new Set<string>();
   for (const m of result.macroponents) {
     const byId = new Map<string, string[]>();
     for (const el of allElements(m.composition.value?.elements ?? [])) {
@@ -1499,20 +1503,43 @@ async function resolveComponents(
       const list = byId.get(el.component) ?? [];
       list.push(el.elementId);
       byId.set(el.component, list);
-      all.add(el.component);
+      if (el.component === el.type && !isSysId(el.component)) {
+        builtIn.add(el.component);
+      } else {
+        all.add(el.component);
+      }
     }
     used.set(m.sys_id, byId);
   }
-  if (!all.size) return;
+  if (!all.size && !builtIn.size) return;
   const sysIds = [...all].filter((i) => isSysId(i));
   const tags = [...all].filter((i) => !isSysId(i));
+  const known = new Map<string, SnRecord>();
+  for (const m of result.macroponents) {
+    if (all.has(m.sys_id)) {
+      known.set(m.sys_id, {
+        sys_id: m.sys_id,
+        ...(m.name ? { name: m.name } : {}),
+        ...(m.category ? { category: m.category } : {}),
+      });
+    }
+  }
+  for (const r of await boundedReadIn(
+    ctx,
+    "sys_ux_macroponent",
+    "sys_id",
+    sysIds.filter((i) => !known.has(i)),
+    ["sys_id", "name", "category"],
+  )) {
+    known.set(str(r, "sys_id"), r);
+  }
   const libFields = ["sys_id", "name", "tag", "category"];
   const libRows = [
     ...(await boundedReadIn(
       ctx,
       "sys_ux_lib_component",
       "sys_id",
-      sysIds,
+      sysIds.filter((i) => !known.has(i)),
       libFields,
     )),
     ...(await boundedReadIn(
@@ -1528,33 +1555,14 @@ async function resolveComponents(
     lib.set(str(r, "sys_id"), r);
     if (opt(r, "tag")) lib.set(str(r, "tag"), r);
   }
-  const known = new Map<string, SnRecord>();
-  const loaded = result.macroponents.map((m) => m.sys_id);
-  const toRead = sysIds.filter((i) => !lib.has(i));
-  for (const r of await boundedReadIn(
-    ctx,
-    "sys_ux_macroponent",
-    "sys_id",
-    toRead.filter((i) => !loaded.includes(i)),
-    ["sys_id", "name", "category"],
-  )) {
-    known.set(str(r, "sys_id"), r);
-  }
-  for (const m of result.macroponents) {
-    if (toRead.includes(m.sys_id)) {
-      known.set(m.sys_id, {
-        sys_id: m.sys_id,
-        ...(m.name ? { name: m.name } : {}),
-        ...(m.category ? { category: m.category } : {}),
-      });
-    }
-  }
   for (const m of result.macroponents) {
     const comps: UxComponent[] = [];
     for (const [id, elements] of used.get(m.sys_id) ?? []) {
       const l = lib.get(id);
       const mp = known.get(id);
-      if (l) {
+      if (builtIn.has(id)) {
+        comps.push({ id, kind: "oob", elements });
+      } else if (l) {
         const tag = opt(l, "tag") ?? (isSysId(id) ? undefined : id);
         comps.push({
           id,

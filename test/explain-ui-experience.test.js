@@ -1421,6 +1421,49 @@ test("N-26: API levels are independent; markdown renders the deep sections", asy
   assert.match(md2, /`list_1`\.selected = @state\.selectedTab → client state/);
 });
 
+test("N-26 (O-5): macroponent ids resolve first; built-in constructs are OOB", async () => {
+  const tables = deepFixture();
+  const home = tables.sys_ux_macroponent.find((m) => m.sys_id === HOME_MP);
+  home.composition = JSON.stringify([
+    {
+      elementId: "rep_1",
+      definition: { id: "REPEATER", type: "REPEATER" },
+      overrides: {
+        composition: [
+          {
+            elementId: "nested",
+            slot: null,
+            definition: { id: NESTED_MP, type: "MACROPONENT" },
+          },
+        ],
+      },
+    },
+    {
+      elementId: "headless",
+      definition: {
+        id: "MACROPONENT_VIEWPORT_HEADLESS",
+        type: "MACROPONENT_VIEWPORT_HEADLESS",
+      },
+    },
+  ]);
+  const mock = instance(tables);
+  const res = payload(
+    await run({ path: "now/acme", detail: ["elements"] }, mock),
+  );
+  const mp = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(res.detail.unresolvedComponents, 0);
+  assert.deepEqual(
+    mp.components.map((c) => [c.id, c.kind]),
+    [
+      ["REPEATER", "oob"],
+      [NESTED_MP, "macroponent"],
+      ["MACROPONENT_VIEWPORT_HEADLESS", "oob"],
+    ],
+  );
+  // Every id was a macroponent or built in: no sys_ux_lib_component read.
+  assert.ok(!mock.reads.includes("sys_ux_lib_component"));
+});
+
 test("N-26 (O-5): element eventMappings join the event chains", async () => {
   const tables = deepFixture();
   const home = tables.sys_ux_macroponent.find((m) => m.sys_id === HOME_MP);
