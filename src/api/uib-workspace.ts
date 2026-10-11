@@ -498,6 +498,104 @@ export async function readThemes(
   });
 }
 
+/** A declarative action assignment added to a UX action configuration. */
+export interface UxActionConfigAssignment {
+  sys_id: string;
+  action_name?: string;
+  label?: string;
+  table?: string;
+  experience_restricted?: string;
+}
+
+/**
+ * A UX action configuration the experience names in its `actionConfigId`
+ * page property, with the assignments added to it. An assignment with
+ * `experience_restricted` true shows only in the experiences whose
+ * configuration lists it.
+ */
+export interface UxActionConfig {
+  sys_id: string;
+  name?: string;
+  active?: string;
+  assignments: UxActionConfigAssignment[];
+}
+
+/**
+ * The action configurations behind `actionConfigId` values and their
+ * assignments, through `sys_ux_m2m_action_assignment_action_config` (both
+ * checked on a PDI, O-5). Rows of other configurations (an ignored filter)
+ * are dropped.
+ */
+export async function readActionConfigs(
+  io: WorkspaceIo,
+  values: unknown[],
+): Promise<UxActionConfig[]> {
+  const ids = [
+    ...new Set(
+      values.filter(
+        (v): v is string => typeof v === "string" && /^[0-9a-f]{32}$/.test(v),
+      ),
+    ),
+  ];
+  if (!ids.length) return [];
+  const rows = new Map<string, SnRecord>();
+  for (const r of await io.readIn("sys_ux_action_config", "sys_id", ids, [
+    "sys_id",
+    "name",
+    "active",
+  ])) {
+    rows.set(str(r, "sys_id"), r);
+  }
+  const links = (
+    await io.readIn(
+      "sys_ux_m2m_action_assignment_action_config",
+      "action_configuration",
+      ids,
+      [
+        "sys_id",
+        "action_configuration",
+        "action_assignment",
+        "action_assignment.action_name",
+        "action_assignment.label",
+        "action_assignment.table",
+        "action_assignment.experience_restricted",
+      ],
+    )
+  ).filter(
+    (r) =>
+      ids.includes(str(r, "action_configuration")) &&
+      opt(r, "action_assignment"),
+  );
+  return ids.map((id) => {
+    const row = rows.get(id);
+    return {
+      sys_id: id,
+      ...(row && opt(row, "name") ? { name: opt(row, "name") } : {}),
+      ...(row && opt(row, "active") ? { active: opt(row, "active") } : {}),
+      assignments: links
+        .filter((r) => str(r, "action_configuration") === id)
+        .map((r) => ({
+          sys_id: str(r, "action_assignment"),
+          ...(
+            ["action_name", "label", "table", "experience_restricted"] as const
+          )
+            .filter((f) => opt(r, `action_assignment.${f}`))
+            .reduce(
+              (o, f) => ({ ...o, [f]: opt(r, `action_assignment.${f}`) }),
+              {} as Omit<UxActionConfigAssignment, "sys_id">,
+            ),
+        }))
+        .sort(
+          (a, b) =>
+            (a.table ?? "").localeCompare(b.table ?? "") ||
+            (a.action_name ?? a.sys_id).localeCompare(
+              b.action_name ?? b.sys_id,
+            ),
+        ),
+    };
+  });
+}
+
 export interface ClassifyInput {
   path?: string;
   categories: string[];
@@ -631,6 +729,7 @@ export function workspaceLines(
     forms: UxFormView[];
     themes: UxTheme[];
     workspace: UxWorkspaceClass;
+    actionConfigs?: UxActionConfig[];
   },
   out: string[],
 ): void {
@@ -639,6 +738,7 @@ export function workspaceLines(
     !result.shell &&
     !result.actions.length &&
     !result.themes.length &&
+    !result.actionConfigs?.length &&
     !w.signals.length &&
     !w.migration.length
   ) {
@@ -707,6 +807,18 @@ export function workspaceLines(
         }${a.required_roles.length ? ` · roles ${a.required_roles.join(", ")}` : ""}${
           a.agentWorkspace ? " · Agent Workspace only" : ""
         }${a.active === "false" ? " _(inactive)_" : ""}`,
+      );
+    }
+  }
+  if (result.actionConfigs?.length) {
+    out.push("", "### Action configurations", "");
+    for (const c of result.actionConfigs) {
+      const names = c.assignments.map(
+        (a) =>
+          `${a.table ?? "?"} ${a.label ?? a.action_name ?? a.sys_id}${a.experience_restricted === "true" ? " (restricted)" : ""}`,
+      );
+      out.push(
+        `- **${c.name ?? c.sys_id}**${c.active === "false" ? " _(inactive)_" : ""}: ${names.join(", ") || "no assignments"}`,
       );
     }
   }

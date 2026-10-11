@@ -109,6 +109,7 @@ import {
   decodeShell,
   formViews,
   listColumns,
+  readActionConfigs,
   readDeclarativeActions,
   readThemes,
   type WorkspaceIo,
@@ -1006,6 +1007,13 @@ async function readWorkspace(
     expId,
     ...(configId ? [configId] : []),
   ]);
+  const actionConfigs = await readActionConfigs(
+    io,
+    result.properties
+      .filter((p) => p.name === "actionConfigId")
+      .map((p) => p.value),
+  );
+  if (actionConfigs.length) result.actionConfigs = actionConfigs;
   const categories = (
     await boundedReadIn(
       ctx,
@@ -1044,6 +1052,7 @@ async function readWorkspace(
     result.shell ||
     result.actions.length ||
     result.themes.length ||
+    result.actionConfigs ||
     result.workspace.signals.length
   ) {
     ctx.caveats.push(WORKSPACE_CAVEAT);

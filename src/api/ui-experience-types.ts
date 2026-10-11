@@ -17,6 +17,7 @@ import type { UibPageFinding, UibPageMetrics } from "./uib-page-lint.js";
 import type { UibBrokerFinding } from "./uib-broker-lint.js";
 import type { Unreadable } from "./bounded-read.js";
 import type {
+  UxActionConfig,
   UxDeclarativeAction,
   UxFormView,
   UxShell,
@@ -346,6 +347,11 @@ export interface ExplainUiExperienceResult {
   themes: UxTheme[];
   /** N-30: Agent Workspace vs Configurable Workspace. */
   workspace: UxWorkspaceClass;
+  /**
+   * N-30: the UX action configurations named by `actionConfigId` and the
+   * assignments added to them; omitted when the experience names none.
+   */
+  actionConfigs?: UxActionConfig[];
   /** N-31: `uib-page-weight` findings; omitted when no page has any. */
   pageHints?: UxPageHint[];
   /** N-29: broker rule findings; omitted when no broker has any. */
