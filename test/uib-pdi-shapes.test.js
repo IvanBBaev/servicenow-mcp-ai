@@ -10,6 +10,7 @@ import fs from "node:fs";
 import {
   compositionTree,
   dataResources,
+  elementEventMappings,
   eventMappings,
   eventWiring,
   slotsOf,
@@ -168,4 +169,87 @@ test("broker: the input schema is the props array", () => {
   ]);
   assert.deepEqual(rules({ kind: "rest", props }), []);
   assert.deepEqual(rules({ kind: "rest" }), []);
+});
+
+// O-5 / N-26 — most live wiring sits on the elements: each composition element
+// carries its own `eventMappings` (`[{sourceEventApiName, targets}]`).
+// test/fixtures/uib/pdi-element-events.json is an OOB composition trimmed to the
+// elements on the path to a non-empty `eventMappings`.
+const elementFixture = JSON.parse(
+  fs.readFileSync(
+    new URL("./fixtures/uib/pdi-element-events.json", import.meta.url),
+    "utf8",
+  ),
+);
+const elementComposition = JSON.parse(elementFixture.composition);
+
+test("element eventMappings: every element, nested slots included, is read", () => {
+  const mappings = elementEventMappings(elementComposition);
+  assert.equal(mappings.length, 28);
+  // Depth 3 and 4 under overrides.composition.
+  assert.deepEqual(mappings[0], {
+    source: "presentational_list_1",
+    event: "now_list.NOW_LIST#CELL_LINK_CLICKED",
+    handlers: [
+      {
+        name: "7528219aeba476506680f8e3dad0cddc",
+        type: "CLIENT_SCRIPT",
+        definitionId: "7528219aeba476506680f8e3dad0cddc",
+        targetId: "hhggvoHeehheeddfAaaoajjddaaJkuXqQaaQbb",
+      },
+    ],
+  });
+  assert.deepEqual(
+    mappings[1].handlers.map((h) => [h.type, h.name, h.definitionId]),
+    [
+      [
+        "EVENT",
+        "sn_uxf.MACROPONENT_STATE_UPDATE_REQUESTED",
+        "32408b42ff7a10109046e490703bf176",
+      ],
+      [
+        "EVENT",
+        "x_nuvo_eam.MODAL_SELECTED_RELAY_01bb5175ebac72506680f8e3dad0cd19",
+        "b88725d6eba476506680f8e3dad0cd65",
+      ],
+    ],
+  );
+  // One element can wire several events.
+  assert.deepEqual(
+    mappings
+      .filter((m) => m.source === "create_edit_coverage_details_modal")
+      .map((m) => m.event),
+    ["sn_uxf_page.CANVAS_MODAL#OPENED", "sn_uxf_page.CANVAS_MODAL#CLOSED"],
+  );
+  // Every source is an element of the walked tree.
+  const tree = compositionTree(elementComposition);
+  const walked = new Set(ids(tree.elements));
+  assert.ok(mappings.every((m) => walked.has(m.source)));
+  // The shallow OOB fixture wires nothing on its elements.
+  assert.deepEqual(elementEventMappings(composition), []);
+});
+
+test("element eventMappings: tolerant of odd shapes, never throws", () => {
+  assert.deepEqual(elementEventMappings(null), []);
+  assert.deepEqual(elementEventMappings({ elementId: "x" }), []);
+  assert.deepEqual(
+    elementEventMappings([
+      "junk",
+      { elementId: "a", eventMappings: "nope" },
+      {
+        elementId: "b",
+        eventMappings: [
+          5,
+          { sourceEventDefinition: { apiName: "B#CLICK" }, targets: [] },
+          { event: "B#OTHER", handlers: ["h"] },
+          {},
+        ],
+      },
+    ]),
+    [
+      { source: "b", event: "B#CLICK", handlers: [] },
+      { source: "b", event: "B#OTHER", handlers: [{ name: "h" }] },
+      { source: "b", handlers: [] },
+    ],
+  );
 });

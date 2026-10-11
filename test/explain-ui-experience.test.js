@@ -1421,6 +1421,59 @@ test("N-26: API levels are independent; markdown renders the deep sections", asy
   assert.match(md2, /`list_1`\.selected = @state\.selectedTab → client state/);
 });
 
+test("N-26 (O-5): element eventMappings join the event chains", async () => {
+  const tables = deepFixture();
+  const home = tables.sys_ux_macroponent.find((m) => m.sys_id === HOME_MP);
+  const composition = structuredClone(DEEP_COMPOSITION);
+  composition[1].slots[0].children[0].eventMappings = [
+    {
+      sourceEventApiName: "acme.NESTED#OPENED",
+      targets: [
+        {
+          targetId: "t1",
+          type: "EVENT",
+          event: { sysId: EVT, apiName: "acme.OPEN", payload: {} },
+          clientScript: null,
+          operation: null,
+        },
+        {
+          targetId: "t2",
+          type: "CLIENT_SCRIPT",
+          event: null,
+          clientScript: { sysId: "cs1", payload: {} },
+        },
+      ],
+    },
+  ];
+  home.composition = JSON.stringify(composition);
+  const res = payload(
+    await run({ path: "now/acme", detail: ["events"] }, instance(tables)),
+  );
+  const mp = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(res.detail.eventChains, 3);
+  assert.equal(mp.eventChains[0].origin, undefined);
+  assert.deepEqual(mp.eventChains[2], {
+    source: "nested",
+    element: "nested",
+    component: NESTED_MP,
+    event: "acme.NESTED#OPENED",
+    origin: "element",
+    targets: [
+      { kind: "event", name: "ACME#OPEN", sys_id: EVT, type: "EVENT" },
+      {
+        kind: "clientScript",
+        sys_id: "cs1",
+        name: "onLoad",
+        type: "CLIENT_SCRIPT",
+      },
+    ],
+  });
+  // The shallow wiring (no detail) still reads internal_event_mappings only.
+  const flat = payload(await run({ path: "now/acme" }, instance(tables)));
+  const fh = flat.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(fh.events.value.length, 2);
+});
+
 test("N-26: the detail input sets the depth inline; file keeps the full depth", async () => {
   const inline = payload(
     await run(
