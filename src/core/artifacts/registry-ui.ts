@@ -342,7 +342,8 @@ export const UI_TYPES: readonly ArtifactType[] = [
     verified: false,
   },
   // N-29: REST and GraphQL data brokers. Neither table is in the SDK
-  // inventory; table and field names are unverified until O-5 (PDI). No
+  // inventory; O-5 (a PDI) confirmed both tables, `props` and
+  // `mutates_server_data` (inherited from sys_ux_data_broker_simple). No
   // script fields (a GraphQL query is not JavaScript), so no script-tools
   // opt-in (no enum growth).
   {

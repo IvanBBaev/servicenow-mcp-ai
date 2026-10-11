@@ -468,7 +468,8 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
   },
   // N-29: the GraphQL resolver scripts behind GraphQL data brokers join
   // script intelligence as opt-in types (O-10, 2026-10-10). The tables are
-  // the graphql_api children; unverified until O-5.
+  // the graphql_api children; O-5 (a PDI) confirmed their columns (a type
+  // resolver has no `name`, it is named by `type_name`).
   {
     ...BASE,
     type: "graphql_resolver",
