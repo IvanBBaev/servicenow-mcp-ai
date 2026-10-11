@@ -26,8 +26,9 @@ import { isSysIdAnyCase } from "../core/sys-id.js";
  * source degrades on its own: an unreadable table becomes a caveat and the
  * category is reported `unreadable`, never a thrown error (except a cancel).
  *
- * Reached through the `document_app` kind `i18n` (doc-i18n.ts). Every table
- * and field name here is unverified until O-5 (PDI).
+ * Reached through the `document_app` kind `i18n` (doc-i18n.ts). The table
+ * and field names were checked on a PDI (O-5); the UIB message-key
+ * convention is still an assumption.
  */
 
 export const I18N_LIMITS = {
@@ -118,7 +119,7 @@ export interface I18nRow {
 }
 
 export const I18N_CAVEAT =
-  "Translation coverage (N-7) is unverified (gate O-5): sys_ui_message (key, language), sys_documentation (name, element, language), sys_choice (name, element, value, language), sys_translated_text (tablename, fieldname, documentkey, language), sys_translated (name, element, value, language), sys_language (id, name, active) and the UIB message-key convention (the English string is the sys_ui_message key) are assumptions. The keys of a category are those seen in any language, so a value never translated into any language is not counted.";
+  "Translation coverage (N-7) assumes the UIB message-key convention (the English string is the sys_ui_message key). The keys of a category are those seen in any language, so a value never translated into any language is not counted.";
 
 const LANGUAGE = /^[a-z]{2,3}([_-][a-z0-9]{2,8})*$/i;
 const SAFE_TABLE = /^[a-z0-9_]{1,80}$/;

@@ -17,8 +17,8 @@ import { queryTable } from "./table.js";
  * scopes hold on this app. Restricted caller access rows naming the app as
  * source or target are listed as read.
  *
- * Table names, field names and target_type values of sys_scope_privilege and
- * sys_restricted_caller_access are unverified until O-5 (PDI).
+ * Table names, field names and choice values of sys_scope_privilege and
+ * sys_restricted_caller_access were checked on a PDI (O-5).
  */
 
 export const CROSS_SCOPE_LIMITS = {
@@ -105,6 +105,19 @@ export interface PrivilegeRow {
   target: string;
   operation: string;
   status: string;
+}
+
+/** sys_restricted_caller_access.status is an integer choice (PDI). */
+const RCA_STATUS: Record<string, string> = {
+  "0": "requested",
+  "1": "denied",
+  "2": "allowed",
+  "3": "invalidated",
+};
+
+/** The name of a restricted caller access status; unknown values pass through. */
+export function rcaStatus(value: string): string {
+  return RCA_STATUS[value] ?? value;
 }
 
 const SCRIPT_TARGET_TYPES = new Set(["sys_script_include", "scriptable"]);
@@ -400,11 +413,11 @@ export async function crossScopeReport(
     sourceTable: snString(r.source_table),
     targetTable: snString(r.target_table),
     target: snString(r.target),
-    status: snString(r.status),
+    status: rcaStatus(snString(r.status)),
   }));
 
   caveats.push(
-    "Cross-scope calls are found statically: only scope-qualified script include names and tables opened by literal name are seen. Whether a missing privilege blocks a call depends on the target's runtime access settings. Table and field names are unverified until O-5 (PDI).",
+    "Cross-scope calls are found statically: only scope-qualified script include names and tables opened by literal name are seen. Whether a missing privilege blocks a call depends on the target's runtime access settings.",
   );
   return { scope, scanned, outbound, inbound, restricted, counts, caveats };
 }
