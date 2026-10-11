@@ -515,6 +515,31 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       "N-17: the issuer's JWKS URI. Unset = discovered from the issuer's OpenID Connect or RFC 8414 metadata.",
   }),
+  str({
+    key: "SN_HTTP_OAUTH_INTROSPECTION_URI",
+    section: "transport",
+    since: NEXT,
+    example: "https://login.example.com/oauth2/introspect",
+    description:
+      "N-17: the issuer's RFC 7662 introspection endpoint. Set = opaque (non-JWT) access tokens are accepted when it answers `active` with this resource in `aud`, a `sub`, an `exp` and the required scopes; an active answer is reused for up to 60 s. Unset = JWT access tokens only. Requires `SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID` and `SN_HTTP_OAUTH_INTROSPECTION_SECRET`.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID",
+    section: "transport",
+    since: NEXT,
+    example: "servicenow-mcp",
+    description:
+      "N-17: this server's client id at the introspection endpoint (HTTP Basic, `client_secret_basic`).",
+  }),
+  secret({
+    key: "SN_HTTP_OAUTH_INTROSPECTION_SECRET",
+    section: "transport",
+    since: NEXT,
+    fileSource: true,
+    example: "change-me",
+    description:
+      "N-17: this server's client secret at the introspection endpoint.",
+  }),
   list({
     key: "SN_HTTP_OAUTH_SCOPES",
     section: "transport",

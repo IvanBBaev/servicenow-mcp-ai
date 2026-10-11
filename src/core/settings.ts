@@ -376,6 +376,8 @@ export interface HttpOAuthSettings {
   audiences: string[];
   jwksUri?: string;
   scopes: string[];
+  /** RFC 7662 introspection of opaque tokens. */
+  introspection?: { uri: string; clientId: string; clientSecret: string };
 }
 
 export function getHttpOAuth(): HttpOAuthSettings | undefined {
@@ -388,12 +390,23 @@ export function getHttpOAuth(): HttpOAuthSettings | undefined {
     );
   }
   const jwksUri = readString("SN_HTTP_OAUTH_JWKS_URI");
+  const introspectionUri = readString("SN_HTTP_OAUTH_INTROSPECTION_URI");
+  const clientId = readString("SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID");
+  const clientSecret = readString("SN_HTTP_OAUTH_INTROSPECTION_SECRET");
+  if (introspectionUri && (!clientId || !clientSecret)) {
+    throw new Error(
+      "SN_HTTP_OAUTH_INTROSPECTION_URI is set but SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID / SN_HTTP_OAUTH_INTROSPECTION_SECRET are not — the endpoint needs this server's client credentials",
+    );
+  }
   return {
     issuer,
     resource,
     audiences: parseNameList(process.env.SN_HTTP_OAUTH_AUDIENCE),
     ...(jwksUri ? { jwksUri } : {}),
     scopes: parseNameList(process.env.SN_HTTP_OAUTH_SCOPES),
+    ...(introspectionUri && clientId && clientSecret
+      ? { introspection: { uri: introspectionUri, clientId, clientSecret } }
+      : {}),
   };
 }
 

@@ -23,6 +23,7 @@ import {
   OAuthResourceServer,
   PRM_WELL_KNOWN,
   JWKS_REFETCH_MIN_MS,
+  INTROSPECTION_TTL_MS,
   canonicalResource,
   staticBearerMatches,
   validateOAuthConfig,
@@ -387,6 +388,247 @@ test("N-17 a discovery document naming another issuer is refused", async () => {
   const out = await rs.authenticate(`Bearer ${jwt(RSA, claimsFor())}`);
   assert.equal(out.status, 503);
   assert.match(out.message, /issuer mismatch/);
+});
+
+// ---------------------------------------------------------------------------
+// Opaque tokens: RFC 7662 introspection
+// ---------------------------------------------------------------------------
+
+const INTROSPECT = `${ISSUER}/introspect`;
+const OPAQUE = "opaque-token_123~abc";
+
+/**
+ * An introspection endpoint double: `answer(token)` is the JSON body; every
+ * request is recorded with its headers and form.
+ */
+function introspector(answer, now) {
+  const calls = [];
+  const rs = new OAuthResourceServer(
+    {
+      issuer: ISSUER,
+      resource: RESOURCE,
+      scopes: ["mcp:tools"],
+      userClaim: "email",
+      introspection: {
+        uri: INTROSPECT,
+        clientId: "mcp server",
+        clientSecret: "s3cr:t",
+      },
+    },
+    async (url, init) => {
+      const form = new URLSearchParams(init?.body ?? "");
+      calls.push({ url: String(url), init, form });
+      if (String(url) !== INTROSPECT) return jsonResponse(404, {});
+      const body = answer(form.get("token"));
+      return body instanceof Response ? body : jsonResponse(200, body);
+    },
+    now,
+  );
+  return { rs, calls };
+}
+
+const activeFor = (over = {}) => ({
+  active: true,
+  iss: ISSUER,
+  aud: RESOURCE,
+  sub: "bob",
+  client_id: "cli",
+  email: "bob@example.com",
+  scope: "mcp:tools other",
+  exp: nowSec() + 300,
+  ...over,
+});
+
+test("N-17 introspection: settings need the client credentials; the URI must be https", async () => {
+  const base = {
+    SN_HTTP_OAUTH_ISSUER: ISSUER,
+    SN_HTTP_OAUTH_RESOURCE: RESOURCE,
+  };
+  await withEnv(
+    {
+      ...base,
+      SN_HTTP_OAUTH_INTROSPECTION_URI: INTROSPECT,
+      SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID: undefined,
+      SN_HTTP_OAUTH_INTROSPECTION_SECRET: undefined,
+    },
+    () => assert.throws(() => getHttpOAuth(), /INTROSPECTION_CLIENT_ID/),
+  );
+  await withEnv(
+    {
+      ...base,
+      SN_HTTP_OAUTH_INTROSPECTION_URI: INTROSPECT,
+      SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID: "mcp",
+      SN_HTTP_OAUTH_INTROSPECTION_SECRET: "x",
+    },
+    () =>
+      assert.deepEqual(getHttpOAuth().introspection, {
+        uri: INTROSPECT,
+        clientId: "mcp",
+        clientSecret: "x",
+      }),
+  );
+  await withEnv({ ...base, SN_HTTP_OAUTH_INTROSPECTION_URI: undefined }, () =>
+    assert.equal(getHttpOAuth().introspection, undefined),
+  );
+  assert.throws(
+    () =>
+      validateOAuthConfig({
+        issuer: ISSUER,
+        resource: RESOURCE,
+        introspection: {
+          uri: "http://as.example.com/introspect",
+          clientId: "a",
+          clientSecret: "b",
+        },
+      }),
+    /SN_HTTP_OAUTH_INTROSPECTION_URI must use https/,
+  );
+});
+
+test("N-17 introspection: an opaque token is refused without an endpoint", async () => {
+  const { rs } = server();
+  const out = await rs.authenticate(`Bearer ${OPAQUE}`);
+  assert.equal(out.status, 401);
+  assert.match(out.challenge, /invalid_token/);
+  assert.match(out.message, /not a JWT/);
+});
+
+test("N-17 introspection: an active opaque token yields the subject, the client, the scopes and the login", async () => {
+  const { rs, calls } = introspector(() => activeFor());
+  const out = await rs.authenticate(`Bearer ${OPAQUE}`);
+  assert.equal(out.ok, true, out.message);
+  assert.equal(out.subject, "bob");
+  assert.equal(out.auth.clientId, "cli");
+  assert.deepEqual(out.auth.scopes, ["mcp:tools", "other"]);
+  assert.equal(out.auth.extra.login, "bob@example.com");
+  assert.equal(out.auth.token, OPAQUE);
+
+  assert.equal(calls.length, 1);
+  const [call] = calls;
+  assert.equal(call.init.method, "POST");
+  assert.equal(call.init.redirect, "error");
+  assert.equal(
+    call.init.headers["content-type"],
+    "application/x-www-form-urlencoded",
+  );
+  // client_secret_basic: each half form-encoded, then base64.
+  assert.equal(
+    call.init.headers.authorization,
+    `Basic ${Buffer.from("mcp%20server:s3cr%3At").toString("base64")}`,
+  );
+  assert.equal(call.form.get("token"), OPAQUE);
+  assert.equal(call.form.get("token_type_hint"), "access_token");
+});
+
+test("N-17 introspection: inactive, foreign, expired, subject-less and other-issuer answers are 401; missing scope is 403", async () => {
+  const cases = [
+    [{ active: false }, /not active/],
+    [activeFor({ active: "true" }), /not active/],
+    [
+      activeFor({ aud: "https://other.example.com/mcp" }),
+      /not issued for this resource/,
+    ],
+    [activeFor({ aud: undefined }), /not issued for this resource/],
+    [activeFor({ exp: undefined }), /no expiry/],
+    [activeFor({ exp: nowSec() - 3600 }), /expired/],
+    [activeFor({ sub: undefined }), /no subject/],
+    [activeFor({ iss: "https://evil.example.com" }), /wrong issuer/],
+  ];
+  for (const [answer, reason] of cases) {
+    const { rs } = introspector(() => answer);
+    const out = await rs.authenticate(`Bearer ${OPAQUE}`);
+    assert.equal(out.status, 401, JSON.stringify(answer));
+    assert.match(out.message, reason, JSON.stringify(answer));
+  }
+  // `iss` is optional in RFC 7662: an answer without it is the issuer's.
+  const noIss = introspector(() => activeFor({ iss: undefined }));
+  assert.equal((await noIss.rs.authenticate(`Bearer ${OPAQUE}`)).ok, true);
+
+  const { rs } = introspector(() => activeFor({ scope: "other" }));
+  const out = await rs.authenticate(`Bearer ${OPAQUE}`);
+  assert.equal(out.status, 403);
+  assert.match(out.challenge, /insufficient_scope/);
+});
+
+test("N-17 introspection: an active answer is reused for 60 s at most, never past exp; an inactive one is not", async () => {
+  let clock = Date.now();
+  const now = () => clock;
+  let active = true;
+  const exp = Math.floor(clock / 1000) + 3600;
+  const { rs, calls } = introspector(
+    () => (active ? activeFor({ exp }) : { active: false }),
+    now,
+  );
+  assert.equal((await rs.authenticate(`Bearer ${OPAQUE}`)).ok, true);
+  assert.equal((await rs.authenticate(`Bearer ${OPAQUE}`)).ok, true);
+  assert.equal(calls.length, 1, "the second call reused the answer");
+
+  // Past the reuse window the issuer is asked again: a revocation lands.
+  active = false;
+  clock += INTROSPECTION_TTL_MS + 1;
+  assert.equal((await rs.authenticate(`Bearer ${OPAQUE}`)).status, 401);
+  assert.equal((await rs.authenticate(`Bearer ${OPAQUE}`)).status, 401);
+  assert.equal(calls.length, 3, "an inactive answer is not cached");
+
+  // A token expiring inside the window is reused only until its exp.
+  let shortClock = Date.now();
+  const short = introspector(
+    () => activeFor({ exp: Math.floor(shortClock / 1000) + 5 }),
+    () => shortClock,
+  );
+  assert.equal((await short.rs.authenticate(`Bearer ${OPAQUE}`)).ok, true);
+  shortClock += 5_000 + 1;
+  await short.rs.authenticate(`Bearer ${OPAQUE}`);
+  assert.equal(short.calls.length, 2);
+
+  // Two tokens are two cache entries.
+  const two = introspector((token) => activeFor({ sub: token }));
+  assert.equal((await two.rs.authenticate("Bearer t-one")).subject, "t-one");
+  assert.equal((await two.rs.authenticate("Bearer t-two")).subject, "t-two");
+  assert.equal((await two.rs.authenticate("Bearer t-one")).subject, "t-one");
+  assert.equal(two.calls.length, 2);
+});
+
+test("N-17 introspection: an endpoint that fails or answers garbage is a 503", async () => {
+  for (const answer of [
+    () => new Response("nope", { status: 500 }),
+    () => new Response("[1]", { status: 200 }),
+  ]) {
+    const { rs } = introspector(answer);
+    const out = await rs.authenticate(`Bearer ${OPAQUE}`);
+    assert.equal(out.status, 503);
+    assert.match(out.message, /introspection unavailable/);
+  }
+  const rs = new OAuthResourceServer(
+    {
+      issuer: ISSUER,
+      resource: RESOURCE,
+      introspection: { uri: INTROSPECT, clientId: "a", clientSecret: "b" },
+    },
+    async () => {
+      throw new Error("ECONNREFUSED");
+    },
+  );
+  assert.equal((await rs.authenticate(`Bearer ${OPAQUE}`)).status, 503);
+});
+
+test("N-17 introspection: JWT tokens are still validated locally", async () => {
+  const calls = [];
+  const as = authServerFetch();
+  const rs = new OAuthResourceServer(
+    {
+      issuer: ISSUER,
+      resource: RESOURCE,
+      introspection: { uri: INTROSPECT, clientId: "a", clientSecret: "b" },
+    },
+    async (url, init) => {
+      calls.push(String(url));
+      return as.fetchImpl(url, init);
+    },
+  );
+  const out = await rs.authenticate(`Bearer ${jwt(RSA, claimsFor())}`);
+  assert.equal(out.ok, true, out.message);
+  assert.ok(!calls.includes(INTROSPECT));
 });
 
 // ---------------------------------------------------------------------------

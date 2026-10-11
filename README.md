@@ -427,8 +427,9 @@ docker run --rm -p 127.0.0.1:3000:3000 \
   `https://mcp.example.com/mcp`). Clients discover the issuer from
   `/.well-known/oauth-protected-resource` and send its JWT access tokens; the token must
   name the resource as its audience. Optional: `SN_HTTP_OAUTH_SCOPES`,
-  `SN_HTTP_OAUTH_AUDIENCE`, `SN_HTTP_OAUTH_JWKS_URI`. By default the instance is still
-  called with the configured service account.
+  `SN_HTTP_OAUTH_AUDIENCE`, `SN_HTTP_OAUTH_JWKS_URI`. For an issuer that hands out opaque
+  tokens, set `SN_HTTP_OAUTH_INTROSPECTION_URI` plus its client id and secret (RFC 7662). By
+  default the instance is still called with the configured service account.
 - **Per-user ServiceNow access (N-17 phase 2):** add `SN_HTTP_OAUTH_USER_TOKENS=true`, a
   32-byte `SN_HTTP_OAUTH_TOKEN_KEY` (base64 or hex, e.g. `openssl rand -base64 32`) and an
   OAuth client on the instance (`SN_OAUTH_CLIENT_ID` / `SN_OAUTH_CLIENT_SECRET`, refresh
@@ -686,6 +687,7 @@ Container secrets (D-5): <KEY>_FILE=/path loads <KEY> from that file at startup 
 | `SN_OAUTH_CLIENT_SECRET_FILE` | no | — | next | D-5: read `SN_OAUTH_CLIENT_SECRET` from this file (Docker / Kubernetes secrets). |
 | `SN_OAUTH_REFRESH_TOKEN_FILE` | no | — | next | D-5: read `SN_OAUTH_REFRESH_TOKEN` from this file (Docker / Kubernetes secrets). A rotated refresh token is then kept in memory only (update the file yourself). |
 | `SN_HTTP_TOKEN_FILE` | no | — | next | D-5: read `SN_HTTP_TOKEN` from this file (Docker / Kubernetes secrets). |
+| `SN_HTTP_OAUTH_INTROSPECTION_SECRET_FILE` | no | — | next | D-5: read `SN_HTTP_OAUTH_INTROSPECTION_SECRET` from this file (Docker / Kubernetes secrets). |
 | `SN_HTTP_OAUTH_TOKEN_KEY_FILE` | no | — | next | D-5: read `SN_HTTP_OAUTH_TOKEN_KEY` from this file (Docker / Kubernetes secrets). |
 
 #### Profiles and the env file
@@ -827,6 +829,9 @@ stdio (default, one local client) or Streamable HTTP for remote and agent client
 | `SN_HTTP_OAUTH_RESOURCE` | no | — | next | N-17: this server's canonical public URI (RFC 8707 resource indicator). A token is accepted only when its `aud` names it (or an `SN_HTTP_OAUTH_AUDIENCE` value). |
 | `SN_HTTP_OAUTH_AUDIENCE` | no | — | next | N-17: extra `aud` values accepted besides `SN_HTTP_OAUTH_RESOURCE`, for an authorization server that issues its own audience identifiers. |
 | `SN_HTTP_OAUTH_JWKS_URI` | no | — | next | N-17: the issuer's JWKS URI. Unset = discovered from the issuer's OpenID Connect or RFC 8414 metadata. |
+| `SN_HTTP_OAUTH_INTROSPECTION_URI` | no | — | next | N-17: the issuer's RFC 7662 introspection endpoint. Set = opaque (non-JWT) access tokens are accepted when it answers `active` with this resource in `aud`, a `sub`, an `exp` and the required scopes; an active answer is reused for up to 60 s. Unset = JWT access tokens only. Requires `SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID` and `SN_HTTP_OAUTH_INTROSPECTION_SECRET`. |
+| `SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID` | no | — | next | N-17: this server's client id at the introspection endpoint (HTTP Basic, `client_secret_basic`). |
+| `SN_HTTP_OAUTH_INTROSPECTION_SECRET` | no | — | next | N-17: this server's client secret at the introspection endpoint. |
 | `SN_HTTP_OAUTH_SCOPES` | no | — | next | N-17: scopes every request's token must carry; published as `scopes_supported` and in the `WWW-Authenticate` challenge. A token without them gets 403 `insufficient_scope`. |
 | `SN_HTTP_OAUTH_USER_TOKENS` | no | off | next | N-17: call ServiceNow as the OAuth subject instead of the shared profile credential. Each subject links its own ServiceNow account once (Authorization Code + PKCE through a URL elicitation, callback at `/oauth/servicenow/callback` on the `SN_HTTP_OAUTH_RESOURCE` origin) with the profile's `SN_OAUTH_CLIENT_ID` / `SN_OAUTH_CLIENT_SECRET`; the refresh token is kept encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`. Requires `SN_HTTP_OAUTH_ISSUER` and `SN_HTTP_OAUTH_TOKEN_KEY`. |
 | `SN_HTTP_OAUTH_USER_MATCH` | no | `email=email` | next | N-17: `<token claim>=<sys_user field>` — a linked ServiceNow account is accepted only when its `sys_user` field equals the subject's claim (case-insensitive), so nobody can link someone else's account. |

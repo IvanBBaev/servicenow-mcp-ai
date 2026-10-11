@@ -170,7 +170,12 @@ The details follow.
   issuer's JWKS: signature (RS/PS/ES/EdDSA only — never `none` or HS), exact
   `iss`, an `aud` naming this resource (RFC 8707) or an
   `SN_HTTP_OAUTH_AUDIENCE` entry, `exp`/`nbf` with 60 s leeway, `sub`, and
-  every `SN_HTTP_OAUTH_SCOPES` scope. The issuer and JWKS endpoints must be
+  every `SN_HTTP_OAUTH_SCOPES` scope. With `SN_HTTP_OAUTH_INTROSPECTION_URI`
+  a non-JWT token is sent to the issuer's RFC 7662 endpoint (HTTP Basic
+  client auth) and must come back `active` and pass the same `aud`, `exp`,
+  `sub` and scope checks; an active answer is cached by the token's SHA-256
+  for at most 60 s (so a revocation lands within a minute), never past
+  `exp`. The issuer, JWKS and introspection endpoints must be
   https (loopback excepted) and are fetched without redirects. The token's
   subject is bound to its 2025 session, its plan tokens and its write-journal
   lines; the token itself is never stored or forwarded — the instance is still

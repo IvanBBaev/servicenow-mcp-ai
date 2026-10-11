@@ -1,5 +1,6 @@
 import {
   constants,
+  createHash,
   createPublicKey,
   timingSafeEqual,
   verify as verifySignature,
@@ -17,9 +18,10 @@ import type { AuthInfo } from "@modelcontextprotocol/server";
  * request with a `WWW-Authenticate` challenge that points at the metadata,
  * and accepts a JWT access token only when its signature verifies against
  * the issuer's JWKS and its `iss`, `aud` (RFC 8707: this server's resource
- * URI), `exp`, `nbf` and scopes hold. Opaque tokens (introspection) are not
- * supported. The token never leaves the process: ServiceNow is called with
- * the configured instance credentials (phase 1 of the custody model).
+ * URI), `exp`, `nbf` and scopes hold. An opaque token is checked with the
+ * issuer's RFC 7662 introspection endpoint when one is configured, under the
+ * same rules. The token goes nowhere else: ServiceNow is called with the
+ * configured instance credentials (phase 1 of the custody model).
  *
  * The static `SN_HTTP_TOKEN` stays the simple mode and is still accepted
  * next to OAuth, for a scraper or a single operator.
@@ -31,6 +33,11 @@ export const CLOCK_LEEWAY_SEC = 60;
 export const JWKS_TTL_MS = 10 * 60_000;
 /** The least time between two refetches forced by an unknown `kid`. */
 export const JWKS_REFETCH_MIN_MS = 30_000;
+
+/** How long an active introspection answer is reused (capped by `exp`). */
+export const INTROSPECTION_TTL_MS = 60_000;
+/** The most introspection answers kept; the oldest goes first. */
+export const INTROSPECTION_CACHE_MAX = 1_000;
 
 /** The RFC 9728 well-known path segment. */
 export const PRM_WELL_KNOWN = "/.well-known/oauth-protected-resource";
@@ -76,6 +83,15 @@ export interface OAuthResourceConfig {
    * string — the value a linked ServiceNow account must match.
    */
   userClaim?: string;
+  /** RFC 7662 introspection of opaque tokens; unset = JWT tokens only. */
+  introspection?: IntrospectionConfig;
+}
+
+/** The issuer's introspection endpoint and this server's client there. */
+export interface IntrospectionConfig {
+  uri: string;
+  clientId: string;
+  clientSecret: string;
 }
 
 /** The outcome of checking one request's `Authorization` header. */
@@ -129,6 +145,7 @@ export function validateOAuthConfig(config: OAuthResourceConfig): void {
   for (const [key, value] of [
     ["SN_HTTP_OAUTH_ISSUER", config.issuer],
     ["SN_HTTP_OAUTH_JWKS_URI", config.jwksUri],
+    ["SN_HTTP_OAUTH_INTROSPECTION_URI", config.introspection?.uri],
   ] as const) {
     if (value === undefined) continue;
     let url: URL;
@@ -196,6 +213,11 @@ export class OAuthResourceServer {
   private lastFetch = -Infinity;
   private inflight: Promise<void> | null = null;
   private jwksUri: string | undefined;
+  /** sha256(token) → the active introspection answer and its reuse limit. */
+  private readonly introspected = new Map<
+    string,
+    { claims: Record<string, unknown>; until: number }
+  >();
 
   constructor(
     private readonly config: OAuthResourceConfig,
@@ -269,7 +291,11 @@ export class OAuthResourceServer {
     });
 
     const parts = token.split(".");
-    if (parts.length !== 3) return invalid("not a JWT access token");
+    if (parts.length !== 3) {
+      return this.config.introspection
+        ? this.introspect(token, invalid)
+        : invalid("not a JWT access token");
+    }
     const [h, p, s] = parts as [string, string, string];
     const head = parseJson(base64url(h));
     const claims = parseJson(base64url(p));
@@ -319,8 +345,19 @@ export class OAuthResourceServer {
       valid = false;
     }
     if (!valid) return invalid("bad signature");
-
     if (claims.iss !== this.config.issuer) return invalid("wrong issuer");
+    return this.accept(token, claims, invalid);
+  }
+
+  /**
+   * The checks every token passes, signed or introspected: audience,
+   * expiry, subject and scopes; then the request's AuthInfo.
+   */
+  private accept(
+    token: string,
+    claims: Record<string, unknown>,
+    invalid: (description: string) => AuthOutcome,
+  ): AuthOutcome {
     const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
     const forUs = aud.some(
       (a) =>
@@ -380,6 +417,83 @@ export class OAuthResourceServer {
         },
       },
     };
+  }
+
+  /**
+   * RFC 7662: ask the issuer about an opaque token. An active answer is
+   * reused for INTROSPECTION_TTL_MS at most (never past its `exp`), so a
+   * revoked token stays usable for up to that long; an inactive one is not
+   * cached. An answer naming another issuer is refused.
+   */
+  private async introspect(
+    token: string,
+    invalid: (description: string) => AuthOutcome,
+  ): Promise<AuthOutcome> {
+    const key = createHash("sha256").update(token).digest("hex");
+    const hit = this.introspected.get(key);
+    if (hit && hit.until > this.now()) {
+      return this.accept(token, hit.claims, invalid);
+    }
+    this.introspected.delete(key);
+    let claims: Record<string, unknown>;
+    try {
+      claims = await this.postIntrospection(token);
+    } catch (error) {
+      return {
+        ok: false,
+        status: 503,
+        message: `Token introspection unavailable: ${(error as Error).message}`,
+      };
+    }
+    if (claims.active !== true) return invalid("token is not active");
+    if (claims.iss !== undefined && claims.iss !== this.config.issuer) {
+      return invalid("wrong issuer");
+    }
+    const outcome = this.accept(token, claims, invalid);
+    if (outcome.ok) {
+      const exp = (claims.exp as number) * 1000;
+      if (this.introspected.size >= INTROSPECTION_CACHE_MAX) {
+        const oldest = this.introspected.keys().next().value;
+        if (oldest !== undefined) this.introspected.delete(oldest);
+      }
+      this.introspected.set(key, {
+        claims,
+        until: Math.min(exp, this.now() + INTROSPECTION_TTL_MS),
+      });
+    }
+    return outcome;
+  }
+
+  /** POST the token to the introspection endpoint (client_secret_basic). */
+  private async postIntrospection(
+    token: string,
+  ): Promise<Record<string, unknown>> {
+    const { uri, clientId, clientSecret } = this.config
+      .introspection as IntrospectionConfig;
+    // RFC 6749 §2.3.1: both halves are form-encoded before base64.
+    const basic = Buffer.from(
+      `${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`,
+    ).toString("base64");
+    const res = await this.fetchImpl(uri, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        authorization: `Basic ${basic}`,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        token,
+        token_type_hint: "access_token",
+      }).toString(),
+      redirect: "error",
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) throw new KeySourceError(`${uri} answered ${res.status}`);
+    const body: unknown = await res.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      throw new KeySourceError(`${uri} is not a JSON object`);
+    }
+    return body as Record<string, unknown>;
   }
 
   /** The key for `kid`, fetching the JWKS when it is stale or lacks it. */
