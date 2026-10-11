@@ -179,8 +179,34 @@ Caveats from this pass:
   `glide.login.no_blank_password` have no row on the PDI, so their defaults
   stay unverified.
 - UI Builder follow-ups (new coverage, not fixes): element `eventMappings`
-  are not read yet; one OOB composition holds a raw control character and
-  decodes as `decoded:false`.
+  are not read yet (done in the third pass); one OOB composition holds a raw
+  control character and decodes as `decoded:false`.
+
+## Third pass: domain, access, ATF, i18n, cross-scope, UI Builder
+
+| Commit  | Change                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| b7238e5 | `recordDomain` ignores a `global` value in `sys_overrides` (45 business rules on the PDI hold it). Caveats updated where the PDI confirmed them: ACL `admin_overrides`, role-assignment `state` (`active` or empty), the default deny (`glide.sm.default_mode=deny`), the `sys_domain.name` dot-walk, the tables carrying `sys_domain` / `sys_overrides`, `sys_domain_path`, the workspace category sys_id. |
+| b5cb05b | ATF `success_with_warnings` counts as a pass; i18n coverage tables and fields confirmed; `sys_restricted_caller_access.status` is an integer choice, now mapped to `requested` / `denied` / `allowed` / `invalidated` (an output value change).                                                                                                                                                             |
+| 8591ca4 | UI Builder: per-element `eventMappings` are read into the event chains (`origin: "element"`); tools/list delta 0 B.                                                                                                                                                                                                                                                                                         |
+| bc411b2 | UI Builder data resources: all seven PDI `definition.type` values map to a table (COMPOSITE, CLIENT_STATE, CONTROLLER added); import names with spaces resolve.                                                                                                                                                                                                                                             |
+
+Gate on the merged tip: 2415/2415, pack 2547.2 KB.
+
+Still unverified after this pass:
+
+- Elevation: the `security_admin` row in `sys_user_role` is hidden from the
+  PDI admin's reads (total 1, count 0), so its `elevated_privilege` flag and
+  the write gating cannot be checked with GETs.
+- The field-ACL fallback order.
+- Whether a non-separated instance omits `sys_domain` or returns it empty
+  (this PDI is domain-separated).
+- Whether ATF step or suite edits bump `sys_updated_on` / `sys_mod_count`.
+- Whether a UI Builder composition `definition.id` is a `sys_ux_macroponent`
+  sys_id.
+- Registry GraphQL names (in progress): `sys_graphql_typeresolver` has no
+  `name` column; `schema_namespace` on the GraphQL API does not exist
+  (`namespace` / `application_namespace`).
 
 ## Next steps
 
