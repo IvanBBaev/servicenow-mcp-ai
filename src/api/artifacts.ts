@@ -22,6 +22,7 @@ import { REDACTED } from "../core/redaction.js";
 import {
   ARTIFACT_TYPES,
   getArtifactType,
+  scopeNamespacePath,
   type ArtifactChild,
   type ArtifactType,
 } from "../core/artifacts/registry.js";
@@ -34,7 +35,7 @@ import {
   type SnRecord,
 } from "./table.js";
 import { snString, degradeStatus } from "./shared.js";
-import { scopeClause } from "./scripts.js";
+import { typeScopeClause } from "./scripts.js";
 import { DOMAIN_FIELDS, keepDomainFields } from "./domain-separation.js";
 import { isSysIdAnyCase } from "../core/sys-id.js";
 
@@ -112,8 +113,12 @@ function rowScope(
   t: ArtifactType,
   row: SnRecord,
 ): { sys_id: string | null; scope: string | null } {
+  const nsPath = scopeNamespacePath(t);
+  if (t.scopeField === null || nsPath === null) {
+    return { sys_id: null, scope: null };
+  }
   const id = snString(row[t.scopeField]);
-  const ns = snString(row[`${t.scopeField}.scope`]);
+  const ns = snString(row[nsPath]);
   return { sys_id: id || null, scope: ns || null };
 }
 
@@ -153,7 +158,7 @@ export async function listArtifacts(
   const clauses: string[] = [];
   // The base query may carry `^OR`, so it goes first (see listScripts).
   if (t.baseQuery) clauses.push(t.baseQuery);
-  if (opts.scope?.trim()) clauses.push(scopeClause(t.scopeField, opts.scope));
+  if (opts.scope?.trim()) clauses.push(typeScopeClause(t, opts.scope));
   if (opts.active !== undefined) {
     if (!t.activeField) {
       throw new ServiceNowError(
@@ -166,10 +171,11 @@ export async function listArtifacts(
   if (opts.query?.trim()) clauses.push(opts.query.trim());
   clauses.push(`ORDERBY${t.nameField}`);
 
+  const nsPath = scopeNamespacePath(t);
   const described = [
     t.nameField,
     ...t.keyFields,
-    t.scopeField,
+    ...(t.scopeField ? [t.scopeField] : []),
     ...(t.activeField ? [t.activeField] : []),
     ...(t.appliesToField ? [t.appliesToField] : []),
     ...(t.metaFields ?? []),
@@ -178,7 +184,7 @@ export async function listArtifacts(
     ...new Set([
       "sys_id",
       ...described,
-      `${t.scopeField}.scope`,
+      ...(nsPath ? [nsPath] : []),
       ...AUDIT_FIELDS,
       // N-12: absent on an instance without domain separation.
       ...DOMAIN_FIELDS,
@@ -504,7 +510,7 @@ export async function getArtifactFor(
   maskSecrets(record, t.secretFields);
 
   const sysId = snString(record.sys_id);
-  const scopeValue = snString(record[t.scopeField]);
+  const scopeValue = t.scopeField ? snString(record[t.scopeField]) : "";
   const verdict = scopeValue
     ? await detectSdkManaged(scopeValue, { lookup: true })
     : null;
@@ -536,7 +542,7 @@ export async function getArtifactFor(
     [
       t.nameField,
       ...t.keyFields,
-      t.scopeField,
+      ...(t.scopeField ? [t.scopeField] : []),
       ...(t.activeField ? [t.activeField] : []),
       ...t.scriptFields,
     ],
@@ -577,6 +583,9 @@ export function artifactTypeCatalog(): Record<string, unknown> {
       nameField: t.nameField,
       keyFields: t.keyFields,
       scopeField: t.scopeField,
+      ...(t.scopeNamespaceField
+        ? { scopeNamespaceField: t.scopeNamespaceField }
+        : {}),
       ...(t.activeField ? { activeField: t.activeField } : {}),
       ...(t.baseQuery ? { baseQuery: t.baseQuery } : {}),
       children: t.children.map((c) => ({

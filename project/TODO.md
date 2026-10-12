@@ -71,6 +71,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     `super_class` or a `sys_scope` column.
   - Recommend: (2) for `application`, (1) for the other six. The runtime contexts carry no scope.
     The scope of a knowledge base, preference or repo config is not a column.
+  - **Decided 2026-10-12: (2) for `application`, (1) for the other six.** Done: `scopeField: null`
+    refuses a scope filter (INVALID_INPUT); `application` filters on `sys_id` / `scope`.
 - **OD-3 · Five plugin-gated or absent tables.** _BREAKING only if a type is removed._
   - The tables:
     - `change_risk_asmt` and `change_risk_asmt_threshold` (`risk_assessment`): plugin

@@ -620,3 +620,61 @@ test("MCP round trip: resource is listed with the package, outputSchema validate
     }
   });
 });
+
+test("OD-2: a scope filter on an unscoped type is refused before any request", async () => {
+  freshRuntime();
+  await withEnv(SDK_OFF, async () => {
+    await withFetch(tableMock({}), async (calls) => {
+      for (const artifactType of [
+        "flow_context",
+        "user_preference",
+        "knowledge_base",
+      ]) {
+        assert.equal(getArtifactType(artifactType).scopeField, null);
+        const res = await call("servicenow_list_artifacts", {
+          artifactType,
+          scope: "x_acme_app",
+        });
+        assert.equal(res.isError, true, artifactType);
+        assert.match(res.content[0].text, /has no application scope/);
+      }
+      assert.equal(calls.length, 0);
+    });
+  });
+});
+
+test("OD-2: application filters and reports its own sys_id as the scope", async () => {
+  freshRuntime();
+  await withEnv(SDK_OFF, async () => {
+    const seen = [];
+    await withFetch(
+      tableMock({
+        sys_app: (p) => {
+          seen.push(p.get("sysparm_query"));
+          assert.ok(p.get("sysparm_fields").split(",").includes("scope"));
+          return rows([{ sys_id: APP_ID, name: "Acme", scope: "x_acme_app" }]);
+        },
+      }),
+      async () => {
+        const byNs = await call("servicenow_list_artifacts", {
+          artifactType: "application",
+          scope: "x_acme_app",
+        });
+        assert.equal(byNs.isError, undefined);
+        assert.deepEqual(byNs.structuredContent.artifacts[0].scope, {
+          sys_id: APP_ID,
+          scope: "x_acme_app",
+        });
+        await call("servicenow_list_artifacts", {
+          artifactType: "application",
+          scope: APP_ID,
+        });
+      },
+    );
+    assert.match(seen[0], /^scope=x_acme_app/);
+    assert.match(seen[1], new RegExp(`^sys_id=${APP_ID}`));
+  });
+  const cat = artifactTypeCatalog().types.find((t) => t.type === "application");
+  assert.equal(cat.scopeField, "sys_id");
+  assert.equal(cat.scopeNamespaceField, "scope");
+});

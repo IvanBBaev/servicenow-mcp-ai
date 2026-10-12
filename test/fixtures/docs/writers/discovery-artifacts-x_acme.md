@@ -49,12 +49,12 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `choice_set` | core | `sys_choice_set` | no | no — no records in this scope |
 | `state_model` | core | `sttrm_model` | no | no — no records in this scope |
 | `property` | core | `sys_properties` | no | yes (1) |
-| `user_preference` | core | `sys_user_preference` | no | no — no records in this scope |
+| `user_preference` | core | `sys_user_preference` | no | no — no application scope column (OD-2) |
 | `role` | core | `sys_user_role` | no | yes (1) |
 | `cross_scope_privilege` | core | `sys_scope_privilege` | no | no — no records in this scope |
 | `user_criteria` | core | `user_criteria` | no | no — no records in this scope |
 | `assignment_rule` | core | `sysrule_assignment` | no | no — no records in this scope |
-| `knowledge_base` | core | `kb_knowledge_base` | no | no — no records in this scope |
+| `knowledge_base` | core | `kb_knowledge_base` | no | no — no application scope column (OD-2) |
 | `security_attribute` | core | `sys_security_attribute` | no | no — no records in this scope |
 | `security_data_filter` | core | `sys_security_data_filter` | no | no — no records in this scope |
 | `field_style` | core | `sys_ui_style` | no | no — no records in this scope |
@@ -129,13 +129,13 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `subflow` | flow | `sys_hub_flow` | no | no — no records in this scope |
 | `flow_action` | flow | `sys_hub_action_type_definition` | no | no — no records in this scope |
 | `flow_trigger_definition` | flow | `sys_hub_trigger_definition` | no | no — no records in this scope |
-| `flow_context` | flow | `sys_flow_context` | no | no — no records in this scope |
+| `flow_context` | flow | `sys_flow_context` | no | no — no application scope column (OD-2) |
 | `playbook` | flow | `sys_pd_process_definition` | no | no — no records in this scope |
-| `playbook_context` | flow | `sys_pd_context` | no | no — no records in this scope |
+| `playbook_context` | flow | `sys_pd_context` | no | no — no application scope column (OD-2) |
 | `decision_table` | flow | `sys_decision` | no | no — no records in this scope |
 | `workflow` | workflow | `wf_workflow` | no | no — no records in this scope |
 | `workflow_activity_definition` | workflow | `wf_activity_definition` | no | no — no records in this scope |
-| `workflow_context` | workflow | `wf_context` | no | no — no records in this scope |
+| `workflow_context` | workflow | `wf_context` | no | no — no application scope column (OD-2) |
 | `catalog_item` | catalog | `sc_cat_item` | no | yes (2) |
 | `record_producer` | catalog | `sc_cat_item_producer` | no | no — no records in this scope |
 | `variable_set` | catalog | `item_option_new_set` | no | no — no records in this scope |
@@ -155,7 +155,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `application` | application | `sys_app` | no | yes (1) |
 | `app_dependency` | application | `sys_scope_dependency` | no | no — no records in this scope |
 | `customer_update` | application | `sys_update_xml` | no | no — no records in this scope |
-| `source_control` | application | `sys_repo_config` | no | no — no records in this scope |
+| `source_control` | application | `sys_repo_config` | no | no — no application scope column (OD-2) |
 | `report` | reporting | `sys_report` | no | no — no records in this scope |
 | `report_source` | reporting | `sys_report_source` | no | no — no records in this scope |
 | `pa_indicator` | reporting | `pa_indicators` | no | no — no records in this scope |
@@ -254,7 +254,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 
 | name | key | active | sdkManaged | scope | version | vendor |
 | --- | --- | --- | --- | --- | --- | --- |
-| Acme Requests | x_acme | true | unknown |  | 1.2.0 |  |
+| Acme Requests | x_acme |  | unknown |  | 1.2.0 | Acme |
 
 ## Caveats
 

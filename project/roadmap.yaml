@@ -513,7 +513,7 @@ items:
     phase: null
     done: null
     gates: ["O-5"]
-    notes: "**Probe done 2026-10-12:** `scripts/pdi-verify.mjs` adds a verdict per artefact type (table, named fields, children, reference targets) and lists the unverified types the instance confirms and the verified types with misses. PDI ven03019: 121 unverified types confirmed, 0 verified types contradicted. No flag flipped: a flip also makes 401 / 403 fail loudly and most confirmed types sit in optional plugins, so the flips wait for the owner (TODO OD-4)."
+    notes: "**Probe done 2026-10-12:** `scripts/pdi-verify.mjs` adds a verdict per artefact type (table, named fields, children, reference targets) and lists the unverified types the instance confirms and the verified types with misses. PDI ven03019: 121 unverified types confirmed, 0 verified types contradicted. No flag flipped: a flip also makes 401 / 403 fail loudly and most confirmed types sit in optional plugins, so the flips wait for the owner (TODO OD-4). **OD-2 done 2026-10-12 (owner: option 2 for `application`, option 1 for the other six):** `scopeField` may be `null` (no scope column); `user_preference`, `knowledge_base`, `flow_context`, `playbook_context`, `workflow_context` and `source_control` refuse a `scope` filter with INVALID_INPUT instead of matching nothing, and `document_app` / discovery skip them as unscoped. `application` filters on its own `sys_id` or its `scope` namespace (`scopeNamespaceField`). 0 B tools/list."
   - id: "P-3"
     title: "SDK-managed scope detection"
     pillar: "P"

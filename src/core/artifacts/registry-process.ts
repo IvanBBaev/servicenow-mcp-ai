@@ -111,6 +111,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "flow_context",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "flow",
     sdkApi: "none",
     sdkSince: null,
@@ -171,6 +173,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "playbook_context",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "flow",
     sdkApi: "none",
     sdkSince: null,
@@ -267,6 +271,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "workflow_context",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "workflow",
     sdkApi: "none",
     sdkSince: null,
@@ -635,6 +641,9 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "application",
+    // OD-2: sys_app is itself the scope (a sys_scope subclass).
+    scopeField: "sys_id",
+    scopeNamespaceField: "scope",
     group: "application",
     // now.config.json, not a Fluent API.
     sdkApi: "none",
@@ -696,6 +705,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "source_control",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "application",
     sdkApi: "none",
     sdkSince: null,

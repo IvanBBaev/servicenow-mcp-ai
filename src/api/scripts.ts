@@ -9,6 +9,7 @@ import { pluginCall } from "./plugin.js";
 import {
   ARTIFACT_TYPES,
   getArtifactType,
+  scopeNamespacePath,
   type ArtifactType,
 } from "../core/artifacts/registry.js";
 import { isSysIdAnyCase } from "../core/sys-id.js";
@@ -103,6 +104,35 @@ export function scopeClause(scopeField: string, scope: string): string {
   return isSysIdAnyCase(s) ? `${scopeField}=${s}` : `${scopeField}.scope=${s}`;
 }
 
+/**
+ * {@link scopeClause} for a registry type: its own namespace column when it
+ * has one (`application`), refused with INVALID_INPUT when the type has no
+ * scope column (OD-2) — a clause on a missing field would be ignored by the
+ * instance and match every row.
+ */
+export function typeScopeClause(
+  t: {
+    type: string;
+    scopeField: string | null;
+    scopeNamespaceField?: string;
+  },
+  scope: string,
+): string {
+  if (t.scopeField === null) {
+    throw new ServiceNowError(
+      `Artifact type '${t.type}' has no application scope; drop the 'scope' filter.`,
+      400,
+      undefined,
+      { code: "INVALID_INPUT" },
+    );
+  }
+  const s = scope.trim();
+  assertNoCaret(s, "scope");
+  return isSysIdAnyCase(s)
+    ? `${t.scopeField}=${s}`
+    : `${scopeNamespacePath(t)}=${s}`;
+}
+
 function resolveType(type: string, optIn = false): ScriptType {
   const descriptor =
     SCRIPT_TYPES[type] ?? (optIn ? OPT_IN_SCRIPT_TYPES[type] : undefined);
@@ -155,7 +185,7 @@ export async function listScripts(
   // ANDed with the whole of it.
   if (artifact.baseQuery) clauses.push(artifact.baseQuery);
   if (opts.scope?.trim()) {
-    clauses.push(scopeClause(artifact.scopeField, opts.scope));
+    clauses.push(typeScopeClause(artifact, opts.scope));
   }
   if (opts.table?.trim()) assertNoCaret(opts.table, "table");
   if (opts.name?.trim()) assertNoCaret(opts.name, "name");
@@ -369,7 +399,7 @@ export async function searchCode(
     // prefix below ANDs with the whole code OR-chain.
     const query = [
       ...(artifact.baseQuery ? [artifact.baseQuery] : []),
-      ...(scope ? [scopeClause(artifact.scopeField, scope)] : []),
+      ...(scope ? [typeScopeClause(artifact, scope)] : []),
       tableFilter && singleField ? `${tableFilter}^${codeQuery}` : codeQuery,
     ].join("^");
 

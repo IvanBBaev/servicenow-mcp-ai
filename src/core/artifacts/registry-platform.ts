@@ -136,6 +136,8 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "user_preference",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "core",
     sdkApi: "UserPreference",
     sdkSince: null,
@@ -229,6 +231,8 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "knowledge_base",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "core",
     sdkApi: "Record",
     sdkSince: null,
