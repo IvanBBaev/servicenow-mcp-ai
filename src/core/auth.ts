@@ -611,6 +611,39 @@ export async function refreshAccessToken(
   };
 }
 
+/**
+ * N-17: revoke a refresh token at the instance (`/oauth_revoke_token.do`).
+ * Throws on a refusal; the caller has already forgotten the token, so a
+ * failure only leaves it valid on the instance until it expires.
+ */
+export async function revokeToken(
+  host: string,
+  p: { clientId: string; clientSecret?: string; token: string },
+): Promise<void> {
+  const url = `https://${host}/oauth_revoke_token.do`;
+  const body = new URLSearchParams({ token: p.token, client_id: p.clientId });
+  if (p.clientSecret) body.set("client_secret", p.clientSecret);
+  const res = await rawRequest({
+    url,
+    safeUrl: url,
+    method: "POST",
+    host,
+    telemetryKey: "auth",
+    system: "ServiceNow OAuth",
+    errorPrefix: "OAuth token revocation failed",
+    headers: () => ({
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    }),
+    body: body.toString(),
+    dispatcher: await getDispatcher(host),
+    extractDetail: () => undefined,
+    idempotent: true,
+    maxRetries: 1,
+  });
+  await res.arrayBuffer();
+}
+
 /** Skew applied before expiry so a token is refreshed slightly early. */
 export const TOKEN_SKEW_MS = 30_000;
 export const DEFAULT_TOKEN_TTL_SEC = 1800;

@@ -33,7 +33,11 @@ import { getHttpUserTokens } from "../build/core/settings.js";
 import { getCredentials } from "../build/core/config.js";
 import { cached, peekSchemaCache } from "../build/core/cache.js";
 import { runInSession } from "../build/core/request-context.js";
-import { CALLBACK_PATH, linkKey } from "../build/core/user-tokens.js";
+import {
+  CALLBACK_PATH,
+  LINK_PATH,
+  linkKey,
+} from "../build/core/user-tokens.js";
 import { buildMcpServer } from "../build/server.js";
 import { baselineEnv, jsonResponse, withEnv, withFetch } from "./helpers.js";
 
@@ -326,7 +330,7 @@ function instanceDouble() {
   const refresh = new Map(); // refresh token → email
   const codes = new Map(); // code → email
   const seen = [];
-  const reject = { refresh: false, records: new Set() };
+  const reject = { refresh: false, revoke: false, records: new Set() };
   let n = 0;
   const issue = (email) => {
     n += 1;
@@ -343,6 +347,13 @@ function instanceDouble() {
   };
   const handler = (url, init) => {
     const u = new URL(url);
+    if (u.pathname === "/oauth_revoke_token.do") {
+      const body = new URLSearchParams(String(init.body));
+      seen.push({ revoke: body.get("token"), body });
+      if (reject.revoke) return jsonResponse(500, {});
+      refresh.delete(body.get("token"));
+      return jsonResponse(200, {});
+    }
     if (u.pathname === "/oauth_token.do") {
       const body = new URLSearchParams(String(init.body));
       seen.push({ token: body.get("grant_type"), body });
@@ -592,6 +603,85 @@ test("e2e N-17 user tokens: a 401 refreshes once and rotates the stored refresh 
       );
     });
   });
+});
+
+test("e2e N-17 user tokens: DELETE /oauth/servicenow/link drops only the caller's links and revokes them", async () => {
+  await withServers({}, async ({ port, store, bearer }) => {
+    const sn = instanceDouble();
+    await withFetch(sn.handler, async () => {
+      for (const who of ["alice", "bob"]) {
+        const link = linkOf(await getRecord(port, bearer(who), URL_CAPS));
+        const done = await finishLink(
+          port,
+          link,
+          sn.codes,
+          `${who}@example.com`,
+        );
+        assert.equal(done.status, 200, done.text);
+      }
+      // Warm alice's access-token cache, then unlink her.
+      await getRecord(port, bearer("alice"), URL_CAPS);
+      const unlink = (authorization, method = "DELETE") =>
+        rawRequest(port, {
+          method,
+          path: LINK_PATH,
+          headers: authorization ? { authorization } : {},
+        });
+
+      assert.equal((await unlink(undefined)).status, 401);
+      assert.equal((await unlink(bearer("alice"), "GET")).status, 405);
+
+      const res = await unlink(bearer("alice"));
+      assert.equal(res.status, 200, res.text);
+      assert.equal(res.headers["cache-control"], "no-store");
+      assert.deepEqual(JSON.parse(res.text), { unlinked: 1, revoked: 1 });
+      const revoke = sn.seen.find((s) => s.revoke);
+      assert.equal(revoke.revoke, "rt1");
+      assert.equal(revoke.body.get("client_id"), "sn-client");
+      assert.equal(revoke.body.get("client_secret"), "sn-secret");
+      assert.equal(
+        unsealStore(store, linkKey("alice", "default", HOST)),
+        undefined,
+      );
+      assert.ok(unsealStore(store, linkKey("bob", "default", HOST)));
+
+      // The cached access token went with the link: alice must link again.
+      linkOf(await getRecord(port, bearer("alice"), URL_CAPS));
+      // A second unlink has nothing to drop.
+      assert.deepEqual(JSON.parse((await unlink(bearer("alice"))).text), {
+        unlinked: 0,
+        revoked: 0,
+      });
+
+      // A refused revocation still drops the link.
+      sn.reject.revoke = true;
+      assert.deepEqual(JSON.parse((await unlink(bearer("bob"))).text), {
+        unlinked: 1,
+        revoked: 0,
+      });
+      assert.equal(
+        unsealStore(store, linkKey("bob", "default", HOST)),
+        undefined,
+      );
+    });
+  });
+});
+
+test("e2e N-17 user tokens: the shared SN_HTTP_TOKEN has no links to drop", async () => {
+  await withServers(
+    { SN_HTTP_TOKEN: "shared-secret-token-0123456789abcdef" },
+    async ({ port }) => {
+      const res = await rawRequest(port, {
+        method: "DELETE",
+        path: LINK_PATH,
+        headers: {
+          authorization: "Bearer shared-secret-token-0123456789abcdef",
+        },
+      });
+      assert.equal(res.status, 403);
+      assert.match(res.text, /Only an OAuth access token/);
+    },
+  );
 });
 
 test("e2e N-17 user tokens: a 2025 session gets -32042 with the link", async () => {

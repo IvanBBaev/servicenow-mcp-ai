@@ -25,7 +25,12 @@ import {
   getHttpOAuth,
   getHttpUserTokens,
 } from "../core/settings.js";
-import { CALLBACK_PATH, completeLink } from "../core/user-tokens.js";
+import {
+  CALLBACK_PATH,
+  LINK_PATH,
+  completeLink,
+  unlinkSubject,
+} from "../core/user-tokens.js";
 import { logger, setLogSink } from "../core/logging.js";
 import { currentRuntime } from "../core/runtime.js";
 import { hasCredentials } from "../core/config.js";
@@ -469,6 +474,21 @@ async function startHttp(
     // The SDK hands `req.auth` to the request context as `authInfo`.
     if (auth.auth)
       (req as IncomingMessage & { auth?: AuthInfo }).auth = auth.auth;
+    // N-17: a subject drops its own ServiceNow account links. Only an OAuth
+    // token names a subject; the shared SN_HTTP_TOKEN does not.
+    if (userTokens && path === LINK_PATH) {
+      const subject = auth.auth?.extra?.subject;
+      if (req.method !== "DELETE") {
+        res.writeHead(405, { Allow: "DELETE" }).end();
+      } else if (typeof subject !== "string" || !subject) {
+        sendJson(res, 403, {
+          error: "Only an OAuth access token has account links to drop.",
+        });
+      } else {
+        sendJson(res, 200, await unlinkSubject(subject));
+      }
+      return;
+    }
     if (serveMetrics && isMetricsRequest(req.method, req.url)) {
       let body: string;
       try {
