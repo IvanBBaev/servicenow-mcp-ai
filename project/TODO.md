@@ -31,6 +31,151 @@
 > [UX-REVIEW-2026-07.md](archive/UX-REVIEW-2026-07.md) §11 (the UX backlog); "Optional" items (Export
 > API, PDI e2e, vitest) on request. The work chronology is in [WORKLOG.md](../WORKLOG.md).
 
+## Open owner decisions (2026-10-12)
+
+👤 Collected after the O-5 PDI passes ([PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md)) and the
+N-35 conformance work. Each entry is one decision. Evidence is a commit on `main` or a GET-only
+finding on the PDI (`ven03019`). Nothing below is implemented until the owner decides.
+
+- **OD-1 · Four registry key-field renames.** _BREAKING (O-4)._
+  - Decide: rename four registry key fields to the real columns.
+  - The four renames:
+    - `sys_declarative_action_definition.action_name` → `name`
+    - `sys_declarative_action_payload_definition.key` → `action_key`
+    - `sys_ux_event.name` → `event_name`
+    - `sys_ux_form_action_layout_item.form_action_layout` → `layout_group`
+  - Options:
+    - (1) Rename in 3.0 as a new O-4 register entry.
+    - (2) Keep the old names. Their keys stay empty on every instance.
+  - Evidence: PDI-VERIFY "Re-run after the fixes". The old names have no `sys_dictionary` row.
+  - Why it is BREAKING: they are key fields, so the output keys change.
+  - Recommend: (1). Today the keys are empty, so no client can depend on their values.
+- **OD-2 · `scopeField` on seven tables without `sys_scope`.** _Not BREAKING (a filter that
+  matches nothing today starts matching)._
+  - The seven tables (registry type in brackets):
+    - `sys_user_preference` (`user_preference`)
+    - `kb_knowledge_base` (`knowledge_base`)
+    - `sys_flow_context` (`flow_context`)
+    - `sys_pd_context` (`playbook_context`)
+    - `wf_context` (`workflow_context`)
+    - `sys_app` (`application`)
+    - `sys_repo_config` (`source_control`)
+  - Each inherits the default `scopeField: "sys_scope"`, so a `scope` filter on them matches
+    nothing.
+  - Options per type:
+    - (1) No scope filter. The type is reported as unscoped when a scope is asked.
+    - (2) A different field. For `application` this is its own `sys_id`, since `sys_app` is a
+      `sys_scope` subclass.
+    - (3) Leave it as is.
+  - Evidence: PDI-VERIFY "Scope field on tables without `sys_scope`". None of the seven has a
+    `super_class` or a `sys_scope` column.
+  - Recommend: (2) for `application`, (1) for the other six. The runtime contexts carry no scope.
+    The scope of a knowledge base, preference or repo config is not a column.
+- **OD-3 · Five plugin-gated or absent tables.** _BREAKING only if a type is removed._
+  - The tables:
+    - `change_risk_asmt` and `change_risk_asmt_threshold` (`risk_assessment`): plugin
+      `com.snc.change_management.risk_assessment` is inactive on the PDI.
+    - `sys_package_dependency` (`application` child): absent. The PDI has
+      `sys_package_dependency_m2m` and `sys_package_dependency_item`.
+    - `sys_scope_dependency` (`app_dependency`, `application` child): absent, no equivalent found.
+    - `sys_ux_composite_definition` (`uib_composite_definition`): absent. Only
+      `sys_ux_composite_data*` exists.
+  - Options:
+    - (1) Keep all five `verified:false`. The script sweep already skips an unreadable
+      unverified type.
+    - (2) Activate the risk plugin on the PDI (an owner write) and verify with GETs.
+    - (3) Retarget the three absent tables after a GET-only field check.
+    - (4) Remove `app_dependency` / `uib_composite_definition`. This is BREAKING: it changes the
+      type enum.
+  - Evidence: PDI-VERIFY "Missing tables".
+  - Recommend: (1) now. (3) for `sys_package_dependency` → `sys_package_dependency_m2m` as a
+    follow-up. (2) only if risk assessment matters. Not (4) before 3.0.
+- **OD-4 · Registry `verified` flag flips.** _Behaviour change, not in the O-4 register._
+  - State: 9 types are `verified:true` and 136 are `verified:false`.
+  - What the flag drives:
+    - `script_intelligence` in `check_capabilities` requires the tables of the verified
+      script types (`src/api/capabilities.ts`).
+    - An all-types script sweep skips an unreadable unverified type but fails on a verified one
+      (`src/api/scripts.ts`).
+    - `upsert_artifact` journals `verified: false`.
+    - The artifact-types document prints the flag.
+  - Evidence: ba87579 confirms that the 15 S-4 widened script types and their script fields
+    exist. The field types are confirmed too:
+    - `sys_dictionary.default_value` and `sys_rest_message_fn` `rest_endpoint` / `content` are
+      strings;
+    - `sys_ui_macro.xml` and `sys_ui_page.html` are xml;
+    - `sp_widget.css` is css.
+  - Options:
+    - (1) Flip the 15 S-4 types. `script_intelligence` then also needs their tables, so an
+      instance without one reports it unavailable.
+    - (2) Flip them, but keep the capability check on the nine original tables. This needs a
+      separate "required for capability" mark.
+    - (3) Flip every type with zero PDI misses.
+    - (4) Flip nothing.
+  - Recommend: (2) for the S-4 types now, then (3) type by type. A flip should never change the
+    capability verdict on a governed instance.
+- **OD-5 · Latest `scan_result` fallback (N-3).** _Not BREAKING for options 1 and 2._
+  - Problem: the newest `scan_result` on the PDI (2026-08-21) has 0 findings, so the "latest
+    scan" read in `src/api/instance-scan.ts` comes back empty.
+  - Options:
+    - (1) Keep "latest". When it has 0 findings, add a caveat naming the newest run that has
+      findings.
+    - (2) Add an opt-in argument to read the newest run with findings. This changes
+      `tools/list`, so state the byte delta.
+    - (3) Fall back by default. This silently changes which run is shown.
+  - Evidence: PDI-VERIFY "Second pass", caveats.
+  - Recommend: (1). Zero findings is a true answer about the latest run.
+- **OD-6 · `sys_store_app` 403 (N-1).** _Not BREAKING._
+  - Problem: the PDI admin gets a 403 on `sys_store_app` (and `sys_upgrade_history_log`) rows
+    over REST. `readStoreUpdates` (`src/api/upgrade.ts`) degrades to `available:false`, so store
+    updates and their row values were never sampled.
+  - Options:
+    - (1) Accept the degraded read as it is.
+    - (2) The owner checks the read ACL on these tables on the PDI and grants a read role, then
+      the rows are sampled with GETs.
+    - (3) Read the store apps through another endpoint. This is new work and unscoped.
+  - Evidence: PDI-VERIFY "Second pass", caveats; the `src/api/upgrade.ts` header.
+  - Recommend: (2). Until then, (1).
+- **OD-7 · `rcaStatus` output values (b5cb05b).** _Output value change (strictly BREAKING),
+  already on `main`._
+  - What changed: `sys_restricted_caller_access.status` is an integer choice, and the
+    cross-scope report now maps it: `0`→`requested`, `1`→`denied`, `2`→`allowed`,
+    `3`→`invalidated`. Unknown values pass through. Before, `status` carried the raw `"2"`.
+  - Options:
+    - (1) Keep the labels and record them in the O-4 register and the CHANGELOG.
+    - (2) Revert to the raw value and add a `statusLabel` key.
+  - Recommend: (1). The raw integer was meaningless to a client.
+- **OD-8 · `WORKSPACE_CAVEAT` wording after N-30.** _Not BREAKING (free text), but every
+  workspace result and golden that carries it changes._
+  - Problem: the caveat (`src/api/uib-workspace.ts`) still says "dedicated UX form config and
+    side panel tables are not read". 3adfca6 and b1132f1 established three things:
+    - no such tables exist beyond `sys_ux_form_action_layout`;
+    - action configurations are read (`actionConfigs`);
+    - action exclusions are read (`actionExclusions`).
+  - Options: (1) leave it; (2) reword it.
+  - Proposed text for (2): "the form view is built from action positions; the side panel is the
+    `contextual_sidebar` position; there is no separate form config or side panel table".
+  - Recommend: (2), in its own commit with the golden update.
+- **OD-9 · Stale Jira line in `CLAUDE.md`.** _Harness file; the owner edits it._
+  - Problem: `CLAUDE.md` still describes a committed, dark Jira scaffold (`src/core/jira/`,
+    `src/api/jira/`) with ARCH-14 deferred. O-1 = NO-GO deleted the scaffold
+    ([ADR 0007](adr/0007-delete-jira-scaffold.md)).
+  - Recommend: drop the sentence. Flagged only, not edited.
+- **OD-10 · Two pending conformance rows** ([CONFORMANCE-2026-07-28.md](CONFORMANCE-2026-07-28.md),
+  "Owner decisions"). _Not BREAKING._
+  - `mrtr-20` (D-2, use URL mode for secrets):
+    - Status: pending. The only URL-mode elicitation is the N-17 account link;
+      `set_credentials` points to the env file or secret files.
+    - Options: (1) keep it pending as a documented deviation; (2) add a URL-mode credential
+      page.
+    - Recommend: (1) until a credential page exists for other reasons.
+  - `resources-03` (ownerQuestion 1, the resource list must not vary as a side effect):
+    - Status: reading a table schema adds a per-profile entry.
+    - Options: (1) keep the deviation (`ttlMs: 0`, `cacheScope: private`); (2) move the
+      per-schema entries to a resource template so the list is fixed.
+    - (2) changes what `resources/list` returns, so it is a client-visible change.
+    - Recommend: (1) for 3.0; (2) as a later item if a client reports cache problems.
+
 ## Active (2026-09-02)
 
 - [x] **P-4 / P-7 · SDK 4.13 re-pin** — done 2026-10-09 (owner approved): `@servicenow/sdk` and
