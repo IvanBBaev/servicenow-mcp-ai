@@ -263,7 +263,7 @@ child). The OD-1 key-field renames are left as they are. The fourth OD-1 row
 (`form_action_layout` → `layout_group`) is not a key field and is not the
 right link: `layout_group` groups items inside a layout. tools/list delta 0 B.
 
-## Fifth pass: secret column types (N-21)
+## Sixth pass: secret column types (N-21)
 
 Date: 2026-10-13. Same PDI, GETs only (`sys_glide_object`, `sys_dictionary`
 counts grouped by `internal_type` and `element`).
@@ -282,6 +282,30 @@ counts grouped by `internal_type` and `element`).
   `current_password`, `temp_password`, plus `secret_key` (4 of 5 tables).
   `token` (97 string columns), `api_key`, `password`, `new_password` and
   `old_password` are mixed; only `api_key` and `password` were already listed.
+
+## Seventh pass: compact reads (N-62)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_ui_list`, `sys_ui_list_element`,
+`sys_ui_view`, `sys_dictionary`, `incident` and `sys_user` with
+`display_value=all`).
+
+- The default list view has the sys_id `Default view` and an empty name,
+  which `list_id.view.name=NULL` matches. With `list_id.parentISEMPTY` and
+  `list_id.sys_userISEMPTY`, the `fields:"summary"` query returns its 11
+  `incident` columns (`number` … `sys_updated_by`) and skips the 23 other
+  `incident` lists: named views (`ess`, `sow`, `workspace`, `Mobile`, the
+  `RPT…` report views) and the `parent` lists.
+- `display=true` is set on `task.number` and `kb_knowledge.number` only among
+  the tables checked; `sys_user` and `cmdb_ci` have none and show `name`,
+  which is the resolver's fallback.
+- The journal types are `journal` (30 columns), `journal_input` (66) and
+  `journal_list` (6), the three the compaction drops. A journal cell with
+  `display_value=all` has an empty `value` and the history in
+  `display_value`, so a named journal column keeps its display text.
+- A date cell's `value` is UTC and its `display_value` is in the user's time
+  zone; the compaction keeps the value.
+
+No code change; the `compact-read.ts` note and N-62 are updated.
 
 ## Next steps
 
