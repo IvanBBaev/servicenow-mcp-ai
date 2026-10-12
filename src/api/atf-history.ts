@@ -21,9 +21,14 @@ import { isSysId } from "../core/sys-id.js";
  *   times (oldest to newest) — one flip is a plain break or fix;
  * - unchanged test (the NX-20 refinement): the test / suite records'
  *   `sys_updated_on` and `sys_mod_count` are read in one more bounded
- *   `sys_idIN…` query. Flips and `flaky` count only the runs that started at
- *   or after the definition's last update, so a fail → edit → pass sequence
- *   is a fix, not flakiness. The pass rate and the last result still use the
+ *   `sys_idIN…` query, and the newest `sys_updated_on` of their steps
+ *   (sys_atf_step) or suite memberships (sys_atf_test_suite_test) in one
+ *   more. Editing a step or a membership does not bump the parent record
+ *   (checked on a PDI 2026-10-13: 2,702 of 4,772 steps and 280 of 335
+ *   memberships are newer than their parent), so the definition's last
+ *   update is the newest of the two. Flips and `flaky` count only the runs
+ *   that started at or after it, so a fail → edit → pass sequence is a fix,
+ *   not flakiness. A deleted step leaves no row and is not seen. The pass rate and the last result still use the
  *   whole window. A result row does not carry the definition's
  *   `sys_mod_count` at run time, so the comparison is `start_time` against
  *   `sys_updated_on`; `sys_mod_count` is reported alongside. When that read
@@ -38,10 +43,7 @@ import { isSysId } from "../core/sys-id.js";
  * degrades to `available:false` with a reason, per section. Table, field and
  * choice names (sys_atf_test_result test / parent / run_time,
  * sys_atf_test_suite_result test_suite, the status values) were checked on a
- * PDI (O-5). Whether editing a step (sys_atf_step) or a suite's membership
- * (sys_atf_test_suite_test) bumps the parent's `sys_updated_on` /
- * `sys_mod_count`, used as the definition version for the unchanged-test
- * check, is not verified.
+ * PDI (O-5).
  */
 
 /** Runs per test or suite looked at, by default. */
@@ -52,6 +54,8 @@ export const MAX_WINDOW = 100;
 export const MAX_IDS = 100;
 /** Rows read per section (one query); `window × ids` is capped here. */
 export const HISTORY_ROW_LIMIT = 2_000;
+/** Step or membership rows read per section for the unchanged-test check. */
+export const CHILD_ROW_LIMIT = 2_000;
 /**
  * Pass / fail flips within the window at which a test with both outcomes is
  * flaky. One flip is a single break (or fix); two mean it went back again.
@@ -108,7 +112,10 @@ export interface AtfResultSummary {
 }
 
 export interface AtfDefinition {
-  /** The record's `sys_updated_on` (UTC, `YYYY-MM-DD HH:MM:SS`). */
+  /**
+   * The newest `sys_updated_on` (UTC, `YYYY-MM-DD HH:MM:SS`) of the record
+   * and its steps or suite memberships.
+   */
   updatedOn: string;
   /** The record's `sys_mod_count`, when it is a number. */
   modCount?: number;
@@ -133,8 +140,9 @@ export interface AtfHistorySection {
   /** True when the read hit its row limit: older runs may be missing. */
   truncated: boolean;
   /**
-   * Whether the definition records were read for the unchanged-test check.
-   * False (with a reason) falls back to flips over the whole window.
+   * Whether the definition records and their steps or memberships were
+   * read for the unchanged-test check. False (with a reason) falls back to
+   * flips over the whole window.
    */
   definitionsChecked: boolean;
   definitionsUnavailableReason?: string;
@@ -235,6 +243,9 @@ interface SectionSpec {
   table: string;
   /** The test or suite table, read for the unchanged-test check. */
   definitionTable: string;
+  /** The steps or memberships of a definition, and their reference to it. */
+  childTable: string;
+  childKey: string;
   /** The reference field to the test or suite. */
   key: string;
   /** Extra fields read. */
@@ -245,6 +256,8 @@ interface SectionSpec {
 const TEST_SPEC: SectionSpec = {
   table: "sys_atf_test_result",
   definitionTable: "sys_atf_test",
+  childTable: "sys_atf_step",
+  childKey: "test",
   key: "test",
   fields: ["parent"],
   toRow: (r) => ({
@@ -256,6 +269,8 @@ const TEST_SPEC: SectionSpec = {
 const SUITE_SPEC: SectionSpec = {
   table: "sys_atf_test_suite_result",
   definitionTable: "sys_atf_test_suite",
+  childTable: "sys_atf_test_suite_test",
+  childKey: "test_suite",
   key: "test_suite",
   fields: [],
   toRow: (r) => baseRow(r),
@@ -282,18 +297,19 @@ function cleanIds(ids: readonly string[]): string[] | string {
 }
 
 /**
- * The definition records (`sys_updated_on`, `sys_mod_count`) of `ids`, or
- * the reason they could not be read. A record with no `sys_updated_on` is
- * left out (its runs keep the whole window).
+ * The definition records (`sys_updated_on`, `sys_mod_count`) of `ids`, with
+ * `updatedOn` raised to the newest edit of their steps or memberships, or
+ * the reason either read failed. A record with no `sys_updated_on` is left
+ * out (its runs keep the whole window).
  */
 async function readDefinitions(
-  table: string,
+  spec: SectionSpec,
   ids: readonly string[],
 ): Promise<Map<string, AtfDefinition> | string> {
   let records: Record<string, unknown>[];
   try {
     ({ records } = await queryTable({
-      table,
+      table: spec.definitionTable,
       query: `sys_idIN${ids.join(",")}`,
       fields: ["sys_id", "sys_updated_on", "sys_mod_count"],
       displayValue: "false",
@@ -301,20 +317,65 @@ async function readDefinitions(
     }));
   } catch (e) {
     rethrowIfCancelled(e);
-    return unreadableReason(table, e);
+    return unreadableReason(spec.definitionTable, e);
   }
+  const children = await readChildUpdates(spec, ids);
+  if (typeof children === "string") return children;
   const out = new Map<string, AtfDefinition>();
   for (const r of records) {
-    const updatedOn = snString(r.sys_updated_on);
-    if (!updatedOn) continue;
+    const id = snString(r.sys_id);
+    const own = snString(r.sys_updated_on);
+    if (!own) continue;
+    const child = children.newest.get(id) ?? children.floor;
+    const updatedOn = child > own ? child : own;
     const raw = snString(r.sys_mod_count);
     const modCount = /^\d+$/.test(raw) ? Number(raw) : undefined;
-    out.set(snString(r.sys_id), {
+    out.set(id, {
       updatedOn,
       ...(modCount !== undefined ? { modCount } : {}),
     });
   }
   return out;
+}
+
+/**
+ * The newest step or membership `sys_updated_on` per definition, newest
+ * first in one bounded read. When the read hits its limit, a definition
+ * with no row seen may still have older children, up to the oldest row
+ * read: `floor` is that time (empty otherwise), so the check stays on the
+ * safe side and only narrows the stable window.
+ */
+async function readChildUpdates(
+  spec: SectionSpec,
+  ids: readonly string[],
+): Promise<{ newest: Map<string, string>; floor: string } | string> {
+  let records: Record<string, unknown>[];
+  try {
+    ({ records } = await queryTable({
+      table: spec.childTable,
+      query: `${spec.childKey}IN${ids.join(",")}^ORDERBYDESCsys_updated_on`,
+      fields: [spec.childKey, "sys_updated_on"],
+      displayValue: "false",
+      limit: CHILD_ROW_LIMIT,
+    }));
+  } catch (e) {
+    rethrowIfCancelled(e);
+    return unreadableReason(spec.childTable, e);
+  }
+  const newest = new Map<string, string>();
+  let oldest = "";
+  for (const r of records) {
+    const updatedOn = snString(r.sys_updated_on);
+    if (!updatedOn) continue;
+    const id = snString(r[spec.childKey]);
+    const seen = newest.get(id);
+    if (seen === undefined || updatedOn > seen) newest.set(id, updatedOn);
+    if (oldest === "" || updatedOn < oldest) oldest = updatedOn;
+  }
+  return {
+    newest,
+    floor: records.length >= CHILD_ROW_LIMIT ? oldest : "",
+  };
 }
 
 async function readSection(
@@ -363,7 +424,7 @@ async function readSection(
   const ran = ids.filter((id) => byId.get(id)!.length > 0);
   const definitions =
     ran.length > 0
-      ? await readDefinitions(spec.definitionTable, ran)
+      ? await readDefinitions(spec, ran)
       : new Map<string, AtfDefinition>();
   const summaries: Record<string, AtfResultSummary> = {};
   for (const [id, rows] of byId) {

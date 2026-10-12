@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import fc from "fast-check";
 
 import {
+  CHILD_ROW_LIMIT,
   DEFAULT_WINDOW,
   FLAKY_MIN_FLIPS,
   HISTORY_ROW_LIMIT,
@@ -199,6 +200,10 @@ test("history: one bounded IN query per section, newest first", async () => {
             },
           ],
         }),
+      sys_atf_step: () =>
+        jsonResponse(200, {
+          result: [{ test: T1, sys_updated_on: "2026-08-01 00:00:00" }],
+        }),
     }),
     async (calls) => {
       const h = await atfResultHistory({
@@ -207,9 +212,9 @@ test("history: one bounded IN query per section, newest first", async () => {
         window: 5,
       });
       assert.equal(h.window, 5);
-      // Results, then definitions (only the tests that ran), per section;
-      // sys_atf_test_suite is not faked (404) and degrades.
-      assert.equal(calls.length, 4);
+      // Results, definitions and their steps (only the tests that ran), per
+      // section; sys_atf_test_suite is not faked (404) and degrades.
+      assert.equal(calls.length, 5);
       const q = new URL(calls[0].url).searchParams;
       assert.equal(
         q.get("sysparm_query"),
@@ -221,11 +226,17 @@ test("history: one bounded IN query per section, newest first", async () => {
       assert.match(defs.pathname, /\/sys_atf_test$/);
       assert.equal(defs.searchParams.get("sysparm_query"), `sys_idIN${T1}`);
       assert.equal(defs.searchParams.get("sysparm_limit"), "1");
+      const steps = new URL(calls[2].url);
+      assert.match(steps.pathname, /\/sys_atf_step$/);
+      assert.equal(
+        steps.searchParams.get("sysparm_query"),
+        `testIN${T1}^ORDERBYDESCsys_updated_on`,
+      );
       assert.match(
-        new URL(calls[2].url).searchParams.get("sysparm_query"),
+        new URL(calls[3].url).searchParams.get("sysparm_query"),
         new RegExp(`^test_suiteIN${S1}\\^ORDERBYDESCstart_time$`),
       );
-      assert.match(new URL(calls[3].url).pathname, /\/sys_atf_test_suite$/);
+      assert.match(new URL(calls[4].url).pathname, /\/sys_atf_test_suite$/);
 
       assert.equal(h.tests.available, true);
       assert.equal(h.tests.scanned, 4);
@@ -508,6 +519,7 @@ test("history: definitions with an edit inside the window, a bad mod count and n
             { sys_id: T2, sys_updated_on: "", sys_mod_count: "1" },
           ],
         }),
+      sys_atf_step: () => jsonResponse(200, { result: [] }),
     }),
     async (calls) => {
       const h = await atfResultHistory({ testIds: [T1, T2] });
@@ -521,6 +533,154 @@ test("history: definitions with an edit inside the window, a bad mod count and n
       assert.equal(t1.stableRuns, 1);
       assert.equal(t1.flaky, false);
       assert.equal(h.tests.summaries[T2].definition, undefined);
+    },
+  );
+});
+
+const testRuns = (id, statuses) =>
+  runs(statuses).map((r) => ({
+    test: id,
+    status: r.status,
+    start_time: r.startTime,
+  }));
+
+test("history: a step edited after the test counts as a definition change (NX-20)", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test_result: () =>
+        jsonResponse(200, {
+          result: testRuns(T1, ["failure", "success", "failure", "success"]),
+        }),
+      sys_atf_test: () =>
+        jsonResponse(200, {
+          result: [
+            {
+              sys_id: T1,
+              sys_updated_on: "2026-09-01 00:00:00",
+              sys_mod_count: "3",
+            },
+          ],
+        }),
+      // A step edit does not bump the test (checked on a PDI 2026-10-13).
+      sys_atf_step: () =>
+        jsonResponse(200, {
+          result: [
+            { test: T1, sys_updated_on: "2026-10-01 10:03:00" },
+            { test: T1, sys_updated_on: "2026-08-01 00:00:00" },
+          ],
+        }),
+    }),
+    async () => {
+      const h = await atfResultHistory({ testIds: [T1] });
+      const t1 = h.tests.summaries[T1];
+      assert.deepEqual(t1.definition, {
+        updatedOn: "2026-10-01 10:03:00",
+        modCount: 3,
+      });
+      assert.equal(t1.stableRuns, 1);
+      assert.equal(t1.flaky, false);
+      assert.equal(h.tests.definitionsChecked, true);
+    },
+  );
+});
+
+test("history: a suite membership added after the suite counts as a change", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test_suite_result: () =>
+        jsonResponse(200, {
+          result: runs(["failure", "success", "failure", "success"]).map(
+            (r) => ({
+              test_suite: S1,
+              status: r.status,
+              start_time: r.startTime,
+            }),
+          ),
+        }),
+      sys_atf_test_suite: () =>
+        jsonResponse(200, {
+          result: [{ sys_id: S1, sys_updated_on: "2026-09-01 00:00:00" }],
+        }),
+      sys_atf_test_suite_test: () =>
+        jsonResponse(200, {
+          result: [{ test_suite: S1, sys_updated_on: "2026-10-01 10:02:00" }],
+        }),
+    }),
+    async (calls) => {
+      const h = await atfResultHistory({ suiteIds: [S1] });
+      assert.equal(
+        new URL(calls[2].url).searchParams.get("sysparm_query"),
+        `test_suiteIN${S1}^ORDERBYDESCsys_updated_on`,
+      );
+      const s1 = h.suites.summaries[S1];
+      assert.equal(s1.definition.updatedOn, "2026-10-01 10:02:00");
+      assert.equal(s1.stableRuns, 2);
+    },
+  );
+});
+
+test("history: a failed step read falls back to the whole window", async () => {
+  freshRuntime();
+  await withFetch(
+    tables({
+      sys_atf_test_result: () =>
+        jsonResponse(200, {
+          result: testRuns(T1, ["success", "failure", "success"]),
+        }),
+      sys_atf_test: () =>
+        jsonResponse(200, {
+          result: [{ sys_id: T1, sys_updated_on: "2026-10-01 10:02:00" }],
+        }),
+      sys_atf_step: () => jsonResponse(403, { error: { message: "ACL" } }),
+    }),
+    async () => {
+      const h = await atfResultHistory({ testIds: [T1] });
+      assert.equal(h.tests.definitionsChecked, false);
+      assert.match(h.tests.definitionsUnavailableReason, /sys_atf_step.*403/);
+      const t1 = h.tests.summaries[T1];
+      assert.equal(t1.definition, undefined);
+      assert.equal(t1.stableRuns, 3);
+      assert.equal(t1.flaky, true);
+    },
+  );
+});
+
+test("history: a truncated step read raises unseen tests to the oldest row read", async () => {
+  freshRuntime();
+  const steps = Array.from({ length: CHILD_ROW_LIMIT }, (_, i) => ({
+    test: T1,
+    sys_updated_on: `2026-10-01 ${i === CHILD_ROW_LIMIT - 1 ? "10:01" : "10:05"}:00`,
+  }));
+  await withFetch(
+    tables({
+      sys_atf_test_result: () =>
+        jsonResponse(200, {
+          result: [
+            ...testRuns(T1, ["success"]),
+            ...testRuns(T2, ["failure", "success", "failure", "success"]),
+          ],
+        }),
+      sys_atf_test: () =>
+        jsonResponse(200, {
+          result: [
+            { sys_id: T1, sys_updated_on: "2026-09-01 00:00:00" },
+            { sys_id: T2, sys_updated_on: "2026-09-01 00:00:00" },
+          ],
+        }),
+      sys_atf_step: () => jsonResponse(200, { result: steps }),
+    }),
+    async () => {
+      const h = await atfResultHistory({ testIds: [T1, T2] });
+      assert.equal(
+        h.tests.summaries[T1].definition.updatedOn,
+        "2026-10-01 10:05:00",
+      );
+      // T2's steps were cut off: they are no newer than the oldest row read.
+      const t2 = h.tests.summaries[T2];
+      assert.equal(t2.definition.updatedOn, "2026-10-01 10:01:00");
+      assert.equal(t2.stableRuns, 3);
     },
   );
 });
