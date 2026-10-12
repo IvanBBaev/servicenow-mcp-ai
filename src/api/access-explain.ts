@@ -21,8 +21,9 @@ import { isSysId } from "../core/sys-id.js";
  * chain statically.
  *
  * The platform checks a row ACL (`table`, then each parent table, then `*`)
- * and, for a field, a field ACL (`table.field` up the chain, then
- * `table.*` up the chain, then `*.field`, then `*.*`). Each check stops at the
+ * and, for a field, a field ACL (`table.field` up the chain, then `*.field`,
+ * then `table.*` up the chain, then `*.*` — the documented processing order,
+ * checked 2026-10-12). Each check stops at the
  * first name level that has an active ACL for the operation; the check passes
  * when any ACL at that level passes. An ACL passes when its role, condition
  * and script parts all pass. Here the role part is checked against the user's
@@ -38,8 +39,7 @@ import { isSysId } from "../core/sys-id.js";
  * role or user table degrades to `available:false`. Checked on a PDI (O-5):
  * sys_user_has_role `state` is `active` or empty (inherited rows included),
  * `admin_overrides` exists on sys_security_acl, and `glide.sm.default_mode`
- * is `deny`, so no matching ACL denies. Still unverified: the field-ACL
- * fallback order.
+ * is `deny`, so no matching ACL denies.
  *
  * N-12: on a domain-separated instance each ACL carries the domain it belongs
  * to; the evaluation and the rendered table group by it and the result adds
@@ -143,8 +143,8 @@ export function fieldCandidates(
 ): string[] {
   return [
     ...chain.map((t) => `${t}.${field}`),
-    ...chain.map((t) => `${t}.*`),
     `*.${field}`,
+    ...chain.map((t) => `${t}.*`),
     "*.*",
   ];
 }

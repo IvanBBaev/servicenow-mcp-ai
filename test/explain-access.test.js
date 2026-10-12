@@ -38,7 +38,7 @@ const acl = (over = {}) => ({
   ...over,
 });
 
-test("candidate names: row chain then *, field chain then table.* then *.field", () => {
+test("candidate names: row chain then *, field chain then *.field then table.* (N-2)", () => {
   assert.deepEqual(rowCandidates(["incident", "task"]), [
     "incident",
     "task",
@@ -47,11 +47,27 @@ test("candidate names: row chain then *, field chain then table.* then *.field",
   assert.deepEqual(fieldCandidates(["incident", "task"], "state"), [
     "incident.state",
     "task.state",
+    "*.state",
     "incident.*",
     "task.*",
-    "*.state",
     "*.*",
   ]);
+});
+
+test("a *.field ACL decides before a table.* ACL (N-2, documented order)", () => {
+  const acls = [
+    acl({ sys_id: "tableStar", name: "incident.*" }),
+    acl({ sys_id: "starField", name: "*.state" }),
+  ];
+  const level = matchLevel(
+    fieldCandidates(["incident", "task"], "state"),
+    acls,
+  );
+  assert.equal(level.matched, "*.state");
+  assert.deepEqual(
+    level.acls.map((a) => a.sys_id),
+    ["starField"],
+  );
 });
 
 test("the first name level with an ACL decides; less specific levels are ignored", () => {
@@ -455,7 +471,7 @@ test("the Mermaid decision diagram walks the tried names to the ACLs and the dec
     );
     assert.ok(lines.includes("    row_acl0 --> row_decision"));
     assert.ok(
-      lines.includes('    field_n3 --> field_acl0["fld1: undetermined"]'),
+      lines.includes('    field_n4 --> field_acl0["fld1: undetermined"]'),
     );
     assert.ok(lines.includes("  decision([undetermined])"));
     assert.ok(lines.includes("  field_decision --> decision"));
