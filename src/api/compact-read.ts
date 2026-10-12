@@ -8,8 +8,11 @@ import { rethrowIfCancelled } from "../core/errors.js";
  * N-62 — platform-aware compact reads, opt-in only (O-21 (a)): `query_table`
  * takes `fields:"summary"`, `displayValue:"display"`, `omitEmpty` and
  * `format:"table"`, `get_record` takes `displayValue:"display"`; a default
- * read is unchanged. The default-view query, the display-field fallback order
- * and the journal handling are unverified until O-5.
+ * read is unchanged. Checked on a PDI 2026-10-13 (O-5): the default-view
+ * query picks the one `Default view` list of a table (its view name is empty,
+ * which `view.name=NULL` matches), tables without a `display` column show
+ * their `name`, and a journal cell has an empty value with the history in its
+ * display value.
  */
 
 /** List columns kept from a layout, besides sys_id, the display field and sys_updated_on. */
