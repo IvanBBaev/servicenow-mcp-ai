@@ -355,7 +355,8 @@ export interface ExplainUiExperienceResult {
   actionConfigs?: UxActionConfig[];
   /**
    * N-30: declarative actions hidden on the workspace's tables
-   * (`sys_workspace_declarative_action_exclusion`); omitted when none.
+   * (`sys_workspace_declarative_action_exclusion`), with those inherited
+   * from parent tables (`inheritedFrom`); omitted when none.
    */
   actionExclusions?: UxActionExclusion[];
   /** N-31: `uib-page-weight` findings; omitted when no page has any. */
