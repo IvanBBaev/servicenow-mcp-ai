@@ -440,10 +440,11 @@ docker run --rm -p 127.0.0.1:3000:3000 \
   the user signs in, the server checks that the account's `sys_user` field matches the
   token's claim (`SN_HTTP_OAUTH_USER_MATCH`, default `email=email`), keeps the refresh token
   AES-256-GCM encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`, and from then on calls the instance as
-  that user, so ServiceNow ACLs apply per user. Limits: pending links live in the process
-  (run one replica), there is no unlink tool (delete the store entry or revoke the token on
-  the instance), only JWT access tokens are supported, and requests authorized with
-  `SN_HTTP_TOKEN` still use the shared credential.
+  that user, so ServiceNow ACLs apply per user. A user drops their own links with
+  `DELETE /oauth/servicenow/link` (their bearer token; answers `{ unlinked, revoked }`); the
+  refresh tokens are also revoked on the instance, best effort. Limits: pending links live in
+  the process (run one replica), and requests authorized with `SN_HTTP_TOKEN` still use the
+  shared credential.
 - `/data` holds the docs directory (`SN_DOCS_DIR=/data/docs`) and the env file
   (`SN_ENV_FILE=/data/.env`); mount a volume there to keep them.
 - Every `<KEY>_FILE` secret source is described in [Secrets from files](#secrets-from-files).

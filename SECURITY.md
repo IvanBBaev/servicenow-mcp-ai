@@ -193,7 +193,12 @@ The details follow.
   tokens are stored AES-256-GCM encrypted with `SN_HTTP_OAUTH_TOKEN_KEY`, the
   entry key (a subject hash, the profile and the host) as AAD, in a 0600 file
   (0700 directory); the subject is never written in clear. Access tokens stay
-  in memory. A refused refresh drops the entry and asks for a new link. Schema
+  in memory. A refused refresh drops the entry and asks for a new link.
+  `DELETE /oauth/servicenow/link` (behind the same bearer check) drops every
+  link of the calling subject only — the shared `SN_HTTP_TOKEN` names no
+  subject and gets 403 — clears its cached access tokens and pending links,
+  then revokes each refresh token at `/oauth_revoke_token.do`; a failed
+  revocation is logged and the link is gone either way. Schema
   caches and credential-scoped keys are per subject while delegated.
 - **Credentials:** a git-ignored env file (`SN_ENV_FILE`, then
   `~/.config/servicenow-mcp-ai/.env`, then the project `.env`); real environment

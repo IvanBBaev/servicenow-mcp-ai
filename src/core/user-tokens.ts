@@ -19,6 +19,7 @@ import {
   buildAuthorizeUrl,
   exchangeAuthorizationCode,
   refreshAccessToken,
+  revokeToken,
   DEFAULT_TOKEN_TTL_SEC,
   TOKEN_SKEW_MS,
   type TokenSet,
@@ -49,7 +50,8 @@ import {
  *
  * Limits (documented): pending links live in this process, so the callback
  * must reach the instance that issued the link; a link is dropped by the
- * instance rejecting its refresh token or by rotating the key.
+ * subject (`DELETE /oauth/servicenow/link`), by the instance rejecting its
+ * refresh token or by rotating the key.
  */
 
 /** How long a link URL stays redeemable. */
@@ -57,6 +59,8 @@ export const LINK_TTL_MS = 10 * 60 * 1000;
 /** Pending links kept at most (the oldest is dropped beyond it). */
 export const MAX_PENDING_LINKS = 1000;
 export const CALLBACK_PATH = "/oauth/servicenow/callback";
+/** `DELETE` here (with the subject's bearer) drops all of its links. */
+export const LINK_PATH = "/oauth/servicenow/link";
 
 /**
  * A tool call needs a ServiceNow account the subject has not linked yet. The
@@ -452,6 +456,70 @@ async function userAccessToken(host: string): Promise<string> {
 export function invalidateUserToken(host: string): void {
   const subject = delegatedSubject();
   if (subject) state().tokens.delete(linkKey(subject, activeProfile(), host));
+}
+
+export interface UnlinkOutcome {
+  /** Links removed from the store. */
+  unlinked: number;
+  /** Of those, refresh tokens the instance confirmed revoked. */
+  revoked: number;
+}
+
+/**
+ * Drop every link of `subject` (all profiles and hosts): the store entries,
+ * the cached access tokens and any pending link. Each refresh token is then
+ * revoked at its instance, best effort — the link is gone either way.
+ */
+export async function unlinkSubject(subject: string): Promise<UnlinkOutcome> {
+  const settings = getHttpUserTokens();
+  if (!settings) return { unlinked: 0, revoked: 0 };
+  const prefix = `${createHash("sha256").update(subject).digest("hex")}|`;
+  const path = tokenStorePath(settings);
+  const store = readStore(path);
+  const dropped: { profile: string; host: string; token?: string }[] = [];
+  for (const [key, entry] of Object.entries(store.entries)) {
+    if (!key.startsWith(prefix)) continue;
+    const [, profile = "", host = ""] = key.split("|");
+    const account = unseal(settings.key, key, entry);
+    dropped.push({ profile, host, token: account?.refreshToken });
+    delete store.entries[key];
+  }
+  if (dropped.length) writeStore(path, store);
+  const s = state();
+  for (const key of [...s.tokens.keys()]) {
+    if (key.startsWith(prefix)) s.tokens.delete(key);
+  }
+  for (const [oauthState, link] of [...s.pending]) {
+    if (link.key.startsWith(prefix)) s.pending.delete(oauthState);
+  }
+  const results = await Promise.all(
+    dropped.map(async ({ profile, host, token }) => {
+      if (!token) return false;
+      try {
+        await revokeToken(host, { ...clientFor(profile), token });
+        return true;
+      } catch (error) {
+        logger.warn(
+          "Revoking an unlinked ServiceNow refresh token failed — it stays valid on the instance until it expires",
+          {
+            profile,
+            host,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
+        return false;
+      }
+    }),
+  );
+  if (dropped.length) {
+    logger.info("ServiceNow account links dropped by their subject", {
+      unlinked: dropped.length,
+    });
+  }
+  return {
+    unlinked: dropped.length,
+    revoked: results.filter(Boolean).length,
+  };
 }
 
 // ---------------------------------------------------------------------------
