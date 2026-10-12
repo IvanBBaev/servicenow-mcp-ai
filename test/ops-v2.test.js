@@ -2,8 +2,8 @@
 // (sys_outbound_http_log), `transactions` (syslog_transaction) and `mid`
 // (ecc_agent + ecc_queue). Each section degrades on its own, the overview
 // stays on the Aggregate API, rows are capped by `limit`, and logged URLs keep
-// only origin and path. The table and field names are O-5-unverified, so the
-// fixtures here are queued for the O-2 corpus.
+// only origin and path. The table and field names were verified on a PDI
+// (O-5, 2026-10); the fixtures here are queued for the O-2 corpus.
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -64,10 +64,10 @@ const notFound = () => jsonResponse(404, { error: { message: "no table" } });
 const DICTIONARY = {
   sys_outbound_http_log: [
     "url",
-    "http_method",
+    "method",
     "response_status",
     "response_time",
-    "rest_message",
+    "source_table",
   ],
   syslog_transaction: ["url", "response_time", "sys_created_by"],
 };
@@ -204,30 +204,30 @@ const CALLS = [
   {
     sys_created_on: "2026-10-03 10:00:00",
     url: "https://svc:pw@api.example.com/v1/orders?apikey=SECRET",
-    http_method: "post",
+    method: "post",
     response_status: "500",
     response_time: "1200",
-    rest_message: "Orders",
+    source_table: "sys_rest_message",
   },
   {
     sys_created_on: "2026-10-03 09:59:00",
     url: "https://api.example.com/v1/orders/42?apikey=SECRET",
-    http_method: "get",
+    method: "get",
     response_status: "200",
     response_time: "9000",
-    rest_message: "Orders",
+    source_table: "sys_rest_message",
   },
   {
     sys_created_on: "2026-10-03 09:58:00",
     url: "https://hr.example.net/api/people",
-    http_method: "get",
+    method: "get",
     response_status: "401",
     response_time: "80",
-    rest_message: "",
+    source_table: "",
   },
 ];
 
-test("integrations: failed and slow calls grouped by host and REST message, URLs redacted", async () => {
+test("integrations: failed and slow calls grouped by host and calling table, URLs redacted", async () => {
   await withFetch(
     fetchDouble((q) => {
       if (q.api === "stats") return jsonResponse(200, stats(7));
@@ -247,7 +247,7 @@ test("integrations: failed and slow calls grouped by host and REST message, URLs
       assert.equal(r.groups.length, 2);
       const orders = r.groups[0];
       assert.equal(orders.host, "api.example.com");
-      assert.equal(orders.rest_message, "Orders");
+      assert.equal(orders.source_table, "sys_rest_message");
       assert.equal(orders.calls, 2);
       assert.equal(orders.failed, 1);
       assert.equal(orders.slow, 1);

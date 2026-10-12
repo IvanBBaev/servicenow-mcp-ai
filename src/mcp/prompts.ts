@@ -365,7 +365,7 @@ function registerWhyIsItSlow(server: McpServer): void {
                 `2. ${TOOLS.read_ops} kind 'transactions': the slowest URLs (count, avg/max ms, users). One URL for many users points at its form, list or script; many URLs at once point instance-wide (scheduler, integrations, semaphores).`,
                 `3. If errors or warnings are high: ${TOOLS.read_ops} kind 'syslog' (level 'warning', narrow with source from top_sources) and group the messages by cause (slow queries, script timeouts, integration failures).`,
                 `4. ${TOOLS.read_ops} kind 'jobs' with filter 'overdue', then 'running': many overdue jobs mean the scheduler workers are saturated; a job running for long on one node (claimed_by / system_id) is a suspect.`,
-                `5. ${TOOLS.read_ops} kind 'integrations': failed or slow outbound calls by host and REST message — a slow endpoint called synchronously from a business rule slows every save. Then kind 'mid' if MID servers are down or the ECC backlog grows. An empty integrations log may mean logging is off, not that all is well.`,
+                `5. ${TOOLS.read_ops} kind 'integrations': failed or slow outbound calls by host and calling table — a slow endpoint called synchronously from a business rule slows every save. Then kind 'mid' if MID servers are down or the ECC backlog grows. An empty integrations log may mean logging was turned off, not that all is well.`,
                 `6. ${TOOLS.read_ops} kind 'email_queue': a growing send-ready backlog or repeated failures point at the email job or the SMTP connection.`,
                 `7. ${TOOLS.read_ops} kind 'semaphores': many rows held for long suggest long transactions blocking others.`,
                 ...(table

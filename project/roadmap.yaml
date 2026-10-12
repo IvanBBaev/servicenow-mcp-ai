@@ -774,7 +774,7 @@ items:
     phase: null
     done: "2026-10-03"
     gates: ["O-5"]
-    notes: "**Done 2026-10-03 (local).** `servicenow_read_ops` kinds `integrations` (`sys_outbound_http_log` failed/slow by host + REST message, URLs redacted), `transactions` (`syslog_transaction` slow, by URL sans query) and `mid` (`ecc_agent` + `ecc_queue` backlog/errors by agent); each degrades alone, joins `overview` (counts), dictionary-guards its filter fields. Prompt + skill updated; `test/ops-v2.test.js`; tools/list +11 B all, 0 core. Names wait for O-5."
+    notes: "**Done 2026-10-03 (local).** `servicenow_read_ops` kinds `integrations` (`sys_outbound_http_log` failed/slow by host + calling table, URLs redacted), `transactions` (`syslog_transaction` slow, by URL sans query) and `mid` (`ecc_agent` + `ecc_queue` backlog/errors by agent); each degrades alone, joins `overview` (counts), dictionary-guards its filter fields. Prompt + skill updated; `test/ops-v2.test.js`; tools/list +11 B all, 0 core. **O-5 checked on a PDI 2026-10-12:** `http_method` → `method`, `rest_message` (absent) → groups by `source_table`; the rest matched."
   - id: "N-8"
     title: "reports and PA as artefacts"
     pillar: "N"
