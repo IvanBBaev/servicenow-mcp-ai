@@ -169,6 +169,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     - (1) Keep the labels and record them in the O-4 register and the CHANGELOG.
     - (2) Revert to the raw value and add a `statusLabel` key.
   - Recommend: (1). The raw integer was meaningless to a client.
+  - **Decided 2026-10-13: (1).** Done: B16 in the breaking register (ROADMAP-V3) and the
+    CHANGELOG breaking changes.
 - **OD-8 · `WORKSPACE_CAVEAT` wording after N-30.** _Not BREAKING (free text), but every
   workspace result and golden that carries it changes._
   - Problem: the caveat (`src/api/uib-workspace.ts`) still says "dedicated UX form config and

@@ -1519,6 +1519,7 @@ before its P2 phase.
 | B12 | `use_instance` no longer persists `SN_ACTIVE_PROFILE` to the env file                                                                                                                   | H-7  | Pass `persist:true`; set `SN_ACTIVE_PROFILE` in the env file for a permanent default.                                                |
 | B13 | Profile resources move to `servicenow://profiles/{profile}/schema/{table}`; profile names `docs`, `schema`, `status`, `capabilities`, `reference`, `profiles`, `policy` become reserved | M-7  | Old template aliased for one minor; rename a reserved profile.                                                                       |
 | B15 | `servicenow_generate_fluent` and the Fluent emitters removed; Fluent generation belongs to syncrona (ADR 0010, 2026-10-10)                                                              | P-26 | Use `syncrona fluent transform` (or `now-sdk transform`) in the app's source repository.                                             |
+| B16 | Cross-scope report: `restricted[].status` is a name (`requested` / `denied` / `allowed` / `invalidated`) instead of the raw integer choice (OD-7, 2026-10-13)                           | N-14 | Compare against the names; an unknown value still passes through raw.                                                                |
 
 ## Explicitly NOT in 3.0
 
