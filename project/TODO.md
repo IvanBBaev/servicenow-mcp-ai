@@ -135,6 +135,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     - (3) Fall back by default. This silently changes which run is shown.
   - Evidence: PDI-VERIFY "Second pass", caveats.
   - Recommend: (1). Zero findings is a true answer about the latest run.
+  - **Decided 2026-10-12: (1).** Done: the caveat names the newest run with findings
+    (`newestWithFindings`).
 - **OD-6 · `sys_store_app` 403 (N-1).** _Not BREAKING._
   - Problem: the PDI admin gets a 403 on `sys_store_app` (and `sys_upgrade_history_log`) rows
     over REST. `readStoreUpdates` (`src/api/upgrade.ts`) degrades to `available:false`, so store
