@@ -44,7 +44,8 @@
  * - `bindings` — every binding expression (`@data.*`, `@state.*`,
  *   `@context.*`, `@payload.*`) with the data resource / broker or state
  *   property it resolves to;
- * - `events` — source element → event → handler → target, where the target
+ * - `events` — source element → event → handler → target (from
+ *   `internal_event_mappings` and each element's own `eventMappings`), where the target
  *   is a client script, a broker operation, a state change or a page event
  *   (`sys_ux_event`);
  * - `scripts` — client-script and broker script bodies.
@@ -58,7 +59,7 @@
  * declared `required_translations`, with a bounded sample).
  *
  * N-29 (UX-11) resolves REST and GraphQL data brokers too
- * (sys_ux_data_broker_rest / _graphql, O-5: unverified) and adds broker
+ * (sys_ux_data_broker_rest / _graphql, confirmed on a PDI by O-5) and adds broker
  * hints: `brokerHints` lists the uib-broker-lint.ts findings of each broker
  * that has any — a mutating broker with no ux_data_broker ACL (error), a
  * transform querying with GlideRecord without an access check (warn), an
@@ -77,12 +78,14 @@ import { decodeField } from "../core/artifacts/decoders.js";
 import {
   compositionTree,
   dataResources,
+  elementEventMappings,
   eventMappings,
   eventWiring,
   stateProperties,
   type UibDataResource,
   type UibElement,
   type UibEventHandler,
+  type UibEventMapping,
 } from "../core/artifacts/uib-composition.js";
 import { ServiceNowError } from "../core/errors.js";
 import { trackProgress } from "../core/progress.js";
@@ -106,6 +109,8 @@ import {
   decodeShell,
   formViews,
   listColumns,
+  readActionConfigs,
+  readActionExclusions,
   readDeclarativeActions,
   readThemes,
   type WorkspaceIo,
@@ -182,22 +187,25 @@ const PAGE_HINT_CAVEAT =
   "Page hints (uib-page-weight) treat a data resource with no on-demand evaluation mode as fired on page load, and read `when` conditions from data resource shapes that have not been confirmed on a live instance (gate O-5).";
 
 const BROKER_HINT_CAVEAT =
-  "Broker hints (N-29) read `mutates_server_data`, `properties` and the REST / GraphQL broker tables (sys_ux_data_broker_rest / _graphql), which have not been confirmed on a live instance (gate O-5); the GlideRecord rule is a static check of the transform script.";
+  "Broker hints (N-29) read `mutates_server_data` and the `props` input schema of the transform, scriptlet, REST and GraphQL broker tables; the GlideRecord rule is a static check of the transform script.";
 
-/** N-29: broker tables in resolution order, with the fields read (O-5). */
+/** N-29: broker tables in resolution order, with the fields read (O-5: confirmed on a PDI). */
 const UI_BROKER_READS: readonly (readonly [string, string[]])[] = [
   [
     "sys_ux_data_broker_transform",
-    ["sys_id", "name", "mutates_server_data", "properties", "script"],
+    ["sys_id", "name", "mutates_server_data", "props", "script"],
   ],
-  ["sys_ux_data_broker_scriptlet", ["sys_id", "name", "properties"]],
+  [
+    "sys_ux_data_broker_scriptlet",
+    ["sys_id", "name", "mutates_server_data", "props"],
+  ],
   [
     "sys_ux_data_broker_rest",
-    ["sys_id", "name", "mutates_server_data", "properties"],
+    ["sys_id", "name", "mutates_server_data", "props"],
   ],
   [
     "sys_ux_data_broker_graphql",
-    ["sys_id", "name", "mutates_server_data", "properties"],
+    ["sys_id", "name", "mutates_server_data", "props"],
   ],
 ];
 
@@ -640,7 +648,7 @@ export async function explainUiExperience(
     }
   }
   // N-29: transform, scriptlet, then REST and GraphQL brokers (the latter
-  // only for ids still unresolved — O-5: unverified tables). `properties`
+  // only for ids still unresolved). `props`
   // and the transform `script` are read for the broker hints; the script is
   // echoed only with `scripts` depth.
   const brokerRows = new Map<string, SnRecord>();
@@ -995,11 +1003,20 @@ async function readWorkspace(
   result.actions = (await readDeclarativeActions(io, tables)).sort(
     (a, b) => (a.table ?? "").localeCompare(b.table ?? "") || a.order - b.order,
   );
+  const actionExclusions = await readActionExclusions(io, tables);
+  if (actionExclusions.length) result.actionExclusions = actionExclusions;
   result.forms = formViews(result.actions, result.formActionLayouts);
   result.themes = await readThemes(io, [
     expId,
     ...(configId ? [configId] : []),
   ]);
+  const actionConfigs = await readActionConfigs(
+    io,
+    result.properties
+      .filter((p) => p.name === "actionConfigId")
+      .map((p) => p.value),
+  );
+  if (actionConfigs.length) result.actionConfigs = actionConfigs;
   const categories = (
     await boundedReadIn(
       ctx,
@@ -1038,6 +1055,8 @@ async function readWorkspace(
     result.shell ||
     result.actions.length ||
     result.themes.length ||
+    result.actionConfigs ||
+    result.actionExclusions ||
     result.workspace.signals.length
   ) {
     ctx.caveats.push(WORKSPACE_CAVEAT);
@@ -1066,7 +1085,7 @@ function readBrokerHints(
       {
         kind,
         mutates_server_data: field(row, "mutates_server_data"),
-        properties: field(row, "properties"),
+        props: field(row, "props"),
         script: kind === "transform" ? field(row, "script") : undefined,
       },
       aclKnown ? { hasAcl: b.acls.length > 0 } : {},
@@ -1287,7 +1306,10 @@ async function readDetail(
     );
     const decoded = macroRows.map((row) => ({
       id: str(row, "sys_id"),
-      mappings: decodedMappings(str(row, "internal_event_mappings")),
+      mappings: [
+        ...decodedMappings(str(row, "internal_event_mappings")),
+        ...decodedElementMappings(str(row, "composition")),
+      ],
     }));
     // Handler ids that are neither a client script nor known: sys_ux_event.
     const eventIds = new Set<string>();
@@ -1337,6 +1359,7 @@ async function readDetail(
           ...(element ? { element: element.elementId } : {}),
           ...(element?.component ? { component: element.component } : {}),
           ...(event ? { event } : {}),
+          ...(mp.origin ? { origin: mp.origin } : {}),
           targets: mp.handlers.map((h) =>
             resolveHandler(h, { scripts, resources, states, brokers, events }),
           ),
@@ -1355,10 +1378,23 @@ async function readDetail(
   }
 }
 
-function decodedMappings(raw: string) {
+function decodedMappings(raw: string): DecodedMapping[] {
   const d = decodeField("json", raw);
   return d.decoded ? (eventMappings(d.value) ?? []) : [];
 }
+
+/** The wiring on the composition elements (O-5: most live wiring is here). */
+function decodedElementMappings(raw: string): DecodedMapping[] {
+  const d = decodeField("json", raw);
+  return d.decoded
+    ? elementEventMappings(d.value).map((mp) => ({
+        ...mp,
+        origin: "element" as const,
+      }))
+    : [];
+}
+
+type DecodedMapping = UibEventMapping & { origin?: "element" };
 
 /** What one binding expression points at (N-26, UX-02). */
 function resolveBinding(
@@ -1460,8 +1496,11 @@ function resolveHandler(
 
 /**
  * Resolve each element's `definition.id` (N-26, UX-04): sys_ids against
- * sys_ux_lib_component and sys_ux_macroponent, tags against
- * sys_ux_lib_component.tag; an unknown `now-*` / `sn-*` tag is OOB by name.
+ * sys_ux_macroponent first (O-5: every live MACROPONENT / MACROPONENT_VIEWPORT
+ * id is one) and sys_ux_lib_component for the rest, tags against
+ * sys_ux_lib_component.tag; an unknown `now-*` / `sn-*` tag is OOB by name,
+ * and so is a framework construct whose id is its own type (`REPEATER`,
+ * `MACROPONENT_VIEWPORT_HEADLESS`), which is not looked up.
  */
 async function resolveComponents(
   ctx: ReadCtx,
@@ -1469,6 +1508,7 @@ async function resolveComponents(
 ): Promise<void> {
   const used = new Map<string, Map<string, string[]>>();
   const all = new Set<string>();
+  const builtIn = new Set<string>();
   for (const m of result.macroponents) {
     const byId = new Map<string, string[]>();
     for (const el of allElements(m.composition.value?.elements ?? [])) {
@@ -1476,20 +1516,43 @@ async function resolveComponents(
       const list = byId.get(el.component) ?? [];
       list.push(el.elementId);
       byId.set(el.component, list);
-      all.add(el.component);
+      if (el.component === el.type && !isSysId(el.component)) {
+        builtIn.add(el.component);
+      } else {
+        all.add(el.component);
+      }
     }
     used.set(m.sys_id, byId);
   }
-  if (!all.size) return;
+  if (!all.size && !builtIn.size) return;
   const sysIds = [...all].filter((i) => isSysId(i));
   const tags = [...all].filter((i) => !isSysId(i));
+  const known = new Map<string, SnRecord>();
+  for (const m of result.macroponents) {
+    if (all.has(m.sys_id)) {
+      known.set(m.sys_id, {
+        sys_id: m.sys_id,
+        ...(m.name ? { name: m.name } : {}),
+        ...(m.category ? { category: m.category } : {}),
+      });
+    }
+  }
+  for (const r of await boundedReadIn(
+    ctx,
+    "sys_ux_macroponent",
+    "sys_id",
+    sysIds.filter((i) => !known.has(i)),
+    ["sys_id", "name", "category"],
+  )) {
+    known.set(str(r, "sys_id"), r);
+  }
   const libFields = ["sys_id", "name", "tag", "category"];
   const libRows = [
     ...(await boundedReadIn(
       ctx,
       "sys_ux_lib_component",
       "sys_id",
-      sysIds,
+      sysIds.filter((i) => !known.has(i)),
       libFields,
     )),
     ...(await boundedReadIn(
@@ -1505,33 +1568,14 @@ async function resolveComponents(
     lib.set(str(r, "sys_id"), r);
     if (opt(r, "tag")) lib.set(str(r, "tag"), r);
   }
-  const known = new Map<string, SnRecord>();
-  const loaded = result.macroponents.map((m) => m.sys_id);
-  const toRead = sysIds.filter((i) => !lib.has(i));
-  for (const r of await boundedReadIn(
-    ctx,
-    "sys_ux_macroponent",
-    "sys_id",
-    toRead.filter((i) => !loaded.includes(i)),
-    ["sys_id", "name", "category"],
-  )) {
-    known.set(str(r, "sys_id"), r);
-  }
-  for (const m of result.macroponents) {
-    if (toRead.includes(m.sys_id)) {
-      known.set(m.sys_id, {
-        sys_id: m.sys_id,
-        ...(m.name ? { name: m.name } : {}),
-        ...(m.category ? { category: m.category } : {}),
-      });
-    }
-  }
   for (const m of result.macroponents) {
     const comps: UxComponent[] = [];
     for (const [id, elements] of used.get(m.sys_id) ?? []) {
       const l = lib.get(id);
       const mp = known.get(id);
-      if (l) {
+      if (builtIn.has(id)) {
+        comps.push({ id, kind: "oob", elements });
+      } else if (l) {
         const tag = opt(l, "tag") ?? (isSysId(id) ? undefined : id);
         comps.push({
           id,

@@ -1462,7 +1462,7 @@
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },
           "record": {
-            "description": "Record the flow ran against (document_id).",
+            "description": "Record the flow ran against (source_record).",
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{1,32}$"
           },

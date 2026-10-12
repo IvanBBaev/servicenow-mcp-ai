@@ -17,6 +17,8 @@ import type { UibPageFinding, UibPageMetrics } from "./uib-page-lint.js";
 import type { UibBrokerFinding } from "./uib-broker-lint.js";
 import type { Unreadable } from "./bounded-read.js";
 import type {
+  UxActionConfig,
+  UxActionExclusion,
   UxDeclarativeAction,
   UxFormView,
   UxShell,
@@ -87,8 +89,12 @@ export interface UxScriptBody {
 /**
  * N-26 (UX-04): what an element's `definition.id` renders. `oob` is a
  * `now-*` / `sn-*` component (by its tag, with or without a
- * sys_ux_lib_component row), `custom` any other sys_ux_lib_component,
- * `macroponent` a nested sys_ux_macroponent. `artifactType` is the registry
+ * sys_ux_lib_component row) or a framework construct whose id is its type
+ * (`REPEATER`, `MACROPONENT_VIEWPORT_HEADLESS`), `custom` any other
+ * sys_ux_lib_component, `macroponent` a nested sys_ux_macroponent (O-5: on a
+ * PDI every MACROPONENT / MACROPONENT_VIEWPORT element's `definition.id` is a
+ * sys_ux_macroponent sys_id, even primitives such as Button or Input, and no
+ * element has type COMPONENT). `artifactType` is the registry
  * type to pass to get_artifact / explain_artifact.
  */
 export interface UxComponent {
@@ -147,6 +153,8 @@ export interface UxEventChain {
   element?: string;
   component?: string;
   event?: string;
+  /** `element` when wired in the element's own `eventMappings` (O-5). */
+  origin?: "element";
   targets: UxEventTarget[];
 }
 
@@ -340,6 +348,16 @@ export interface ExplainUiExperienceResult {
   themes: UxTheme[];
   /** N-30: Agent Workspace vs Configurable Workspace. */
   workspace: UxWorkspaceClass;
+  /**
+   * N-30: the UX action configurations named by `actionConfigId` and the
+   * assignments added to them; omitted when the experience names none.
+   */
+  actionConfigs?: UxActionConfig[];
+  /**
+   * N-30: declarative actions hidden on the workspace's tables
+   * (`sys_workspace_declarative_action_exclusion`); omitted when none.
+   */
+  actionExclusions?: UxActionExclusion[];
   /** N-31: `uib-page-weight` findings; omitted when no page has any. */
   pageHints?: UxPageHint[];
   /** N-29: broker rule findings; omitted when no broker has any. */

@@ -53,8 +53,8 @@
     },
     "list_scripts.business_rule": {
       "tool": "servicenow_list_scripts",
-      "textBytes": 16063,
-      "structuredBytes": 16063
+      "textBytes": 15263,
+      "structuredBytes": 15263
     }
   }
 }

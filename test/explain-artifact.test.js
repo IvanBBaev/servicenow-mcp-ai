@@ -254,7 +254,7 @@ const CASES = {
           trigger_type: "record_create",
         },
       ],
-      sys_hub_action_instance: [
+      sys_hub_action_instance_v2: [
         {
           sys_id: "4a".repeat(16),
           flow: "1a".repeat(16),
@@ -271,7 +271,6 @@ const CASES = {
       wf_workflow: {
         sys_id: "1b".repeat(16),
         name: "Acme approval",
-        active: "true",
         description: "Legacy approval workflow.",
         sys_scope: APP_ID,
       },
@@ -287,15 +286,13 @@ const CASES = {
       wf_activity: [
         {
           sys_id: "3b".repeat(16),
-          workflow: "1b".repeat(16),
+          workflow_version: "2b".repeat(16),
           name: "Begin",
-          order: "1",
         },
         {
           sys_id: "4b".repeat(16),
-          workflow: "1b".repeat(16),
+          workflow_version: "2b".repeat(16),
           name: "Approval - User",
-          order: "2",
         },
       ],
       wf_transition: [
@@ -363,7 +360,6 @@ const CASES = {
         sys_id: "1e".repeat(16),
         name: "Acme triage agent",
         description: "Routes incidents.",
-        active: "true",
         sys_scope: APP_ID,
       },
       sn_aia_agent_tool_m2m: [
@@ -494,12 +490,15 @@ test("an invalid JSON field never fails the call", async () => {
     sys_id: "1a".repeat(16),
   });
   const values = flow.decoded.find((d) => d.field === "values");
-  assert.equal(values.source, "sys_hub_action_instance");
+  assert.equal(values.source, "sys_hub_action_instance_v2");
   assert.equal(values.decoded, false);
   assert.equal(values.decoder, "flow-values");
   assert.equal(values.via, undefined);
   assert.match(values.reason, /did not inflate: .* \d+ bytes returned raw\./);
-  assert.equal(values.raw, CASES.flow.tables.sys_hub_action_instance[0].values);
+  assert.equal(
+    values.raw,
+    CASES.flow.tables.sys_hub_action_instance_v2[0].values,
+  );
 
   const portal = await explainWith(CASES.portal.tables, {
     artifactType: "sp_page",

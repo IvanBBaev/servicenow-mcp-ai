@@ -36,4 +36,4 @@ Scope `x_acme` · 1 macroponent(s) · base language `en` · languages from given
 
 ## Caveats
 
-- Translation coverage (N-7) is unverified (gate O-5): sys_ui_message (key, language), sys_documentation (name, element, language), sys_choice (name, element, value, language), sys_translated_text (tablename, fieldname, documentkey, language), sys_translated (name, element, value, language), sys_language (id, name, active) and the UIB message-key convention (the English string is the sys_ui_message key) are assumptions. The keys of a category are those seen in any language, so a value never translated into any language is not counted.
+- Translation coverage (N-7) assumes the UIB message-key convention (the English string is the sys_ui_message key). The keys of a category are those seen in any language, so a value never translated into any language is not counted.

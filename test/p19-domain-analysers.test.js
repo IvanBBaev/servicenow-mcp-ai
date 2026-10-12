@@ -144,9 +144,13 @@ const FLOW_TABLES = {
     return FLOWS;
   },
   sys_hub_trigger_instance_v2: [
-    { sys_id: "t1", flow: "f1", table: "sys_user_has_role", values: "" },
-    { sys_id: "t2", flow: "f2", table: "incident", values: "" },
-    { sys_id: "t4", flow: "f4", table: "sys_user", values: "" },
+    {
+      sys_id: "t1",
+      flow: "f1",
+      trigger_inputs: vals({ table: "sys_user_has_role" }),
+    },
+    { sys_id: "t2", flow: "f2", trigger_inputs: vals({ table: "incident" }) },
+    { sys_id: "t4", flow: "f4", trigger_inputs: vals({ table: "sys_user" }) },
   ],
   sys_hub_action_instance_v2: [
     // f1: unguarded REST.
@@ -740,7 +744,7 @@ const N29_BROKERS = {
       sys_id: "b1",
       name: "Guarded transform",
       mutates_server_data: "true",
-      properties: '[{"name":"table"}]',
+      props: '[{"name":"table"}]',
       script:
         "function transform(input) {\n  var gr = new GlideRecord('incident');\n  gr.query();\n}",
     },
@@ -749,20 +753,20 @@ const N29_BROKERS = {
       sys_id: "b2",
       name: "Open transform",
       mutates_server_data: "true",
-      properties: "[]",
+      props: "[]",
       script:
         "function transform(input) {\n  var gr = new GlideRecord('incident');\n  if (!gr.canWrite()) return;\n}",
     },
   ],
   sys_ux_data_broker_scriptlet: [
-    { sys_id: "b3", name: "Open scriptlet", properties: "" },
+    { sys_id: "b3", name: "Open scriptlet", props: "" },
   ],
   sys_ux_data_broker_rest: [
     {
       sys_id: "b4",
       name: "REST writer",
       mutates_server_data: "true",
-      properties: '[{"name":"id"}]',
+      props: '[{"name":"id"}]',
     },
     { sys_id: "b5", name: "REST reader", mutates_server_data: "false" },
   ],
@@ -771,7 +775,7 @@ const N29_BROKERS = {
       sys_id: "b6",
       name: "Graph",
       mutates_server_data: "false",
-      properties: "{}",
+      props: "{}",
     },
   ],
 };
@@ -800,7 +804,7 @@ test("N-29 broker rules: mutates-no-acl (error, replaces no-acl), GlideRecord wi
     assert.equal(gr.severity, "warn");
     assert.equal(gr.details.line, 2);
     assert.equal(d.rules["uib-transform-gliderecord-no-acl-check"].scanned, 2);
-    // Empty "[]", "" and "{}" are no schema; b5 has no properties field
+    // Empty "[]", "" and "{}" are no schema; b5 has no props field
     // (unknown), so it is not reported.
     assert.deepEqual(ids(d, "uib-broker-no-input-schema"), ["b2", "b3", "b6"]);
     assert.equal(

@@ -329,7 +329,14 @@ export const READ_TIER: Tier[] = ["R"];
 export const FLOW_CHILDREN: ArtifactChild[] = [
   { table: "sys_hub_trigger_instance", parentField: "flow" },
   {
+    // O-5: the plain table has no `values`; its `action_inputs` is a
+    // glide_var whose values live in sys_variable_value.
     table: "sys_hub_action_instance",
+    parentField: "flow",
+    orderField: "order",
+  },
+  {
+    table: "sys_hub_action_instance_v2",
     parentField: "flow",
     orderField: "order",
     jsonFields: [{ field: "values", decoder: "flow-values", writable: false }],
@@ -344,7 +351,10 @@ export const FLOW_CHILDREN: ArtifactChild[] = [
     table: "sys_hub_sub_flow_instance_v2",
     parentField: "flow",
     orderField: "order",
-    jsonFields: [{ field: "values", decoder: "flow-values", writable: false }],
+    // O-5: the inputs are in `subflow_inputs`; there is no `values` column.
+    jsonFields: [
+      { field: "subflow_inputs", decoder: "flow-values", writable: false },
+    ],
   },
   { table: "sys_hub_flow_input", parentField: "model", nameField: "name" },
   { table: "sys_hub_flow_output", parentField: "model", nameField: "name" },

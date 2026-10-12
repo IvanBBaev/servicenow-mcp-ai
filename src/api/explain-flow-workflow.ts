@@ -28,13 +28,15 @@ import {
 
 // --- legacy workflow -----------------------------------------------------------
 
-const WF_FIELDS = ["sys_id", "name", "table", "description", "active"];
+// O-5: `active` and `condition` live on wf_workflow_version, not wf_workflow.
+const WF_FIELDS = ["sys_id", "name", "table", "description"];
 
 const VERSION_FIELDS = [
   "sys_id",
   "workflow",
   "name",
   "published",
+  "active",
   "sys_updated_on",
 ];
 
@@ -44,7 +46,6 @@ const ACTIVITY_FIELDS = [
   "workflow_version",
   "activity_definition",
   "activity_definition.name",
-  "order",
   "x",
   "y",
 ];
@@ -193,9 +194,6 @@ export async function explainWorkflow(
     ...(opt(row, "description")
       ? { description: str(row, "description") }
       : {}),
-    ...(bool(row, "active") !== undefined
-      ? { active: bool(row, "active") }
-      : {}),
   };
 
   const versions = await boundedRead(
@@ -222,36 +220,28 @@ export async function explainWorkflow(
           : {}),
       }
     : null;
+  if (chosen && bool(chosen, "active") !== undefined) {
+    result.workflow.active = bool(chosen, "active");
+  }
   const versionId = result.version?.sys_id;
 
-  let activityRows: SnRecord[] = [];
-  if (versionId && SAFE_ID.test(versionId)) {
-    activityRows = (
-      await boundedRead(
-        ctx,
-        "wf_activity",
-        `workflow_version=${versionId}^ORDERBYorder`,
-        ACTIVITY_FIELDS,
-      )
-    ).filter(
-      (a) =>
-        !str(a, "workflow_version") || str(a, "workflow_version") === versionId,
-    );
-  }
-  if (!activityRows.length) {
-    // The registry keys activities by `workflow` (unverified, O-5).
-    activityRows = await boundedRead(
-      ctx,
-      "wf_activity",
-      `workflow=${sysId}^ORDERBYorder`,
-      [...ACTIVITY_FIELDS, "workflow"],
-    );
-    if (activityRows.length && versionId) {
-      ctx.caveats.push(
-        "No wf_activity rows were found under the chosen version; activities were read by workflow instead.",
-      );
-    }
-  }
+  // O-5: wf_activity has no `workflow` or `order` column; activities hang
+  // off the version and are ordered by canvas position below.
+  const activityRows: SnRecord[] =
+    versionId && SAFE_ID.test(versionId)
+      ? (
+          await boundedRead(
+            ctx,
+            "wf_activity",
+            `workflow_version=${versionId}`,
+            ACTIVITY_FIELDS,
+          )
+        ).filter(
+          (a) =>
+            !str(a, "workflow_version") ||
+            str(a, "workflow_version") === versionId,
+        )
+      : [];
   const activityIds = activityRows.map((a) => str(a, "sys_id"));
   const conditionRows = activityIds.length
     ? await boundedReadIn(

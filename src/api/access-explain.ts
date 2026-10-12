@@ -35,10 +35,11 @@ import { isSysId } from "../core/sys-id.js";
  * for O-13; the tool waits for O-10. Only role names leave this module (H-5).
  *
  * Read-only; never throws except on bad input or a cancel. An unreadable ACL,
- * role or user table degrades to `available:false`. Unverified until O-5
- * (PDI): inherited sys_user_has_role rows and their `state`, `admin_overrides`,
- * the field-ACL fallback order and the default when no ACL matches (deny, as
- * in high-security mode).
+ * role or user table degrades to `available:false`. Checked on a PDI (O-5):
+ * sys_user_has_role `state` is `active` or empty (inherited rows included),
+ * `admin_overrides` exists on sys_security_acl, and `glide.sm.default_mode`
+ * is `deny`, so no matching ACL denies. Still unverified: the field-ACL
+ * fallback order.
  *
  * N-12: on a domain-separated instance each ACL carries the domain it belongs
  * to; the evaluation and the rendered table group by it and the result adds
@@ -480,9 +481,7 @@ export async function explainAccess(
   }
   for (const c of checks) {
     if (c.matched === undefined) {
-      notes.push(
-        `No ${c.kind} ACL matches; the high-security default denies (unverified until O-5).`,
-      );
+      notes.push(`No ${c.kind} ACL matches; the high-security default denies.`);
     }
   }
   return {

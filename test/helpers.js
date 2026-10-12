@@ -143,6 +143,8 @@ export const METADATA_TABLES = [
   /^sys_user_role(_contains)?$/,
   // Flow Designer definition tables, versioned ones included (…_v2).
   /^sys_hub_[a-z0-9_]+$/,
+  // O-5: a v1 flow trigger's inputs (read with document=sys_hub_trigger_instance).
+  /^sys_variable_value$/,
   /^wf_workflow$/,
   /^sysevent_email_action$/,
   // Script-bearing configuration the where-used scan reads (scripts.ts).
@@ -188,6 +190,11 @@ export const METADATA_TABLES = [
   /^m2m_app_theme$/,
   /^sys_ux_registry_m2m_category$/,
   /^sys_aw_(master_config|list)$/,
+  // N-30 UX action configurations and their action-assignment m2m.
+  /^sys_ux_action_config$/,
+  /^sys_ux_m2m_action_assignment_action_config$/,
+  // N-30 action exclusions (an action hidden on a table).
+  /^sys_workspace_declarative_action_exclusion$/,
   // N-7 translation coverage: UI messages, labels, translated text and fields, languages.
   /^sys_ui_message$/,
   /^sys_documentation$/,

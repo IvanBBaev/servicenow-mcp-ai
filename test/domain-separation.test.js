@@ -92,6 +92,20 @@ test("recordDomain: domain-specific rows only; global and absent are silent", ()
   assert.deepEqual([...DOMAIN_FIELDS], ["sys_domain", "sys_overrides"]);
 });
 
+test("recordDomain: a global sys_overrides (seen on a PDI) is not an override (O-5)", () => {
+  assert.deepEqual(
+    recordDomain({ sys_domain: "global", sys_overrides: "global" }),
+    {},
+  );
+  assert.deepEqual(
+    recordDomain({
+      sys_domain: { value: DOMAIN_ID, display_value: "ACME" },
+      sys_overrides: { value: "Global", display_value: "" },
+    }),
+    { domain: "ACME" },
+  );
+});
+
 test("probe: an active domain is reported with the user's domain and cached", async () => {
   await withFetch(
     (url) => {
@@ -240,7 +254,6 @@ function traceHandler(rule) {
             order: "100",
             when: "before",
             collection: "incident",
-            global: "false",
             ...rule,
           },
         ],
@@ -346,24 +359,29 @@ function laneHandler(extra) {
         result: [{ name: "incident", "super_class.name": "" }],
       });
     }
-    if (table === "sys_hub_trigger_instance") {
+    if (table === "sys_hub_trigger_instance_v2") {
       assert.ok(fields.split(",").includes("flow.sys_domain"));
       return jsonResponse(200, {
         result: [
           {
             flow: "f1",
             "flow.name": "Notify",
-            table_name: "incident",
+            trigger_inputs: JSON.stringify([
+              { name: "table", value: "incident" },
+            ]),
             trigger_type: "record_create",
             ...extra.flow,
           },
         ],
       });
     }
-    if (table === "wf_workflow") {
-      assert.ok(fields.split(",").includes("sys_domain"));
+    if (table === "wf_workflow_version") {
+      assert.ok(fields.split(",").includes("workflow.sys_domain"));
+      const domain = Object.fromEntries(
+        Object.entries(extra.workflow).map(([k, v]) => [`workflow.${k}`, v]),
+      );
       return jsonResponse(200, {
-        result: [{ sys_id: "w1", name: "Legacy", ...extra.workflow }],
+        result: [{ workflow: "w1", "workflow.name": "Legacy", ...domain }],
       });
     }
     if (table === "sysevent_email_action") {

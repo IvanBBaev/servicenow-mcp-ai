@@ -68,7 +68,7 @@ test("generateTableFlow groups business rules into phase subgraphs", async () =>
       // and order (S-1); listScripts appends its own name ordering.
       assert.match(
         q,
-        /^collectionINincident,task\^ORglobal=true\^active=true\^ORDERBYwhen\^ORDERBYorder/,
+        /^collectionINincident,task,global\^active=true\^ORDERBYwhen\^ORDERBYorder/,
       );
       return jsonResponse(200, {
         result: [
@@ -78,7 +78,6 @@ test("generateTableFlow groups business rules into phase subgraphs", async () =>
             when: "before",
             order: "100",
             collection: "incident",
-            global: "false",
           },
           {
             sys_id: "2",
@@ -86,7 +85,6 @@ test("generateTableFlow groups business rules into phase subgraphs", async () =>
             when: "after",
             order: "200",
             collection: "incident",
-            global: "false",
           },
         ],
       });
@@ -119,7 +117,6 @@ test("generateTableFlow puts inherited and global rules in their own lanes (S-1)
             when: "before",
             order: "50",
             collection: "task",
-            global: "false",
           },
           {
             sys_id: "i1",
@@ -127,7 +124,6 @@ test("generateTableFlow puts inherited and global rules in their own lanes (S-1)
             when: "before",
             order: "100",
             collection: "incident",
-            global: "false",
           },
           {
             sys_id: "g1",
@@ -135,7 +131,6 @@ test("generateTableFlow puts inherited and global rules in their own lanes (S-1)
             when: "after",
             order: "150",
             collection: "global",
-            global: "true",
           },
           {
             sys_id: "i2",
@@ -143,7 +138,6 @@ test("generateTableFlow puts inherited and global rules in their own lanes (S-1)
             when: "after",
             order: "200",
             collection: "incident",
-            global: "false",
           },
         ],
       });

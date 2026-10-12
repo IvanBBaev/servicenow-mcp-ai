@@ -3077,7 +3077,7 @@
             "type": "integer"
           },
           "record": {
-            "description": "Record the flow ran against (document_id).",
+            "description": "Record the flow ran against (source_record).",
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           }
@@ -3095,8 +3095,8 @@
       },
       "sizes": {
         "description": 108,
-        "inputSchema": 418,
-        "paramDescriptions": 84,
+        "inputSchema": 420,
+        "paramDescriptions": 86,
         "outputSchema": 136
       }
     },

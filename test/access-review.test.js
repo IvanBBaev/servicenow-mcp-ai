@@ -66,7 +66,7 @@ test("grant paths: direct, group, contained role", () => {
         ...user,
         "role.name": "security_admin",
         inherited: "true",
-        "included_in_role.name": "super",
+        "included_in_role.role.name": "super",
       },
       { ...user, "role.name": "admin" }, // duplicate direct grant
       {
@@ -176,7 +176,7 @@ test("readAccessReview reads roles, containers, holders and revokes", async () =
       /\| alice \| {2}\| yes \| 2026-01-01 00:00:00 \| \*\*yes\*\* \| x_super \| direct \|/,
     );
     assert.match(md, /\| g1 \| bob \| 2026-09-30 12:00:00 \|/);
-    assert.match(md, /unverified until O-5/);
+    assert.doesNotMatch(md, /unverified until O-5/);
   });
 });
 
@@ -244,6 +244,20 @@ test("deletedRoleRow reads the user and the role display value from the payload"
   });
   assert.deepEqual(deletedRoleRow(`<role>${U2}</role>`), { role: U2 });
   assert.deepEqual(deletedRoleRow("not xml"), {});
+});
+
+test("deletedRoleRow reads the payload shape a PDI writes (O-5)", () => {
+  // sys_audit_delete.payload of an inherited sys_user_has_role row, as read on
+  // a PDI; sys_ids and names replaced.
+  const real =
+    '<?xml version="1.0" encoding="UTF-8"?><sys_user_has_role>' +
+    '<granted_by display_value="">not-applicable</granted_by>' +
+    '<included_in_role display_value=""/><inh_count>1</inh_count>' +
+    "<inherited>true</inherited>" +
+    `<role display_value="x_ops.reader" name="x_ops.reader">${"d".repeat(32)}</role>` +
+    "<state>active</state>" +
+    `<user display_value="Ops Reader">${U1}</user></sys_user_has_role>`;
+  assert.deepEqual(deletedRoleRow(real), { user: U1, role: "x_ops.reader" });
 });
 
 function historyTables(over = {}) {
@@ -330,7 +344,7 @@ test("readRoleHistory merges a user's grants and revokes, newest first", async (
       md,
       /\| granted \| admin \| direct \| {2}\| pending \| carol \|/,
     );
-    assert.match(md, /unverified until O-5/);
+    assert.doesNotMatch(md, /unverified until O-5/);
   });
 });
 

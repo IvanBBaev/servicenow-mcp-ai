@@ -235,7 +235,7 @@ function fixture() {
         sys_id: BROKER_T,
         name: "Incident list",
         mutates_server_data: "false",
-        properties: '[{"name":"table","type":"string"}]',
+        props: '[{"name":"table","type":"string"}]',
         script: "function transform(input) { return []; }",
       },
     ],
@@ -243,7 +243,8 @@ function fixture() {
       {
         sys_id: BROKER_S,
         name: "Counter",
-        properties: '[{"name":"count","type":"number"}]',
+        mutates_server_data: "false",
+        props: '[{"name":"count","type":"number"}]',
       },
     ],
     sys_security_acl: [
@@ -570,6 +571,7 @@ test("data brokers, their ux_data_broker ACLs and unresolved brokers", async () 
       sys_id: BROKER_S,
       table: "sys_ux_data_broker_scriptlet",
       name: "Counter",
+      mutates_server_data: "false",
       acls: [],
     },
   ]);
@@ -588,14 +590,14 @@ test("N-29: REST / GraphQL brokers resolve, broker hints flag the three rules", 
   tables.sys_ux_data_broker_transform[0].script =
     "function transform(input) {\n  var gr = new GlideRecord('incident');\n  gr.query();\n}";
   // The scriptlet declares no input.
-  tables.sys_ux_data_broker_scriptlet[0].properties = "[]";
+  tables.sys_ux_data_broker_scriptlet[0].props = "[]";
   // BROKER_X lives in the GraphQL table: it mutates and has no ACL.
   tables.sys_ux_data_broker_graphql = [
     {
       sys_id: BROKER_X,
       name: "Graph writer",
       mutates_server_data: "true",
-      properties: '[{"name":"id"}]',
+      props: '[{"name":"id"}]',
     },
   ];
   const mock = instance(tables);
@@ -1417,6 +1419,102 @@ test("N-26: API levels are independent; markdown renders the deep sections", asy
   assert.match(md2, /Components:/);
   assert.match(md2, /Bindings:/);
   assert.match(md2, /`list_1`\.selected = @state\.selectedTab → client state/);
+});
+
+test("N-26 (O-5): macroponent ids resolve first; built-in constructs are OOB", async () => {
+  const tables = deepFixture();
+  const home = tables.sys_ux_macroponent.find((m) => m.sys_id === HOME_MP);
+  home.composition = JSON.stringify([
+    {
+      elementId: "rep_1",
+      definition: { id: "REPEATER", type: "REPEATER" },
+      overrides: {
+        composition: [
+          {
+            elementId: "nested",
+            slot: null,
+            definition: { id: NESTED_MP, type: "MACROPONENT" },
+          },
+        ],
+      },
+    },
+    {
+      elementId: "headless",
+      definition: {
+        id: "MACROPONENT_VIEWPORT_HEADLESS",
+        type: "MACROPONENT_VIEWPORT_HEADLESS",
+      },
+    },
+  ]);
+  const mock = instance(tables);
+  const res = payload(
+    await run({ path: "now/acme", detail: ["elements"] }, mock),
+  );
+  const mp = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(res.detail.unresolvedComponents, 0);
+  assert.deepEqual(
+    mp.components.map((c) => [c.id, c.kind]),
+    [
+      ["REPEATER", "oob"],
+      [NESTED_MP, "macroponent"],
+      ["MACROPONENT_VIEWPORT_HEADLESS", "oob"],
+    ],
+  );
+  // Every id was a macroponent or built in: no sys_ux_lib_component read.
+  assert.ok(!mock.reads.includes("sys_ux_lib_component"));
+});
+
+test("N-26 (O-5): element eventMappings join the event chains", async () => {
+  const tables = deepFixture();
+  const home = tables.sys_ux_macroponent.find((m) => m.sys_id === HOME_MP);
+  const composition = structuredClone(DEEP_COMPOSITION);
+  composition[1].slots[0].children[0].eventMappings = [
+    {
+      sourceEventApiName: "acme.NESTED#OPENED",
+      targets: [
+        {
+          targetId: "t1",
+          type: "EVENT",
+          event: { sysId: EVT, apiName: "acme.OPEN", payload: {} },
+          clientScript: null,
+          operation: null,
+        },
+        {
+          targetId: "t2",
+          type: "CLIENT_SCRIPT",
+          event: null,
+          clientScript: { sysId: "cs1", payload: {} },
+        },
+      ],
+    },
+  ];
+  home.composition = JSON.stringify(composition);
+  const res = payload(
+    await run({ path: "now/acme", detail: ["events"] }, instance(tables)),
+  );
+  const mp = res.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(res.detail.eventChains, 3);
+  assert.equal(mp.eventChains[0].origin, undefined);
+  assert.deepEqual(mp.eventChains[2], {
+    source: "nested",
+    element: "nested",
+    component: NESTED_MP,
+    event: "acme.NESTED#OPENED",
+    origin: "element",
+    targets: [
+      { kind: "event", name: "ACME#OPEN", sys_id: EVT, type: "EVENT" },
+      {
+        kind: "clientScript",
+        sys_id: "cs1",
+        name: "onLoad",
+        type: "CLIENT_SCRIPT",
+      },
+    ],
+  });
+  // The shallow wiring (no detail) still reads internal_event_mappings only.
+  const flat = payload(await run({ path: "now/acme" }, instance(tables)));
+  const fh = flat.macroponents.find((m) => m.sys_id === HOME_MP);
+  assert.equal(fh.events.value.length, 2);
 });
 
 test("N-26: the detail input sets the depth inline; file keeps the full depth", async () => {

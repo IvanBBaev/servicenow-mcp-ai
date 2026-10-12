@@ -124,14 +124,14 @@ test("readInstanceScan reads the latest result, then its findings", async () => 
   );
 });
 
-test("no scan result falls back to active findings", async () => {
+test("no scan result falls back to unmuted findings", async () => {
   freshRuntime();
   await withFetch(
     (url) => {
       const u = new URL(url);
       if (u.pathname.endsWith("/scan_result"))
         return jsonResponse(200, { result: [] });
-      assert.equal(u.searchParams.get("sysparm_query"), "active=true");
+      assert.equal(u.searchParams.get("sysparm_query"), "muted=false");
       return jsonResponse(200, { result: [] });
     },
     async () => {

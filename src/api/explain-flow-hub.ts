@@ -5,6 +5,13 @@
  */
 import { boundedRead, boundedReadIn, type ReadCtx } from "./bounded-read.js";
 import { type SnRecord } from "./table.js";
+import {
+  TRIGGER_V1,
+  TRIGGER_V2,
+  V1_INPUTS,
+  v1Inputs,
+  v2Inputs,
+} from "./flow-triggers.js";
 import { isSysId } from "../core/sys-id.js";
 import {
   ACTION_CAVEAT,
@@ -86,19 +93,14 @@ const STEP_TABLES: { table: string; kind: StepKind; refField: string }[] = [
   { table: "sys_hub_sub_flow_instance", kind: "subflow", refField: "subflow" },
 ];
 
-const TRIGGER_TABLES = [
-  "sys_hub_trigger_instance_v2",
-  "sys_hub_trigger_instance",
-];
+const TRIGGER_TABLES = [TRIGGER_V2, TRIGGER_V1];
 
 const TRIGGER_FIELDS = [
   "sys_id",
   "flow",
   "trigger_definition",
   "trigger_type",
-  "table",
-  "condition",
-  "values",
+  "trigger_inputs",
 ];
 
 export const VAR_FIELDS = [
@@ -338,14 +340,25 @@ async function readTrigger(
         }
       : { sys_id: defId };
   }
-  const values = decodeValues(str(row, "values"), labels);
+  const values = decodeValues(str(row, "trigger_inputs"), labels);
+  let inputs = v2Inputs(row.trigger_inputs);
+  if (source === TRIGGER_V1) {
+    const vars = await boundedRead(
+      ctx,
+      V1_INPUTS.table,
+      `${V1_INPUTS.prefix}^document_key=${str(row, "sys_id")}`,
+      [...V1_INPUTS.fields],
+      50,
+    );
+    inputs = { ...inputs, ...v1Inputs(vars).get(str(row, "sys_id")) };
+  }
   return {
     sys_id: str(row, "sys_id"),
     source,
     definition,
     ...(opt(row, "trigger_type") ? { type: str(row, "trigger_type") } : {}),
-    ...(opt(row, "table") ? { table: str(row, "table") } : {}),
-    ...(opt(row, "condition") ? { condition: str(row, "condition") } : {}),
+    ...(inputs.table ? { table: inputs.table } : {}),
+    ...(inputs.condition ? { condition: inputs.condition } : {}),
     ...(values ? { values } : {}),
   };
 }

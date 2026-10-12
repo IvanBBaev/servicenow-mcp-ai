@@ -473,43 +473,51 @@ test("explain golden — state model transitions", async () => {
     sttrm_model: {
       sys_id: id("1"),
       name: "Acme task lifecycle",
-      table: "x_acme_task",
+      table_name: "x_acme_task",
       state_field: "state",
       sys_scope: APP_ID,
     },
     sttrm_state: [
-      { sys_id: id("2"), model: id("1"), state_value: "1", label: "New" },
+      {
+        sys_id: id("2"),
+        sttrm_model: id("1"),
+        state_value: "1",
+        state_label: "New",
+      },
       {
         sys_id: id("3"),
-        model: id("1"),
+        sttrm_model: id("1"),
         state_value: "2",
-        label: "Work in progress",
+        state_label: "Work in progress",
       },
-      { sys_id: id("4"), model: id("1"), state_value: "3", label: "Closed" },
+      {
+        sys_id: id("4"),
+        sttrm_model: id("1"),
+        state_value: "3",
+        state_label: "Closed",
+      },
     ],
     sttrm_state_transition: [
       {
         sys_id: id("5"),
-        model: id("1"),
         from_state: id("2"),
         to_state: id("3"),
       },
       {
         sys_id: id("6"),
-        model: id("1"),
         name: "Close",
         from_state: id("3"),
         to_state: "3",
       },
-      { sys_id: id("7"), model: id("1"), from_state: "", to_state: "9" },
+      { sys_id: id("7"), from_state: "", to_state: "9" },
     ],
     sttrm_transition_condition: [
       {
         sys_id: id("8"),
-        transition: id("6"),
+        sttrm_state_transition: id("6"),
         condition: "close_notesISNOTEMPTY",
       },
-      { sys_id: id("9"), transition: id("6"), condition: "" },
+      { sys_id: id("9"), sttrm_state_transition: id("6"), condition: "" },
     ],
   });
   assert.deepEqual(out.explanation.lines.slice(2), [
@@ -581,7 +589,7 @@ test("explain golden — data policy field effects", async () => {
       reverse_if_false: "true",
       apply_import_set: "true",
       apply_soap: "false",
-      use_as_ui_policy: "true",
+      enforce_ui: "true",
       active: "true",
       sys_scope: APP_ID,
     },

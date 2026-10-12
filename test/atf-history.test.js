@@ -258,7 +258,7 @@ test("history: one bounded IN query per section, newest first", async () => {
       assert.match(md, /yes \(2 flips\)/);
       assert.match(md, /since each definition's last update/);
       assert.match(md, /whole window \(definitions not checked: /);
-      assert.match(md, /unverified until O-5/);
+      assert.doesNotMatch(md, /unverified until O-5/);
     },
   );
 });

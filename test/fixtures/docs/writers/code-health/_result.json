@@ -100,7 +100,7 @@
     }
   },
   "hardening": {
-    "rulesVersion": "1",
+    "rulesVersion": "2",
     "available": true,
     "counts": {
       "pass": 0,

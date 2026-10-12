@@ -120,7 +120,7 @@ function fixture() {
         active: "true",
       },
     ],
-    sys_hub_action_instance: [
+    sys_hub_action_instance_v2: [
       {
         sys_id: STEP,
         flow: FLOW,
@@ -137,7 +137,7 @@ function fixture() {
       "sp_widget",
       "sp_instance",
       "sys_hub_flow",
-      "sys_hub_action_instance",
+      "sys_hub_action_instance_v2",
       "sys_dictionary",
     ].map((name, i) => ({ sys_id: `t${i}`, name })),
     sys_dictionary: [
@@ -321,7 +321,7 @@ test("acceptance: a script include shows its business rule, flow step and widget
   assert.ok(from.has(`sys_hub_flow:${FLOW}`), "flow script step");
   const flowEdge = inbound.find((e) => e.from === `sys_hub_flow:${FLOW}`);
   assert.equal(flowEdge.via, "flow_step");
-  assert.equal(flowEdge.source, "sys_hub_action_instance");
+  assert.equal(flowEdge.source, "sys_hub_action_instance_v2");
   const flowNode = res.nodes.find((n) => n.id === `sys_hub_flow:${FLOW}`);
   assert.equal(flowNode.name, "Pricing flow");
   assert.equal(flowNode.type, "flow");
@@ -334,7 +334,9 @@ test("acceptance: a script include shows its business rule, flow step and widget
   assert.equal(res.count.inbound, inbound.length);
   assert.equal(res.count.outbound, 0);
   assert.ok(res.caveats[0].includes("base64"));
-  assert.ok(mock.reads.some((r) => r.startsWith("sys_hub_action_instance?")));
+  assert.ok(
+    mock.reads.some((r) => r.startsWith("sys_hub_action_instance_v2?")),
+  );
 });
 
 test("outbound edges of a script include: calls and GlideRecord tables, not Class or itself", async () => {
@@ -375,7 +377,7 @@ test("outbound edges of a flow come from decoded step values on child rows", asy
       to: "script:PriceUtil",
       via: "json",
       field: "values",
-      source: "sys_hub_action_instance",
+      source: "sys_hub_action_instance_v2",
     },
   ]);
 });
@@ -449,13 +451,13 @@ test("a child row whose parent is the primary table reports the parent record", 
 test("both directions share one graph; an unreadable source becomes an unavailable entry", async () => {
   const res = await deps(
     { artifactType: "script_include", sys_id: PRICE },
-    instance(fixture(), { sys_hub_action_instance: 403 }),
+    instance(fixture(), { sys_hub_action_instance_v2: 403 }),
   );
   assert.ok(res.count.outbound >= 2);
   assert.ok(res.edges.some((e) => e.from === `sys_script:${BR}`));
   assert.ok(!res.edges.some((e) => e.via === "flow_step"));
   const miss = res.unavailable.find(
-    (u) => u.source === "sys_hub_action_instance",
+    (u) => u.source === "sys_hub_action_instance_v2",
   );
   assert.equal(miss.node, "script:PriceUtil");
   assert.match(miss.reason, /denied/);

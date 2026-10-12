@@ -21,7 +21,7 @@
   "when": null,
   "fields": {
     "name": "Acme task lifecycle",
-    "table": "x_acme_task",
+    "table_name": "x_acme_task",
     "state_field": "state"
   },
   "explanation": {
@@ -73,71 +73,69 @@
   "children": [
     {
       "table": "sttrm_state",
-      "parentField": "model",
+      "parentField": "sttrm_model",
       "verified": false,
       "count": 3,
       "items": [
         {
           "sys_id": "22222222222222222222222222222222",
-          "label": "New",
-          "model": "11111111111111111111111111111111",
+          "state_label": "New",
+          "sttrm_model": "11111111111111111111111111111111",
           "state_value": "1"
         },
         {
           "sys_id": "33333333333333333333333333333333",
-          "label": "Work in progress",
-          "model": "11111111111111111111111111111111",
+          "state_label": "Work in progress",
+          "sttrm_model": "11111111111111111111111111111111",
           "state_value": "2"
         },
         {
           "sys_id": "44444444444444444444444444444444",
-          "label": "Closed",
-          "model": "11111111111111111111111111111111",
+          "state_label": "Closed",
+          "sttrm_model": "11111111111111111111111111111111",
           "state_value": "3"
         }
       ]
     },
     {
       "table": "sttrm_state_transition",
-      "parentField": "model",
+      "parentField": "from_state",
+      "parentTable": "sttrm_state",
       "verified": false,
       "count": 3,
       "items": [
         {
           "sys_id": "55555555555555555555555555555555",
-          "model": "11111111111111111111111111111111",
           "from_state": "22222222222222222222222222222222",
           "to_state": "33333333333333333333333333333333"
         },
         {
           "sys_id": "66666666666666666666666666666666",
           "name": "Close",
-          "model": "11111111111111111111111111111111",
           "from_state": "33333333333333333333333333333333",
           "to_state": "3"
         },
         {
           "sys_id": "77777777777777777777777777777777",
-          "model": "11111111111111111111111111111111",
           "to_state": "9"
         }
       ]
     },
     {
       "table": "sttrm_transition_condition",
-      "parentField": "transition",
+      "parentField": "sttrm_state_transition",
       "parentTable": "sttrm_state_transition",
       "verified": false,
       "count": 2,
       "items": [
         {
           "sys_id": "88888888888888888888888888888888",
-          "transition": "66666666666666666666666666666666",
+          "sttrm_state_transition": "66666666666666666666666666666666",
           "condition": "close_notesISNOTEMPTY"
         },
         {
           "sys_id": "99999999999999999999999999999999",
-          "transition": "66666666666666666666666666666666"
+          "sttrm_state_transition": "66666666666666666666666666666666"
         }
       ]
     }

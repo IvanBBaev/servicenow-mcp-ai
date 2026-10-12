@@ -3,6 +3,13 @@ import { decodeValues, type StepInput } from "./explain-flow.js";
 import { IN_CHUNK } from "./shared.js";
 import { type SnRecord } from "./table.js";
 import {
+  TRIGGER_V1,
+  TRIGGER_V2,
+  V1_INPUTS,
+  v1Inputs,
+  v2Inputs,
+} from "./flow-triggers.js";
+import {
   Collector,
   type Ctx,
   DOMAIN_CHILD_MAX,
@@ -45,10 +52,7 @@ const SUBFLOW_TABLES = [
   "sys_hub_sub_flow_instance",
 ];
 
-const TRIGGER_TABLES = [
-  "sys_hub_trigger_instance_v2",
-  "sys_hub_trigger_instance",
-];
+const TRIGGER_TABLES = [TRIGGER_V2, TRIGGER_V1];
 
 const STEP_FIELDS = ["sys_id", "flow", "ui_id", "parent_ui_id", "values"];
 
@@ -198,9 +202,23 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
     const triggers = await readPair(ctx, TRIGGER_TABLES, "flow", ids, [
       "sys_id",
       "flow",
-      "table",
-      "values",
+      "trigger_inputs",
     ]);
+    // v1 triggers keep their inputs in sys_variable_value.
+    const v1Ids = (triggers?.rows ?? [])
+      .filter((t) => triggers?.source.get(t) === TRIGGER_V1)
+      .map((t) => str(t, "sys_id"));
+    const v1 = v1Ids.length
+      ? await readIn(
+          ctx,
+          V1_INPUTS.table,
+          "document_key",
+          v1Ids,
+          [...V1_INPUTS.fields],
+          `^${V1_INPUTS.prefix}^variable.element=table`,
+        )
+      : null;
+    const v1ByTrigger = v1Inputs(v1?.rows ?? []);
     if (capped || triggers?.capped) {
       out.scanned("flow-run-as-system-protected", 0, true);
     }
@@ -219,9 +237,14 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
     };
     for (const t of triggers?.rows ?? []) {
       const flow = str(t, "flow");
-      const own = str(t, "table").trim().toLowerCase();
+      const own = (
+        v2Inputs(t.trigger_inputs).table ??
+        v1ByTrigger.get(str(t, "sys_id"))?.table ??
+        ""
+      )
+        .trim()
+        .toLowerCase();
       if (own) note(flow, own, "trigger");
-      for (const tb of tablesIn(inputsOf(t))) note(flow, tb, "trigger");
     }
     for (const s of steps) {
       if (s.kind !== "action") continue;

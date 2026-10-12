@@ -1,4 +1,13 @@
-import { queryTable } from "./table.js";
+import { queryTable, type SnRecord } from "./table.js";
+import {
+  TRIGGER_V1,
+  TRIGGER_V2,
+  type TriggerInputs,
+  V1_INPUTS,
+  v1Inputs,
+  v1TableQuery,
+  v2Inputs,
+} from "./flow-triggers.js";
 import { getTableChain } from "./meta.js";
 import { listScripts } from "./scripts.js";
 import { assertNoCaret, snString } from "./shared.js";
@@ -58,9 +67,9 @@ async function businessRules(
   try {
     const { records } = await queryTable({
       table: "sys_script",
-      // In an encoded query `^OR` binds to the clause right before it, so this
-      // reads "(collection in chain OR global) AND active AND when AND action".
-      query: `collectionIN${tables.join(",")}^ORglobal=true^active=true^when=${when}^${OPERATION_FIELD[operation]}=true^ORDERBYorder`,
+      // O-5: sys_script has no `global` column; a global rule has
+      // collection=global.
+      query: `collectionIN${[...tables, "global"].join(",")}^active=true^when=${when}^${OPERATION_FIELD[operation]}=true^ORDERBYorder`,
       fields: [
         "sys_id",
         "name",
@@ -69,7 +78,6 @@ async function businessRules(
         "condition",
         "filter_condition",
         "collection",
-        "global",
         // N-12: absent without domain separation; the dot-walk is O-5.
         ...domainTraceFields(),
       ],
@@ -79,8 +87,7 @@ async function businessRules(
     return byOrder(
       records.map((r) => {
         const collection = snString(r.collection);
-        const isGlobal =
-          snString(r.global) === "true" || collection === "global";
+        const isGlobal = collection === "global";
         return {
           phase: when as ChainEntry["phase"],
           type: "business_rule",
@@ -124,7 +131,7 @@ function triggerFires(triggerType: string, operation: TableOperation): boolean {
 
 /**
  * Flow Designer flows triggered on the table or one of its parents (via
- * sys_hub_trigger_instance), filtered to the triggers that fire on the
+ * sys_hub_trigger_instance and _v2), filtered to the triggers that fire on the
  * operation. Nothing record-triggered fires on a read.
  */
 async function flowsForTable(
@@ -134,31 +141,68 @@ async function flowsForTable(
 ): Promise<ChainEntry[]> {
   if (operation === "query") return [];
   const traced = tables[0] ?? "";
+  const fields = [
+    "sys_id",
+    "flow",
+    "flow.name",
+    "trigger_type",
+    // N-12: the flow's domain (the trigger's own is not what runs).
+    ...domainTraceFields("flow."),
+  ];
   try {
-    const { records } = await queryTable({
-      table: "sys_hub_trigger_instance",
-      query: `table_nameIN${tables.join(",")}^flow.active=true`,
-      fields: [
-        "flow",
-        "flow.name",
-        "table_name",
-        "condition",
-        "trigger_type",
-        // N-12: the flow's domain (the trigger's own is not what runs).
-        ...domainTraceFields("flow."),
-      ],
+    // v1 triggers: the `table` input lives in sys_variable_value.
+    const { records: vars } = await queryTable({
+      table: V1_INPUTS.table,
+      query: v1TableQuery(tables),
+      fields: [...V1_INPUTS.fields],
       displayValue: "false",
       limit: 100,
     });
-    return records
-      .filter((r) => triggerFires(snString(r.trigger_type), operation))
-      .map((r) => ({
+    const v1 = v1Inputs(vars);
+    const found: { row: SnRecord; inputs: TriggerInputs }[] = [];
+    if (v1.size) {
+      const ids = [...v1.keys()].join(",");
+      const { records: conds } = await queryTable({
+        table: V1_INPUTS.table,
+        query: `${V1_INPUTS.prefix}^document_keyIN${ids}^variable.element=condition`,
+        fields: [...V1_INPUTS.fields],
+        displayValue: "false",
+        limit: 100,
+      });
+      for (const [id, c] of v1Inputs(conds)) Object.assign(v1.get(id) ?? {}, c);
+      const { records } = await queryTable({
+        table: TRIGGER_V1,
+        query: `sys_idIN${ids}^flow.active=true`,
+        fields,
+        displayValue: "false",
+        limit: 100,
+      });
+      for (const row of records) {
+        found.push({ row, inputs: v1.get(snString(row.sys_id)) ?? {} });
+      }
+    }
+    // v2 triggers: the inputs are packed in trigger_inputs, so the table
+    // filter runs here.
+    const { records: v2 } = await queryTable({
+      table: TRIGGER_V2,
+      query: "flow.active=true",
+      fields: [...fields, "trigger_inputs"],
+      displayValue: "false",
+      limit: 500,
+    });
+    for (const row of v2) {
+      const inputs = v2Inputs(row.trigger_inputs);
+      if (tables.includes(inputs.table ?? "")) found.push({ row, inputs });
+    }
+    return found
+      .filter(({ row }) => triggerFires(snString(row.trigger_type), operation))
+      .map(({ row: r, inputs }) => ({
         phase: "flow" as const,
         type: snString(r.trigger_type) || "flow",
         name: snString(r["flow.name"]) || snString(r.flow),
-        condition: snString(r.condition) || undefined,
+        condition: inputs.condition || undefined,
         sys_id: snString(r.flow) || undefined,
-        ...origin(traced, snString(r.table_name)),
+        ...origin(traced, inputs.table ?? ""),
         ...recordDomain(r, "flow."),
       }));
   } catch (e) {
@@ -180,21 +224,27 @@ async function workflowsForTable(
 ): Promise<ChainEntry[]> {
   if (operation !== "insert" && operation !== "update") return [];
   try {
+    // O-5: table, active and condition live on the published version.
     const { records } = await queryTable({
-      table: "wf_workflow",
-      query: `table=${table}^active=true`,
-      fields: ["sys_id", "name", "condition", ...domainTraceFields()],
+      table: "wf_workflow_version",
+      query: `table=${table}^active=true^published=true`,
+      fields: [
+        "workflow",
+        "workflow.name",
+        "condition",
+        ...domainTraceFields("workflow."),
+      ],
       displayValue: "false",
       limit: 100,
     });
     return records.map((r) => ({
       phase: "workflow" as const,
       type: "workflow",
-      name: snString(r.name),
+      name: snString(r["workflow.name"]),
       condition: snString(r.condition) || undefined,
-      sys_id: snString(r.sys_id) || undefined,
+      sys_id: snString(r.workflow) || undefined,
       table,
-      ...recordDomain(r),
+      ...recordDomain(r, "workflow."),
     }));
   } catch (e) {
     warnings.push(`workflows: ${e instanceof Error ? e.message : String(e)}`);
@@ -506,15 +556,13 @@ export async function traceTableFlow(
   }
   const { scripts } = await listScripts({
     type: "business_rule",
-    // `^OR` binds to the clause right before it: (collection in chain OR
-    // global) AND active.
-    query: `collectionIN${tables.join(",")}^ORglobal=true^active=true^ORDERBYwhen^ORDERBYorder`,
+    // O-5: a global rule has collection=global (sys_script has no `global`).
+    query: `collectionIN${[...tables, "global"].join(",")}^active=true^ORDERBYwhen^ORDERBYorder`,
     limit: 500,
   });
   const entries = scripts.map((rule): TableFlowEntry => {
     const collection = snString(rule.collection);
-    const isGlobal =
-      snString(rule.global) === "true" || collection === "global";
+    const isGlobal = collection === "global";
     const orderText =
       rule.order !== undefined ? snString(rule.order) : undefined;
     return {

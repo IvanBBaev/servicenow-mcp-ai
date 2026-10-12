@@ -37,8 +37,13 @@ const chainResponse = (q) => {
   return jsonResponse(200, { result: [] });
 };
 
+/** A v2 trigger's trigger_inputs (plain JSON; the PDI ships base64 + gzip). */
+const inputs = (o) =>
+  JSON.stringify(Object.entries(o).map(([name, value]) => ({ name, value })));
+const V2 = "sys_hub_trigger_instance_v2";
+
 const RULES_QUERY =
-  /^collectionINincident,task\^ORglobal=true\^active=true\^when=\w+\^action_\w+=true\^ORDERBYorder$/;
+  /^collectionINincident,task,global\^active=true\^when=\w+\^action_\w+=true\^ORDERBYorder$/;
 
 test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)", async () => {
   await withFetch(
@@ -57,7 +62,6 @@ test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)",
                 when: "before",
                 condition: "priority=1",
                 collection: "incident",
-                global: "false",
               },
             ],
           });
@@ -70,24 +74,26 @@ test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)",
                 order: "200",
                 when: "after",
                 collection: "incident",
-                global: "false",
               },
             ],
           });
         return jsonResponse(200, { result: [] }); // display, async
       }
-      if (table === "sys_hub_trigger_instance")
+      if (table === V2)
         return jsonResponse(200, {
           result: [
             {
               flow: "f1",
               "flow.name": "Incident SLA",
-              table_name: "incident",
+              trigger_inputs: inputs({ table: "incident" }),
               trigger_type: "record_update",
             },
           ],
         });
-      if (table === "wf_workflow") return jsonResponse(200, { result: [] });
+      if (table === "sys_variable_value")
+        return jsonResponse(200, { result: [] });
+      if (table === "wf_workflow_version")
+        return jsonResponse(200, { result: [] });
       if (table === "sysevent_email_action")
         return jsonResponse(200, {
           result: [
@@ -123,16 +129,20 @@ test("traceTableEvent builds the ordered chain with a Mermaid flowchart (FT-2)",
         .map((c) => queryOf(c.url));
       assert.equal(ruleQueries.length, 4); // display, before, after, async
       for (const q of ruleQueries) {
-        assert.ok(q.includes("collectionINincident,task^ORglobal=true"), q);
+        assert.ok(
+          q.includes("collectionINincident,task,global^active=true"),
+          q,
+        );
         assert.ok(q.endsWith("ORDERBYorder"), q);
         assert.match(q, RULES_QUERY);
       }
       // Flows and notifications are resolved across the chain too.
       const flowQuery = calls
-        .filter((c) => tableOf(c.url) === "sys_hub_trigger_instance")
-        .map((c) => queryOf(c.url));
+        .filter((c) => /^sys_(hub_trigger|variable_value)/.test(tableOf(c.url)))
+        .map((c) => `${tableOf(c.url)}: ${queryOf(c.url)}`);
       assert.deepEqual(flowQuery, [
-        "table_nameINincident,task^flow.active=true",
+        "sys_variable_value: document=sys_hub_trigger_instance^variable.element=table^valueINincident,task",
+        `${V2}: flow.active=true`,
       ]);
       const notificationQuery = calls
         .filter((c) => tableOf(c.url) === "sysevent_email_action")
@@ -163,7 +173,7 @@ test("traceTableEvent rejects a caret in the table before any request (FT-2)", a
 test("a failing section becomes a warning, not a failed trace (FT-2)", async () => {
   await withFetch(
     (url) => {
-      if (tableOf(url) === "wf_workflow")
+      if (tableOf(url) === "wf_workflow_version")
         return jsonResponse(403, { error: { message: "no access" } });
       return jsonResponse(200, { result: [] });
     },
@@ -193,7 +203,6 @@ test("an incident trace sees task and global rules in order (S-1)", async () => 
                 order: "150",
                 when: "before",
                 collection: "global",
-                global: "true",
               },
               {
                 sys_id: "i1",
@@ -201,7 +210,6 @@ test("an incident trace sees task and global rules in order (S-1)", async () => 
                 order: "100",
                 when: "before",
                 collection: "incident",
-                global: "false",
               },
               {
                 sys_id: "t1",
@@ -209,7 +217,6 @@ test("an incident trace sees task and global rules in order (S-1)", async () => 
                 order: "50",
                 when: "before",
                 collection: "task",
-                global: "false",
               },
             ],
           });
@@ -248,39 +255,38 @@ test("flow triggers are filtered by the traced operation (S-1)", async () => {
     {
       flow: "f1",
       "flow.name": "On create",
-      table_name: "incident",
+      trigger_inputs: inputs({ table: "incident" }),
       trigger_type: "record_create",
     },
     {
       flow: "f2",
       "flow.name": "On update",
-      table_name: "incident",
+      trigger_inputs: inputs({ table: "incident" }),
       trigger_type: "record_update",
     },
     {
       flow: "f3",
       "flow.name": "On either",
-      table_name: "incident",
+      trigger_inputs: inputs({ table: "incident" }),
       trigger_type: "record_create_or_update",
     },
     {
       flow: "f4",
       "flow.name": "Odd trigger",
-      table_name: "incident",
+      trigger_inputs: inputs({ table: "incident" }),
       trigger_type: "something_else",
     },
     {
       flow: "f5",
       "flow.name": "Task update",
-      table_name: "task",
+      trigger_inputs: inputs({ table: "task" }),
       trigger_type: "record_update",
     },
   ];
   const handler = (url) => {
     const table = tableOf(url);
     if (table === "sys_db_object") return chainResponse(queryOf(url));
-    if (table === "sys_hub_trigger_instance")
-      return jsonResponse(200, { result: triggers });
+    if (table === V2) return jsonResponse(200, { result: triggers });
     return jsonResponse(200, { result: [] });
   };
   await withFetch(handler, async (calls) => {
@@ -297,7 +303,7 @@ test("flow triggers are filtered by the traced operation (S-1)", async () => {
       flows.find((c) => c.name === "On update").inherited_from,
       undefined,
     );
-    assert.ok(calls.some((c) => tableOf(c.url) === "sys_hub_trigger_instance"));
+    assert.ok(calls.some((c) => tableOf(c.url) === V2));
   });
   clearSchemaCache();
   await withFetch(handler, async (calls) => {
@@ -305,10 +311,8 @@ test("flow triggers are filtered by the traced operation (S-1)", async () => {
     assert.equal(trace.chain.filter((c) => c.phase === "flow").length, 0);
     assert.equal(trace.chain.filter((c) => c.phase === "workflow").length, 0);
     // Nothing record-triggered fires on a read, so the triggers are not read.
-    assert.ok(
-      !calls.some((c) => tableOf(c.url) === "sys_hub_trigger_instance"),
-    );
-    assert.ok(!calls.some((c) => tableOf(c.url) === "wf_workflow"));
+    assert.ok(!calls.some((c) => /^sys_hub_trigger/.test(tableOf(c.url))));
+    assert.ok(!calls.some((c) => tableOf(c.url) === "wf_workflow_version"));
   });
 });
 
@@ -344,9 +348,11 @@ test("notifications are filtered by the traced operation (S-1)", async () => {
     if (table === "sys_db_object") return chainResponse(queryOf(url));
     if (table === "sysevent_email_action")
       return jsonResponse(200, { result: notifications });
-    if (table === "wf_workflow")
+    if (table === "wf_workflow_version")
       return jsonResponse(200, {
-        result: [{ sys_id: "w1", name: "Legacy approval", condition: "" }],
+        result: [
+          { workflow: "w1", "workflow.name": "Legacy approval", condition: "" },
+        ],
       });
     return jsonResponse(200, { result: [] });
   };
@@ -399,7 +405,7 @@ test("a failing table-chain lookup falls back to the table alone with a warning 
         .map((c) => queryOf(c.url));
       assert.ok(ruleQueries.length > 0);
       for (const q of ruleQueries)
-        assert.ok(q.startsWith("collectionINincident^ORglobal=true^"), q);
+        assert.ok(q.startsWith("collectionINincident,global^"), q);
     },
   );
 });
@@ -436,13 +442,16 @@ test("getFlow assembles trigger + ordered steps (FT-1)", async () => {
         return jsonResponse(200, {
           result: { sys_id: "f1", name: "SLA flow", active: "true" },
         });
-      if (table === "sys_hub_trigger_instance")
+      if (table === V2)
         return jsonResponse(200, {
           result: [
             {
-              table_name: "incident",
               trigger_type: "record_update",
-              condition: "active=true",
+              trigger_inputs: inputs({
+                table: "incident",
+                condition: "active=true",
+                trigger_strategy: "always",
+              }),
             },
           ],
         });
@@ -467,6 +476,8 @@ test("getFlow assembles trigger + ordered steps (FT-1)", async () => {
       const flow = await getFlow("f1");
       assert.equal(flow.name, "SLA flow");
       assert.equal(flow.trigger.table, "incident");
+      assert.equal(flow.trigger.condition, "active=true");
+      assert.equal(flow.trigger.when, "always");
       assert.equal(flow.steps.length, 2);
       assert.equal(flow.steps[0].action, "Create Task");
     },
@@ -490,14 +501,15 @@ test("getFlowRuns needs a flow or record, then reads sys_flow_context (FT-3)", a
   await withFetch(
     (url) => {
       assert.equal(tableOf(url), "sys_flow_context");
-      assert.match(queryOf(url), /document_id=rec1/);
+      assert.match(queryOf(url), /source_record=rec1/);
       return jsonResponse(200, {
         result: [
           {
             sys_id: "c1",
             name: "SLA flow",
             state: "Complete",
-            document_id: "rec1",
+            source_table: "incident",
+            source_record: "rec1",
             sys_created_on: "2026-01-01",
           },
         ],
@@ -507,7 +519,141 @@ test("getFlowRuns needs a flow or record, then reads sys_flow_context (FT-3)", a
       const { count, runs } = await getFlowRuns({ record: "rec1" });
       assert.equal(count, 1);
       assert.equal(runs[0].state, "Complete");
+      assert.equal(runs[0].table, "incident");
       assert.equal(runs[0].recordId, "rec1");
     },
   );
+});
+
+test("v1 triggers read their table and condition from sys_variable_value (O-5)", async () => {
+  const vars = [
+    { document_key: "t1", "variable.element": "table", value: "incident" },
+    {
+      document_key: "t1",
+      "variable.element": "condition",
+      value: "active=true",
+    },
+    {
+      document_key: "t1",
+      "variable.element": "trigger_strategy",
+      value: "every",
+    },
+  ];
+  const handler = (url) => {
+    const table = tableOf(url);
+    const q = queryOf(url);
+    if (table === "sys_db_object") return chainResponse(q);
+    if (table === "sys_variable_value") {
+      if (/variable\.element=table\^valueIN/.test(q))
+        return jsonResponse(200, { result: vars.slice(0, 1) });
+      if (/variable\.element=condition/.test(q))
+        return jsonResponse(200, { result: vars.slice(1, 2) });
+      if (/document_key=t1$/.test(q))
+        return jsonResponse(200, { result: vars });
+    }
+    if (table === "sys_hub_trigger_instance") {
+      if (/^sys_idINt1/.test(q) || q === "flow=f1")
+        return jsonResponse(200, {
+          result: [
+            {
+              sys_id: "t1",
+              flow: "f1",
+              "flow.name": "Legacy SLA",
+              trigger_type: "record_update",
+            },
+          ],
+        });
+    }
+    if (table === "sys_hub_flow" && /^sys_idINf1/.test(q))
+      return jsonResponse(200, {
+        result: [{ sys_id: "f1", name: "Legacy SLA", active: "true" }],
+      });
+    if (table === "sys_hub_flow")
+      return jsonResponse(200, {
+        result: { sys_id: "f1", name: "Legacy SLA", active: "true" },
+      });
+    return jsonResponse(200, { result: [] });
+  };
+  await withFetch(handler, async () => {
+    const trace = await traceTableEvent("incident", "update");
+    const flow = trace.chain.find((c) => c.phase === "flow");
+    assert.equal(flow.name, "Legacy SLA");
+    assert.equal(flow.condition, "active=true");
+    assert.equal(flow.table, "incident");
+  });
+  await withFetch(handler, async () => {
+    const { flows } = await listFlows({ table: "incident" });
+    assert.deepEqual(
+      flows.map((f) => f.sys_id),
+      ["f1"],
+    );
+    const detail = await getFlow("f1");
+    assert.deepEqual(detail.trigger, {
+      table: "incident",
+      type: "record_update",
+      condition: "active=true",
+      when: "every",
+    });
+  });
+});
+
+test("legacy workflows read active / condition from the published version and activities by version (O-5)", async () => {
+  const handler = (url) => {
+    const table = tableOf(url);
+    const q = queryOf(url);
+    if (table === "wf_workflow_version") {
+      if (q === "published=true^active=true")
+        return jsonResponse(200, { result: [{ workflow: "w1" }] });
+      return jsonResponse(200, {
+        result: [
+          {
+            sys_id: "v1",
+            workflow: "w1",
+            active: "true",
+            condition: "priority=1",
+          },
+        ],
+      });
+    }
+    if (table === "wf_workflow") {
+      if (/\/wf_workflow\/w1/.test(url))
+        return jsonResponse(200, {
+          result: { sys_id: "w1", name: "Approve", table: "sc_req_item" },
+        });
+      return jsonResponse(200, {
+        result: [{ sys_id: "w1", name: "Approve", table: "sc_req_item" }],
+      });
+    }
+    if (table === "wf_activity")
+      return jsonResponse(200, {
+        result: [
+          { name: "Begin", activity_definition: "d1" },
+          { name: "End", activity_definition: "d2" },
+        ],
+      });
+    throw new Error("unexpected table " + table);
+  };
+  await withFetch(handler, async (calls) => {
+    const list = await listFlows({ kind: "workflow", active: true });
+    assert.equal(list.flows[0].active, "true");
+    const wfQuery = calls
+      .map((c) => c.url)
+      .find((u) => tableOf(u) === "wf_workflow");
+    assert.match(queryOf(wfQuery), /^sys_idINw1\^ORDERBYname$/);
+
+    const flow = await getFlow("w1", "workflow");
+    assert.equal(flow.active, "true");
+    assert.deepEqual(flow.trigger, {
+      table: "sc_req_item",
+      condition: "priority=1",
+    });
+    assert.deepEqual(
+      flow.steps.map((s) => s.action),
+      ["Begin", "End"],
+    );
+    const act = calls
+      .map((c) => c.url)
+      .find((u) => tableOf(u) === "wf_activity");
+    assert.equal(queryOf(act), "workflow_version=v1^ORDERBYy^ORDERBYx");
+  });
 });

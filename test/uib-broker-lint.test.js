@@ -78,7 +78,7 @@ test("lintUibBroker: each rule fires only on known evidence", () => {
         {
           kind: "transform",
           mutates_server_data: "true",
-          properties: "[]",
+          props: "[]",
           script,
         },
         { hasAcl: false },
@@ -105,7 +105,7 @@ test("lintUibBroker: each rule fires only on known evidence", () => {
       {
         kind: "rest",
         mutates_server_data: true,
-        properties: '[{"name":"q"}]',
+        props: '[{"name":"q"}]',
         script,
       },
       { hasAcl: true },

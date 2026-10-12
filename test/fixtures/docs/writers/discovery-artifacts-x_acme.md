@@ -191,13 +191,13 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 
 ### `business_rule`
 
-| name | active | sdkManaged | collection | global | when | order | condition |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Validate caller | true | unknown | incident | false | before | 100 |  |
-| Notify assignee | true | unknown | incident | false | after | 200 |  |
-| Sync to CMDB | true | unknown | incident | false | async | 300 |  |
-| Show SLA | true | unknown | incident | false | display | 100 |  |
-| Default step order | true | unknown | x_acme_step |  | before | 100 |  |
+| name | active | sdkManaged | collection | when | order | condition |
+| --- | --- | --- | --- | --- | --- | --- |
+| Validate caller | true | unknown | incident | before | 100 |  |
+| Notify assignee | true | unknown | incident | after | 200 |  |
+| Sync to CMDB | true | unknown | incident | async | 300 |  |
+| Show SLA | true | unknown | incident | display | 100 |  |
+| Default step order | true | unknown | x_acme_step | before | 100 |  |
 
 ### `script_include`
 
@@ -219,9 +219,9 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 
 ### `rest_message`
 
-| name | sdkManaged | rest_endpoint | authentication_type | use_mid_server |
-| --- | --- | --- | --- | --- |
-| Weather | unknown | https://api.example.com/weather | no_authentication |  |
+| name | sdkManaged | rest_endpoint | authentication_type |
+| --- | --- | --- | --- |
+| Weather | unknown | https://api.example.com/weather | no_authentication |
 
 ## classic-ui
 

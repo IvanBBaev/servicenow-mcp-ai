@@ -266,7 +266,7 @@ test("get_artifact: denied child is redacted, failing child degrades, secrets an
   await withEnv(
     {
       ...SDK_OFF,
-      SN_TABLES_DENY: "wf_workflow_version",
+      SN_TABLES_DENY: "wf_stage",
       SN_REDACT_FIELDS: "token",
     },
     async () => {
@@ -280,6 +280,8 @@ test("get_artifact: denied child is redacted, failing child degrades, secrets an
               password: "hunter2",
               token: "abc",
             }),
+          wf_workflow_version: () =>
+            rows([{ sys_id: "2".repeat(32), workflow: wf }]),
           wf_activity: () =>
             jsonResponse(403, { error: { message: "ACL denied" } }),
           wf_transition: () => assert.fail("parent not read"),
@@ -289,13 +291,13 @@ test("get_artifact: denied child is redacted, failing child degrades, secrets an
           assert.equal(body.record.password, "[redacted]");
           assert.equal(body.scope.sys_id, null);
           assert.equal(body.sdkManaged.managed, "unknown");
-          const [version, activity, transition] = body.children;
-          assert.equal(version.redacted, true);
-          assert.match(version.reason, /SN_TABLES_DENY/);
+          const [, activity, transition, , stage] = body.children;
+          assert.equal(stage.redacted, true);
+          assert.match(stage.reason, /SN_TABLES_DENY/);
           assert.equal(activity.status, 403);
           assert.deepEqual(activity.records, []);
           assert.match(transition.reason, /wf_activity was not read/);
-          assert.ok(!tablesCalled(calls).includes("wf_workflow_version"));
+          assert.ok(!tablesCalled(calls).includes("wf_stage"));
 
           // Through the tool, SN_REDACT_FIELDS masks at the result boundary.
           const res = await call("servicenow_get_artifact", {

@@ -271,9 +271,10 @@ function fixture() {
         flow: FLOW,
         trigger_definition: TDEF,
         trigger_type: "record_create",
-        table: "incident",
-        condition: "priority=1",
-        values: "",
+        trigger_inputs: JSON.stringify([
+          { name: "table", value: "incident" },
+          { name: "condition", value: "priority=1" },
+        ]),
       },
     ],
     sys_hub_trigger_definition: [
@@ -428,9 +429,8 @@ function fixture() {
         name: "Legacy Approval",
         table: "sc_req_item",
         description: "Manager approval",
-        active: "true",
       },
-      { sys_id: WF2, name: "Old SLA Flow", table: "task_sla", active: "true" },
+      { sys_id: WF2, name: "Old SLA Flow", table: "task_sla" },
     ],
     wf_workflow_version: [
       {
@@ -445,6 +445,7 @@ function fixture() {
         workflow: WF,
         name: "Legacy Approval v2",
         published: "true",
+        active: "true",
         sys_updated_on: "2026-02-01 00:00:00",
       },
     ],
@@ -970,20 +971,15 @@ test("the workflow Mermaid edges match the transition rows one-to-one", async ()
   }
 });
 
-test("a workflow without a published version or version-keyed activities degrades gracefully", async () => {
+test("a workflow without a published version degrades gracefully", async () => {
   const tables = fixture();
   tables.wf_workflow_version = tables.wf_workflow_version.map((v) => ({
     ...v,
     published: "false",
   }));
-  tables.wf_activity = tables.wf_activity.map((a) => {
-    const rest = { ...a };
-    delete rest.workflow_version;
-    return { ...rest, workflow: WF };
-  });
   tables.wf_transition.push({
     sys_id: "t7",
-    from: END,
+    from: OLD,
     to: "zz",
     condition: "",
   });
@@ -994,12 +990,16 @@ test("a workflow without a published version or version-keyed activities degrade
   assert.ok(
     res.caveats.some((c) => /no published wf_workflow_version/.test(c)),
   );
-  assert.ok(
-    res.caveats.some((c) => /activities were read by workflow/.test(c)),
+  // wf_activity has no `workflow` column: nothing is read by workflow.
+  assert.ok(!res.caveats.some((c) => /read by workflow/.test(c)));
+  // Only the chosen (latest, v1 here) version's activity is read.
+  assert.deepEqual(
+    res.activities.map((a) => a.sys_id),
+    [OLD],
   );
-  assert.equal(res.activities.length, 6);
+  // t6 (to Begin, a v2 activity) and t7 lead outside the chosen version.
   assert.ok(
-    res.caveats.some((c) => /1 transition\(s\) lead to an activity/.test(c)),
+    res.caveats.some((c) => /2 transition\(s\) lead to an activity/.test(c)),
   );
   const md = payload(
     await run(
