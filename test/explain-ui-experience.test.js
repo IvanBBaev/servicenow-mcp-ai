@@ -1265,7 +1265,7 @@ test("N-26: format:file carries props, bindings, events, components and scripts"
       eventChains: 2,
       scripts: 3,
     });
-    assert.ok(written.caveats.some((c) => /propertyValues/.test(c)));
+    assert.ok(!written.caveats.some((c) => /propertyValues/.test(c)));
     const home = written.macroponents.find((m) => m.sys_id === HOME_MP);
 
     // UX-02: props, config, overrides and a bound visibility.

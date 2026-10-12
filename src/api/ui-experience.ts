@@ -68,7 +68,8 @@
  *
  * The tool takes the levels through its `detail` input; `format: "file"`
  * defaults to the full depth (the JSON lands in exports/, not in the
- * context). Prop, binding and handler shapes are verified:false until O-5.
+ * context). Prop, binding and handler shapes were checked on a PDI (O-5,
+ * 2026-10-12): five experiences, every binding resolved.
  *
  * Layout: the result and option shapes are in ui-experience-types.ts, the
  * Mermaid and Markdown renderers in ui-experience-render.ts; this module
@@ -217,9 +218,6 @@ const UI_BROKER_READS: readonly (readonly [string, string[]])[] = [
 
 const TRANSLATIONS_CAVEAT =
   "Translations list user-facing literals of the composition (text-like props and typed translation literals) against `required_translations`; both shapes are unverified until O-5, and the strings are not yet checked against sys_ui_message (N-7).";
-
-const DETAIL_CAVEAT =
-  "Element props, binding expressions, event handler targets and component resolution read UI Builder JSON shapes (propertyValues, typed bindings, handler definition / targetId / operationName) that have not been confirmed on a live instance (gate O-5).";
 
 const str = (row: SnRecord, field: string): string => snString(row[field]);
 const opt = (row: SnRecord, field: string): string | undefined =>
@@ -1277,7 +1275,6 @@ async function readDetail(
   macroRows: SnRecord[],
   scriptRows: SnRecord[],
 ): Promise<void> {
-  ctx.caveats.push(DETAIL_CAVEAT);
   const detail = {
     levels,
     components: 0,
