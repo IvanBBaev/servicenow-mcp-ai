@@ -200,15 +200,15 @@ Caveats from this pass:
 | 2ed740a | UI Builder variants (N-27, UX-05): `sys_ux_screen` has no `applicability`; audiences are the m2m `sys_ux_applicability_m2m_screen` (508 rows, 4 inactive, often 2–4 per screen), `applicability.roles` holds `sys_user_role` sys_ids; `sys_ux_app_config` has no `roles`; `screen_condition` is an inline string (156 screens); `sys_ux_screen_condition.active` exists; `admin_panel_table` is `sys_aw_master_config` on 1 page. tools/list delta 0 B. |
 | 7f2b7a0 | A missing table answers the Table API with HTTP 400 "Invalid table <name>", not 404 (an empty query is 200 `[]`). `isAbsentTableError()` reads both as absent: the capability matrix, workspace probe, `document_instance` workspaces, preflight and security-scan reasons; tools/list delta 0 B.                                                                                                                                                       |
 | 294fc1f | Table chain dot-walk (N-61): `sys_db_object` answers a six-level `super_class.….name` dot-walk in one request, every level present and empty past the root (`incident` → `task` → ""). `getTableChain` reads six levels per request; the describe-table replay fixture holds one request. tools/list delta 0 B.                                                                                                                                         |
+| 61cdc8d | Field ACL order (N-2): not readable by GET; taken from the ServiceNow docs (ACL rule types): `table.field`, parent `.field`, `*.field`, `table.*`, parent `.*`, `*.*`. The explainer had `*.field` after `table.*`; fixed. tools/list delta 0 B.                                                                                                                                                                                                        |
 
-Gate on the merged tip: 2492 pass / 0 fail / 1 skipped, pack 2626.6 KB.
+Gate on the merged tip: 2493 pass / 0 fail / 1 skipped, pack 2626.6 KB.
 
 Still unverified after this pass:
 
 - Elevation: the `security_admin` and `maint` rows in `sys_user_role` are
   counted but hidden from the PDI admin's reads, so their
   `elevated_privilege` flag and the write gating cannot be checked with GETs.
-- The field-ACL fallback order.
 - Whether a non-separated instance omits `sys_domain` or returns it empty
   (this PDI is domain-separated).
 - S-4 widened script field types, for the `verified` flags:
