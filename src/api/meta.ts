@@ -129,6 +129,9 @@ export function unknownFields(
 /** Guard against malformed/cyclic super_class data on the instance. */
 const MAX_CHAIN_DEPTH = 20;
 
+/** Ancestors read per sys_db_object request (super_class dot-walk depth). */
+const CHAIN_LEVELS = 6;
+
 /**
  * Resolve a table's inheritance chain (child first, root last) by walking
  * sys_db_object.super_class. An unknown table yields just itself. Cached with
@@ -141,21 +144,45 @@ export async function getTableChain(table: string): Promise<string[]> {
   );
 }
 
+/**
+ * Each request dot-walks up to CHAIN_LEVELS ancestors (N-61), so a deep chain
+ * costs ⌈depth / CHAIN_LEVELS⌉ requests instead of one per level. An empty
+ * level is the root; a level the response leaves out is not — the next request
+ * resumes from the last ancestor read, so a short answer never drops inherited
+ * columns.
+ */
 async function getTableChainUncached(table: string): Promise<string[]> {
   const chain = [table];
+  const fields = Array.from(
+    { length: CHAIN_LEVELS },
+    (_, i) => `${"super_class.".repeat(i + 1)}name`,
+  );
   let current = table;
-  for (let depth = 0; depth < MAX_CHAIN_DEPTH; depth++) {
+  while (chain.length < MAX_CHAIN_DEPTH) {
     const { records } = await queryTable({
       table: "sys_db_object",
       query: `name=${current}`,
-      fields: ["name", "super_class.name"],
+      fields: ["name", ...fields],
       displayValue: "false",
       limit: 1,
     });
-    const parent = records[0]?.["super_class.name"];
-    if (typeof parent !== "string" || !parent || chain.includes(parent)) break;
-    chain.push(parent);
-    current = parent;
+    const row = records[0];
+    if (!row) break;
+    let read = 0;
+    let done = false;
+    for (const field of fields) {
+      if (!(field in row)) break;
+      const parent = row[field];
+      if (typeof parent !== "string" || !parent || chain.includes(parent)) {
+        done = true;
+        break;
+      }
+      chain.push(parent);
+      read++;
+      if (chain.length >= MAX_CHAIN_DEPTH) break;
+    }
+    if (done || read === 0) break;
+    current = chain.at(-1) as string;
   }
   return chain;
 }

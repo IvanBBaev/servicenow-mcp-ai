@@ -8,7 +8,7 @@
     {
       "method": "GET",
       "path": "/api/now/table/sys_db_object",
-      "search": "?sysparm_query=name%3Dincident&sysparm_fields=name%2Csuper_class.name&sysparm_limit=1&sysparm_display_value=false&sysparm_exclude_reference_link=true",
+      "search": "?sysparm_query=name%3Dincident&sysparm_fields=name%2Csuper_class.name%2Csuper_class.super_class.name%2Csuper_class.super_class.super_class.name%2Csuper_class.super_class.super_class.super_class.name%2Csuper_class.super_class.super_class.super_class.super_class.name%2Csuper_class.super_class.super_class.super_class.super_class.super_class.name&sysparm_limit=1&sysparm_display_value=false&sysparm_exclude_reference_link=true",
       "status": 200,
       "headers": {
         "content-type": "application/json;charset=UTF-8",
@@ -18,25 +18,12 @@
         "result": [
           {
             "name": "incident",
-            "super_class.name": "task"
-          }
-        ]
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/api/now/table/sys_db_object",
-      "search": "?sysparm_query=name%3Dtask&sysparm_fields=name%2Csuper_class.name&sysparm_limit=1&sysparm_display_value=false&sysparm_exclude_reference_link=true",
-      "status": 200,
-      "headers": {
-        "content-type": "application/json;charset=UTF-8",
-        "x-total-count": "1"
-      },
-      "body": {
-        "result": [
-          {
-            "name": "task",
-            "super_class.name": ""
+            "super_class.name": "task",
+            "super_class.super_class.name": "",
+            "super_class.super_class.super_class.name": "",
+            "super_class.super_class.super_class.super_class.name": "",
+            "super_class.super_class.super_class.super_class.super_class.name": "",
+            "super_class.super_class.super_class.super_class.super_class.super_class.name": ""
           }
         ]
       }

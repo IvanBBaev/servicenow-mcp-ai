@@ -91,6 +91,103 @@ test("getTableChain returns just the table itself when unknown", async () => {
   });
 });
 
+/**
+ * N-61: a sys_db_object mock that answers the super_class dot-walk the way the
+ * instance does — every requested level, an empty string past the root.
+ * `parents` maps each table to its parent ("" at the root).
+ */
+function dotWalkHandler(parents, calls) {
+  return (url) => {
+    const u = new URL(url);
+    assert.ok(u.pathname.includes("/table/sys_db_object"), url);
+    const name = (u.searchParams.get("sysparm_query") ?? "").slice(5);
+    calls.push(name);
+    if (!(name in parents)) return jsonResponse(200, { result: [] });
+    const row = { name };
+    let current = name;
+    for (const field of (u.searchParams.get("sysparm_fields") ?? "").split(
+      ",",
+    )) {
+      if (field === "name") continue;
+      current = current ? (parents[current] ?? "") : "";
+      row[field] = current;
+    }
+    return jsonResponse(200, { result: [row] });
+  };
+}
+
+/** A linear chain u_<tag>0 -> u_<tag>1 -> ... -> u_<tag><depth - 1> (root). */
+function linearParents(tag, depth) {
+  const parents = {};
+  for (let i = 0; i < depth; i++) {
+    parents[`u_${tag}${i}`] = i + 1 < depth ? `u_${tag}${i + 1}` : "";
+  }
+  return parents;
+}
+
+test("getTableChain dot-walks six levels per request (N-61)", async () => {
+  const calls = [];
+  const parents = linearParents("dw", 14);
+  await withFetch(dotWalkHandler(parents, calls), async () => {
+    const chain = await getTableChain("u_dw0");
+    assert.deepEqual(chain, Object.keys(parents));
+  });
+  // 13 ancestors at six per request: u_dw0, u_dw6, u_dw12.
+  assert.deepEqual(calls, ["u_dw0", "u_dw6", "u_dw12"]);
+});
+
+test("getTableChain stops at an empty level in the first request (N-61)", async () => {
+  const calls = [];
+  await withFetch(dotWalkHandler(linearParents("sh", 3), calls), async () => {
+    assert.deepEqual(await getTableChain("u_sh0"), ["u_sh0", "u_sh1", "u_sh2"]);
+  });
+  assert.deepEqual(calls, ["u_sh0"]);
+});
+
+test("getTableChain caps the chain at twenty tables (N-61)", async () => {
+  const calls = [];
+  await withFetch(dotWalkHandler(linearParents("cap", 30), calls), async () => {
+    const chain = await getTableChain("u_cap0");
+    assert.equal(chain.length, 20);
+    assert.equal(chain.at(-1), "u_cap19");
+  });
+  assert.equal(calls.length, 4);
+});
+
+test("getTableChain stops on a super_class cycle (N-61)", async () => {
+  const calls = [];
+  const parents = { u_cy0: "u_cy1", u_cy1: "u_cy2", u_cy2: "u_cy0" };
+  await withFetch(dotWalkHandler(parents, calls), async () => {
+    assert.deepEqual(await getTableChain("u_cy0"), ["u_cy0", "u_cy1", "u_cy2"]);
+  });
+  assert.equal(calls.length, 1);
+});
+
+test("getTableChain resumes from the last ancestor when levels are missing (N-61)", async () => {
+  // A partial response: only the first level comes back for each table.
+  const parents = { u_pa0: "u_pa1", u_pa1: "u_pa2", u_pa2: "" };
+  const calls = [];
+  await withFetch(
+    (url) => {
+      const name = (new URL(url).searchParams.get("sysparm_query") ?? "").slice(
+        5,
+      );
+      calls.push(name);
+      return jsonResponse(200, {
+        result: [{ name, "super_class.name": parents[name] }],
+      });
+    },
+    async () => {
+      assert.deepEqual(await getTableChain("u_pa0"), [
+        "u_pa0",
+        "u_pa1",
+        "u_pa2",
+      ]);
+    },
+  );
+  assert.deepEqual(calls, ["u_pa0", "u_pa1", "u_pa2"]);
+});
+
 test("describeTable merges inherited columns and lets the child override", async () => {
   await withFetch(chainHandler, async () => {
     const columns = await describeTable("incident");
