@@ -46,8 +46,8 @@ export const OVERDUE_MINUTES = { default: 5, max: 1440 };
 
 /**
  * The table behind each kind (O-5: `sys_semaphore`, `sys_outbound_http_log`,
- * `syslog_transaction` and `ecc_agent` are unverified — verify on a live
- * instance). `mid` also reads `ecc_queue` (OPS_ECC_QUEUE) as its own sub-section.
+ * `syslog_transaction` and `ecc_agent` verified on a PDI, 2026-10). `mid` also
+ * reads `ecc_queue` (OPS_ECC_QUEUE) as its own sub-section.
  */
 export const OPS_TABLES = {
   syslog: "syslog",
@@ -59,13 +59,16 @@ export const OPS_TABLES = {
   mid: "ecc_agent",
 } as const;
 
-/** N-6: the ECC queue behind the `mid` backlog (O-5: verify on a live instance). */
+/** N-6: the ECC queue behind the `mid` backlog (O-5: verified on a PDI, 2026-10). */
 export const OPS_ECC_QUEUE = "ecc_queue";
 
 /** N-6: response time (ms) above which an outbound call or a transaction counts as slow. */
 export const SLOW_MS = 5000;
 
-/** syslog.level stored values (O-5: verify on a live instance). */
+/**
+ * syslog.level stored values (O-5: verified on a PDI, 2026-10; the choice list
+ * also has 3 Fatal and -2 Trace, which no level filter selects).
+ */
 const LEVEL_VALUE: Record<SyslogLevel, string> = {
   error: "2",
   warning: "1",
@@ -76,11 +79,14 @@ const LEVEL_NAME = new Map(
   Object.entries(LEVEL_VALUE).map(([name, value]) => [value, name]),
 );
 
-/** sys_trigger.state stored values (O-5: verify on a live instance). */
+/** sys_trigger.state stored values (O-5: verified on a PDI, 2026-10). */
 const JOB_STATE: Record<string, string> = {
   "0": "ready",
   "1": "running",
   "2": "queued",
+  "-1": "error",
+  "-2": "permanent_error",
+  "-1776": "paused",
 };
 
 /** Sources listed in a syslog summary. */
@@ -377,23 +383,31 @@ async function readSemaphores(
 
 // --- N-6: integrations, transactions, MID ----------------------------------------
 
-/** sys_outbound_http_log fields (O-5: verify on a live instance — the log may be off by default). */
+/**
+ * sys_outbound_http_log fields (O-5: verified on a PDI, 2026-10). The log has
+ * no REST message reference: `source_table` names the caller (a scheduled job,
+ * a business rule, a REST message…). Logging is on by default
+ * (`glide.outbound_http.db.log`) and the table rotates out after about 8 weeks.
+ */
 const HTTP_LOG = {
   url: "url",
-  method: "http_method",
+  method: "method",
   status: "response_status",
   ms: "response_time",
-  message: "rest_message",
+  source: "source_table",
 } as const;
 
-/** syslog_transaction fields (O-5: verify on a live instance). */
+/** syslog_transaction fields (O-5: verified on a PDI, 2026-10). */
 const TXN = {
   url: "url",
   ms: "response_time",
   user: "sys_created_by",
 } as const;
 
-/** ecc_agent fields and ecc_queue fields / state values (O-5: verify on a live instance). */
+/**
+ * ecc_agent fields and ecc_queue fields / state values (O-5: verified on a PDI,
+ * 2026-10; ecc_queue.state is ready / processing / processed / error).
+ */
 const AGENT_FIELDS = [
   "sys_id",
   "name",
@@ -466,7 +480,7 @@ async function requireFields(
   const missing = fields.filter((f) => !known.has(f));
   if (missing.length) {
     throw new Error(
-      `field ${missing.join(", ")} not found in the dictionary (O-5: the field names are unverified on this release).`,
+      `field ${missing.join(", ")} not found in the dictionary (O-5: the field names were verified on a 2026-10 PDI; this release differs).`,
     );
   }
   return [];
@@ -514,7 +528,7 @@ async function readIntegrations(
     string,
     {
       host: string;
-      rest_message: string;
+      source_table: string;
       calls: number;
       failed: number;
       slow: number;
@@ -527,13 +541,13 @@ async function readIntegrations(
   for (const r of res.records) {
     const raw = s(r, HTTP_LOG.url);
     const host = hostOf(raw);
-    const message = s(r, HTTP_LOG.message);
-    const key = `${host}\u0000${message}`;
+    const source = s(r, HTTP_LOG.source);
+    const key = `${host}\u0000${source}`;
     let g = groups.get(key);
     if (!g) {
       g = {
         host,
-        rest_message: message,
+        source_table: source,
         calls: 0,
         failed: 0,
         slow: 0,
@@ -730,13 +744,13 @@ const READERS: Record<
   mid: readMid,
 };
 
-const OVERVIEW_N6_CAVEAT = `integrations and transactions count calls and transactions over ${SLOW_MS} ms (and outbound status >= 400); mid counts MID servers by status and the ecc_queue backlog. Their field names are unverified (O-5).`;
+const OVERVIEW_N6_CAVEAT = `integrations and transactions count calls and transactions over ${SLOW_MS} ms (and outbound status >= 400); mid counts MID servers by status and the ecc_queue backlog. Their field names were verified on a PDI (O-5).`;
 
 /** Per-kind caveats added to the shared ones (N-6). */
 const KIND_CAVEATS: Partial<Record<OpsKind, string>> = {
-  integrations: `Outbound calls are read from sys_outbound_http_log (failed: status >= 400, slow: over ${SLOW_MS} ms); groups come from the newest \`limit\` matching rows; URLs keep only origin and path. Field names are unverified (O-5).`,
-  transactions: `Slow transactions (over ${SLOW_MS} ms) are read from syslog_transaction, slowest first; groups come from those \`limit\` rows. Field names are unverified (O-5).`,
-  mid: "MID status comes from ecc_agent; the backlog and errors from ecc_queue (state ready / error). Field and state names are unverified (O-5).",
+  integrations: `Outbound calls are read from sys_outbound_http_log (failed: status >= 400, slow: over ${SLOW_MS} ms); groups come from the newest \`limit\` matching rows; groups are host plus the calling table (source_table); URLs keep only origin and path. The log is on by default and keeps about 8 weeks.`,
+  transactions: `Slow transactions (over ${SLOW_MS} ms) are read from syslog_transaction, slowest first; groups come from those \`limit\` rows.`,
+  mid: "MID status comes from ecc_agent; the backlog and errors from ecc_queue (state ready / error).",
 };
 
 /**

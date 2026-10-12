@@ -221,6 +221,29 @@ Still unverified after this pass:
   `sys_ui_page.html` are xml, `sp_widget.css` is css.
 - Whether ATF step or suite edits bump `sys_updated_on` / `sys_mod_count`.
 
+## Fourth pass: `ops` (N-6 and the v1 kinds)
+
+Date: 2026-10-12. Same PDI, GETs only (`sys_dictionary`, `sys_choice`,
+`sys_properties`, `sys_table_rotation`, Aggregate API counts). The N-6 field
+names live in constants (`HTTP_LOG`, `TXN`, `AGENT_FIELDS`, `ECC`), not in a
+literal `fields` array, so the script above did not reach them.
+
+| Table                   | Read by `ops`                                                            | Result                                                                                                                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sys_outbound_http_log` | `url`, `http_method`, `response_status`, `response_time`, `rest_message` | **2 wrong.** The method is `method`; there is no `rest_message` column (the caller is `source_table` + `source_record`). Fixed: rows are grouped by host and `source_table`, and the group key `rest_message` is now `source_table`. |
+| `syslog_transaction`    | `url`, `response_time`, `sys_created_by`                                 | All present.                                                                                                                                                                                                                         |
+| `ecc_agent`             | `name`, `status`, `version`, `last_refreshed`, `host_name`               | All present (the PDI has no MID server, so `status` values are not seen).                                                                                                                                                            |
+| `ecc_queue`             | `agent`, `state`, `error_string`, `queue`, `topic`, `name`               | All present. `state` choices: `ready`, `processing`, `processed`, `error`. `agent` values are `mid.server.<name>` (also the broadcast `mid.server.*`) and `RESTClient`.                                                              |
+| `syslog`                | `level`                                                                  | `-1` / `0` / `1` / `2` as mapped; the choice list also has `3` Fatal and `-2` Trace, which no level filter selects.                                                                                                                  |
+| `sys_trigger`           | `state`                                                                  | `0` / `1` / `2` as mapped; also `-1` Error, `-2` Permanent Error and `-1776` Paused, now labelled in `by_state`.                                                                                                                     |
+| `sys_email`             | `type`                                                                   | `send-ready`, `send-failed` present.                                                                                                                                                                                                 |
+| `sys_semaphore`         | (all fields)                                                             | Present; it is the semaphore definition table, so rows describe the configured pools.                                                                                                                                                |
+
+Outbound logging is on by default: `glide.outbound_http.db.log` = `true` at
+level Basic (18,575 rows on the PDI). Retention (`sys_table_rotation`):
+`sys_outbound_http_log` and `syslog_transaction` rotate 8 × 7 days (about 8
+weeks); `ecc_queue` rotates 7 × 1 day.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

@@ -132,6 +132,7 @@ test("overview: counts from every section; one unreadable table degrades alone",
           grouped("state", [
             ["0", 100],
             ["1", 4],
+            ["-1776", 2],
             ["9", 1],
           ]),
         );
@@ -154,7 +155,12 @@ test("overview: counts from every section; one unreadable table degrades alone",
         count: 6,
       });
       assert.equal(syslog.rows, undefined);
-      assert.deepEqual(jobs.by_state, { ready: 100, running: 4, 9: 1 });
+      assert.deepEqual(jobs.by_state, {
+        ready: 100,
+        running: 4,
+        paused: 2,
+        9: 1,
+      });
       assert.equal(jobs.overdue, 12);
       assert.equal(email_queue.ready, 0);
       assert.equal(email_queue.oldest_ready, undefined);
