@@ -1,0 +1,118 @@
+{
+  "id": "query-sys-db-object",
+  "tool": "servicenow_query_table",
+  "args": {
+    "table": "sys_db_object",
+    "query": "nameINtask,incident,problem,change_request^ORDERBYname",
+    "fields": [
+      "name",
+      "label",
+      "super_class",
+      "sys_id"
+    ],
+    "limit": 4
+  },
+  "exchanges": [
+    {
+      "method": "GET",
+      "path": "/api/now/table/sys_db_object",
+      "search": "?sysparm_query=nameINtask%2Cincident%2Cproblem%2Cchange_request%5EORDERBYname&sysparm_fields=name%2Clabel%2Csuper_class%2Csys_id&sysparm_limit=4&sysparm_display_value=false&sysparm_exclude_reference_link=true",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json;charset=UTF-8",
+        "x-total-count": "4"
+      },
+      "body": {
+        "result": [
+          {
+            "sys_id": "b822adc34f3032002c6ee321a310c76d",
+            "name": "change_request",
+            "super_class": "400169434f3032002c6ee321a310c785",
+            "label": "Change Request"
+          },
+          {
+            "sys_id": "d712adc34f3032002c6ee321a310c716",
+            "name": "incident",
+            "super_class": "400169434f3032002c6ee321a310c785",
+            "label": "Incident"
+          },
+          {
+            "sys_id": "a6126dc34f3032002c6ee321a310c7ec",
+            "name": "problem",
+            "super_class": "400169434f3032002c6ee321a310c785",
+            "label": "Problem"
+          },
+          {
+            "sys_id": "400169434f3032002c6ee321a310c785",
+            "name": "task",
+            "super_class": "",
+            "label": "Task"
+          }
+        ]
+      }
+    }
+  ],
+  "result": {
+    "isError": false,
+    "structuredContent": {
+      "count": 4,
+      "total": 4,
+      "records": [
+        {
+          "sys_id": "b822adc34f3032002c6ee321a310c76d",
+          "name": "change_request",
+          "super_class": "400169434f3032002c6ee321a310c785",
+          "label": "Change Request"
+        },
+        {
+          "sys_id": "d712adc34f3032002c6ee321a310c716",
+          "name": "incident",
+          "super_class": "400169434f3032002c6ee321a310c785",
+          "label": "Incident"
+        },
+        {
+          "sys_id": "a6126dc34f3032002c6ee321a310c7ec",
+          "name": "problem",
+          "super_class": "400169434f3032002c6ee321a310c785",
+          "label": "Problem"
+        },
+        {
+          "sys_id": "400169434f3032002c6ee321a310c785",
+          "name": "task",
+          "super_class": "",
+          "label": "Task"
+        }
+      ]
+    },
+    "data": {
+      "count": 4,
+      "total": 4,
+      "records": [
+        {
+          "sys_id": "b822adc34f3032002c6ee321a310c76d",
+          "name": "change_request",
+          "super_class": "400169434f3032002c6ee321a310c785",
+          "label": "Change Request"
+        },
+        {
+          "sys_id": "d712adc34f3032002c6ee321a310c716",
+          "name": "incident",
+          "super_class": "400169434f3032002c6ee321a310c785",
+          "label": "Incident"
+        },
+        {
+          "sys_id": "a6126dc34f3032002c6ee321a310c7ec",
+          "name": "problem",
+          "super_class": "400169434f3032002c6ee321a310c785",
+          "label": "Problem"
+        },
+        {
+          "sys_id": "400169434f3032002c6ee321a310c785",
+          "name": "task",
+          "super_class": "",
+          "label": "Task"
+        }
+      ]
+    }
+  }
+}

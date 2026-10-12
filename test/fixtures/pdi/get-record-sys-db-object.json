@@ -1,0 +1,48 @@
+{
+  "id": "get-record-sys-db-object",
+  "tool": "servicenow_get_record",
+  "args": {
+    "table": "sys_db_object",
+    "sys_id": "b822adc34f3032002c6ee321a310c76d",
+    "fields": [
+      "name",
+      "label",
+      "super_class",
+      "is_extendable"
+    ]
+  },
+  "exchanges": [
+    {
+      "method": "GET",
+      "path": "/api/now/table/sys_db_object/b822adc34f3032002c6ee321a310c76d",
+      "search": "?sysparm_fields=name%2Clabel%2Csuper_class%2Cis_extendable&sysparm_exclude_reference_link=true",
+      "status": 200,
+      "headers": {
+        "content-type": "application/json;charset=UTF-8"
+      },
+      "body": {
+        "result": {
+          "is_extendable": "true",
+          "name": "change_request",
+          "super_class": "400169434f3032002c6ee321a310c785",
+          "label": "Change Request"
+        }
+      }
+    }
+  ],
+  "result": {
+    "isError": false,
+    "structuredContent": {
+      "is_extendable": "true",
+      "name": "change_request",
+      "super_class": "400169434f3032002c6ee321a310c785",
+      "label": "Change Request"
+    },
+    "data": {
+      "is_extendable": "true",
+      "name": "change_request",
+      "super_class": "400169434f3032002c6ee321a310c785",
+      "label": "Change Request"
+    }
+  }
+}
