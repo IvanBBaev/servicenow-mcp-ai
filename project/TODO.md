@@ -129,6 +129,10 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       AI Agents). A verified plugin table fails loudly on an instance without that plugin.
       `sys_package.source` does not separate core from plugin tables reliably, so this needs a
       per-type judgement.
+  - **Decided 2026-10-12: (2), then (3) type by type.** Done for (2): the 15 S-4 script types
+    are `verified:true` (pdi-verify: confirmed, 0 misses, children included); the nine legacy
+    types carry `capabilityRequired`, which alone drives `script_intelligence` and which types
+    an all-types script sweep must read. (3) is open.
 - **OD-5 · Latest `scan_result` fallback (N-3).** _Not BREAKING for options 1 and 2._
   - Problem: the newest `scan_result` on the PDI (2026-08-21) has 0 findings, so the "latest
     scan" read in `src/api/instance-scan.ts` comes back empty.

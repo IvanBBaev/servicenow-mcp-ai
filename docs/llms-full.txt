@@ -105,8 +105,7 @@ with the model and client of your choice.
   Plugin-scoped APIs report clearly when not active on the instance.
 - **Script intelligence**: read and search the instance's own code (business
   rules, script includes, client scripts, UI policies/actions, scheduled jobs,
-  transform/REST scripts, ACLs — and, not yet verified on a live instance,
-  Service Portal widgets, UI pages/scripts/macros, processors, email/fix/
+  transform/REST scripts, ACLs, Service Portal widgets, UI pages/scripts/macros, processors, email/fix/
   validation scripts, script actions, data sources, REST message functions,
   transform maps/entries, catalog client scripts and dictionary calculations /
   defaults) and get a table's full automation picture — all read-only over the

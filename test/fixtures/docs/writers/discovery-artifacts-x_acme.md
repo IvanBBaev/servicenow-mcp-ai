@@ -29,21 +29,21 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `transform` | server | `sys_transform_script` | yes | no — no records in this scope |
 | `rest_operation` | server | `sys_ws_operation` | yes | no — no records in this scope |
 | `acl` | core | `sys_security_acl` | yes | yes (3) |
-| `script_action` | server | `sysevent_script_action` | no | no — no records in this scope |
-| `transform_map` | server | `sys_transform_map` | no | no — unverified: the instance has no such table |
-| `transform_entry` | server | `sys_transform_entry` | no | no — no records in this scope |
-| `fix_script` | server | `sys_script_fix` | no | no — no records in this scope |
-| `email_script` | server | `sys_script_email` | no | no — no records in this scope |
-| `processor` | server | `sys_processor` | no | no — no records in this scope |
-| `data_source` | server | `sys_data_source` | no | yes (1) |
-| `rest_message_fn` | server | `sys_rest_message_fn` | no | no — no records in this scope |
-| `ui_script` | classic-ui | `sys_ui_script` | no | no — no records in this scope |
-| `ui_page` | classic-ui | `sys_ui_page` | no | no — unverified: the instance has no such table |
-| `ui_macro` | classic-ui | `sys_ui_macro` | no | no — no records in this scope |
-| `validation_script` | classic-ui | `sys_script_validator` | no | no — no records in this scope |
-| `sp_widget` | portal | `sp_widget` | no | no — no records in this scope |
-| `catalog_client_script` | catalog | `catalog_script_client` | no | no — no records in this scope |
-| `dictionary_script` | core | `sys_dictionary` | no | no — no records in this scope |
+| `script_action` | server | `sysevent_script_action` | yes | no — no records in this scope |
+| `transform_map` | server | `sys_transform_map` | yes | no — unreadable for this user (ACL or table policy) |
+| `transform_entry` | server | `sys_transform_entry` | yes | no — no records in this scope |
+| `fix_script` | server | `sys_script_fix` | yes | no — no records in this scope |
+| `email_script` | server | `sys_script_email` | yes | no — no records in this scope |
+| `processor` | server | `sys_processor` | yes | no — no records in this scope |
+| `data_source` | server | `sys_data_source` | yes | yes (1) |
+| `rest_message_fn` | server | `sys_rest_message_fn` | yes | no — no records in this scope |
+| `ui_script` | classic-ui | `sys_ui_script` | yes | no — no records in this scope |
+| `ui_page` | classic-ui | `sys_ui_page` | yes | no — no records in this scope |
+| `ui_macro` | classic-ui | `sys_ui_macro` | yes | no — no records in this scope |
+| `validation_script` | classic-ui | `sys_script_validator` | yes | no — no records in this scope |
+| `sp_widget` | portal | `sp_widget` | yes | no — no records in this scope |
+| `catalog_client_script` | catalog | `catalog_script_client` | yes | no — no records in this scope |
+| `dictionary_script` | core | `sys_dictionary` | yes | no — no records in this scope |
 | `rest_api` | server | `sys_ws_definition` | no | yes (1) |
 | `table` | core | `sys_db_object` | no | see [tables-x_acme.md](tables-x_acme.md) |
 | `choice_set` | core | `sys_choice_set` | no | no — no records in this scope |
@@ -57,7 +57,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `knowledge_base` | core | `kb_knowledge_base` | no | no — no application scope column (OD-2) |
 | `security_attribute` | core | `sys_security_attribute` | no | no — no records in this scope |
 | `security_data_filter` | core | `sys_security_data_filter` | no | no — no records in this scope |
-| `field_style` | core | `sys_ui_style` | no | no — no records in this scope |
+| `field_style` | core | `sys_ui_style` | no | no — unverified: the instance has no such table |
 | `schedule` | core | `cmn_schedule` | no | no — no records in this scope |
 | `event` | core | `sysevent_register` | no | no — no records in this scope |
 | `relationship` | core | `sys_relationship` | no | no — no records in this scope |

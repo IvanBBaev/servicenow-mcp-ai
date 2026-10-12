@@ -258,6 +258,12 @@ export interface ArtifactType {
   /** Listed by the script-intelligence tools (the `SCRIPT_TYPES` view). */
   scriptTools?: boolean;
   /**
+   * OD-4: the primary table must be readable for `check_capabilities` to call
+   * `script_intelligence` available. Set on the nine legacy script types only,
+   * so a `verified` flip never changes the capability verdict.
+   */
+  capabilityRequired?: boolean;
+  /**
    * Served by list_scripts / get_script / search_code only on explicit
    * request (`type`, or search_code `extended:true`), never by the default
    * sweep, where_used, lint_script, check_code_health, snapshot or compare (P-9).
@@ -325,7 +331,7 @@ export const BASE = {
  * The script-intelligence tiers of the nine legacy script types: listed and
  * read (R), linted and searched (A), counted and diffed by snapshot / compare
  * (S). The nine are `verified:true` because every release since 1.0 has read
- * them in production.
+ * them in production; they alone carry `capabilityRequired` (OD-4).
  */
 export const SCRIPT_TOOL_TIERS: Tier[] = ["R", "A", "S"];
 

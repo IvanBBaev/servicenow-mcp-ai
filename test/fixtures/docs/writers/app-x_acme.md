@@ -86,7 +86,7 @@ _None._
 
 These artefact types are not confirmed on a live instance (gate O-5): their table could not be read here, so they are left out rather than reported empty.
 
-- `ui_page` (`sys_ui_page`)
+- `field_style` (`sys_ui_style`)
 
 ## Caveats
 

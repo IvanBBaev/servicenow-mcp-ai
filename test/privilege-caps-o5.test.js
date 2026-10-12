@@ -24,10 +24,9 @@ test("the elevated roles are the out-of-box names seen on a PDI", () => {
 
 test("the S-4 widened script types keep their PDI-checked tables and fields", () => {
   const byType = Object.fromEntries(
-    ARTIFACT_TYPES.filter((t) => t.scriptTools && !t.verified).map((t) => [
-      t.type,
-      { table: t.table, fields: [...t.scriptFields].sort() },
-    ]),
+    ARTIFACT_TYPES.filter((t) => t.scriptTools && !t.capabilityRequired).map(
+      (t) => [t.type, { table: t.table, fields: [...t.scriptFields].sort() }],
+    ),
   );
   assert.deepEqual(byType.ui_page, {
     table: "sys_ui_page",

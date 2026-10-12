@@ -421,9 +421,9 @@ export async function searchCode(
       }));
     } catch (error) {
       // An all-types sweep skips a widened type whose table is missing or
-      // unreadable instead of failing; the nine verified types keep failing
-      // loudly, exactly as before S-4.
-      if (!opts.type && !artifact.verified && isSkippable(error)) {
+      // unreadable instead of failing; the nine legacy types (marked
+      // capabilityRequired, OD-4) keep failing loudly, exactly as before S-4.
+      if (!opts.type && !artifact.capabilityRequired && isSkippable(error)) {
         unreadable.push(typeName);
         continue;
       }

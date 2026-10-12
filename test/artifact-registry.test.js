@@ -109,19 +109,23 @@ test("SCRIPT_TYPES view starts with the pre-registry literal, keys in order", ()
   assert.equal(JSON.stringify(legacyView), JSON.stringify(LEGACY_SCRIPT_TYPES));
 });
 
-test("the nine legacy types are verified; every S-4 addition is not", () => {
+test("OD-4: every script type is verified; only the nine legacy ones gate the capability", () => {
   const exposed = ARTIFACT_TYPES.filter((t) => t.scriptTools).map(
     (t) => t.type,
   );
   assert.deepEqual(exposed, SCRIPT_TYPE_NAMES);
   assert.deepEqual(exposed.slice(0, LEGACY_NAMES.length), LEGACY_NAMES);
   for (const type of exposed) {
+    const t = getArtifactType(type);
+    assert.equal(t.verified, true, type);
     assert.equal(
-      getArtifactType(type).verified,
+      t.capabilityRequired === true,
       LEGACY_NAMES.includes(type),
       type,
     );
   }
+  const capability = ARTIFACT_TYPES.filter((t) => t.capabilityRequired);
+  assert.ok(capability.every((t) => t.scriptTools));
 });
 
 test("S-4: every widened table is reachable by the script tools", () => {
