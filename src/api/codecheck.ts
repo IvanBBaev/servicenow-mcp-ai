@@ -130,8 +130,10 @@ function lintField(
 
 /**
  * N-32: the UIB lint context of a client script — its macroponent's declared
- * state, events and data resources. Empty (the contract rules stay silent)
- * when the script has no macroponent or the row cannot be read.
+ * state and data resources. Empty (the contract rules stay silent) when the
+ * script has no macroponent or the row cannot be read. `dispatched_events`
+ * is not read: it is a glide_list of sys_ux_event sys_ids and most OOB emits
+ * name undeclared page events (O-5), so `uib-undeclared-event` stays silent.
  */
 async function uibContextFor(
   record: Record<string, unknown>,
@@ -142,12 +144,17 @@ async function uibContextFor(
     const res = await queryTable({
       table: "sys_ux_macroponent",
       query: `sys_id=${id}`,
-      fields: ["sys_id", "state_properties", "dispatched_events", "data"],
+      fields: ["sys_id", "state_properties", "data"],
       limit: 1,
       displayValue: "false",
     });
     const row = res.records[0];
-    return row ? uibLintContextFromMacroponent(row) : {};
+    return row
+      ? uibLintContextFromMacroponent({
+          state_properties: row.state_properties,
+          data: row.data,
+        })
+      : {};
   } catch {
     return {};
   }

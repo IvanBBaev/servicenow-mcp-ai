@@ -307,6 +307,10 @@ test("uibLintContextFromMacroponent decodes the raw row", () => {
   );
   assert.equal(dispatchedEventNames({ a: 1 }), undefined);
   assert.deepEqual(dispatchedEventNames(""), []);
+  // A raw glide_list of sys_ux_event sys_ids (O-5) is not a list of names.
+  const ev = "b".repeat(32);
+  assert.equal(dispatchedEventNames(ev), undefined);
+  assert.equal(dispatchedEventNames(`${ev},${"c".repeat(32)}`), undefined);
 });
 
 test("uibFindingsAsGeneric drops restated generic rules and the parse error", () => {
@@ -358,7 +362,8 @@ test("lintScript (uib_client_script) runs the UIB rules against the macroponent 
             {
               sys_id: MP,
               state_properties: JSON.stringify([{ name: "count" }]),
-              dispatched_events: JSON.stringify(["SAVED"]),
+              // A glide_list of sys_ux_event sys_ids (O-5): not read.
+              dispatched_events: "a".repeat(32),
               data: "[]",
             },
           ],
@@ -369,10 +374,7 @@ test("lintScript (uib_client_script) runs the UIB rules against the macroponent 
     async () => {
       const { results } = await lintScript("uib_client_script", "cs1");
       const found = results[0].findings.map((f) => `${f.rule}:${f.line}`);
-      assert.deepEqual(found.sort(), [
-        "uib-undeclared-event:5",
-        "uib-undeclared-state:3",
-      ]);
+      assert.deepEqual(found.sort(), ["uib-undeclared-state:3"]);
     },
   );
   assert.ok(reads.some((p) => p.endsWith("/sys_ux_macroponent")));
