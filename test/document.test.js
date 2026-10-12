@@ -103,6 +103,13 @@ const router = (tables) => (url) => {
   if (typeof entry === "number") {
     return jsonResponse(entry, { error: { message: `status ${entry}` } });
   }
+  if (entry === "invalid") {
+    // The Table API's answer for a table that does not exist (PDI, O-5).
+    return jsonResponse(400, {
+      error: { message: `Invalid table ${m[1]}`, detail: null },
+      status: "failure",
+    });
+  }
   const rows = entry ?? [];
   const limit = Number(u.searchParams.get("sysparm_limit") ?? "10");
   const offset = Number(u.searchParams.get("sysparm_offset") ?? "0");
@@ -1274,7 +1281,33 @@ test("golden: document_instance writes the README and every named document", asy
   );
 });
 
-test("document_instance workspaces: an absent Agent Workspace plugin is none, a denied category read is a caveat (N-30)", async () => {
+test("document_instance workspaces: an absent Agent Workspace plugin (400 Invalid table) is none, a denied category read is a caveat (N-30)", async () => {
+  await withMetadataFetch(
+    router({
+      ...instanceTables(),
+      sys_aw_master_config: "invalid",
+      sys_ux_registry_m2m_category: 403,
+    }),
+    async (calls) => {
+      const data = await collectInstance({});
+      assert.deepEqual(data.workspaces, {
+        kind: "none",
+        configurable: [],
+        agent: [],
+        migration: [],
+      });
+      assert.ok(data.unreadable.includes("sys_ux_registry_m2m_category"));
+      assert.ok(!data.unreadable.includes("sys_aw_master_config"));
+      // No Agent Workspace config: lists and restricted actions are not read.
+      assert.ok(!calls.some((c) => /\/sys_aw_list\b/.test(c.url)));
+      assert.ok(
+        !calls.some((c) => /\/sys_declarative_action_assignment\b/.test(c.url)),
+      );
+    },
+  );
+});
+
+test("document_instance workspaces: an absent Agent Workspace plugin (legacy 404) is none, a denied category read is a caveat (N-30)", async () => {
   await withMetadataFetch(
     router({
       ...instanceTables(),

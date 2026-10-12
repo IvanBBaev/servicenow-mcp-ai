@@ -1,5 +1,5 @@
 import { snRequest } from "../core/http.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, isAbsentTableError } from "../core/errors.js";
 import { activeProfile, getCredentials } from "../core/config.js";
 import {
   assertPackageAllowed,
@@ -342,10 +342,14 @@ const HTTP_REASON: Record<number, string> = {
   404: "not present on this instance (table missing or plugin inactive)",
 };
 
-/** Run one group's probe; never throws. `cacheable` false = do not cache. */
+/**
+ * Run one group's probe; never throws. `cacheable` false = do not cache;
+ * `absent` = the instance said the table does not exist (400 "Invalid
+ * table" on the Table API, 404 elsewhere).
+ */
 async function runProbe(
   probe: GroupProbe,
-): Promise<{ entry: MatrixEntry; cacheable: boolean }> {
+): Promise<{ entry: MatrixEntry; cacheable: boolean; absent?: true }> {
   try {
     const res = await snRequest<unknown>({
       method: "GET",
@@ -361,6 +365,17 @@ async function runProbe(
   } catch (error) {
     if (error instanceof ServiceNowError && error.status !== undefined) {
       const status = error.status;
+      if (isAbsentTableError(error)) {
+        return {
+          entry: {
+            status: "unavailable",
+            reason: HTTP_REASON[404],
+            httpStatus: status,
+          },
+          cacheable: true,
+          absent: true,
+        };
+      }
       return {
         entry: {
           status: status in HTTP_REASON ? "unavailable" : "unknown",
@@ -638,8 +653,9 @@ const WORKSPACE_PROBE_TABLES = [
  * each): configurable workspaces (page registries in the workspace experience
  * category, `sys_ux_registry_m2m_category`) and legacy Agent Workspace
  * configs (`sys_aw_master_config`). `detail.kind` is `configurable`, `agent`,
- * `mixed` (both: a migration is pending or in progress) or `none`. A 404 on
- * the Agent Workspace table counts as none (the plugin is not installed).
+ * `mixed` (both: a migration is pending or in progress) or `none`. An absent
+ * Agent Workspace table (400 "Invalid table", checked on a PDI, O-5) counts
+ * as none: the plugin is not installed.
  * The category sys_id was checked on a PDI (O-5): the `Workspace` experience
  * category; other releases are unverified.
  */
@@ -678,7 +694,7 @@ export async function probeWorkspaces(): Promise<MatrixEntry> {
     ),
     read(WORKSPACE_PROBE_TABLES[1]),
   ]);
-  const entry = interpretWorkspaces(ux.entry, aw.entry);
+  const entry = interpretWorkspaces(ux.entry, aw.entry, aw.absent === true);
   if (ux.cacheable && aw.cacheable) {
     const ttl =
       entry.status === "available"
@@ -692,12 +708,16 @@ export async function probeWorkspaces(): Promise<MatrixEntry> {
 }
 
 /** Combine the two workspace reads into one entry. */
-function interpretWorkspaces(ux: MatrixEntry, aw: MatrixEntry): MatrixEntry {
+function interpretWorkspaces(
+  ux: MatrixEntry,
+  aw: MatrixEntry,
+  awAbsent: boolean,
+): MatrixEntry {
   const countOf = (e: MatrixEntry): number | undefined =>
     e.status === "available" ? Number(e.detail?.count ?? 0) : undefined;
   const configurable = countOf(ux);
   // No Agent Workspace plugin: the table is absent, which means none.
-  const agent = aw.httpStatus === 404 ? 0 : countOf(aw);
+  const agent = awAbsent ? 0 : countOf(aw);
   const why = (table: string, e: MatrixEntry) =>
     `${table} (${e.reason ?? e.status})`;
   const unreadable = [

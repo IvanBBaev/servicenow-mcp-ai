@@ -227,6 +227,31 @@ test("401/403/404 → unavailable; other HTTP errors → unknown", async () => {
   );
 });
 
+test("400 Invalid table → unavailable (absent); any other 400 → unknown", async () => {
+  freshRuntime();
+  await withFetch(
+    (url) => {
+      const p = new URL(url).pathname;
+      if (p.includes("sys_atf_test"))
+        return jsonResponse(400, {
+          error: { message: "Invalid table sys_atf_test", detail: null },
+          status: "failure",
+        });
+      if (p.includes("sys_import_set"))
+        return jsonResponse(400, { error: { message: "bad query" } });
+      return okInstance(url);
+    },
+    async () => {
+      const m = await probeCapabilityMatrix();
+      assert.equal(m.atf.status, "unavailable");
+      assert.equal(m.atf.httpStatus, 400);
+      assert.match(m.atf.reason, /not present/);
+      assert.equal(m.import_sets.status, "unknown");
+      assert.match(m.import_sets.reason, /^HTTP 400/);
+    },
+  );
+});
+
 test("empty role / property / preference reads", async () => {
   freshRuntime();
   await withFetch(
@@ -483,6 +508,12 @@ const workspaceFetch = (ux, aw) => (url) => {
       ? aw
       : undefined;
   if (answer === undefined) return okInstance(url);
+  if (answer === "invalid") {
+    return jsonResponse(400, {
+      error: { message: `Invalid table ${p.split("/").pop()}`, detail: null },
+      status: "failure",
+    });
+  }
   if (typeof answer === "number" && answer >= 400) {
     return jsonResponse(answer, { error: { message: `status ${answer}` } });
   }
@@ -525,6 +556,19 @@ test("workspaces: a missing Agent Workspace plugin is none; kinds and the row fl
     ],
     [0, 2, { kind: "agent", configurable: 0, agent: 2 }, /superseded/],
     [0, 404, { kind: "none", configurable: 0, agent: 0 }, /No configurable/],
+    // The Table API answers 400 "Invalid table" for an absent table (PDI, O-5).
+    [
+      2,
+      "invalid",
+      { kind: "configurable", configurable: 2, agent: 0 },
+      /2 configurable/,
+    ],
+    [
+      0,
+      "invalid",
+      { kind: "none", configurable: 0, agent: 0 },
+      /No configurable/,
+    ],
     [
       WORKSPACE_PROBE_LIMIT,
       0,

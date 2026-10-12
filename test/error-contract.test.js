@@ -22,6 +22,7 @@ import {
   errorCodeTable,
   errorSourceOf,
   instanceHttpCode,
+  isAbsentTableError,
   sourceOfCode,
 } from "../build/core/errors.js";
 import { errorPayload, fail } from "../build/mcp/result.js";
@@ -144,6 +145,24 @@ test("errorCodeOf / errorSourceOf derivation order", () => {
     source: "servicenow",
   });
   assert.equal(errorSourceOf(overridden), "servicenow");
+});
+
+test("isAbsentTableError: 400 Invalid table or 404, nothing else", () => {
+  assert.ok(isAbsentTableError(new ServiceNowError("x", 404)));
+  assert.ok(
+    isAbsentTableError(new ServiceNowError("Invalid table sys_aw_list", 400)),
+  );
+  assert.ok(
+    isAbsentTableError(
+      new ServiceNowError("ServiceNow request failed", 400, {
+        message: "Invalid table x_foo",
+      }),
+    ),
+  );
+  assert.ok(!isAbsentTableError(new ServiceNowError("bad query", 400)));
+  assert.ok(!isAbsentTableError(new ServiceNowError("Invalid table", 403)));
+  assert.ok(!isAbsentTableError(new Error("Invalid table x")));
+  assert.ok(!isAbsentTableError(undefined));
 });
 
 test("ARCH-11b: ServiceNowError extends IntegrationError", () => {

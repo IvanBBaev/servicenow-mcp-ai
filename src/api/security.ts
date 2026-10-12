@@ -1,7 +1,7 @@
 import { queryTable, type QueryResult, type SnRecord } from "./table.js";
 import { snString } from "./shared.js";
 import type { HardeningReport } from "./hardening.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, isAbsentTableError } from "../core/errors.js";
 import type { Severity } from "./codecheck.js";
 import { scriptCalls, type CallFact } from "./script-ast.js";
 import {
@@ -214,8 +214,8 @@ export function unreadableReason(table: string, error: unknown): string {
     if (error.status === 401 || error.status === 403) {
       return `${table} is not readable for this user (HTTP ${error.status}): ${error.message}`;
     }
-    if (error.status === 404) {
-      return `${table} does not exist on this instance or is not exposed (HTTP 404).`;
+    if (isAbsentTableError(error)) {
+      return `${table} does not exist on this instance or is not exposed (HTTP ${error.status}).`;
     }
   }
   return `${table} could not be read: ${error instanceof Error ? error.message : String(error)}`;

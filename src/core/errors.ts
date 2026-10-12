@@ -663,6 +663,25 @@ export function rethrowIfCancelled(error: unknown): void {
   if (isCancelledError(error)) throw error;
 }
 
+/** The Table API's message for a table that does not exist. */
+const INVALID_TABLE = /\binvalid table\b/i;
+
+/**
+ * True when a ServiceNow error says the table does not exist on the instance
+ * (a plugin that is not installed, a release without it). The Table API
+ * answers 400 "Invalid table <name>" for that (checked on a PDI, O-5), not
+ * 404; a 404 is kept for the APIs that do use it.
+ */
+export function isAbsentTableError(error: unknown): boolean {
+  if (!(error instanceof ServiceNowError)) return false;
+  if (error.status === 404) return true;
+  if (error.status !== 400) return false;
+  const detail = (error.detail as { message?: unknown } | undefined)?.message;
+  return INVALID_TABLE.test(
+    `${error.message} ${typeof detail === "string" ? detail : ""}`,
+  );
+}
+
 /**
  * M-1 — the recoverable "not configured" error: the message keeps its wording,
  * the code is NOT_CONFIGURED and the hint names what is missing (field roles,

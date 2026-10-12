@@ -1,5 +1,5 @@
 import { snRequest } from "../core/http.js";
-import { ServiceNowError } from "../core/errors.js";
+import { ServiceNowError, isAbsentTableError } from "../core/errors.js";
 import { getCredentials } from "../core/config.js";
 import { ARTIFACT_TYPES } from "../core/artifacts/registry.js";
 import { assertTableAllowed } from "../core/policy.js";
@@ -179,7 +179,7 @@ async function probeTable(table: string): Promise<TableProbe> {
           ? "no read access (the user lacks a role that can read this table)"
           : error.status === 401
             ? "authentication failed"
-            : error.status === 404
+            : isAbsentTableError(error)
               ? "table not present on this instance"
               : error.message;
       return { table, readable: false, status: error.status, reason };

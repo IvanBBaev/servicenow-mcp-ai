@@ -1,4 +1,8 @@
-import { ServiceNowError, rethrowIfCancelled } from "../core/errors.js";
+import {
+  ServiceNowError,
+  isAbsentTableError,
+  rethrowIfCancelled,
+} from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
 import { type AppRow, type CollectorResult } from "./collectors.js";
 import { type ErColumns } from "./diagrams.js";
@@ -136,12 +140,8 @@ export async function readSection(
     };
   } catch (error) {
     rethrowIfCancelled(error);
-    // A plugin table that is not installed (404) has no rows to report.
-    if (
-      opts.absentIsEmpty &&
-      error instanceof ServiceNowError &&
-      error.status === 404
-    ) {
+    // A plugin table that is not installed has no rows to report.
+    if (opts.absentIsEmpty && isAbsentTableError(error)) {
       return { table, rows: [] };
     }
     return { table, rows: [], unreadable: true };
