@@ -78,7 +78,7 @@ Table (CRUD + encoded queries + pagination), Aggregate, Attachment, Import Set, 
 
 ### Script intelligence
 
-Read and search the instance's own code — business rules, script includes, client scripts, UI policies/actions, ACLs, and (not yet verified live) portal widgets, UI pages/scripts/macros, processors, fix/email/validation scripts, transform maps and dictionary calculations — and get a table's full automation picture. Read-only.
+Read and search the instance's own code — business rules, script includes, client scripts, UI policies/actions, ACLs, portal widgets, UI pages/scripts/macros, processors, fix/email/validation scripts, transform maps and dictionary calculations — and get a table's full automation picture. Read-only.
 
 ### Flow & code checking
 
