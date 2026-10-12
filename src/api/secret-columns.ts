@@ -40,8 +40,9 @@ import { snString } from "./shared.js";
  *    than leaks.
  *
  * The lookups call snRequest directly, so they never re-enter this hook.
- * Unverified until PDI (O-5): the `internal_typeIN…` query on sys_dictionary
- * and the deep `super_class.…name` dot-walk on sys_db_object.
+ * Checked on a PDI 2026-10-13 (O-5): the `internal_typeIN…` query on
+ * sys_dictionary returns the password / password2 columns, and the
+ * `super_class.…name` dot-walk on sys_db_object resolves four levels deep.
  */
 
 /** Tables whose rows describe columns; their own reads never trigger a lookup. */

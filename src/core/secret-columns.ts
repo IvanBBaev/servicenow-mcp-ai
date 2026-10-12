@@ -26,7 +26,9 @@ import { currentCall, type SecretRegistry } from "./request-context.js";
  *
  * Not listed: `masked` is a catalog *variable* type (sc_item_option), not a
  * dictionary column type, so a Table API read never returns it as a column.
- * Unverified until PDI (O-5): the exact type names on a current release.
+ * O-5 (PDI, 2026-10): `password` (11 columns) and `password2` (894) are in
+ * sys_glide_object; `glide_encrypted` is not on a base instance (it comes with
+ * column-level encryption) and is kept for instances that have it.
  */
 export const SECRET_INTERNAL_TYPES = [
   "password",
@@ -39,9 +41,11 @@ export const SECRET_INTERNAL_TYPES = [
  * under the dictionary types, and as the whole rule when the dictionary cannot
  * be read (an ACL-restricted user, a denied sys_dictionary, an error). The
  * list is deliberately broad: masking a non-secret column is harmless, missing
- * a secret one is a leak. Unverified until PDI (O-5): `password`,
- * `user_password` (sys_user) and the credential/OAuth/data-source columns are
- * the documented ones; the rest are common names on credential tables.
+ * a secret one is a leak. O-5 (PDI, 2026-10): every name below is a
+ * `password` / `password2` column on a base instance, except `ssh_private_key`,
+ * which is a plain string column there (so only this list masks it). The
+ * second group is the names that are `password2` wherever they occur
+ * (`sn_auth_token` alone on 703 tables).
  */
 export const FALLBACK_SECRET_FIELDS: ReadonlySet<string> = new Set([
   "password",
@@ -56,6 +60,18 @@ export const FALLBACK_SECRET_FIELDS: ReadonlySet<string> = new Set([
   "jdbc_password",
   "basic_auth_password",
   "token_received",
+  "sn_auth_token",
+  "auth_token",
+  "secret",
+  "secret_key",
+  "accesskey_secret",
+  "credential_value",
+  "keystore_password",
+  "truststore_password",
+  "key_password",
+  "signing_key_password",
+  "current_password",
+  "temp_password",
 ]);
 
 /** Values shorter than this are masked by their key only (too generic). */

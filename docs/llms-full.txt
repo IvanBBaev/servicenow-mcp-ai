@@ -1776,7 +1776,7 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
   encoded queries are never logged.
 - The password/token is never returned by any tool.
 - **Secret columns are always masked.** A column whose dictionary type is
-  `password`, `password2` or `glide_encrypted` comes back as `[redacted]` from
+  `password`, `password2` or `glide_encrypted` (column-level encryption) comes back as `[redacted]` from
   every record-returning tool (`query_table`, `get_record`, batch, compare,
   exports, …) and is never stored in the write journal, whatever
   `SN_REDACT_FIELDS` says. The types are read once per profile from

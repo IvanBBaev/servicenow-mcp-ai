@@ -263,6 +263,26 @@ child). The OD-1 key-field renames are left as they are. The fourth OD-1 row
 (`form_action_layout` → `layout_group`) is not a key field and is not the
 right link: `layout_group` groups items inside a layout. tools/list delta 0 B.
 
+## Fifth pass: secret column types (N-21)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_glide_object`, `sys_dictionary`
+counts grouped by `internal_type` and `element`).
+
+- `password` (one-way, 11 columns, e.g. `sys_user.user_password`) and
+  `password2` (two-way, 894 columns) are field types in `sys_glide_object`.
+  `glide_encrypted` is not: it comes with column-level encryption, so it stays
+  in `SECRET_INTERNAL_TYPES` for instances that have it.
+- All 12 names in `FALLBACK_SECRET_FIELDS` exist as columns. All are
+  `password` / `password2` except `ssh_private_key`, which is a plain string
+  column, so only the name list masks it.
+- Names that are `password2` on every table they occur on, added to the
+  fallback: `sn_auth_token` (703 tables), `auth_token`, `secret`,
+  `accesskey_secret`, `credential_value`, `keystore_password`,
+  `truststore_password`, `key_password`, `signing_key_password`,
+  `current_password`, `temp_password`, plus `secret_key` (4 of 5 tables).
+  `token` (97 string columns), `api_key`, `password`, `new_password` and
+  `old_password` are mixed; only `api_key` and `password` were already listed.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
