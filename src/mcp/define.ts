@@ -37,12 +37,15 @@ import { createSecretRegistry } from "../core/secret-columns.js";
 import { confirmDestructiveApply } from "./confirm.js";
 import {
   inputRoundFromContext,
+  isBackground,
   isPendingInput,
+  requestUrlElicitation,
   runWithInputRound,
   type InputRound,
 } from "./input.js";
 import type { JournalInput } from "../core/write-journal.js";
 import { EMAIL_ADDRESS_RE } from "../api/shared.js";
+import { AccountLinkRequiredError } from "../core/user-tokens.js";
 import { legacyToolNames, type ToolName } from "./naming.js";
 import { instanceParam, planTokenParam } from "./params.js";
 
@@ -183,6 +186,8 @@ export interface CallExtra {
   log?: RequestLog;
   /** MRTR: the call is served on the 2026-07-28 wire (input.ts). */
   input?: InputRound;
+  /** M-9: a background task run (`run_as_task` or ext-tasks) — no request can carry a prompt. */
+  background?: boolean;
 }
 
 /**
@@ -204,6 +209,7 @@ export function callExtraFromContext(
     ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
     requestId: req.id,
     signal: req.signal,
+    ...(isBackground(ctx) ? { background: true } : {}),
     ...(req._meta ? { _meta: req._meta } : {}),
     sendNotification: (notification) => req.notify(notification),
     log: {
@@ -262,7 +268,9 @@ export async function runSpec(
     result = await runWithInputRound(extra.input, () =>
       runWithCall(call, () =>
         runWithClient(extra.sessionId, () =>
-          runWithTool(spec.name, () => runSpecInner(spec, args, call)),
+          runWithTool(spec.name, () =>
+            runSpecInner(spec, args, call, extra.background === true),
+          ),
         ),
       ),
     );
@@ -338,6 +346,7 @@ async function runSpecInner(
   spec: AnyToolSpec,
   rawArgs: Record<string, unknown>,
   call: CallContext,
+  background: boolean,
 ): Promise<SpecResult> {
   const normalized = normalizeParamAliases(spec, rawArgs);
   if ("error" in normalized) return normalized.error;
@@ -409,6 +418,19 @@ async function runSpecInner(
       ms: Date.now() - start,
       error: error instanceof Error ? error.message : String(error),
     });
+    // N-17: the caller has no linked ServiceNow account yet — a URL
+    // elicitation where the client takes one (the legacy wire throws the SDK error
+    // past runSpec), else a plain error carrying the link. A background run
+    // has no request to carry the prompt.
+    if (error instanceof AccountLinkRequiredError && !background) {
+      return (
+        requestUrlElicitation({
+          url: error.url,
+          elicitationId: error.elicitationId,
+          message: error.prompt,
+        }) ?? fail(error)
+      );
+    }
     return fail(error);
   }
 }

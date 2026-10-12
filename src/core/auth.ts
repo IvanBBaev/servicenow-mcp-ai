@@ -576,9 +576,44 @@ export async function exchangeAuthorizationCode(
   };
 }
 
+/**
+ * N-17: a refresh_token grant for a refresh token held outside the env file
+ * (the per-user store). The caller owns caching and rotation.
+ */
+export async function refreshAccessToken(
+  host: string,
+  p: { clientId: string; clientSecret?: string; refreshToken: string },
+): Promise<TokenSet> {
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    client_id: p.clientId,
+    refresh_token: p.refreshToken,
+  });
+  if (p.clientSecret) body.set("client_secret", p.clientSecret);
+  const json = await requestToken(host, body, { replayable: true });
+  const accessToken = json.access_token;
+  if (typeof accessToken !== "string" || !accessToken) {
+    throw new ServiceNowError(
+      "OAuth token response did not contain an access_token.",
+      undefined,
+      undefined,
+      { code: "UNEXPECTED_RESPONSE", source: "servicenow" },
+    );
+  }
+  const ttl = Number(json.expires_in);
+  return {
+    accessToken,
+    refreshToken:
+      typeof json.refresh_token === "string" && json.refresh_token.trim()
+        ? json.refresh_token.trim()
+        : undefined,
+    expiresIn: Number.isFinite(ttl) ? ttl : undefined,
+  };
+}
+
 /** Skew applied before expiry so a token is refreshed slightly early. */
-const TOKEN_SKEW_MS = 30_000;
-const DEFAULT_TOKEN_TTL_SEC = 1800;
+export const TOKEN_SKEW_MS = 30_000;
+export const DEFAULT_TOKEN_TTL_SEC = 1800;
 
 class OAuthProvider implements AuthProvider {
   readonly mode = "oauth" as const;

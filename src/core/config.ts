@@ -16,6 +16,7 @@ import { currentRuntime, defineRuntimePart } from "./runtime.js";
 import { resolveSecretFiles, secretFileSourceFor } from "./secret-files.js";
 import { logger } from "./logging.js";
 import { profileEnvKey, rawSetting, readString } from "./settings-manifest.js";
+import { delegatedUserMarker } from "./delegation.js";
 
 const moduleDir = import.meta.dirname;
 
@@ -253,7 +254,10 @@ export function getCredentials(
     creds = snapshotFromEnv(profile);
     store.set(profile, creds);
   }
-  return { ...creds };
+  // N-17: a request delegated to its OAuth subject never sees the shared
+  // user name or password — only a per-subject marker (see delegation.ts).
+  const marker = delegatedUserMarker();
+  return marker ? { ...creds, user: marker, password: "" } : { ...creds };
 }
 
 /**

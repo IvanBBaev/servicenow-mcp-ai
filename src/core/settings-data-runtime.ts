@@ -482,6 +482,109 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       "DF-6: when set, http requests must send `Authorization: Bearer <token>`. **Required** whenever `SN_HTTP_HOST` is not loopback (e.g. `0.0.0.0` in the Docker image) — without it every client that reaches the port is accepted, and a warning is logged.",
   }),
+  str({
+    key: "SN_HTTP_OAUTH_ISSUER",
+    section: "transport",
+    since: NEXT,
+    example: "https://login.example.com/realms/mcp",
+    description:
+      "N-17: issuer of the OAuth 2.1 / OpenID Connect authorization server whose JWT access tokens the http transport accepts (signature checked against its JWKS; `iss`, `aud`, `exp`, `nbf` and scopes enforced). Enables RFC 9728 metadata at `/.well-known/oauth-protected-resource`. Requires `SN_HTTP_OAUTH_RESOURCE`; `SN_HTTP_TOKEN` is still accepted next to it.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_RESOURCE",
+    section: "transport",
+    since: NEXT,
+    example: "https://mcp.example.com/mcp",
+    description:
+      "N-17: this server's canonical public URI (RFC 8707 resource indicator). A token is accepted only when its `aud` names it (or an `SN_HTTP_OAUTH_AUDIENCE` value).",
+  }),
+  list({
+    key: "SN_HTTP_OAUTH_AUDIENCE",
+    section: "transport",
+    since: NEXT,
+    example: "api://servicenow-mcp",
+    description:
+      "N-17: extra `aud` values accepted besides `SN_HTTP_OAUTH_RESOURCE`, for an authorization server that issues its own audience identifiers.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_JWKS_URI",
+    section: "transport",
+    since: NEXT,
+    example:
+      "https://login.example.com/realms/mcp/protocol/openid-connect/certs",
+    description:
+      "N-17: the issuer's JWKS URI. Unset = discovered from the issuer's OpenID Connect or RFC 8414 metadata.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_INTROSPECTION_URI",
+    section: "transport",
+    since: NEXT,
+    example: "https://login.example.com/oauth2/introspect",
+    description:
+      "N-17: the issuer's RFC 7662 introspection endpoint. Set = opaque (non-JWT) access tokens are accepted when it answers `active` with this resource in `aud`, a `sub`, an `exp` and the required scopes; an active answer is reused for up to 60 s. Unset = JWT access tokens only. Requires `SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID` and `SN_HTTP_OAUTH_INTROSPECTION_SECRET`.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID",
+    section: "transport",
+    since: NEXT,
+    example: "servicenow-mcp",
+    description:
+      "N-17: this server's client id at the introspection endpoint (HTTP Basic, `client_secret_basic`).",
+  }),
+  secret({
+    key: "SN_HTTP_OAUTH_INTROSPECTION_SECRET",
+    section: "transport",
+    since: NEXT,
+    fileSource: true,
+    example: "change-me",
+    description:
+      "N-17: this server's client secret at the introspection endpoint.",
+  }),
+  list({
+    key: "SN_HTTP_OAUTH_SCOPES",
+    section: "transport",
+    since: NEXT,
+    example: "servicenow.mcp",
+    description:
+      "N-17: scopes every request's token must carry; published as `scopes_supported` and in the `WWW-Authenticate` challenge. A token without them gets 403 `insufficient_scope`.",
+  }),
+  bool({
+    key: "SN_HTTP_OAUTH_USER_TOKENS",
+    section: "transport",
+    since: NEXT,
+    default: false,
+    defaultText: "off",
+    example: "0",
+    description:
+      "N-17: call ServiceNow as the OAuth subject instead of the shared profile credential. Each subject links its own ServiceNow account once (Authorization Code + PKCE through a URL elicitation, callback at `/oauth/servicenow/callback` on the `SN_HTTP_OAUTH_RESOURCE` origin) with the profile's `SN_OAUTH_CLIENT_ID` / `SN_OAUTH_CLIENT_SECRET`; the refresh token is kept encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`. Requires `SN_HTTP_OAUTH_ISSUER` and `SN_HTTP_OAUTH_TOKEN_KEY`.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_USER_MATCH",
+    section: "transport",
+    since: NEXT,
+    default: "email=email",
+    example: "preferred_username=user_name",
+    description:
+      "N-17: `<token claim>=<sys_user field>` — a linked ServiceNow account is accepted only when its `sys_user` field equals the subject's claim (case-insensitive), so nobody can link someone else's account.",
+  }),
+  secret({
+    key: "SN_HTTP_OAUTH_TOKEN_KEY",
+    section: "transport",
+    since: NEXT,
+    fileSource: true,
+    example: "base64-encoded-32-byte-key",
+    description:
+      "N-17: the AES-256-GCM key (32 bytes, base64 or hex) that encrypts the per-user refresh tokens at rest. Rotating it drops every link.",
+  }),
+  str({
+    key: "SN_HTTP_OAUTH_TOKEN_STORE",
+    section: "transport",
+    since: NEXT,
+    defaultText: "`oauth-user-tokens.json` next to the env file",
+    example: "/var/lib/servicenow-mcp/oauth-user-tokens.json",
+    description:
+      "N-17: the encrypted per-user token store (written 0600, its directory 0700).",
+  }),
   bool({
     key: "SN_HTTP_REQUIRE_TOKEN",
     section: "transport",

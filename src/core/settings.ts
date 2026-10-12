@@ -365,6 +365,101 @@ export function getHttpToken(): string | undefined {
   return readString("SN_HTTP_TOKEN");
 }
 
+/**
+ * N-17 — the HTTP transport as an OAuth 2.1 resource server. Set when
+ * `SN_HTTP_OAUTH_ISSUER` names the authorization server; `SN_HTTP_OAUTH_RESOURCE`
+ * (this server's canonical URI) is then required. Unset = static bearer only.
+ */
+export interface HttpOAuthSettings {
+  issuer: string;
+  resource: string;
+  audiences: string[];
+  jwksUri?: string;
+  scopes: string[];
+  /** RFC 7662 introspection of opaque tokens. */
+  introspection?: { uri: string; clientId: string; clientSecret: string };
+}
+
+export function getHttpOAuth(): HttpOAuthSettings | undefined {
+  const issuer = readString("SN_HTTP_OAUTH_ISSUER");
+  if (!issuer) return undefined;
+  const resource = readString("SN_HTTP_OAUTH_RESOURCE");
+  if (!resource) {
+    throw new Error(
+      "SN_HTTP_OAUTH_ISSUER is set but SN_HTTP_OAUTH_RESOURCE is not — set it to this server's public URI (the token audience)",
+    );
+  }
+  const jwksUri = readString("SN_HTTP_OAUTH_JWKS_URI");
+  const introspectionUri = readString("SN_HTTP_OAUTH_INTROSPECTION_URI");
+  const clientId = readString("SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID");
+  const clientSecret = readString("SN_HTTP_OAUTH_INTROSPECTION_SECRET");
+  if (introspectionUri && (!clientId || !clientSecret)) {
+    throw new Error(
+      "SN_HTTP_OAUTH_INTROSPECTION_URI is set but SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID / SN_HTTP_OAUTH_INTROSPECTION_SECRET are not — the endpoint needs this server's client credentials",
+    );
+  }
+  return {
+    issuer,
+    resource,
+    audiences: parseNameList(process.env.SN_HTTP_OAUTH_AUDIENCE),
+    ...(jwksUri ? { jwksUri } : {}),
+    scopes: parseNameList(process.env.SN_HTTP_OAUTH_SCOPES),
+    ...(introspectionUri && clientId && clientSecret
+      ? { introspection: { uri: introspectionUri, clientId, clientSecret } }
+      : {}),
+  };
+}
+
+/**
+ * N-17 phase 2 — per-user ServiceNow tokens. Set when
+ * `SN_HTTP_OAUTH_USER_TOKENS` is on; the subject's `claim` must equal the
+ * linked account's `sys_user.<field>`. The key and the issuer are required.
+ */
+export interface HttpUserTokenSettings {
+  claim: string;
+  field: string;
+  key: Buffer;
+  storePath?: string;
+}
+
+export function getHttpUserTokens(): HttpUserTokenSettings | undefined {
+  if (!readBool("SN_HTTP_OAUTH_USER_TOKENS")) return undefined;
+  if (!readString("SN_HTTP_OAUTH_ISSUER")) {
+    throw new Error(
+      "SN_HTTP_OAUTH_USER_TOKENS is on but SN_HTTP_OAUTH_ISSUER is not set — per-user tokens need an authenticated OAuth subject",
+    );
+  }
+  const match = readString("SN_HTTP_OAUTH_USER_MATCH") ?? "email=email";
+  const m = /^([A-Za-z0-9_.:-]+)=([a-z0-9_]+)$/.exec(match);
+  if (!m) {
+    throw new Error(
+      `SN_HTTP_OAUTH_USER_MATCH must be <claim>=<sys_user field> (got "${match}")`,
+    );
+  }
+  const raw = readString("SN_HTTP_OAUTH_TOKEN_KEY");
+  const key = raw ? decodeKey(raw) : undefined;
+  if (!key) {
+    throw new Error(
+      "SN_HTTP_OAUTH_USER_TOKENS is on but SN_HTTP_OAUTH_TOKEN_KEY is missing or not a 32-byte base64/hex key",
+    );
+  }
+  const storePath = readString("SN_HTTP_OAUTH_TOKEN_STORE");
+  return {
+    claim: m[1]!,
+    field: m[2]!,
+    key,
+    ...(storePath ? { storePath } : {}),
+  };
+}
+
+/** A 32-byte key from 64 hex chars or base64; undefined otherwise. */
+function decodeKey(raw: string): Buffer | undefined {
+  const key = /^[0-9a-fA-F]{64}$/.test(raw)
+    ? Buffer.from(raw, "hex")
+    : Buffer.from(raw, "base64");
+  return key.length === 32 ? key : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // H-7 — HTTP transport v2 (sessions, DNS-rebinding protection, keep-alive)
 // ---------------------------------------------------------------------------

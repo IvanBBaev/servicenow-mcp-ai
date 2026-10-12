@@ -9,6 +9,8 @@ import {
   reloadBearerTokenFile,
 } from "./auth.js";
 import { getDispatcher } from "./dispatcher.js";
+import { delegatedSubject } from "./delegation.js";
+import { invalidateUserToken, userTokenHeaders } from "./user-tokens.js";
 import { elevationHint, elevationNeeded } from "./elevation.js";
 import { logger } from "./logging.js";
 import { currentSignal } from "./request-context.js";
@@ -151,6 +153,9 @@ export async function snRequest<T>({
   // A server-side token revocation surfaces as 401 before the cached token's
   // TTL runs out; one forced re-auth attempt recovers, a second 401 is real.
   let retried401 = false;
+  // N-17 phase 2: an OAuth subject with SN_HTTP_OAUTH_USER_TOKENS calls the
+  // instance with its own linked account, never the profile's credential.
+  const delegated = delegatedSubject() !== undefined;
 
   const res = await rawRequest({
     url,
@@ -162,7 +167,9 @@ export async function snRequest<T>({
     // between tries (Basic is just a cheap base64; OAuth reads its cache).
     headers: async () => ({
       ...baseHeaders,
-      ...(await getAuthProvider().headers(host)),
+      ...(delegated
+        ? await userTokenHeaders(host)
+        : await getAuthProvider().headers(host)),
     }),
     body: payload,
     dispatcher,
@@ -172,6 +179,15 @@ export async function snRequest<T>({
     bypassQueue,
     onResponse: (r) => {
       if (r.status !== 401 || retried401) return false;
+      if (delegated) {
+        retried401 = true;
+        invalidateUserToken(host);
+        logger.debug("401 with a cached user token — re-authenticating once", {
+          method,
+          path,
+        });
+        return true;
+      }
       const mode = getAuthMode();
       if (mode === "oauth") {
         retried401 = true;
@@ -200,6 +216,7 @@ export async function snRequest<T>({
       if (
         status === 401 &&
         (!options?.code || options.code === "INSTANCE_HTTP_401") &&
+        !delegated &&
         getAuthMode() === "token"
       ) {
         return new ServiceNowError(message, status, detail, {

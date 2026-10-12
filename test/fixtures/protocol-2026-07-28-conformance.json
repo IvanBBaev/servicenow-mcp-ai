@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 43,
+  "pendingCeiling": 2,
   "requirements": [
     {
       "id": "base-01",
@@ -1462,8 +1462,10 @@
       "text": "Implementations using an HTTP-based transport SHOULD conform to this specification, whereas implementations using STDIO transport SHOULD NOT follow this specification, and instead retrieve credentials from the environment.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic#auth",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-02",
@@ -1482,8 +1484,11 @@
       "text": "MCP servers MUST implement the OAuth 2.0 Protected Resource Metadata (RFC9728) specification to indicate the locations of authorization servers.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/authorization-server-discovery#authorization-server-location",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 metadata names the resource, the issuer and the scopes without offline_access",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-04",
@@ -1491,8 +1496,11 @@
       "text": "The Protected Resource Metadata document returned by the MCP server MUST include the `authorization_servers` field containing at least one authorization server.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/authorization-server-discovery#authorization-server-location",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 metadata names the resource, the issuer and the scopes without offline_access",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-05",
@@ -1500,8 +1508,11 @@
       "text": "MCP servers MUST implement one of the following discovery mechanisms to provide authorization server location information to MCP clients: WWW-Authenticate Header: Include the resource metadata URL in the `WWW-Authenticate` HTTP header under `resource_metadata` when returning `401 Unauthorized` responses, as described in RFC9728 Section 5.1.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/authorization-server-discovery#protected-resource-metadata-discovery-requirements",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a request without a token gets 401 with resource_metadata and scope",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-06",
@@ -1518,8 +1529,10 @@
       "text": "Implementations using an HTTP-based transport SHOULD conform to this specification.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#protocol-requirements",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-08",
@@ -1547,8 +1560,11 @@
       "text": "MCP servers MUST implement OAuth 2.0 Protected Resource Metadata (RFC9728).",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#overview",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 metadata names the resource, the issuer and the scopes without offline_access",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-11",
@@ -1556,8 +1572,11 @@
       "text": "Implementations MUST follow the normative discovery requirements defined in Authorization Server Discovery.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#authorization-server-discovery",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 metadata names the resource, the issuer and the scopes without offline_access",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-12",
@@ -1565,8 +1584,10 @@
       "text": "MCP servers SHOULD include a `scope` parameter in the `WWW-Authenticate` header as defined in RFC 6750 Section 3 to indicate the scopes required for accessing the resource.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#scope-selection-strategy",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a request without a token gets 401 with resource_metadata and scope"
+      ]
     },
     {
       "id": "auth-13",
@@ -1574,8 +1595,11 @@
       "text": "Servers SHOULD strive for consistency in how they construct scope sets but they are not required to surface every dynamically issued scope through `scopes_supported`.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#scope-selection-strategy",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 metadata names the resource, the issuer and the scopes without offline_access",
+        "test/http-auth.test.js :: N-17 a token without the configured scope gets 403 insufficient_scope"
+      ]
     },
     {
       "id": "auth-14",
@@ -1583,8 +1607,11 @@
       "text": "While the canonical form uses lowercase scheme and host components, implementations SHOULD accept uppercase scheme and host components for robustness and interoperability.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#canonical-server-uri",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 canonicalResource lowercases scheme and host and drops a root slash",
+        "test/http-auth.test.js :: N-17 an extra configured audience and a non-canonical resource spelling are accepted"
+      ]
     },
     {
       "id": "auth-15",
@@ -1592,8 +1619,10 @@
       "text": "Note: While both `https://mcp.example.com/` (with trailing slash) and `https://mcp.example.com` (without trailing slash) are technically valid absolute URIs according to RFC 3986, implementations SHOULD consistently use the form without the trailing slash for better interoperability unless the trailing slash is semantically significant for the specific resource.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#canonical-server-uri",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 canonicalResource lowercases scheme and host and drops a root slash"
+      ]
     },
     {
       "id": "auth-16",
@@ -1601,8 +1630,12 @@
       "text": "MCP servers, acting in their role as an OAuth 2.1 resource server, MUST validate access tokens as described in OAuth 2.1 Section 5.2.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#token-handling",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a valid token yields the subject, the client and the scopes",
+        "test/http-auth.test.js :: N-17 expired, not-yet-valid, wrong-issuer and subject-less tokens are rejected",
+        "test/http-auth.test.js :: N-17 a forged signature, alg none and HS256 are rejected"
+      ]
     },
     {
       "id": "auth-17",
@@ -1610,8 +1643,11 @@
       "text": "MCP servers MUST validate that access tokens were issued specifically for them as the intended audience, according to RFC 8707 Section 2.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#token-handling",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-18",
@@ -1619,8 +1655,11 @@
       "text": "If validation fails, servers MUST respond according to OAuth 2.1 Section 5.3 error handling requirements.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#token-handling",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 expired, not-yet-valid, wrong-issuer and subject-less tokens are rejected",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-19",
@@ -1628,8 +1667,11 @@
       "text": "Invalid or expired tokens MUST receive a HTTP 401 response.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#token-handling",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 expired, not-yet-valid, wrong-issuer and subject-less tokens are rejected",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-20",
@@ -1637,8 +1679,11 @@
       "text": "MCP servers MUST only accept tokens that are valid for use with their own resources.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#token-handling",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-21",
@@ -1646,8 +1691,11 @@
       "text": "MCP servers MUST NOT accept or transit any other tokens.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#token-handling",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: e2e N-17: the MCP token never reaches the instance; plan tokens and journal lines are per subject"
+      ]
     },
     {
       "id": "auth-22",
@@ -1655,8 +1703,10 @@
       "text": "MCP Servers (Protected Resources) SHOULD NOT include `offline_access` in `WWW-Authenticate` scope or Protected Resource Metadata `scopes_supported`, as refresh tokens are not a resource requirement.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#refresh-tokens",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 metadata names the resource, the issuer and the scopes without offline_access"
+      ]
     },
     {
       "id": "auth-23",
@@ -1664,8 +1714,10 @@
       "text": "Servers MUST return appropriate HTTP status codes for authorization errors:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#error-handling",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-24",
@@ -1673,8 +1725,11 @@
       "text": "When a client makes a request with an access token with insufficient scope during runtime operations, the server SHOULD respond with:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#runtime-insufficient-scope-errors",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token without the configured scope gets 403 insufficient_scope",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-25",
@@ -1682,8 +1737,11 @@
       "text": "Server Scope Management: When responding with insufficient scope errors, servers SHOULD include the scopes needed to satisfy the current operation in the `scope` parameter, consistent with RFC 6750 Section 3.1.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#runtime-insufficient-scope-errors",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token without the configured scope gets 403 insufficient_scope",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-26",
@@ -1691,8 +1749,10 @@
       "text": "Whatever scope-inclusion strategy a server adopts, servers SHOULD include all scopes required for the current operation in a single challenge.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#runtime-insufficient-scope-errors",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token without the configured scope gets 403 insufficient_scope"
+      ]
     },
     {
       "id": "auth-27",
@@ -1700,8 +1760,11 @@
       "text": "Servers SHOULD be consistent in their scope inclusion strategy to provide predictable behavior for clients.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#runtime-insufficient-scope-errors",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a request without a token gets 401 with resource_metadata and scope",
+        "test/http-auth.test.js :: N-17 a token without the configured scope gets 403 insufficient_scope"
+      ]
     },
     {
       "id": "auth-28",
@@ -1709,8 +1772,11 @@
       "text": "Servers SHOULD consider the user experience impact when determining which scopes to include in the response, as misconfigured scopes may require frequent user interaction.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#runtime-insufficient-scope-errors",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a request without a token gets 401 with resource_metadata and scope",
+        "test/http-auth.test.js :: N-17 a token without the configured scope gets 403 insufficient_scope"
+      ]
     },
     {
       "id": "auth-29",
@@ -1718,8 +1784,8 @@
       "text": "Servers MUST account for scope hierarchies, where a broader scope implies narrower ones, when deciding whether a token is sufficient for an operation.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#step-up-authorization-flow",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "n/a",
+      "reason": "The server defines no scope hierarchy: SN_HTTP_OAUTH_SCOPES is a flat list and a token must carry each listed scope verbatim, so no broader scope can stand in for a narrower one."
     },
     {
       "id": "auth-30",
@@ -1727,8 +1793,13 @@
       "text": "Implementations of this specification MUST follow the normative security requirements in Security Considerations, covering token audience binding and validation, token theft, communication security, authorization code protection, mix-up and confused deputy attacks, open redirection, and Client ID Metadata Document security.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization#security-considerations",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: N-17 a forged signature, alg none and HS256 are rejected",
+        "test/http-auth.test.js :: e2e N-17: the MCP token never reaches the instance; plan tokens and journal lines are per subject",
+        "test/http-auth.test.js :: e2e N-17: a 2025 session answers only the subject that opened it"
+      ]
     },
     {
       "id": "auth-31",
@@ -1736,8 +1807,13 @@
       "text": "This document outlines security requirements that implementers MUST consider when building MCP clients and servers.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: N-17 a forged signature, alg none and HS256 are rejected",
+        "test/http-auth.test.js :: e2e N-17: the MCP token never reaches the instance; plan tokens and journal lines are per subject",
+        "test/http-auth.test.js :: e2e N-17: a 2025 session answers only the subject that opened it"
+      ]
     },
     {
       "id": "auth-32",
@@ -1745,8 +1821,12 @@
       "text": "Additionally, implementors MUST follow OAuth 2.1 security best practices as outlined in OAuth 2.1 Section 7. \"Security Considerations\".",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: N-17 a forged signature, alg none and HS256 are rejected",
+        "test/http-auth.test.js :: e2e N-17: the MCP token never reaches the instance; plan tokens and journal lines are per subject"
+      ]
     },
     {
       "id": "auth-33",
@@ -1754,8 +1834,11 @@
       "text": "MCP servers MUST validate that tokens presented to them were specifically issued for their use",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#token-audience-binding-and-validation",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-34",
@@ -1763,8 +1846,10 @@
       "text": "Clients and servers MUST implement secure token storage and follow OAuth best practices, as outlined in OAuth 2.1, Section 7.1.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#token-theft",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: e2e N-17: the MCP token never reaches the instance; plan tokens and journal lines are per subject"
+      ]
     },
     {
       "id": "auth-35",
@@ -1772,8 +1857,10 @@
       "text": "Implementations MUST follow OAuth 2.1 Section 1.5 \"Communication Security\".",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#communication-security",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 config: a non-loopback issuer must be https; the resource must be valid"
+      ]
     },
     {
       "id": "auth-36",
@@ -1790,8 +1877,11 @@
       "text": "MCP servers MUST validate access tokens before processing the request, ensuring the access token is issued specifically for the MCP server, and take all necessary steps to ensure no data is returned to unauthorized parties.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#access-token-privilege-restriction",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token",
+        "test/http-auth.test.js :: e2e N-17: a 2025 session answers only the subject that opened it"
+      ]
     },
     {
       "id": "auth-38",
@@ -1799,8 +1889,12 @@
       "text": "A MCP server MUST follow the guidelines in OAuth 2.1 - Section 5.2 to validate inbound tokens.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#access-token-privilege-restriction",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a valid token yields the subject, the client and the scopes",
+        "test/http-auth.test.js :: N-17 expired, not-yet-valid, wrong-issuer and subject-less tokens are rejected",
+        "test/http-auth.test.js :: N-17 a forged signature, alg none and HS256 are rejected"
+      ]
     },
     {
       "id": "auth-39",
@@ -1808,8 +1902,11 @@
       "text": "MCP servers MUST only accept tokens specifically intended for themselves and MUST reject tokens that do not include them in the audience claim or otherwise verify that they are the intended recipient of the token.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#access-token-privilege-restriction",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: N-17 a token for another audience is rejected (RFC 8707)",
+        "test/http-auth.test.js :: e2e N-17: metadata is public at both well-known paths; MCP needs a token"
+      ]
     },
     {
       "id": "auth-40",
@@ -1817,8 +1914,10 @@
       "text": "The MCP server MUST NOT pass through the token it received from the MCP client.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization/security-considerations#access-token-privilege-restriction",
       "applies": "auth",
-      "status": "pending",
-      "step": "auth"
+      "status": "covered",
+      "tests": [
+        "test/http-auth.test.js :: e2e N-17: the MCP token never reaches the instance; plan tokens and journal lines are per subject"
+      ]
     },
     {
       "id": "cancel-01",
@@ -2293,8 +2392,11 @@
       "text": "URL mode elicitation requests MUST specify `mode: \"url\"`, a `message`, and include these additional parameters:",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-requests",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 2025 session gets -32042 with the link"
+      ]
     },
     {
       "id": "mrtr-25",
@@ -2302,8 +2404,11 @@
       "text": "The `url` parameter MUST contain a valid URL.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-requests",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 2025 session gets -32042 with the link"
+      ]
     },
     {
       "id": "mrtr-26",
@@ -2311,8 +2416,12 @@
       "text": "However, if state is stored, servers implementing elicitation MUST securely associate this state with individual users following the guidelines in the security best practices document.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#statefulness",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored",
+        "test/user-tokens.test.js :: N-17 user tokens: the schema cache is per subject while delegated"
+      ]
     },
     {
       "id": "mrtr-27",
@@ -2320,8 +2429,11 @@
       "text": "State storage MUST be protected against unauthorized access",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#statefulness",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 401 refreshes once and rotates the stored refresh token"
+      ]
     },
     {
       "id": "mrtr-28",
@@ -2329,8 +2441,11 @@
       "text": "For remote MCP servers, user identification MUST be derived from credentials acquired via MCP authorization when possible (e.g.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#statefulness",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a token without the match claim cannot be delegated"
+      ]
     },
     {
       "id": "mrtr-29",
@@ -2338,8 +2453,10 @@
       "text": "MCP servers MUST NOT rely on URL mode elicitation to authorize users for themselves.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#url-mode-elicitation-for-oauth-flows",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-30",
@@ -2347,8 +2464,10 @@
       "text": "The third-party credentials MUST NOT transit through the MCP client: The client must never see third-party credentials to protect the security boundary",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#understanding-the-distinction",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-31",
@@ -2356,8 +2475,11 @@
       "text": "The MCP server MUST NOT use the client's credentials for the third-party service: That would be token passthrough, which is forbidden",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#understanding-the-distinction",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: N-17 user tokens: a delegated request reports a per-subject marker, never the shared credential"
+      ]
     },
     {
       "id": "mrtr-32",
@@ -2365,8 +2487,10 @@
       "text": "The MCP server MUST NOT transmit credentials obtained through URL mode elicitation to the MCP client.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#understanding-the-distinction",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-33",
@@ -2399,8 +2523,11 @@
       "text": "Servers MUST bind elicitation requests to the client and user identity",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#security-considerations",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-36",
@@ -2408,8 +2535,10 @@
       "text": "MUST NOT include sensitive information about the end-user, including credentials, personally identifiable information, etc., in the URL sent to the client in a URL elicitation request.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#safe-url-handling",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-37",
@@ -2417,8 +2546,10 @@
       "text": "MUST NOT provide a URL which is pre-authenticated to access a protected resource, as the URL could be used to impersonate the user by a malicious client.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#safe-url-handling",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-38",
@@ -2437,8 +2568,10 @@
       "text": "SHOULD use HTTPS URLs for non-development environments.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#safe-url-handling",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "mrtr-40",
@@ -2446,8 +2579,11 @@
       "text": "Servers MUST NOT rely on client-provided user identification without server verification, as this can be forged.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#identifying-the-user",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a token without the match claim cannot be delegated",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-41",
@@ -2455,8 +2591,12 @@
       "text": "Instead, servers SHOULD follow security best practices.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#identifying-the-user",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr"
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: a 401 refreshes once and rotates the stored refresh token"
+      ]
     },
     {
       "id": "mrtr-42",
@@ -2488,8 +2628,10 @@
       "text": "The MCP Server MUST verify the identity of the user who opens the URL before accepting information.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#phishing",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-45",
@@ -2497,8 +2639,10 @@
       "text": "To prevent this attack, the server MUST ensure that the user who started the elicitation request (the end-user who is accessing the server via the MCP client) is the same user who completes the authorization flow.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#phishing",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored"
+      ]
     },
     {
       "id": "mrtr-46",
@@ -2506,8 +2650,11 @@
       "text": "In all implementations, the server MUST ensure that the mechanism to determine the user's identity is resilient to attacks where an attacker can modify the elicitation URL.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#phishing",
       "applies": "always",
-      "status": "n/a",
-      "reason": "The server sends no URL mode elicitation; its only elicitations are form mode confirmations (and D-2, see owner question 2)."
+      "status": "covered",
+      "tests": [
+        "test/user-tokens.test.js :: e2e N-17 user tokens: an account that is not the subject's is refused and nothing is stored",
+        "test/user-tokens.test.js :: e2e N-17 user tokens: link once, then every call reaches the instance as the user"
+      ]
     },
     {
       "id": "cache-01",

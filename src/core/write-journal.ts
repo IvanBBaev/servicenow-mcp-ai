@@ -21,7 +21,12 @@ import {
   getMaxWritesPerSession,
 } from "./settings.js";
 import { activeProfile } from "./config.js";
-import { currentCall, currentClient, currentTool } from "./request-context.js";
+import {
+  currentCall,
+  currentClient,
+  currentSession,
+  currentTool,
+} from "./request-context.js";
 import { redactValue, redactionRules } from "./redaction.js";
 import { peekSecretColumns } from "./secret-index.js";
 import { ServiceNowError } from "./errors.js";
@@ -96,6 +101,8 @@ export interface JournalEntry {
   update_set?: string;
   /** MCP session id of the calling client (HTTP transport only). */
   client?: string;
+  /** N-17: the OAuth subject the call was authorized as (HTTP + SN_HTTP_OAUTH_ISSUER only). */
+  subject?: string;
   /** Links the per-sub-request lines of one batch to its envelope line (L2-03). */
   batch_id?: string;
   /**
@@ -430,6 +437,7 @@ function countWrite(entry: JournalEntry): void {
  */
 export function appendWriteJournal(entry: JournalInput): JournalEntry {
   const client = entry.client ?? currentClient();
+  const subject = entry.subject ?? currentSession()?.subject;
   const tool = entry.tool ?? currentTool();
   const planToken = entry.plan_token ?? currentCall()?.plan?.token;
   const base: JournalEntry = {
@@ -442,6 +450,7 @@ export function appendWriteJournal(entry: JournalInput): JournalEntry {
     ...(planToken ? { plan_token: planToken } : {}),
     result: entry.result ?? "applied",
     ...(client ? { client } : {}),
+    ...(subject ? { subject } : {}),
   };
   countWrite(base);
   let full = base;

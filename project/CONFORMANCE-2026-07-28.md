@@ -32,7 +32,7 @@ whoever covers a row also lowers the ceiling.
 
 | total | covered | pending | n/a |
 | ----- | ------- | ------- | --- |
-| 364   | 264     | 43      | 57  |
+| 364   | 316     | 2       | 46  |
 
 Pending rows by step:
 
@@ -40,14 +40,14 @@ Pending rows by step:
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------ |
 | `wire`     | 0    | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
 | `http`     | 0    | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
-| `mrtr`     | 7    | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
+| `mrtr`     | 1    | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 0    | N-35 step 2: hand-rolled tasks extension                                                               |
-| `auth`     | 35   | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
+| `auth`     | 0    | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
 | `cache`    | 0    | N-38: `ttlMs` / `cacheScope`                                                                           |
 | `packages` | 1    | O-19 (d): lists fixed per server, deterministic order                                                  |
 
 The n/a rows cover features the server never uses: client-supplied `$ref` resolution, custom
-transports, URL-mode elicitation, roots and sampling (ADR 0009), the legacy HTTP+SSE transport,
+transports, roots and sampling (ADR 0009), the legacy HTTP+SSE transport,
 `https://` and binary resources, image and audio prompt content, and the client-side parts of
 authorization.
 
@@ -73,8 +73,8 @@ authorization.
 - `tools-06`, `prompts-04`, `resources-04` (`list_changed` on a listen stream) are pinned on
   stdio. Over HTTP the lists are fixed per server (O-19 d), so nothing publishes `list_changed`.
 - `mrtr-19` / `mrtr-42` (no secrets through form mode) are covered by decision 2: the modern
-  wire refuses the request. `mrtr-20` (use URL mode instead) stays pending, since the server
-  never uses URL mode.
+  wire refuses the request. `mrtr-20` (use URL mode instead) stays pending: the only URL mode
+  elicitation is the N-17 account link, and `set_credentials` still points to the env file.
 - `cache-03` / `cache-04` (one scope on every page) are covered because the server does not
   paginate: every 2026-07-28 list is a single page carrying its method's hint. `cache-05` and
   `cache-07` are pinned over raw HTTP: two callers on different instances, users and clients get
@@ -93,8 +93,29 @@ authorization.
 - The `mrtr` rows are pinned by `test/protocol-mrtr-modern.test.js`. `mrtr-14` (an unparseable
   answer) follows the SDK: a malformed entry is dropped and asked again, never applied, and a
   non-object `inputResponses` is not a JSON-RPC error. `cancel-04` / `cancel-05` are pinned by
-  the explicit 60 s cap on a sent elicitation, which progress never extends. `mrtr-26`, `mrtr-27`, `mrtr-28`, `mrtr-35`,
-  `mrtr-40` and `mrtr-41` (state storage and identity) stay pending.
+  the explicit 60 s cap on a sent elicitation, which progress never extends.
+- The URL mode rows (`mrtr-24` to `mrtr-46`) are pinned by `test/user-tokens.test.js`: N-17
+  phase 2 (`SN_HTTP_OAUTH_USER_TOKENS`) asks an OAuth subject to link its own ServiceNow account
+  through the instance's authorize page. The URL carries only the OAuth client id, a PKCE
+  challenge and an opaque `state` (no end-user data, nothing pre-authenticated). The pending link
+  is keyed by `state` and bound server-side to the subject taken from the validated MCP token
+  (`mrtr-28`, `mrtr-40`), and the callback refuses an account whose `sys_user` field does not
+  match that subject's claim (`mrtr-44` to `mrtr-46`). Refresh tokens are stored AES-256-GCM
+  encrypted with a file mode of 0600 (`mrtr-27`) and never reach the client (`mrtr-30`, `mrtr-32`).
+  On the 2026-07-28 wire the link is an `input_required` URL request. A 2025 session gets
+  `-32042` with the same link.
+
+- The `auth` rows are pinned by `test/http-auth.test.js`: unit tests on the resource server
+  (metadata, challenges, JWT validation against a JWKS double) and end-to-end runs of the shipped
+  transport against a loopback authorization server. Phase 1 of O-15 validates tokens only; the
+  instance is still called with the shared service account, so the MCP token is never forwarded
+  (`auth-40`) and never stored (`auth-34`). Phase 2 calls the instance with the subject's own
+  ServiceNow token from a separate OAuth grant, never with the MCP token (`mrtr-31`). `auth-35` (communication security) is pinned by the
+  https requirement on the issuer and JWKS endpoints; TLS for the MCP endpoint itself is the
+  deployment's reverse proxy. `auth-29` (scope hierarchies) is n/a: the configured scopes are a
+  flat list, each required verbatim. The umbrella rows `auth-30` to `auth-32` cite the
+  audience, signature, pass-through and session-binding tests; their client and
+  authorization-server parts (code protection, open redirection) are not server behaviour.
 
 ## Owner decisions
 

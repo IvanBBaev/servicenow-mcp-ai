@@ -169,6 +169,17 @@ export interface SessionScope {
    * by it on the process runtime.
    */
   principal?: string;
+  /**
+   * N-17: the `sub` of the OAuth access token the request was authorized
+   * with (HTTP transport with SN_HTTP_OAUTH_ISSUER only). A 2025 session is
+   * bound to the subject that initialized it.
+   */
+  subject?: string;
+  /**
+   * N-17 phase 2: the subject's `SN_HTTP_OAUTH_USER_MATCH` claim (e.g. its
+   * email) — the value a linked ServiceNow account must match.
+   */
+  login?: string;
 }
 
 const sessionAls = new AsyncLocalStorage<SessionScope>();

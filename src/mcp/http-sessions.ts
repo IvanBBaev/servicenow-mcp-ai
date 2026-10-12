@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { randomUUID } from "node:crypto";
 import { NodeStreamableHTTPServerTransport } from "@modelcontextprotocol/node";
-import type { McpServer } from "@modelcontextprotocol/server";
+import type { AuthInfo, McpServer } from "@modelcontextprotocol/server";
 import { isInitializeRequest } from "@modelcontextprotocol/server";
 import {
   createRuntime,
@@ -187,7 +187,9 @@ export class HttpSessionManager {
           : header;
     if (id) {
       const session = this.sessions.get(id);
-      if (!session) {
+      // N-17: a session id is no credential — another subject's token gets
+      // the same answer as an unknown id.
+      if (!session || session.scope.subject !== subjectOf(req)) {
         jsonRpcError(res, 404, -32001, "Session not found");
         return;
       }
@@ -243,7 +245,13 @@ export class HttpSessionManager {
   ): Promise<void> {
     this.pending += 1;
     const runtime = createRuntime({ parent: this.options.parent });
-    const scope: SessionScope = { id: "" };
+    const subject = subjectOf(req);
+    const login = loginOf(req);
+    const scope: SessionScope = {
+      id: "",
+      ...(subject ? { subject } : {}),
+      ...(login ? { login } : {}),
+    };
     let session: HttpSession | undefined;
     try {
       const server = runWithRuntime(runtime, () =>
@@ -374,3 +382,20 @@ export const sessionLogSink: LogSink = (level, message, fields) => {
   const sink = currentSession()?.logSink as LogSink | undefined;
   sink?.(level, message, fields);
 };
+
+/**
+ * N-17: the OAuth subject the transport authorized `req` as (set on
+ * `req.auth` by the auth check in transport.ts), if any.
+ */
+export function subjectOf(req: IncomingMessage): string | undefined {
+  const auth = (req as IncomingMessage & { auth?: AuthInfo }).auth;
+  const subject = auth?.extra?.subject;
+  return typeof subject === "string" ? subject : undefined;
+}
+
+/** N-17 phase 2: the subject's `SN_HTTP_OAUTH_USER_MATCH` claim, if any. */
+export function loginOf(req: IncomingMessage): string | undefined {
+  const auth = (req as IncomingMessage & { auth?: AuthInfo }).auth;
+  const login = auth?.extra?.login;
+  return typeof login === "string" ? login : undefined;
+}

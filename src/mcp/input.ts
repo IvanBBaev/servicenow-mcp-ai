@@ -11,6 +11,7 @@ import {
   type McpServer,
   type ServerContext,
   type ServerOptions,
+  UrlElicitationRequiredError,
 } from "@modelcontextprotocol/server";
 import { getPlanTokenTtlSec } from "../core/settings.js";
 import { getServer } from "./context.js";
@@ -142,6 +143,19 @@ export function inputRoundFromContext(
     state: req.requestState(),
     ctx,
   };
+}
+
+/** M-9: the request objects of 2026-07-28 background task runs. */
+const backgroundRequests = new WeakSet<object>();
+
+/** Mark `ctx` as a background task run: no request can carry a prompt. */
+export function markBackground(ctx: ServerContext): void {
+  backgroundRequests.add(ctx.mcpReq);
+}
+
+/** True when `ctx` is a background task run (markBackground). */
+export function isBackground(ctx: ServerContext): boolean {
+  return backgroundRequests.has(ctx.mcpReq);
 }
 
 /** Run `fn` with the call's input round (undefined: the legacy wire). */
@@ -293,7 +307,11 @@ async function askModern(
   const digest = argsDigest(binding.args);
 
   if (round.state === undefined) {
-    if (round.responses && Object.keys(round.responses).length > 0) {
+    // An answered account link (requestUrlElicitation) carries no state.
+    const answered = Object.keys(round.responses ?? {}).filter(
+      (key) => key !== LINK_KEY,
+    );
+    if (answered.length > 0) {
       return {
         status: "rejected",
         error: "the retry carried input responses without its requestState",
@@ -381,6 +399,60 @@ async function ask(
       requestState,
     }),
   };
+}
+
+// --- URL elicitation (N-17) ------------------------------------------------
+
+/** The inputRequests key of the account-link round on the modern wire. */
+export const LINK_KEY = "servicenow_link";
+
+/** A URL the user must open out of band (the ServiceNow account link). */
+export interface UrlLink {
+  url: string;
+  elicitationId: string;
+  message: string;
+}
+
+/**
+ * Send the user to `link.url`, on whichever wire the current call is served:
+ * - modern — an `input_required` round with a URL elicitation, returned as the
+ *   tool's result; the client opens the URL and retries the same call. No
+ *   requestState: the retry is answered by whatever the link stored, never by
+ *   the response itself;
+ * - legacy — throws the SDK's UrlElicitationRequiredError, which it
+ *   answers as is;
+ * - undefined when the client declared no URL elicitation: the caller falls
+ *   back to a plain error that carries the URL.
+ */
+export function requestUrlElicitation(
+  link: UrlLink,
+): InputRequiredResult | undefined {
+  const round = rounds.getStore();
+  if (round) {
+    const elicitation = round.capabilities?.elicitation as
+      | Record<string, unknown>
+      | undefined;
+    if (elicitation?.url === undefined) return undefined;
+    return inputRequired({
+      inputRequests: {
+        [LINK_KEY]: inputRequired.elicitUrl({
+          message: link.message,
+          url: link.url,
+        }),
+      },
+    });
+  }
+  const elicitation = getServer()?.server.getClientCapabilities()
+    ?.elicitation as Record<string, unknown> | undefined;
+  if (elicitation?.url === undefined) return undefined;
+  throw new UrlElicitationRequiredError([
+    {
+      mode: "url",
+      elicitationId: link.elicitationId,
+      url: link.url,
+      message: link.message,
+    },
+  ]);
 }
 
 /** True when `result` is a modern-wire `input_required` round. */

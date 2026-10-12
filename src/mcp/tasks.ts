@@ -27,7 +27,7 @@ import {
   type Runtime,
 } from "../core/runtime.js";
 import type { AnyToolSpec, CallExtra, SpecResult } from "./define.js";
-import { isPendingInput } from "./input.js";
+import { isPendingInput, markBackground } from "./input.js";
 import { fail, ok, type ToolResult } from "./result.js";
 
 /**
@@ -769,6 +769,7 @@ export async function runMaybeAsTask(
     ...(extra.sessionId ? { sessionId: extra.sessionId } : {}),
     ...(extra.input ? { input: extra.input } : {}),
     signal: controller.signal,
+    background: true,
   };
   void (async () => {
     let result: ToolResult;
@@ -914,7 +915,9 @@ function backgroundContext(
   if (envelope) mcpReq.envelope = envelope;
   if (meta) mcpReq._meta = meta;
   else delete mcpReq._meta;
-  return { ...ctx, mcpReq };
+  const background = { ...ctx, mcpReq };
+  markBackground(background);
+  return background;
 }
 
 /** A thrown error as the `error` of a failed task. */
