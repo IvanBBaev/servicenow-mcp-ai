@@ -328,6 +328,23 @@ API reads of the step tables, `sys_variable_value`, `sys_flow_log`,
 Not checked: P-25 (does toggling a flow's `active` leave `master_snapshot`
 unchanged) needs a write, and this PDI is read-only for us. tools/list delta 0 B.
 
+## Ninth pass: UI Builder pages, brokers and client scripts (N-28, N-29, N-32)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_update_xml`,
+`sys_security_acl`, `sys_ux_*`).
+
+| Table / field                          | Was read as                                         | Result                                                                                                                                                                                |
+| -------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_update_xml.name` for UIB records  | `<table>_<sys_id>`                                  | Confirmed: 557 of 557.                                                                                                                                                                |
+| `sys_security_acl.type`                | the string `ux_data_broker` (`type=ux_data_broker`) | **Wrong.** A reference to `sys_security_type`; the query matched no row. Now `type.name=ux_data_broker` (2,376 ACLs named by a broker sys_id). Three readers fixed.                   |
+| `sys_ux_screen.applicability`          | the variant's audience                              | **Does not exist.** Audiences are `sys_ux_applicability_m2m_screen` links (`screen`, `applicability`, `order`, `active`). `uib_completeness` and `uib-screen-no-applicability` fixed. |
+| `sys_ux_macroponent.dispatched_events` | JSON array of names                                 | **A glide_list of `sys_ux_event` sys_ids** (`handled_events` too). Even resolved to `event_name`, about two thirds of OOB `api.emit` calls name undeclared page events.               |
+| UIB client-script API                  | `handler({api, event, helpers, imports})`           | Confirmed in OOB scripts: `api.setState`, `api.state`, `api.emit`, `api.data`, `helpers.timing`, `helpers.snHttp`, `helpers.modal`, `imports[…]`.                                     |
+
+Fixed in 110aa5c (ACL `type.name`, screen audiences) and b67dc93
+(`dispatched_events`: `lint_script` no longer reads it, the registry drops
+the JSON decoder). tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
