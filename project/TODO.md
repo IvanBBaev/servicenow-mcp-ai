@@ -493,11 +493,11 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       again: `all` measured 129,083 with 89 tools and the ratchet is now 130,000 (resolved: ADR 0006). (c) `get_flow` does
       not delegate to `explain_flow` (S-5 bullet, SDK-PARITY P-10): its `FlowDetail` contract differs,
       so a delegation is a behaviour change — do it under O-4, or leave `get_flow` as the light read?
-      (d) Every Flow Designer and workflow field is unverified (O-5): the `values` compression
-      (plain JSON vs base64 + gzip JSON), v1 vs `_v2` authority when a step is in both (the `_v2` row
-      wins today), how snapshot children are keyed (`flow = <snapshot sys_id>`), the `label_cache`
-      shape, `wf_activity` keyed by `workflow_version`, the `sys_flow_log` level values (`error` or
-      `2` counts as an error) and the `wf_context` state values (`executing`). No PDI fixtures yet;
+      (d) Flow Designer and workflow fields: checked on the PDI 2026-10-13
+      ([PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md) → "Seventh pass") — snapshot keying, encoding,
+      `label_cache`, `wf_activity`, the log levels and `wf_context` states are confirmed; `_v2`
+      subflow inputs (`subflow_inputs`) and v1 inputs (`sys_variable_value`) are now read. Still
+      open: v1 vs `_v2` authority per release (the `_v2` row wins; on the PDI it was always the newer). No PDI fixtures yet;
       the Workflow Studio tree check of the acceptance criterion is still manual. (e) `runs` and
       `migration` read runtime tables (`sys_flow_context`, `sys_flow_log`, `wf_context`) — opt-in,
       off by default; acceptable in `flows`? (f) Bounds: runs default 5 / max 20, 10 log errors per
@@ -745,7 +745,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
   - H-7: B6 `SN_HTTP_REQUIRE_TOKEN` default on; B12 `use_instance` `persist` over stdio (resolved: B6 and B12 approved for 3.0 under O-4, ADR 0001, 2026-10-01; not implemented yet); a default
     `SN_HTTP_ALLOWED_HOSTS` for non-loopback binds; the OAuth (MCP authorization) design.
   - P-24: `SCOPE_PREFIX` warn vs refuse; cross-scope duplicate semantics; the `sp_dependency.module` field.
-  - O-5 verification on a PDI: P-24 fields, flow `master_snapshot` behaviour (P-25), the `sys_ux_*`
+  - O-5 verification on a PDI: P-24 fields, flow `master_snapshot` behaviour (P-25; needs a
+    writable PDI — the 2026-10-13 pass was GET-only), the `sys_ux_*`
     (P-14 / P-15) and `sys_pd_*` (P-12) tables.
   - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` raised to 146,500 in
     `test/output-schema.test.js`) (resolved: ADR 0006).
