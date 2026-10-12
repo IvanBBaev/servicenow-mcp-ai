@@ -17,6 +17,7 @@ import { getAttachmentMeta, getWritableAttachmentMeta } from "./attachment.js";
 import { ServiceNowError } from "../core/errors.js";
 import { reportProgress } from "../core/progress.js";
 import { noteSecretRecords } from "./secret-columns.js";
+import { assertScanAllowed } from "./instance-scan.js";
 
 /**
  * ServiceNow Batch API (`/api/now/v1/batch`): run several REST calls in a
@@ -102,6 +103,8 @@ function tableFromUrl(url: string): string | undefined {
  */
 export const PACKAGE_BY_PATH: [RegExp, string][] = [
   [/^\/api\/sn_sc(?:\/|$)/i, "catalog"],
+  // Instance Scan runs belong to check_code_health; first match wins.
+  [/^\/api\/sn_cicd\/instance_scan(?:\/|$)/i, "codecheck"],
   [/^\/api\/sn_cicd(?:\/|$)/i, "atf"],
   [/^\/api\/sn_codesearch(?:\/|$)/i, "scripts"],
   [/^\/api\/now\/(?:v\d+\/)?identifyreconcile(?:\/|$)/i, "cmdb"],
@@ -177,6 +180,60 @@ export function tablesForSubRequest(req: {
         tables.add("cmdb_rel_ci");
       }
     }
+  }
+  return [...tables];
+}
+
+/**
+ * H-4: the tables a plugin API is governed by — the same backing tables its
+ * own tool checks before any request — so a batch cannot reach a denied
+ * table through the plugin API in front of it. First match wins.
+ */
+const BACKING_TABLES_BY_PATH: [RegExp, string[]][] = [
+  [
+    /^\/api\/sn_sc\/(?:v\d+\/)?servicecatalog\/catalogs\/[^/]+\/categories(?:\/|$)/i,
+    ["sc_category"],
+  ],
+  [
+    /^\/api\/sn_sc\/(?:v\d+\/)?servicecatalog\/catalogs(?:\/|$)/i,
+    ["sc_catalog"],
+  ],
+  [
+    /^\/api\/sn_sc\/(?:v\d+\/)?servicecatalog\/items\/[^/]+\/order_now\/?$/i,
+    ["sc_cat_item", "sc_request", "sc_req_item"],
+  ],
+  [/^\/api\/sn_sc\/(?:v\d+\/)?servicecatalog\/items(?:\/|$)/i, ["sc_cat_item"]],
+  [/^\/api\/sn_km_api\/(?:v\d+\/)?knowledge(?:\/|$)/i, ["kb_knowledge"]],
+  [/^\/api\/sn_chg_rest\/(?:v\d+\/)?change(?:\/|$)/i, ["change_request"]],
+  [
+    /^\/api\/sn_cicd\/testsuite(?:\/|$)/i,
+    ["sys_atf_test_suite", "sys_atf_test"],
+  ],
+  [/^\/api\/sn_cicd\/instance_scan(?:\/|$)/i, ["scan_result"]],
+];
+
+/** `/api/sn_cicd/instance_scan/...` — starting one is refused on prod. */
+const INSTANCE_SCAN = /^\/api\/sn_cicd\/instance_scan(?:\/|$)/i;
+
+/**
+ * The backing tables of a plugin-API sub-request, plus the target table of
+ * an Instance Scan point scan (`target_table`), as `runInstanceScan` checks.
+ */
+export function backingTablesForSubRequest(url: string): string[] {
+  const path = pathOf(url);
+  const tables = new Set<string>();
+  for (const [re, names] of BACKING_TABLES_BY_PATH) {
+    if (re.test(path)) {
+      for (const name of names) tables.add(name);
+      break;
+    }
+  }
+  if (INSTANCE_SCAN.test(path) && url.includes("?")) {
+    const query = new URLSearchParams(
+      url.slice(url.indexOf("?") + 1).split("#")[0],
+    );
+    const target = query.get("target_table");
+    if (target) tables.add(target);
   }
   return [...tables];
 }
@@ -362,6 +419,14 @@ export async function runBatch(
     const checkTable =
       req.method === "GET" ? assertTableAllowed : assertTableWriteAllowed;
     for (const table of tablesForSubRequest(req)) checkTable(table);
+    // H-4: a plugin API also meets its backing tables, as its tool does.
+    for (const table of backingTablesForSubRequest(req.url)) {
+      assertTableAllowed(table);
+    }
+    // N-3: a scan run is refused on a production-marked profile.
+    if (req.method !== "GET" && INSTANCE_SCAN.test(pathOf(req.url))) {
+      assertScanAllowed();
+    }
     const pkg = packageForUrl(req.url);
     if (!pkg && getBatchUnmapped() === "deny") {
       throw new ServiceNowError(
