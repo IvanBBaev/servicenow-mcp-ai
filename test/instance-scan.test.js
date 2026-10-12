@@ -199,8 +199,8 @@ test("scanRunRequest maps each target to its CI/CD path", () => {
     point.params.toString(),
     "target_table=sys_script&target_sys_id=br1",
   );
-  assert.deepEqual(scanRunRequest({ kind: "suite", suiteSysId: "a/b" }), {
-    path: "/api/sn_cicd/instance_scan/suite_scan/a%2Fb",
+  assert.deepEqual(scanRunRequest({ kind: "suite", comboSysId: "a/b" }), {
+    path: "/api/sn_cicd/instance_scan/suite_scan/combo/a%2Fb",
   });
   assert.throws(() =>
     scanRunRequest({ kind: "point", table: "a^b", sysId: "x" }),
@@ -249,7 +249,7 @@ test("runInstanceScan is refused in read-only mode and on a denied table", async
       );
       await withEnv({ SN_TABLES_DENY: "scan_result" }, () =>
         assert.rejects(
-          runInstanceScan({ kind: "suite", suiteSysId: "s1" }),
+          runInstanceScan({ kind: "suite", comboSysId: "s1" }),
           (err) => err instanceof ServiceNowError && err.status === 403,
         ),
       );
@@ -357,7 +357,7 @@ test("check_code_health scan_run with apply starts the scan and journals it", as
       assert.equal(o.scope, "instance");
       assert.equal(calls.length, 1);
       assert.equal(calls[0].init.method, "POST");
-      assert.match(calls[0].url, /\/instance_scan\/suite_scan\/su1$/);
+      assert.match(calls[0].url, /\/instance_scan\/suite_scan\/combo\/su1$/);
       const full = out(
         await healthTool.handler({ scan_run: "full", apply: true }),
       );
