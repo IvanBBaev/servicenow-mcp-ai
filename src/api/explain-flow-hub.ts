@@ -22,7 +22,6 @@ import {
   type FlowStep,
   type FlowTrigger,
   type FlowVariable,
-  LOG_LEVEL_CAVEAT,
   type Published,
   type Ref,
   type Run,
@@ -42,6 +41,7 @@ import {
   ref,
   stage,
   str,
+  variableValues,
 } from "./explain-flow-read.js";
 
 // --- flow / subflow ------------------------------------------------------------
@@ -68,27 +68,39 @@ const STEP_BASE = [
   "ui_id",
   "parent_ui_id",
   "comment",
-  "values",
 ];
 
-/** The step tables: `_v2` first, so a `_v2` row wins a `ui_id` clash. */
-const STEP_TABLES: { table: string; kind: StepKind; refField: string }[] = [
+/**
+ * The step tables: `_v2` first, so a `_v2` row wins a `ui_id` clash (O-5: on
+ * a PDI every clashing `_v2` row was updated after its v1 twin). Inputs live
+ * in `valuesField` on the `_v2` tables (base64 + gzip JSON) and, on the v1
+ * tables, in `sys_variable_value` rows keyed by the step (`v1Inputs`).
+ */
+const STEP_TABLES: {
+  table: string;
+  kind: StepKind;
+  refField: string;
+  valuesField?: string;
+}[] = [
   {
     table: "sys_hub_action_instance_v2",
     kind: "action",
     refField: "action_type",
+    valuesField: "values",
   },
   { table: "sys_hub_action_instance", kind: "action", refField: "action_type" },
   {
     table: "sys_hub_flow_logic_instance_v2",
     kind: "logic",
     refField: "logic_definition",
+    valuesField: "values",
   },
   { table: "sys_hub_flow_logic", kind: "logic", refField: "logic_definition" },
   {
     table: "sys_hub_sub_flow_instance_v2",
     kind: "subflow",
     refField: "subflow",
+    valuesField: "subflow_inputs",
   },
   { table: "sys_hub_sub_flow_instance", kind: "subflow", refField: "subflow" },
 ];
@@ -120,6 +132,10 @@ interface RawStep {
   source: string;
   row: SnRecord;
   key: string;
+  /** The `_v2` inputs column. */
+  values?: string;
+  /** v1: the step's `sys_variable_value` rows. */
+  variables?: SnRecord[];
 }
 
 /** Read the step rows of a flow (or of a snapshot) from all six tables. */
@@ -128,7 +144,12 @@ async function readSteps(ctx: ReadCtx, owner: string): Promise<RawStep[]> {
   const keys = new Set<string>();
   const byKind = new Map<StepKind, Set<string>>();
   for (const t of STEP_TABLES) {
-    const fields = [...STEP_BASE, t.refField, `${t.refField}.name`];
+    const fields = [
+      ...STEP_BASE,
+      ...(t.valuesField ? [t.valuesField] : []),
+      t.refField,
+      `${t.refField}.name`,
+    ];
     const rows = await boundedRead(
       ctx,
       t.table,
@@ -140,12 +161,21 @@ async function readSteps(ctx: ReadCtx, owner: string): Promise<RawStep[]> {
       tables.add(t.table);
       byKind.set(t.kind, tables);
     }
+    const kept: RawStep[] = [];
     for (const row of rows) {
       const key = str(row, "ui_id") || str(row, "sys_id");
       if (keys.has(key)) continue;
       keys.add(key);
-      out.push({ kind: t.kind, source: t.table, row, key });
+      kept.push({
+        kind: t.kind,
+        source: t.table,
+        row,
+        key,
+        ...(t.valuesField ? { values: str(row, t.valuesField) } : {}),
+      });
     }
+    if (!t.valuesField && kept.length) await readV1Inputs(ctx, t.table, kept);
+    out.push(...kept);
   }
   for (const [kind, tables] of byKind) {
     if (tables.size > 1) {
@@ -155,6 +185,32 @@ async function readSteps(ctx: ReadCtx, owner: string): Promise<RawStep[]> {
     }
   }
   return out;
+}
+
+/** Attach the `sys_variable_value` inputs of v1 step rows (O-5). */
+async function readV1Inputs(
+  ctx: ReadCtx,
+  table: string,
+  steps: RawStep[],
+): Promise<void> {
+  const rows = await boundedReadIn(
+    ctx,
+    "sys_variable_value",
+    "document_key",
+    steps.map((s) => str(s.row, "sys_id")),
+    ["document_key", "variable.element", "variable.label", "value", "order"],
+    { prefix: `document=${table}` },
+  );
+  const byStep = new Map<string, SnRecord[]>();
+  for (const r of rows) {
+    const id = str(r, "document_key");
+    byStep.set(id, [...(byStep.get(id) ?? []), r]);
+  }
+  for (const s of steps) {
+    const vars = byStep.get(str(s.row, "sys_id"));
+    if (vars)
+      s.variables = vars.sort((a, b) => num(a, "order") - num(b, "order"));
+  }
 }
 
 /** Build the ordered step tree from `ui_id` / `parent_ui_id`. */
@@ -169,9 +225,11 @@ function buildTree(
       : kind === "logic"
         ? "logic_definition"
         : "subflow";
-  const steps = raw.map(({ kind, source, row }): FlowStep => {
+  const steps = raw.map(({ kind, source, row, ...v }): FlowStep => {
     const r = ref(row, refField(kind));
-    const values = decodeValues(str(row, "values"), labels);
+    const values = v.variables
+      ? variableValues(v.variables, labels)
+      : decodeValues(v.values ?? "", labels);
     return {
       number: "",
       kind,
@@ -384,6 +442,7 @@ async function readRoles(ctx: ReadCtx, raw: string): Promise<Ref[]> {
   );
 }
 
+/** O-5: the sys_flow_log `level` choices are -1 Debug, 0 Information, 1 Warning, 2 Error. */
 const isErrorLevel = (level: string): boolean =>
   /^(error|2)$/i.test(level.trim());
 
@@ -422,7 +481,6 @@ async function readFlowRuns(
     }),
   );
   if (!runs.length) return runs;
-  ctx.caveats.push(LOG_LEVEL_CAVEAT);
   const logs = await boundedReadIn(
     ctx,
     "sys_flow_log",
@@ -531,7 +589,7 @@ export async function explainFlowDefinition(
       published.draftDiffers = !!latest && latest !== master;
       published.basis = "snapshot-pointers";
       ctx.caveats.push(
-        "No step rows were found under the published snapshot (snapshot child-row keying is unverified); draftDiffers compares latest_snapshot with master_snapshot only.",
+        "No step rows were found under the published snapshot; draftDiffers compares latest_snapshot with master_snapshot only.",
       );
     }
   } else if (master === sysId) {

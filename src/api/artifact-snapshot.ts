@@ -161,10 +161,12 @@ const FLOW_TABLE = "sys_hub_flow";
 /**
  * P-20: the published-snapshot caveat. The flow's child rows are read under
  * `master_snapshot` (the sys_hub_flow_snapshot record Flow Designer publishes)
- * — the same keying `servicenow_explain_flow` uses for `draftDiffers`.
+ * — the same keying `servicenow_explain_flow` uses for `draftDiffers`. O-5:
+ * on a PDI the six step tables hold rows under both the flow and its
+ * snapshots.
  */
 export const PUBLISHED_FLOW_WARNING =
-  "read from the published snapshot (sys_hub_flow_snapshot via master_snapshot); which of the published snapshot and the draft is authoritative, and the snapshot child-row keying, are unverified (O-5).";
+  "read from the published snapshot (sys_hub_flow_snapshot via master_snapshot); which of the published snapshot and the draft is authoritative is unverified (O-5).";
 
 type Parent = { sys_id: string; fields: Record<string, unknown> };
 
@@ -355,7 +357,7 @@ export async function collectArtifactType(
   }
   if (draftFallback > 0) {
     warnings.push(
-      `${t.type}: ${draftFallback} record(s) have a master_snapshot with no child rows under it; the draft definition was read (snapshot keying unverified, O-5).`,
+      `${t.type}: ${draftFallback} record(s) have a master_snapshot with no child rows under it; the draft definition was read.`,
     );
   }
   return {

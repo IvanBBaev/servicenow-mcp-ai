@@ -231,6 +231,38 @@ export function decodeValues(
   return out;
 }
 
+/**
+ * The inputs of a v1 step, read from its `sys_variable_value` rows (O-5: the
+ * v1 instance tables have no `values` column). Never throws.
+ */
+export function variableValues(
+  rows: SnRecord[],
+  labels: Map<string, string>,
+): DecodedValues | undefined {
+  const named = rows.filter((r) => opt(r, "variable.element"));
+  if (!named.length) return undefined;
+  const out: DecodedValues = {
+    format: "variables",
+    decoded: true,
+    bytes: named.reduce(
+      (n, r) => n + Buffer.byteLength(str(r, "value"), "utf8"),
+      0,
+    ),
+  };
+  out.inputs = named.slice(0, INPUTS_PER_STEP).map((r) => {
+    const input: StepInput = { name: str(r, "variable.element") };
+    if (opt(r, "variable.label")) input.label = str(r, "variable.label");
+    input.value = str(r, "value");
+    const pills = pillsIn(input.value, labels);
+    if (pills.length) input.pills = pills;
+    return input;
+  });
+  if (named.length > INPUTS_PER_STEP) {
+    out.inputsOmitted = named.length - INPUTS_PER_STEP;
+  }
+  return out;
+}
+
 export function stage(row: SnRecord): Stage {
   return {
     sys_id: str(row, "sys_id"),
