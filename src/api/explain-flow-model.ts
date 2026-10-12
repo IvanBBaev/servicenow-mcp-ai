@@ -29,7 +29,7 @@ export const RAW_PREVIEW = 1000;
 export const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const FLOW_CAVEAT =
-  "Flow Designer tables are verified:false: which of the v1 / _v2 instance tables is authoritative per release, the values compression format, snapshot child-row keying and the label_cache shape have not been confirmed on a live instance (gate O-5).";
+  "Flow Designer tables are verified:false. Checked on one PDI (gate O-5): step rows hang off the flow (draft) and off its sys_hub_flow_snapshot (published); _v2 inputs are base64 + gzip JSON (values, subflow_inputs), v1 inputs are sys_variable_value rows; label_cache is a JSON array. Unconfirmed: which of the v1 / _v2 tables is authoritative per release (on the PDI every clashing _v2 row was the newer one).";
 
 export const WORKFLOW_CAVEAT =
   "Legacy workflow tables are verified:false: their table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
@@ -42,9 +42,6 @@ export const PLAYBOOK_CAVEAT =
 
 export const PLAYBOOK_UNAVAILABLE =
   "Process Automation Designer (sys_pd_*) is not available on this instance: the playbook tables are absent or not readable. The family is licensed (gate O-9); install / license Process Automation Designer to explain playbooks.";
-
-export const LOG_LEVEL_CAVEAT =
-  "sys_flow_log level values are unverified: rows whose level is 'error' (or 2) are reported as errors.";
 
 export type ExplainFlowKind =
   | "flow"
@@ -82,9 +79,12 @@ export interface StepInput {
   pills?: Pill[];
 }
 
-/** A decoded `values` column. */
+/**
+ * A decoded `values` column, or (`variables`) a v1 step's
+ * `sys_variable_value` rows.
+ */
 export interface DecodedValues {
-  format: "empty" | "json" | "base64-gzip-json" | "unknown";
+  format: "empty" | "json" | "base64-gzip-json" | "unknown" | "variables";
   decoded: boolean;
   bytes: number;
   /** Name / value pairs, when the value is a list of them. */

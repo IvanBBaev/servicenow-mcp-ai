@@ -307,6 +307,27 @@ Date: 2026-10-13. Same PDI, GETs only (`sys_ui_list`, `sys_ui_list_element`,
 
 No code change; the `compact-read.ts` note and N-62 are updated.
 
+## Eighth pass: Flow Designer (`explain_flow`, flow snapshots)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_choice`, Table
+API reads of the step tables, `sys_variable_value`, `sys_flow_log`,
+`wf_context`, `wf_activity`).
+
+| Item                       | Was assumed                             | Result                                                                                                                                                                                                                                         |
+| -------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Snapshot children          | `flow = <snapshot sys_id>` (unverified) | **Confirmed.** All six step tables have rows under `sys_hub_flow` (draft) and under `sys_hub_flow_snapshot` (published).                                                                                                                       |
+| `_v2` step inputs          | `values` on every `_v2` table           | **1 wrong.** `sys_hub_action_instance_v2` and `sys_hub_flow_logic_instance_v2` use `values`; `sys_hub_sub_flow_instance_v2` has no `values` and keeps its inputs in `subflow_inputs` (all 286 rows base64 + gzip JSON). Fixed: read per table. |
+| v1 step inputs             | not read                                | v1 tables have no `values` column (`sys_hub_flow_logic` / `sys_hub_sub_flow_instance` have a `glide_var` `inputs`). Values are `sys_variable_value` rows (`document` = v1 table, `document_key` = step). Now read, as format `variables`.      |
+| v1 vs `_v2` on one `ui_id` | `_v2` wins                              | Clashes: action 466, logic 578, subflow 32, half under the flow and half under the snapshot. On every clash the `_v2` row is the newer one. Kept; which table is authoritative per release stays unconfirmed.                                  |
+| `label_cache`              | JSON array                              | Confirmed.                                                                                                                                                                                                                                     |
+| `values` encoding          | plain JSON or base64 + gzip JSON        | base64 + gzip JSON, sometimes behind leading whitespace; the decoder already handles it.                                                                                                                                                       |
+| `sys_flow_log.level`       | `error` or `2` is an error              | String choices `-1` Debug, `0` Information, `1` Warning, `2` Error. The level caveat is dropped.                                                                                                                                               |
+| `wf_context.state`         | `executing` is running                  | Confirmed (`cancelled`, `executing`, `finished`).                                                                                                                                                                                              |
+| `wf_activity`              | keyed by `workflow_version`             | Confirmed (`workflow_version`, `activity_definition`, `x`, `y`, `out_of_date`).                                                                                                                                                                |
+
+Not checked: P-25 (does toggling a flow's `active` leave `master_snapshot`
+unchanged) needs a write, and this PDI is read-only for us. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

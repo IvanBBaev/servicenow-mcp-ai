@@ -745,6 +745,67 @@ test("step values decode from JSON and base64 + gzip with labelled pills", async
   assert.equal(email.values, undefined);
 });
 
+test("O-5: v1 step inputs come from sys_variable_value, _v2 subflow inputs from subflow_inputs", async () => {
+  const tables = fixture();
+  tables.sys_variable_value = [
+    {
+      document: "sys_hub_sub_flow_instance",
+      document_key: "sub1",
+      "variable.element": "group",
+      "variable.label": "Group",
+      value: `{{${PILL}}}`,
+      order: "2",
+    },
+    {
+      document: "sys_hub_sub_flow_instance",
+      document_key: "sub1",
+      "variable.element": "urgent",
+      value: "true",
+      order: "1",
+    },
+    // Another table's row with the same key is not read.
+    {
+      document: "sys_hub_action_instance",
+      document_key: "sub1",
+      "variable.element": "stray",
+      value: "x",
+    },
+  ];
+  tables.sys_hub_sub_flow_instance_v2 = [
+    {
+      sys_id: "sub2",
+      flow: FLOW,
+      order: "700",
+      ui_id: "u7",
+      parent_ui_id: "",
+      subflow: SUB,
+      "subflow.name": "Notify Approvers",
+      subflow_inputs: `\n      ${gz([{ name: "record", value: "inc1", parameter: { label: "Record" } }])}`,
+    },
+  ];
+  const mock = instance(tables);
+  const res = payload(await run({ sys_id: FLOW }, mock));
+  const all = flat(res.steps);
+  const v1 = all.find((s) => s.sys_id === "sub1");
+  assert.equal(v1.values.format, "variables");
+  assert.deepEqual(v1.values.inputs, [
+    { name: "urgent", value: "true" },
+    {
+      name: "group",
+      label: "Group",
+      value: `{{${PILL}}}`,
+      pills: [{ pill: PILL, label: "Trigger > Incident > Priority" }],
+    },
+  ]);
+  const v2 = all.find((s) => s.sys_id === "sub2");
+  assert.equal(v2.values.format, "base64-gzip-json");
+  assert.deepEqual(v2.values.inputs, [
+    { name: "record", label: "Record", value: "inc1" },
+  ]);
+  // Only the v1 tables with kept rows read their variables.
+  assert.equal(mock.reads.filter((t) => t === "sys_variable_value").length, 1);
+});
+
 test("draft vs published compares the snapshot's steps", async () => {
   const res = payload(await run({ sys_id: FLOW }));
   assert.deepEqual(res.published, {
@@ -805,7 +866,8 @@ test("opt-in runs carry the error log rows", async () => {
     ["Create Task failed: ACL"],
   );
   assert.deepEqual(res.runs.find((r) => r.sys_id === "ctx1").errors, []);
-  assert.ok(res.caveats.some((c) => /sys_flow_log level values/.test(c)));
+  // O-5: the level choices are confirmed, so no caveat.
+  assert.ok(!res.caveats.some((c) => /sys_flow_log level/.test(c)));
 });
 
 test("orphans, cycles and deep nesting are bounded with caveats", async () => {
