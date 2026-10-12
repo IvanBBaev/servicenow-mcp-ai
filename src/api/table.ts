@@ -140,17 +140,47 @@ async function queryPage(
     params.set("sysparm_suppress_pagination_header", "true");
   }
 
-  const { data, total } = await snRequest<{ result: SnRecord[] }>({
-    method: "GET",
-    path: tablePath(opts.table),
-    params,
-    signal: opts.signal,
-  });
+  const get = () =>
+    snRequest<{ result: SnRecord[] }>({
+      method: "GET",
+      path: tablePath(opts.table),
+      params,
+      signal: opts.signal,
+    });
+  let response: Awaited<ReturnType<typeof get>>;
+  try {
+    response = await get();
+  } catch (error) {
+    // A long query (a big IN list) with more rows than the page answers 400
+    // "Pagination not supported": the instance cannot fit it into the Link
+    // header URLs (checked on a PDI, O-5). Nothing here reads that header,
+    // so the read is retried once without it.
+    if (
+      params.has("sysparm_suppress_pagination_header") ||
+      !isPaginationHeaderError(error)
+    ) {
+      throw error;
+    }
+    params.set("sysparm_suppress_pagination_header", "true");
+    response = await get();
+  }
+  const { data, total } = response;
   const records = expectResultArray(data, "Table API");
   // N-21: every page (fetchAll and onPage streaming included) registers its
   // secret columns before a caller can see it.
   await noteSecretRecords(opts.table, records);
   return { records, total };
+}
+
+const PAGINATION_HEADER = /pagination not supported/i;
+
+/** The Table API's 400 for a query too long for its Link paging header. */
+function isPaginationHeaderError(error: unknown): boolean {
+  if (!(error instanceof ServiceNowError) || error.status !== 400) return false;
+  const detail = (error.detail as { message?: unknown } | undefined)?.message;
+  return PAGINATION_HEADER.test(
+    `${error.message} ${typeof detail === "string" ? detail : ""}`,
+  );
 }
 
 /**
