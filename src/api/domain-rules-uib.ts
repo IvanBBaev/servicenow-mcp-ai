@@ -17,6 +17,11 @@ import {
   refOf,
   str,
 } from "./domain-rules-shared.js";
+import {
+  SCREEN_AUDIENCE_FIELDS,
+  SCREEN_AUDIENCE_TABLE,
+  screenAudienceIds,
+} from "./uib-variant.js";
 
 /**
  * P-19 UI Builder rules (`uib-*`).
@@ -110,23 +115,41 @@ export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
     }
   });
 
-  // 2. Screens with no applicability (audience).
+  // 2. Screens with no applicability (audience). sys_ux_screen has no
+  // applicability column: audiences are sys_ux_applicability_m2m_screen links
+  // (O-5), so read the custom screens, then their active links.
   await out.run(["uib-screen-no-applicability"], async () => {
-    const screens = need(
+    const custom = need(
       ctx,
       await read(
         ctx,
         "sys_ux_screen",
-        `applicabilityISEMPTY^${NOT_OOB}^${NEWEST}`,
+        `${NOT_OOB}^${NEWEST}`,
         ["sys_id", "name", "screen_type", "order"],
         limit,
       ),
       "sys_ux_screen",
     );
+    const links = await readIn(
+      ctx,
+      SCREEN_AUDIENCE_TABLE,
+      "screen",
+      custom.rows.map((r) => str(r, "sys_id")),
+      SCREEN_AUDIENCE_FIELDS,
+    );
+    // An unreadable or capped link read cannot prove a screen has none.
+    if (!links || links.capped) {
+      out.scanned("uib-screen-no-applicability", custom.rows.length, true);
+      return;
+    }
+    const audiences = screenAudienceIds(links.rows);
+    const screens = {
+      rows: custom.rows.filter((r) => !audiences.has(str(r, "sys_id"))),
+    };
     out.scanned(
       "uib-screen-no-applicability",
-      screens.rows.length,
-      screens.capped,
+      custom.rows.length,
+      custom.capped,
     );
     const types = screens.rows
       .map((r) => str(r, "screen_type"))
@@ -213,7 +236,7 @@ export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
         "name",
         brokers.map((b) => str(b.row, "sys_id")),
         ["name"],
-        "^type=ux_data_broker",
+        "^type.name=ux_data_broker",
       ),
       "sys_security_acl",
     );

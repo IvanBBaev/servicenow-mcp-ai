@@ -703,7 +703,7 @@ export async function explainUiExperience(
       "name",
       found,
       ["sys_id", "name", "operation", "active", "type"],
-      { prefix: "type=ux_data_broker" },
+      { prefix: "type.name=ux_data_broker" },
     );
     const aclBy = groupBy(aclRows, "name");
     for (const b of result.dataBrokers) {
