@@ -509,11 +509,11 @@ items:
     title: "registry verification probe"
     pillar: "P"
     effort: "S"
-    status: "open"
+    status: "partial"
     phase: null
     done: null
     gates: ["O-5"]
-    notes: "Needs P-1, S-13 and the PDI (O-5); resolves unverified tables/fields."
+    notes: "**Probe done 2026-10-12:** `scripts/pdi-verify.mjs` adds a verdict per artefact type (table, named fields, children, reference targets) and lists the unverified types the instance confirms and the verified types with misses. PDI ven03019: 121 unverified types confirmed, 0 verified types contradicted. No flag flipped: a flip also makes 401 / 403 fail loudly and most confirmed types sit in optional plugins, so the flips wait for the owner (TODO OD-4)."
   - id: "P-3"
     title: "SDK-managed scope detection"
     pillar: "P"

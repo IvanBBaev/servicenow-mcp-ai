@@ -114,6 +114,16 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     - (4) Flip nothing.
   - Recommend: (2) for the S-4 types now, then (3) type by type. A flip should never change the
     capability verdict on a governed instance.
+  - P-2 evidence (2026-10-12): `scripts/pdi-verify.mjs` now prints a verdict per type. On the
+    PDI, 121 of the unverified types have zero misses and no verified type has one.
+  - Two limits on option (3):
+    - A verified type also rethrows 401 / 403, not only 400 / 404 (`src/api/artifacts.ts`
+      list and get). A role-limited user then gets an error instead of a degraded result, even
+      on a core table.
+    - Most of the 121 sit in optional plugins (service portal, PA, ATF, UI Builder, GraphQL,
+      AI Agents). A verified plugin table fails loudly on an instance without that plugin.
+      `sys_package.source` does not separate core from plugin tables reliably, so this needs a
+      per-type judgement.
 - **OD-5 · Latest `scan_result` fallback (N-3).** _Not BREAKING for options 1 and 2._
   - Problem: the newest `scan_result` on the PDI (2026-08-21) has 0 findings, so the "latest
     scan" read in `src/api/instance-scan.ts` comes back empty.

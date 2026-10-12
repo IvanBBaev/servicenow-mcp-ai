@@ -17,6 +17,10 @@
 // server's own client and the active profile's env file; nothing is printed
 // from the credentials. Needs `npm run build` first.
 //
+// P-2: each artefact type also gets a verdict — confirmed when its table,
+// every named field, its children and its reference targets all exist —
+// and the report lists the unverified types the instance confirms.
+//
 //   node scripts/pdi-verify.mjs [--json] [--out FILE]
 import fs from "node:fs";
 import path from "node:path";
@@ -35,6 +39,8 @@ const NAME = /^[a-z0-9_]+$/;
 const refs = new Map();
 /** table → Set<source> */
 const tables = new Map();
+/** artefact type → registry `verified` flag */
+const typeVerified = new Map();
 
 function addTable(table, src) {
   if (!table || !NAME.test(table)) return;
@@ -95,6 +101,7 @@ async function collectRegistry() {
   );
   for (const a of ARTIFACT_TYPES) {
     const src = `artifact:${a.type}`;
+    typeVerified.set(a.type, Boolean(a.verified));
     collectSpec(a, a.table, src);
     for (const c of a.children ?? []) {
       const parent = c.parentTable ?? a.table;
@@ -345,6 +352,7 @@ async function main() {
     fields: fieldCount,
     missingTables,
     missingFields,
+    types: typeVerdicts(missingTables, missingFields),
   };
 
   const text = asJson ? JSON.stringify(result, null, 2) : report(result);
@@ -352,7 +360,35 @@ async function main() {
   else process.stdout.write(text + "\n");
 }
 
-function report({ tables: t, fields: f, missingTables, missingFields }) {
+/** Does a source string belong to the artefact type (itself or a child)? */
+const ofType = (src, type) => {
+  const own = `artifact:${type}`;
+  return (
+    src === own || src.startsWith(`${own}>`) || src.startsWith(`${own} → `)
+  );
+};
+
+/**
+ * P-2: per artefact type, the names the instance lacks; `confirmed` when
+ * none is missing. `verified` is the registry flag as it stands.
+ */
+function typeVerdicts(missingTables, missingFields) {
+  return [...typeVerified].sort().map(([type, verified]) => {
+    const missing = [
+      ...missingTables
+        .filter((m) => m.sources.some((s) => ofType(s, type)))
+        .map((m) => m.table),
+      ...missingFields
+        .filter((m) => m.sources.some((s) => ofType(s, type)))
+        .map((m) => `${m.table}.${m.field}`),
+    ];
+    return { type, verified, confirmed: missing.length === 0, missing };
+  });
+}
+
+function report({ tables: t, fields: f, missingTables, missingFields, types }) {
+  const confirmable = types.filter((v) => !v.verified && v.confirmed);
+  const contradicted = types.filter((v) => v.verified && !v.confirmed);
   const lines = [
     `Checked ${t} tables and ${f} table.field names.`,
     "",
@@ -363,6 +399,12 @@ function report({ tables: t, fields: f, missingTables, missingFields }) {
     ...missingFields.map(
       (m) => `  ${m.table}.${m.field}  ← ${m.sources.join(", ")}`,
     ),
+    "",
+    `Unverified types the instance confirms (${confirmable.length}):`,
+    ...confirmable.map((v) => `  ${v.type}`),
+    "",
+    `Verified types with missing names (${contradicted.length}):`,
+    ...contradicted.map((v) => `  ${v.type}  ← ${v.missing.join(", ")}`),
   ];
   return lines.join("\n");
 }
