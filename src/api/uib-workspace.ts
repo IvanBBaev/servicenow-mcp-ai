@@ -603,16 +603,21 @@ export async function readActionConfigs(
  */
 export interface UxActionExclusion {
   sys_id: string;
-  /** The table the exclusion names. */
+  /** The workspace table the action is hidden on. */
   table: string;
+  /**
+   * The ancestor table the exclusion names, when it reaches `table` through
+   * `exclude_all_child_tables`; absent for an exclusion on `table` itself.
+   */
+  inheritedFrom?: string;
   action_assignment: string;
   action_name?: string;
   label?: string;
   /** The table the excluded assignment is on. */
   assignmentTable?: string;
-  /** Hidden on `table` itself. */
+  /** Hidden on the table the exclusion names. */
   exclude_self: boolean;
-  /** Hidden on every table extending `table`. */
+  /** Hidden on every table extending the table the exclusion names. */
   exclude_all_child_tables: boolean;
   /** sys_ui_view name the exclusion is limited to. */
   view?: string;
@@ -620,24 +625,43 @@ export interface UxActionExclusion {
 
 const EXCLUSION_ASSIGNMENT_FIELDS = ["action_name", "label", "table"] as const;
 
+/** Workspace tables whose inheritance chain is walked for exclusions. */
+export const EXCLUSION_CHAIN_TABLES = 25;
+
 /**
  * Action exclusions (`sys_workspace_declarative_action_exclusion`, checked on
  * a PDI, O-5) on `tables`, with the excluded assignment's name and table read
- * through dot-walks. Only exclusions naming one of `tables` are read: one on
- * a parent table with `exclude_all_child_tables` is not found from a child.
+ * through dot-walks. With `chain` (the table's inheritance chain, itself
+ * first), an exclusion on an ancestor with `exclude_all_child_tables` is
+ * reported on each workspace table below it, marked `inheritedFrom`; the
+ * chains of the first EXCLUSION_CHAIN_TABLES tables (sorted) are walked.
  * Rows on other tables (an ignored filter) are dropped.
  */
 export async function readActionExclusions(
   io: WorkspaceIo,
   tables: Iterable<string>,
+  chain?: (table: string) => Promise<string[]>,
 ): Promise<UxActionExclusion[]> {
   const wanted = new Set([...tables].filter((t) => SAFE_TABLE.test(t)));
   if (!wanted.size) return [];
+  // ancestor → the workspace tables below it
+  const below = new Map<string, string[]>();
+  if (chain) {
+    for (const t of [...wanted].sort().slice(0, EXCLUSION_CHAIN_TABLES)) {
+      for (const a of (await chain(t)).slice(1)) {
+        if (!SAFE_TABLE.test(a)) continue;
+        const list = below.get(a) ?? [];
+        list.push(t);
+        below.set(a, list);
+      }
+    }
+  }
+  const named = new Set([...wanted, ...below.keys()]);
   const rows = (
     await io.readIn(
       "sys_workspace_declarative_action_exclusion",
       "table",
-      wanted,
+      named,
       [
         "sys_id",
         "table",
@@ -648,33 +672,40 @@ export async function readActionExclusions(
         "view.name",
       ],
     )
-  ).filter((r) => wanted.has(str(r, "table")) && opt(r, "action_assignment"));
-  return rows
-    .map((r) => {
-      const assignmentTable = opt(r, "action_assignment.table");
-      return {
-        sys_id: str(r, "sys_id"),
-        table: str(r, "table"),
-        action_assignment: str(r, "action_assignment"),
-        ...(opt(r, "action_assignment.action_name")
-          ? { action_name: opt(r, "action_assignment.action_name") }
-          : {}),
-        ...(opt(r, "action_assignment.label")
-          ? { label: opt(r, "action_assignment.label") }
-          : {}),
-        ...(assignmentTable ? { assignmentTable } : {}),
-        exclude_self: str(r, "exclude_self") === "true",
-        exclude_all_child_tables: str(r, "exclude_all_child_tables") === "true",
-        ...(opt(r, "view.name") ? { view: opt(r, "view.name") } : {}),
-      };
-    })
-    .sort(
-      (a, b) =>
-        a.table.localeCompare(b.table) ||
-        (a.label ?? a.action_name ?? a.action_assignment).localeCompare(
-          b.label ?? b.action_name ?? b.action_assignment,
-        ),
-    );
+  ).filter((r) => named.has(str(r, "table")) && opt(r, "action_assignment"));
+  const out: UxActionExclusion[] = [];
+  for (const r of rows) {
+    const assignmentTable = opt(r, "action_assignment.table");
+    const own = str(r, "table");
+    const children = str(r, "exclude_all_child_tables") === "true";
+    const base = {
+      sys_id: str(r, "sys_id"),
+      action_assignment: str(r, "action_assignment"),
+      ...(opt(r, "action_assignment.action_name")
+        ? { action_name: opt(r, "action_assignment.action_name") }
+        : {}),
+      ...(opt(r, "action_assignment.label")
+        ? { label: opt(r, "action_assignment.label") }
+        : {}),
+      ...(assignmentTable ? { assignmentTable } : {}),
+      exclude_self: str(r, "exclude_self") === "true",
+      exclude_all_child_tables: children,
+      ...(opt(r, "view.name") ? { view: opt(r, "view.name") } : {}),
+    };
+    if (wanted.has(own)) out.push({ table: own, ...base });
+    if (!children) continue;
+    for (const t of below.get(own) ?? []) {
+      out.push({ table: t, inheritedFrom: own, ...base });
+    }
+  }
+  return out.sort(
+    (a, b) =>
+      a.table.localeCompare(b.table) ||
+      (a.inheritedFrom ?? "").localeCompare(b.inheritedFrom ?? "") ||
+      (a.label ?? a.action_name ?? a.action_assignment).localeCompare(
+        b.label ?? b.action_name ?? b.action_assignment,
+      ),
+  );
 }
 
 export interface ClassifyInput {
@@ -913,7 +944,7 @@ export function workspaceLines(
         ...(x.exclude_all_child_tables ? ["child tables"] : []),
       ];
       out.push(
-        `- ${x.table}: **${x.label ?? x.action_name ?? x.action_assignment}**${x.assignmentTable ? ` (from ${x.assignmentTable})` : ""} hidden on ${where.join(" and ") || "nothing"}${x.view ? ` · view ${x.view}` : ""}`,
+        `- ${x.table}: **${x.label ?? x.action_name ?? x.action_assignment}**${x.assignmentTable ? ` (from ${x.assignmentTable})` : ""} hidden on ${where.join(" and ") || "nothing"}${x.inheritedFrom ? ` of ${x.inheritedFrom}` : ""}${x.view ? ` · view ${x.view}` : ""}`,
       );
     }
   }

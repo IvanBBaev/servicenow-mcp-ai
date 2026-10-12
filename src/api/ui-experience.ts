@@ -103,6 +103,7 @@ import {
   type Unreadable,
 } from "./bounded-read.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
+import { getTableChain } from "./meta.js";
 import {
   WORKSPACE_CAVEAT,
   classifyWorkspace,
@@ -957,6 +958,9 @@ function listConditionTerms(condition: string): {
   return terms.length ? { conditionTerms: terms } : {};
 }
 
+const CHAIN_CAVEAT =
+  "Table inheritance (sys_db_object) could not be read, so action exclusions inherited from parent tables are not listed.";
+
 /**
  * N-30: shell and chrome, declarative actions, UX form views, themes and the
  * Agent / Configurable Workspace classification (uib-workspace.ts).
@@ -1003,7 +1007,15 @@ async function readWorkspace(
   result.actions = (await readDeclarativeActions(io, tables)).sort(
     (a, b) => (a.table ?? "").localeCompare(b.table ?? "") || a.order - b.order,
   );
-  const actionExclusions = await readActionExclusions(io, tables);
+  // An unreadable sys_db_object leaves each table on its own exclusions.
+  let chainFailed = false;
+  const actionExclusions = await readActionExclusions(io, tables, (t) =>
+    getTableChain(t).catch(() => {
+      if (!chainFailed) ctx.caveats.push(CHAIN_CAVEAT);
+      chainFailed = true;
+      return [t];
+    }),
+  );
   if (actionExclusions.length) result.actionExclusions = actionExclusions;
   result.forms = formViews(result.actions, result.formActionLayouts);
   result.themes = await readThemes(io, [
