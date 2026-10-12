@@ -225,8 +225,8 @@ export interface InstanceWorkspaces {
  * The Agent Workspace tables are plugin tables: an absent table (400
  * "Invalid table", checked on a PDI, O-5) means none, not a caveat. AW lists
  * and restricted declarative actions are read only when an Agent Workspace
- * config exists. The category sys_id was checked on a PDI (O-5);
- * `sys_aw_list.table` is unverified until O-5.
+ * config exists. The category sys_id and `sys_aw_list.title` / `table`
+ * were checked on a PDI (O-5).
  */
 async function collectWorkspaces(): Promise<{
   data: InstanceWorkspaces;

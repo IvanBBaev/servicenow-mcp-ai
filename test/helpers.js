@@ -188,6 +188,7 @@ export const METADATA_TABLES = [
   // category and the legacy Agent Workspace configuration.
   /^sys_declarative_action_[a-z_]+$/,
   /^m2m_app_theme$/,
+  /^sys_ux_app$/,
   /^sys_ux_registry_m2m_category$/,
   /^sys_aw_(master_config|list)$/,
   // N-30 UX action configurations and their action-assignment m2m.
