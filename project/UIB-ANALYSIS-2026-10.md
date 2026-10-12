@@ -225,8 +225,10 @@ UIB support today is read and explain.
 - **Surface:**
   - `compare_instances` and `snapshot` diff macroponents per element, reported as added,
     removed, moved, prop changed or binding changed. The JSON hunk is kept behind `raw:true`.
-  - The `uib-page-weight` rule reports brokers fired on load, brokers without a `when`
-    condition, and depth or element count over a threshold.
+  - The `uib-page-weight` rule reports brokers fired on load, brokers without a load
+    condition, and depth or element count over a threshold. (PDI, 2026-10-13: the load mode
+    is `readEvaluationMode` — EAGER / EXPLICIT / ON_DEMAND — and the condition is a typed
+    `conditional`; no `when` key exists.)
   - `required_translations` feeds the N-7 i18n kind.
 - **Tests:** property tests for the element diff (diffing a page against itself is empty; a move
   is never reported as remove + add) and a page-weight golden.
