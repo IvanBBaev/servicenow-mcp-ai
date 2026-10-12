@@ -180,6 +180,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
   - Proposed text for (2): "the form view is built from action positions; the side panel is the
     `contextual_sidebar` position; there is no separate form config or side panel table".
   - Recommend: (2), in its own commit with the golden update.
+  - **Decided 2026-10-13: (2).** Done: `WORKSPACE_CAVEAT` carries the proposed text and notes
+    that action configurations and action exclusions are read.
 - **OD-9 · Stale Jira line in `CLAUDE.md`.** _Harness file; the owner edits it._
   - Problem: `CLAUDE.md` still describes a committed, dark Jira scaffold (`src/core/jira/`,
     `src/api/jira/`) with ARCH-14 deferred. O-1 = NO-GO deleted the scaffold

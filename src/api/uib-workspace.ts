@@ -41,7 +41,7 @@ export interface WorkspaceIo {
 }
 
 export const WORKSPACE_CAVEAT =
-  "Workspace coverage (N-30): the tables and fields read were checked on a PDI (O-5). Actions are found by the tables of the workspace's lists, form action layouts and new-tab menu; dedicated UX form config and side panel tables are not read (the form view is built from action positions).";
+  "Workspace coverage (N-30): the tables and fields read were checked on a PDI (O-5). Actions are found by the tables of the workspace's lists, form action layouts and new-tab menu; the form view is built from action positions, the side panel is the `contextual_sidebar` position, and there is no separate form config or side panel table. Action configurations and action exclusions are read.";
 
 /** The experience category the SDK gives every workspace (unified navigation). */
 export const WORKSPACE_CATEGORY = "afb4e3e173322010f0ca1e666bf6a726";
