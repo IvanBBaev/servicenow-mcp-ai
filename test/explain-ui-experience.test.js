@@ -1691,7 +1691,7 @@ test("N-31: pageHints lists uib-page-weight findings per macroponent", async () 
           metric: "unconditional-broker",
           value: 3,
           message:
-            "3 data resource(s) fire on page load without a `when` condition.",
+            "3 data resource(s) fire on page load without a `conditional`.",
           elementIds: ["incidents", "counter", "graph"],
         },
       ],
@@ -1708,8 +1708,8 @@ test("N-31: pageHints lists uib-page-weight findings per macroponent", async () 
   const tables = fixture();
   const data = [
     ...Array.from({ length: 6 }, (_, i) => ({ elementId: `b${i}` })),
-    { elementId: "lazy", evaluationMode: "JUST_IN_TIME" },
-    { elementId: "guarded", when: "@state.tab == 'x'" },
+    { elementId: "lazy", readEvaluationMode: "EXPLICIT" },
+    { elementId: "guarded", conditional: { type: "BINARY" } },
   ];
   tables.sys_ux_macroponent[1] = heavyMacroponent(HOME_MP, {
     n: 150,
@@ -1745,14 +1745,14 @@ test("N-31: pageHints lists uib-page-weight findings per macroponent", async () 
   assert.match(md, /## Page hints\n\n`uib-page-weight`: Split a heavy page/);
   assert.match(md, /- \*\*Heavy page\*\* \(Home \(default\)\)/);
   assert.match(md, / {2}- The page has 159 elements \(threshold 150\)\./);
-  assert.match(md, /without a `when` condition\. `b0`, `b1`/);
+  assert.match(md, /without a `conditional`\. `b0`, `b1`/);
 });
 
 test("N-31: a light page adds no pageHints and no caveat", async () => {
   const tables = fixture();
   tables.sys_ux_macroponent[1].data = JSON.stringify([
-    { elementId: "incidents", evaluationMode: "LAZY" },
-    { elementId: "counter", when: "@state.count > 0" },
+    { elementId: "incidents", readEvaluationMode: "EXPLICIT" },
+    { elementId: "counter", conditional: { type: "BINARY" } },
   ]);
   const res = payload(await run({ path: "now/acme" }, instance(tables)));
   assert.equal("pageHints" in res, false);

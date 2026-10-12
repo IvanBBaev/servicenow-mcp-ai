@@ -21,7 +21,7 @@
       "value": 170,
       "threshold": 150,
       "message": "The page has 170 elements (threshold 150).",
-      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `when` condition so the page loads only what it shows."
+      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `conditional` so the page loads only what it shows."
     },
     {
       "rule": "uib-page-weight",
@@ -30,7 +30,7 @@
       "value": 10,
       "threshold": 8,
       "message": "Slots nest 10 levels deep (threshold 8).",
-      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `when` condition so the page loads only what it shows."
+      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `conditional` so the page loads only what it shows."
     },
     {
       "rule": "uib-page-weight",
@@ -39,14 +39,14 @@
       "value": 7,
       "threshold": 5,
       "message": "7 data resources fire on page load (threshold 5).",
-      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `when` condition so the page loads only what it shows."
+      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `conditional` so the page loads only what it shows."
     },
     {
       "rule": "uib-page-weight",
       "severity": "info",
       "metric": "unconditional-broker",
       "value": 6,
-      "message": "6 data resource(s) fire on page load without a `when` condition.",
+      "message": "6 data resource(s) fire on page load without a `conditional`.",
       "elementIds": [
         "eager0",
         "eager1",
@@ -55,7 +55,7 @@
         "eager4",
         "eager5"
       ],
-      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `when` condition so the page loads only what it shows."
+      "hint": "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `conditional` so the page loads only what it shows."
     }
   ]
 }
