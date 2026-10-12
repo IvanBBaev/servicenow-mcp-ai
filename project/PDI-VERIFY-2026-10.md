@@ -244,6 +244,24 @@ level Basic (18,575 rows on the PDI). Retention (`sys_table_rotation`):
 `sys_outbound_http_log` and `syslog_transaction` rotate 8 × 7 days (about 8
 weeks); `ecc_queue` rotates 7 × 1 day.
 
+## Fifth pass: form action layouts (P-15)
+
+Date: 2026-10-13. Same PDI, GETs only. Live run: 2 layouts in
+`stefan-platform-analytics`, 7 layouts with 33 items in `playground`, no
+missing field and no unreadable table.
+
+| Table                             | Was read as                                 | Result                                                                                                                                                                               |
+| --------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `sys_ux_form_action_layout_item`  | child by `form_action_layout`, ref `action` | **No layout reference.** Fields: `action`, `label`, `item_type`, `layout_group`, `order`, `name`, `table`, `active`. Items link to a layout through `sys_ux_m2m_action_layout_item`. |
+| `sys_ux_m2m_action_layout_item`   | (not read)                                  | `ux_form_action_layout`, `ux_form_action_layout_item`, `order`, `active`, `display_type`, `variant`, `icon`, `table`. Now the registry child and the item order source.              |
+| `sys_ux_form_action`              | `label`, `action`, `applicability`          | **None exist.** It has `name`, `action_type`, `ui_action`, `declarative_action`, `table`, `specificity`, `active`. Items are labelled from the item `label` or the action `name`.    |
+| `sys_ux_applicability_m2m_layout` | (not read)                                  | `action_layout`, `applicability`, `order`, `active`: audiences are per layout, now `formActionLayouts[].applicability`.                                                              |
+
+Fixed in b07993f (`explain_ui_experience` items, the `uib_form_action_layout`
+child). The OD-1 key-field renames are left as they are. The fourth OD-1 row
+(`form_action_layout` → `layout_group`) is not a key field and is not the
+right link: `layout_group` groups items inside a layout. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

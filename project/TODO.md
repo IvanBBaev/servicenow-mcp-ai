@@ -44,6 +44,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     - `sys_declarative_action_payload_definition.key` → `action_key`
     - `sys_ux_event.name` → `event_name`
     - `sys_ux_form_action_layout_item.form_action_layout` → `layout_group`
+      (superseded 2026-10-13: this was a child link, not a key field; the
+      layout now reads its items through `sys_ux_m2m_action_layout_item`,
+      b07993f. Three renames are left.)
   - Options:
     - (1) Rename in 3.0 as a new O-4 register entry.
     - (2) Keep the old names. Their keys stay empty on every instance.
