@@ -833,10 +833,14 @@ export async function explainUiExperience(
     }
   }
 
-  // P-15: form action layouts of the experience's application scope.
+  // P-15: form action layouts of the experience's application scope. O-5
+  // (a PDI): an item is linked to its layout through
+  // sys_ux_m2m_action_layout_item (the item has no layout reference), names
+  // its sys_ux_form_action in `action`, and applicability is per layout
+  // (sys_ux_applicability_m2m_layout). sys_ux_form_action has `name`,
+  // `action_type` and the UI / declarative action it runs.
   const scope = opt(row, "sys_scope");
   const formItems: SnRecord[] = [];
-  const formActions = new Map<string, SnRecord>();
   if (scope && SAFE_ID.test(scope)) {
     const layoutRows = await boundedRead(
       ctx,
@@ -844,49 +848,81 @@ export async function explainUiExperience(
       `sys_scope=${scope}^ORDERBYname`,
       ["sys_id", "name", "table"],
     );
+    const layoutIds = ids(layoutRows);
+    const links = await boundedReadIn(
+      ctx,
+      "sys_ux_m2m_action_layout_item",
+      "ux_form_action_layout",
+      layoutIds,
+      [
+        "sys_id",
+        "ux_form_action_layout",
+        "ux_form_action_layout_item",
+        "order",
+      ],
+      { order: "order" },
+    );
     formItems.push(
       ...(await boundedReadIn(
         ctx,
         "sys_ux_form_action_layout_item",
-        "form_action_layout",
-        ids(layoutRows),
-        ["sys_id", "form_action_layout", "form_action", "order"],
-        { order: "order" },
+        "sys_id",
+        ids(links, "ux_form_action_layout_item"),
+        ["sys_id", "label", "action", "item_type"],
       )),
     );
+    const itemById = new Map(formItems.map((it) => [str(it, "sys_id"), it]));
+    const formActions = new Map<string, SnRecord>();
     for (const a of await boundedReadIn(
       ctx,
       "sys_ux_form_action",
       "sys_id",
-      ids(formItems, "form_action"),
-      ["sys_id", "label", "action", "applicability"],
+      ids(formItems, "action"),
+      ["sys_id", "name", "action_type", "ui_action", "declarative_action"],
     )) {
       formActions.set(str(a, "sys_id"), a);
     }
-    const itemsBy = groupBy(formItems, "form_action_layout");
+    const appBy = groupBy(
+      await boundedReadIn(
+        ctx,
+        "sys_ux_applicability_m2m_layout",
+        "action_layout",
+        layoutIds,
+        ["sys_id", "action_layout", "applicability"],
+        { order: "order" },
+      ),
+      "action_layout",
+    );
+    const linksBy = groupBy(links, "ux_form_action_layout");
     for (const l of layoutRows) {
+      const applicability = ids(
+        appBy.get(str(l, "sys_id")) ?? [],
+        "applicability",
+      );
       result.formActionLayouts.push({
         sys_id: str(l, "sys_id"),
         ...(opt(l, "name") ? { name: opt(l, "name") } : {}),
         ...(opt(l, "table") ? { table: opt(l, "table") } : {}),
-        items: (itemsBy.get(str(l, "sys_id")) ?? [])
-          .map((it) => {
-            const action = formActions.get(str(it, "form_action"));
+        ...(applicability.length ? { applicability } : {}),
+        items: (linksBy.get(str(l, "sys_id")) ?? [])
+          .map((link) => {
+            const id = str(link, "ux_form_action_layout_item");
+            const it = itemById.get(id);
+            const fa = it && opt(it, "action");
+            const action = fa ? formActions.get(fa) : undefined;
+            const label =
+              (it && opt(it, "label")) ?? (action && opt(action, "name"));
+            const pick = (r: SnRecord | undefined, f: string) =>
+              r && opt(r, f) ? { [f]: opt(r, f) } : {};
             return {
-              sys_id: str(it, "sys_id"),
-              order: num(it, "order"),
-              ...(opt(it, "form_action")
-                ? { form_action: opt(it, "form_action") }
-                : {}),
-              ...(action && opt(action, "label")
-                ? { label: opt(action, "label") }
-                : {}),
-              ...(action && opt(action, "action")
-                ? { action: opt(action, "action") }
-                : {}),
-              ...(action && opt(action, "applicability")
-                ? { applicability: opt(action, "applicability") }
-                : {}),
+              sys_id: id || str(link, "sys_id"),
+              order: num(link, "order"),
+              ...pick(it, "item_type"),
+              ...(fa ? { form_action: fa } : {}),
+              ...(label ? { label } : {}),
+              ...pick(action, "action_type"),
+              ...pick(action, "ui_action"),
+              ...pick(action, "declarative_action"),
             };
           })
           .sort(byOrder),
@@ -905,9 +941,7 @@ export async function explainUiExperience(
     ...result.listMenus.flatMap((m) =>
       m.categories.flatMap((c) => c.lists.flatMap((l) => l.applicability)),
     ),
-    ...result.formActionLayouts.flatMap((l) =>
-      l.items.flatMap((i) => (i.applicability ? [i.applicability] : [])),
-    ),
+    ...result.formActionLayouts.flatMap((l) => l.applicability ?? []),
   ]);
   for (const a of await boundedReadIn(
     ctx,
