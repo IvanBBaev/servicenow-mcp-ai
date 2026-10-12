@@ -656,7 +656,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
         nameField: "dependency",
       },
       {
-        table: "sys_package_dependency",
+        // OD-3: the PDI has the m2m table, not sys_package_dependency.
+        table: "sys_package_dependency_m2m",
         parentField: "sys_package",
         nameField: "dependency",
       },

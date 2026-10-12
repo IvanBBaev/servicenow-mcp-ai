@@ -92,6 +92,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
   - Evidence: PDI-VERIFY "Missing tables".
   - Recommend: (1) now. (3) for `sys_package_dependency` → `sys_package_dependency_m2m` as a
     follow-up. (2) only if risk assessment matters. Not (4) before 3.0.
+  - **Decided 2026-10-12: (1), plus (3) for `sys_package_dependency`.** Done: the four other
+    tables stay `verified:false`; the `application` child reads `sys_package_dependency_m2m`
+    (`sys_package` → `dependency`, fields checked on the PDI with GETs, 172 rows).
 - **OD-4 · Registry `verified` flag flips.** _Behaviour change, not in the O-4 register._
   - State: 9 types are `verified:true` and 136 are `verified:false`.
   - What the flag drives:

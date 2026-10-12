@@ -41,7 +41,7 @@
       ]
     },
     {
-      "table": "sys_package_dependency",
+      "table": "sys_package_dependency_m2m",
       "parentField": "sys_package",
       "verified": false,
       "count": 0,
