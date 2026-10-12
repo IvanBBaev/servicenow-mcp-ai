@@ -195,6 +195,8 @@ export const METADATA_TABLES = [
   /^sys_ux_m2m_action_assignment_action_config$/,
   // N-30 action exclusions (an action hidden on a table).
   /^sys_workspace_declarative_action_exclusion$/,
+  // N-26 screen variant audiences (the m2m, checked on a PDI, O-5).
+  /^sys_ux_applicability_m2m_screen$/,
   // N-7 translation coverage: UI messages, labels, translated text and fields, languages.
   /^sys_ui_message$/,
   /^sys_documentation$/,

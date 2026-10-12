@@ -289,6 +289,55 @@ test("query_table forwards the S-8 sysparm_* parameters", async () => {
   );
 });
 
+test("a 400 'Pagination not supported' is retried once without the Link header", async () => {
+  const tooLong = () =>
+    jsonResponse(400, {
+      error: {
+        message: "Pagination not supported",
+        detail:
+          "The requested query is too long to build the response pagination header URLs.",
+      },
+      status: "failure",
+    });
+  await withFetch(
+    (url) =>
+      params({ url }).get("sysparm_suppress_pagination_header") === "true"
+        ? jsonResponse(200, { result: rows(2) }, { "X-Total-Count": "835" })
+        : tooLong(),
+    async (calls) => {
+      const res = await queryTable({ table: "sys_ux_client_script", limit: 2 });
+      assert.equal(res.records.length, 2);
+      assert.equal(res.total, 835);
+      assert.equal(calls.length, 2);
+      assert.equal(
+        params(calls[0]).get("sysparm_suppress_pagination_header"),
+        null,
+      );
+    },
+  );
+  // Another 400, or one already without the header, is not retried.
+  await withFetch(
+    () => tooLong(),
+    async (calls) => {
+      await assert.rejects(
+        queryTable({
+          table: "sys_ux_client_script",
+          suppressPaginationHeader: true,
+        }),
+        /Pagination not supported/,
+      );
+      assert.equal(calls.length, 1);
+    },
+  );
+  await withFetch(
+    () => jsonResponse(400, { error: { message: "Invalid table x" } }),
+    async (calls) => {
+      await assert.rejects(queryTable({ table: "x" }));
+      assert.equal(calls.length, 1);
+    },
+  );
+});
+
 test("query_table 'domain' scopes every ^NQ segment; absent, the query is untouched (N-12)", async () => {
   const id = "c90d4b084a362312013398f5c3b2d3e1";
   await withFetch(

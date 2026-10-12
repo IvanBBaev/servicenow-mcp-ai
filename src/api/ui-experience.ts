@@ -68,7 +68,8 @@
  *
  * The tool takes the levels through its `detail` input; `format: "file"`
  * defaults to the full depth (the JSON lands in exports/, not in the
- * context). Prop, binding and handler shapes are verified:false until O-5.
+ * context). Prop, binding and handler shapes were checked on a PDI (O-5,
+ * 2026-10-12): five experiences, every binding resolved.
  *
  * Layout: the result and option shapes are in ui-experience-types.ts, the
  * Mermaid and Markdown renderers in ui-experience-render.ts; this module
@@ -104,6 +105,11 @@ import {
 } from "./bounded-read.js";
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
 import { getTableChain } from "./meta.js";
+import {
+  SCREEN_AUDIENCE_FIELDS,
+  SCREEN_AUDIENCE_TABLE,
+  screenAudienceIds,
+} from "./uib-variant.js";
 import {
   WORKSPACE_CAVEAT,
   classifyWorkspace,
@@ -213,9 +219,6 @@ const UI_BROKER_READS: readonly (readonly [string, string[]])[] = [
 const TRANSLATIONS_CAVEAT =
   "Translations list user-facing literals of the composition (text-like props and typed translation literals) against `required_translations`; both shapes are unverified until O-5, and the strings are not yet checked against sys_ui_message (N-7).";
 
-const DETAIL_CAVEAT =
-  "Element props, binding expressions, event handler targets and component resolution read UI Builder JSON shapes (propertyValues, typed bindings, handler definition / targetId / operationName) that have not been confirmed on a live instance (gate O-5).";
-
 const str = (row: SnRecord, field: string): string => snString(row[field]);
 const opt = (row: SnRecord, field: string): string | undefined =>
   str(row, field) || undefined;
@@ -298,7 +301,6 @@ const SCREEN_FIELDS = [
   "name",
   "screen_type",
   "macroponent",
-  "applicability",
   "order",
   "active",
 ];
@@ -524,6 +526,16 @@ export async function explainUiExperience(
     SCREEN_FIELDS,
     { order: "order" },
   );
+  // A variant's audiences live in the m2m, not on the screen row (O-5).
+  const screenAudiences = screenAudienceIds(
+    await boundedReadIn(
+      ctx,
+      SCREEN_AUDIENCE_TABLE,
+      "screen",
+      ids(screenRows, "sys_id"),
+      SCREEN_AUDIENCE_FIELDS,
+    ),
+  );
   const screensByType = groupBy(screenRows, "screen_type");
   for (const r of routeRows) {
     const screens: UxScreen[] = (screensByType.get(str(r, "screen_type")) ?? [])
@@ -534,8 +546,8 @@ export async function explainUiExperience(
         ...(opt(s, "macroponent")
           ? { macroponent: opt(s, "macroponent") }
           : {}),
-        ...(opt(s, "applicability")
-          ? { applicability: opt(s, "applicability") }
+        ...(screenAudiences.get(str(s, "sys_id"))?.length
+          ? { applicability: screenAudiences.get(str(s, "sys_id")) }
           : {}),
         ...(opt(s, "active") ? { active: opt(s, "active") } : {}),
       }))
@@ -889,7 +901,7 @@ export async function explainUiExperience(
 
   // Audiences: screen variants, lists and form actions.
   const applicabilityIds = new Set<string>([
-    ...ids(screenRows, "applicability"),
+    ...[...screenAudiences.values()].flat(),
     ...result.listMenus.flatMap((m) =>
       m.categories.flatMap((c) => c.lists.flatMap((l) => l.applicability)),
     ),
@@ -1263,7 +1275,6 @@ async function readDetail(
   macroRows: SnRecord[],
   scriptRows: SnRecord[],
 ): Promise<void> {
-  ctx.caveats.push(DETAIL_CAVEAT);
   const detail = {
     levels,
     components: 0,

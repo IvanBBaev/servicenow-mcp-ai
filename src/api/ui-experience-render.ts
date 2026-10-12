@@ -34,6 +34,15 @@ const audience = (
   return `${a.name ?? a.sys_id}${a.roles.length ? ` [${a.roles.join(", ")}]` : ""}`;
 };
 
+const audiences = (
+  result: ExplainUiExperienceResult,
+  ids: readonly string[] | undefined,
+): string | undefined =>
+  (ids ?? [])
+    .map((a) => audience(result, a))
+    .filter(Boolean)
+    .join("; ") || undefined;
+
 /**
  * The page map as a Mermaid flowchart (experience → routes → screen variants
  * → macroponents → data brokers, plus dashboards and list menus), capped by
@@ -92,7 +101,7 @@ export function uiExperienceMermaid(result: ExplainUiExperienceResult): {
     }
     for (const s of r.screens) {
       const sid = `s_${ident(s.sys_id)}`;
-      const who = audience(result, s.applicability);
+      const who = audiences(result, s.applicability);
       doc.edgeTo(
         rid,
         sid,
@@ -376,7 +385,7 @@ export function uiExperienceMarkdown(
       }`,
     );
     for (const s of r.screens) {
-      const who = audience(result, s.applicability);
+      const who = audiences(result, s.applicability);
       out.push(
         `  - Variant ${s.order}: ${s.name ?? s.sys_id} → ${macroName(result, s.macroponent)}${
           who ? ` · audience ${who}` : " · no applicability"

@@ -205,7 +205,7 @@ function renderUib(d) {
   var routes = d.routes.map(function (r) {
     return "<li>" + el("b", "", esc(r.name || r.sys_id)) + el("span", "dim", " " + esc(words([r.route_type, r.screen_type]))) +
       el("ul", "", arr(r.screens).map(function (s) {
-        var m = byId[s.macroponent], title = words([s.name || s.sys_id, has(s.applicability) ? "(" + s.applicability + ")" : ""]);
+        var m = byId[s.macroponent], title = words([s.name || s.sys_id, arr(s.applicability).length ? "(" + arr(s.applicability).join(", ") + ")" : ""]);
         return "<li>" + (m ? open(title, m) : esc(title) + el("span", "dim", " " + esc(s.macroponent))) + "</li>";
       }).join("")) + "</li>";
   }).join("");
