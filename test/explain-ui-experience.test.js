@@ -161,7 +161,6 @@ function fixture() {
         name: "Home (agent)",
         screen_type: ST_HOME,
         macroponent: AGENT_MP,
-        applicability: APP_AGENT,
         order: "200",
         active: "true",
       },
@@ -170,7 +169,6 @@ function fixture() {
         name: "Home (default)",
         screen_type: ST_HOME,
         macroponent: HOME_MP,
-        applicability: "",
         order: "100",
         active: "true",
       },
@@ -296,6 +294,22 @@ function fixture() {
         condition: "assigned_toDYNAMIC90d1921e5f510100a9ad2572f2b477fe",
         columns: "number, priority,state",
         order: "1",
+      },
+    ],
+    sys_ux_applicability_m2m_screen: [
+      {
+        sys_id: "ms1",
+        screen: "sc2",
+        applicability: APP_AGENT,
+        order: "100",
+        active: "true",
+      },
+      {
+        sys_id: "ms2",
+        screen: "sc1",
+        applicability: APP_LIST,
+        order: "100",
+        active: "false",
       },
     ],
     sys_ux_applicability_m2m_list: [
@@ -439,7 +453,9 @@ test("the fixture workspace walks routes → screen variants → macroponents", 
       ["record", []],
     ],
   );
-  assert.equal(res.routes[0].screens[1].applicability, APP_AGENT);
+  // Audiences come from the m2m; an inactive link is dropped.
+  assert.deepEqual(res.routes[0].screens[1].applicability, [APP_AGENT]);
+  assert.equal(res.routes[0].screens[0].applicability, undefined);
   assert.deepEqual(
     res.macroponents.map((m) => m.name),
     ["Acme shell", "Acme home", "Agent home"],

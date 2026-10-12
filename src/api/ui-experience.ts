@@ -105,6 +105,11 @@ import {
 import { keyQuery, queryTable, type SnRecord } from "./table.js";
 import { getTableChain } from "./meta.js";
 import {
+  SCREEN_AUDIENCE_FIELDS,
+  SCREEN_AUDIENCE_TABLE,
+  screenAudienceIds,
+} from "./uib-variant.js";
+import {
   WORKSPACE_CAVEAT,
   classifyWorkspace,
   decodeShell,
@@ -298,7 +303,6 @@ const SCREEN_FIELDS = [
   "name",
   "screen_type",
   "macroponent",
-  "applicability",
   "order",
   "active",
 ];
@@ -524,6 +528,16 @@ export async function explainUiExperience(
     SCREEN_FIELDS,
     { order: "order" },
   );
+  // A variant's audiences live in the m2m, not on the screen row (O-5).
+  const screenAudiences = screenAudienceIds(
+    await boundedReadIn(
+      ctx,
+      SCREEN_AUDIENCE_TABLE,
+      "screen",
+      ids(screenRows, "sys_id"),
+      SCREEN_AUDIENCE_FIELDS,
+    ),
+  );
   const screensByType = groupBy(screenRows, "screen_type");
   for (const r of routeRows) {
     const screens: UxScreen[] = (screensByType.get(str(r, "screen_type")) ?? [])
@@ -534,8 +548,8 @@ export async function explainUiExperience(
         ...(opt(s, "macroponent")
           ? { macroponent: opt(s, "macroponent") }
           : {}),
-        ...(opt(s, "applicability")
-          ? { applicability: opt(s, "applicability") }
+        ...(screenAudiences.get(str(s, "sys_id"))?.length
+          ? { applicability: screenAudiences.get(str(s, "sys_id")) }
           : {}),
         ...(opt(s, "active") ? { active: opt(s, "active") } : {}),
       }))
@@ -889,7 +903,7 @@ export async function explainUiExperience(
 
   // Audiences: screen variants, lists and form actions.
   const applicabilityIds = new Set<string>([
-    ...ids(screenRows, "applicability"),
+    ...[...screenAudiences.values()].flat(),
     ...result.listMenus.flatMap((m) =>
       m.categories.flatMap((c) => c.lists.flatMap((l) => l.applicability)),
     ),

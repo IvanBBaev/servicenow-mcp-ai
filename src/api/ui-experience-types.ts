@@ -64,7 +64,8 @@ export interface UxScreen {
   name?: string;
   order: number;
   macroponent?: string;
-  applicability?: string;
+  /** Audience ids from sys_ux_applicability_m2m_screen, in link order. */
+  applicability?: string[];
   active?: string;
 }
 

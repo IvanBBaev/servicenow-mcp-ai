@@ -422,7 +422,7 @@ const SAMPLES = {
             sys_id: "s1",
             name: "Home default",
             macroponent: "page1",
-            applicability: "All",
+            applicability: ["All"],
           },
         ],
       },
