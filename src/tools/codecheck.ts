@@ -33,7 +33,8 @@ const scriptType = z.enum([
 
 /**
  * N-3: the Instance Scan target of a `scan_run` call — a point scan needs the
- * record's table (`scope`) and `sys_id`, a suite scan the suite's `sys_id`.
+ * record's table (`scope`) and `sys_id`, a suite scan the `sys_id` of a
+ * `scan_combo` record (a check suite paired with its targets).
  */
 function scanTarget(
   run: "full" | "point" | "suite",
@@ -46,7 +47,7 @@ function scanTarget(
       hint: "Letters, digits, '_' or '-'; at most 32.",
     });
   if (run === "full") return { kind: "full" };
-  if (sysId && run === "suite") return { kind: "suite", suiteSysId: sysId };
+  if (sysId && run === "suite") return { kind: "suite", comboSysId: sysId };
   if (sysId && scope) return { kind: "point", table: scope, sysId };
   throw new ServiceNowError(
     `scan_run "${run}" needs ${run === "point" ? "scope and sys_id" : "sys_id"}.`,
@@ -54,7 +55,7 @@ function scanTarget(
     undefined,
     {
       code: "INVALID_INPUT",
-      hint: "point: scope = the record's table, sys_id = the record; suite: sys_id = the scan suite.",
+      hint: "point: scope = the record's table, sys_id = the record; suite: sys_id = a scan_combo record (a check suite with its targets).",
     },
   );
 }

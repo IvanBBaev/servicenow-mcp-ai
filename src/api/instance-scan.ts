@@ -251,15 +251,24 @@ export function renderInstanceScan(report: InstanceScanReport): string[] {
 
 // ── run (phase D) ─────────────────────────────────────────────────────────
 
-/** What a scan run covers: the whole instance, one record, or one suite. */
+/**
+ * What a scan run covers: the whole instance, one record, or a suite run
+ * through a combo — a `scan_combo` record that pairs a check suite with its
+ * targets (the CI/CD API has no plain suite run; a bare suite needs its
+ * scoped apps or update sets in the body).
+ */
 export type InstanceScanTarget =
   | { kind: "full" }
   | { kind: "point"; table: string; sysId: string }
-  | { kind: "suite"; suiteSysId: string };
+  | { kind: "suite"; comboSysId: string };
 
 const SCAN_PATH = "/api/sn_cicd/instance_scan";
 
-/** The CI/CD path and query of a scan run. */
+/**
+ * The CI/CD path and query of a scan run. Paths checked on a PDI (O-5,
+ * 2026-10-12) against the CICD Spoke's REST steps and by GET (405 = the
+ * POST route exists); no scan was started.
+ */
 export function scanRunRequest(target: InstanceScanTarget): {
   path: string;
   params?: URLSearchParams;
@@ -278,7 +287,7 @@ export function scanRunRequest(target: InstanceScanTarget): {
       };
     case "suite":
       return {
-        path: `${SCAN_PATH}/suite_scan/${encodeURIComponent(target.suiteSysId)}`,
+        path: `${SCAN_PATH}/suite_scan/combo/${encodeURIComponent(target.comboSysId)}`,
       };
   }
 }
@@ -310,7 +319,7 @@ export function assertScanAllowed(profile: string = activeProfile()): void {
  * table of a point scan), and wrapped in {@link pluginCall} so an inactive
  * `sn_cicd` plugin reports clearly. Returns the progress id to poll with
  * {@link waitForInstanceScan}. Refused on a production-marked profile
- * ({@link assertScanAllowed}); the endpoints are unverified until O-5.
+ * ({@link assertScanAllowed}).
  */
 export async function runInstanceScan(
   target: InstanceScanTarget,
