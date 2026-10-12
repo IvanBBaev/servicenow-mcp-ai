@@ -206,6 +206,7 @@ Caveats from this pass:
 | 52647de | Workspace coverage (N-30): `m2m_app_theme` links a theme to a `sys_ux_app` through `ux_app` (no `app` field; 0 rows on the PDI); an experience names its app in `sys_ux_page_registry.parent_app` (147 experiences) and `sys_ux_app.theme` is the app theme; `sys_declarative_action_definition` has `name` (no `label` / `action_name`); the payload definition has `label` / `action_key` (no `key`); every `sys_declarative_action_assignment` field read exists; `sys_aw_list.title` / `table` and `sys_aw_master_config.name` exist. tools/list delta 0 B.                                                                                                                   |
 | f38f1c7 | `pendingApprovals` names an approval on a non-task record (a scoped app table such as `x_nuvo_com_ecr`) by `source_table` and `document_id`; the `sysapproval.*` dot-walks are empty there. `task_sla` `stage` and `has_breached` are read as stored (a PDI demo SLA shows stage Breached with `has_breached=false`).                                                                                                                                                                                                                                                                                                                                                             |
 | 011df75 | UI Builder page hints (N-31): a data resource in `sys_ux_macroponent.data` carries `readEvaluationMode` (EAGER 4,960 / EXPLICIT 3,047 / absent 57 / ON_DEMAND 1 over 8,066 resources on 2,342 macroponents) and once a typed `conditional` (`{type:"BINARY", operation}`); no `when` / `evaluationMode` key exists, so every resource had counted as on load. `required_translations` is `[{message, code, comment}]` (833), `[{message, comment}]` (1,153) or `[]` (1,009); composition literals are `TRANSLATION_LITERAL` (`value.message`); 96% of the strings found on 400 pages are declared. Composition reads page at 50 rows (500 rows pass 50 MB). tools/list delta 0 B. |
+| 385dba0 | ATF definitions (N-16, NX-20): editing a step (`sys_atf_step`) or a suite membership (`sys_atf_test_suite_test`) does not bump the parent's `sys_updated_on` — 2,702 of 4,772 steps and 280 of 335 memberships are newer than their test / suite. The unchanged-test check now also reads the newest child `sys_updated_on`; both child queries return sorted rows (47 steps for 5 tests, 22 memberships for 5 suites). The PDI has no ATF result rows, so the full history path was not run live. tools/list delta 0 B.                                                                                                                                                          |
 
 Gate on the merged tip: 2496 pass / 0 fail / 1 skipped, pack 2629.4 KB.
 
@@ -220,7 +221,6 @@ Still unverified after this pass:
   `sys_dictionary.default_value` and `sys_rest_message_fn`
   `rest_endpoint` / `content` are strings, `sys_ui_macro.xml` and
   `sys_ui_page.html` are xml, `sp_widget.css` is css.
-- Whether ATF step or suite edits bump `sys_updated_on` / `sys_mod_count`.
 
 ## Fourth pass: `ops` (N-6 and the v1 kinds)
 
