@@ -13,9 +13,11 @@ import { isSysId } from "../sys-id.js";
  * typed translation literal (`{type: "TRANSLATION_LITERAL", value}` or an
  * object flagged `translatable: true`).
  *
- * ASSUMPTION (unverified until O-5, PDI): the typed translation literal
- * shape, and that `required_translations` is an array of strings or of
- * `{message|key|text|value|label}` objects (or an object keyed by message).
+ * Checked on a PDI (O-5, 2026-10-12): a typed literal is
+ * `{type: "TRANSLATION_LITERAL", value: {message, code, comment}}` (no
+ * `translatable` flag seen), and `required_translations` is an array of
+ * `{message, code?, comment}`; the other accepted shapes are kept as
+ * fallbacks. On 400 pages, 96% of the strings found are declared.
  */
 
 type Obj = Record<string, unknown>;
@@ -31,7 +33,7 @@ const TEXT_MAX = 300;
 
 /** Prop names (last segment) that carry user-facing text. */
 const TEXT_PROP =
-  /(^|[._-])(label|title|subtitle|heading|header|text|message|placeholder|tooltip|description|caption|helpText|hint|emptyState\w*|ariaLabel|alt|confirmText|cancelText|buttonText)$/i;
+  /(^|[._-])(label|title|subtitle|heading|header|text|message|placeholder|tooltip|description|caption|helpText|hint|emptyState(Heading|Title|Content|Message|Text|Description)|ariaLabel|alt|confirmText|cancelText|buttonText)$/i;
 
 const BINDING = /@(data|state|context|payload)\./;
 const URL_LIKE = /^(https?:)?\/\/|^\/[\w./?=&%-]*$/;

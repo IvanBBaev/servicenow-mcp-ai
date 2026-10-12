@@ -472,21 +472,30 @@ test("page-weight rule catalogue has the existing rule shape", () => {
 });
 
 test("firesOnLoad / hasWhenCondition", () => {
+  // Shapes checked on a PDI (O-5): readEvaluationMode and conditional.
   assert.equal(firesOnLoad({}), true);
-  assert.equal(firesOnLoad({ evaluationMode: "EAGER" }), true);
-  assert.equal(firesOnLoad({ evaluationMode: "JUST_IN_TIME" }), false);
-  assert.equal(firesOnLoad({ invocation: "ON_DEMAND" }), false);
+  assert.equal(firesOnLoad({ readEvaluationMode: "EAGER" }), true);
+  assert.equal(firesOnLoad({ readEvaluationMode: "EXPLICIT" }), false);
+  assert.equal(firesOnLoad({ readEvaluationMode: "ON_DEMAND" }), false);
+  assert.equal(firesOnLoad({ evaluationMode: "EXPLICIT" }), true);
   assert.equal(hasWhenCondition({}), false);
-  assert.equal(hasWhenCondition({ when: " " }), false);
-  assert.equal(hasWhenCondition({ when: "@state.ready" }), true);
-  assert.equal(hasWhenCondition({ condition: { type: "X" } }), true);
-  assert.equal(hasWhenCondition({ whenCondition: [1] }), true);
+  assert.equal(hasWhenCondition({ conditional: " " }), false);
+  assert.equal(hasWhenCondition({ conditional: {} }), false);
+  assert.equal(
+    hasWhenCondition({
+      conditional: { type: "BINARY", operation: { operator: "EQUAL" } },
+    }),
+    true,
+  );
+  assert.equal(hasWhenCondition({ when: "@state.ready" }), false);
 });
 
 test("a light page has no findings", () => {
   const r = lintUibPageWeight({
     composition: JSON.stringify(PAGE),
-    data: JSON.stringify([{ elementId: "list_broker", when: "@state.ready" }]),
+    data: JSON.stringify([
+      { elementId: "list_broker", conditional: { type: "BINARY" } },
+    ]),
   });
   assert.deepEqual(r.findings, []);
   assert.deepEqual(r.metrics, {
@@ -525,8 +534,8 @@ function heavyPage() {
       elementId: `eager${i}`,
       definition: { id: "b", type: "TRANSFORM" },
     })),
-    { elementId: "guarded", when: "@state.open" },
-    { elementId: "lazy", evaluationMode: "JUST_IN_TIME" },
+    { elementId: "guarded", conditional: { type: "BINARY" } },
+    { elementId: "lazy", readEvaluationMode: "EXPLICIT" },
   ];
   return { composition: [...wide, deep], data };
 }

@@ -191,7 +191,7 @@ export const UI_SCRIPT_MAX = 100_000;
 export const UI_TRANSLATION_SAMPLE = 20;
 
 const PAGE_HINT_CAVEAT =
-  "Page hints (uib-page-weight) treat a data resource with no on-demand evaluation mode as fired on page load, and read `when` conditions from data resource shapes that have not been confirmed on a live instance (gate O-5).";
+  "Page hints (uib-page-weight) count a data resource as fired on page load unless its readEvaluationMode is EXPLICIT or ON_DEMAND; a non-empty `conditional` counts as a load condition, though it is not evaluated.";
 
 const BROKER_HINT_CAVEAT =
   "Broker hints (N-29) read `mutates_server_data` and the `props` input schema of the transform, scriptlet, REST and GraphQL broker tables; the GlideRecord rule is a static check of the transform script.";
@@ -217,7 +217,7 @@ const UI_BROKER_READS: readonly (readonly [string, string[]])[] = [
 ];
 
 const TRANSLATIONS_CAVEAT =
-  "Translations list user-facing literals of the composition (text-like props and typed translation literals) against `required_translations`; both shapes are unverified until O-5, and the strings are not yet checked against sys_ui_message (N-7).";
+  "Translations list user-facing literals of the composition (text-like props and typed translation literals) against `required_translations`; text-like props are matched by name, and the strings are not yet checked against sys_ui_message (N-7).";
 
 const str = (row: SnRecord, field: string): string => snString(row[field]);
 const opt = (row: SnRecord, field: string): string | undefined =>

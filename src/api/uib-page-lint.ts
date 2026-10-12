@@ -12,17 +12,17 @@ import type { UibRule, UibSeverity } from "./uib-script-lint.js";
  * - `depth`: slot nesting deeper than the threshold;
  * - `on-load-brokers`: more data resources fired on page load than the
  *   threshold (each one is a server round trip before the page settles);
- * - `unconditional-broker`: data resources fired on load with no `when`
+ * - `unconditional-broker`: data resources fired on load with no `conditional`
  *   condition (they run even when the page never shows their output).
  *
  * Pure: no network, no I/O. Findings carry the rule id, severity, metric,
  * measured value, threshold, a message and the rule hint.
  *
- * ASSUMPTION (unverified until O-5, PDI): a data resource that runs on load
- * is one whose `evaluationMode` (or `invocation` / `trigger`) is absent or
- * reads EAGER / ON_LOAD / PAGE_LOAD; JUST_IN_TIME, LAZY, MANUAL, INVOKED and
- * ON_DEMAND mean "only when an event invokes it". A `when` condition is a
- * non-empty `when`, `condition` or `whenCondition` on the data resource.
+ * Checked on a PDI (O-5, 2026-10-12, 2,342 macroponents, 8,066 data
+ * resources): a data resource carries `readEvaluationMode` — EAGER (runs on
+ * load), EXPLICIT (only when an event invokes it) or, rarely, ON_DEMAND;
+ * an absent mode runs on load. A load condition is a non-empty
+ * `conditional` (a typed BINARY / binding operation); no `when` key exists.
  */
 
 /** The page-level rule catalogue (same shape as UIB_SCRIPT_RULES). */
@@ -30,7 +30,7 @@ export const UIB_PAGE_RULES: readonly UibRule[] = [
   {
     id: "uib-page-weight",
     severity: "info",
-    hint: "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `when` condition so the page loads only what it shows.",
+    hint: "Split a heavy page into viewports or sub-pages, flatten deep slot nesting, and make data resources invoke on demand or behind a `conditional` so the page loads only what it shows.",
   },
 ];
 
@@ -77,7 +77,7 @@ export interface UibPageMetrics {
   dataBrokers: number;
   /** Data resources fired on page load. */
   onLoadBrokers: number;
-  /** On-load data resources without a `when` condition. */
+  /** On-load data resources without a `conditional`. */
   unconditionalOnLoad: string[];
   /** The composition or data hit a cap or has an unknown shape. */
   partial?: true;
@@ -95,7 +95,7 @@ type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj =>
   !!v && typeof v === "object" && !Array.isArray(v);
 
-const ON_DEMAND = /JUST_IN_TIME|LAZY|MANUAL|INVOKE|ON_DEMAND|EXPLICIT/i;
+const ON_DEMAND = /EXPLICIT|ON_DEMAND/i;
 
 /** A raw JSON column (string) or an already decoded value. */
 function decoded(
@@ -110,21 +110,16 @@ function decoded(
 
 /** Whether a data resource runs on page load (see the module ASSUMPTION). */
 export function firesOnLoad(resource: Obj): boolean {
-  const mode = [
-    resource.evaluationMode,
-    resource.invocation,
-    resource.trigger,
-  ].find((v) => typeof v === "string" && v);
+  const mode = resource.readEvaluationMode;
   return typeof mode !== "string" || !ON_DEMAND.test(mode);
 }
 
-/** Whether a data resource has a non-empty `when` condition. */
+/** Whether a data resource has a non-empty `conditional`. */
 export function hasWhenCondition(resource: Obj): boolean {
-  return [resource.when, resource.condition, resource.whenCondition].some(
-    (v) =>
-      (typeof v === "string" && v.trim() !== "") ||
-      (isObj(v) && Object.keys(v).length > 0) ||
-      (Array.isArray(v) && v.length > 0),
+  const v = resource.conditional;
+  return (
+    (typeof v === "string" && v.trim() !== "") ||
+    (isObj(v) && Object.keys(v).length > 0)
   );
 }
 
@@ -210,7 +205,7 @@ export function lintUibPageWeight(
     add({
       metric: "unconditional-broker",
       value: metrics.unconditionalOnLoad.length,
-      message: `${metrics.unconditionalOnLoad.length} data resource(s) fire on page load without a \`when\` condition.`,
+      message: `${metrics.unconditionalOnLoad.length} data resource(s) fire on page load without a \`conditional\`.`,
       elementIds: metrics.unconditionalOnLoad.slice(0, 50),
     });
   }
