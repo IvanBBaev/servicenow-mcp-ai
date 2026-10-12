@@ -24,7 +24,7 @@ const matrix = JSON.parse(readFileSync(MATRIX_PATH, "utf8"));
 const rows = matrix.requirements;
 
 const LEVELS = new Set(["MUST", "MUST NOT", "SHOULD", "SHOULD NOT"]);
-const STATUSES = new Set(["covered", "pending", "n/a"]);
+const STATUSES = new Set(["covered", "pending", "n/a", "deviation"]);
 const ID_PATTERN = /^[a-z]+-\d{2}$/;
 /** RFC 2119: REQUIRED/SHALL mean MUST, RECOMMENDED means SHOULD. */
 const KEYWORD_EQUIVALENTS = {
@@ -108,7 +108,7 @@ test("covered rows name tests that exist with that exact title", () => {
   }
 });
 
-test("pending rows name an N-35 step; n/a rows give a reason; neither lists tests", () => {
+test("pending rows name an N-35 step; n/a and deviation rows give a reason; none lists tests", () => {
   for (const row of rows) {
     if (row.status === "pending") {
       assert.ok(
@@ -116,10 +116,16 @@ test("pending rows name an N-35 step; n/a rows give a reason; neither lists test
         `${row.id}: pending on unknown step ${row.step}`,
       );
     }
-    if (row.status === "n/a") {
+    if (row.status === "n/a" || row.status === "deviation") {
       assert.ok(
         typeof row.reason === "string" && row.reason.length > 0,
-        `${row.id}: n/a without reason`,
+        `${row.id}: ${row.status} without reason`,
+      );
+    }
+    if (row.status === "deviation") {
+      assert.ok(
+        Number.isInteger(row.ownerQuestion),
+        `${row.id}: a deviation needs the owner decision (ownerQuestion)`,
       );
     }
     if (row.status !== "covered") {
@@ -148,7 +154,13 @@ test("the pending count only shrinks: lower `pendingCeiling` with each row cover
 test("the project doc states the current counts", () => {
   const doc = readFileSync(DOC_PATH, "utf8");
   const count = (status) => rows.filter((r) => r.status === status).length;
-  const cells = [rows.length, count("covered"), count("pending"), count("n/a")];
+  const cells = [
+    rows.length,
+    count("covered"),
+    count("pending"),
+    count("n/a"),
+    count("deviation"),
+  ];
   const expected = `| ${cells.join(" | ")} |`;
   // Prettier pads table cells, so match the row with any spacing.
   const row = new RegExp(

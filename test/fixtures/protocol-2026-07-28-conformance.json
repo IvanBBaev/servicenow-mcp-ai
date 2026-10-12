@@ -35,7 +35,7 @@
     "logging": "N-35 step 1: per-request io.modelcontextprotocol/logLevel; no notifications/message without it; never on a listen stream.",
     "auth": "N-17: OAuth 2.1 resource server for HTTP — RFC 9728 metadata, audience-bound token validation, WWW-Authenticate challenges."
   },
-  "pendingCeiling": 2,
+  "pendingCeiling": 0,
   "requirements": [
     {
       "id": "base-01",
@@ -2349,9 +2349,9 @@
       "text": "Servers MUST use URL mode for interactions involving such sensitive information",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/client/elicitation#user-interaction-model",
       "applies": "always",
-      "status": "pending",
-      "step": "mrtr",
-      "ownerQuestion": 2
+      "status": "deviation",
+      "ownerQuestion": 2,
+      "reason": "Accepted deviation (owner, 2026-10-13, OD-10): the modern wire refuses form-mode secrets (decision 2) and set_credentials points to the env file or secret files; there is no URL-mode credential page."
     },
     {
       "id": "mrtr-21",
@@ -3057,9 +3057,9 @@
       "text": "This set MAY be empty and MAY change over time (see List Changed Notification), but MUST NOT vary per-connection or as a side effect of other requests on the connection.",
       "source": "https://modelcontextprotocol.io/specification/2026-07-28/server/resources#capabilities",
       "applies": "always",
-      "status": "pending",
-      "step": "packages",
-      "ownerQuestion": 1
+      "status": "deviation",
+      "ownerQuestion": 1,
+      "reason": "Accepted deviation (owner, 2026-10-13, OD-10): reading a table schema adds its per-profile entry (decision 1); the 2026-07-28 list carries ttlMs 0 and cacheScope private."
     },
     {
       "id": "resources-04",

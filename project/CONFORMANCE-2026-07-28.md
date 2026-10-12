@@ -14,7 +14,7 @@ specification, its schema and changelog, and the `io.modelcontextprotocol/tasks`
 row keeps the spec sentence, its source URL and an `applies` scope (`always`, `http`, `stdio`,
 `auth`, `tasks`). Client-only requirements are left out.
 
-A row has one of three statuses:
+A row has one of four statuses:
 
 - **covered**: a test in this repo pins the behaviour. The row names the test as
   `test/<file>.test.js :: <exact title>`, and the gate fails if that title disappears. A row is
@@ -24,15 +24,17 @@ A row has one of three statuses:
   cover it.
 - **n/a**: the requirement is outside this server's scope, for example a feature it never
   uses. The row says why.
+- **deviation**: the server knowingly does not meet the requirement, by an owner decision. The
+  row says why and carries `ownerQuestion` with the decision's number.
 
 The gate holds `pendingCeiling` equal to the pending count, so the count can only go down:
 whoever covers a row also lowers the ceiling.
 
 ## Counts
 
-| total | covered | pending | n/a |
-| ----- | ------- | ------- | --- |
-| 364   | 316     | 2       | 46  |
+| total | covered | pending | n/a | deviation |
+| ----- | ------- | ------- | --- | --------- |
+| 364   | 316     | 0       | 46  | 2         |
 
 Pending rows by step:
 
@@ -40,11 +42,11 @@ Pending rows by step:
 | ---------- | ---- | ------------------------------------------------------------------------------------------------------ |
 | `wire`     | 0    | N-35 step 1: modern wire on SDK v2 (dual-revision negotiation, `_meta`, `resultType`, new error codes) |
 | `http`     | 0    | N-35 step 1: stateless Streamable HTTP (standard headers, validation, statuses, SSE cancellation)      |
-| `mrtr`     | 1    | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
+| `mrtr`     | 0    | N-35 / N-38 track: `InputRequiredResult` in place of server-to-client requests                         |
 | `tasks`    | 0    | N-35 step 2: hand-rolled tasks extension                                                               |
 | `auth`     | 0    | N-17: OAuth 2.1 resource server (RFC 9728 metadata, audience-bound tokens)                             |
 | `cache`    | 0    | N-38: `ttlMs` / `cacheScope`                                                                           |
-| `packages` | 1    | O-19 (d): lists fixed per server, deterministic order                                                  |
+| `packages` | 0    | O-19 (d): lists fixed per server, deterministic order                                                  |
 
 The n/a rows cover features the server never uses: client-supplied `$ref` resolution, custom
 transports, roots and sampling (ADR 0009), the legacy HTTP+SSE transport,
@@ -73,8 +75,8 @@ authorization.
 - `tools-06`, `prompts-04`, `resources-04` (`list_changed` on a listen stream) are pinned on
   stdio. Over HTTP the lists are fixed per server (O-19 d), so nothing publishes `list_changed`.
 - `mrtr-19` / `mrtr-42` (no secrets through form mode) are covered by decision 2: the modern
-  wire refuses the request. `mrtr-20` (use URL mode instead) stays pending: the only URL mode
-  elicitation is the N-17 account link, and `set_credentials` still points to the env file.
+  wire refuses the request. `mrtr-20` (use URL mode instead) is an accepted deviation (OD-10): the only URL
+  mode elicitation is the N-17 account link, and `set_credentials` still points to the env file.
 - `cache-03` / `cache-04` (one scope on every page) are covered because the server does not
   paginate: every 2026-07-28 list is a single page carrying its method's hint. `cache-05` and
   `cache-07` are pinned over raw HTTP: two callers on different instances, users and clients get
@@ -123,10 +125,15 @@ The owner decided these on 2026-10-10. They came up while classifying the rows, 
 rows carry `ownerQuestion` with the decision's number. The rows stay pending until their step
 lands with a test.
 
+On 2026-10-13 (OD-10) the owner accepted the two rows left pending, `resources-03` (decision 1)
+and `mrtr-20` (decision 2), as documented deviations: their status is `deviation`. A URL-mode
+credential page or a fixed `resources/list` (per-schema entries behind a template) would cover
+them later.
+
 1. **Dynamic `resources/list` entries** (`resources-02`, `resources-03`): the per-profile entries stay in the
    list. On the 2026-07-28 wire the list carries `ttlMs: 0` and `cacheScope: private`. This is a
    known deviation from the "fixed list" rule, so `resources-03` (the list must not vary as a side
-   effect of other requests) stays pending: reading a table schema adds its entry.
+   effect of other requests) is not met: reading a table schema adds its entry.
 2. **`request_secrets` form mode (D-2)** (`mrtr-19`, `mrtr-20`, `mrtr-42`): on the 2026-07-28
    wire, `set_credentials` refuses form-mode secret elicitation and returns a hint to use the env
    file or secret files. The legacy wire is unchanged.

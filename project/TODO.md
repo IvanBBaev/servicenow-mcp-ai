@@ -203,6 +203,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       per-schema entries to a resource template so the list is fixed.
     - (2) changes what `resources/list` returns, so it is a client-visible change.
     - Recommend: (1) for 3.0; (2) as a later item if a client reports cache problems.
+  - **Decided 2026-10-13: (1) for both.** Done: both rows have the new `deviation` status in the
+    conformance matrix, `pendingCeiling` is 0, and N-35 is done.
 
 ## Active (2026-09-02)
 
