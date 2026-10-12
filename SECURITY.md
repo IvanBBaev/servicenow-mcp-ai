@@ -185,8 +185,13 @@ The details follow.
   `SN_HTTP_OAUTH_USER_TOKENS` each OAuth subject links its own ServiceNow
   account through Authorization Code + PKCE against the instance (URL mode
   elicitation). The MCP token is never sent to ServiceNow; the link URL holds
-  only the client id, a PKCE challenge and an opaque single-use `state` bound
-  server-side to the subject (10 min TTL). The callback verifies the signed-in
+  only the client id, a PKCE challenge and an opaque `state` (10 min TTL): the
+  pending link (subject hash, profile, host, login, expiry, nonce) AES-256-GCM
+  sealed with a key derived from `SN_HTTP_OAUTH_TOKEN_KEY`, so a forged or
+  altered state does not open and any replica with the key can redeem it. The
+  PKCE verifier is derived from the nonce and never leaves the server. A state
+  is single-use on the replica that redeems it; across replicas the
+  single-use authorization code, PKCE and the account check below stand in. The callback verifies the signed-in
   account (`sys_user` via `gs.getUserID()`) against the subject's
   `SN_HTTP_OAUTH_USER_MATCH` claim and refuses a mismatch (403, nothing
   stored), so a forwarded link cannot attach someone else's account. Refresh

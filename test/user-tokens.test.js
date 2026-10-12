@@ -11,6 +11,7 @@ import {
 import { createServer } from "node:net";
 import {
   createDecipheriv,
+  createHash,
   generateKeyPairSync,
   randomBytes,
   sign as cryptoSign,
@@ -33,6 +34,7 @@ import { getHttpUserTokens } from "../build/core/settings.js";
 import { getCredentials } from "../build/core/config.js";
 import { cached, peekSchemaCache } from "../build/core/cache.js";
 import { runInSession } from "../build/core/request-context.js";
+import { createRuntime, installRuntime } from "../build/core/runtime.js";
 import {
   CALLBACK_PATH,
   LINK_PATH,
@@ -188,7 +190,8 @@ function rawRequest(
 ) {
   return new Promise((resolve, reject) => {
     const req = httpRequest(
-      { host: "127.0.0.1", port, method, path: p, headers },
+      // agent: false — no pooled socket outlives a transport restart.
+      { host: "127.0.0.1", port, method, path: p, headers, agent: false },
       (res) => {
         let text = "";
         res.setEncoding("utf8");
@@ -526,6 +529,65 @@ test("e2e N-17 user tokens: link once, then every call reaches the instance as t
         link.searchParams.get("state"),
       );
     });
+  });
+});
+
+test("e2e N-17 user tokens: another replica with the same key completes the link", async () => {
+  await withServers({}, async ({ port, store, bearer }) => {
+    const sn = instanceDouble();
+    const link = await withFetch(sn.handler, async () =>
+      linkOf(await getRecord(port, bearer("alice"), URL_CAPS)),
+    );
+    const oauthState = link.searchParams.get("state");
+
+    // Replica B: a fresh process runtime (no pending links, no cached
+    // tokens) behind the same resource URL, sharing the key and the store.
+    await closeHttpTransport();
+    const previous = installRuntime(createRuntime());
+    try {
+      assert.equal(await connectTransport((rt) => buildMcpServer(rt)), "http");
+      await withFetch(sn.handler, async () => {
+        // A tampered state does not open.
+        const flipped = `${oauthState.slice(0, -2)}${oauthState.endsWith("AA") ? "BB" : "AA"}`;
+        const forged = await rawRequest(port, {
+          path: `${CALLBACK_PATH}?code=x&state=${flipped}`,
+        });
+        assert.equal(forged.status, 400);
+
+        const done = await finishLink(
+          port,
+          link,
+          sn.codes,
+          "alice@example.com",
+        );
+        assert.equal(done.status, 200, done.text);
+        // The verifier B recomputed matches the challenge A published.
+        const exchange = sn.seen.find((s) => s.token === "authorization_code");
+        assert.equal(
+          createHash("sha256")
+            .update(exchange.body.get("code_verifier"))
+            .digest("base64url"),
+          link.searchParams.get("code_challenge"),
+        );
+        assert.deepEqual(
+          unsealStore(store, linkKey("alice", "default", HOST)),
+          {
+            refreshToken: "rt1",
+            login: "alice@example.com",
+          },
+        );
+        // Redeemed here, so a replay is refused here.
+        const replay = await rawRequest(port, {
+          path: `${CALLBACK_PATH}?code=x&state=${oauthState}`,
+        });
+        assert.equal(replay.status, 400);
+
+        const ok = (await getRecord(port, bearer("alice"), URL_CAPS)).result;
+        assert.notEqual(ok.isError, true, JSON.stringify(ok));
+      });
+    } finally {
+      installRuntime(previous ?? createRuntime());
+    }
   });
 });
 

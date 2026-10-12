@@ -2,6 +2,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
+  createHmac,
   randomBytes,
   randomUUID,
 } from "node:crypto";
@@ -48,15 +49,20 @@ import {
  * (`SN_HTTP_OAUTH_USER_MATCH`) and stores the refresh token, AES-256-GCM
  * encrypted, in the token store. Access tokens are cached in memory only.
  *
- * Limits (documented): pending links live in this process, so the callback
- * must reach the instance that issued the link; a link is dropped by the
- * subject (`DELETE /oauth/servicenow/link`), by the instance rejecting its
- * refresh token or by rotating the key.
+ * The OAuth `state` carries the pending link itself (store key, login,
+ * expiry, nonce), AES-256-GCM sealed with a key derived from the store key,
+ * and the PKCE verifier is derived from its nonce, so any replica that shares
+ * `SN_HTTP_OAUTH_TOKEN_KEY` (and the store) can complete the callback. A state
+ * is single-use on the replica that redeems it; across replicas the
+ * single-use authorization code, PKCE and the account check stand in.
+ *
+ * A link is dropped by the subject (`DELETE /oauth/servicenow/link`), by the
+ * instance rejecting its refresh token or by rotating the key.
  */
 
 /** How long a link URL stays redeemable. */
 export const LINK_TTL_MS = 10 * 60 * 1000;
-/** Pending links kept at most (the oldest is dropped beyond it). */
+/** Pending links (and redeemed states) kept at most per process. */
 export const MAX_PENDING_LINKS = 1000;
 export const CALLBACK_PATH = "/oauth/servicenow/callback";
 /** `DELETE` here (with the subject's bearer) drops all of its links. */
@@ -235,12 +241,10 @@ function dropAccount(settings: HttpUserTokenSettings, key: string): void {
 // In-memory state: access tokens, in-flight refreshes, pending links
 // ---------------------------------------------------------------------------
 
+/** A link this process handed out, kept so a retry gets the same URL. */
 interface PendingLink {
   key: string;
   login: string;
-  profile: string;
-  host: string;
-  verifier: string;
   url: string;
   elicitationId: string;
   expiresAt: number;
@@ -251,6 +255,8 @@ interface UserTokenState {
   inflight: Map<string, Promise<string>>;
   /** Keyed by the OAuth `state` parameter. */
   pending: Map<string, PendingLink>;
+  /** Redeemed state nonces → their expiry: a state is single-use here. */
+  redeemed: Map<string, number>;
 }
 
 const userTokensPart = defineRuntimePart(
@@ -259,11 +265,13 @@ const userTokensPart = defineRuntimePart(
     tokens: new Map(),
     inflight: new Map(),
     pending: new Map(),
+    redeemed: new Map(),
   }),
   (s) => {
     s.tokens.clear();
     s.inflight.clear();
     s.pending.clear();
+    s.redeemed.clear();
   },
   { scope: "process" },
 );
@@ -308,16 +316,99 @@ export function callbackUrl(): string {
   return new URL(CALLBACK_PATH, oauth.resource).href;
 }
 
-function sweepPending(pending: Map<string, PendingLink>): void {
+function sweep<V>(map: Map<string, V>, expiry: (v: V) => number): void {
   const now = Date.now();
-  for (const [s, link] of pending) {
-    if (link.expiresAt <= now) pending.delete(s);
+  for (const [k, v] of map) {
+    if (expiry(v) <= now) map.delete(k);
   }
-  while (pending.size >= MAX_PENDING_LINKS) {
-    const oldest = pending.keys().next().value;
+  while (map.size >= MAX_PENDING_LINKS) {
+    const oldest = map.keys().next().value;
     if (oldest === undefined) break;
-    pending.delete(oldest);
+    map.delete(oldest);
   }
+}
+
+// ---------------------------------------------------------------------------
+// The sealed OAuth `state`: the pending link travels with the redirect
+// ---------------------------------------------------------------------------
+
+interface LinkState {
+  /** The store key (`linkKey`). */
+  k: string;
+  /** The login the account must match. */
+  l: string;
+  /** Expiry, epoch ms. */
+  e: number;
+  /** Random nonce: the PKCE verifier's seed and the single-use id. */
+  n: string;
+}
+
+const STATE_AAD = Buffer.from("servicenow-mcp/link-state/v1", "utf8");
+
+/** A key of its own per purpose, derived from the store key. */
+function derivedKey(settings: HttpUserTokenSettings, label: string): Buffer {
+  return createHmac("sha256", settings.key).update(label).digest();
+}
+
+function sealState(settings: HttpUserTokenSettings, value: LinkState): string {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv(
+    "aes-256-gcm",
+    derivedKey(settings, "link-state"),
+    iv,
+  );
+  cipher.setAAD(STATE_AAD);
+  const data = Buffer.concat([
+    cipher.update(JSON.stringify(value), "utf8"),
+    cipher.final(),
+  ]);
+  return base64url(Buffer.concat([iv, cipher.getAuthTag(), data]));
+}
+
+/** The state's link, or undefined when it is forged, foreign or malformed. */
+function openState(
+  settings: HttpUserTokenSettings,
+  raw: string,
+): LinkState | undefined {
+  try {
+    const buf = Buffer.from(raw, "base64url");
+    if (buf.length <= 28) return undefined;
+    const decipher = createDecipheriv(
+      "aes-256-gcm",
+      derivedKey(settings, "link-state"),
+      buf.subarray(0, 12),
+    );
+    decipher.setAAD(STATE_AAD);
+    decipher.setAuthTag(buf.subarray(12, 28));
+    const value = JSON.parse(
+      Buffer.concat([
+        decipher.update(buf.subarray(28)),
+        decipher.final(),
+      ]).toString("utf8"),
+    ) as LinkState;
+    return typeof value.k === "string" &&
+      typeof value.l === "string" &&
+      typeof value.e === "number" &&
+      typeof value.n === "string"
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The PKCE verifier of one state, recomputable on any replica. */
+function pkceVerifier(settings: HttpUserTokenSettings, nonce: string): string {
+  return base64url(
+    createHmac("sha256", derivedKey(settings, "pkce")).update(nonce).digest(),
+  );
+}
+
+/** `<sha256>|<profile>|<host>` → profile and host. */
+function splitKey(key: string): { profile: string; host: string } {
+  const first = key.indexOf("|");
+  const last = key.lastIndexOf("|");
+  return { profile: key.slice(first + 1, last), host: key.slice(last + 1) };
 }
 
 /**
@@ -325,6 +416,7 @@ function sweepPending(pending: Map<string, PendingLink>): void {
  * pending one is reused, so retries do not mint a new URL each time.
  */
 function linkRequired(
+  settings: HttpUserTokenSettings,
   key: string,
   login: string,
   profile: string,
@@ -338,24 +430,28 @@ function linkRequired(
     }
   }
   const { clientId } = clientFor(profile);
-  const verifier = base64url(randomBytes(32));
-  const oauthState = base64url(randomBytes(24));
+  const nonce = base64url(randomBytes(16));
+  const expiresAt = now + LINK_TTL_MS;
+  const verifier = pkceVerifier(settings, nonce);
+  const oauthState = sealState(settings, {
+    k: key,
+    l: login,
+    e: expiresAt,
+    n: nonce,
+  });
   const url = buildAuthorizeUrl(host, {
     clientId,
     redirectUri: callbackUrl(),
     codeChallenge: base64url(createHash("sha256").update(verifier).digest()),
     state: oauthState,
   });
-  sweepPending(pending);
+  sweep(pending, (l) => l.expiresAt);
   const link: PendingLink = {
     key,
     login,
-    profile,
-    host,
-    verifier,
     url,
     elicitationId: randomUUID(),
-    expiresAt: now + LINK_TTL_MS,
+    expiresAt,
   };
   pending.set(oauthState, link);
   return new AccountLinkRequiredError(link.url, link.elicitationId, host);
@@ -416,7 +512,7 @@ async function userAccessToken(host: string): Promise<string> {
   const task = (async () => {
     const account = loadAccount(settings, key);
     if (!account || !sameLogin(account.login, login)) {
-      throw linkRequired(key, login, profile, host);
+      throw linkRequired(settings, key, login, profile, host);
     }
     let set: TokenSet;
     try {
@@ -434,7 +530,7 @@ async function userAccessToken(host: string): Promise<string> {
           host,
         },
       );
-      throw linkRequired(key, login, profile, host);
+      throw linkRequired(settings, key, login, profile, host);
     }
     if (set.refreshToken && set.refreshToken !== account.refreshToken) {
       saveAccount(settings, key, {
@@ -578,10 +674,10 @@ export async function completeLink(
   const settings = getHttpUserTokens();
   if (!settings) return { ok: false, status: 404, message: "Not found" };
   const oauthState = params.get("state") ?? "";
-  const { pending } = state();
-  const link = pending.get(oauthState);
-  if (!link || link.expiresAt <= Date.now()) {
-    if (link) pending.delete(oauthState);
+  const { pending, redeemed } = state();
+  pending.delete(oauthState);
+  const sealed = openState(settings, oauthState);
+  if (!sealed || sealed.e <= Date.now() || redeemed.has(sealed.n)) {
     return {
       ok: false,
       status: 400,
@@ -589,7 +685,9 @@ export async function completeLink(
         "This link is unknown or has expired — run the tool again for a new one.",
     };
   }
-  pending.delete(oauthState);
+  sweep(redeemed, (e) => e);
+  redeemed.set(sealed.n, sealed.e);
+  const link = { key: sealed.k, login: sealed.l, ...splitKey(sealed.k) };
   const error = params.get("error");
   const code = params.get("code");
   if (error || !code) {
@@ -603,7 +701,7 @@ export async function completeLink(
     const set = await exchangeAuthorizationCode(link.host, {
       ...clientFor(link.profile),
       code,
-      codeVerifier: link.verifier,
+      codeVerifier: pkceVerifier(settings, sealed.n),
       redirectUri: callbackUrl(),
     });
     if (!set.refreshToken) {

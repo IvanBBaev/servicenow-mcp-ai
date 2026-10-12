@@ -442,9 +442,10 @@ docker run --rm -p 127.0.0.1:3000:3000 \
   AES-256-GCM encrypted in `SN_HTTP_OAUTH_TOKEN_STORE`, and from then on calls the instance as
   that user, so ServiceNow ACLs apply per user. A user drops their own links with
   `DELETE /oauth/servicenow/link` (their bearer token; answers `{ unlinked, revoked }`); the
-  refresh tokens are also revoked on the instance, best effort. Limits: pending links live in
-  the process (run one replica), and requests authorized with `SN_HTTP_TOKEN` still use the
-  shared credential.
+  refresh tokens are also revoked on the instance, best effort. Replicas behind one
+  `SN_HTTP_OAUTH_RESOURCE` can each complete a link when they share `SN_HTTP_OAUTH_TOKEN_KEY`
+  and the store. Limit: requests authorized with `SN_HTTP_TOKEN` still use the shared
+  credential.
 - `/data` holds the docs directory (`SN_DOCS_DIR=/data/docs`) and the env file
   (`SN_ENV_FILE=/data/.env`); mount a volume there to keep them.
 - Every `<KEY>_FILE` secret source is described in [Secrets from files](#secrets-from-files).
