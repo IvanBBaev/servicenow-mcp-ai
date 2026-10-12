@@ -8,11 +8,21 @@ import { keyQuery, queryTable, type SnRecord } from "./table.js";
 /**
  * N-27 (UX-05) — which UI Builder variant one user sees: for each route of an
  * experience, the screen variants in order, each matched against the user's
- * roles through its audience (`sys_ux_applicability.roles`), its screen
- * conditions (`sys_ux_screen_condition`) and the experience's
- * `sys_ux_app_config.roles`.
+ * roles through its audiences and against its screen conditions.
  *
- * The first active variant whose audience the user is in is the one shown;
+ * Checked on a PDI (O-5): a screen's audiences are the m2m
+ * `sys_ux_applicability_m2m_screen` (screen, applicability, order, active;
+ * often 2–4 per screen), not a field of `sys_ux_screen`; a user passes when
+ * any active link to an active audience admits them, and a screen with no
+ * active link is for every user. `sys_ux_applicability.roles` is a glide list
+ * of sys_user_role sys_ids. A screen's conditions are its inline
+ * `screen_condition` string and the active `sys_ux_screen_condition` rows
+ * (`screen` reference). `sys_ux_app_config`, `sys_ux_app_route` and
+ * `sys_ux_page_registry` have no role field: access to the experience itself
+ * is ACL-governed and not resolved here. `admin_panel` is a document id; only
+ * a `sys_ux_app_config` panel has routes.
+ *
+ * The first active variant whose audiences admit the user is the one shown;
  * the variants after it are shadowed. A variant with screen conditions
  * depends on the page context (the record, the parameters), so it is
  * `undetermined`, like a script part in N-2; an undetermined variant before
@@ -23,17 +33,25 @@ import { keyQuery, queryTable, type SnRecord } from "./table.js";
  * surface; only role names leave this module (H-5).
  *
  * Read-only; never throws except on bad input or a cancel. An unreadable
- * table degrades to `available:false`. Unverified until O-5 (PDI): the
- * `sys_ux_app_config.roles` and `sys_ux_applicability.roles` value format
- * (role names or sys_ids, both handled), an inactive audience (taken as not
- * matching), the admin role passing every audience, and the
- * `sys_ux_screen_condition.screen` link.
+ * table degrades to `available:false`. Still unverified: the admin role
+ * passing every audience, and a screen whose only links are inactive
+ * audiences (taken as not matching).
  */
 
 /** Routes read for one experience. */
 export const VARIANT_ROUTE_LIMIT = 200;
 /** Screen, audience and condition rows read per query. */
 export const VARIANT_ROW_LIMIT = 1_000;
+
+/** The m2m linking a screen variant to its audiences (O-5). */
+export const SCREEN_AUDIENCE_TABLE = "sys_ux_applicability_m2m_screen";
+export const SCREEN_AUDIENCE_FIELDS = [
+  "sys_id",
+  "screen",
+  "applicability",
+  "order",
+  "active",
+];
 
 export type VariantResult = "match" | "no-match" | "undetermined" | "inactive";
 export type RouteDecision = "resolved" | "undetermined" | "none";
@@ -49,8 +67,12 @@ export interface VariantEvaluation {
   sys_id: string;
   name?: string;
   order: number;
-  audience?: VariantAudience;
+  /** The screen's active audiences, in m2m order; omitted when none. */
+  audiences?: VariantAudience[];
+  /** Active sys_ux_screen_condition rows. */
   conditions: number;
+  /** The screen's inline `screen_condition`. */
+  screenCondition?: string;
   result: VariantResult;
   reason: string;
 }
@@ -75,8 +97,8 @@ export interface UiVariantResolution {
   roles: string[];
   admin: boolean;
   experience?: { sys_id: string; title?: string; path?: string };
-  /** The app config's roles and whether the user passes them. */
-  appConfig?: { sys_id: string; roles: string[]; access: boolean };
+  /** The app config (admin_panel) whose routes were resolved. */
+  appConfig?: { sys_id: string };
   routes: RouteResolution[];
   notes: string[];
 }
@@ -123,6 +145,30 @@ export function rolesAdmit(
   return required.some((r) => roles.has(r));
 }
 
+const num = (v: unknown): number => Number(snString(v)) || 0;
+
+/**
+ * Audience ids per screen from `sys_ux_applicability_m2m_screen` rows: active
+ * links only, in their order.
+ */
+export function screenAudienceIds(
+  rows: readonly SnRecord[],
+): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  const live = rows
+    .filter((r) => snString(r.active) !== "false")
+    .sort((a, b) => num(a.order) - num(b.order));
+  for (const r of live) {
+    const screen = snString(r.screen);
+    const audience = snString(r.applicability);
+    if (!screen || !audience) continue;
+    const ids = out.get(screen) ?? [];
+    if (!ids.includes(audience)) ids.push(audience);
+    out.set(screen, ids);
+  }
+  return out;
+}
+
 /** Evaluate one variant against the user's roles. */
 export function evaluateVariant(
   screen: {
@@ -131,17 +177,21 @@ export function evaluateVariant(
     order: number;
     active: boolean;
     conditions: number;
+    screenCondition?: string;
   },
-  audience: VariantAudience | undefined,
-  missingAudience: boolean,
+  audiences: readonly VariantAudience[],
+  missingAudiences: number,
   roles: ReadonlySet<string>,
 ): VariantEvaluation {
   const base = {
     sys_id: screen.sys_id,
     ...(screen.name ? { name: screen.name } : {}),
     order: screen.order,
-    ...(audience ? { audience } : {}),
+    ...(audiences.length ? { audiences: [...audiences] } : {}),
     conditions: screen.conditions,
+    ...(screen.screenCondition
+      ? { screenCondition: screen.screenCondition }
+      : {}),
   };
   const at = (result: VariantResult, reason: string): VariantEvaluation => ({
     ...base,
@@ -149,29 +199,42 @@ export function evaluateVariant(
     reason,
   });
   if (!screen.active) return at("inactive", "The variant is inactive.");
-  if (missingAudience) {
-    return at("undetermined", "The audience record could not be read.");
-  }
-  if (audience && !audience.active) {
-    return at("no-match", "The audience is inactive.");
-  }
-  if (audience && !rolesAdmit(audience.roles, roles)) {
+  const live = audiences.filter((a) => a.active);
+  const admitting = live.filter((a) => rolesAdmit(a.roles, roles));
+  if (admitting.length === 0 && (audiences.length || missingAudiences)) {
+    if (missingAudiences) {
+      return at(
+        "undetermined",
+        `${missingAudiences} audience record(s) could not be read.`,
+      );
+    }
+    if (live.length === 0) {
+      return at("no-match", "Every audience is inactive.");
+    }
+    const wanted = [...new Set(live.flatMap((a) => a.roles))];
     return at(
       "no-match",
-      `The user has none of the audience roles (${audience.roles.join(", ")}).`,
+      `The user has none of the audience roles (${wanted.join(", ")}).`,
     );
   }
-  const who = !audience
+  const first = admitting[0];
+  const who = !first
     ? "No audience: every user."
-    : audience.roles.length === 0
+    : first.roles.length === 0
       ? "The audience has no roles: every user."
-      : roles.has("admin") && !audience.roles.some((r) => roles.has(r))
+      : roles.has("admin") && !first.roles.some((r) => roles.has(r))
         ? "admin passes the audience roles."
         : "The user has an audience role.";
-  if (screen.conditions > 0) {
+  const context = [
+    ...(screen.conditions ? [`${screen.conditions} screen condition(s)`] : []),
+    ...(screen.screenCondition
+      ? [`the screen condition "${screen.screenCondition}"`]
+      : []),
+  ];
+  if (context.length) {
     return at(
       "undetermined",
-      `${who} ${screen.conditions} screen condition(s) depend on the page context.`,
+      `${who} ${context.join(" and ")} depend on the page context.`,
     );
   }
   return at("match", who);
@@ -248,7 +311,6 @@ async function roleNames(values: readonly string[]): Promise<string[]> {
 }
 
 const flag = (v: unknown): boolean => snString(v) !== "false";
-const num = (v: unknown): number => Number(snString(v)) || 0;
 
 /** Which variant of each route of one experience one user sees. */
 export async function resolveUiVariant(
@@ -281,7 +343,7 @@ export async function resolveUiVariant(
     const [page] = await read(
       table,
       isSysId(exp) ? `sys_id=${exp}` : keyQuery({ path: exp }),
-      ["sys_id", "title", "path", "admin_panel"],
+      ["sys_id", "title", "path", "admin_panel", "admin_panel_table"],
       1,
     );
     if (!page) {
@@ -300,24 +362,17 @@ export async function resolveUiVariant(
       return { ...out, available: true };
     }
 
-    table = "sys_ux_app_config";
-    const [config] = await read(
-      table,
-      `sys_id=${configId}`,
-      ["sys_id", "roles"],
-      1,
-    );
-    const configRoles = await roleNames(listValues(config?.roles));
-    out.appConfig = {
-      sys_id: configId,
-      roles: configRoles,
-      access: rolesAdmit(configRoles, roles),
-    };
-    if (!out.appConfig.access) {
+    const panelTable = snString(page.admin_panel_table);
+    if (panelTable && panelTable !== "sys_ux_app_config") {
       out.notes.push(
-        "The user has none of the app config roles: the experience is not shown to them.",
+        `The experience's admin_panel is a ${panelTable} record, not a sys_ux_app_config: no routes to resolve.`,
       );
+      return { ...out, available: true };
     }
+    out.appConfig = { sys_id: configId };
+    out.notes.push(
+      "Access to the experience itself is ACL-governed (sys_ux_app_config has no roles field) and is not resolved.",
+    );
 
     table = "sys_ux_app_route";
     const route = input.route?.trim();
@@ -344,15 +399,31 @@ export async function resolveUiVariant(
       ? await read(
           table,
           `screen_typeIN${types.join(",")}`,
-          ["sys_id", "name", "screen_type", "applicability", "order", "active"],
+          [
+            "sys_id",
+            "name",
+            "screen_type",
+            "screen_condition",
+            "order",
+            "active",
+          ],
           VARIANT_ROW_LIMIT,
           "order",
         )
       : [];
     const screenIds = screens.map((s) => snString(s.sys_id));
-    const audienceIds = [
-      ...new Set(screens.map((s) => snString(s.applicability)).filter(Boolean)),
-    ];
+
+    table = SCREEN_AUDIENCE_TABLE;
+    const links = screenAudienceIds(
+      screenIds.length
+        ? await read(
+            table,
+            `screenIN${screenIds.join(",")}`,
+            SCREEN_AUDIENCE_FIELDS,
+          )
+        : [],
+    );
+    const audienceIds = [...new Set([...links.values()].flat())];
 
     table = "sys_ux_applicability";
     const audiences = new Map<string, VariantAudience>();
@@ -375,10 +446,11 @@ export async function resolveUiVariant(
     table = "sys_ux_screen_condition";
     const conditions = new Map<string, number>();
     if (screenIds.length) {
-      for (const c of await read(table, `screenIN${screenIds.join(",")}`, [
-        "sys_id",
-        "screen",
-      ])) {
+      for (const c of await read(
+        table,
+        `screenIN${screenIds.join(",")}^active=true`,
+        ["sys_id", "screen"],
+      )) {
         const s = snString(c.screen);
         conditions.set(s, (conditions.get(s) ?? 0) + 1);
       }
@@ -391,7 +463,8 @@ export async function resolveUiVariant(
         .sort((a, b) => num(a.order) - num(b.order))
         .map((s) => {
           const id = snString(s.sys_id);
-          const audienceId = snString(s.applicability);
+          const ids = links.get(id) ?? [];
+          const screenCondition = snString(s.screen_condition).trim();
           return evaluateVariant(
             {
               sys_id: id,
@@ -399,9 +472,10 @@ export async function resolveUiVariant(
               order: num(s.order),
               active: flag(s.active),
               conditions: conditions.get(id) ?? 0,
+              ...(screenCondition ? { screenCondition } : {}),
             },
-            audiences.get(audienceId),
-            !!audienceId && !audiences.has(audienceId),
+            ids.flatMap((a) => audiences.get(a) ?? []),
+            ids.filter((a) => !audiences.has(a)).length,
             roles,
           );
         });
@@ -416,9 +490,7 @@ export async function resolveUiVariant(
       out.notes.push(`No route "${route}" in the experience.`);
     }
     if (out.admin) {
-      out.notes.push(
-        "admin is taken to pass every role list (unverified until O-5).",
-      );
+      out.notes.push("admin is taken to pass every audience (unverified).");
     }
     return { ...out, available: true };
   } catch (error) {
@@ -438,13 +510,6 @@ export function renderUiVariantResolution(r: UiVariantResolution): string[] {
   lines.push(
     `Roles: ${r.roles.length ? r.roles.map((x) => `\`${x}\``).join(", ") : "none"}`,
   );
-  if (r.appConfig) {
-    lines.push(
-      `App config roles: ${
-        r.appConfig.roles.length ? r.appConfig.roles.join(", ") : "none"
-      } — ${r.appConfig.access ? "passes" : "**does not pass**"}`,
-    );
-  }
   for (const route of r.routes) {
     const shown =
       route.decision === "resolved"
@@ -461,8 +526,13 @@ export function renderUiVariantResolution(r: UiVariantResolution): string[] {
         route.variants.map((v) => [
           String(v.order),
           v.name ?? v.sys_id,
-          v.audience ? (v.audience.name ?? v.audience.sys_id) : "—",
-          String(v.conditions),
+          v.audiences
+            ? v.audiences.map((a) => mdEscape(a.name ?? a.sys_id)).join(", ")
+            : "—",
+          [
+            ...(v.conditions ? [String(v.conditions)] : []),
+            ...(v.screenCondition ? [`\`${v.screenCondition}\``] : []),
+          ].join(" + ") || "0",
           route.shadowed.includes(v.sys_id)
             ? `${v.result} (shadowed)`
             : v.result,
