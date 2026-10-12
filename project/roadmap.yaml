@@ -954,7 +954,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-5"]
-    notes: "**Done 2026-10-05 (75e34b2).** `password` / `password2` / `glide_encrypted` columns from cached `sys_dictionary` `internal_type` (`src/core/secret-columns.ts`, `secret-index.ts`) masked at the result boundary, in the journal and in caches; name-only fallback when the dictionary is unreadable. Open: names unverified until O-5; `sc_item_option` out of scope."
+    notes: "**Done 2026-10-05 (75e34b2).** `password` / `password2` / `glide_encrypted` columns from cached `sys_dictionary` `internal_type` (`src/core/secret-columns.ts`, `secret-index.ts`) masked at the result boundary, in the journal and in caches; name-only fallback when the dictionary is unreadable. **O-5 checked on a PDI 2026-10-13:** `password` / `password2` confirmed; `glide_encrypted` only with column-level encryption (kept); all 12 fallback names exist (`ssh_private_key` is a plain string there, so only the fallback masks it); 12 always-`password2` names added to the fallback (`sn_auth_token`, `auth_token`, `secret`, …). Open: `sc_item_option` out of scope."
   - id: "N-22"
     title: "access review"
     pillar: "N"

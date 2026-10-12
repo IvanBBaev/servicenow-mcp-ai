@@ -129,6 +129,15 @@ test("the secret types are exactly password, password2 and glide_encrypted", () 
     ["password", "password2", "glide_encrypted"],
   );
   assert.ok(FALLBACK_SECRET_FIELDS.has("user_password"));
+  // O-5 (PDI, 2026-10): always password2 there; ssh_private_key is a string.
+  for (const name of [
+    "sn_auth_token",
+    "auth_token",
+    "secret",
+    "ssh_private_key",
+  ]) {
+    assert.ok(FALLBACK_SECRET_FIELDS.has(name), name);
+  }
 });
 
 test("query_table masks every secret type (own and inherited); a same-named column of another table stays", async () => {

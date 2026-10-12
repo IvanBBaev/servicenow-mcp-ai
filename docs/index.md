@@ -1082,7 +1082,7 @@ When the client supports it, a credential change asks for explicit confirmation 
 
 ### Secret columns masked
 
-Columns whose dictionary type is `password`, `password2` or `glide_encrypted` are masked in every tool result and in the write journal, whatever the redaction settings.
+Columns whose dictionary type is `password`, `password2` or `glide_encrypted` (column-level encryption) are masked in every tool result and in the write journal, whatever the redaction settings.
 
 ### Scanned tool surface
 
