@@ -340,6 +340,37 @@ test("invalid input never reaches the instance", async () => {
   });
 });
 
+test("pending approval on a non-task record falls back to source_table and document_id", async () => {
+  const doc = "c".repeat(32);
+  const row = {
+    sys_id: dv("ap3"),
+    sysapproval: dv(doc, ""),
+    "sysapproval.sys_class_name": dv(""),
+    "sysapproval.short_description": dv(""),
+    source_table: dv("x_app_request"),
+    document_id: dv(doc, ""),
+    group: dv("", ""),
+    sys_created_on: dv("2026-10-01 08:00:00"),
+    due_date: dv(""),
+  };
+  freshRuntime();
+  await withFetch(
+    tables({
+      sysapproval_approver: () => jsonResponse(200, { result: [row] }),
+    }),
+    async (calls) => {
+      const p = await pendingApprovals({ approver: "carol" });
+      assert.equal(p.available, true);
+      assert.equal(p.rows[0].task, doc);
+      assert.equal(p.rows[0].taskTable, "x_app_request");
+      const url = new URL(calls[0].url);
+      const fields = url.searchParams.get("sysparm_fields").split(",");
+      assert.ok(fields.includes("source_table"));
+      assert.ok(fields.includes("document_id"));
+    },
+  );
+});
+
 test("pending approvals for an approver, by user_name and sys_id", async () => {
   const row = {
     sys_id: dv("ap2"),

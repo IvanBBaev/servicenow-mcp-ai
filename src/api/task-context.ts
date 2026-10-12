@@ -384,6 +384,8 @@ export async function pendingApprovals({
         "sysapproval",
         "sysapproval.sys_class_name",
         "sysapproval.short_description",
+        "source_table",
+        "document_id",
         "group",
         "sys_created_on",
         "due_date",
@@ -396,8 +398,15 @@ export async function pendingApprovals({
       approver: who,
       rows: records.map((r) => ({
         sys_id: snString(r.sys_id),
-        task: display(r.sysapproval),
-        taskTable: snString(r["sysapproval.sys_class_name"]),
+        // An approval on a record outside `task` (a scoped app table) leaves
+        // the `sysapproval.*` dot-walks empty; `source_table` / `document_id`
+        // still name it (checked on a PDI 2026-10-12).
+        task:
+          display(r.sysapproval) ||
+          snString(r.document_id) ||
+          snString(r.sysapproval),
+        taskTable:
+          snString(r["sysapproval.sys_class_name"]) || snString(r.source_table),
         shortDescription: display(r["sysapproval.short_description"]),
         group: display(r.group),
         created: snString(r.sys_created_on),
