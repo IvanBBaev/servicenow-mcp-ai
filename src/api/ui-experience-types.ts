@@ -278,17 +278,29 @@ export interface UxListMenu {
   }[];
 }
 
+/**
+ * P-15: a form action layout. O-5 (a PDI): items are linked through
+ * sys_ux_m2m_action_layout_item (`order` is the link's) and applicability
+ * is per layout (sys_ux_applicability_m2m_layout).
+ */
 export interface UxFormActionLayout {
   sys_id: string;
   name?: string;
   table?: string;
+  /** sys_ux_applicability sys_ids. */
+  applicability?: string[];
   items: {
+    /** sys_ux_form_action_layout_item sys_id. */
     sys_id: string;
     order: number;
+    item_type?: string;
+    /** sys_ux_form_action sys_id (the item's `action`). */
     form_action?: string;
+    /** The item label, else the form action name. */
     label?: string;
-    action?: string;
-    applicability?: string;
+    action_type?: string;
+    ui_action?: string;
+    declarative_action?: string;
   }[];
 }
 

@@ -334,16 +334,36 @@ function fixture() {
       },
       { sys_id: "other", name: "Elsewhere", sys_scope: "x" },
     ],
+    // O-5 (a PDI): items hang off the layout through an m2m.
+    sys_ux_m2m_action_layout_item: [
+      {
+        sys_id: "m1",
+        ux_form_action_layout: FAL,
+        ux_form_action_layout_item: "it1",
+        order: "10",
+      },
+      {
+        sys_id: "m2",
+        ux_form_action_layout: FAL,
+        ux_form_action_layout_item: "it2",
+        order: "5",
+      },
+    ],
     sys_ux_form_action_layout_item: [
-      { sys_id: "it1", form_action_layout: FAL, form_action: FA1, order: "10" },
+      { sys_id: "it1", label: "", action: FA1, item_type: "action" },
+      { sys_id: "it2", label: "More", action: "", item_type: "group" },
     ],
     sys_ux_form_action: [
       {
         sys_id: FA1,
-        label: "Resolve",
-        action: "sa1",
-        applicability: APP_AGENT,
+        name: "Resolve",
+        action_type: "ui_action",
+        ui_action: "sa1",
+        declarative_action: "",
       },
+    ],
+    sys_ux_applicability_m2m_layout: [
+      { sys_id: "am1", action_layout: FAL, applicability: APP_AGENT },
     ],
     sys_db_object: [],
   };
@@ -729,14 +749,17 @@ test("P-15: properties, dashboards, lists, audiences and form actions", async ()
       sys_id: FAL,
       name: "Incident actions",
       table: "incident",
+      applicability: [APP_AGENT],
       items: [
+        { sys_id: "it2", order: 5, item_type: "group", label: "More" },
         {
           sys_id: "it1",
           order: 10,
+          item_type: "action",
           form_action: FA1,
           label: "Resolve",
-          action: "sa1",
-          applicability: APP_AGENT,
+          action_type: "ui_action",
+          ui_action: "sa1",
         },
       ],
     },

@@ -312,14 +312,14 @@ export const UI_TYPES: readonly ArtifactType[] = [
     table: "sys_ux_form_action_layout",
     children: [
       {
-        table: "sys_ux_form_action_layout_item",
-        parentField: "form_action_layout",
+        // O-5 (a PDI): the item has no layout reference; the m2m links it.
+        table: "sys_ux_m2m_action_layout_item",
+        parentField: "ux_form_action_layout",
         orderField: "order",
         refFields: [
           {
-            field: "action",
-            table: "sys_ux_form_action",
-            type: "uib_form_action",
+            field: "ux_form_action_layout_item",
+            table: "sys_ux_form_action_layout_item",
           },
         ],
       },

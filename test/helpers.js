@@ -233,6 +233,10 @@ export const METADATA_TABLES = [
   /^sys_workspace_declarative_action_exclusion$/,
   // N-26 screen variant audiences (the m2m, checked on a PDI, O-5).
   /^sys_ux_applicability_m2m_screen$/,
+  // P-15 form action layouts (O-5): layout audiences and the items the
+  // layout's m2m (a registry child) links to.
+  /^sys_ux_applicability_m2m_layout$/,
+  /^sys_ux_form_action_layout_item$/,
   // N-7 translation coverage: UI messages, labels, translated text and fields, languages.
   /^sys_ui_message$/,
   /^sys_documentation$/,

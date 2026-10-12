@@ -737,7 +737,10 @@ test("O-5: UI rows use the column names confirmed on a PDI", () => {
     "ui_action",
     "declarative_action",
   ]);
-  assert.deepEqual(refs(t("uib_form_action_layout").children[0]), ["action"]);
+  const layoutChild = t("uib_form_action_layout").children[0];
+  assert.equal(layoutChild.table, "sys_ux_m2m_action_layout_item");
+  assert.equal(layoutChild.parentField, "ux_form_action_layout");
+  assert.deepEqual(refs(layoutChild), ["ux_form_action_layout_item"]);
   assert.equal(t("ux_declarative_action_definition").nameField, "name");
   assert.deepEqual(json(t("ux_declarative_action_payload")), [
     "payload_template",
