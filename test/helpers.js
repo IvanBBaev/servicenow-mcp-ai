@@ -10,6 +10,41 @@ import assert from "node:assert/strict";
 
 export const realFetch = globalThis.fetch;
 
+/**
+ * OD-4 (3), first batch: core-platform artifact types flipped to verified:true
+ * after a zero-miss pdi-verify run. Tests that pin a row's flag read this set.
+ */
+export const OD4_CORE_VERIFIED = new Set([
+  "table",
+  "choice_set",
+  "property",
+  "user_preference",
+  "role",
+  "cross_scope_privilege",
+  "assignment_rule",
+  "field_style",
+  "schedule",
+  "event",
+  "relationship",
+  "ldap_server",
+  "rest_api",
+  "rest_message",
+  "email_notification",
+  "inbound_email_action",
+  "data_policy",
+  "form",
+  "ui_section",
+  "formatter",
+  "list",
+  "application_menu",
+  "ui_view",
+  "list_control",
+  "interceptor",
+  "customer_update",
+  "report",
+  "report_source",
+]);
+
 /** Proxy variables H-10's dispatcher reads (both spellings). */
 const PROXY_ENV = [
   "SN_HTTPS_PROXY",

@@ -700,7 +700,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scopeField: "application",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     metaFields: ["type", "target_name", "action", "update_set", "update_guid"],
   },
   {
@@ -755,7 +755,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { field: "group", table: "sys_user_group" },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     appliesToField: "table",
     // O-5: verify on a live instance (`type` is not in the SDK schema).
     metaFields: [
@@ -780,7 +780,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     appliesToField: "table",
     metaFields: ["table", "filter"],
   },

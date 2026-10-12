@@ -479,8 +479,8 @@ test("the node cap truncates the graph", async () => {
 
 test("a degraded root of an unverified type answers an empty graph", async () => {
   const res = await deps(
-    { artifactType: "rest_message", sys_id: WIDGET },
-    instance({ sys_db_object: [] }, { sys_rest_message: 404 }),
+    { artifactType: "graphql_api", sys_id: WIDGET },
+    instance({ sys_db_object: [] }, { sys_graphql_schema: 404 }),
   );
   assert.equal(res.root, null);
   assert.deepEqual(res.nodes, []);

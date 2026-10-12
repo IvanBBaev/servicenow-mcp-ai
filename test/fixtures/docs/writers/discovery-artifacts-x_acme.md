@@ -44,46 +44,46 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `sp_widget` | portal | `sp_widget` | yes | no — no records in this scope |
 | `catalog_client_script` | catalog | `catalog_script_client` | yes | no — no records in this scope |
 | `dictionary_script` | core | `sys_dictionary` | yes | no — no records in this scope |
-| `rest_api` | server | `sys_ws_definition` | no | yes (1) |
-| `table` | core | `sys_db_object` | no | see [tables-x_acme.md](tables-x_acme.md) |
-| `choice_set` | core | `sys_choice_set` | no | no — no records in this scope |
+| `rest_api` | server | `sys_ws_definition` | yes | yes (1) |
+| `table` | core | `sys_db_object` | yes | see [tables-x_acme.md](tables-x_acme.md) |
+| `choice_set` | core | `sys_choice_set` | yes | no — no records in this scope |
 | `state_model` | core | `sttrm_model` | no | no — no records in this scope |
-| `property` | core | `sys_properties` | no | yes (1) |
-| `user_preference` | core | `sys_user_preference` | no | no — no application scope column (OD-2) |
-| `role` | core | `sys_user_role` | no | yes (1) |
-| `cross_scope_privilege` | core | `sys_scope_privilege` | no | no — no records in this scope |
+| `property` | core | `sys_properties` | yes | yes (1) |
+| `user_preference` | core | `sys_user_preference` | yes | no — no application scope column (OD-2) |
+| `role` | core | `sys_user_role` | yes | yes (1) |
+| `cross_scope_privilege` | core | `sys_scope_privilege` | yes | no — no records in this scope |
 | `user_criteria` | core | `user_criteria` | no | no — no records in this scope |
-| `assignment_rule` | core | `sysrule_assignment` | no | no — no records in this scope |
+| `assignment_rule` | core | `sysrule_assignment` | yes | no — no records in this scope |
 | `knowledge_base` | core | `kb_knowledge_base` | no | no — no application scope column (OD-2) |
 | `security_attribute` | core | `sys_security_attribute` | no | no — no records in this scope |
 | `security_data_filter` | core | `sys_security_data_filter` | no | no — no records in this scope |
-| `field_style` | core | `sys_ui_style` | no | no — unverified: the instance has no such table |
-| `schedule` | core | `cmn_schedule` | no | no — no records in this scope |
-| `event` | core | `sysevent_register` | no | no — no records in this scope |
-| `relationship` | core | `sys_relationship` | no | no — no records in this scope |
-| `ldap_server` | core | `ldap_server_config` | no | no — no records in this scope |
+| `field_style` | core | `sys_ui_style` | yes | no — no records in this scope |
+| `schedule` | core | `cmn_schedule` | yes | no — no records in this scope |
+| `event` | core | `sysevent_register` | yes | no — no records in this scope |
+| `relationship` | core | `sys_relationship` | yes | no — no records in this scope |
+| `ldap_server` | core | `ldap_server_config` | yes | no — no records in this scope |
 | `js_module` | server | `sys_module` | no | no — no records in this scope |
-| `rest_message` | server | `sys_rest_message` | no | yes (1) |
+| `rest_message` | server | `sys_rest_message` | yes | yes (1) |
 | `graphql_api` | server | `sys_graphql_schema` | no | no — no records in this scope |
 | `graphql_resolver` | server | `sys_graphql_resolver` | no | no — no records in this scope |
 | `graphql_type_resolver` | server | `sys_graphql_typeresolver` | no | no — no records in this scope |
-| `alias` | server | `sys_alias` | no | no — no records in this scope |
+| `alias` | server | `sys_alias` | no | no — unverified: the instance has no such table |
 | `alias_template` | server | `sys_alias_templates` | no | no — no records in this scope |
 | `retry_policy` | server | `sys_retry_policy` | no | no — no records in this scope |
 | `data_lookup` | server | `dl_definition` | no | no — no records in this scope |
-| `email_notification` | server | `sysevent_email_action` | no | no — no records in this scope |
-| `inbound_email_action` | server | `sysevent_in_email_action` | no | no — no records in this scope |
+| `email_notification` | server | `sysevent_email_action` | yes | no — no records in this scope |
+| `inbound_email_action` | server | `sysevent_in_email_action` | yes | no — no records in this scope |
 | `sla` | server | `contract_sla` | no | no — no records in this scope |
-| `data_policy` | classic-ui | `sys_data_policy2` | no | no — no records in this scope |
+| `data_policy` | classic-ui | `sys_data_policy2` | yes | no — no records in this scope |
 | `workspace_form_action` | classic-ui | `sys_ux_form_action` | no | no — no records in this scope |
-| `form` | classic-ui | `sys_ui_form` | no | no — no records in this scope |
-| `ui_section` | classic-ui | `sys_ui_section` | no | no — no records in this scope |
-| `formatter` | classic-ui | `sys_ui_formatter` | no | no — no records in this scope |
-| `list` | classic-ui | `sys_ui_list` | no | no — no records in this scope |
-| `application_menu` | classic-ui | `sys_app_application` | no | no — no records in this scope |
-| `interceptor` | classic-ui | `sys_wizard` | no | no — no records in this scope |
-| `ui_view` | classic-ui | `sys_ui_view` | no | no — no records in this scope |
-| `list_control` | classic-ui | `sys_ui_list_control` | no | no — no records in this scope |
+| `form` | classic-ui | `sys_ui_form` | yes | no — no records in this scope |
+| `ui_section` | classic-ui | `sys_ui_section` | yes | no — no records in this scope |
+| `formatter` | classic-ui | `sys_ui_formatter` | yes | no — no records in this scope |
+| `list` | classic-ui | `sys_ui_list` | yes | no — no records in this scope |
+| `application_menu` | classic-ui | `sys_app_application` | yes | no — no records in this scope |
+| `interceptor` | classic-ui | `sys_wizard` | yes | no — no records in this scope |
+| `ui_view` | classic-ui | `sys_ui_view` | yes | no — no records in this scope |
+| `list_control` | classic-ui | `sys_ui_list_control` | yes | no — no records in this scope |
 | `workspace` | next-experience | `sys_ux_page_registry` | no | no — no records in this scope |
 | `dashboard` | next-experience | `par_dashboard` | no | no — no records in this scope |
 | `ux_list_menu_config` | next-experience | `sys_ux_list_menu_config` | no | no — no records in this scope |
@@ -154,10 +154,10 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `now_assist_skill` | ai | `sn_nowassist_skill_config` | no | no — no records in this scope |
 | `application` | application | `sys_app` | no | yes (1) |
 | `app_dependency` | application | `sys_scope_dependency` | no | no — no records in this scope |
-| `customer_update` | application | `sys_update_xml` | no | no — no records in this scope |
+| `customer_update` | application | `sys_update_xml` | yes | no — no records in this scope |
 | `source_control` | application | `sys_repo_config` | no | no — no application scope column (OD-2) |
-| `report` | reporting | `sys_report` | no | no — no records in this scope |
-| `report_source` | reporting | `sys_report_source` | no | no — no records in this scope |
+| `report` | reporting | `sys_report` | yes | no — no records in this scope |
+| `report_source` | reporting | `sys_report_source` | yes | no — no records in this scope |
 | `pa_indicator` | reporting | `pa_indicators` | no | no — no records in this scope |
 | `pa_indicator_source` | reporting | `pa_cubes` | no | no — no records in this scope |
 | `pa_breakdown` | reporting | `pa_breakdowns` | no | no — no records in this scope |

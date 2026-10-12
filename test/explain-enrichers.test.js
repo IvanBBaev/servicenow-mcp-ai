@@ -25,6 +25,7 @@ import {
   withEnv,
   withFetch,
   jsonResponse,
+  OD4_CORE_VERIFIED,
 } from "./helpers.js";
 
 baselineEnv();
@@ -132,12 +133,12 @@ async function run(name, tables, args, calls) {
 
 // -- registry -----------------------------------------------------------------
 
-test("P-7: every core / server / classic-UI row is registered, unverified, script-tools free", () => {
+test("P-7: every core / server / classic-UI row is registered and script-tools free", () => {
   for (const [type, table] of Object.entries(P7_TYPES)) {
     const t = getArtifactType(type);
     assert.ok(t, `missing ${type}`);
     assert.equal(t.table, table, type);
-    assert.equal(t.verified, false, `${type} must stay verified:false (O-5)`);
+    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
     assert.ok(["core", "server", "classic-ui"].includes(t.group), type);
     assert.equal(
       t.scriptTools,
@@ -229,7 +230,7 @@ test("P-7: list_artifacts and explain_artifact work for every new row", async ()
     assert.equal(list.error, undefined, `${type}: ${list.error}`);
     assert.equal(list.count, 1, type);
     assert.equal(list.artifacts[0].name, `A ${type}`, type);
-    assert.equal(list.verified, false, type);
+    assert.equal(list.verified, OD4_CORE_VERIFIED.has(type), type);
 
     const calls = [];
     const ex = await run(

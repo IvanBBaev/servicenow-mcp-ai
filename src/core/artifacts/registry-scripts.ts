@@ -575,6 +575,6 @@ export const SCRIPT_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
   },
 ];

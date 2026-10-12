@@ -132,7 +132,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
   - **Decided 2026-10-12: (2), then (3) type by type.** Done for (2): the 15 S-4 script types
     are `verified:true` (pdi-verify: confirmed, 0 misses, children included); the nine legacy
     types carry `capabilityRequired`, which alone drives `script_intelligence` and which types
-    an all-types script sweep must read. (3) is open.
+    an all-types script sweep must read. (3), first batch done: 28 core-platform types that ship on every instance (`table`, `choice_set`, `property`, `user_preference`, `role`, `cross_scope_privilege`, `assignment_rule`, `field_style`, `schedule`, `event`, `relationship`, `ldap_server`, `rest_api`, `rest_message`, `email_notification`, `inbound_email_action`, `data_policy`, `form`, `ui_section`, `formatter`, `list`, `application_menu`, `ui_view`, `list_control`, `interceptor`, `customer_update`, `report` and `report_source`) are `verified:true`. Still open: the plugin-backed confirmed types (portal, Flow Designer, workflow, catalog, ATF, UI Builder, GraphQL, PA, AI, security attributes, knowledge, SLA, data lookup, aliases) and `database_view`.
 - **OD-5 · Latest `scan_result` fallback (N-3).** _Not BREAKING for options 1 and 2._
   - Problem: the newest `scan_result` on the PDI (2026-08-21) has 0 findings, so the "latest
     scan" read in `src/api/instance-scan.ts` comes back empty.

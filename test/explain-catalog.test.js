@@ -23,6 +23,7 @@ import {
   withEnv,
   withFetch,
   jsonResponse,
+  OD4_CORE_VERIFIED,
 } from "./helpers.js";
 
 baselineEnv();
@@ -292,13 +293,13 @@ const CATALOG = {
 
 // -- registry -----------------------------------------------------------------
 
-test("P-8: every catalog / quality / AI / application row is registered and unverified", () => {
+test("P-8: every catalog / quality / AI / application row is registered", () => {
   for (const [type, [table, group]] of Object.entries(P8_TYPES)) {
     const t = getArtifactType(type);
     assert.ok(t, `missing ${type}`);
     assert.equal(t.table, table, type);
     assert.equal(t.group, group, type);
-    assert.equal(t.verified, false, `${type} must stay verified:false (O-5)`);
+    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
     assert.equal(t.scriptTools, undefined, `${type} joins no script tool`);
     assert.equal(t.scriptToolsOptIn, undefined, type);
     assert.ok(!SCRIPT_TYPE_NAMES.includes(type), type);
