@@ -364,6 +364,7 @@ function devDataset() {
         admin_panel: UX_CONFIG_SYS_ID,
         sys_scope: sid("sys_app:x_acme_vendor"),
         active: "true",
+        parent_app: "",
       },
     ],
     sys_ux_app_config: [

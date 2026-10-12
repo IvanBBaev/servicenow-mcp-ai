@@ -35,6 +35,9 @@ const THEME = id("4");
 const AW = id("5");
 const COMPONENT = id("6");
 const ACTION_DEF = id("8");
+const UX_APP = id("d");
+const APP_THEME = id("e");
+const AUDIENCE = id("f");
 
 function fixture() {
   return {
@@ -47,6 +50,7 @@ function fixture() {
         admin_panel: CFG,
         sys_scope: SCOPE,
         active: "true",
+        parent_app: UX_APP,
       },
     ],
     sys_ux_page_property: [
@@ -239,19 +243,36 @@ function fixture() {
       { sys_id: FORM_MODEL, name: "Form" },
     ],
     sys_declarative_action_definition: [
-      { sys_id: ACTION_DEF, label: "Resolve incident", action_name: "resolve" },
+      { sys_id: ACTION_DEF, name: "Resolve incident" },
     ],
     sys_ux_lib_component: [
       { sys_id: COMPONENT, name: "KB panel", tag: "sn-kb-panel" },
     ],
     sys_declarative_action_payload_definition: [
-      { sys_id: PAYLOAD, label: "Bulk close payload", key: "BULK_CLOSE" },
+      {
+        sys_id: PAYLOAD,
+        label: "Bulk close payload",
+        action_key: "BULK_CLOSE",
+      },
+    ],
+    sys_ux_app: [
+      { sys_id: UX_APP, theme: APP_THEME },
+      { sys_id: id("0"), theme: id("8") },
     ],
     m2m_app_theme: [
-      { sys_id: "mt1", app: EXP, theme: THEME, order: "1" },
-      { sys_id: "mt2", app: id("0"), theme: id("8"), order: "1" },
+      {
+        sys_id: "mt1",
+        ux_app: UX_APP,
+        theme: THEME,
+        order: "1",
+        applicability: AUDIENCE,
+      },
+      { sys_id: "mt2", ux_app: id("0"), theme: id("8"), order: "1" },
     ],
-    sys_ux_theme: [{ sys_id: THEME, name: "Acme Polaris" }],
+    sys_ux_theme: [
+      { sys_id: THEME, name: "Acme Polaris" },
+      { sys_id: APP_THEME, name: "Acme Base" },
+    ],
     sys_ux_registry_m2m_category: [
       {
         sys_id: "rc1",
@@ -521,7 +542,7 @@ test("an ignored action filter is filtered again on the client", async () => {
   assert.ok(!res.actions.some((a) => a.table === "sys_user"));
   assert.deepEqual(
     res.themes.map((t) => t.sys_id),
-    [THEME],
+    [APP_THEME, THEME],
   );
 });
 
@@ -549,12 +570,29 @@ test("form views group layouts, action bar, related items and side panel", async
   );
 });
 
-test("themes come from m2m_app_theme", async () => {
+test("themes come from the experience's UX app and m2m_app_theme", async () => {
   const res = payload(await run({ path: "now/acme" }));
   assert.deepEqual(res.themes, [
-    { sys_id: THEME, name: "Acme Polaris", link: "mt1", order: 1 },
+    { sys_id: APP_THEME, name: "Acme Base", link: UX_APP, via: "app" },
+    {
+      sys_id: THEME,
+      name: "Acme Polaris",
+      link: "mt1",
+      via: "m2m",
+      order: 1,
+      applicability: AUDIENCE,
+    },
   ]);
-  assert.equal(res.counts.themes, 1);
+  assert.equal(res.counts.themes, 2);
+});
+
+test("an experience without a parent app has no themes", async () => {
+  const tables = fixture();
+  delete tables.sys_ux_page_registry[0].parent_app;
+  const mock = instance(tables);
+  const res = payload(await run({ path: "now/acme" }, mock));
+  assert.deepEqual(res.themes, []);
+  assert.ok(!mock.reads.some((r) => r.table === "m2m_app_theme"));
 });
 
 test("Agent vs Configurable Workspace: signals and the migration list", async () => {
@@ -634,7 +672,11 @@ test("unreadable workspace tables become caveats; the rest is still read", async
     ),
   );
   assert.deepEqual(res.actions, []);
-  assert.deepEqual(res.themes, []);
+  // The UX app's own theme is still read without m2m_app_theme.
+  assert.deepEqual(
+    res.themes.map((t) => [t.sys_id, t.via]),
+    [[APP_THEME, "app"]],
+  );
   assert.equal(res.shell.toolbar.length, 2);
   assert.deepEqual(
     res.forms.map((f) => f.table),
@@ -672,7 +714,7 @@ test("markdown renders the workspace section", async () => {
   const md = res.markdown;
   assert.match(
     md,
-    /5 declarative action\(s\), 1 theme\(s\)\. verified:false\./,
+    /5 declarative action\(s\), 2 theme\(s\)\. verified:false\./,
   );
   assert.match(
     md,
@@ -688,7 +730,7 @@ test("markdown renders the workspace section", async () => {
     md,
     /- Tabs: contextual record · new-tab tables incident, problem/,
   );
-  assert.match(md, /Themes: Acme Polaris/);
+  assert.match(md, /Themes: Acme Base, Acme Polaris/);
   assert.match(
     md,
     /- \*\*incident\*\*: layouts Incident layout · action bar Resolve, Resolve \(AW\) · side panel Knowledge/,

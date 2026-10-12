@@ -10,15 +10,19 @@
  *   shapes the SDK workspace plugin writes);
  * - a UX form view per table: form action layouts plus the action bar,
  *   related-item and contextual side panel actions;
- * - the themes linked through `m2m_app_theme`;
+ * - the themes of the experience's UX app (`sys_ux_page_registry.parent_app`
+ *   → `sys_ux_app.theme`, plus `m2m_app_theme` rows on that app);
  * - Agent Workspace vs Configurable Workspace, with the Agent Workspace
  *   pieces of the scope that have no Configurable Workspace counterpart.
  *
- * Every table and field here is verified:false until O-5. Field names of
- * `sys_declarative_action_assignment` come from the SDK table definition;
- * `m2m_app_theme`, the `sys_aw_*` tables and the model / payload definition
- * fields are not in the SDK inventory and are guesses. A read that may ignore
- * an unknown field (and so return every row) is filtered again here.
+ * O-5 (PDI, sys_dictionary): every `sys_declarative_action_assignment` field
+ * read here exists; the payload definition names itself by `label` /
+ * `action_key`, the action definition by `name` (it has no `label`), the
+ * model definition by `name`; `m2m_app_theme` links a theme to a `sys_ux_app`
+ * through `ux_app` (no `app` field), and an experience names its app in
+ * `sys_ux_page_registry.parent_app`; `sys_aw_master_config.name` and
+ * `sys_aw_list.title` / `table` exist. A read that may ignore an unknown
+ * field (and so return every row) is still filtered again here.
  */
 import { snString } from "./shared.js";
 import { readEncodedQuery, type EncodedQueryTerm } from "./query-explain.js";
@@ -37,7 +41,7 @@ export interface WorkspaceIo {
 }
 
 export const WORKSPACE_CAVEAT =
-  "Workspace coverage (N-30) is unverified (gate O-5): declarative action fields come from the SDK table definition; m2m_app_theme, sys_aw_master_config, sys_aw_list and the action model / payload definition fields are not in the SDK inventory. Actions are found by the tables of the workspace's lists, form action layouts and new-tab menu; dedicated UX form config and side panel tables are not read (the form view is built from action positions).";
+  "Workspace coverage (N-30): the tables and fields read were checked on a PDI (O-5). Actions are found by the tables of the workspace's lists, form action layouts and new-tab menu; dedicated UX form config and side panel tables are not read (the form view is built from action positions).";
 
 /** The experience category the SDK gives every workspace (unified navigation). */
 export const WORKSPACE_CATEGORY = "afb4e3e173322010f0ca1e666bf6a726";
@@ -130,8 +134,13 @@ export interface UxFormView {
 export interface UxTheme {
   sys_id: string;
   name?: string;
+  /** The sys_ux_app (its own `theme`) or the m2m_app_theme row. */
   link: string;
+  /** `app`: the UX app's `theme` field; `m2m`: an m2m_app_theme row. */
+  via?: "app" | "m2m";
   order?: number;
+  /** m2m_app_theme: the audience the theme applies to. */
+  applicability?: string;
 }
 
 export interface UxWorkspaceClass {
@@ -306,16 +315,15 @@ function surfaceOf(name: string | undefined): string | undefined {
 
 /**
  * Run-target name reads: assignment field, table, name fields in order of
- * preference. `sys_declarative_action_definition` and its fields are not in
- * the SDK inventory (O-5: unverified).
+ * preference (O-5: checked on a PDI).
  */
 const RUN_NAME_READS: readonly (readonly [string, string, string[]])[] = [
   [
     "client_action",
     "sys_declarative_action_payload_definition",
-    ["label", "key"],
+    ["label", "action_key"],
   ],
-  ["action", "sys_declarative_action_definition", ["label", "action_name"]],
+  ["action", "sys_declarative_action_definition", ["name"]],
   ["ui_component", "sys_ux_lib_component", ["name", "tag"]],
 ];
 
@@ -351,8 +359,7 @@ export async function readDeclarativeActions(
   }
   // The name of what each assignment runs: the client action payload, and
   // (N-30) the server action definition and the UI component, each read
-  // only when an assignment references one. The definition's `label` /
-  // `action_name` fields are unverified until O-5.
+  // only when an assignment references one.
   const runNames = new Map<string, string>();
   for (const [field, table, fields] of RUN_NAME_READS) {
     for (const p of await io.readIn(
@@ -458,44 +465,77 @@ export function formViews(
 }
 
 /**
- * Themes linked to the experience (or its app config) through
- * `m2m_app_theme`. The link field is a guess, so rows are filtered again.
+ * Themes of the experiences' UX app: `sys_ux_page_registry.parent_app` names
+ * the `sys_ux_app`, whose `theme` is the app theme; `m2m_app_theme` rows on
+ * the app (`ux_app`) add themes per audience (O-5: on a PDI 147 experiences
+ * name an app, most apps set `theme`, and m2m_app_theme is empty). Ids that
+ * are not experiences read nothing; rows are filtered again.
  */
 export async function readThemes(
   io: WorkspaceIo,
-  links: string[],
+  experiences: string[],
 ): Promise<UxTheme[]> {
-  const wanted = new Set(links.filter(Boolean));
+  const wanted = new Set(experiences.filter(Boolean));
   if (!wanted.size) return [];
+  const appIds = new Set(
+    (
+      await io.readIn("sys_ux_page_registry", "sys_id", wanted, [
+        "sys_id",
+        "parent_app",
+      ])
+    )
+      .filter((r) => wanted.has(str(r, "sys_id")))
+      .map((r) => str(r, "parent_app"))
+      .filter(Boolean),
+  );
+  if (!appIds.size) return [];
+  const apps = (
+    await io.readIn("sys_ux_app", "sys_id", appIds, ["sys_id", "theme"])
+  ).filter((r) => appIds.has(str(r, "sys_id")) && opt(r, "theme"));
   const m2m = (
-    await io.readIn("m2m_app_theme", "app", wanted, [
-      "sys_id",
-      "app",
-      "theme",
-      "order",
-    ])
-  ).filter((r) => wanted.has(str(r, "app")) && opt(r, "theme"));
-  if (!m2m.length) return [];
+    await io.readIn(
+      "m2m_app_theme",
+      "ux_app",
+      appIds,
+      ["sys_id", "ux_app", "theme", "order", "applicability"],
+      { order: "order" },
+    )
+  ).filter((r) => appIds.has(str(r, "ux_app")) && opt(r, "theme"));
+  if (!apps.length && !m2m.length) return [];
   const names = new Map<string, string>();
   for (const t of await io.readIn(
     "sys_ux_theme",
     "sys_id",
-    m2m.map((r) => str(r, "theme")),
+    [...apps, ...m2m].map((r) => str(r, "theme")),
     ["sys_id", "name"],
   )) {
     if (opt(t, "name")) names.set(str(t, "sys_id"), str(t, "name"));
   }
-  return m2m.map((r) => {
-    const order = Number(str(r, "order"));
-    return {
-      sys_id: str(r, "theme"),
-      ...(names.has(str(r, "theme"))
-        ? { name: names.get(str(r, "theme")) }
-        : {}),
-      link: str(r, "sys_id"),
-      ...(str(r, "order") && Number.isFinite(order) ? { order } : {}),
-    };
-  });
+  const named = (theme: string) =>
+    names.has(theme) ? { name: names.get(theme) } : {};
+  return [
+    ...apps.map(
+      (r): UxTheme => ({
+        sys_id: str(r, "theme"),
+        ...named(str(r, "theme")),
+        link: str(r, "sys_id"),
+        via: "app",
+      }),
+    ),
+    ...m2m.map((r): UxTheme => {
+      const order = Number(str(r, "order"));
+      return {
+        sys_id: str(r, "theme"),
+        ...named(str(r, "theme")),
+        link: str(r, "sys_id"),
+        via: "m2m",
+        ...(str(r, "order") && Number.isFinite(order) ? { order } : {}),
+        ...(opt(r, "applicability")
+          ? { applicability: str(r, "applicability") }
+          : {}),
+      };
+    }),
+  ];
 }
 
 /** A declarative action assignment added to a UX action configuration. */

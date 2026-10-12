@@ -107,6 +107,7 @@ function fixture() {
         admin_panel: CFG,
         sys_scope: SCOPE,
         active: "true",
+        parent_app: "",
       },
     ],
     sys_ux_page_property: [
