@@ -1,7 +1,7 @@
 import { rethrowIfCancelled } from "../core/errors.js";
 import { throwIfCancelled } from "../core/progress.js";
 import { scriptTables } from "./references.js";
-import { SCRIPT_TYPES, scopeClause, scriptArtifact } from "./scripts.js";
+import { SCRIPT_TYPES, scriptArtifact, typeScopeClause } from "./scripts.js";
 import { snString } from "./shared.js";
 import { queryTable } from "./table.js";
 
@@ -183,7 +183,7 @@ async function scanScripts(
         table: descriptor.table,
         query: [
           ...(artifact.baseQuery ? [artifact.baseQuery] : []),
-          scopeClause(artifact.scopeField, scopeRef),
+          typeScopeClause(artifact, scopeRef),
           "ORDERBYDESCsys_updated_on",
         ].join("^"),
         fields: ["sys_id", descriptor.nameField, ...fields],

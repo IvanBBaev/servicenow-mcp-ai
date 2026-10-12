@@ -8,7 +8,11 @@ import {
   runWithProfile,
 } from "../core/request-context.js";
 import { getDocsDir } from "../core/settings.js";
-import { ARTIFACT_GROUPS, ARTIFACT_TYPES } from "../core/artifacts/registry.js";
+import {
+  ARTIFACT_GROUPS,
+  ARTIFACT_TYPES,
+  getArtifactType,
+} from "../core/artifacts/registry.js";
 import {
   LIST_LIMIT,
   artifactTypeCatalog,
@@ -912,7 +916,8 @@ export type DiscoveryTypeStatus =
   | "unverified"
   | "absent"
   | "unreadable"
-  | "package_off";
+  | "package_off"
+  | "unscoped";
 
 export interface DiscoveryArtifactsData {
   scope: string;
@@ -952,6 +957,9 @@ async function collectDiscoveryArtifacts(
       const cap = found.capped[t.type];
       const requires = found.packageOff[t.type];
       if (t.type === "table") return { ...head, status: "tables" as const };
+      if (getArtifactType(t.type)?.scopeField === null) {
+        return { ...head, status: "unscoped" as const };
+      }
       if (cap) {
         return {
           ...head,
@@ -996,6 +1004,8 @@ function discoveryStatus(
       return "no — unverified: the instance has no such table";
     case "unreadable":
       return "no — unreadable for this user (ACL or table policy)";
+    case "unscoped":
+      return "no — no application scope column (OD-2)";
     case "package_off":
       return `no — package off: ${code(t.requires ?? "")} not installed`;
     default:

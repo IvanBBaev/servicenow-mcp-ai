@@ -488,7 +488,8 @@ export async function collectScopeArtefacts(
   };
   for (const group of ARTIFACT_GROUPS) {
     for (const t of ARTIFACT_TYPES.filter((x) => x.group === group)) {
-      if (t.type === "table") continue;
+      // OD-2: a type without a scope column cannot belong to an app.
+      if (t.type === "table" || t.scopeField === null) continue;
       let res: Record<string, unknown>;
       try {
         res = await listArtifacts({

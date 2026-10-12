@@ -215,7 +215,18 @@ export interface ArtifactType {
   nameField: string;
   /** Natural key (the SDK coalescing key); `["sys_id"]` when there is none. */
   keyFields: string[];
-  scopeField: string;
+  /**
+   * Reference to the record's application scope (`sys_scope` by default).
+   * `null` when the table has no scope column (runtime contexts, user
+   * preferences…): a `scope` filter is refused for such a type (OD-2).
+   */
+  scopeField: string | null;
+  /**
+   * Column holding the scope namespace when it is not `<scopeField>.scope`:
+   * `sys_app` is itself the scope (`scopeField: "sys_id"`), its namespace
+   * is its own `scope` column (OD-2).
+   */
+  scopeNamespaceField?: string;
   /** Field holding the active flag; absent when the table has none. */
   activeField?: string;
   /** Field(s) holding executable source code. */
@@ -246,6 +257,12 @@ export interface ArtifactType {
   verified: boolean;
   /** Listed by the script-intelligence tools (the `SCRIPT_TYPES` view). */
   scriptTools?: boolean;
+  /**
+   * OD-4: the primary table must be readable for `check_capabilities` to call
+   * `script_intelligence` available. Set on the nine legacy script types only,
+   * so a `verified` flip never changes the capability verdict.
+   */
+  capabilityRequired?: boolean;
   /**
    * Served by list_scripts / get_script / search_code only on explicit
    * request (`type`, or search_code `extended:true`), never by the default
@@ -304,7 +321,7 @@ export interface UniqueRule {
 export const BASE = {
   children: [] as ArtifactChild[],
   keyFields: ["sys_id"],
-  scopeField: "sys_scope",
+  scopeField: "sys_scope" as string | null,
   jsonFields: [] as JsonField[],
   refFields: [] as RefField[],
   secretFields: [] as string[],
@@ -314,7 +331,7 @@ export const BASE = {
  * The script-intelligence tiers of the nine legacy script types: listed and
  * read (R), linted and searched (A), counted and diffed by snapshot / compare
  * (S). The nine are `verified:true` because every release since 1.0 has read
- * them in production.
+ * them in production; they alone carry `capabilityRequired` (OD-4).
  */
 export const SCRIPT_TOOL_TIERS: Tier[] = ["R", "A", "S"];
 
@@ -536,3 +553,12 @@ export const PERFORMANCE_ANALYTICS = "Performance Analytics (com.snc.pa)";
 
 /** P-8 (AI-1, AI-2): the licensed store app behind the `sn_aia_*` tables. */
 export const AI_AGENTS_APP = "Now Assist AI Agents (sn_aia)";
+
+/** Dot-walk path to a type's scope namespace; `null` for an unscoped type. */
+export function scopeNamespacePath(t: {
+  scopeField: string | null;
+  scopeNamespaceField?: string;
+}): string | null {
+  if (t.scopeField === null) return null;
+  return t.scopeNamespaceField ?? `${t.scopeField}.scope`;
+}

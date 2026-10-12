@@ -16,6 +16,8 @@ import { queryTable } from "./table.js";
  * latest scan_result and its scan_finding rows (check, priority, target
  * record), each target table mapped to a registry artefact type, plus the
  * "both agree" set — records that Instance Scan and our lint both flag.
+ * When the latest run has no findings, a caveat names the newest run that
+ * has some (OD-5); the latest run is still the one shown.
  *
  * The read never throws except on a cancel: a missing plugin or an
  * unreadable table gives `available: false`. Running a scan (phase D,
@@ -46,6 +48,11 @@ export interface InstanceScanReport {
   unavailableReason?: string;
   /** The scan_result read, when one exists. */
   result?: { sys_id: string; createdOn: string; state?: string };
+  /**
+   * OD-5: when the latest result has no findings, the newest run that has
+   * some (by its creation time). The report still shows the latest run.
+   */
+  newestWithFindings?: { sys_id: string; createdOn: string };
   findingCount: number;
   /** True when the read hit INSTANCE_SCAN_LIMIT. */
   capped: boolean;
@@ -181,9 +188,12 @@ export async function readInstanceScan(
     const key = artifactType ?? "(unregistered)";
     byArtifactType[key] = (byArtifactType[key] ?? 0) + 1;
   }
+  const newestWithFindings =
+    result && records.length === 0 ? await readNewestWithFindings() : undefined;
   return {
     available: true,
     ...(result ? { result } : {}),
+    ...(newestWithFindings ? { newestWithFindings } : {}),
     findingCount: findings.length,
     capped: records.length >= INSTANCE_SCAN_LIMIT,
     byPriority,
@@ -191,6 +201,34 @@ export async function readInstanceScan(
     findings,
     agreed: agreedFindings(findings, linted),
   };
+}
+
+/**
+ * OD-5: the newest scan run that has findings, found through its newest
+ * finding. Best effort — any failure but a cancel leaves the caveat out.
+ */
+async function readNewestWithFindings(): Promise<
+  InstanceScanReport["newestWithFindings"]
+> {
+  try {
+    const { records } = await queryTable({
+      table: SCAN_FINDING_TABLE,
+      query: "resultISNOTEMPTY^ORDERBYDESCresult.sys_created_on",
+      fields: ["result", "result.sys_created_on"],
+      displayValue: "false",
+      limit: 1,
+    });
+    const r = records[0];
+    const sysId = r ? snString(r.result) : "";
+    if (!sysId) return undefined;
+    return {
+      sys_id: sysId,
+      createdOn: snString(r?.["result.sys_created_on"]),
+    };
+  } catch (e) {
+    rethrowIfCancelled(e);
+    return undefined;
+  }
 }
 
 /** Markdown for the Instance Scan section of the code-health report. */
@@ -218,6 +256,13 @@ export function renderInstanceScan(report: InstanceScanReport): string[] {
     `- Both agree (Instance Scan and our lint flag the record): ${report.agreed.length}`,
     "",
   ];
+  if (report.newestWithFindings) {
+    const n = report.newestWithFindings;
+    lines.push(
+      `Caveat: the latest run has no findings; the newest run with findings is \`${n.sys_id}\`${n.createdOn ? ` (${n.createdOn})` : ""}.`,
+      "",
+    );
+  }
   if (report.findings.length > 0) {
     lines.push(
       "| Check | Priority | Artefact type | Table | Record |",

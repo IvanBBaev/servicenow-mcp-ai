@@ -71,6 +71,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     `super_class` or a `sys_scope` column.
   - Recommend: (2) for `application`, (1) for the other six. The runtime contexts carry no scope.
     The scope of a knowledge base, preference or repo config is not a column.
+  - **Decided 2026-10-12: (2) for `application`, (1) for the other six.** Done: `scopeField: null`
+    refuses a scope filter (INVALID_INPUT); `application` filters on `sys_id` / `scope`.
 - **OD-3 · Five plugin-gated or absent tables.** _BREAKING only if a type is removed._
   - The tables:
     - `change_risk_asmt` and `change_risk_asmt_threshold` (`risk_assessment`): plugin
@@ -90,6 +92,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
   - Evidence: PDI-VERIFY "Missing tables".
   - Recommend: (1) now. (3) for `sys_package_dependency` → `sys_package_dependency_m2m` as a
     follow-up. (2) only if risk assessment matters. Not (4) before 3.0.
+  - **Decided 2026-10-12: (1), plus (3) for `sys_package_dependency`.** Done: the four other
+    tables stay `verified:false`; the `application` child reads `sys_package_dependency_m2m`
+    (`sys_package` → `dependency`, fields checked on the PDI with GETs, 172 rows).
 - **OD-4 · Registry `verified` flag flips.** _Behaviour change, not in the O-4 register._
   - State: 9 types are `verified:true` and 136 are `verified:false`.
   - What the flag drives:
@@ -124,6 +129,10 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       AI Agents). A verified plugin table fails loudly on an instance without that plugin.
       `sys_package.source` does not separate core from plugin tables reliably, so this needs a
       per-type judgement.
+  - **Decided 2026-10-12: (2), then (3) type by type.** Done for (2): the 15 S-4 script types
+    are `verified:true` (pdi-verify: confirmed, 0 misses, children included); the nine legacy
+    types carry `capabilityRequired`, which alone drives `script_intelligence` and which types
+    an all-types script sweep must read. (3), first batch done: 28 core-platform types that ship on every instance (`table`, `choice_set`, `property`, `user_preference`, `role`, `cross_scope_privilege`, `assignment_rule`, `field_style`, `schedule`, `event`, `relationship`, `ldap_server`, `rest_api`, `rest_message`, `email_notification`, `inbound_email_action`, `data_policy`, `form`, `ui_section`, `formatter`, `list`, `application_menu`, `ui_view`, `list_control`, `interceptor`, `customer_update`, `report` and `report_source`) are `verified:true`. Still open: the plugin-backed confirmed types (portal, Flow Designer, workflow, catalog, ATF, UI Builder, GraphQL, PA, AI, security attributes, knowledge, SLA, data lookup, aliases) and `database_view`.
 - **OD-5 · Latest `scan_result` fallback (N-3).** _Not BREAKING for options 1 and 2._
   - Problem: the newest `scan_result` on the PDI (2026-08-21) has 0 findings, so the "latest
     scan" read in `src/api/instance-scan.ts` comes back empty.
@@ -135,6 +144,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     - (3) Fall back by default. This silently changes which run is shown.
   - Evidence: PDI-VERIFY "Second pass", caveats.
   - Recommend: (1). Zero findings is a true answer about the latest run.
+  - **Decided 2026-10-12: (1).** Done: the caveat names the newest run with findings
+    (`newestWithFindings`).
 - **OD-6 · `sys_store_app` 403 (N-1).** _Not BREAKING._
   - Problem: the PDI admin gets a 403 on `sys_store_app` (and `sys_upgrade_history_log`) rows
     over REST. `readStoreUpdates` (`src/api/upgrade.ts`) degrades to `available:false`, so store

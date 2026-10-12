@@ -144,6 +144,65 @@ test("no scan result falls back to unmuted findings", async () => {
   );
 });
 
+test("an empty latest run names the newest run with findings (OD-5)", async () => {
+  freshRuntime();
+  await withFetch(
+    (url) => {
+      const u = new URL(url);
+      if (u.pathname.endsWith("/scan_result"))
+        return jsonResponse(200, {
+          result: [{ sys_id: "r2", sys_created_on: "2026-08-21 09:00:00" }],
+        });
+      const q = u.searchParams.get("sysparm_query");
+      if (q === "result=r2") return jsonResponse(200, { result: [] });
+      assert.equal(q, "resultISNOTEMPTY^ORDERBYDESCresult.sys_created_on");
+      assert.equal(u.searchParams.get("sysparm_limit"), "1");
+      return jsonResponse(200, {
+        result: [
+          { result: "r1", "result.sys_created_on": "2026-07-01 10:00:00" },
+        ],
+      });
+    },
+    async (calls) => {
+      const r = await readInstanceScan();
+      assert.equal(calls.length, 3);
+      assert.equal(r.result.sys_id, "r2");
+      assert.equal(r.findingCount, 0);
+      assert.deepEqual(r.newestWithFindings, {
+        sys_id: "r1",
+        createdOn: "2026-07-01 10:00:00",
+      });
+      assert.match(
+        renderInstanceScan(r).join("\n"),
+        /Caveat: the latest run has no findings; the newest run with findings is `r1` \(2026-07-01 10:00:00\)\./,
+      );
+    },
+  );
+});
+
+test("the newest-run caveat is best effort (OD-5)", async () => {
+  for (const second of [
+    () => jsonResponse(200, { result: [] }),
+    () => jsonResponse(403, { error: { message: "denied" } }),
+  ]) {
+    freshRuntime();
+    let n = 0;
+    await withFetch(
+      (url) => {
+        if (new URL(url).pathname.endsWith("/scan_result"))
+          return jsonResponse(200, { result: [{ sys_id: "r2" }] });
+        return n++ === 0 ? jsonResponse(200, { result: [] }) : second();
+      },
+      async () => {
+        const r = await readInstanceScan();
+        assert.equal(r.available, true);
+        assert.equal(r.newestWithFindings, undefined);
+        assert.doesNotMatch(renderInstanceScan(r).join("\n"), /Caveat/);
+      },
+    );
+  }
+});
+
 test("a missing plugin or denied read degrades to unavailable", async () => {
   freshRuntime();
   await withFetch(

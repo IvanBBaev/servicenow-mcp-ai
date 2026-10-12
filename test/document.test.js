@@ -510,7 +510,7 @@ const appTables = () => ({
     },
   ],
   // Unverified type: a 404 degrades instead of failing (gate O-5).
-  sys_ui_page: 404,
+  sys_alias: 404,
   // Verified type the user cannot read: listed as unreadable.
   sys_script_client: 403,
 });
@@ -526,7 +526,7 @@ test("golden: app doc with two tables, three artefact kinds, degraded and unread
     assert.match(md, /AcmeUtils/);
     assert.match(md, /x_acme\.admin/);
     assert.match(md, /## Not confirmed on this instance/);
-    assert.match(md, /sys_ui_page/);
+    assert.match(md, /sys_alias/);
     assert.match(md, /client_script/);
     assert.doesNotMatch(md, /hunter2/, "property values are never documented");
     lintBlocks(md);
@@ -1579,13 +1579,13 @@ test("discovery: artifacts-<scope>.md says why each type was not collected", asy
     router({
       ...base,
       sys_db_object: (q) =>
-        q.startsWith("name=sys_ui_page")
-          ? [{ name: "sys_ui_page" }]
+        q.startsWith("name=sys_alias")
+          ? [{ name: "sys_alias" }]
           : base.sys_db_object(q),
       // Unverified, the table exists but this user cannot read it (O-5).
-      sys_ui_page: 403,
+      sys_alias: 403,
       // Unverified, no such table on this instance.
-      sysevent_script_action: 404,
+      sys_retry_policy: 404,
       // Licensed family whose plugin is not installed.
       sn_aia_agent: 404,
       // N-8: Performance Analytics not installed (O-9).
@@ -1606,11 +1606,11 @@ test("discovery: artifacts-<scope>.md says why each type was not collected", asy
       assert.match(row("business_rule"), /\| yes \(\d+\) \|$/);
       assert.match(row("script_include"), /\| yes, 1000 of 1001 \(cap\) \|$/);
       assert.match(
-        row("ui_page"),
+        row("alias"),
         /no — unverified: table not readable here \(O-5\)/,
       );
       assert.match(
-        row("script_action"),
+        row("retry_policy"),
         /no — unverified: the instance has no such table/,
       );
       assert.match(

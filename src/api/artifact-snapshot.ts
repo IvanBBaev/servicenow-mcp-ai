@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { queryTable, type SnRecord } from "./table.js";
 import { resolveArtifactType } from "./artifacts.js";
-import { scopeClause } from "./scripts.js";
+import { typeScopeClause } from "./scripts.js";
 import { snString } from "./shared.js";
 import { unifiedDiff } from "./unified-diff.js";
 import { rethrowIfCancelled } from "../core/errors.js";
@@ -258,7 +258,7 @@ export async function collectArtifactType(
   const warnings: string[] = [];
   const query = [
     ...(t.baseQuery ? [t.baseQuery] : []),
-    ...(opts.scope?.trim() ? [scopeClause(t.scopeField, opts.scope)] : []),
+    ...(opts.scope?.trim() ? [typeScopeClause(t, opts.scope)] : []),
     "ORDERBYsys_id",
   ].join("^");
   const res = await queryTable({

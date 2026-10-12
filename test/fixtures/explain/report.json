@@ -1,8 +1,7 @@
 {
   "artifactType": "report",
   "table": "sys_report",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
   "name": "Open P1 incidents by group",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "report 'Open P1 incidents by group' (sys_report); applies to incident; scope x_acme_app; 1 child record(s) in 1 table(s); unverified type",
+  "summary": "report 'Open P1 incidents by group' (sys_report); applies to incident; scope x_acme_app; 1 child record(s) in 1 table(s)",
   "when": null,
   "fields": {
     "title": "Open P1 incidents by group",
@@ -33,7 +32,7 @@
     {
       "table": "sys_report_users_groups",
       "parentField": "report_id",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {

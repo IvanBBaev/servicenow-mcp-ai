@@ -18,6 +18,7 @@ import {
   OPT_IN_SCRIPT_TYPES,
   OPT_IN_SCRIPT_TYPE_NAMES,
 } from "../build/api/scripts.js";
+import { OD4_CORE_VERIFIED } from "./helpers.js";
 
 /**
  * P-1 — the artefact registry. The literal below is the pre-P-1
@@ -109,19 +110,23 @@ test("SCRIPT_TYPES view starts with the pre-registry literal, keys in order", ()
   assert.equal(JSON.stringify(legacyView), JSON.stringify(LEGACY_SCRIPT_TYPES));
 });
 
-test("the nine legacy types are verified; every S-4 addition is not", () => {
+test("OD-4: every script type is verified; only the nine legacy ones gate the capability", () => {
   const exposed = ARTIFACT_TYPES.filter((t) => t.scriptTools).map(
     (t) => t.type,
   );
   assert.deepEqual(exposed, SCRIPT_TYPE_NAMES);
   assert.deepEqual(exposed.slice(0, LEGACY_NAMES.length), LEGACY_NAMES);
   for (const type of exposed) {
+    const t = getArtifactType(type);
+    assert.equal(t.verified, true, type);
     assert.equal(
-      getArtifactType(type).verified,
+      t.capabilityRequired === true,
       LEGACY_NAMES.includes(type),
       type,
     );
   }
+  const capability = ARTIFACT_TYPES.filter((t) => t.capabilityRequired);
+  assert.ok(capability.every((t) => t.scriptTools));
 });
 
 test("S-4: every widened table is reachable by the script tools", () => {
@@ -237,7 +242,7 @@ test("every sdkApi is on the baseline list; SDK_BASELINE is 4.13.6", () => {
   const interceptor = getArtifactType("interceptor");
   assert.equal(interceptor.sdkApi, "Interceptor");
   assert.equal(interceptor.table, "sys_wizard");
-  assert.equal(interceptor.verified, false);
+  assert.equal(interceptor.verified, true);
   assert.equal(interceptor.children[0].table, "sys_wizard_answer");
   assert.deepEqual(interceptor.children[0].scriptFields, ["script"]);
 });
@@ -254,7 +259,7 @@ test("P-7 guide-audit rows CORE-18, 19, 21 and CUI-6 sys_ui_formatter are regist
     const t = getArtifactType(type);
     assert.equal(t.group, group, type);
     assert.equal(t.table, table, type);
-    assert.equal(t.verified, false, `${type} waits for O-5`);
+    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
   }
   assert.deepEqual(
     getArtifactType("knowledge_base").children.map((c) => c.table),
@@ -608,7 +613,7 @@ const N8_TYPES = {
   pa_dashboard: ["pa_dashboards", PERFORMANCE_ANALYTICS],
 };
 
-test("N-8: every report / PA row is an unverified R + X reporting type", () => {
+test("N-8: every report / PA row is an R + X reporting type; only core reports are verified", () => {
   assert.ok(ARTIFACT_GROUPS.includes("reporting"));
   assert.deepEqual(
     ARTIFACT_TYPES.filter((t) => t.group === "reporting")
@@ -623,7 +628,7 @@ test("N-8: every report / PA row is an unverified R + X reporting type", () => {
     assert.equal(t.group, "reporting", type);
     assert.equal(t.sdkApi, "none", type);
     assert.equal(t.sdkSince, null, type);
-    assert.equal(t.verified, false, type);
+    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
     assert.deepEqual(t.tiers, ["R", "X"], type);
     assert.equal(t.licensed, licensed, type);
     // No script-tools enum grows (tools/list budget).

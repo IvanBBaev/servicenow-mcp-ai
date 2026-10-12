@@ -1,8 +1,7 @@
 {
   "artifactType": "data_policy",
   "table": "sys_data_policy2",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "11111111111111111111111111111111",
   "name": "Resolved incidents need close fields",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "data_policy 'Resolved incidents need close fields' (sys_data_policy2); applies to incident; active; scope x_acme_app; 3 child record(s) in 1 table(s); unverified type",
+  "summary": "data_policy 'Resolved incidents need close fields' (sys_data_policy2); applies to incident; active; scope x_acme_app; 3 child record(s) in 1 table(s)",
   "when": {
     "conditions": "state=6",
     "reverse_if_false": "true"
@@ -59,7 +58,7 @@
     {
       "table": "sys_data_policy_rule",
       "parentField": "sys_data_policy",
-      "verified": false,
+      "verified": true,
       "count": 3,
       "items": [
         {

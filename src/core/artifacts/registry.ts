@@ -71,6 +71,7 @@ export {
   DECODER_IDS,
   ARTIFACT_GROUPS,
   PERFORMANCE_ANALYTICS,
+  scopeNamespacePath,
 } from "./registry-model.js";
 export type {
   SdkApi,

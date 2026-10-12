@@ -479,13 +479,23 @@ test("the node cap truncates the graph", async () => {
 
 test("a degraded root of an unverified type answers an empty graph", async () => {
   const res = await deps(
-    { artifactType: "sp_widget", sys_id: WIDGET },
-    instance({ sys_db_object: [] }, { sp_widget: 404 }),
+    { artifactType: "graphql_api", sys_id: WIDGET },
+    instance({ sys_db_object: [] }, { sys_graphql_schema: 404 }),
   );
   assert.equal(res.root, null);
   assert.deepEqual(res.nodes, []);
   assert.equal(res.degraded.status, 404);
   assert.equal(res.available, false);
+});
+
+test("OD-4: a missing root of a verified type fails instead of degrading", async () => {
+  await assert.rejects(
+    deps(
+      { artifactType: "sp_widget", sys_id: WIDGET },
+      instance({ sys_db_object: [] }, { sp_widget: 404 }),
+    ),
+    (e) => e.status === 404,
+  );
 });
 
 test("the tool returns JSON by default and a Mermaid graph that matches its golden", async () => {

@@ -111,6 +111,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "flow_context",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "flow",
     sdkApi: "none",
     sdkSince: null,
@@ -171,6 +173,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "playbook_context",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "flow",
     sdkApi: "none",
     sdkSince: null,
@@ -267,6 +271,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "workflow_context",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "workflow",
     sdkApi: "none",
     sdkSince: null,
@@ -635,6 +641,9 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
   {
     ...BASE,
     type: "application",
+    // OD-2: sys_app is itself the scope (a sys_scope subclass).
+    scopeField: "sys_id",
+    scopeNamespaceField: "scope",
     group: "application",
     // now.config.json, not a Fluent API.
     sdkApi: "none",
@@ -647,7 +656,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
         nameField: "dependency",
       },
       {
-        table: "sys_package_dependency",
+        // OD-3: the PDI has the m2m table, not sys_package_dependency.
+        table: "sys_package_dependency_m2m",
         parentField: "sys_package",
         nameField: "dependency",
       },
@@ -690,12 +700,14 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scopeField: "application",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     metaFields: ["type", "target_name", "action", "update_set", "update_guid"],
   },
   {
     ...BASE,
     type: "source_control",
+    // OD-2: no scope column; a scope filter is refused.
+    scopeField: null,
     group: "application",
     sdkApi: "none",
     sdkSince: null,
@@ -743,7 +755,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { field: "group", table: "sys_user_group" },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     appliesToField: "table",
     // O-5: verify on a live instance (`type` is not in the SDK schema).
     metaFields: [
@@ -768,7 +780,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     appliesToField: "table",
     metaFields: ["table", "filter"],
   },

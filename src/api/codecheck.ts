@@ -2,7 +2,7 @@ import {
   getScript,
   tableLogic,
   scriptArtifact,
-  scopeClause,
+  typeScopeClause,
   SCRIPT_TYPES,
   OPT_IN_SCRIPT_TYPES,
 } from "./scripts.js";
@@ -170,7 +170,7 @@ export async function lintScript(
   const { clientFields, markupFields, scopeField } = scriptArtifact(type, true);
   const name = snString(record[descriptor.nameField]);
   // S-12: a global-scope script runs as ES5, a scoped one as ES2021.
-  const ecma = ecmaModeForScope(snString(record[scopeField]));
+  const ecma = ecmaModeForScope(scopeField ? snString(record[scopeField]) : "");
   // N-32: UIB client scripts get the UIB rules against their macroponent.
   const uib = UIB_CLIENT_SCRIPT_TYPES.has(type)
     ? await uibContextFor(record)
@@ -324,7 +324,7 @@ export async function lintArtifacts(
     if (fields.length === 0) continue;
     const query = [
       ...(artifact.baseQuery ? [artifact.baseQuery] : []),
-      ...(opts.scope ? [scopeClause(artifact.scopeField, opts.scope)] : []),
+      ...(opts.scope ? [typeScopeClause(artifact, opts.scope)] : []),
       "ORDERBYDESCsys_updated_on",
     ].join("^");
     let records: Record<string, unknown>[];
@@ -338,9 +338,9 @@ export async function lintArtifacts(
           descriptor.nameField,
           ...fields,
           // S-12: the scope decides the ES level the scripts parse at.
-          ...(fields.includes(artifact.scopeField)
-            ? []
-            : [artifact.scopeField]),
+          ...(artifact.scopeField && !fields.includes(artifact.scopeField)
+            ? [artifact.scopeField]
+            : []),
         ],
         limit: limit + 1,
         displayValue: "false",
@@ -358,7 +358,9 @@ export async function lintArtifacts(
     for (const record of records) {
       const sysId = snString(record.sys_id);
       const name = snString(record[descriptor.nameField]);
-      const ecma = ecmaModeForScope(snString(record[artifact.scopeField]));
+      const ecma = ecmaModeForScope(
+        artifact.scopeField ? snString(record[artifact.scopeField]) : "",
+      );
       for (const field of fields) {
         const src = snString(record[field]);
         if (!src) continue;
