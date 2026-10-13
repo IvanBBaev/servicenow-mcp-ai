@@ -557,6 +557,33 @@ read from its snapshot on one side and from its draft on the other shows as
 changed. The warning now says so instead of calling the path unverified; no
 code path changes. tools/list delta 0 B.
 
+## Nineteenth pass: Flow Designer domain rules (P-19)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, Table API reads of
+`sys_hub_flow`, `sys_hub_flow_snapshot`, the v2 step tables,
+`sys_hub_action_type_base` / `_snapshot`, `sys_hub_step_instance`), then the
+fixed rules run read-only against the PDI.
+
+| Item                                                       | Was read as                           | Result                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `latest_snapshot` vs `master_snapshot`                     | a differing pair = unpublished draft  | **False positives.** 481 active flows; 51 have master ≠ latest, and only 1 of those 51 `latest_snapshot` values has a `sys_hub_flow_snapshot` row (published, `master=false`). `master_snapshot` is the published pointer. Now a dangling latest is skipped and counted in a caveat.                                                                                                                     |
+| v2 action step `action_type`                               | a `sys_hub_action_type_definition` id | **Gap.** It references `sys_hub_action_type_base`; 1,148 of 1,153 steps of active flows name a `sys_hub_action_type_snapshot`, and 0 of 313 distinct ids are definitions. The integration rule matched nothing. Now it reads `sys_hub_action_type_base` (309 of 313 found; name, `internal_name`, `sys_scope.scope` filled on snapshots).                                                                |
+| `sys_hub_step_instance.action` + `step_type.name`          | integration step type                 | Confirmed against snapshot ids: 418 rows, step types include `REST` (60), `Script` (321).                                                                                                                                                                                                                                                                                                                |
+| Subflow callers (`sys_hub_sub_flow_instance[_v2].subflow`) | a `sys_hub_flow` id                   | **Gap.** It references `sys_hub_flow_base`; all 286 v2 and 153 v1 calls name a `sys_hub_flow_snapshot` (`parent_flow` → `sys_hub_flow`). Now each candidate's snapshots count as the candidate (action snapshots via `parent_action`).                                                                                                                                                                   |
+| Wait for a duration inputs                                 | any input named `*duration*`          | **Narrowed.** Inputs are `duration_type` (`explicit_duration` / `percentage_duration` / `relative_duration`), `timer_duration` (glide_duration `1970-01-01 00:01:00` or a pill), `timer_relative_duration_datetime`, `timer_percentage`, `timer_schedule`. A literal datetime could be read as a length; now only explicit waits are read and `*type*` / `*operator*` / `*datetime*` inputs are skipped. |
+| Logic names                                                | `Try` ancestor                        | Confirmed: `Try`, `Top Level Try`, `Catch`, `Top Level Catch`, `Wait for a duration of time`.                                                                                                                                                                                                                                                                                                            |
+
+Re-run of the flow rules at limit 200: `flow-integration-no-error-handling`
+28 findings (0 before), `flow-unused-action` 3 of 200 (194 before),
+`flow-unused-subflow` 71 of 92 (an independent full-table count agrees:
+21 called through 89 snapshots), `flow-draft-differs` 0 (29 dangling
+skipped), `flow-long-wait` 0 (the longest explicit literal is 2 minutes).
+The 71 uncalled subflows are mostly global OOB ones (`NOT_OOB`, TODO P-19 (n)).
+Still not read: a flow-level error handler and an action's own error
+evaluation.
+
+Fixed in this pass: the four rule reads above. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
