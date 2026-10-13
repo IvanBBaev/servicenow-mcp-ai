@@ -1,5 +1,5 @@
 import { ARTIFACT_TYPES } from "../core/artifacts/registry.js";
-import { rethrowIfCancelled } from "../core/errors.js";
+import { rethrowIfCancelled, ServiceNowError } from "../core/errors.js";
 import { unreadableReason } from "./security.js";
 import { mdEscape, mdTable, snString } from "./shared.js";
 import { queryTable } from "./table.js";
@@ -40,8 +40,21 @@ import { isSysId } from "../core/sys-id.js";
  * sys_upgrade_history or sys_store_app (sys_sync_history is Team
  * Development push / pull, so customer). The PDI admin gets a 403 on
  * sys_store_app and sys_upgrade_history_log rows, so their values were
- * not sampled.
+ * not sampled: both tables have "Allow access via web services"
+ * (sys_db_object.ws_access) off there (OD-6).
  */
+
+/**
+ * OD-6: on the PDI, sys_store_app and sys_upgrade_history_log have
+ * sys_db_object.ws_access=false, so even an admin gets a 403 over REST.
+ * A 403 on them names that setting, so the fix is clear.
+ */
+function wsAccessReason(table: string, e: unknown): string {
+  const reason = unreadableReason(table, e);
+  return e instanceof ServiceNowError && e.status === 403
+    ? `${reason} For an admin this usually means the table's "Allow access via web services" (sys_db_object.ws_access) is off; an admin can turn it on to read ${table} over REST.`
+    : reason;
+}
 
 /** Upgrades read per history. */
 export const UPGRADE_HISTORY_LIMIT = 50;
@@ -333,7 +346,7 @@ export async function readSkipped(
     };
   } catch (e) {
     rethrowIfCancelled(e);
-    return unavailable(unreadableReason("sys_upgrade_history_log", e));
+    return unavailable(wsAccessReason("sys_upgrade_history_log", e));
   }
 }
 
@@ -512,7 +525,7 @@ export async function reviewSkippedRecord(
 const UNVERIFIED =
   "_Upgrade tables are verified:false. Checked on one PDI (gate O-5): every table, field and choice read exists._";
 const STORE_UNVERIFIED =
-  "_Store app rows are unverified: the PDI dictionary has sys_store_app.update_available and latest_version, but its rows answer 403 to an admin (gate O-5)._";
+  "_Store app rows are unverified: the PDI dictionary has sys_store_app.update_available and latest_version, but its rows answer 403 to an admin while the table's web-service access (`ws_access`) is off (gate O-5, OD-6)._";
 
 /** Markdown for the upgrade history. */
 export function renderUpgradeHistory(
@@ -686,7 +699,7 @@ export async function readStoreUpdates({
     }));
   } catch (e) {
     rethrowIfCancelled(e);
-    return unavailable(unreadableReason("sys_store_app", e));
+    return unavailable(wsAccessReason("sys_store_app", e));
   }
   const apps: StoreAppUpdate[] = [];
   for (const r of records) {

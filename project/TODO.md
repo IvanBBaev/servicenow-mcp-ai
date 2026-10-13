@@ -162,6 +162,10 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     - (3) Read the store apps through another endpoint. This is new work and unscoped.
   - Evidence: PDI-VERIFY "Second pass", caveats; the `src/api/upgrade.ts` header.
   - Recommend: (2). Until then, (1).
+  - Root cause (2026-10-13, GET-only): `sys_db_object.ws_access=false` ("Allow access via web
+    services") on both tables; their row read ACLs have `admin_overrides=true`, so no role helps.
+  - **Decided 2026-10-13: (1).** Done: a 403 on either table names the `ws_access` setting in
+    `unavailableReason` (`src/api/upgrade.ts`); N-1 is done.
 - **OD-7 · `rcaStatus` output values (b5cb05b).** _Output value change (strictly BREAKING),
   already on `main`._
   - What changed: `sys_restricted_caller_access.status` is an integer choice, and the

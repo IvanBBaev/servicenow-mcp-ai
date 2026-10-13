@@ -303,6 +303,8 @@ test("unreadable upgrade tables degrade to unavailable", async () => {
         s.unavailableReason,
         /sys_upgrade_history_log is not readable/,
       );
+      assert.match(s.unavailableReason, /sys_db_object\.ws_access/);
+      assert.doesNotMatch(h.unavailableReason, /ws_access/);
       const r = await reviewSkippedRecord(BR);
       assert.match(r.unavailableReason, /sys_update_version is not readable/);
     },
@@ -383,6 +385,18 @@ test("store updates: apps with an update and their customised artefacts", async 
   );
 });
 
+test("OD-6: only a 403 names the web-service access setting", async () => {
+  freshRuntime();
+  await withFetch(
+    () => jsonResponse(404, { error: { message: "missing" } }),
+    async () => {
+      const s = await readStoreUpdates();
+      assert.equal(s.available, false);
+      assert.doesNotMatch(s.unavailableReason, /ws_access/);
+    },
+  );
+});
+
 test("store updates degrade: unreadable store table or scope updates", async () => {
   freshRuntime();
   await withFetch(
@@ -391,6 +405,7 @@ test("store updates degrade: unreadable store table or scope updates", async () 
       const s = await readStoreUpdates();
       assert.equal(s.available, false);
       assert.match(s.unavailableReason, /sys_store_app is not readable/);
+      assert.match(s.unavailableReason, /Allow access via web services/);
       assert.match(renderStoreUpdates(s).join("\n"), /^Unavailable:/);
     },
   );

@@ -322,6 +322,7 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Changed
 
+- **Upgrade review names the web-service access setting (N-1, OD-6).** A 403 on `sys_store_app` or `sys_upgrade_history_log` now says in `unavailableReason` that the table's "Allow access via web services" (`sys_db_object.ws_access`) is probably off, which an admin can turn on. The read still degrades to `available:false`.
 - **The instance comparison is filed under its first profile (ID-20).** `servicenow_compare_instances` now writes `<a>/compare/<a>-vs-<b>.md` (it was the store-root `_compare/<a>-vs-<b>.md`, which a profile-scoped `docs_list` did not show) plus a `.json` companion with the structured diff and caveats. Both carry `sn_compare_with: <b>` next to the standard `sn_*` fields, and the result gains `reportJson`. A generated report left at the old path is moved to the new one on the next run, keeping its manual blocks (journalled with `moved_from`); a hand-written file there is left alone.
 
 - **P-20: the published flow snapshot path is checked on a PDI (O-5).** Child rows sit under `master_snapshot` for 562 of 563 flows, and every published flow has the same steps under its draft and its snapshot; only drafts with unpublished edits differ. The `servicenow_compare_instances` / snapshot warning no longer calls the path unverified: it says a draft with unpublished edits differs from the snapshot and that the snapshot encodes step `values` differently, so a flow read from its draft on the other side shows as changed. tools/list delta 0 B.
