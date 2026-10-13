@@ -74,8 +74,9 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `limit` | integer | no | Records per type for extended, candidates per rule for domains (default 50). |
 | `domains` | boolean | no | Also run the flow, portal, UI Builder and legacy-workflow analysers. |
 | `update_baseline` | boolean | no | Reset the baseline to this run; otherwise new/fixed findings are reported against it. |
-| `scan_run` | "full" \| "point" \| "suite" | no | Run Instance Scan; point: scope+sys_id, suite: sys_id. |
+| `scan_run` | "full" \| "point" \| "suite" \| "apps" \| "update_sets" | no | Run Instance Scan; point: scope+sys_id, suite: sys_id, apps/update_sets: suite sys_id+targets. |
 | `sys_id` | string | no | Its target. |
+| `targets` | string[] | no | Scope or update set sys_ids. |
 | `apply` | boolean | no | true runs it. |
 | `instance` | string | no | Profile (default active) |
 

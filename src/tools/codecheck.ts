@@ -31,31 +31,53 @@ const scriptType = z.enum([
   ...OPT_IN_SCRIPT_TYPE_NAMES,
 ] as [string, ...string[]]);
 
+type ScanRun = "full" | "point" | "suite" | "apps" | "update_sets";
+
+const SCAN_NEEDS: Record<Exclude<ScanRun, "full">, string> = {
+  point: "scope and sys_id",
+  suite: "sys_id",
+  apps: "sys_id and targets",
+  update_sets: "sys_id and targets",
+};
+
 /**
  * N-3: the Instance Scan target of a `scan_run` call — a point scan needs the
  * record's table (`scope`) and `sys_id`, a suite scan the `sys_id` of a
- * `scan_combo` record (a check suite paired with its targets).
+ * `scan_combo` record (a check suite paired with its targets), and an
+ * `apps` / `update_sets` scan the `sys_id` of a `scan_check_suite` plus the
+ * scoped apps or update sets to run it over (`targets`).
  */
 function scanTarget(
-  run: "full" | "point" | "suite",
+  run: ScanRun,
   scope: string | undefined,
   sysId: string | undefined,
+  targets: string[] | undefined,
 ): InstanceScanTarget {
-  if (sysId !== undefined && !SYS_ID_SHAPE_RE.test(sysId))
-    throw new ServiceNowError("sys_id must be a sys_id.", 400, undefined, {
-      code: "INVALID_INPUT",
-      hint: "Letters, digits, '_' or '-'; at most 32.",
-    });
+  for (const id of [sysId, ...(targets ?? [])]) {
+    if (id !== undefined && !SYS_ID_SHAPE_RE.test(id))
+      throw new ServiceNowError(
+        "sys_id and targets must be sys_ids.",
+        400,
+        undefined,
+        {
+          code: "INVALID_INPUT",
+          hint: "Letters, digits, '_' or '-'; at most 32.",
+        },
+      );
+  }
   if (run === "full") return { kind: "full" };
   if (sysId && run === "suite") return { kind: "suite", comboSysId: sysId };
-  if (sysId && scope) return { kind: "point", table: scope, sysId };
+  if (sysId && run === "point" && scope)
+    return { kind: "point", table: scope, sysId };
+  if (sysId && (run === "apps" || run === "update_sets") && targets?.length)
+    return { kind: run, suiteSysId: sysId, targets: [...new Set(targets)] };
   throw new ServiceNowError(
-    `scan_run "${run}" needs ${run === "point" ? "scope and sys_id" : "sys_id"}.`,
+    `scan_run "${run}" needs ${SCAN_NEEDS[run]}.`,
     400,
     undefined,
     {
       code: "INVALID_INPUT",
-      hint: "point: scope = the record's table, sys_id = the record; suite: sys_id = a scan_combo record (a check suite with its targets).",
+      hint: "point: scope = the record's table, sys_id = the record; suite: sys_id = a scan_combo record (a check suite with its targets); apps / update_sets: sys_id = a scan_check_suite, targets = the sys_scope or sys_update_set sys_ids.",
     },
   );
 }
@@ -68,12 +90,13 @@ function scanTarget(
  * the plan, so no preview promises a run that cannot happen.
  */
 async function startScan(
-  run: "full" | "point" | "suite",
+  run: ScanRun,
   scope: string | undefined,
   sysId: string | undefined,
+  targets: string[] | undefined,
   apply: boolean | undefined,
 ) {
-  const target = scanTarget(run, scope, sysId);
+  const target = scanTarget(run, scope, sysId, targets);
   assertScanAllowed();
   const head = {
     scope: scope ?? "instance",
@@ -87,7 +110,10 @@ async function startScan(
         action: "execute",
         table: SCAN_RESULT_TABLE,
         ...(record ? { sys_id: record } : {}),
-        after: { run: `Instance Scan (${run})` },
+        after: {
+          run: `Instance Scan (${run})`,
+          ...("targets" in target ? { targets: target.targets } : {}),
+        },
       },
       head,
     );
@@ -211,11 +237,19 @@ export const specs: AnyToolSpec[] = [
           "Reset the baseline to this run; otherwise new/fixed findings are reported against it.",
         ),
       scan_run: z
-        .enum(["full", "point", "suite"])
+        .enum(["full", "point", "suite", "apps", "update_sets"])
         .optional()
-        .describe("Run Instance Scan; point: scope+sys_id, suite: sys_id."),
+        .describe(
+          "Run Instance Scan; point: scope+sys_id, suite: sys_id, apps/update_sets: suite sys_id+targets.",
+        ),
       // Shape-checked in scanTarget: a schema pattern would not fit the budget.
       sys_id: z.string().max(32).optional().describe("Its target."),
+      targets: z
+        .array(z.string().max(32))
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Scope or update set sys_ids."),
       apply: z.boolean().optional().describe("true runs it."),
     },
     logFields: (args) => ({ scope: args.scope ?? "instance" }),
@@ -227,10 +261,11 @@ export const specs: AnyToolSpec[] = [
       update_baseline,
       scan_run,
       sys_id,
+      targets,
       apply,
     }) =>
       scan_run
-        ? startScan(scan_run, scope, sys_id, apply)
+        ? startScan(scan_run, scope, sys_id, targets, apply)
         : codeHealth(scope, {
             extended,
             domains,

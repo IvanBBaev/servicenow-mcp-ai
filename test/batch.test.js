@@ -337,6 +337,15 @@ test("plugin APIs map to the backing tables their tools check (H-4)", () => {
       "/api/sn_cicd/instance_scan/point_scan?target_table=sys_user&target_sys_id=u1",
       ["scan_result", "sys_user"],
     ],
+    [
+      "/api/sn_cicd/instance_scan/suite_scan/su1/scoped_apps",
+      ["scan_result", "sys_scope"],
+    ],
+    [
+      "/api/sn_cicd/instance_scan/suite_scan/su1/update_sets",
+      ["scan_result", "sys_update_set"],
+    ],
+    ["/api/sn_cicd/instance_scan/suite_scan/combo/c1", ["scan_result"]],
     ["/api/sn_cicd/progress/p1", []],
     ["/api/now/table/incident", []],
   ];
