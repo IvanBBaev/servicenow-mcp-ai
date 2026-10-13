@@ -615,6 +615,38 @@ test("portal-public-data-widget: public or on a public page with GlideRecord / G
   });
 });
 
+test("portal-public-data-widget attributes a widget in a nested row to its page", async () => {
+  const NESTED_KEY = "sp_column.sp_row.sp_column.sp_row.sp_container.sp_page";
+  const nested = {
+    sys_id: "w6",
+    id: "w6-id",
+    name: "Nested reader",
+    public: "false",
+    script: 'var gr = new GlideRecord("incident");',
+    template: "",
+    client_script: "",
+    link: "",
+  };
+  await scenario(
+    {
+      ...ALL,
+      sp_widget: [...WIDGETS, nested],
+      sp_instance: (q) =>
+        q.startsWith(`${NESTED_KEY}IN`)
+          ? [{ sys_id: "in6", sp_widget: "w6", [NESTED_KEY]: "p1" }]
+          : INSTANCES,
+    },
+    async () => {
+      const d = await analyseDomains();
+      assert.deepEqual(ids(d, "portal-public-data-widget"), ["w1", "w3", "w6"]);
+      const w6 = d.findings.find(
+        (f) => f.rule === "portal-public-data-widget" && f.ref.sys_id === "w6",
+      );
+      assert.deepEqual(w6.details.publicPages, ["p1-id"]);
+    },
+  );
+});
+
 test("portal-orphan-widget: unplaced and unreferenced (positive) vs placed or embedded by id (negative)", async () => {
   await scenario(ALL, async () => {
     const d = await analyseDomains();
