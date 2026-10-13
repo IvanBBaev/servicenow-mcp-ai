@@ -654,6 +654,14 @@ test("flow-draft-differs: latest != master (positive) vs equal, unpublished or d
     const f = d.findings.find((x) => x.rule === "flow-draft-differs");
     assert.equal(f.details.basis, "snapshot-pointers");
     assert.ok(d.caveats.some((c) => /skipped 1 flow/.test(c)));
+    // OD-4: flow and workflow types are verified, portal and UIB are not.
+    assert.ok(
+      d.caveats.some((c) =>
+        /workflow rule fields are registry-verified; Service Portal and UI Builder .* stay verified:false/.test(
+          c,
+        ),
+      ),
+    );
   });
 });
 
