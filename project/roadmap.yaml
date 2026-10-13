@@ -1148,11 +1148,11 @@ items:
     title: "agent-facing repository docs"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "partial"
     phase: "C"
     done: null
     gates: ["O-20"]
-    notes: "Phase C, waits for O-20. Public `AGENTS.md` and a generated `.github/copilot-instructions.md` from one source, N flagship skills (TK-19). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**AGENTS.md part done 2026-10-14 (O-20 go, ADR 0011).** Root `AGENTS.md` is the single source; `scripts/agent-instructions.mjs` renders `.github/copilot-instructions.md` from it (`docs:instructions --check` in the gate), `docs:sync` keeps its counts, `test/agent-instructions.test.js` guards both. Open: the N flagship skills. Original scope: public `AGENTS.md` and a generated `.github/copilot-instructions.md` from one source, N flagship skills (TK-19). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-44"
     title: "decision records"
     pillar: "N"

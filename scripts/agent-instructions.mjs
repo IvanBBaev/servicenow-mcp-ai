@@ -14,8 +14,12 @@
 // moved area fails here instead of silently matching nothing. Output files
 // with no source are stale and removed.
 //
-// The sources are the single place to edit. A nested AGENTS.md target would be
-// one more renderer over the same sources — it waits for owner gate O-20.
+// N-43 (O-20, ADR 0011): the root AGENTS.md is the single source of the
+// repository-wide agent instructions; .github/copilot-instructions.md is
+// rendered from it (a generated banner + the same body), so the two cannot
+// drift. Its tool and package counts are kept by `npm run docs:sync`.
+//
+// The sources are the single place to edit.
 //
 //   npm run docs:instructions               rewrite the generated files
 //   npm run docs:instructions -- --check    dry run: list the stale files, exit 1
@@ -35,6 +39,8 @@ import path from "node:path";
 export const SOURCE_DIR = ".github/agent-instructions";
 export const OUTPUT_DIR = ".github/instructions";
 export const OUTPUT_SUFFIX = ".instructions.md";
+export const ROOT_SOURCE = "AGENTS.md";
+export const ROOT_OUTPUT = ".github/copilot-instructions.md";
 
 /** Copilot's optional excludeAgent values. */
 const EXCLUDE_AGENTS = new Set(["code-review", "cloud-agent"]);
@@ -118,6 +124,18 @@ export function render(area, source) {
   ].join("\n");
 }
 
+/** Render .github/copilot-instructions.md from the AGENTS.md text. */
+export function renderRoot(text) {
+  const body = text.replace(/\r\n/g, "\n").trim();
+  if (body === "") throw new Error(`${ROOT_SOURCE}: empty`);
+  return [
+    `<!-- Generated from ${ROOT_SOURCE} by scripts/agent-instructions.mjs — edit the source, then run: npm run docs:instructions -->`,
+    "",
+    body,
+    "",
+  ].join("\n");
+}
+
 /** Every area source as { area, file, source }, sorted by area. */
 export function readSources(root) {
   const dir = path.join(root, SOURCE_DIR);
@@ -146,7 +164,8 @@ export function readSources(root) {
 }
 
 /**
- * Bring .github/instructions/ in line with the sources. Returns the
+ * Bring .github/instructions/ and .github/copilot-instructions.md in line
+ * with the sources. Returns the
  * repo-relative paths that were (check: would be) written or removed.
  */
 export function syncInstructions({ root, check = false }) {
@@ -176,6 +195,20 @@ export function syncInstructions({ root, check = false }) {
     if (wanted.has(name)) continue;
     drift.push(`${OUTPUT_DIR}/${name}`);
     if (!check) rmSync(path.join(outDir, name));
+  }
+  // N-43: a tree without AGENTS.md has no repository-wide file to render.
+  const rootSource = path.join(root, ROOT_SOURCE);
+  if (existsSync(rootSource)) {
+    const text = renderRoot(readFileSync(rootSource, "utf8"));
+    const target = path.join(root, ROOT_OUTPUT);
+    const current = existsSync(target) ? readFileSync(target, "utf8") : null;
+    if (current !== text) {
+      drift.push(ROOT_OUTPUT);
+      if (!check) {
+        mkdirSync(path.dirname(target), { recursive: true });
+        writeFileSync(target, text);
+      }
+    }
   }
   return drift;
 }

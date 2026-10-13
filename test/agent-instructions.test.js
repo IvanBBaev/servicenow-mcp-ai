@@ -17,9 +17,12 @@ import path from "node:path";
 
 import {
   OUTPUT_DIR,
+  ROOT_OUTPUT,
+  ROOT_SOURCE,
   SOURCE_DIR,
   parseSource,
   render,
+  renderRoot,
   staticPrefix,
   syncInstructions,
 } from "../scripts/agent-instructions.mjs";
@@ -154,5 +157,49 @@ test("N-46: a glob over a missing path or a bad area name throws", () => {
   } finally {
     for (const dir of [moved, badName, empty])
       rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("N-43: the Copilot file is AGENTS.md under a generated banner", () => {
+  const agents = readFileSync(path.join(root, ROOT_SOURCE), "utf8");
+  const copilot = readFileSync(path.join(root, ROOT_OUTPUT), "utf8");
+  assert.equal(copilot, renderRoot(agents));
+  assert.match(copilot, /^<!-- Generated from AGENTS\.md /);
+  assert.ok(copilot.endsWith(agents.trim() + "\n"));
+});
+
+test("N-43: AGENTS.md quotes the live tool and package counts", async () => {
+  const { describeAllTools } = await import("../build/mcp/registry.js");
+  const tools = describeAllTools();
+  const packages = new Set(tools.map((t) => t.package)).size;
+  const agents = readFileSync(path.join(root, ROOT_SOURCE), "utf8");
+  assert.match(
+    agents,
+    new RegExp(`\\b${tools.length} tools in ${packages} packages\\b`),
+  );
+});
+
+test("N-43: AGENTS.md drift is reported, written and then clean", () => {
+  const dir = scratch();
+  try {
+    syncInstructions({ root: dir });
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), []);
+
+    writeFileSync(path.join(dir, ROOT_SOURCE), "# Agents\n\n- rule\n");
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), [
+      ROOT_OUTPUT,
+    ]);
+    assert.equal(existsSync(path.join(dir, ROOT_OUTPUT)), false);
+    assert.deepEqual(syncInstructions({ root: dir }), [ROOT_OUTPUT]);
+    assert.equal(
+      readFileSync(path.join(dir, ROOT_OUTPUT), "utf8"),
+      renderRoot("# Agents\n\n- rule\n"),
+    );
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), []);
+
+    writeFileSync(path.join(dir, ROOT_SOURCE), "\n");
+    assert.throws(() => syncInstructions({ root: dir }), /AGENTS\.md: empty/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

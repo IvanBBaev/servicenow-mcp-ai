@@ -173,6 +173,10 @@ the SDK's peer range (`^3.25 || ^4.0` — the zod 4 move is a breaking item,
   reference" section of `docs/llms.txt` and `docs/index.md` (the landing page
   as Markdown) are **generated** by `npm run docs:sync` (N-42) — rerun it
   after changing a tool, README.md, SECURITY.md or `docs/index.html`. `docs:sync -- --check` also validates `context7.json` (N-53).
+- `AGENTS.md` is the agent-facing summary of these rules (N-43). Edit it, not
+  `.github/copilot-instructions.md`: `npm run docs:instructions` renders the
+  Copilot file from it, as it renders `.github/instructions/` from
+  `.github/agent-instructions/`.
 - Tool names follow `servicenow_<verb>_<noun>` (M-7); add a new tool's name to
   `TOOLS` in `src/mcp/naming.ts` and reference tools through it (prompts, cross-tool
   hints). Renaming a shipped tool or parameter is breaking: add the old name to

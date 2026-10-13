@@ -1,78 +1,100 @@
-# Copilot instructions — servicenow-mcp-ai server
+<!-- Generated from AGENTS.md by scripts/agent-instructions.mjs — edit the source, then run: npm run docs:instructions -->
+
+# AGENTS.md — servicenow-mcp-ai
+
+Instructions for coding agents (Codex, Copilot, Cursor, Claude and others) that
+work on this repository. Humans: CONTRIBUTING.md has the same
+rules with more detail.
 
 This is a **Model Context Protocol (MCP) server** written in **TypeScript** that
-lets an MCP client operate a **ServiceNow** instance across its full REST
-surface: 97 tools in 26 packages (Table, Aggregate, Attachment, Import Set,
-Batch, CMDB/IRE, Catalog, Change, Knowledge, Email, Flows, Codecheck, ATF…),
-plus script intelligence, multi-instance profiles and plan-and-apply write
-safety.
+lets an MCP client operate a **ServiceNow** instance across its REST surface:
+98 tools in 26 packages (Table, Aggregate, Attachment, Import Set, Batch,
+CMDB/IRE, Catalog, Change, Knowledge, Email, Flows, Codecheck, ATF…), plus
+script intelligence, multi-instance profiles and plan-and-apply write safety.
+
+## Commands
+
+- `npm install`, then `npm run check` — the full gate (build, eval mocks, lint,
+  format, docs drift checks, surface scan, coverage-gated tests, tarball guard,
+  audit). Run it before you finish any change and report its real result.
+- `npm run dev` / `npm start` / `npm run watch`; debug with
+  `npm run inspector` (MCP Inspector) or `.vscode/mcp.json`.
+- Single test file: `npm run build`, then `node --test test/<file>.test.js`.
+- Regenerators (each has a `-- --check` twin in the gate):
+  - `npm run docs:sync` — tool/package counts (this file too), `docs/tools/`,
+    `docs/llms-full.txt`, `docs/index.md`.
+  - `npm run docs:env` — README env reference, `.env.example`, `server.json`
+    from the settings manifest.
+  - `npm run docs:readme` — the README tools table.
+  - `npm run docs:instructions` — `.github/instructions/` and
+    `.github/copilot-instructions.md` from their sources.
+  - `npm run roadmap:sync` — the `project/ROADMAP-V3.md` table from
+    `project/roadmap.yaml`.
+  - `npm run gen:manifest` — `test/fixtures/tools-manifest.json` after a
+    deliberate tool change; `npm run eval:mocks` — `evals/mocks/`.
 
 ## Architecture (layered — boundaries are ESLint-enforced)
 
 `src/core/` (plumbing) ← `src/api/` (one module per REST area) ← `src/mcp/`
 (server wiring, registry) ← `src/tools/` (tool definitions as data). `bin/`
 holds the CommonJS launcher; `src/index.ts` is the server entry (stdio by
-default, Streamable HTTP with `SN_TRANSPORT=http`). There is no Jira client:
-the dark scaffold was deleted (E-8, O-1 NO-GO).
+default, Streamable HTTP with `SN_TRANSPORT=http`). `extension/` is the VS Code
+extension; `skills/`, `hooks/` and `.claude-plugin/` are the agent plugin.
 
-The rules for each area are path-scoped in `.github/instructions/`
-(`<area>.instructions.md`, applied by `applyTo` glob). They are generated from
-`.github/agent-instructions/<area>.md` — edit the source, then run
-`npm run docs:instructions`.
+Each area has path-scoped rules in `.github/agent-instructions/<area>.md`
+(rendered to `.github/instructions/<area>.instructions.md` with an `applyTo`
+glob). Read the one for the files you edit.
 
-## Credentials & policy
+## Rules
 
-- Env-file chain: `SN_ENV_FILE` → `~/.config/servicenow-mcp-ai/.env` → project
-  `.env` (git-ignored, written `0600`); real env vars take precedence. Runtime
-  updates go through the `servicenow_set_credentials` tool.
-- Never log or echo `SN_PASSWORD` / tokens.
-- Writes are **plan-by-default** (`SN_WRITE_MODE`), journaled per profile;
-  policy axes: `SN_TABLES_ALLOW`/`SN_TABLES_DENY`/`SN_READONLY` +
-  `SN_PACKAGES_DENY`/`SN_PACKAGES_READONLY`.
+- **stdio:** never write to `stdout` (no `console.log` in `src/`) — structured
+  JSON logs go to stderr via `src/core/logging.ts`.
+- ES modules with `.js` import specifiers; TypeScript strict +
+  `noUncheckedIndexedAccess`; untyped JSON is `unknown` and narrowed.
+- Tool inputs are bounded `zod` raw shapes with `.describe()`; all four
+  annotation hints are explicit. Adding a tool: CONTRIBUTING.md → "Adding a
+  tool".
+- Every `SN_*` variable is declared in the settings manifest
+  (`src/core/settings-manifest.ts`); invalid values stop the server unless
+  `SN_STRICT_SETTINGS=0`.
+- Credentials come from `SN_ENV_FILE` or `~/.config/servicenow-mcp-ai/.env`
+  (written `0600`); real env vars win. Never log or echo passwords, tokens or
+  keys.
+- Writes are **plan-by-default** (`SN_WRITE_MODE`) and journaled per profile;
+  a destructive apply needs the preview's `plan_token`.
+- Every behavioural change ships with a test in the same commit; docs move with
+  the code (CHANGELOG `Unreleased`, the item's row in `project/roadmap.yaml`).
+- One commit per task: English, imperative subject, a body with what + why.
 
-## Conventions
+## Do not
 
-- stdio transport: **never** write to `stdout` (no `console.log`) — structured
-  JSON logs go to stderr via `core/logging.ts`.
-- ES modules with `.js` import specifiers (Node16 module resolution);
-  TypeScript strict + `noUncheckedIndexedAccess`.
-- Tool input schemas are `zod` raw shapes; a handler may throw — `runSpec`
-  turns the error into an `isError` result with the flat error contract.
-- Every `SN_*` variable is declared in `src/core/settings-manifest.ts`;
-  `npm run docs:env` regenerates the README env reference, `.env.example` and
-  `server.json` from it (a sync test fails the build otherwise).
-- The README tools table is generated: `npm run docs:readme`.
+- Change the `tools/list` surface without stating its byte delta: budgets live
+  in `test/fixtures/token-budgets.json` (`npm run tokens:budget`); raising one
+  is an owner decision (O-10).
+- Start or widen a breaking change without an owner decision. The breaking
+  register (B1–B22) is in `project/ROADMAP-V3.md`; decisions are ADRs in
+  `project/adr/`.
+- Edit `scripts/pack-check.mjs` (the 3 MB tarball ceiling).
+- Edit generated files by hand: `.github/instructions/`,
+  `.github/copilot-instructions.md`, `docs/tools/`, `docs/llms-full.txt`,
+  `docs/index.md`, `.env.example`, `evals/mocks/`. Edit the source and rerun
+  its generator.
+- Commit secrets, `.env*` files (except `.env.example`) or assistant harness
+  files (`CLAUDE.md`, `CLAUDE.local.md`, `WORKLOG.md`, `.claude/`, `docs/ai/`);
+  `test/harness-files.test.js` fails if one is tracked.
+- Write to a real ServiceNow instance from tests: the HTTP layer is mocked.
 
-## Build & run
+## Plan and status
 
-- `npm install`, then `npm run check` — the full gate (build + lint + format +
-  coverage-gated tests + tarball guard + audit). Run it before finishing any change.
-- `npm run dev` / `npm start` / `npm run watch`; debug with
-  `npm run inspector` (MCP Inspector) or the VS Code config in `.vscode/mcp.json`.
-- `npm run gen:manifest` — regenerate the tool manifest after tool changes
-  (the full list of steps: CONTRIBUTING.md → "Adding a tool").
+The tracker is `project/ROADMAP-V3.md` (pillars H/M/S/D/E/P/N, owner gates
+O-1…O-22, breaking register B1–B22), its status table mirrored from
+`project/roadmap.yaml`. Open owner decisions are in `project/TODO.md`; the
+analyses behind the N items are the `project/*-2026-10.md` files. Non-breaking
+items ship on the 2.x line; the breaking cluster goes to 3.0.0, previewed as
+`3.0.0-beta.n` on the npm `next` tag.
 
-## Plan & status
+## References
 
-- v2.0.1 is the published release. The tracker is `project/ROADMAP-V3.md`
-  (pillars H/M/S/D/E/P/N, owner gates O-1…O-22, breaking register B1–B13);
-  its status table is mirrored in `project/roadmap.yaml`
-  (`npm run roadmap:sync`, checked in the gate). Open owner decisions are in
-  `project/TODO.md`. The live analyses behind the N items are
-  `project/GAP-ANALYSIS-2026-10.md` (N-0…N-24), `project/UIB-ANALYSIS-2026-10.md`
-  (N-25…N-34), `project/TOKEN-DOCS-ANALYSIS-2026-10.md` (N-35…N-56) and
-  `project/TOKEN-OPTIMIZATION-PLAN-2026-10.md` (N-57…N-65); older passes are in
-  `project/archive/`. Non-breaking items ship on the 2.x line; the breaking
-  cluster goes to 3.0.0 (previewed as `3.0.0-beta.n` on the npm `next` tag).
-- Do not start an item marked BREAKING before owner gate O-4. Any `tools/list` change is gated by N-0 / O-10: budgets in
-  `test/fixtures/token-budgets.json`, measured with `npm run tokens:budget`.
-  Each finished item gets a `project/DONE.md` entry with its gate line.
-- Adding a tool: CONTRIBUTING.md → "Adding a tool".
-- A red `npm audit` step (the last step of the gate) has a fixed recipe:
-  CONTRIBUTING.md → "Dependencies and the audit gate".
-
-## SDK references
-
-- TypeScript SDK: https://github.com/modelcontextprotocol/typescript-sdk
-- Concepts & guides: https://modelcontextprotocol.io/docs
+- MCP TypeScript SDK: https://github.com/modelcontextprotocol/typescript-sdk
+- MCP docs: https://modelcontextprotocol.io/docs
 - ServiceNow REST APIs: https://developer.servicenow.com/dev.do#!/reference/api/latest/rest

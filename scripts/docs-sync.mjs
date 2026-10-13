@@ -9,6 +9,8 @@
 //   .claude-plugin/plugin.json       "N tools"
 //   .claude-plugin/marketplace.json  "N tools"
 //   docs/index.html                  meta descriptions, hero stats, the tools intro
+//   AGENTS.md                        "N tools in M packages" (N-43; rendered to
+//                                    .github/copilot-instructions.md by docs:instructions)
 //
 // The same run regenerates the tool reference (N-42: docs/tools/, the
 // docs/llms-full.txt bundle, the docs/llms.txt link section, the docs/index.md
@@ -63,6 +65,10 @@ export const SITES = [
   {
     file: ".claude-plugin/marketplace.json",
     patterns: [/MCP server — (?<tools>\d+) tools/g],
+  },
+  {
+    file: "AGENTS.md",
+    patterns: [/(?<tools>\d+) tools in (?<packages>\d+) packages/g],
   },
   {
     file: "docs/index.html",
