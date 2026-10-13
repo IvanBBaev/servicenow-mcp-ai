@@ -747,7 +747,13 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
   - H-7: B6 `SN_HTTP_REQUIRE_TOKEN` default on; B12 `use_instance` `persist` over stdio (resolved: B6 and B12 approved for 3.0 under O-4, ADR 0001, 2026-10-01; not implemented yet); a default
     `SN_HTTP_ALLOWED_HOSTS` for non-loopback binds; the OAuth (MCP authorization) design.
   - P-24: `SCOPE_PREFIX` warn vs refuse; cross-scope duplicate semantics; the `sp_dependency.module` field.
-  - O-5 verification on a PDI: P-24 fields, flow `master_snapshot` behaviour (P-25; needs a
+    PDI evidence 2026-10-13 ([PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md) → "Tenth pass"): the platform
+    does not enforce the prefix (scoped portal records hold unprefixed ids), so it stays a warning;
+    no duplicate `sp_widget.id`, `sp_page.id`, `sp_ng_template.id`, `sp_portal.url_suffix` or
+    `sp_dependency` name / `module` exists, and 42 dependencies have an empty `module`, which the
+    pre-flight skips. A duplicate in any scope is refused and names the existing record's scope.
+    Warn vs refuse stays the owner's call.
+  - O-5 verification on a PDI: ~~P-24 fields~~ (done 2026-10-13, "Tenth pass"), flow `master_snapshot` behaviour (P-25; needs a
     writable PDI — the 2026-10-13 pass was GET-only), the `sys_ux_*`
     (P-14 / P-15) and `sys_pd_*` (P-12) tables.
   - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` raised to 146,500 in

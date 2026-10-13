@@ -348,18 +348,19 @@ the JSON decoder). tools/list delta 0 B.
 ## Tenth pass: `upsert_artifact` write fields and the scope prefix (P-23, P-24)
 
 Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_choice`,
-aggregates over `sys_ui_policy_action`, `catalog_ui_policy_action`,
+aggregates (with `having`) over `sys_ui_policy_action`, `catalog_ui_policy_action`,
 `catalog_script_client`, `item_option_new` and the `sp_*` tables).
 
-| Item                                     | Was assumed                          | Result                                                                                                                                                                                   |
-| ---------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Write field names (P-23, P-24)           | registry `writeFields` (unverified)  | **Confirmed.** Every name exists (the `pdi-verify` re-run of 2026-10-13 covers `writeFields`, `unique` and `scopePrefixFields`).                                                         |
-| `sys_ui_policy_action` flags             | `visible` / `mandatory` / `disabled` | String choices `ignore` / `true` / `false` (default `ignore`); `value_action` is `ignore` / `set_value` / `clear_value`; `field_message_type` is `none` / `info` / `warning` / `error`.  |
-| `catalog_ui_policy_action` flags         | as above                             | Same values in use (`true`, `false`, `ignore`).                                                                                                                                          |
-| `catalog_script_client.type` / `ui_type` | written as given                     | Choices come from `sys_script_client`: `onLoad` / `onChange` / `onSubmit` / `onCellEdit`; `ui_type` `0` Desktop, `1` Mobile / Service Portal, `10` All.                                  |
-| `item_option_new.type`                   | written as given                     | The numeric variable type (`6`, `8`, …, 29 values in use), not a label. Noted in the registry.                                                                                           |
-| `sp_rectangle_menu_item.type`            | written as given                     | Choices `page`, `url`, `sc`, `sc_category`, `sc_cat_item`, `kb`, `kb_topic`, `kb_article`, `kb_category`, `filtered`, `scripted`.                                                        |
-| Scope prefix on `sp_*` ids               | the SDK convention                   | **Not enforced by the platform.** Scoped records hold ids without `<scope>_` (`x_nuvo_eam`: `nuvo_eam_catalog`, `bulk_update`; most scoped widgets have an empty `id`). Stays a warning. |
+| Item                                     | Was assumed                          | Result                                                                                                                                                                                                 |
+| ---------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Write field names (P-23, P-24)           | registry `writeFields` (unverified)  | **Confirmed.** Every name exists (the `pdi-verify` re-run of 2026-10-13 covers `writeFields`, `unique` and `scopePrefixFields`).                                                                       |
+| `sys_ui_policy_action` flags             | `visible` / `mandatory` / `disabled` | String choices `ignore` / `true` / `false` (default `ignore`); `value_action` is `ignore` / `set_value` / `clear_value`; `field_message_type` is `none` / `info` / `warning` / `error`.                |
+| `catalog_ui_policy_action` flags         | as above                             | Same values in use (`true`, `false`, `ignore`).                                                                                                                                                        |
+| `catalog_script_client.type` / `ui_type` | written as given                     | Choices come from `sys_script_client`: `onLoad` / `onChange` / `onSubmit` / `onCellEdit`; `ui_type` `0` Desktop, `1` Mobile / Service Portal, `10` All.                                                |
+| `item_option_new.type`                   | written as given                     | The numeric variable type (`6`, `8`, …, 29 values in use), not a label. Noted in the registry.                                                                                                         |
+| `sp_rectangle_menu_item.type`            | written as given                     | Choices `page`, `url`, `sc`, `sc_category`, `sc_cat_item`, `kb`, `kb_topic`, `kb_article`, `kb_category`, `filtered`, `scripted`.                                                                      |
+| Scope prefix on `sp_*` ids               | the SDK convention                   | **Not enforced by the platform.** Scoped records hold ids without `<scope>_` (`x_nuvo_eam`: `nuvo_eam_catalog`, `bulk_update`; most scoped widgets have an empty `id`). Stays a warning.               |
+| Unique `sp_*` fields                     | SDK pre-flight (`unique`)            | **No duplicate** among `sp_widget.id`, `sp_page.id`, `sp_ng_template.id`, `sp_portal.url_suffix`, `sp_dependency.name` / `module`; 42 dependencies have an empty `module`, which the pre-flight skips. |
 
 No behaviour change: the registry comments, the `SCOPE_PREFIX` message and
 P-23 / P-24 are updated; the `verified` flags are not changed. tools/list
