@@ -32,7 +32,10 @@ const BROKER_TABLES = [
   ["sys_ux_data_broker_scriptlet", "uib_data_broker_scriptlet"],
 ] as const;
 
-/** Broker reads: table, registry type, kind, fields (N-29; O-5 unverified). */
+/**
+ * Broker reads: table, registry type, kind, fields (N-29). O-5 (a PDI): all
+ * four tables extend sys_ux_data_broker_simple, which holds the fields read.
+ */
 const BROKER_READS: readonly (readonly [
   string,
   string,
@@ -192,7 +195,7 @@ export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
 
   // 3. Data brokers, read once: transform / scriptlet (the tables the
   // rules need) plus the N-29 REST / GraphQL brokers (optional — an
-  // unreadable one is skipped; O-5: unverified tables).
+  // unreadable one is skipped).
   const brokers: {
     row: SnRecord;
     table: string;
