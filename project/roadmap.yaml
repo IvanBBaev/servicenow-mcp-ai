@@ -990,7 +990,7 @@ items:
     phase: "R"
     done: null
     gates: ["O-5"]
-    notes: "Phase R. PDI probe of every UIB / NX table, child table and JSON shape; sanitised fixtures; `verified:true` where confirmed (UX-01). **PDI pass 2026-10-10/11 (3f104f7, 8591ca4, bc411b2, 4d794b6):** composition, event handler and element `eventMappings` shapes, data resource types and component ids confirmed with fixtures; the `verified` flags wait for the owner. See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md)."
+    notes: "Phase R. PDI probe of every UIB / NX table, child table and JSON shape; sanitised fixtures; `verified:true` where confirmed (UX-01). **PDI pass 2026-10-10/11 (3f104f7, 8591ca4, bc411b2, 4d794b6):** composition, event handler and element `eventMappings` shapes, data resource types and component ids confirmed with fixtures; the `verified` flags wait for the owner. **Binding pass 2026-10-13 (912abab):** every PDI composition read; repeater item and element bindings, the context category and CLIENT_TRANSFORM operands are now classified; broker tables confirmed. See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md) and PDI-VERIFY-2026-10.md (eleventh pass)."
   - id: "N-26"
     title: "UIB page explainer depth"
     pillar: "N"

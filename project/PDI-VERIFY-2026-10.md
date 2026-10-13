@@ -365,6 +365,26 @@ No behaviour change: the registry comments, the `SCOPE_PREFIX` message and
 P-23 / P-24 are updated; the `verified` flags are not changed. tools/list
 delta 0 B.
 
+## Eleventh pass: UI Builder binding shapes (N-25)
+
+Date: 2026-10-13. Same PDI, GETs only: every `sys_ux_macroponent.composition`
+(5,040 rows, all valid JSON), plus the four data broker tables the UIB rules
+read.
+
+| Item                       | Was read as                  | Result                                                                                                                                           |
+| -------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Typed binding values       | `{type, binding: {address}}` | Confirmed. STATE (10.2k), DATA_OUTPUT (5.4k) and CONTEXT (5k) bindings; literals, MAP / LIST containers and BINARY / UNARY operations wrap them. |
+| `CONTEXT_BINDING.category` | not read (`@context.x`)      | **Part of the path**: `props`, `session` or `app`. Now `@context.props.x`.                                                                       |
+| `REPEATER_ITEM_BINDING`    | not recognised               | **New kind `item`**: category `value` / `index` / `parent`, the address may be empty (`@item.index`). 2.5k uses.                                 |
+| `ELEMENT_BINDING`          | not recognised               | **New kind `element`**: address `[elementId, prop, …]`, written `@elements.<id>.<prop>`. 870 uses, plus 126 `@elements.` strings.                |
+| `CLIENT_TRANSFORM`         | a script                     | **An operator** (`CONCAT`, `LEN`, …) over a LIST_CONTAINER of operands; its bindings are now walked. `CLIENT_TRANSFORM_SCRIPT` stays a script.   |
+| UIB broker tables (N-29)   | unverified                   | Confirmed: transform / scriptlet / REST / GraphQL extend `sys_ux_data_broker_simple`, which holds every field read.                              |
+
+After the fix every bound prop on the PDI yields a binding expression (none
+left without one). Fixed in 912abab. `UibBindingKind` is internal (no
+output-schema enum), so tools/list delta 0 B; the `@context` expressions in
+opt-in binding detail now carry the category.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
