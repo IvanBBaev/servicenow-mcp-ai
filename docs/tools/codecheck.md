@@ -78,6 +78,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `sys_id` | string | no | Its target. |
 | `targets` | string[] | no | Scope or update set sys_ids. |
 | `apply` | boolean | no | true runs it. |
+| `instance_scan` | boolean | no | Only the latest Instance Scan findings. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

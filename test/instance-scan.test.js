@@ -571,3 +571,76 @@ test("an Instance Scan is refused on a prod-marked profile, plan and apply", asy
     },
   );
 });
+
+// --- instance_scan: only the Instance Scan section ---------------------------
+
+const scanOnlyFetch = (url) => {
+  const u = new URL(url);
+  if (u.pathname.endsWith("/scan_result"))
+    return jsonResponse(200, {
+      result: [{ sys_id: "r1", sys_created_on: "2026-10-01 10:00:00" }],
+    });
+  if (u.pathname.endsWith("/scan_finding"))
+    return jsonResponse(200, { result: FINDINGS });
+  if (u.pathname.endsWith("/sys_script/br1"))
+    return jsonResponse(200, {
+      result: { sys_id: "br1", script: "eval(current.short_description);" },
+    });
+  if (u.pathname.endsWith("/sys_script"))
+    return jsonResponse(200, {
+      result: [
+        {
+          sys_id: "br1",
+          name: "Uses eval",
+          script: "eval(current.short_description);",
+          active: "true",
+        },
+      ],
+    });
+  return jsonResponse(200, { result: [] });
+};
+
+test("check_code_health instance_scan returns only the scan section", async () => {
+  freshRuntime();
+  await withFetch(scanOnlyFetch, async (calls) => {
+    const o = out(await healthTool.handler({ instance_scan: true }));
+    assert.equal(o.scope, "instance");
+    assert.ok(o.generatedAt);
+    assert.equal(o.instanceScan.result.sys_id, "r1");
+    assert.equal(o.instanceScan.findingCount, 3);
+    assert.deepEqual(o.instanceScan.agreed, []);
+    assert.match(o.warnings[0], /pass a table scope/);
+    assert.equal(o.scriptCounts, undefined);
+    assert.equal(o.reportFile, undefined);
+    assert.ok(
+      calls.every((c) => /\/scan_(result|finding)\b/.test(c.url)),
+      calls.map((c) => c.url).join("\n"),
+    );
+  });
+});
+
+test("check_code_health instance_scan with a table lints it for the agreed set", async () => {
+  freshRuntime();
+  await withFetch(scanOnlyFetch, async () => {
+    const o = out(
+      await healthTool.handler({ instance_scan: true, scope: "incident" }),
+    );
+    assert.equal(o.scope, "incident");
+    assert.deepEqual(
+      o.instanceScan.agreed.map((a) => a.sys_id),
+      ["br1"],
+    );
+    assert.ok(!o.warnings.some((w) => /pass a table scope/.test(w)));
+  });
+});
+
+test("check_code_health refuses instance_scan together with scan_run", async () => {
+  freshRuntime();
+  await withFetch(scanOnlyFetch, async (calls) => {
+    await assert.rejects(
+      () => healthTool.handler({ instance_scan: true, scan_run: "full" }),
+      (e) => e instanceof ServiceNowError && e.code === "INVALID_INPUT",
+    );
+    assert.equal(calls.length, 0);
+  });
+});

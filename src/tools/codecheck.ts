@@ -5,6 +5,7 @@ import {
   lintScript,
   lintTable,
   codeHealth,
+  instanceScanOnly,
 } from "../api/codecheck.js";
 import {
   assertScanAllowed,
@@ -251,9 +252,13 @@ export const specs: AnyToolSpec[] = [
         .optional()
         .describe("Scope or update set sys_ids."),
       apply: z.boolean().optional().describe("true runs it."),
+      instance_scan: z
+        .boolean()
+        .optional()
+        .describe("Only the latest Instance Scan findings."),
     },
     logFields: (args) => ({ scope: args.scope ?? "instance" }),
-    handler: ({
+    handler: async ({
       scope,
       extended,
       domains,
@@ -263,14 +268,24 @@ export const specs: AnyToolSpec[] = [
       sys_id,
       targets,
       apply,
-    }) =>
-      scan_run
+      instance_scan,
+    }) => {
+      if (instance_scan && scan_run)
+        throw new ServiceNowError(
+          "instance_scan reads results; scan_run starts a scan. Pass one.",
+          400,
+          undefined,
+          { code: "INVALID_INPUT" },
+        );
+      if (instance_scan) return instanceScanOnly(scope).then(ok);
+      return scan_run
         ? startScan(scan_run, scope, sys_id, targets, apply)
         : codeHealth(scope, {
             extended,
             domains,
             limit,
             updateBaseline: update_baseline,
-          }).then(ok),
+          }).then(ok);
+    },
   }),
 ];

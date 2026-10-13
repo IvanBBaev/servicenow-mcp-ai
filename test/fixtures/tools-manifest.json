@@ -645,6 +645,10 @@
             "maxLength": 128,
             "type": "string"
           },
+          "instance_scan": {
+            "description": "Only the latest Instance Scan findings.",
+            "type": "boolean"
+          },
           "limit": {
             "description": "Records per type for extended, candidates per rule for domains (default 50).",
             "maximum": 200,
@@ -693,8 +697,8 @@
       },
       "sizes": {
         "description": 123,
-        "inputSchema": 1263,
-        "paramDescriptions": 552,
+        "inputSchema": 1354,
+        "paramDescriptions": 593,
         "outputSchema": 221
       }
     },

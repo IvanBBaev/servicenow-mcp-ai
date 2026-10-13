@@ -790,3 +790,35 @@ export async function codeHealth(
     warnings,
   };
 }
+
+/**
+ * N-3: only the Instance Scan section — the latest scan result and its
+ * findings, without the inventory, ACL scan, hardening or baseline. With a
+ * table `scope` the table is linted too, so the "both agree" set is filled;
+ * instance-wide it stays empty (no lint ran). Writes no report.
+ */
+export async function instanceScanOnly(scope?: string): Promise<{
+  scope: string;
+  generatedAt: string;
+  instanceScan: InstanceScanReport;
+  warnings: string[];
+}> {
+  const generatedAt = new Date().toISOString();
+  const table = scope?.trim();
+  const warnings: string[] = [];
+  const linted = new Set<string>();
+  if (table) {
+    try {
+      const lint = await lintTable(table);
+      for (const r of lint.results)
+        if (r.findings.length > 0) linted.add(r.sys_id);
+      warnings.push(...lint.warnings.map((w) => `lint: ${w}`));
+    } catch (e) {
+      warnings.push(`lint: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  } else {
+    warnings.push("agreed is empty: pass a table scope to lint it.");
+  }
+  const instanceScan = await readInstanceScan(linted);
+  return { scope: table || "instance", generatedAt, instanceScan, warnings };
+}

@@ -233,6 +233,10 @@
             "description": "true runs it.",
             "type": "boolean"
           },
+          "instance_scan": {
+            "description": "Only the latest Instance Scan findings.",
+            "type": "boolean"
+          },
           "instance": {
             "description": "Profile (default active)",
             "type": "string",
