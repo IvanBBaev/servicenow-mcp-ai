@@ -702,7 +702,7 @@ items:
     phase: null
     done: "2026-09-28"
     gates: []
-    notes: "**Done 2026-09-28 (local).** `servicenow_upsert_artifact` (opt-in `artifacts`): parent-first create / update / noop, descriptor `writeFields`, plan-only JSON fields, per-record journal + revert, one plan token. Deferred: prune_children, whole-artefact revert, child staleness."
+    notes: "**Done 2026-09-28 (local).** `servicenow_upsert_artifact` (opt-in `artifacts`): parent-first create / update / noop, descriptor `writeFields`, plan-only JSON fields, per-record journal + revert, one plan token. Deferred: prune_children, whole-artefact revert, child staleness. **PDI pass 2026-10-13 (O-5):** the `sys_ui_policy_action` write fields and their choice values are confirmed."
   - id: "P-24"
     title: "portal and catalog structural writes"
     pillar: "P"
@@ -711,7 +711,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5"]
-    notes: "**Done 2026-09-30 (local).** `servicenow_upsert_artifact` for portal and catalog structures: `children[].parent`, uniqueness pre-flight (`DUPLICATE_UNIQUE_FIELD`), `SCOPE_PREFIX` warning; fields unverified until O-5."
+    notes: "**Done 2026-09-30 (local).** `servicenow_upsert_artifact` for portal and catalog structures: `children[].parent`, uniqueness pre-flight (`DUPLICATE_UNIQUE_FIELD`), `SCOPE_PREFIX` warning. **PDI pass 2026-10-13 (O-5):** every write field exists, the choice values are recorded in PDI-VERIFY (tenth pass), and the scope prefix is an SDK convention the platform does not enforce, so it stays a warning."
   - id: "P-25"
     title: "flow activation toggle"
     pillar: "P"

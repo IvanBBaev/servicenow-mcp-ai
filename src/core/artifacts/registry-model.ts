@@ -298,10 +298,12 @@ export interface ArtifactType {
    */
   unique?: UniqueRule[];
   /**
-   * P-24 SDK pre-flight (unverified, O-5): fields whose value the ServiceNow
-   * SDK expects to start with the application scope name (`x_acme_…`) when
-   * the record is created in a non-global scope. `servicenow_upsert_artifact`
-   * reports a mismatch as a plan warning, not a refusal.
+   * P-24 SDK pre-flight: fields whose value the ServiceNow SDK expects to
+   * start with the application scope name (`x_acme_…`) when the record is
+   * created in a non-global scope. The platform does not enforce it (a PDI
+   * 2026-10-13, O-5, holds scoped portal records without the prefix), so
+   * `servicenow_upsert_artifact` reports a mismatch as a plan warning, not a
+   * refusal.
    */
   scopePrefixFields?: string[];
 }
@@ -403,14 +405,16 @@ export const VARIABLE_CHOICES: ArtifactChild[] = [
     parentTable: "item_option_new",
     orderField: "order",
     nameField: "text",
-    // P-24 (U, O-5).
+    // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["value"],
   },
 ];
 
 /**
- * P-24 (CAT-1 … CAT-3, U until O-5): the variable fields servicenow_upsert_artifact
- * may write besides `name` and `order`. `name` must be a valid variable name.
+ * P-24 (CAT-1 … CAT-3, checked on a PDI 2026-10-13, O-5): the variable fields
+ * servicenow_upsert_artifact may write besides `name` and `order`. `name` must
+ * be a valid variable name; `type` is the numeric variable type (`6` single
+ * line text, `8` reference, …), not its label.
  */
 export const VARIABLE_WRITE_FIELDS = [
   "question_text",
@@ -438,7 +442,7 @@ export function catalogLogic(
       parentField: scriptField,
       nameField: "name",
       scriptFields: ["script"],
-      // P-24 (U, O-5).
+      // P-24 (checked on a PDI 2026-10-13, O-5).
       writeFields: ["type", "ui_type", "active"],
       ...via,
     },
@@ -464,7 +468,7 @@ export const CATALOG_POLICY_ACTIONS: ArtifactChild = {
   parentField: "ui_policy",
   parentTable: "catalog_ui_policy",
   nameField: "catalog_variable",
-  // P-24 (U, O-5).
+  // P-24 (checked on a PDI 2026-10-13, O-5).
   writeFields: ["visible", "mandatory", "disabled"],
 };
 

@@ -627,8 +627,9 @@ function scalarText(v: unknown): string {
 }
 
 /**
- * P-24 scope prefix (a warning, unverified): on a create into a scoped
- * application, the declared fields should start with `<scope>_`.
+ * P-24 scope prefix (a warning): on a create into a scoped application, the
+ * declared fields should start with `<scope>_`. An SDK convention the platform
+ * does not enforce (PDI 2026-10-13, O-5).
  */
 async function scopePrefixWarnings(
   t: ArtifactType,
@@ -660,7 +661,7 @@ async function scopePrefixWarnings(
             code: "SCOPE_PREFIX",
             table: t.table,
             field,
-            message: `${t.table}.${field} '${value}' does not start with the scope prefix '${scope}_' (the ServiceNow SDK convention; unverified, O-5).`,
+            message: `${t.table}.${field} '${value}' does not start with the scope prefix '${scope}_' (a ServiceNow SDK convention; the platform does not enforce it).`,
           },
         ]
       : [];

@@ -73,14 +73,17 @@ export const SCRIPT_ROWS: readonly ArtifactType[] = [
     sdkApi: "UiPolicy",
     sdkSince: "4.2",
     table: "sys_ui_policy",
-    // servicenow_get_artifact reads the actions (P-5); their names stay
-    // unverified until O-5 confirms them on a live instance.
+    // servicenow_get_artifact reads the actions (P-5); their names were
+    // checked on a PDI 2026-10-13 (O-5).
     children: [
       {
         table: "sys_ui_policy_action",
         parentField: "ui_policy",
         nameField: "field",
-        // P-23: the action flags upsert_artifact may write (unverified, O-5).
+        // P-23: the action flags upsert_artifact may write (checked on a PDI
+        // 2026-10-13, O-5): `visible` / `mandatory` / `disabled` take
+        // `ignore` / `true` / `false`, `value_action` takes `ignore` /
+        // `set_value` / `clear_value`.
         writeFields: [
           "table",
           "visible",
@@ -462,7 +465,7 @@ export const SCRIPT_ROWS: readonly ArtifactType[] = [
       {
         table: "m2m_sp_widget_dependency",
         parentField: "sp_widget",
-        // P-24 (U): the dependency the widget loads.
+        // P-24 (checked on a PDI 2026-10-13, O-5): the dependency the widget loads.
         writeFields: ["sp_dependency"],
       },
       {
@@ -492,7 +495,7 @@ export const SCRIPT_ROWS: readonly ArtifactType[] = [
     verified: true,
     scriptTools: true,
     metaFields: ["id", "data_table"],
-    // P-24 (U, O-5): SP-2 fields upsert_artifact may write, SDK pre-flight.
+    // P-24 (checked on a PDI 2026-10-13, O-5): SP-2 fields upsert_artifact may write, SDK pre-flight.
     writeFields: [
       "template",
       "controller_as",

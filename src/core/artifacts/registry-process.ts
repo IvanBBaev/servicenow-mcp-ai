@@ -312,7 +312,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     tiers: SEED_TIERS,
     verified: false,
     metaFields: ["sys_class_name", "category", "sc_catalogs", "order"],
-    // P-24 (CAT-1, U until O-5).
+    // P-24 (CAT-1, checked on a PDI 2026-10-13, O-5).
     writeFields: ["short_description", "description"],
   },
   {
@@ -366,7 +366,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     tiers: SEED_TIERS,
     verified: false,
     metaFields: ["internal_name", "type", "order"],
-    // P-24 (CAT-2, U until O-5).
+    // P-24 (CAT-2, checked on a PDI 2026-10-13, O-5).
     writeFields: ["description"],
   },
   {
