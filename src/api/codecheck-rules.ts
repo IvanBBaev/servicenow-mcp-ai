@@ -361,6 +361,20 @@ const isSpGetParameter = (node: AstNode, source: string): boolean => {
 };
 
 /**
+ * True for `$sanitize(x)` or `spUtil.sanitizeHtml(x)`: a value already
+ * sanitised before `$sce.trustAsHtml` is not flagged (O-5: 12 of 88 PDI
+ * widget findings).
+ */
+const isSanitizeCall = (node: AstNode | undefined, source: string): boolean => {
+  if (node?.type !== "CallExpression") return false;
+  const c = calleeOf(node, source);
+  return (
+    (!c.object && c.name === "$sanitize") ||
+    (c.object === "spUtil" && c.name === "sanitizeHtml")
+  );
+};
+
+/**
  * True when an expression reads a tainted name or calls $sp.getParameter.
  * Non-computed property names (`x.p`) and object keys are not reads.
  */
@@ -529,7 +543,8 @@ function lintAst(
         }
         if (
           c.object === "$sce" &&
-          (c.name === "trustAs" || c.name === "trustAsHtml")
+          (c.name === "trustAs" || c.name === "trustAsHtml") &&
+          !isSanitizeCall(args[c.name === "trustAs" ? 1 : 0], source)
         ) {
           add("sce-trust-as-html", line);
         }
@@ -612,7 +627,9 @@ function lintAst(
  * no longer match code rules. A global-scope server script (`ecma: "es5"`)
  * that only parses as ES2021 gets an `es2021-syntax-in-es5` finding and is
  * then linted from the ES2021 tree. A source that does not parse at all falls
- * back to the line-regex rules (`engine: "regex"`, `parseError`). Never throws.
+ * back to the line-regex rules (`engine: "regex"`, `parseError`). A client
+ * source that is a bare function expression (the Service Portal shape) is
+ * parsed in parentheses. Never throws.
  */
 export function lintSourceDetailed(
   source: string,
@@ -648,8 +665,20 @@ export function lintSourceDetailed(
         parsed = modern;
       }
     }
+    // A portal client script, link function or angular provider is a bare
+    // `function (...) {...}` expression, which does not parse as a script;
+    // read it as a parenthesised expression (lines are unchanged).
+    let astSource = source;
+    if (!parsed.ok && scope === "client" && /^\s*function\b/.test(source)) {
+      const wrapped = `(${source.replace(/[\s;]+$/, "")}\n)`;
+      const asExpression = parseScript(wrapped, mode);
+      if (asExpression.ok) {
+        parsed = asExpression;
+        astSource = wrapped;
+      }
+    }
     if (!parsed.ok) return fallback(parsed.error);
-    const findings = lintAst(parsed.ast, source, scope, source.split("\n"));
+    const findings = lintAst(parsed.ast, astSource, scope, source.split("\n"));
     return {
       engine: "ast",
       ecma: parsed.mode,

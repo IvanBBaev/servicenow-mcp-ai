@@ -9,7 +9,11 @@ import path from "node:path";
 
 import { ALL_TOOLS } from "../build/mcp/registry.js";
 import { runSpec } from "../build/mcp/define.js";
-import { lintSource, lintArtifacts } from "../build/api/codecheck.js";
+import {
+  lintSource,
+  lintSourceDetailed,
+  lintArtifacts,
+} from "../build/api/codecheck.js";
 import { getArtifactType } from "../build/core/artifacts/registry.js";
 import { SCRIPT_TYPES, OPT_IN_SCRIPT_TYPES } from "../build/api/scripts.js";
 import {
@@ -48,6 +52,32 @@ test("portal client rules: $sce.trustAsHtml and $sceProvider.enabled(false), cli
     rules(lintSource(src, "server")).filter((r) => !r.startsWith("syntax")),
     [],
   );
+});
+
+test("portal client rules: a value sanitised first is not flagged (O-5)", () => {
+  const src = [
+    "c.a = $sce.trustAsHtml($sanitize(c.data.body));",
+    "c.b = $sce.trustAsHtml(spUtil.sanitizeHtml(c.data.body));",
+    "c.c = $sce.trustAs($sce.HTML, $sanitize(v));",
+    "c.d = $sce.trustAsHtml(c.data.body + $sanitize(v));",
+  ].join("\n");
+  assert.deepEqual(rules(lintSource(src, "client")), ["sce-trust-as-html:4"]);
+});
+
+test("portal client rules: a bare function expression is parsed, not regex-linted (O-5)", () => {
+  const src = [
+    "function($scope, $sce) {",
+    "  var c = this;",
+    "  // $sce.trustAsHtml(old) in a comment is not code",
+    "  c.html = $sce.trustAsHtml(c.data.body);",
+    "};",
+  ].join("\n");
+  const r = lintSourceDetailed(src, "client");
+  assert.equal(r.engine, "ast");
+  assert.deepEqual(rules(r.findings), ["sce-trust-as-html:4"]);
+  const tail = lintSourceDetailed("function () {}\nfoo();", "client");
+  assert.equal(tail.engine, "regex", "a function followed by statements");
+  assert.equal(lintSourceDetailed(src, "server").engine, "regex");
 });
 
 test("server rule: a $sp.getParameter value reaching an encoded query, a table name or eval", () => {
