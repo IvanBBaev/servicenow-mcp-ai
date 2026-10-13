@@ -341,12 +341,23 @@ export const SCRIPT_TOOL_TIERS: Tier[] = ["R", "A", "S"];
 export const READ_TIER: Tier[] = ["R"];
 
 /**
- * Children of a flow or subflow (FLW-4 … FLW-8). Which of the `_v2` / plain
- * instance tables is authoritative per release is O-5 item 5; get_flow reads
- * the plain trigger/action tables today.
+ * Children of a flow or subflow (FLW-4 … FLW-8). O-5 (PDI-VERIFY thirty-second
+ * pass): neither the plain nor the `_v2` instance tables are authoritative —
+ * older flows keep their rows in the plain tables, newer ones in `_v2`, and
+ * both sit under the draft flow and under its `master_snapshot` alike; so
+ * both are read. `flow` / `order` on the plain action table are inherited
+ * from `sys_hub_flow_component`.
  */
 export const FLOW_CHILDREN: ArtifactChild[] = [
   { table: "sys_hub_trigger_instance", parentField: "flow" },
+  {
+    // O-5: v2 trigger inputs are base64 + gzip JSON in `trigger_inputs`.
+    table: "sys_hub_trigger_instance_v2",
+    parentField: "flow",
+    jsonFields: [
+      { field: "trigger_inputs", decoder: "flow-values", writable: false },
+    ],
+  },
   {
     // O-5: the plain table has no `values`; its `action_inputs` is a
     // glide_var whose values live in sys_variable_value.

@@ -40,6 +40,13 @@
       ]
     },
     {
+      "table": "sys_hub_trigger_instance_v2",
+      "parentField": "flow",
+      "verified": true,
+      "count": 0,
+      "items": []
+    },
+    {
       "table": "sys_hub_action_instance",
       "parentField": "flow",
       "verified": true,

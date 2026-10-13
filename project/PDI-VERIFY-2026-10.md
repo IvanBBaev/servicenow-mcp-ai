@@ -807,6 +807,29 @@ Follow-up: `lintSourceDetailed` parses a client source that starts with
 rule skips an argument that is a `$sanitize` or `spUtil.sanitizeHtml` call.
 **Tests added.** tools/list delta 0 B.
 
+## Thirty-second pass: flow registry children (P-9, P-20)
+
+GET-only on ven03019, against `sys_dictionary`, `sys_db_object` and the
+Flow Designer instance tables, for 120 flows with a `master_snapshot`. Child
+rows were counted under the draft flow and under its snapshot:
+
+| Table                            | Under the draft | Under the snapshot | Finding                                                                                                                                   |
+| -------------------------------- | --------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_hub_trigger_instance`       | 25              | 25                 | `flow` → `sys_hub_flow_base`.                                                                                                             |
+| `sys_hub_trigger_instance_v2`    | 21              | 21                 | **Gap:** not a registry child. `trigger_inputs` is base64 + gzip JSON. **Fixed** below.                                                   |
+| `sys_hub_action_instance`        | 293             | 289                | `flow` / `order` inherited from `sys_hub_flow_component`; `action_inputs` is a glide_var.                                                 |
+| `sys_hub_action_instance_v2`     | 279             | 279                | `values` is a string (base64 + gzip JSON).                                                                                                |
+| `sys_hub_flow_logic_instance_v2` | 395             | 395                | `values` is a string.                                                                                                                     |
+| `sys_hub_sub_flow_instance_v2`   | 20              | 20                 | `subflow_inputs` is a string.                                                                                                             |
+| `wf_*` workflow children         | —               | —                  | As in the twenty-second pass: `wf_activity.workflow_version`, `wf_transition.from`, `wf_condition.activity`, `wf_stage.workflow_version`. |
+
+Neither the plain nor the `_v2` tables are authoritative: older flows use one,
+newer the other, and both hang under the draft and the published snapshot, so
+the registry reads both (the P-20 `master_snapshot` keying stands, eighteenth
+pass). Follow-up: `FLOW_CHILDREN` gains `sys_hub_trigger_instance_v2` with its
+`trigger_inputs` decoded; the `flow` explain golden gains the child. **Test
+added.** tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
