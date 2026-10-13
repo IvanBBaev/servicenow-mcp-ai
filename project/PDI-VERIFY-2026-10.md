@@ -848,6 +848,24 @@ is never reached here.
 
 tools/list delta 0 B.
 
+## Thirty-fourth pass: workspace dashboard and form action links (P-15)
+
+GET-only on ven03019, against the links `servicenow_explain_ui_experience`
+follows from an experience's page properties:
+
+| Read                               | Finding                                                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard through page properties  | Confirmed: Service Operations Workspace has `tier1DefaultDashboard` and `tier2DefaultDashboard` properties whose values are active `par_dashboard` rows ("Overview"). `par_dashboard_tab` (`dashboard`, `name`, `order`) confirmed.                                                                                                                                                                 |
+| `par_dashboard_widget.tab`         | **Gap:** the column does not exist. A widget names its `canvas` (`par_dashboard_canvas`), and the canvas names its `dashboard_tab`; one canvas per tab, 16 widgets across the two SOW dashboards, 0 found by the old read. **Fixed** below.                                                                                                                                                         |
+| List menu through `listConfigId`   | Confirmed (already in the twenty-fourth pass).                                                                                                                                                                                                                                                                                                                                                      |
+| Form action layouts by `sys_scope` | **Gap:** SOW's layouts are tied to the experience through `actionConfigId` (13 experiences carry it) → `sys_ux_form_action_layout.action_config`. "SOW Actions" has 18 layouts across 7 scopes; the scope read found 3. Security Admin Workspace (OT Security scope) points to SOW Actions, so the scope read returned 2 unrelated OT layouts. 13 layouts have no `action_config`. **Fixed** below. |
+| Layout items, actions, audience    | `sys_ux_m2m_action_layout_item`, `sys_ux_form_action_layout_item` (`action`, `item_type`, `label`), `sys_ux_form_action` (`name`, `action_type`, `ui_action`, `declarative_action`) and `sys_ux_applicability_m2m_layout` (`action_layout`, `applicability`) confirmed.                                                                                                                             |
+
+Follow-up: widgets are read through `par_dashboard_canvas`, and form action
+layouts by `action_config IN` the `actionConfigId` values, with the
+application scope as a fallback that keeps its own caveat. The dashboard and
+list menu caveat is dropped. **Tests added.** tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

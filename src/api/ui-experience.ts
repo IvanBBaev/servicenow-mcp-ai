@@ -13,10 +13,11 @@
  *
  * and, for workspaces (P-15), the experience's page properties, the
  * dashboards and list menus they reference (`par_dashboard` → tabs →
- * widgets; `sys_ux_list_menu_config` → categories → lists, plus lists that
+ * canvases → widgets; `sys_ux_list_menu_config` → categories → lists, plus lists that
  * name the menu directly with no category), the audience
  * (`sys_ux_applicability`, with roles) of screens and lists, and the form
- * action layouts of the experience's application scope.
+ * action layouts of its `actionConfigId` page property (the experience's
+ * application scope when it has none).
  *
  * N-30 (uib-workspace.ts) adds the workspace view: declarative actions on
  * the workspace's tables, the app shell and chrome, a UX form view per table
@@ -185,8 +186,8 @@ const RAW_MAX = 2000;
 const UNVERIFIED_CAVEAT =
   "UI Builder and Next Experience tables are verified:false: their table and field names, and the JSON shapes of macroponent columns, come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
 
-const LINK_CAVEAT =
-  "Dashboards and list menus are found through sys_id values in the experience's page properties, and form action layouts through the experience's application scope; both links are unverified (gate O-5).";
+const SCOPE_LINK_CAVEAT =
+  "The experience has no actionConfigId page property, so form action layouts are read from its application scope; on a PDI (gate O-5) a workspace's layouts span several scopes, so this list can be incomplete or include another workspace's layouts.";
 
 /** Characters of one script body kept with `detail: "scripts"`. */
 export const UI_SCRIPT_MAX = 100_000;
@@ -738,15 +739,32 @@ export async function explainUiExperience(
       ["sys_id", "dashboard", "name", "order"],
       { order: "order" },
     );
+    // O-5 (a PDI): a widget names its par_dashboard_canvas, not its tab;
+    // the canvas names the tab (one canvas per tab).
+    const canvasRows = await boundedReadIn(
+      ctx,
+      "par_dashboard_canvas",
+      "dashboard_tab",
+      ids(tabRows),
+      ["sys_id", "dashboard_tab"],
+    );
+    const tabOfCanvas = new Map(
+      canvasRows.map((c) => [str(c, "sys_id"), str(c, "dashboard_tab")]),
+    );
     const widgetRows = await boundedReadIn(
       ctx,
       "par_dashboard_widget",
-      "tab",
-      ids(tabRows),
-      ["sys_id", "tab", "name", "component"],
+      "canvas",
+      ids(canvasRows),
+      ["sys_id", "canvas", "name", "component"],
     );
     const tabsBy = groupBy(tabRows, "dashboard");
-    const widgetsBy = groupBy(widgetRows, "tab");
+    const widgetsBy = new Map<string, SnRecord[]>();
+    for (const w of widgetRows) {
+      const tab = tabOfCanvas.get(str(w, "canvas"));
+      if (!tab) continue;
+      widgetsBy.set(tab, [...(widgetsBy.get(tab) ?? []), w]);
+    }
     for (const d of dashRows) {
       result.dashboards.push({
         sys_id: str(d, "sys_id"),
@@ -868,19 +886,32 @@ export async function explainUiExperience(
     }
   }
 
-  // P-15: form action layouts of the experience's application scope. O-5
-  // (a PDI): an item is linked to its layout through
+  // P-15: form action layouts of the experience. O-5 (a PDI): a layout names
+  // its sys_ux_action_config in `action_config`, and the experience names that
+  // config in its `actionConfigId` page property (13 of 13 on the PDI); the
+  // layouts of one config span several application scopes. Without that
+  // property the experience's application scope is the fallback. An item is
+  // linked to its layout through
   // sys_ux_m2m_action_layout_item (the item has no layout reference), names
   // its sys_ux_form_action in `action`, and applicability is per layout
   // (sys_ux_applicability_m2m_layout). sys_ux_form_action has `name`,
   // `action_type` and the UI / declarative action it runs.
   const scope = opt(row, "sys_scope");
+  const actionConfigs = propRows
+    .filter((p) => str(p, "name") === "actionConfigId")
+    .map((p) => str(p, "value").trim())
+    .filter((v) => SAFE_ID.test(v));
+  const layoutQuery = actionConfigs.length
+    ? `action_configIN${actionConfigs.join(",")}^ORDERBYname`
+    : scope && SAFE_ID.test(scope)
+      ? `sys_scope=${scope}^ORDERBYname`
+      : undefined;
   const formItems: SnRecord[] = [];
-  if (scope && SAFE_ID.test(scope)) {
+  if (layoutQuery) {
     const layoutRows = await boundedRead(
       ctx,
       "sys_ux_form_action_layout",
-      `sys_scope=${scope}^ORDERBYname`,
+      layoutQuery,
       ["sys_id", "name", "table"],
     );
     const layoutIds = ids(layoutRows);
@@ -964,8 +995,8 @@ export async function explainUiExperience(
       });
     }
   }
-  if (referenced.size || formItems.length || result.formActionLayouts.length) {
-    ctx.caveats.push(LINK_CAVEAT);
+  if (!actionConfigs.length && result.formActionLayouts.length) {
+    ctx.caveats.push(SCOPE_LINK_CAVEAT);
   }
 
   await readWorkspace(ctx, result, row, macroRows, configId);
