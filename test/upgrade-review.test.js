@@ -157,7 +157,7 @@ test("history: newest first, rendered as a table", async () => {
       );
       const md = renderUpgradeHistory(h).join("\n");
       assert.match(md, /\| glide-xanadu \| glide-yokohama \|/);
-      assert.match(md, /unverified until O-5/);
+      assert.match(md, /Checked on one PDI \(gate O-5\)/);
     },
   );
 });
@@ -378,7 +378,7 @@ test("store updates: apps with an update and their customised artefacts", async 
         /\| HR Service Delivery \| sn_hr_core \| 5\.0\.1 \| 6\.0\.0 \| 4 \|/,
       );
       assert.match(md, /### Clean App\n\n_No customised artefacts/);
-      assert.match(md, /unverified until O-5/);
+      assert.match(md, /Store app rows are unverified/);
     },
   );
 });

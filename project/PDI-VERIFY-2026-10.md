@@ -769,6 +769,25 @@ Follow-up: code comments in `ops.ts` and `capability-matrix.ts` state the
 findings; no output changes. Still open (owner): should the capability
 matrix warn about unreadable role rows? tools/list delta 0 B.
 
+## Twenty-ninth pass: upgrade review caveats (N-1)
+
+GET-only on ven03019, against `sys_dictionary` and `sys_db_object`. The upgrade
+review and the upgrade document still said every table, field and choice name
+was unverified, although the earlier upgrade pass had fixed the history columns:
+
+| Table                     | Finding                                                                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_upgrade_history`     | `from_version`, `to_version`, `upgrade_started`, `upgrade_finished`, `summary_complete_status` (choice) all exist.                                   |
+| `sys_upgrade_history_log` | `upgrade_history` (reference), `file_name`, `target_name`, `plugin`, `application_category`, `disposition` (integer), `resolution_status` (choice).  |
+| `sys_update_version`      | `name`, `state`, `source_table`, `source`, `sys_recorded_at`, `payload`, `application` all exist.                                                    |
+| `sys_update_xml`          | `name`, `target_name`, `application` exist.                                                                                                          |
+| `sys_store_app`           | `update_available`, `latest_version` in the dictionary; `scope` and `version` are inherited (`sys_scope` → `sys_package`). Rows answer 403 to admin. |
+
+Follow-up: the history and skipped-record caveat now says the tables were
+checked on one PDI (output stays `verified:false`); the store-update caveat says
+its rows are unverified. The `servicenow_upgrade_review` prompt step 6 says the
+same. tools/list delta 0 B.
+
 ## Thirty-first pass: Service Portal lint rules (P-18)
 
 GET-only on ven03019, against `sp_widget` (557 rows) and `sp_angular_provider`
