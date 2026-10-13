@@ -531,8 +531,9 @@ own scope, so it was not shipped by a plugin), keeps 611 of the 806 screens
 (3 global, all customer-made), 414 of 599 routes (2 global), 223 of 408
 transform brokers (0 global) and 4,447 of 10,378 business rules (19 global,
 customer-made). Its cost: an OOB global record a customer has edited keeps
-its plugin package and drops out. `NOT_OOB` is shared by every domain rule,
-so it is not changed here (TODO P-19 (n)).
+its plugin package and drops out. `NOT_OOB` is shared by the UIB rules and
+two flow rules (`flow-unused-subflow`, `flow-unused-action`), so it is not
+changed here (TODO P-19 (n)).
 
 Fixed in this pass: the `active` filter. tools/list delta 0 B.
 
