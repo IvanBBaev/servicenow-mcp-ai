@@ -459,6 +459,10 @@ query runs (the instance can restrict which scripts are allowed):
 | \`sys_updated_on>=javascript:gs.daysAgoStart(7)\` | in the last 7 days (\`gs.hoursAgoStart(n)\`, \`gs.minutesAgoStart(n)\`) |
 | \`opened_atBETWEENjavascript:gs.dateGenerate('2026-01-01','00:00:00')@javascript:gs.dateGenerate('2026-01-31','23:59:59')\` | a fixed date range |
 
+So a value that starts with \`javascript:\` is never matched literally: to find
+fields whose stored text begins with it, drop the colon
+(\`default_valueSTARTSWITHjavascript\`).
+
 ## Limits
 
 - **No escaping.** \`^\` separates conditions and cannot be escaped inside a

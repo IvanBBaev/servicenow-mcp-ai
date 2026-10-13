@@ -542,7 +542,10 @@ export const SCRIPT_ROWS: readonly ArtifactType[] = [
     table: "sys_dictionary",
     // Only calculated columns (`virtual` is the "Calculated" flag) and
     // scripted defaults; plain dictionary entries are not script artefacts.
-    baseQuery: "virtual=true^ORdefault_valueSTARTSWITHjavascript:",
+    // O-5 (PDI-VERIFY thirty-sixth pass): no colon after `javascript` — a
+    // `javascript:` value in an encoded query is evaluated as a script, so
+    // `STARTSWITHjavascript:` matched 4 of the PDI's 5,475 scripted defaults.
+    baseQuery: "virtual=true^ORdefault_valueSTARTSWITHjavascript",
     nameField: "element",
     keyFields: ["name", "element"],
     activeField: "active",

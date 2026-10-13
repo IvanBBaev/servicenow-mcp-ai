@@ -866,6 +866,26 @@ layouts by `action_config IN` the `actionConfigId` values, with the
 application scope as a fallback that keeps its own caveat. The dashboard and
 list menu caveat is dropped. **Tests added.** tools/list delta 0 B.
 
+## Thirty-sixth pass: registry field sweep and the `dictionary_script` query (S-4, P-7)
+
+GET-only on ven03019. Every field name the artefact registry reads —
+`nameField`, `keyFields`, `activeField`, `scopeField`, script / client /
+markup / meta / when fields, JSON and reference fields, `baseQuery` columns —
+for all types and their children (247 tables), checked against
+`sys_dictionary` along each table's `super_class` chain.
+
+| Check                                | Finding                                                                                                                                                                                            |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S-4 fields                           | Confirmed: `sys_data_source.data_loader` / `parsing_script`, `sys_script_validator.validator`, `sys_rest_message_fn.function_name` / `rest_endpoint` / `content` / `rest_message` / `http_method`. |
+| P-7 seeds and every other type       | All present, except the four tables and three key fields already listed: the plugin-gated or absent tables and the BREAKING key renames waiting for O-4.                                           |
+| `sys_dictionary.virtual`             | Confirmed: labelled "Calculated" (boolean); 387 rows, 385 with a `calculation`. Non-virtual rows also carry the template `calculation` (56,224), so `virtual` is the right filter.                 |
+| `default_valueSTARTSWITHjavascript:` | **Bug:** a `javascript:` value in an encoded query is evaluated as a script, so it matched 4 rows. `STARTSWITHjavascript` (no colon) matches 5,475; `LIKEjavascript` 5,478.                        |
+
+Fix: the `dictionary_script` base query drops the colon, so scripted defaults
+reach the script tools, snapshots and stats; the encoded-query reference
+resource says how to match a stored `javascript:` prefix. **Tests updated.**
+tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

@@ -461,7 +461,7 @@ test("searchCode narrows sys_dictionary with the registry base query (S-4)", asy
       assert.match(url, /\/api\/now\/table\/sys_dictionary(\?|$)/);
       assert.equal(
         queryOf(url),
-        "virtual=true^ORdefault_valueSTARTSWITHjavascript:" +
+        "virtual=true^ORdefault_valueSTARTSWITHjavascript" +
           "^calculationLIKEgs.getUser^ORdefault_valueLIKEgs.getUser",
       );
       return jsonResponse(200, {
@@ -549,7 +549,7 @@ test("listScripts: scope and the registry active field; no active flag is a 400 
       await listScripts({ type: "dictionary_script", table: "incident" });
       assert.equal(
         queryOf(calls[1].url),
-        "virtual=true^ORdefault_valueSTARTSWITHjavascript:^name=incident^ORDERBYelement",
+        "virtual=true^ORdefault_valueSTARTSWITHjavascript^name=incident^ORDERBYelement",
       );
       await assert.rejects(
         listScripts({ type: "fix_script", active: true }),

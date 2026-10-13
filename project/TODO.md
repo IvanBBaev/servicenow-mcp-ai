@@ -334,7 +334,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       natural keys beyond `script_include`; widen the capability probe to the new seeds.
 - [x] **S-4 · Script-intelligence widening** — done 2026-09-24 (uncommitted). Owner questions:
       unverified field names (`data_source`, `validator`, `rest_message_fn`); `dictionary_script`
-      `baseQuery`; sweeps now 24 queries instead of 9; `scope` on the remaining script tools.
+      `baseQuery` (resolved: PDI-VERIFY thirty-sixth pass — the fields exist; the base query lost
+      the colon after `javascript`, which the instance evaluated); sweeps now 24 queries instead of 9; `scope` on the remaining script tools.
 - [x] **S-13 · Capability preflight v2** — done 2026-09-24 (uncommitted). Owner questions: extended
       `check_capabilities` instead of a new tool; plugin negative TTL 5 min → 60 s; matrix is
       informational (no doctor verdict change); 5xx = `unknown`, cached 60 s.
@@ -393,7 +394,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       field and `FLOW_CHILDREN` tables need a live instance (O-5) (resolved: PDI-VERIFY twenty-second and
       thirty-second passes — `wf_activity` hangs off `wf_workflow_version`; both the plain and `_v2`
       flow tables hold rows, so the v2 trigger table joined `FLOW_CHILDREN`). (d) P-7 — `available`
-      semantics (table present vs readable); field names unverified (O-5); `choice_set` has no
+      semantics (table present vs readable); field names unverified (O-5) (resolved: PDI-VERIFY
+      thirty-sixth pass, all present); `choice_set` has no
       `sdkSince`. (e) `test/cancel-progress.test.js` "a cancelled snapshot stops issuing requests
       within one retry window" is timing-sensitive under load — widen its headroom? (resolved: the wait is bounded by real time, 2acdff8)
 - [ ] **Owner decisions from batch 9 (2026-09-26):** (a) S-10b — syslog level values, the
