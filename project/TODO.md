@@ -191,6 +191,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     `src/api/jira/`) with ARCH-14 deferred. O-1 = NO-GO deleted the scaffold
     ([ADR 0007](adr/0007-delete-jira-scaffold.md)).
   - Recommend: drop the sentence. Flagged only, not edited.
+  - **Decided 2026-10-13: drop it.** Done in the local `CLAUDE.md` (not committed).
 - **OD-10 · Two pending conformance rows** ([CONFORMANCE-2026-07-28.md](CONFORMANCE-2026-07-28.md),
   "Owner decisions"). _Not BREAKING._
   - `mrtr-20` (D-2, use URL mode for secrets):
