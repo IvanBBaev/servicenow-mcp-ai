@@ -449,6 +449,26 @@ Table API reads of the action, decision and `sys_pd_*` tables,
 Fixed in b2b7b1a. Still open: `kind:"action"` reads the draft definition,
 not `sys_hub_action_type_snapshot` (TODO batch-11 (e)). tools/list delta 0 B.
 
+## Fourteenth pass: Service Portal and workflow domain rules (P-19)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_db_object`,
+Table API reads of the `sp_*`, `sc_cat_item` and `contract_sla` tables, and
+one `analyseDomains` run).
+
+| Item                            | Was assumed                                                               | Result                                                                                                                                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Widget and page fields          | SDK inventory                                                             | Confirmed: `sp_widget` `id`, `name`, `public`, `script`, `client_script`, `link`, `template`; `sp_page` `id`, `title`, `public`. 557 widgets (111 public, 83 with an empty `id`), 220 pages (6 public). |
+| Instance → page chain           | `sp_column.sp_row.sp_container.sp_page`                                   | Confirmed, but only for a top-level row: 750 of 875 instances. 86 sit in a row nested in a column (none deeper), 39 reach no page. **Missed before:** the rule now reads both paths.                    |
+| Route maps                      | `route_from_page`, `route_to_page`, `order`, `roles`, `active`, `portals` | Confirmed (`portals` is a glide_list of `sp_portal`). 44 maps, 36 active, none with roles. Whether chained maps apply at run time cannot be checked with GETs; the caveat stays.                        |
+| Page references                 | `sp_portal` page columns, `sp_rectangle_menu_item` `sp_page` / `url`      | Confirmed: six page columns on `sp_portal`; 38 menu items name a page, 16 a `url` with `id=`.                                                                                                           |
+| Workflow callers                | `sc_cat_item.workflow`, `contract_sla.workflow`                           | Confirmed (both reference `wf_workflow`): 93 catalog items and 33 SLAs name one.                                                                                                                        |
+| v2 flow step reads in the sweep | —                                                                         | A long `flowIN` chunk with more rows than the limit answers 400 "Pagination not supported"; the Table API retry without the Link header (7f11293) reads it. Only the first try is logged.               |
+
+Live run: `portal-public-data-widget` 61 scanned / 26 findings,
+`portal-orphan-widget` 49, `portal-orphan-page` 83, `portal-route-map-loop`
+36 / 0, `workflow-migration-candidate` 126 / 11. The domain-analyser caveat
+now names Service Portal and workflow as confirmed. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
