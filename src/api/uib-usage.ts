@@ -165,7 +165,8 @@ export function macroponentUses(row: Record<string, unknown>): MacroponentUses {
 /**
  * The client script include sys_ids in a UIB client script's `includes`
  * list (pure): a comma-separated glide_list, de-duplicated; values that are
- * not sys_ids are dropped. O-5: a glide_list of sys_ux_client_script_include.
+ * not sys_ids are dropped. Checked on a PDI (O-5): a glide_list referencing
+ * sys_ux_client_script_include, ids joined by commas without spaces.
  */
 export function uibIncludeIds(value: string): string[] {
   const ids = new Set<string>();

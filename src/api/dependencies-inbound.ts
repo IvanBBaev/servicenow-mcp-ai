@@ -379,7 +379,7 @@ async function uibUsers(
       }
     }
     if (isSysId(id)) {
-      // O-5: the `includes` glide_list is unverified.
+      // O-5: `includes` is a glide_list of sys_ux_client_script_include ids.
       const rows = await likeRead(
         node,
         UIB_CLIENT_SCRIPT,
