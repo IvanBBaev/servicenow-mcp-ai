@@ -589,6 +589,22 @@ test("catalog_variable and catalog_ui_policy explain on their own", async () => 
     ["air", "pro", "old"],
   );
 
+  // O-5: 40 is an inactive question.type choice still used by older variables.
+  const tableName = await run(
+    "servicenow_explain_artifact",
+    {
+      ...CATALOG,
+      item_option_new: {
+        ...CATALOG.item_option_new[0],
+        type: "40",
+        sys_scope: APP_ID,
+      },
+    },
+    { artifactType: "catalog_variable", sys_id: V_MODEL },
+  );
+  assert.equal(tableName.error, undefined, tableName.error);
+  assert.equal(tableName.explanation.variable.typeName, "Table Name");
+
   const policy = await run(
     "servicenow_explain_artifact",
     {
