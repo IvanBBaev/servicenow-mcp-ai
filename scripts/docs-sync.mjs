@@ -13,7 +13,8 @@
 // The same run regenerates the tool reference (N-42: docs/tools/, the
 // docs/llms-full.txt bundle, the docs/llms.txt link section, the docs/index.md
 // Markdown alternate of the landing page) and checks
-// context7.json (N-53) — see scripts/tool-docs.mjs.
+// context7.json (N-53) — see scripts/tool-docs.mjs — and the site's
+// changelog page and footer release links — see scripts/changelog-docs.mjs.
 //
 // Every pattern must match at least once, so a reworded sentence fails loudly
 // instead of silently dropping out of the sync. Test and coverage counts are
@@ -27,6 +28,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { syncChangelogDocs } from "./changelog-docs.mjs";
 import {
   loadCorePackagesFromSource,
   loadErrorCodesFromSource,
@@ -143,6 +145,8 @@ if (invokedDirectly) {
     const counts = countTools(tools);
     // Counts first: the generated files quote README.md and docs/index.html.
     const countDrift = syncCounts({ root, counts, check });
+    // Release links next: docs/index.md is rendered from docs/index.html.
+    const releaseDrift = syncChangelogDocs({ root, check });
     const files = generateToolDocs({
       root,
       tools,
@@ -150,7 +154,11 @@ if (invokedDirectly) {
       errorCodes: await loadErrorCodesFromSource(),
       corePackages: await loadCorePackagesFromSource(),
     });
-    const drift = [...countDrift, ...syncToolDocs({ root, files, check })];
+    const drift = [
+      ...countDrift,
+      ...releaseDrift,
+      ...syncToolDocs({ root, files, check }),
+    ];
     const problems = checkContext7(root);
     const label = `${counts.tools} tools, ${counts.packages} packages`;
     if (problems.length > 0) {
