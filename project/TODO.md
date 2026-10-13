@@ -397,7 +397,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
 - [ ] **Owner decisions from batch 9 (2026-09-26):** (a) S-10b — syslog level values, the
       `sys_trigger` states treated as stuck, the `sys_email` fields, reading `sys_semaphore`, Stats
       API `having` support, the orphan-reference query and its ACL effect, `javascript:` clauses in
-      queries; is `data_health` right in `ops`? (b) P-8 — tables / fields unverified (O-5), the
+      queries; is `data_health` right in `ops`? (resolved on a PDI except the last question: fourth
+      and twenty-eighth passes in PDI-VERIFY) (b) P-8 — tables / fields unverified (O-5), the
       licensed families (O-9); child rows now accumulate across parents. (c) S-10a —
       `set_property` binds to the update set?; the secret-name regex, and secret properties cannot
       be reverted; no property create; the `import_set_run` fields; the IRE identify endpoint and

@@ -102,6 +102,8 @@ const OPS_CAVEATS = [
 const s = (r: SnRecord | undefined, f: string): string => snString(r?.[f]);
 const clip = (text: string, max = TEXT_MAX): string =>
   text.length > max ? `${text.slice(0, max)}…` : text;
+// O-5: a `sys_created_on>javascript:gs.minutesAgoStart(n)` clause filters
+// over REST (verified on a PDI, 2026-10).
 const since = (minutes: number): string =>
   `javascript:gs.minutesAgoStart(${minutes})`;
 const isObj = (v: unknown): v is Record<string, unknown> =>
@@ -304,6 +306,7 @@ async function readJobs(
   };
 }
 
+// O-5: `subject`, `error_string` and `type` exist on `sys_email` (PDI, 2026-10).
 async function readEmailQueue(
   o: Resolved,
   rows: boolean,
@@ -840,6 +843,7 @@ async function duplicates(
         query: and(scope, notEmpty),
         count: true,
         groupBy: keys,
+        // O-5: the Stats API takes `count^<field>^>^1`; `count>1` is a 400.
         having: `count^${keys[0]}^>^1`,
       }),
     ).filter((g) => g.count > 1);
@@ -884,6 +888,8 @@ async function referenceCheck(
   }
   if (stale) {
     try {
+      // O-5: a PDI ignores `<field>.active=false` when the target has no
+      // `active` column and counts every row, so the column check is required.
       const targetColumns = await describeTable(target);
       if (targetColumns.some((c) => c.element === "active")) {
         const staleQuery = and(scope, `${field}.active=false`);

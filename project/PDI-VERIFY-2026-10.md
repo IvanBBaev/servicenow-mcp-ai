@@ -750,6 +750,25 @@ Follow-up: the `sdk-guard.ts` header states the finding. Still open (owner):
 a child create takes the current application's scope, not its parent's.
 tools/list delta 0 B.
 
+## Twenty-eighth pass: ops and data-health queries (S-10b)
+
+GET-only on ven03019. The fourth pass confirmed the syslog levels, the
+`sys_trigger` states, the `sys_email` types and `sys_semaphore`; this pass
+covers the rest of the S-10b questions:
+
+| Read                      | Finding                                                                                                                                                                                                                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stats `sysparm_having`    | **Works** as `count^last_name^>^1`: 66 of 476 `sys_user` last-name groups. `count>1` is a 400. `duplicates()` already sends the working form.                                                                                                                                 |
+| `javascript:` clauses     | **Work:** `sys_created_on>javascript:gs.minutesAgoStart(60)` returns 2,333 of 2,494,825 `syslog` rows.                                                                                                                                                                        |
+| `sys_email` fields        | `subject` (string_full_utf8), `error_string` and `type` (string) exist. No `send-failed` rows on this PDI.                                                                                                                                                                    |
+| Orphan query              | **Works.** `task.assignment_group`: 995,345 of 1,025,564 set rows orphaned, all pointing at a group the user cannot read. This confirms the caveat that an unreadable target counts as orphaned. `sys_user.department`: 2; `sys_user.manager` and `incident.cmdb_ci`: 0.      |
+| Stale query               | `<field>.active=false` on a target without `active` is **ignored** and counts every row (`sys_user.department`: 692 = all users; `incident.cmdb_ci`: 50 = all incidents). `cmdb_ci` and `cmn_department` have no `active`. The `describeTable` guard is required and correct. |
+| `role.elevated_privilege` | The dot-walk works, but a role row the user cannot read returns an empty `role.name` and `false`. `security_admin` is not readable here, so the capability matrix's `elevatable` list can miss roles.                                                                         |
+
+Follow-up: code comments in `ops.ts` and `capability-matrix.ts` state the
+findings; no output changes. Still open (owner): should the capability
+matrix warn about unreadable role rows? tools/list delta 0 B.
+
 ## Thirty-first pass: Service Portal lint rules (P-18)
 
 GET-only on ven03019, against `sp_widget` (557 rows) and `sp_angular_provider`

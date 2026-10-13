@@ -238,7 +238,8 @@ function probeFor(group: MatrixGroup, user: string): GroupProbe | undefined {
         params: {
           sysparm_query: `user.user_name=${user}^state=active`,
           // N-20 EL-1: the dot-walked flag marks the roles a session must
-          // elevate before they apply (unverified until O-5).
+          // elevate before they apply. O-5 (PDI): a role row the user cannot
+          // read returns an empty name and "false", so it is not listed.
           sysparm_fields: "role.name,role.elevated_privilege",
           sysparm_limit: "500",
         },
