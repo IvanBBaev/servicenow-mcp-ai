@@ -484,7 +484,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       `tools/list` vs M-5 / N-63 (**decided 2026-10-10**, fixed per server on the 2026-07-28 wire, [ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)). O-21 (**decided 2026-10-09**): (a) compact reads (N-62) are opt-in only, defaults stay
       byte-identical; (b) 48 k result cap with the automatic file result on, and the `list_tables`
       default limit ruled a bug fix (N-61, done); (c) Claude Code `_meta` hints (N-65) on by default
-      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. Done 2026-10-09: (a) 7cdf79c, (b) d071f09, (c) f5071f9, (d) 3af9a45 (`SN_STRUCTURED=false`). O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63, done 2026-10-13 as B20).
+      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. Done 2026-10-09: (a) 7cdf79c, (b) d071f09, (c) f5071f9, (d) 3af9a45 (`SN_STRUCTURED=false`). O-4 amendments: B14 selective consolidation (N-64, done 2026-10-13: ATF list/run pairs only; `all+legacy` budget raised to 140,288 B under O-10); `discovery` as default and `attachment` out of `core` (N-63, done 2026-10-13 as B20).
 - [ ] **Owner decisions from batch 11 (D-4, 2026-09-26):** (a) client syntaxes not verified
       against a live client — Zed `context_servers` (`"source": "custom"` + flat `command` /
       `args`; older Zed builds nest `command: {path, args}`), the JetBrains AI Assistant menu path

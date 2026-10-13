@@ -88,6 +88,15 @@ const waitSeconds = z
     "Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result.",
   );
 
+/**
+ * N-64 (B14): which ATF table a merged tool reads or runs. Optional, so the
+ * legacy aliases (which inject it) pass the SDK's schema check unchanged.
+ */
+const atfKind = z
+  .enum(["test", "suite"])
+  .optional()
+  .describe("test (default) or suite.");
+
 /** Return the run as is, or waited on when `wait_seconds` is set. */
 async function maybeWait(run: AtfRun, seconds: number | undefined) {
   return seconds ? waitForAtfRun(run, seconds * 1000) : run;
@@ -101,10 +110,10 @@ async function maybeWait(run: AtfRun, seconds: number | undefined) {
  */
 export const specs: AnyToolSpec[] = [
   defineTool({
-    name: "servicenow_list_atf_tests",
-    title: "List ATF tests",
+    name: "servicenow_list_atf",
+    title: "List ATF tests or suites",
     description:
-      "List ATF tests (sys_atf_test) as metadata: name, active, description.",
+      "List ATF tests (sys_atf_test, default) or suites (kind:'suite', sys_atf_test_suite) as metadata: name, active, description.",
     package: "atf",
     annotations: {
       readOnlyHint: true,
@@ -112,44 +121,29 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
-    output: { count: z.number(), tests: z.array(z.unknown()) },
+    output: {
+      count: z.number(),
+      tests: z.array(z.unknown()).optional(),
+      suites: z.array(z.unknown()).optional(),
+    },
     input: {
+      kind: atfKind,
       active: z.boolean().optional().describe("Filter by active."),
       query: encodedQuery().optional().describe("Extra encoded query."),
       limit: z.number().int().positive().max(1000).optional(),
       with_results: withResults,
     },
-    handler: async ({ with_results, ...args }) =>
-      listPayload("tests", await listAtfTests(args), with_results),
+    handler: async ({ kind, with_results, ...args }) =>
+      kind === "suite"
+        ? listPayload("suites", await listAtfSuites(args), with_results)
+        : listPayload("tests", await listAtfTests(args), with_results),
   }),
 
   defineTool({
-    name: "servicenow_list_atf_suites",
-    title: "List ATF suites",
-    description: "List ATF test suites (sys_atf_test_suite) as metadata.",
-    package: "atf",
-    annotations: {
-      readOnlyHint: true,
-      destructiveHint: false,
-      idempotentHint: true,
-      openWorldHint: true,
-    },
-    output: { count: z.number(), suites: z.array(z.unknown()) },
-    input: {
-      active: z.boolean().optional().describe("Filter by active."),
-      query: encodedQuery().optional().describe("Extra encoded query."),
-      limit: z.number().int().positive().max(1000).optional(),
-      with_results: withResults,
-    },
-    handler: async ({ with_results, ...args }) =>
-      listPayload("suites", await listAtfSuites(args), with_results),
-  }),
-
-  defineTool({
-    name: "servicenow_run_atf_test",
-    title: "Run an ATF test",
+    name: "servicenow_run_atf",
+    title: "Run an ATF test or suite",
     description:
-      "Run one ATF test through the CI/CD API. EXECUTES CODE on the instance — non-production only, sn_cicd plugin required. Returns an execution id to poll with servicenow_get_atf_result, or pass wait_seconds to wait for the result.",
+      "Run an ATF test (default) or suite (kind:'suite') via the CI/CD API. EXECUTES CODE on the instance — non-production only, sn_cicd required. Returns an execution id for servicenow_get_atf_result, or pass wait_seconds to wait.",
     package: "atf",
     annotations: {
       readOnlyHint: false,
@@ -157,70 +151,28 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: false,
       openWorldHint: true,
     },
-    legacyParams: { test_sys_id: "sys_id" },
+    legacyParams: { test_sys_id: "sys_id", suite_sys_id: "sys_id" },
     input: {
-      sys_id: sysId().describe("sys_atf_test sys_id."),
+      kind: atfKind,
+      sys_id: sysId().describe("sys_atf_test (or sys_atf_test_suite) sys_id."),
       wait_seconds: waitSeconds,
       apply: applyInput,
     },
     output: RUN_OUTPUT,
-    handler: async ({ sys_id, wait_seconds, apply }) => {
+    handler: async ({ kind, sys_id, wait_seconds, apply }) => {
+      const suite = kind === "suite";
+      const table = suite ? "sys_atf_test_suite" : "sys_atf_test";
       if (!shouldApply(apply)) {
         return planPreview({
           action: "execute",
-          table: "sys_atf_test",
+          table,
           sys_id,
-          after: { run: "ATF test" },
+          after: { run: suite ? "ATF suite" : "ATF test" },
         });
       }
       const result = await journaledWrite(
-        {
-          action: "execute",
-          table: "sys_atf_test",
-          sys_id,
-        },
-        () => runAtfTest(sys_id),
-      );
-      return ok(await maybeWait(result, wait_seconds));
-    },
-  }),
-
-  defineTool({
-    name: "servicenow_run_atf_suite",
-    title: "Run an ATF suite",
-    description:
-      "Run an ATF test suite through the CI/CD API. EXECUTES CODE on the instance. Returns an " +
-      "execution id to poll with servicenow_get_atf_result, or pass wait_seconds to wait for the result.",
-    package: "atf",
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      idempotentHint: false,
-      openWorldHint: true,
-    },
-    legacyParams: { suite_sys_id: "sys_id" },
-    input: {
-      sys_id: sysId().describe("sys_atf_test_suite sys_id."),
-      wait_seconds: waitSeconds,
-      apply: applyInput,
-    },
-    output: RUN_OUTPUT,
-    handler: async ({ sys_id, wait_seconds, apply }) => {
-      if (!shouldApply(apply)) {
-        return planPreview({
-          action: "execute",
-          table: "sys_atf_test_suite",
-          sys_id,
-          after: { run: "ATF suite" },
-        });
-      }
-      const result = await journaledWrite(
-        {
-          action: "execute",
-          table: "sys_atf_test_suite",
-          sys_id,
-        },
-        () => runAtfSuite(sys_id),
+        { action: "execute", table, sys_id },
+        () => (suite ? runAtfSuite(sys_id) : runAtfTest(sys_id)),
       );
       return ok(await maybeWait(result, wait_seconds));
     },

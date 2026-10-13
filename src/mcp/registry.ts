@@ -375,6 +375,7 @@ export function registerAllTools(
     title: string,
     description: string,
     onCall?: () => void,
+    fixedArgs?: Readonly<Record<string, string>>,
   ) => {
     // N-65: the large readers' result-size hint (SN_RESULT_SIZE_HINTS).
     const hint = resultHintMeta(spec.name);
@@ -403,8 +404,10 @@ export function registerAllTools(
       // progressToken + sendNotification, request and session ids.
       // E-5: every call is timed into the runtime's per-tool statistics.
       // M-9: `run_as_task:true` returns a task handle and runs in background.
-      (args, ctx) => {
+      (callArgs, ctx) => {
         onCall?.();
+        // N-64: a merged tool's alias pins the argument that selects it.
+        const args = fixedArgs ? { ...callArgs, ...fixedArgs } : callArgs;
         const extra: TaskCallExtra = callExtraFromContext(ctx, server);
         if (acceptsRunAsTask(spec)) {
           extra.taskStore = requestTaskStore(
@@ -432,25 +435,35 @@ export function registerAllTools(
 
   // M-7 (B2): under SN_LEGACY_TOOL_NAMES=1 every v2 name is an alias that
   // dispatches to its v3 tool (same schema, same handler, logged under the
-  // v3 name) and follows that tool's package. Off: the old names do not exist.
+  // v3 name; N-64: plus the merged tool's fixed arguments) and follows that
+  // tool's package. Off: the old names do not exist.
   if (legacy) {
     const byName = new Map(ALL_TOOLS.map((s) => [s.name as string, s]));
     for (const rename of TOOL_RENAMES) {
       const spec = byName.get(rename.to);
       if (!spec || !policyPermits(spec, deniedSet, readOnlySet)) continue;
       let warned = false;
+      // N-64: a merged tool's alias names the arguments that replace it.
+      const use = rename.args
+        ? `${spec.name} with ${Object.entries(rename.args)
+            .map(([k, v]) => `${k}: "${v}"`)
+            .join(", ")}`
+        : spec.name;
       const handle = register(
         spec,
         rename.from,
         `${spec.title} (deprecated name)`,
-        `Deprecated alias of ${spec.name} (SN_LEGACY_TOOL_NAMES=1); use ${spec.name}. ${spec.description}`,
+        // N-64: the alias carries no copy of the description — it only points
+        // at the tool to call, so the legacy surface grows by a line per name.
+        `Deprecated alias of ${spec.name} (SN_LEGACY_TOOL_NAMES=1); use ${use}.`,
         () => {
           if (warned) return;
           warned = true;
           logger.warn(
-            `Tool ${rename.from} is a deprecated alias — use ${spec.name}.`,
+            `Tool ${rename.from} is a deprecated alias — use ${use}.`,
           );
         },
+        rename.args,
       );
       if (apps) linkToolView(server, spec, handle);
       session.addAlias(spec.package, handle);

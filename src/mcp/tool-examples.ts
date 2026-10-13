@@ -288,13 +288,9 @@ export const TOOL_EXAMPLES: Record<ToolName, ToolExample> = {
       active: true,
     },
   },
-  servicenow_list_atf_suites: {
+  servicenow_list_atf: {
     summary: "ATF suites with their last results.",
-    arguments: { with_results: true, limit: 20 },
-  },
-  servicenow_list_atf_tests: {
-    summary: "Active ATF tests with their last results.",
-    arguments: { active: true, with_results: true },
+    arguments: { kind: "suite", with_results: true, limit: 20 },
   },
   servicenow_list_attachments: {
     summary: "Attachments of one incident.",
@@ -393,11 +389,7 @@ export const TOOL_EXAMPLES: Record<ToolName, ToolExample> = {
     summary: "The upgrade history, newest first.",
     arguments: {},
   },
-  servicenow_run_atf_suite: {
-    summary: "Preview running one ATF suite.",
-    arguments: { sys_id: ID },
-  },
-  servicenow_run_atf_test: {
+  servicenow_run_atf: {
     summary: "Preview running one ATF test.",
     arguments: { sys_id: ID },
   },

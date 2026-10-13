@@ -119,7 +119,7 @@ test("N-36: find_tools is in the core tools/list", async () => {
 test("N-36: a core client finds an ATF tool and the package to enable", async () => {
   await session({ SN_TOOL_PACKAGES: "core" }, async ({ client, find }) => {
     const found = await find("run an ATF suite", { limit: 3 });
-    assert.equal(found.matches[0].name, "servicenow_run_atf_suite");
+    assert.equal(found.matches[0].name, "servicenow_run_atf");
     assert.deepEqual(Object.keys(found.matches[0]).sort(), [
       "description",
       "enabled",

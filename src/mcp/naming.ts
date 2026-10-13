@@ -10,7 +10,8 @@ import { readBool } from "../core/settings-manifest.js";
  * - {@link TOOLS} names every tool; `ToolSpec.name` is typed against it, so a
  *   spec cannot carry a name missing here, and prompts reference tools through
  *   it (a renamed tool is a compile error, not a stale prompt).
- * - {@link TOOL_RENAMES} maps every v2 name to its v3 name. The registry
+ * - {@link TOOL_RENAMES} maps every v2 name to its v3 name (N-64: a merged
+ *   tool's old names carry the fixed arguments that select it). The registry
  *   registers the old names as aliases under `SN_LEGACY_TOOL_NAMES=1`, and
  *   `npm run docs:readme` renders the README / CHANGELOG rename table from it.
  */
@@ -71,8 +72,7 @@ export const TOOLS = {
   lint_script: "servicenow_lint_script",
   lint_table: "servicenow_lint_table",
   list_artifacts: "servicenow_list_artifacts",
-  list_atf_suites: "servicenow_list_atf_suites",
-  list_atf_tests: "servicenow_list_atf_tests",
+  list_atf: "servicenow_list_atf",
   list_attachments: "servicenow_list_attachments",
   list_catalog_categories: "servicenow_list_catalog_categories",
   list_catalog_items: "servicenow_list_catalog_items",
@@ -95,8 +95,7 @@ export const TOOLS = {
   read_ops: "servicenow_read_ops",
   revert_write: "servicenow_revert_write",
   review_upgrade: "servicenow_review_upgrade",
-  run_atf_suite: "servicenow_run_atf_suite",
-  run_atf_test: "servicenow_run_atf_test",
+  run_atf: "servicenow_run_atf",
   search_code: "servicenow_search_code",
   search_docs: "servicenow_search_docs",
   search_knowledge: "servicenow_search_knowledge",
@@ -125,6 +124,12 @@ export interface ToolRename {
   from: string;
   to: ToolName;
   reason: string;
+  /**
+   * N-64 (B14): fixed arguments the alias adds to every call — set when the
+   * old tool was merged into `to` (e.g. `kind: "suite"`). They override the
+   * caller's value of the same name.
+   */
+  args?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -137,6 +142,30 @@ export const TOOL_RENAMES: readonly ToolRename[] = [
     from: "servicenow_artifact_dependencies",
     to: TOOLS.get_artifact_dependencies,
     reason: "No verb.",
+  },
+  {
+    from: "servicenow_list_atf_suites",
+    to: TOOLS.list_atf,
+    reason: "Merged with list_atf_tests (kind: suite).",
+    args: { kind: "suite" },
+  },
+  {
+    from: "servicenow_list_atf_tests",
+    to: TOOLS.list_atf,
+    reason: "Merged with list_atf_suites (kind: test).",
+    args: { kind: "test" },
+  },
+  {
+    from: "servicenow_run_atf_suite",
+    to: TOOLS.run_atf,
+    reason: "Merged with run_atf_test (kind: suite).",
+    args: { kind: "suite" },
+  },
+  {
+    from: "servicenow_run_atf_test",
+    to: TOOLS.run_atf,
+    reason: "Merged with run_atf_suite (kind: test).",
+    args: { kind: "test" },
   },
   {
     from: "servicenow_change_conflicts",
@@ -216,8 +245,4 @@ export const TOOL_OVERLAPS: Readonly<Partial<Record<ToolName, string>>> = {
     "Kept beside get_status and check_capabilities: one authenticated round trip that proves the credentials work.",
   servicenow_check_capabilities:
     "Kept beside get_status and test_connection: probes which admin tables and features the user can reach; also servicenow://capabilities.",
-  servicenow_list_atf_tests:
-    "Kept beside list_atf_suites: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
-  servicenow_list_atf_suites:
-    "Kept beside list_atf_tests: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
 };

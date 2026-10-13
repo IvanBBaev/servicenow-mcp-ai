@@ -998,7 +998,7 @@ const cicd = (status, pct) =>
     },
   });
 
-test("run_atf_suite wait_seconds: polls to a final state with progress", async () => {
+test("run_atf (suite) wait_seconds: polls to a final state with progress", async () => {
   await withDocs({}, async () => {
     let polls = 0;
     await withFetch(
@@ -1013,7 +1013,8 @@ test("run_atf_suite wait_seconds: polls to a final state with progress", async (
       },
       async () => {
         const res = out(
-          await call("servicenow_run_atf_suite", {
+          await call("servicenow_run_atf", {
+            kind: "suite",
             sys_id: id("5"),
             wait_seconds: 5,
             apply: true,
@@ -1031,7 +1032,7 @@ test("run_atf_suite wait_seconds: polls to a final state with progress", async (
       () => cicd(1, 0),
       async (calls) => {
         const res = out(
-          await call("servicenow_run_atf_test", {
+          await call("servicenow_run_atf", {
             sys_id: id("6"),
             apply: true,
           }),
@@ -1052,7 +1053,7 @@ test("waitForAtfRun: timeout returns running with a tracker; progress reported",
       const res = await runWithCall(
         {
           requestId: "r1",
-          tool: "servicenow_run_atf_suite",
+          tool: "servicenow_run_atf",
           progress: (u) => updates.push(u),
         },
         () => waitForAtfRun({ executionId: "exec1", status: "1" }, 60, 20),

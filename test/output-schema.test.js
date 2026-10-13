@@ -160,6 +160,12 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * `discovery` (the same set) becomes the default profile; measured 23,689 /
  * 23,689 / 121,271 / 122,508 / 138,609 (core −3,395 B, 25 → 20 tools; all
  * +0 B): `core` and `discovery` become 23,808.
+ * N-64, 2026-10-13 (owner: O-4, B14; O-10 for `all+legacy`): the ATF list
+ * and run pairs merge into `servicenow_list_atf` / `servicenow_run_atf`
+ * (`kind`), and legacy alias descriptions stop copying the tool
+ * description; measured 23,689 / 23,689 / 119,543 / 120,603 / 140,063 (all
+ * −1,728 B; core +0 B; all+legacy +1,454 B from the four new aliases):
+ * `all` becomes 119,552, `all+tasks` 120,832 and `all+legacy` 140,288.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(
@@ -329,7 +335,7 @@ test("the shared N-54 output shapes pass the SDK output validation", async () =>
     ["servicenow_read_doc", { path: "n54.md" }],
     ["servicenow_list_docs", {}],
     ["servicenow_search_docs", { text: "N-54" }],
-    ["servicenow_run_atf_test", { sys_id: id }],
+    ["servicenow_run_atf", { sys_id: id }],
   ];
   try {
     await withEnv({ SN_TOOL_PACKAGES: "all", SN_DOCS_DIR: dir }, () =>

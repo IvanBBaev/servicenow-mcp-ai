@@ -345,7 +345,7 @@ test("delete_attachment plan mode fetches before, no DELETE (DF-2)", async () =>
 
 // --- batch + ATF (the last two write tools) ---------------------------------
 
-test("run_atf_test plan mode previews the run, no execution (DF-2)", async () => {
+test("run_atf plan mode previews the run, no execution (DF-2)", async () => {
   await withFetch(
     (_url, init) => {
       if (init?.method === "POST") {
@@ -354,9 +354,7 @@ test("run_atf_test plan mode previews the run, no execution (DF-2)", async () =>
       return jsonResponse(200, { result: {} });
     },
     async (calls) => {
-      const o = out(
-        await tool("servicenow_run_atf_test").handler({ sys_id: "t1" }),
-      );
+      const o = out(await tool("servicenow_run_atf").handler({ sys_id: "t1" }));
       assert.equal(o.mode, "plan");
       assert.equal(o.action, "execute");
       assert.equal(o.sys_id, "t1");
@@ -459,8 +457,8 @@ const applyCases = [
     "POST",
   ],
   ["servicenow_delete_attachment", { sys_id: "a1", apply: true }, "DELETE"],
-  ["servicenow_run_atf_test", { sys_id: "t1", apply: true }, "POST"],
-  ["servicenow_run_atf_suite", { sys_id: "su1", apply: true }, "POST"],
+  ["servicenow_run_atf", { sys_id: "t1", apply: true }, "POST"],
+  ["servicenow_run_atf", { kind: "suite", sys_id: "su1", apply: true }, "POST"],
 ];
 
 for (const [name, args, method] of applyCases) {

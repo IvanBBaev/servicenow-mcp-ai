@@ -117,8 +117,7 @@ export const TASK_POLL_INTERVAL_MS = 2000;
 export const TASK_TOOLS: ReadonlySet<string> = new Set([
   "servicenow_snapshot_instance",
   "servicenow_compare_instances",
-  "servicenow_run_atf_test",
-  "servicenow_run_atf_suite",
+  "servicenow_run_atf",
   "servicenow_check_code_health",
   "servicenow_query_table",
   "servicenow_document_app",

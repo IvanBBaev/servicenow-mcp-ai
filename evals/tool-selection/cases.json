@@ -330,13 +330,13 @@
       "id": "pos-list-atf-suites",
       "kind": "positive",
       "prompt": "Show the automated test suites we have.",
-      "expected": ["servicenow_list_atf_suites"]
+      "expected": ["servicenow_list_atf"]
     },
     {
       "id": "pos-list-atf-tests",
       "kind": "positive",
       "prompt": "Which ATF tests cover the change management process?",
-      "expected": ["servicenow_list_atf_tests"]
+      "expected": ["servicenow_list_atf"]
     },
     {
       "id": "pos-list-attachments",
@@ -468,13 +468,13 @@
       "id": "pos-run-atf-suite",
       "kind": "positive",
       "prompt": "Kick off the 'Regression - ITSM' test suite.",
-      "expected": ["servicenow_run_atf_suite", "servicenow_list_atf_suites"]
+      "expected": ["servicenow_run_atf", "servicenow_list_atf"]
     },
     {
       "id": "pos-run-atf-test",
       "kind": "positive",
       "prompt": "Execute the single ATF test 'Create incident as ESS user'.",
-      "expected": ["servicenow_run_atf_test", "servicenow_list_atf_tests"]
+      "expected": ["servicenow_run_atf", "servicenow_list_atf"]
     },
     {
       "id": "pos-search-code",
@@ -888,7 +888,7 @@
       "id": "w-run-atf-test",
       "kind": "write",
       "prompt": "Run ATF test sys_id 1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b.",
-      "expected": ["servicenow_run_atf_test"],
+      "expected": ["servicenow_run_atf"],
       "args": { "sys_id": "1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b" }
     },
     {

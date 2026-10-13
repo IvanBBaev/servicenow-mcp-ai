@@ -35,8 +35,8 @@ import { isSysId } from "../core/sys-id.js";
  *   fails (or a field is empty) the summary falls back to the whole window,
  *   the behaviour before the refinement.
  *
- * Not wired to a tool yet: `with_results:true` on `servicenow_list_atf_tests`
- * / `servicenow_list_atf_suites` grows tools/list (O-10). Wiring is
+ * Not wired to a tool yet: `with_results:true` on `servicenow_list_atf`
+ * (tests or suites) grows tools/list (O-10). Wiring is
  * `withAtfResults(items, (await atfResultHistory({ testIds })).tests)`.
  *
  * Read-only and bounded; never throws except on a cancel. A failed read

@@ -14,7 +14,7 @@ Get started → [View on GitHub](https://github.com/IvanBBaev/servicenow-mcp-ai)
 - MCP SDK 1.29
 - OAuth 2.1 PKCE
 
-- **100** tools
+- **98** tools
 - **26** packages
 - **6** MCP resources
 - **3** prompts
@@ -376,7 +376,7 @@ The admin tools are always registered regardless of packages. Unknown names are 
 
 ## Tools reference
 
-100 tools across 26 packages. read tools never mutate the instance; write tools respect the read-only and policy guards. **Click any tool** to expand its full parameter list — name, type, whether it is required and any allowed values.
+98 tools across 26 packages. read tools never mutate the instance; write tools respect the read-only and policy guards. **Click any tool** to expand its full parameter list — name, type, whether it is required and any allowed values.
 
 No tools match that search.
 
@@ -861,35 +861,23 @@ No parameters.
 | --- | --- | --- | --- |
 | `sys_id` | string | required | sys_id of the email record. |
 
-### atf — Automated Test Framework via the CI/CD API (opt-in, non-default — runs on the instance). *(5 tools)*
+### atf — Automated Test Framework via the CI/CD API (opt-in, non-default — runs on the instance). *(3 tools)*
 
-`servicenow_list_atf_tests` read List Automated Test Framework tests (sys_atf_test) as metadata: name, active flag, description.
+`servicenow_list_atf` read List Automated Test Framework tests (sys_atf_test, the default) or suites (kind "suite", sys_atf_test_suite) as metadata: name, active flag, description.
 
 | Parameter | Type |  | Notes |
 | --- | --- | --- | --- |
+| `kind` | string | optional | test (default) or suite. |
 | `active` | boolean | optional |  |
 | `query` | string | optional |  |
 | `limit` | number | optional |  |
 
-`servicenow_list_atf_suites` read List Automated Test Framework test suites (sys_atf_test_suite) as metadata.
+`servicenow_run_atf` write Run one ATF test (the default) or suite (kind "suite") through the CI/CD API. EXECUTES CODE on the instance — use only on a non-production instance with the sn_cicd plugin active. Returns an execution id to poll with servicenow_get_atf_result.
 
 | Parameter | Type |  | Notes |
 | --- | --- | --- | --- |
-| `active` | boolean | optional |  |
-| `query` | string | optional |  |
-| `limit` | number | optional |  |
-
-`servicenow_run_atf_test` write Run a single ATF test through the CI/CD API. EXECUTES CODE on the instance — use only on a non-production instance with the sn_cicd plugin active. Returns an execution id to poll with servicenow_get_atf_result.
-
-| Parameter | Type |  | Notes |
-| --- | --- | --- | --- |
-| `sys_id` | string | required | sys_id of the ATF test (sys_atf_test). |
-
-`servicenow_run_atf_suite` write Run an ATF test suite through the CI/CD API. EXECUTES CODE on the instance. Returns an execution id to poll with servicenow_get_atf_result.
-
-| Parameter | Type |  | Notes |
-| --- | --- | --- | --- |
-| `sys_id` | string | required | sys_id of the ATF test suite (sys_atf_test_suite). |
+| `kind` | string | optional | test (default) or suite. |
+| `sys_id` | string | required | sys_id of the ATF test (sys_atf_test) or suite (sys_atf_test_suite). |
 
 `servicenow_get_atf_result` read Poll an ATF run by its execution id: status, percent complete and message (CI/CD progress API).
 

@@ -51,19 +51,23 @@ These are the 3.0 changes the owner approved on 2026-10-01 (O-4). Each write-saf
 _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 `npm run docs:readme` after changing it._
 
-| v2 name                            | v3 name                                | Why                                   |
-| ---------------------------------- | -------------------------------------- | ------------------------------------- |
-| `servicenow_artifact_dependencies` | `servicenow_get_artifact_dependencies` | No verb.                              |
-| `servicenow_change_conflicts`      | `servicenow_check_change_conflicts`    | No verb.                              |
-| `servicenow_code_health`           | `servicenow_check_code_health`         | No verb.                              |
-| `servicenow_data_health`           | `servicenow_check_data_health`         | No verb; parallels check_code_health. |
-| `servicenow_docs_list`             | `servicenow_list_docs`                 | Noun before verb.                     |
-| `servicenow_docs_read`             | `servicenow_read_doc`                  | Noun before verb.                     |
-| `servicenow_docs_search`           | `servicenow_search_docs`               | Noun before verb.                     |
-| `servicenow_docs_write`            | `servicenow_write_doc`                 | Noun before verb.                     |
-| `servicenow_knowledge_highlights`  | `servicenow_get_knowledge_highlights`  | No verb.                              |
-| `servicenow_ops_read`              | `servicenow_read_ops`                  | Noun before verb.                     |
-| `servicenow_table_logic`           | `servicenow_describe_table_logic`      | No verb.                              |
+| v2 name                            | v3 name                                | Why                                       |
+| ---------------------------------- | -------------------------------------- | ----------------------------------------- |
+| `servicenow_artifact_dependencies` | `servicenow_get_artifact_dependencies` | No verb.                                  |
+| `servicenow_change_conflicts`      | `servicenow_check_change_conflicts`    | No verb.                                  |
+| `servicenow_code_health`           | `servicenow_check_code_health`         | No verb.                                  |
+| `servicenow_data_health`           | `servicenow_check_data_health`         | No verb; parallels check_code_health.     |
+| `servicenow_docs_list`             | `servicenow_list_docs`                 | Noun before verb.                         |
+| `servicenow_docs_read`             | `servicenow_read_doc`                  | Noun before verb.                         |
+| `servicenow_docs_search`           | `servicenow_search_docs`               | Noun before verb.                         |
+| `servicenow_docs_write`            | `servicenow_write_doc`                 | Noun before verb.                         |
+| `servicenow_knowledge_highlights`  | `servicenow_get_knowledge_highlights`  | No verb.                                  |
+| `servicenow_list_atf_suites`       | `servicenow_list_atf`                  | Merged with list_atf_tests (kind: suite). |
+| `servicenow_list_atf_tests`        | `servicenow_list_atf`                  | Merged with list_atf_suites (kind: test). |
+| `servicenow_ops_read`              | `servicenow_read_ops`                  | Noun before verb.                         |
+| `servicenow_run_atf_suite`         | `servicenow_run_atf`                   | Merged with run_atf_test (kind: suite).   |
+| `servicenow_run_atf_test`          | `servicenow_run_atf`                   | Merged with run_atf_suite (kind: test).   |
+| `servicenow_table_logic`           | `servicenow_describe_table_logic`      | No verb.                                  |
 
 <!-- GENERATED:TOOL-RENAMES:END -->
 
@@ -82,6 +86,7 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 - **B18: `app_dependency` reads `sys_package_dependency_m2m` (P-2, owner decision 2026-10-13, OD-4).** The registry pointed `app_dependency` at `sys_scope_dependency`, which does not exist on an instance, so the type always listed nothing. It now reads `sys_package_dependency_m2m` (checked with GETs on a PDI) and is `verified:true`: the key is `sys_package` + `dependency` (was the record `sys_id`), the meta fields are `sys_package`, `dependency` and `min_version`, and a `scope` filter matches `sys_package` (an app sys_id) or `sys_package.source` (a scope namespace). `dependency` may name an app or a plugin. **Migration:** read the new key and meta fields in artefact listings and explanations.
 - **B19: one descriptor for `sys_ux_form_action` (N-34b, owner decision 2026-10-13, O-4, UX-24).** The registry described the table twice, as `workspace_form_action` (classic-ui) and `uib_form_action` (uib). `uib_form_action` is gone from the registry; `workspace_form_action` is the one descriptor and is `verified:true` (checked with GETs on a PDI). `uib_form_action` stays accepted as an alias wherever a type is an input (`list_artifacts`, `get_artifact`, `explain_artifact`, `compare_instances` `types`, …) and resolves to `workspace_form_action`; the `servicenow://artifact-types` catalogue gains an `aliases` map. Outputs change: the catalogue and the discovery artefact document list 143 types instead of 144, `compare_instances` `all` and where-used reverse types name `workspace_form_action` only. tools/list delta 0 B. **Migration:** read `workspace_form_action` where outputs named `uib_form_action`.
 - **B20: `discovery` is the default tool profile and `attachment` leaves `core` (N-63 / N-36b, owner decision 2026-10-13, O-4, O-10 (b)).** With `SN_TOOL_PACKAGES` unset the server now loads the `discovery` profile: `table`, `schema` and `aggregate`, plus the always-on admin tools, among them `servicenow_find_tools`, which names the package for any other tool. `core` stays accepted and names the same set. The five `attachment` tools (`list_attachments`, `get_attachment`, `download_attachment`, `upload_attachment`, `delete_attachment`) are no longer on by default. The VS Code extension offers `discovery` in its package picker. tools/list delta: default (`discovery` / `core`) 27,084 → 23,689 B (−3,395 B, 25 → 20 tools); `all` +0 B. **Migration:** add `attachment` to `SN_TOOL_PACKAGES` (for example `discovery,attachment`), or call `servicenow_enable_package` with `attachment` for the session.
+- **B14: the ATF list and run pairs merge (N-64, owner decision 2026-10-13, O-4, O-10).** `servicenow_list_atf_tests` and `servicenow_list_atf_suites` become `servicenow_list_atf`; `servicenow_run_atf_test` and `servicenow_run_atf_suite` become `servicenow_run_atf`. Both take `kind` (`test`, the default, or `suite`); `run_atf` takes `sys_id` (the old `test_sys_id` / `suite_sys_id` stay accepted as parameter aliases), and `list_atf` returns `tests` or `suites` as before. Under `SN_LEGACY_TOOL_NAMES=1` the four old names stay as aliases that add the matching `kind`. Legacy alias descriptions no longer repeat the tool description, only the replacement name. The package and local-docs pairs were considered and kept (always-on admin tools with a high blast radius; different result shapes). The tool-selection eval is neutral (`all` 32.9 % → 32.9 %). tools/list delta: `all` 121,271 → 119,543 B (−1,728 B, 100 → 98 tools), `all+tasks` −1,905 B, `all+legacy` +1,454 B (four new aliases), default (`discovery` / `core`) +0 B. **Migration:** call `servicenow_list_atf` / `servicenow_run_atf`, adding `kind: "suite"` for suites, or set `SN_LEGACY_TOOL_NAMES=1` for one release.
 
 ### Added
 

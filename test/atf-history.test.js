@@ -711,7 +711,7 @@ const callList = async (name, args) => {
   return res.structuredContent ?? JSON.parse(res.content[0].text);
 };
 
-test("list_atf_tests: no history read without with_results (N-16)", async () => {
+test("list_atf: no history read without with_results (N-16)", async () => {
   freshRuntime();
   await withFetch(
     tables({
@@ -719,7 +719,7 @@ test("list_atf_tests: no history read without with_results (N-16)", async () => 
         jsonResponse(200, { result: [{ sys_id: T1, name: "Smoke" }] }),
     }),
     async (calls) => {
-      const body = await callList("servicenow_list_atf_tests", {});
+      const body = await callList("servicenow_list_atf", {});
       assert.equal(calls.length, 1);
       assert.equal(body.count, 1);
       assert.equal(body.history, undefined);
@@ -728,7 +728,7 @@ test("list_atf_tests: no history read without with_results (N-16)", async () => 
   );
 });
 
-test("list_atf_tests with_results merges each test's summary (N-16)", async () => {
+test("list_atf with_results merges each test's summary (N-16)", async () => {
   freshRuntime();
   await withFetch(
     tables({
@@ -751,7 +751,7 @@ test("list_atf_tests with_results merges each test's summary (N-16)", async () =
         }),
     }),
     async () => {
-      const body = await callList("servicenow_list_atf_tests", {
+      const body = await callList("servicenow_list_atf", {
         with_results: true,
       });
       assert.equal(body.count, 2);
@@ -770,7 +770,7 @@ test("list_atf_tests with_results merges each test's summary (N-16)", async () =
   );
 });
 
-test("list_atf_suites with_results degrades when the result table is unreadable (N-16)", async () => {
+test("list_atf kind:suite with_results degrades when the result table is unreadable (N-16)", async () => {
   freshRuntime();
   await withFetch(
     tables({
@@ -780,7 +780,8 @@ test("list_atf_suites with_results degrades when the result table is unreadable 
         jsonResponse(403, { error: { message: "ACL" } }),
     }),
     async () => {
-      const body = await callList("servicenow_list_atf_suites", {
+      const body = await callList("servicenow_list_atf", {
+        kind: "suite",
         with_results: true,
       });
       assert.equal(body.count, 1);

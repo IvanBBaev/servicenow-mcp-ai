@@ -1337,11 +1337,11 @@ items:
     title: "selective consolidation"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: "T4"
-    done: null
-    gates: ["O-4"]
-    notes: "Phase T4, optional, **BREAKING** (proposed B14), waits for O-4 (TK-43). Low-risk merges only (ATF, packages, local docs) behind legacy aliases; dropped unless the N-18 eval is neutral. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    done: "2026-10-13"
+    gates: ["O-4", "O-10"]
+    notes: "Phase T4, optional, **BREAKING** (B14), waits for O-4 (TK-43). Low-risk merges only (ATF, packages, local docs) behind legacy aliases; dropped unless the N-18 eval is neutral. **Done 2026-10-13 (owner O-4, B14):** ATF only: `servicenow_list_atf` and `servicenow_run_atf` (`kind`: `test` | `suite`) replace the four list/run tools, legacy aliases inject `kind`, alias descriptions no longer copy the tool description; `all` −1,728 B (100 → 98 tools), default +0 B, `all+legacy` +1,454 B (budget raised to 140,288 B, owner O-10). Offline eval neutral (`all` 32.9 % → 32.9 %). Kept on purpose: `enable_package` / `disable_package` (always-on admin tools, `find_tools` hint and server instructions name them) and the local docs read tools (different result shapes). See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-65"
     title: "client result hints"
     pillar: "N"

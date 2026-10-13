@@ -281,9 +281,29 @@
       "to": "servicenow_get_knowledge_highlights"
     },
     {
+      "from": "servicenow_list_atf_suites",
+      "reason": "Merged with list_atf_tests (kind: suite).",
+      "to": "servicenow_list_atf"
+    },
+    {
+      "from": "servicenow_list_atf_tests",
+      "reason": "Merged with list_atf_suites (kind: test).",
+      "to": "servicenow_list_atf"
+    },
+    {
       "from": "servicenow_ops_read",
       "reason": "Noun before verb.",
       "to": "servicenow_read_ops"
+    },
+    {
+      "from": "servicenow_run_atf_suite",
+      "reason": "Merged with run_atf_test (kind: suite).",
+      "to": "servicenow_run_atf"
+    },
+    {
+      "from": "servicenow_run_atf_test",
+      "reason": "Merged with run_atf_suite (kind: test).",
+      "to": "servicenow_run_atf"
     },
     {
       "from": "servicenow_table_logic",
@@ -4399,11 +4419,11 @@
       }
     },
     {
-      "name": "servicenow_list_atf_suites",
+      "name": "servicenow_list_atf",
       "package": "atf",
-      "title": "List ATF suites",
+      "title": "List ATF tests or suites",
       "since": "2.0.1",
-      "description_sha256": "aa93252075412940607736ec348d34170115d10307298707d2ce263f40f8e6d8",
+      "description_sha256": "e929d4bc7a57ee59410dacaab40a8624a8f12052c38c60342a9bb2eb80840855",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4417,6 +4437,11 @@
           "instance": {
             "description": "Profile (default active)",
             "maxLength": 128,
+            "type": "string"
+          },
+          "kind": {
+            "description": "test (default) or suite.",
+            "enum": ["test", "suite"],
             "type": "string"
           },
           "limit": {
@@ -4440,72 +4465,17 @@
         "additionalProperties": {},
         "properties": {
           "count": { "type": "number" },
-          "suites": { "items": {}, "type": "array" }
-        },
-        "required": ["count", "suites"],
-        "type": "object"
-      },
-      "overlap": "Kept beside list_atf_tests: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
-      "sizes": {
-        "description": 56,
-        "inputSchema": 499,
-        "paramDescriptions": 165,
-        "outputSchema": 140
-      }
-    },
-    {
-      "name": "servicenow_list_atf_tests",
-      "package": "atf",
-      "title": "List ATF tests",
-      "since": "2.0.1",
-      "description_sha256": "da8ffa596fd0d3777c92eed5198515dc79eb115c387319cc6b77a625bb8dc3e0",
-      "annotations": {
-        "readOnlyHint": true,
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "active": { "description": "Filter by active.", "type": "boolean" },
-          "instance": {
-            "description": "Profile (default active)",
-            "maxLength": 128,
-            "type": "string"
-          },
-          "limit": {
-            "exclusiveMinimum": 0,
-            "maximum": 1000,
-            "type": "integer"
-          },
-          "query": {
-            "description": "Extra encoded query.",
-            "maxLength": 8000,
-            "type": "string"
-          },
-          "with_results": {
-            "description": "Add each item's last result, pass rate over its last 20 runs and a flaky flag (up to 100 items).",
-            "type": "boolean"
-          }
-        },
-        "type": "object"
-      },
-      "outputSchema": {
-        "additionalProperties": {},
-        "properties": {
-          "count": { "type": "number" },
+          "suites": { "items": {}, "type": "array" },
           "tests": { "items": {}, "type": "array" }
         },
-        "required": ["count", "tests"],
+        "required": ["count"],
         "type": "object"
       },
-      "overlap": "Kept beside list_atf_suites: tests and suites are different tables, run by different tools (run_atf_test / run_atf_suite).",
       "sizes": {
-        "description": 71,
-        "inputSchema": 499,
-        "paramDescriptions": 165,
-        "outputSchema": 138
+        "description": 125,
+        "inputSchema": 589,
+        "paramDescriptions": 191,
+        "outputSchema": 156
       }
     },
     {
@@ -5870,11 +5840,11 @@
       }
     },
     {
-      "name": "servicenow_run_atf_suite",
+      "name": "servicenow_run_atf",
       "package": "atf",
-      "title": "Run an ATF suite",
+      "title": "Run an ATF test or suite",
       "since": "2.0.1",
-      "description_sha256": "70a33a19fa86ac08211ba1b7a796aa0a7b6e83b33f04c5a444eb5089e698395f",
+      "description_sha256": "dde1918a7d6050f87c5ad480ae061893eff3801f037209884c1060db0ea71f1d",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -5893,8 +5863,13 @@
             "maxLength": 128,
             "type": "string"
           },
+          "kind": {
+            "description": "test (default) or suite.",
+            "enum": ["test", "suite"],
+            "type": "string"
+          },
           "sys_id": {
-            "description": "sys_atf_test_suite sys_id.",
+            "description": "sys_atf_test (or sys_atf_test_suite) sys_id.",
             "pattern": "^[A-Za-z0-9_-]{1,32}$",
             "type": "string"
           },
@@ -5917,67 +5892,11 @@
         },
         "type": "object"
       },
-      "legacyParams": { "suite_sys_id": "sys_id" },
+      "legacyParams": { "suite_sys_id": "sys_id", "test_sys_id": "sys_id" },
       "sizes": {
-        "description": 186,
-        "inputSchema": 646,
-        "paramDescriptions": 310,
-        "outputSchema": 142
-      }
-    },
-    {
-      "name": "servicenow_run_atf_test",
-      "package": "atf",
-      "title": "Run an ATF test",
-      "since": "2.0.1",
-      "description_sha256": "f0e2de2f4b7a3a389232ce7e4996b60a601239ee1ec52d791558c423c5af8372",
-      "annotations": {
-        "readOnlyHint": false,
-        "destructiveHint": false,
-        "idempotentHint": false,
-        "openWorldHint": true
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "apply": {
-            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
-            "type": "boolean"
-          },
-          "instance": {
-            "description": "Profile (default active)",
-            "maxLength": 128,
-            "type": "string"
-          },
-          "sys_id": {
-            "description": "sys_atf_test sys_id.",
-            "pattern": "^[A-Za-z0-9_-]{1,32}$",
-            "type": "string"
-          },
-          "wait_seconds": {
-            "description": "Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result.",
-            "maximum": 300,
-            "minimum": 0,
-            "type": "integer"
-          }
-        },
-        "required": ["sys_id"],
-        "type": "object"
-      },
-      "outputSchema": {
-        "additionalProperties": {},
-        "properties": {
-          "executionId": { "type": "string" },
-          "mode": { "type": "string" },
-          "status": { "type": "string" }
-        },
-        "type": "object"
-      },
-      "legacyParams": { "test_sys_id": "sys_id" },
-      "sizes": {
-        "description": 228,
-        "inputSchema": 640,
-        "paramDescriptions": 304,
+        "description": 226,
+        "inputSchema": 754,
+        "paramDescriptions": 354,
         "outputSchema": 142
       }
     },

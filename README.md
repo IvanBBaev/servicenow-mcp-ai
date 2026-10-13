@@ -1,6 +1,6 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-100-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-98-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -738,7 +738,7 @@ Which tools are registered. The admin tools (set_credentials, get_status, use_in
 | `SN_PACKAGES_DENY` | no | — | 1.0.0 | Comma/space-separated packages to exclude even if enabled by `SN_TOOL_PACKAGES`. The only way to block plugin APIs (catalog, change, knowledge…) — the table policy does not see them. |
 | `SN_PACKAGES_READONLY` | no | — | 1.0.0 | Comma/space-separated packages whose write tools are not registered; their read tools stay. Per-package complement to the global `SN_READONLY`. |
 | `SN_CODESEARCH` | no | `false` | 1.1.0 | Opt in to the Code Search API (`sn_codesearch`) for `servicenow_search_code` (FT-7). When `true` and the plugin is active it replaces the LIKE iteration; falls back to LIKE on any failure. |
-| `SN_EXPERIMENTAL_TASKS` | no | `0` | next | M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf_test`, `run_atf_suite`, `check_code_health`, `document_app`, `document_instance` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK's experimental task API. |
+| `SN_EXPERIMENTAL_TASKS` | no | `0` | next | M-9, **experimental**: `1` adds an optional `run_as_task:true` argument to `snapshot_instance`, `compare_instances`, `run_atf`, `check_code_health`, `document_app`, `document_instance` and `query_table` (`format:"file"` only). Such a call returns an MCP task handle at once (`_meta["io.modelcontextprotocol/related-task"]`); the client polls `tasks/get`, reads `tasks/result` (kept 1 h, redacted) or stops it with `tasks/cancel`. Off: schemas unchanged. Built on the SDK's experimental task API. |
 | `SN_MCP_APPS` | no | `0` | next | N-50, MCP Apps (SEP-1865): `1` registers four self-contained `ui://servicenow-mcp/…` HTML views (`text/html;profile=mcp-app`: plan diff, Mermaid diagram, flow explainer, UI Builder page tree) and links the write tools with `apply`, the Mermaid generators, `explain_flow` and `explain_ui_experience` to them through `_meta.ui.resourceUri` — only for a client that advertises the `io.modelcontextprotocol/ui` extension. The views render the tool's own result (no network, strict CSP). Off: `tools/list`, resources and every result unchanged. |
 | `SN_LEGACY_TOOL_NAMES` | no | `0` | next | M-7 (B2), **deprecated bridge for one minor cycle**: `1` registers every tool name and parameter name renamed by the v3 naming convention as an alias of its new name (the alias dispatches to the new tool and logs a one-time deprecation warning). Off: the old names do not exist and are absent from `tools/list`. See the rename table in the README. |
 
@@ -1118,7 +1118,7 @@ name carries the `servicenow_` prefix, left out below._
 | [`docs`](docs/tools/docs.md) | no | `list_docs`, `read_doc`, `search_docs`, `generate_er_diagram`, `generate_table_flow` | `write_doc`, `document_table`, `document_app`, `document_instance` |
 | [`instance`](docs/tools/instance.md) | no | `review_upgrade` | `snapshot_instance`, `compare_instances` |
 | [`email`](docs/tools/email.md) | no | `get_email` | `send_email` |
-| [`atf`](docs/tools/atf.md) | no | `list_atf_tests`, `list_atf_suites`, `get_atf_result` | `run_atf_test`, `run_atf_suite` |
+| [`atf`](docs/tools/atf.md) | no | `list_atf`, `get_atf_result` | `run_atf` |
 | [`revert`](docs/tools/revert.md) | no | `list_writes` | `revert_write` |
 | [`artifacts`](docs/tools/artifacts.md) | no | `list_artifacts`, `get_artifact`, `explain_artifact`, `get_artifact_dependencies` | `upsert_artifact` |
 | [`updatesets`](docs/tools/updatesets.md) | no | `list_update_sets`, `get_update_set`, `compare_update_set` | — |
@@ -1147,19 +1147,23 @@ tools:
 _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 `npm run docs:readme` after changing it._
 
-| v2 name                            | v3 name                                | Why                                   |
-| ---------------------------------- | -------------------------------------- | ------------------------------------- |
-| `servicenow_artifact_dependencies` | `servicenow_get_artifact_dependencies` | No verb.                              |
-| `servicenow_change_conflicts`      | `servicenow_check_change_conflicts`    | No verb.                              |
-| `servicenow_code_health`           | `servicenow_check_code_health`         | No verb.                              |
-| `servicenow_data_health`           | `servicenow_check_data_health`         | No verb; parallels check_code_health. |
-| `servicenow_docs_list`             | `servicenow_list_docs`                 | Noun before verb.                     |
-| `servicenow_docs_read`             | `servicenow_read_doc`                  | Noun before verb.                     |
-| `servicenow_docs_search`           | `servicenow_search_docs`               | Noun before verb.                     |
-| `servicenow_docs_write`            | `servicenow_write_doc`                 | Noun before verb.                     |
-| `servicenow_knowledge_highlights`  | `servicenow_get_knowledge_highlights`  | No verb.                              |
-| `servicenow_ops_read`              | `servicenow_read_ops`                  | Noun before verb.                     |
-| `servicenow_table_logic`           | `servicenow_describe_table_logic`      | No verb.                              |
+| v2 name                            | v3 name                                | Why                                       |
+| ---------------------------------- | -------------------------------------- | ----------------------------------------- |
+| `servicenow_artifact_dependencies` | `servicenow_get_artifact_dependencies` | No verb.                                  |
+| `servicenow_change_conflicts`      | `servicenow_check_change_conflicts`    | No verb.                                  |
+| `servicenow_code_health`           | `servicenow_check_code_health`         | No verb.                                  |
+| `servicenow_data_health`           | `servicenow_check_data_health`         | No verb; parallels check_code_health.     |
+| `servicenow_docs_list`             | `servicenow_list_docs`                 | Noun before verb.                         |
+| `servicenow_docs_read`             | `servicenow_read_doc`                  | Noun before verb.                         |
+| `servicenow_docs_search`           | `servicenow_search_docs`               | Noun before verb.                         |
+| `servicenow_docs_write`            | `servicenow_write_doc`                 | Noun before verb.                         |
+| `servicenow_knowledge_highlights`  | `servicenow_get_knowledge_highlights`  | No verb.                                  |
+| `servicenow_list_atf_suites`       | `servicenow_list_atf`                  | Merged with list_atf_tests (kind: suite). |
+| `servicenow_list_atf_tests`        | `servicenow_list_atf`                  | Merged with list_atf_suites (kind: test). |
+| `servicenow_ops_read`              | `servicenow_read_ops`                  | Noun before verb.                         |
+| `servicenow_run_atf_suite`         | `servicenow_run_atf`                   | Merged with run_atf_test (kind: suite).   |
+| `servicenow_run_atf_test`          | `servicenow_run_atf`                   | Merged with run_atf_suite (kind: test).   |
+| `servicenow_table_logic`           | `servicenow_describe_table_logic`      | No verb.                                  |
 
 <!-- GENERATED:TOOL-RENAMES:END -->
 
@@ -1516,8 +1520,8 @@ identify-only endpoint and shows what IRE would match; when the endpoint is
 missing, the plan is marked `degraded`. Apply is journaled but not revertible,
 because IRE decides per item.
 
-`servicenow_run_atf_test` and `servicenow_run_atf_suite` take `wait_seconds`
-(0–300). The tool polls the CI/CD progress endpoint with progress
+`servicenow_run_atf` (a test, or a suite with `kind: "suite"`) takes
+`wait_seconds` (0–300). The tool polls the CI/CD progress endpoint with progress
 notifications, and cancelling the request stops the wait. A run that is still
 going when the time is up returns `wait.state: "running"` with a `tracker`
 for `servicenow_get_atf_result`.

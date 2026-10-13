@@ -47,7 +47,7 @@
       "structuredBytes": 7518
     },
     "list_atf_tests": {
-      "tool": "servicenow_list_atf_tests",
+      "tool": "servicenow_list_atf",
       "textBytes": 15106,
       "structuredBytes": 15106
     },

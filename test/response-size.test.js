@@ -181,7 +181,7 @@ const CASES = [
   ],
   ["list_update_sets", "servicenow_list_update_sets", {}],
   ["list_flows", "servicenow_list_flows", {}],
-  ["list_atf_tests", "servicenow_list_atf_tests", {}],
+  ["list_atf_tests", "servicenow_list_atf", {}],
   [
     "list_scripts.business_rule",
     "servicenow_list_scripts",

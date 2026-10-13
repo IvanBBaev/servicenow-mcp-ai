@@ -557,7 +557,7 @@ test("NOT_REVERTIBLE: unknown id, missing before, redacted before and more", asy
         add({
           action: "execute",
           table: "sys_atf_test",
-          tool: "servicenow_run_atf_test",
+          tool: "servicenow_run_atf",
         }),
         /no inverse/,
       );
