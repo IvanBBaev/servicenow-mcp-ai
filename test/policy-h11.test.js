@@ -216,6 +216,23 @@ test("the guards throw POLICY_DENIED with the evaluator's reason", () => {
   assert.ok(PROTECTED_TABLES.includes("sys_user_has_role"));
 });
 
+test("B22: group role grants and role containment are write-protected, reads are not", () => {
+  for (const table of ["sys_group_has_role", "sys_user_role_contains"]) {
+    assert.ok(PROTECTED_TABLES.includes(table), table);
+    withEnvSync({ SN_PROTECTED_TABLES_WRITE: "deny" }, () => {
+      assert.throws(
+        () => assertTableWriteAllowed(table),
+        (e) => e.code === "POLICY_DENIED" && /protected table/.test(e.message),
+      );
+      assert.doesNotThrow(() => assertTableAllowed(table));
+    });
+    withEnvSync(
+      { SN_PROTECTED_TABLES_WRITE: "deny", SN_TABLES_ALLOW: table },
+      () => assert.doesNotThrow(() => assertTableWriteAllowed(table)),
+    );
+  }
+});
+
 test("acceptance: create_record on sys_user_has_role is refused under the protected default; an exact allow re-enables it", async () => {
   await scenario(
     { SN_WRITE_MODE: "apply", SN_PROTECTED_TABLES_WRITE: "deny" },

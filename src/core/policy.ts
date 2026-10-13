@@ -67,6 +67,10 @@ export const PROTECTED_TABLES: readonly string[] = [
   "sys_user_has_role",
   "sys_user_role",
   "sys_user_grmember",
+  // B22: a role granted through a group, and what a role contains, are the
+  // same privilege as a direct grant.
+  "sys_group_has_role",
+  "sys_user_role_contains",
   "sys_security_acl",
   "sys_security_acl_role",
   "sys_properties",
