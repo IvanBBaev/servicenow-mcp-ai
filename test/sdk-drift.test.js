@@ -60,7 +60,7 @@ const base = (over = {}) => ({
   ...over,
 });
 
-test("acceptance: the 4.13.0 next tag reports DatabaseView as a known verified:false type", async () => {
+test("acceptance: the 4.13.0 next tag reports DatabaseView as a known verified type", async () => {
   const report = await runDrift(fixtureDeps());
   assert.equal(report.baseline, "4.12.2");
   assert.deepEqual(report.versions.latest, {
@@ -73,7 +73,7 @@ test("acceptance: the 4.13.0 next tag reports DatabaseView as a known verified:f
   assert.ok(dbView, "DatabaseView is a known next-only API");
   assert.equal(dbView.known, true);
   assert.deepEqual(dbView.descriptors, [
-    { type: "database_view", verified: false, generate: false },
+    { type: "database_view", verified: true, generate: false },
   ]);
   assert.equal(dbView.inDocs, false);
   assert.ok(report.findings.some((f) => /npm next is 4\.13\.0/.test(f)));
@@ -87,7 +87,7 @@ test("acceptance: the 4.13.0 next tag reports DatabaseView as a known verified:f
   assert.match(md, /\| next \| 4\.13\.0 \| newer \|/);
   assert.match(
     md,
-    /- DatabaseView: `database_view` \(verified:false\); not listed/,
+    /- DatabaseView: `database_view` \(verified:true\); not listed/,
   );
 });
 

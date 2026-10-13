@@ -164,7 +164,7 @@ test("flow with master_snapshot: children read under the published snapshot, mar
     assert.deepEqual(childQuery(calls, "sys_hub_action_instance"), [
       `flowIN${F1},${SNAP1}^ORDERBYsys_id`,
     ]);
-    assert.equal(snap.verified, false);
+    assert.equal(snap.verified, true);
     const w = snap.warnings.find((x) => /published snapshot/.test(x));
     assert.ok(w, snap.warnings.join("\n"));
     assert.match(w, /^flow: 1 record\(s\) read from the published snapshot/);

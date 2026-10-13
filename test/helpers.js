@@ -45,6 +45,68 @@ export const OD4_CORE_VERIFIED = new Set([
   "report_source",
 ]);
 
+/**
+ * OD-4 (3), plugin-backed batch: types the ven03019 PDI pass confirmed whose
+ * table a plugin or store app provides (portal, UIB and Next Experience rows
+ * stay unverified for now).
+ */
+export const OD4_PLUGIN_VERIFIED = new Set([
+  "state_model",
+  "user_criteria",
+  "knowledge_base",
+  "security_attribute",
+  "security_data_filter",
+  "js_module",
+  "graphql_api",
+  "graphql_resolver",
+  "graphql_type_resolver",
+  "alias",
+  "alias_template",
+  "retry_policy",
+  "data_lookup",
+  "sla",
+  "dashboard",
+  "flow",
+  "subflow",
+  "flow_action",
+  "flow_trigger_definition",
+  "flow_context",
+  "playbook",
+  "playbook_context",
+  "decision_table",
+  "workflow",
+  "workflow_activity_definition",
+  "workflow_context",
+  "catalog_item",
+  "record_producer",
+  "variable_set",
+  "catalog_variable",
+  "catalog_ui_policy",
+  "atf_test",
+  "atf_test_suite",
+  "assessment",
+  "ai_agent",
+  "ai_agentic_workflow",
+  "now_assist_skill",
+  "source_control",
+  "pa_indicator",
+  "pa_indicator_source",
+  "pa_breakdown",
+  "pa_script",
+  "pa_dashboard",
+  "database_view",
+  "linter_check",
+  "script_only_check",
+  "column_type_check",
+  "table_check",
+]);
+
+/** Every type OD-4 (3) flipped to `verified:true`. */
+export const OD4_VERIFIED = new Set([
+  ...OD4_CORE_VERIFIED,
+  ...OD4_PLUGIN_VERIFIED,
+]);
+
 /** Proxy variables H-10's dispatcher reads (both spellings). */
 const PROXY_ENV = [
   "SN_HTTPS_PROXY",

@@ -1,8 +1,7 @@
 {
   "artifactType": "catalog_item",
   "table": "sc_cat_item",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c",
   "name": "Acme laptop",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "catalog_item 'Acme laptop' (sc_cat_item); active; scope x_acme_app; 2 child record(s) in 2 table(s); unverified type. Request a laptop.",
+  "summary": "catalog_item 'Acme laptop' (sc_cat_item); active; scope x_acme_app; 2 child record(s) in 2 table(s). Request a laptop.",
   "when": null,
   "fields": {
     "name": "Acme laptop",
@@ -59,7 +58,7 @@
     {
       "table": "item_option_new",
       "parentField": "cat_item",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -75,7 +74,7 @@
     {
       "table": "io_set_item",
       "parentField": "sc_cat_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
@@ -83,7 +82,7 @@
       "table": "item_option_new_set",
       "parentField": "sys_id",
       "parentTable": "io_set_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
@@ -91,7 +90,7 @@
       "table": "item_option_new",
       "parentField": "variable_set",
       "parentTable": "io_set_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
@@ -99,14 +98,14 @@
       "table": "question_choice",
       "parentField": "question",
       "parentTable": "item_option_new",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "catalog_script_client",
       "parentField": "cat_item",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -121,7 +120,7 @@
     {
       "table": "catalog_ui_policy",
       "parentField": "catalog_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
@@ -129,7 +128,7 @@
       "table": "catalog_script_client",
       "parentField": "variable_set",
       "parentTable": "io_set_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
@@ -137,7 +136,7 @@
       "table": "catalog_ui_policy",
       "parentField": "variable_set",
       "parentTable": "io_set_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
@@ -145,7 +144,7 @@
       "table": "catalog_ui_policy_action",
       "parentField": "ui_policy",
       "parentTable": "catalog_ui_policy",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },

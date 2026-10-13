@@ -23,7 +23,7 @@ import {
   withEnv,
   withFetch,
   jsonResponse,
-  OD4_CORE_VERIFIED,
+  OD4_VERIFIED,
 } from "./helpers.js";
 
 baselineEnv();
@@ -299,7 +299,7 @@ test("P-8: every catalog / quality / AI / application row is registered", () => 
     assert.ok(t, `missing ${type}`);
     assert.equal(t.table, table, type);
     assert.equal(t.group, group, type);
-    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
+    assert.equal(t.verified, OD4_VERIFIED.has(type), type);
     assert.equal(t.scriptTools, undefined, `${type} joins no script tool`);
     assert.equal(t.scriptToolsOptIn, undefined, type);
     assert.ok(!SCRIPT_TYPE_NAMES.includes(type), type);
@@ -643,7 +643,7 @@ test("licensed families: absent sn_aia_* / sn_nowassist_skill_* tables answer av
     assert.match(ex.summary, /is not installed on this instance; it requires/);
   }
 
-  // Present: available:true, and no `requires`.
+  // Present: a verified type (OD-4) whose table exists fails loudly.
   const present = await run(
     "servicenow_list_artifacts",
     {
@@ -652,8 +652,8 @@ test("licensed families: absent sn_aia_* / sn_nowassist_skill_* tables answer av
     },
     { artifactType: "ai_agent" },
   );
-  assert.equal(present.available, true);
-  assert.equal(present.requires, undefined);
+  assert.ok(present.error, "a present table rejecting the read is an error");
+  assert.equal(present.available, undefined);
 });
 
 test("licensed families: an agent whose child tables are absent degrades those children only", async () => {
@@ -760,7 +760,7 @@ test("N-8: reports list without a license gate; a PA dashboard explains its tabs
     { artifactType: "pa_dashboard", sys_id: DASH },
   );
   assert.equal(ex.error, undefined, ex.error);
-  assert.equal(ex.verified, false);
+  assert.equal(ex.verified, true);
   const child = (table) => ex.children.find((c) => c.table === table);
   assert.equal(child("pa_m2m_dashboard_tabs").count, 1);
   assert.equal(child("pa_tabs").items[0].name, "Overview");

@@ -84,7 +84,7 @@ _None._
 
 ## Not confirmed on this instance
 
-These artefact types are not confirmed on a live instance (gate O-5): their table could not be read here, so they are left out rather than reported empty.
+These artefact types could not be read here: an unverified type (gate O-5) whose table was rejected, or a type whose table this instance does not have (plugin not installed). They are left out rather than reported empty.
 
 - `alias` (`sys_alias`)
 

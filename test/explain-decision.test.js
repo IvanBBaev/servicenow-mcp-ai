@@ -124,10 +124,10 @@ const DECISION = {
   ],
 };
 
-test("P-11: decision_table is explained (R + X) and stays verified:false", () => {
+test("P-11: decision_table is explained (R + X) and verified (OD-4)", () => {
   const t = getArtifactType("decision_table");
   assert.deepEqual(t.tiers, ["R", "X"]);
-  assert.equal(t.verified, false);
+  assert.equal(t.verified, true);
 });
 
 test("P-11: a decision table explains its inputs and rows in order", async () => {
