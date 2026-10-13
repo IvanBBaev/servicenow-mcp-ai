@@ -713,9 +713,9 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     key: "SN_STRICT_SETTINGS",
     section: "validation",
     since: NEXT,
-    default: false,
+    default: true,
     description:
-      "E-4: make an invalid setting value (a non-number, an unknown enum value, an out-of-range port…) a startup error that names every offending key, instead of a warning plus the default. Unknown `SN_*` keys stay warnings. Planned to default on in 3.0 (owner decision O-4).",
+      "E-4 / B5: an invalid setting value (a non-number, an unknown enum value, an out-of-range port…) is a startup error that names every offending key. Set `0` to log a warning and keep the default instead. Unknown `SN_*` keys stay warnings.",
   }),
 
   // --- external -----------------------------------------------------------------------------

@@ -541,7 +541,7 @@ auth method and the credentials, writes the env file and runs `doctor` — see
 
 ## Configure credentials
 
-Credentials live in `.env` at the project root (git-ignored):
+Credentials live in `~/.config/servicenow-mcp-ai/.env` (or the file `SN_ENV_FILE` names):
 
 ```dotenv
 SN_INSTANCE=your-instance.service-now.com
@@ -580,7 +580,8 @@ Windows the env file inherits its folder's ACL — restrict it yourself (for exa
 `icacls`.
 
 The env file is resolved in this order: `SN_ENV_FILE`, then
-`~/.config/servicenow-mcp-ai/.env` (XDG) if present, then the project-root `.env`.
+`~/.config/servicenow-mcp-ai/.env` (XDG). A project-root `.env` is no longer read (3.0, B5):
+if one exists while neither of the two is in use, startup fails and names it.
 A global/`npx` install therefore writes to your user config rather than into
 `node_modules`. Real environment variables always take precedence over the file.
 
@@ -654,8 +655,9 @@ All settings are read from the env file (`SN_ENV_FILE`, else
 `~/.config/servicenow-mcp-ai/.env`) or the real process environment, which takes
 precedence. Only the first three are required; the rest are optional tuning knobs.
 See [.env.example](.env.example) for a template. Every value is validated at
-startup: an invalid one is logged as a warning and the setting keeps its default,
-or — with `SN_STRICT_SETTINGS=1` — stops the server with an error.
+startup: an invalid one stops the server with an error that names every offending key
+(3.0, B5), or — with `SN_STRICT_SETTINGS=0` — is logged as a warning and the setting keeps
+its default.
 
 <!-- GENERATED:ENV:BEGIN (npm run docs:env) -->
 
@@ -715,7 +717,7 @@ The bare SN_INSTANCE / SN_USER / SN_PASSWORD keys are the 'default' profile. Mor
 | -------- | :------: | ------- | ----- | ----------- |
 | `SN_PROFILE_<NAME>_*` | no | — | 1.1.0 | Named connection profiles: `SN_PROFILE_DEV_INSTANCE` / `_USER` / `_PASSWORD` define profile `dev`. The bare `SN_INSTANCE`/`SN_USER`/`SN_PASSWORD` keys are the `default` profile. The auth, policy, write-mode, `ENV`, `PROD_WRITES` and `UPDATE_SET` settings take the same prefix. Example: `SN_PROFILE_DEV_INSTANCE=dev12345.service-now.com`, `SN_PROFILE_DEV_USER=admin`, `SN_PROFILE_DEV_PASSWORD=dev-password`. |
 | `SN_ACTIVE_PROFILE` | no | `default` | 1.1.0 | Which profile tools use. Switch at runtime with `servicenow_use_instance` (persisted to the env file). |
-| `SN_ENV_FILE` | no | `~/.config/servicenow-mcp-ai/.env` | 1.1.0 | Explicit path to the env file to read/write. Otherwise the server uses `$XDG_CONFIG_HOME/servicenow-mcp-ai/.env` (`~/.config/…`); a project-root `.env` next to the installed package is still read when the XDG file is missing, with a deprecation warning — that fallback is removed in 3.0. `doctor` prints the chosen file and why. |
+| `SN_ENV_FILE` | no | `~/.config/servicenow-mcp-ai/.env` | 1.1.0 | Explicit path to the env file to read/write. Otherwise the server uses `$XDG_CONFIG_HOME/servicenow-mcp-ai/.env` (`~/.config/…`). A project-root `.env` next to the installed package is no longer read (B5): if one exists while the XDG file is missing, startup fails and names it. `doctor` prints the chosen file and why. |
 
 #### Network, TLS and resilience
 
@@ -882,7 +884,7 @@ Every setting is validated at startup. An invalid value is logged as a warning a
 
 | Variable | Required | Default | Since | Description |
 | -------- | :------: | ------- | ----- | ----------- |
-| `SN_STRICT_SETTINGS` | no | `false` | next | E-4: make an invalid setting value (a non-number, an unknown enum value, an out-of-range port…) a startup error that names every offending key, instead of a warning plus the default. Unknown `SN_*` keys stay warnings. Planned to default on in 3.0 (owner decision O-4). |
+| `SN_STRICT_SETTINGS` | no | `true` | next | E-4 / B5: an invalid setting value (a non-number, an unknown enum value, an out-of-range port…) is a startup error that names every offending key. Set `0` to log a warning and keep the default instead. Unknown `SN_*` keys stay warnings. |
 
 #### Standard variables
 
@@ -2073,7 +2075,7 @@ The details follow.
   revocation is logged and the link is gone either way. Schema
   caches and credential-scoped keys are per subject while delegated.
 - **Credentials:** a git-ignored env file (`SN_ENV_FILE`, then
-  `~/.config/servicenow-mcp-ai/.env`, then the project `.env`); real environment
+  `~/.config/servicenow-mcp-ai/.env`; a project `.env` is refused since 3.0); real environment
   variables take precedence. Runtime updates go through
   `servicenow_set_credentials`; moving a configured profile to another
   instance requires the user and password for that host in the same call

@@ -741,8 +741,8 @@ export async function main(argv: string[] = process.argv.slice(2)) {
   installRuntime(runtime);
   try {
     loadEnv();
-    // E-4: validate every declared setting once; SN_STRICT_SETTINGS=1 turns
-    // an invalid value into this startup error instead of a warning.
+    // E-4 / B5: validate every declared setting once; an invalid value is
+    // this startup error unless SN_STRICT_SETTINGS=0.
     applySettingsAtStartup(process.env);
   } catch (error) {
     // D-5: a configuration error (a <KEY> / <KEY>_FILE conflict, an

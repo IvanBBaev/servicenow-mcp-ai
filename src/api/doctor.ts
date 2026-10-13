@@ -382,7 +382,6 @@ export function doctorChecks(report: DoctorReport): DoctorCheck[] {
 const ENV_FILE_SOURCE_TEXT: Record<string, string> = {
   SN_ENV_FILE: "from SN_ENV_FILE",
   xdg: "XDG config",
-  project: "project-root .env fallback, deprecated — removed in 3.0",
   "xdg-default": "XDG config default",
 };
 

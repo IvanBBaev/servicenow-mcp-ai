@@ -778,7 +778,7 @@ export SN_PASSWORD=••••••</code></pre>
             <code>SN_INSTANCE</code> accepts <code>dev12345</code>,
             <code>dev12345.service-now.com</code> or a full <code>https://</code>
             URL. Credentials can also live in a <code>.env</code> file
-            (<code>~/.config/servicenow-mcp-ai/.env</code> or the project root)
+            (<code>~/.config/servicenow-mcp-ai/.env</code>, or the path in <code>SN_ENV_FILE</code>)
             and be rotated at runtime via
             <code>servicenow_set_credentials</code>. Step&nbsp;3 isn't a shell
             command — it's the <code>servicenow_test_connection</code> tool; ask
@@ -933,8 +933,12 @@ args = ["-y", "servicenow-mcp-ai"]</code></pre>
               A global / <code>npx</code> install writes here, not into
               <code>node_modules</code>.
             </li>
-            <li>The project-root <code>.env</code> (local development).</li>
           </ol>
+          <p>
+            A project-root <code>.env</code> is no longer read (3.0, B5); if one
+            exists while neither of the above is in use, startup fails and names
+            it.
+          </p>
           <p>
             Real environment variables always win over the file. The file is
             written <strong>owner-only (<code>0600</code>)</strong> because it

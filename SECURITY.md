@@ -206,7 +206,7 @@ The details follow.
   revocation is logged and the link is gone either way. Schema
   caches and credential-scoped keys are per subject while delegated.
 - **Credentials:** a git-ignored env file (`SN_ENV_FILE`, then
-  `~/.config/servicenow-mcp-ai/.env`, then the project `.env`); real environment
+  `~/.config/servicenow-mcp-ai/.env`; a project `.env` is refused since 3.0); real environment
   variables take precedence. Runtime updates go through
   `servicenow_set_credentials`; moving a configured profile to another
   instance requires the user and password for that host in the same call

@@ -1,16 +1,10 @@
 // E-4: the declarative settings manifest — parsing, profile scoping, the
-// invalid-value policy (warn + default, or a startup error under
-// SN_STRICT_SETTINGS), unknown-key reporting and the secret flags that feed
+// invalid-value policy (a startup error by default since B5, or warn +
+// default under SN_STRICT_SETTINGS=0), unknown-key reporting and the secret flags that feed
 // the D-5 resolver and the support bundle.
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -45,7 +39,7 @@ import {
   getMaxRetries,
   getTimeoutMs,
 } from "../build/core/settings.js";
-import { envFileChoice } from "../build/core/config.js";
+import { assertNoProjectEnv, envFileChoice } from "../build/core/config.js";
 import { envFileLine } from "../build/api/doctor.js";
 import { setLogSink } from "../build/core/logging.js";
 import { withEnv } from "./helpers.js";
@@ -349,18 +343,22 @@ test("validateSettings reports invalid values, profile keys and unknown SN_ keys
   assert.match(byKey.SN_TIMEOUTMS.message, /Unknown setting SN_TIMEOUTMS/);
   assert.equal(byKey.SN_PROFILE_PROD_INSTANCE, undefined);
   assert.equal(byKey.PATH, undefined);
-  assert.equal(result.strict, false);
+  assert.equal(result.strict, true, "B5: strict by default");
   assert.equal(result.settings.SN_PASSWORD, "<set>");
   assert.equal(
     result.settings.SN_TIMEOUT_MS,
     settingSpec("SN_TIMEOUT_MS").default,
   );
-  assert.deepEqual(validateSettings({ SN_STRICT_SETTINGS: "1" }).strict, true);
+  assert.deepEqual(validateSettings({ SN_STRICT_SETTINGS: "0" }).strict, false);
 });
 
-test("applySettingsAtStartup: warns by default, throws under SN_STRICT_SETTINGS", async () => {
+test("applySettingsAtStartup: throws by default (B5), warns under SN_STRICT_SETTINGS=0", async () => {
   resetSettingWarnings();
-  const env = { SN_MAX_RECORDS: "lots", SN_BOGUS_KEY: "1" };
+  const env = {
+    SN_MAX_RECORDS: "lots",
+    SN_BOGUS_KEY: "1",
+    SN_STRICT_SETTINGS: "0",
+  };
   const warnings = await captureWarnings(() => {
     const result = applySettingsAtStartup(env);
     assert.equal(result.issues.length, 2);
@@ -369,14 +367,12 @@ test("applySettingsAtStartup: warns by default, throws under SN_STRICT_SETTINGS"
   });
   assert.equal(warnings.length, 2, warnings.join("\n"));
   assert.throws(
-    () => applySettingsAtStartup({ ...env, SN_STRICT_SETTINGS: "true" }),
-    /Invalid settings \(SN_STRICT_SETTINGS is on\): Invalid SN_MAX_RECORDS="lots"/,
+    () => applySettingsAtStartup({ ...env, SN_STRICT_SETTINGS: undefined }),
+    /Invalid settings \(fix them, or set SN_STRICT_SETTINGS=0 [^)]*\): Invalid SN_MAX_RECORDS="lots"/,
   );
   // Strict mode with only unknown keys (warnings) does not throw.
   resetSettingWarnings();
-  await captureWarnings(() =>
-    applySettingsAtStartup({ SN_BOGUS_KEY: "1", SN_STRICT_SETTINGS: "1" }),
-  );
+  await captureWarnings(() => applySettingsAtStartup({ SN_BOGUS_KEY: "1" }));
   resetSettingWarnings();
 });
 
@@ -397,12 +393,23 @@ test("envFileChoice names why the env file was chosen; doctor prints it", async 
     });
     rmSync(xdgFile);
     await withEnv({ SN_ENV_FILE: undefined, XDG_CONFIG_HOME: dir }, () => {
-      const choice = envFileChoice();
-      // The project-root fallback only applies when that file exists.
-      if (!existsSync(choice.path) || choice.source !== "project") {
-        assert.deepEqual(choice, { path: xdgFile, source: "xdg-default" });
-      }
+      // B5: the project-root .env is never chosen.
+      assert.deepEqual(envFileChoice(), {
+        path: xdgFile,
+        source: "xdg-default",
+      });
     });
+    // B5: a project-root .env with nothing else in play is a startup error.
+    const projectFile = path.join(dir, "project.env");
+    assert.doesNotThrow(() => assertNoProjectEnv("xdg-default", projectFile));
+    writeFileSync(projectFile, "SN_INSTANCE=x\n");
+    assert.throws(
+      () => assertNoProjectEnv("xdg-default", projectFile),
+      /project\.env is no longer read \(3\.0, B5\): move it to .*SN_ENV_FILE/,
+    );
+    for (const source of ["SN_ENV_FILE", "xdg"]) {
+      assert.doesNotThrow(() => assertNoProjectEnv(source, projectFile));
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -410,10 +417,6 @@ test("envFileChoice names why the env file was chosen; doctor prints it", async 
   assert.equal(
     envFileLine("/a/.env", false, "SN_ENV_FILE"),
     "env file: /a/.env (missing, from SN_ENV_FILE)",
-  );
-  assert.match(
-    envFileLine("/a/.env", true, "project"),
-    /deprecated — removed in 3\.0/,
   );
   assert.match(envFileLine("/a/.env", true, "xdg"), /XDG config\)$/);
   assert.match(envFileLine("/a/.env", true, "other"), /\(exists, other\)$/);

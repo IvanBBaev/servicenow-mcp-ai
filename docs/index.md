@@ -140,7 +140,7 @@ servicenow_test_connection
 
 **VS Code users:** skip the manual config — install the [ServiceNow MCP](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai) extension (`code --install-extension ivanbbaev.servicenow-mcp-ai`). It registers the server in GitHub Copilot Chat (agent mode) automatically — no `.vscode/mcp.json` needed.
 
-`SN_INSTANCE` accepts `dev12345`, `dev12345.service-now.com` or a full `https://` URL. Credentials can also live in a `.env` file (`~/.config/servicenow-mcp-ai/.env` or the project root) and be rotated at runtime via `servicenow_set_credentials`. Step 3 isn't a shell command — it's the `servicenow_test_connection` tool; ask your assistant to call it once the server is wired up.
+`SN_INSTANCE` accepts `dev12345`, `dev12345.service-now.com` or a full `https://` URL. Credentials can also live in a `.env` file (`~/.config/servicenow-mcp-ai/.env`, or the path in `SN_ENV_FILE`) and be rotated at runtime via `servicenow_set_credentials`. Step 3 isn't a shell command — it's the `servicenow_test_connection` tool; ask your assistant to call it once the server is wired up.
 
 Don't want a global install? Use `"command": "npx", "args": ["-y", "servicenow-mcp-ai"]` instead. On the Claude Code CLI it's a one-liner: `claude mcp add servicenow -- npx -y servicenow-mcp-ai`.
 
@@ -222,7 +222,8 @@ The env file is resolved in this order:
 
 1. `SN_ENV_FILE` — an explicit path, if set.
 2. `~/.config/servicenow-mcp-ai/.env` (XDG) — if it exists. A global / `npx` install writes here, not into `node_modules`.
-3. The project-root `.env` (local development).
+
+A project-root `.env` is no longer read (3.0, B5); if one exists while neither of the above is in use, startup fails and names it.
 
 Real environment variables always win over the file. The file is written **owner-only (`0600`)** because it holds a plaintext password, and it is git-ignored — never commit real credentials.
 

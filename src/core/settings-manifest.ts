@@ -15,11 +15,12 @@
  * `servicenow_use_instance`, `servicenow_set_credentials` and tests that
  * mutate the environment keep working.
  *
- * Invalid values: a value the schema rejects is reported once per key and
- * value (a logged warning) and the setting keeps its default — the pre-E-4
- * behaviour, now visible. With `SN_STRICT_SETTINGS=1` the startup validation
- * ({@link applySettingsAtStartup}) turns every invalid value into a startup
- * error instead. Secret values are never echoed in a message.
+ * Invalid values: the startup validation ({@link applySettingsAtStartup})
+ * turns every invalid value into one startup error (B5, `SN_STRICT_SETTINGS`
+ * defaults on). With `SN_STRICT_SETTINGS=0`, and for every read after
+ * startup, a rejected value is reported once per key and value (a logged
+ * warning) and the setting keeps its default. Secret values are never echoed
+ * in a message.
  *
  * Layout: settings-model.ts holds the spec types and kind helpers; the rows
  * are in settings-data-server.ts (connection … packages) and
@@ -540,9 +541,11 @@ export function validateSettings(env: Env = process.env): ValidatedSettings {
       message: `Unknown setting ${name} — not read by this server (a typo?)`,
     });
   }
+  // B5: on unless explicitly off; an invalid value keeps the default (on).
+  const strictSpec = settingSpec("SN_STRICT_SETTINGS");
   const strict =
-    parseSetting(settingSpec("SN_STRICT_SETTINGS"), env.SN_STRICT_SETTINGS)
-      .value === true;
+    (parseSetting(strictSpec, env.SN_STRICT_SETTINGS).value ??
+      strictSpec.default) === true;
   return { settings, issues, strict };
 }
 
@@ -555,8 +558,8 @@ export function startupSettings(): ValidatedSettings | undefined {
 
 /**
  * E-4 — validate the environment once at startup (after the env file and
- * the D-5 secret files are loaded). Every issue is logged as a warning; with
- * SN_STRICT_SETTINGS on, invalid values throw one error naming them all.
+ * the D-5 secret files are loaded). Invalid values throw one error naming
+ * them all (B5); with SN_STRICT_SETTINGS=0 every issue is a logged warning.
  * Runtime reads keep going through the live accessors above, so a later
  * `use_instance` / `set_credentials` change is honoured.
  */
@@ -568,7 +571,7 @@ export function applySettingsAtStartup(
   const errors = result.issues.filter((i) => i.level === "error");
   if (result.strict && errors.length > 0) {
     throw new Error(
-      `Invalid settings (SN_STRICT_SETTINGS is on): ${errors.map((e) => e.message).join(" | ")}`,
+      `Invalid settings (fix them, or set SN_STRICT_SETTINGS=0 to warn and keep the defaults): ${errors.map((e) => e.message).join(" | ")}`,
     );
   }
   for (const issue of result.issues) {
