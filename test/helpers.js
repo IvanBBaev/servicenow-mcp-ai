@@ -118,11 +118,45 @@ export const OD4_PORTAL_VERIFIED = new Set([
   "sp_search_source",
 ]);
 
+/**
+ * The UI Builder, Next Experience and workspace types OD-4 (3) flipped (N-25,
+ * N-30; a PDI confirmed all 25). Still unverified: the two `sys_ux_form_action`
+ * rows (N-34b merges them) and `uib_composite_definition` (no such table).
+ */
+export const OD4_WORKSPACE_VERIFIED = new Set([
+  "uib_app_config",
+  "uib_route",
+  "uib_screen_type",
+  "uib_screen",
+  "uib_macroponent",
+  "uib_client_script",
+  "uib_client_script_include",
+  "uib_data_broker_transform",
+  "uib_data_broker_scriptlet",
+  "uib_data_broker_rest",
+  "uib_data_broker_graphql",
+  "uib_event",
+  "uib_component",
+  "uib_theme",
+  "uib_style",
+  "uib_form_action_layout",
+  "uib_app_theme",
+  "ux_declarative_action",
+  "ux_declarative_action_definition",
+  "ux_declarative_action_payload",
+  "aw_master_config",
+  "aw_list",
+  "workspace",
+  "ux_list_menu_config",
+  "ux_applicability",
+]);
+
 /** Every type OD-4 (3) flipped to `verified:true`. */
 export const OD4_VERIFIED = new Set([
   ...OD4_CORE_VERIFIED,
   ...OD4_PLUGIN_VERIFIED,
   ...OD4_PORTAL_VERIFIED,
+  ...OD4_WORKSPACE_VERIFIED,
 ]);
 
 /** Proxy variables H-10's dispatcher reads (both spellings). */

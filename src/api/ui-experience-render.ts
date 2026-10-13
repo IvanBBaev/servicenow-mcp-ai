@@ -361,7 +361,7 @@ export function uiExperienceMarkdown(
   );
   const c = result.counts;
   out.push(
-    `${c.routes} route(s), ${c.screens} screen variant(s), ${c.macroponents} macroponent(s), ${c.elements} element(s), ${c.dataResources} data resource(s), ${c.dataBrokers} data broker(s), ${c.acls} broker ACL(s), ${c.dashboards} dashboard(s), ${c.lists} list(s), ${c.formActionLayouts} form action layout(s), ${c.actions} declarative action(s), ${c.themes} theme(s). verified:false.`,
+    `${c.routes} route(s), ${c.screens} screen variant(s), ${c.macroponents} macroponent(s), ${c.elements} element(s), ${c.dataResources} data resource(s), ${c.dataBrokers} data broker(s), ${c.acls} broker ACL(s), ${c.dashboards} dashboard(s), ${c.lists} list(s), ${c.formActionLayouts} form action layout(s), ${c.actions} declarative action(s), ${c.themes} theme(s). verified:${result.verified}.`,
   );
   if (result.appConfig) {
     const a = result.appConfig;

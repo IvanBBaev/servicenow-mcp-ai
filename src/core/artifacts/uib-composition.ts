@@ -82,7 +82,7 @@ export type UibBindingKind =
   | "script"
   | "expression";
 
-/** One prop of an element (N-26). verified:false until O-5. */
+/** One prop of an element (N-26). Shape checked on one PDI (O-5). */
 export interface UibProp {
   name: string;
   /** Where the prop sits: `propertyValues` / `props`, `config` or `overrides`. */

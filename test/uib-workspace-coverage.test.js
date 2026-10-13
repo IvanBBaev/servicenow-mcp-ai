@@ -712,10 +712,7 @@ test("unknown chrome shapes are reported, not thrown", () => {
 test("markdown renders the workspace section", async () => {
   const res = payload(await run({ path: "now/acme", format: "markdown" }));
   const md = res.markdown;
-  assert.match(
-    md,
-    /5 declarative action\(s\), 2 theme\(s\)\. verified:false\./,
-  );
+  assert.match(md, /5 declarative action\(s\), 2 theme\(s\)\. verified:true\./);
   assert.match(
     md,
     / {6}- columns number, short_description, priority · condition active = true AND priority = 1 OR state = 2/,

@@ -709,8 +709,8 @@ export async function securityScan(
 
   // --- N-29 (UX-12): UI Builder data brokers and their ux_data_broker ACLs --
   // A broker ACL's name is the broker's sys_id. Table and field names
-  // (mutates_server_data, the REST / GraphQL broker tables) are unverified
-  // until O-5.
+  // (mutates_server_data, the REST / GraphQL broker tables) were confirmed
+  // on a PDI (O-5, OD-4).
   let brokerCheck: SecurityCheck;
   if (aclUnavailable) {
     brokerCheck = unavailable("Needs sys_security_acl, which is unreadable.");

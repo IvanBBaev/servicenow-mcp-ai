@@ -14,7 +14,8 @@ import { classifyProp, isComposition, slotsOf } from "./uib-composition.js";
  *
  * Pure, bounded and tolerant like the readers in ./uib-composition.ts: it
  * never throws and accepts whatever slot encoding `slotsOf` recognises. The
- * prop / binding shapes are verified:false until O-5 (a PDI).
+ * prop / binding shapes were checked on five experiences of one PDI (O-5),
+ * not across releases.
  */
 
 type Obj = Record<string, unknown>;

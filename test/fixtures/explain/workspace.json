@@ -1,8 +1,7 @@
 {
   "artifactType": "workspace",
   "table": "sys_ux_page_registry",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "55555555555555555555555555555555",
   "name": "Acme Workspace",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "workspace 'Acme Workspace' (sys_ux_page_registry); scope x_acme_app; unverified type",
+  "summary": "workspace 'Acme Workspace' (sys_ux_page_registry); scope x_acme_app",
   "when": null,
   "fields": {
     "title": "Acme Workspace",
@@ -29,7 +28,7 @@
     {
       "table": "sys_ux_page_property",
       "parentField": "page",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     }

@@ -1,8 +1,7 @@
 {
   "artifactType": "uib_macroponent",
   "table": "sys_ux_macroponent",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "88888888888888888888888888888888",
   "name": "Acme home",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "uib_macroponent 'Acme home' (sys_ux_macroponent); scope x_acme_app; 1 child record(s) in 1 table(s); 3/4 JSON field(s) decoded; unverified type",
+  "summary": "uib_macroponent 'Acme home' (sys_ux_macroponent); scope x_acme_app; 1 child record(s) in 1 table(s); 3/4 JSON field(s) decoded",
   "when": null,
   "fields": {
     "name": "Acme home",
@@ -27,7 +26,7 @@
     {
       "table": "sys_ux_client_script",
       "parentField": "macroponent",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {

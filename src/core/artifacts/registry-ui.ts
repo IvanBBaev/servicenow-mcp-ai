@@ -28,7 +28,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -60,7 +60,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -92,7 +92,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -126,7 +126,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -157,7 +157,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       { field: "required_translations", decoder: "json", writable: false },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   // UI Builder client scripts and data brokers carry code: opt-in script
   // tools (see `scriptToolsOptIn`).
@@ -179,7 +179,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: ["macroponent", "type"],
   },
@@ -194,7 +194,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: ["script"],
     clientFields: ["script"],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: [],
   },
@@ -210,7 +210,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: ["script"],
     jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: ["mutates_server_data"],
   },
@@ -227,7 +227,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     clientFields: ["script"],
     jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: [],
   },
@@ -243,7 +243,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -256,7 +256,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     keyFields: ["tag"],
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -268,7 +268,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -281,7 +281,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     jsonFields: [{ field: "style", decoder: "json", writable: false }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -327,7 +327,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -357,7 +357,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     metaFields: ["mutates_server_data"],
   },
   {
@@ -371,13 +371,13 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     jsonFields: [{ field: "props", decoder: "json", writable: false }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     metaFields: ["mutates_server_data"],
   },
   // N-30: the declarative action, theme and Agent Workspace tables that
   // src/api/uib-workspace.ts reads. `sys_declarative_action_assignment` is in
-  // the SDK table inventory (no Fluent API); the other tables and their
-  // fields are unverified until O-5 (PDI). The assignment scripts are script
+  // the SDK table inventory (no Fluent API). A PDI confirmed every table, field
+  // and reference target of these six rows (O-5, OD-4). The assignment scripts are script
   // fields, but not a script-tools type: list_scripts / search_code do not
   // sweep them (no enum growth).
   {
@@ -418,7 +418,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       { field: "required_roles", table: "sys_user_role", type: "role" },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -431,7 +431,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     keyFields: ["name"],
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -447,7 +447,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       { field: "payload_template", decoder: "json", writable: false },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -461,7 +461,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     refFields: [{ field: "theme", table: "sys_ux_theme", type: "uib_theme" }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -473,7 +473,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -486,7 +486,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     keyFields: ["table"],
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   // Service Portal (SDK-PARITY §4.6; `sp_widget` itself is in the S-4 view)
   {

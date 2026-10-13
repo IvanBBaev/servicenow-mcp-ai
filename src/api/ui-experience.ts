@@ -30,8 +30,8 @@
  * raw with `decoded:false`, never a failure.
  *
  * Bounds: at most `CHILD_LIMIT` rows per read, IN lists chunked, component
- * trees capped (COMPOSITION_MAX_ELEMENTS). Every UIB / Next Experience table
- * is `verified:false` in the registry (gate O-5), so an unreadable table
+ * trees capped (COMPOSITION_MAX_ELEMENTS). `verified` is the registry flag of
+ * `workspace` (OD-4). Whatever the flag, an unreadable table
  * (policy denial, ACL, missing plugin) becomes a caveat with the table name
  * and status, and fields the instance did not return are listed per table in
  * `missingFields`. Metadata only by default: no client-script or broker script
@@ -78,6 +78,7 @@
  * reads the experience and re-exports both.
  */
 import { decodeField } from "../core/artifacts/decoders.js";
+import { getArtifactType } from "../core/artifacts/registry.js";
 import {
   compositionTree,
   dataResources,
@@ -183,8 +184,8 @@ const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** Characters of an undecodable JSON column echoed back raw. */
 const RAW_MAX = 2000;
 
-const UNVERIFIED_CAVEAT =
-  "UI Builder and Next Experience tables are verified:false: their table and field names, and the JSON shapes of macroponent columns, come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
+const UIB_CAVEAT =
+  "UI Builder and Next Experience table and field names were checked on one PDI (gate O-5); the JSON shapes of macroponent columns were checked on five experiences of that PDI, not across releases, and an unknown shape comes back raw with decoded:false.";
 
 const SCOPE_LINK_CAVEAT =
   "The experience has no actionConfigId page property, so form action layouts are read from its application scope; on a PDI (gate O-5) a workspace's layouts span several scopes, so this list can be incomplete or include another workspace's layouts.";
@@ -412,7 +413,7 @@ export async function explainUiExperience(
   const want = (l: UiExperienceDetail): boolean => levels.includes(l);
   const withProps = want("elements") || want("bindings");
   const ctx: ReadCtx = {
-    caveats: [UNVERIFIED_CAVEAT],
+    caveats: [UIB_CAVEAT],
     scope: "the page map",
     unreadable: [],
     missing: {},
@@ -436,7 +437,7 @@ export async function explainUiExperience(
     themes: [],
     workspace: { kind: "unknown", signals: [], migration: [] },
     counts: emptyCounts(),
-    verified: false,
+    verified: getArtifactType("workspace")?.verified ?? false,
     caveats: ctx.caveats,
     unreadable: ctx.unreadable,
   };

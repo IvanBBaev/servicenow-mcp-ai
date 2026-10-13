@@ -476,7 +476,7 @@ test("explain_ui_experience lives in the opt-in ui package", () => {
 
 test("the fixture workspace walks routes → screen variants → macroponents", async () => {
   const res = payload(await run({ path: "now/acme" }));
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true); // OD-4: the registry flag of `workspace`
   assert.equal(res.experience.title, "Acme Workspace");
   assert.deepEqual(res.appConfig, {
     sys_id: CFG,
@@ -871,7 +871,7 @@ test("the Mermaid page map matches its golden", async () => {
   const res = payload(await run({ path: "now/acme", format: "mermaid" }));
   lintMermaid(res.mermaid);
   assert.equal(res.mermaidTruncated, undefined);
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true); // OD-4: the registry flag of `workspace`
   assert.equal(res.sys_id, EXP);
   const file = path.join(FIXTURES, "ui-experience.mmd");
   if (process.env.UPDATE_GOLDEN === "1") {
@@ -929,7 +929,7 @@ test("markdown renders the page map, trees, brokers and caveats", async () => {
   assert.match(md, /```mermaid\nflowchart TD/);
   assert.match(
     md,
-    /## Caveats\n\n- UI Builder and Next Experience tables are verified:false/,
+    /## Caveats\n\n- UI Builder and Next Experience table and field names were checked on one PDI/,
   );
   assert.deepEqual(Object.keys(res).sort(), [
     "caveats",
@@ -948,7 +948,7 @@ test("format:file writes the full JSON with the diagram", async () => {
     );
     const out = payload(res);
     assert.equal(out.format, "file");
-    assert.equal(out.verified, false);
+    assert.equal(out.verified, true);
     assert.equal(out.routes_count, 2);
     const written = JSON.parse(readFileSync(out.file, "utf8"));
     assert.equal(written.experience.path, "now/acme");
@@ -1254,7 +1254,7 @@ test("composition readers are tolerant and bounded", () => {
 // N-26 (UX-02, UX-03, UX-04, UX-06) — page explainer depth: element props and
 // bindings, event → handler → target chains, component resolution and opt-in
 // script bodies. The tool reaches it through format:"file" (no tools/list
-// change); the API takes `detail`. Shapes are verified:false until O-5.
+// change); the API takes `detail`. Shapes were checked on one PDI (O-5).
 const CUSTOM_C = "ef".repeat(16);
 const NESTED_MP = "12".repeat(16);
 const EVT = "34".repeat(16);

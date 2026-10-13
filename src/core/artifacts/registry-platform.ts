@@ -930,7 +930,7 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     ],
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -987,7 +987,7 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -1003,6 +1003,6 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
 ];

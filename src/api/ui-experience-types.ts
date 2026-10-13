@@ -407,7 +407,8 @@ export interface ExplainUiExperienceResult {
     /** N-31 (`elements`): unique strings missing from the declarations. */
     undeclaredTranslations?: number;
   };
-  verified: false;
+  /** The registry `verified` flag of `workspace` (OD-4). */
+  verified: boolean;
   caveats: string[];
   unreadable: Unreadable[];
   missingFields?: Record<string, string[]>;
