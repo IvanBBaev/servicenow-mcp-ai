@@ -16,7 +16,7 @@
  *   the catalog client scripts and the catalog UI policies with their effects;
  * - `catalog-variable` (`catalog_variable`, P-8): one variable and its choices;
  * - `decision-table` (`decision_table`, P-11): the inputs and the rows in
- *   order, each with its condition and answer (tables and fields unverified).
+ *   order, each with its condition and answer (checked on one PDI, gate O-5).
  *
  * Enrichers are pure functions of already-read data (no extra requests) and
  * never fail the explain: `explain-artifact.ts` runs them guarded.
@@ -663,7 +663,7 @@ const explainCatalogUiPolicy: Explainer = (ctx) =>
 // extends var_dictionary (element, label, internal_type, order).
 
 const DECISION_CAVEAT =
-  "sys_decision, sys_decision_input and sys_decision_question and their fields (condition, answer, default_answer) are verified:false: unconfirmed on a live instance (gate O-5).";
+  "sys_decision, sys_decision_input and sys_decision_question are verified:false. Checked on one PDI (gate O-5): inputs and questions are keyed by their decision, answer is a document_id and default_answer a boolean.";
 
 const explainDecisionTable: Explainer = (ctx) => {
   const { record } = ctx;
