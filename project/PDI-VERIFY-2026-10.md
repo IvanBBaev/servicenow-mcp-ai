@@ -691,7 +691,9 @@ table and field `explain_portal` reads exists, with one exception:
 | m2m includes (`m2m_sp_theme_*`, `m2m_sp_dependency_*`, `m2m_sp_widget_dependency`, `m2m_sp_ng_pro_sp_widget`) | Confirmed, with the reference fields the code reads and `order` where it sorts.                                                                                                                                                   |
 | Classic options                                                                                               | `sp_instance` has `size`, `color`, `glyph`, `title`, `url`, `css`, `class_name` columns, as `OPTIONS_CAVEAT` says; still not mapped.                                                                                              |
 
-tools/list delta 0 B.
+Follow-up (caveats/portal): `UNVERIFIED_CAVEAT` and `OPTIONS_CAVEAT` in
+`src/api/portal-model.ts` now state these findings; output stays
+`verified:false`. tools/list delta 0 B.
 
 ## Next steps
 
