@@ -272,9 +272,14 @@ function fixture() {
       { sys_id: "tb2", dashboard: DASH, name: "Trends", order: "200" },
       { sys_id: "tb1", dashboard: DASH, name: "Today", order: "100" },
     ],
+    par_dashboard_canvas: [
+      { sys_id: "cv1", dashboard_tab: "tb1" },
+      { sys_id: "cv2", dashboard_tab: "tb2" },
+    ],
     par_dashboard_widget: [
-      { sys_id: "w1", tab: "tb1", name: "Open P1", component: "sn-score" },
-      { sys_id: "w2", tab: "tb1", name: "", component: "sn-bar" },
+      { sys_id: "w1", canvas: "cv1", name: "Open P1", component: "sn-score" },
+      { sys_id: "w2", canvas: "cv1", name: "", component: "sn-bar" },
+      { sys_id: "w3", canvas: "gone", name: "Orphan", component: "sn-x" },
     ],
     sys_ux_list_menu_config: [
       { sys_id: LMENU, name: "Acme lists", active: "true" },
@@ -781,7 +786,30 @@ test("P-15: properties, dashboards, lists, audiences and form actions", async ()
       ],
     },
   ]);
-  assert.ok(res.caveats.some((c) => /page properties/.test(c)));
+  assert.ok(res.caveats.some((c) => /no actionConfigId/.test(c)));
+});
+
+test("P-15 (O-5): form action layouts follow the actionConfigId property", async () => {
+  const tables = fixture();
+  tables.sys_ux_page_property.push({
+    sys_id: "pp4",
+    page: EXP,
+    name: "actionConfigId",
+    type: "string",
+    value: "acfg1",
+  });
+  tables.sys_ux_form_action_layout[0].action_config = "acfg1";
+  tables.sys_ux_form_action_layout[0].sys_scope = "elsewhere";
+  tables.sys_ux_form_action_layout[1].action_config = "acfg2";
+  const res = payload(await run({ path: "now/acme" }, instance(tables)));
+  assert.deepEqual(
+    res.formActionLayouts.map((l) => l.sys_id),
+    [FAL],
+  );
+  assert.equal(
+    res.caveats.some((c) => /actionConfigId/.test(c)),
+    false,
+  );
 });
 
 test("P-15 (O-5): lists linked to the menu only, and inactive ones, are kept", async () => {
@@ -993,7 +1021,7 @@ test("missing fields, no app config and a missing macroponent", async () => {
   assert.ok(res.caveats.some((c) => /has no admin_panel/.test(c)));
   assert.ok(res.caveats.some((c) => /1 referenced macroponent/.test(c)));
   assert.equal(
-    res.caveats.some((c) => /page properties/.test(c)),
+    res.caveats.some((c) => /actionConfigId/.test(c)),
     false,
   );
   const md = payload(
