@@ -139,7 +139,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `catalog_item` | catalog | `sc_cat_item` | yes | yes (2) |
 | `record_producer` | catalog | `sc_cat_item_producer` | yes | no — no records in this scope |
 | `variable_set` | catalog | `item_option_new_set` | yes | no — no records in this scope |
-| `catalog_variable` | catalog | `item_option_new` | yes | yes (3) |
+| `catalog_variable` | catalog | `item_option_new` | yes | yes (4) |
 | `catalog_ui_policy` | catalog | `catalog_ui_policy` | yes | no — no records in this scope |
 | `atf_test` | quality | `sys_atf_test` | yes | no — no records in this scope |
 | `atf_test_suite` | quality | `sys_atf_test_suite` | yes | no — no records in this scope |
@@ -246,6 +246,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | justification | true | unknown | Why do you need it? | 2 | 200 | true | 55555555555555555555555555555555 |  |
 | model | true | unknown | Model | 5 | 100 | false | 55555555555555555555555555555555 |  |
+| picker | true | unknown | Picker | 14 | 200 | false | 66666666666666666666666666666666 |  |
 | role | true | unknown | Role \| level | 8 | 100 | true | 66666666666666666666666666666666 |  |
 
 ## application

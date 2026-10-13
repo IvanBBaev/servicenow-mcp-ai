@@ -28,7 +28,11 @@ export interface CatalogDocData {
   variables: SectionRead;
 }
 
-/** Catalog variable types (item_option_new.type) by their stored number. */
+/**
+ * Catalog variable types (item_option_new.type) by their stored number: the
+ * `question.type` choices, confirmed on a PDI (O-5; 40 is an inactive choice
+ * still used by older variables).
+ */
 const VARIABLE_TYPES: Record<string, string> = {
   "1": "Yes/No",
   "2": "Multi line text",
@@ -42,10 +46,10 @@ const VARIABLE_TYPES: Record<string, string> = {
   "10": "Date/Time",
   "11": "Label",
   "12": "Break",
-  "14": "Macro",
+  "14": "Custom",
   "15": "UI Page",
   "16": "Wide single line text",
-  "17": "Macro with label",
+  "17": "Custom with label",
   "18": "Lookup select box",
   "19": "Container start",
   "20": "Container end",
@@ -61,6 +65,7 @@ const VARIABLE_TYPES: Record<string, string> = {
   "31": "Requested for",
   "32": "Rich text label",
   "33": "Attachment",
+  "40": "Table name",
 };
 
 export async function collectCatalog(): Promise<CatalogDocData> {
@@ -213,6 +218,7 @@ export function renderCatalog(
     ...caveatsSection([
       ...readCaveats([catalogs, categories, items, variables]),
       "Variables that come from a variable set are not listed per item; only variables attached directly to an item are.",
+      "Category is the item's own category field; further categories an item belongs to through sc_cat_item_category are not listed.",
       VISIBILITY_CAVEAT,
       METADATA_CAVEAT,
     ]),

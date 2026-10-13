@@ -15,7 +15,7 @@ The custom applications (`sys_app`, global excluded), with what discovery found 
 
 | Name | Scope | Version | Active | Source | Tables | Artefacts | Files |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Acme Requests | `x_acme` | 1.2.0 | yes | `sys_app` | 2 | 21 | [tables](tables-x_acme.md) · [artefacts](artifacts-x_acme.md) |
+| Acme Requests | `x_acme` | 1.2.0 | yes | `sys_app` | 2 | 22 | [tables](tables-x_acme.md) · [artefacts](artifacts-x_acme.md) |
 
 ## Caveats
 

@@ -605,6 +605,28 @@ not read it.
 Fixed in this pass: the stale caveat ("a flow-level error handler … not
 read") is gone; a test fixture pins the Top Level Try shape. tools/list
 
+## Twenty-first pass: catalog and integrations documents (S-15)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_db_object`,
+`sys_choice`, Table API and stats reads of the catalog and integration
+tables). Covers the fields `doc-catalog.ts` and `doc-integrations.ts` read
+(TODO batch-10 (e)).
+
+| Item                                   | Was read as                                                                     | Result                                                                                                                                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Catalog fields                         | `sc_catalog`, `sc_category`, `sc_cat_item`                                      | Confirmed. `sc_category.sc_catalog` and `parent` are references, `sc_cat_item.category` references `sc_category`; titles and names are translated fields.                                                                    |
+| `sc_cat_item.sc_catalogs`              | comma-separated `sc_catalog` sys_ids                                            | **Confirmed** (a glide_list to `sc_catalog`). It agrees with the `sc_cat_item_catalog` m2m for 430 of 436 items; the 6 others have the list set and no m2m row. 4 items list more than one catalog.                          |
+| Item categories                        | `sc_cat_item.category`                                                          | One category per item. 9 items sit in more categories through `sc_cat_item_category` (664 rows), which is not read; a caveat now says so.                                                                                    |
+| `item_option_new` fields               | `name`, `question_text`, `type`, `order`, …                                     | Confirmed, inherited from `question`. Of 1,472 variables, 1,244 hang off an item, 197 off a variable set (`variable_set`, 39 sets, 326 `io_set_item` links) and 31 off neither; the variable-set caveat stays.               |
+| `item_option_new.type` labels          | the document's own map                                                          | **Two wrong, one missing.** The `question.type` choices name 14 "Custom" and 17 "Custom with Label" (the document said "Macro" / "Macro with label"); 40 "Table Name" (inactive choice, 7 variables) printed as `40`. Fixed. |
+| Integration fields                     | `sys_ws_definition`, `sys_rest_message`, `sys_transform_map`, `sys_data_source` | Confirmed. `source_table` / `target_table` are `table_name` fields; all 483 scripted REST APIs have a `base_uri`.                                                                                                            |
+| `sys_rest_message.authentication_type` | shown as stored                                                                 | Choice values `no_authentication`, `basic`, `basic_simple`, `oauth2` (one empty).                                                                                                                                            |
+| `sys_data_source.type` / `format`      | shown as stored                                                                 | `type` `File` / `JDBC` / `LDAP` / `OIDC` in use; for JDBC sources `format` holds the driver class (`oracle.jdbc.OracleDriver`), whose choice label is the database name. Left as stored.                                     |
+
+`servicenow_explain_artifact`'s own variable-type map (`explainers.ts`)
+already uses the choice labels; it lacks 40 only. Fixed in this pass: the
+catalog document's labels and the categories caveat. tools/list delta 0 B.
+
 ## Twenty-second pass: workflow, playbook and decision caveats (O-5)
 
 Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_db_object`

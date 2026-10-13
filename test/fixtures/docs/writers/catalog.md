@@ -5,7 +5,7 @@ Generated from the catalog definitions (sc_catalog, sc_category, sc_cat_item, it
 - **Catalogs:** 2
 - **Categories:** 2
 - **Items:** 2
-- **Item variables:** 3
+- **Item variables:** 4
 
 ## Purpose
 
@@ -30,7 +30,7 @@ Generated from the catalog definitions (sc_catalog, sc_category, sc_cat_item, it
 
 | Item | Class | Category | Catalogs | Active | Variables |
 | --- | --- | --- | --- | --- | --- |
-| Request access | `sc_cat_item_producer` |  | Technical Catalog | yes | 1 |
+| Request access | `sc_cat_item_producer` |  | Technical Catalog | yes | 2 |
 | Standard laptop | `sc_cat_item` | Laptops | Service Catalog, Technical Catalog | yes | 2 |
 
 ## Variables
@@ -40,6 +40,7 @@ Generated from the catalog definitions (sc_catalog, sc_category, sc_cat_item, it
 | Order | Name | Question | Type | Mandatory | Active |
 | --- | --- | --- | --- | --- | --- |
 | 100 | `role` | Role \| level | Reference | yes | yes |
+| 200 | `picker` | Picker | Custom | no | yes |
 
 ### Standard laptop
 
@@ -51,5 +52,6 @@ Generated from the catalog definitions (sc_catalog, sc_category, sc_cat_item, it
 ## Caveats
 
 - Variables that come from a variable set are not listed per item; only variables attached directly to an item are.
+- Category is the item's own category field; further categories an item belongs to through sc_cat_item_category are not listed.
 - Visibility: every read runs as this profile's user. On a domain-separated instance only the records of the user's domain (and its visible parents) are seen, and ACLs can hide definitions, so an absent entry is not proof that none exists.
 - Metadata only: built from dictionary, automation and access-control definitions; no business records were read.

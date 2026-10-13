@@ -963,6 +963,16 @@ const catalogTables = () => ({
       active: "true",
     },
     {
+      sys_id: "v4",
+      name: "picker",
+      question_text: "Picker",
+      type: "14",
+      cat_item: ITEM_ACCESS,
+      order: "200",
+      mandatory: "false",
+      active: "true",
+    },
+    {
       sys_id: "v3",
       name: "role",
       question_text: "Role | level",
@@ -1020,7 +1030,9 @@ test("golden: catalog doc (catalogs → categories → items → variables)", as
       "variables in order",
     );
     assert.match(md, /Select box/);
+    assert.match(md, /\| `picker` \| Picker \| Custom \|/);
     assert.match(md, /variable set/);
+    assert.match(md, /sc_cat_item_category/);
     golden("catalog.md", md);
   });
 });

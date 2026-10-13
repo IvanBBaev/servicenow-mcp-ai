@@ -416,7 +416,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       on `tables` and `apps` each; (e) `catalog` lists only variables attached directly to an item
       (not variable-set variables), and `integrations` reads descriptive fields only — the
       `sc_cat_item.sc_catalogs`, `item_option_new.type` codes and `sys_ws_definition` /
-      `sys_rest_message` / `sys_data_source` field names need a live instance (O-5); (f)
+      `sys_rest_message` / `sys_data_source` field names need a live instance (O-5) (O-5 part resolved 2026-10-13: every field confirmed, `sc_catalogs` agrees with `sc_cat_item_catalog` for 430 of 436 items, two variable-type labels fixed; PDI-VERIFY twenty-first pass); (f)
       "Collected in this run" on `artifact-types.md` means "a document of this run read the type's
       table", not "records found"; (g) `depth` (S-16) not shipped yet (resolved: shipped in batch 12, 736f136); (h) tool count 88 after the batch 10 merge — M-6's
       budget (resolved: ADR 0006); (i) the pack ceiling — 1416.6 KB unpacked after batch 12 (1298.7 KB after batch 11) (resolved: 3 MB, 05de939).
