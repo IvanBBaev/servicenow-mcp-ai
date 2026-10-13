@@ -385,6 +385,51 @@ left without one). Fixed in 912abab. `UibBindingKind` is internal (no
 output-schema enum), so tools/list delta 0 B; the `@context` expressions in
 opt-in binding detail now carry the category.
 
+## Twelfth pass: response and record sizes (N-57)
+
+Date: 2026-10-13. Same PDI, GETs only. The 11 cases of
+`test/response-size.test.js` were run through `runSpec` against the PDI and
+measured with `measureResultBytes`; text and structured bytes were equal in
+every case.
+
+| Case                             | PDI bytes | Synthetic golden | Note                             |
+| -------------------------------- | --------- | ---------------- | -------------------------------- |
+| `query_table`, 1 row             | 2,359     | 3,113            |                                  |
+| `query_table`, 200 rows          | 2,772     | 2,549            | file result on both              |
+| `get_record`                     | 2,329     | 3,073            | `INC0000054`                     |
+| `describe_table` incident        | 15,613    | 12,772           | 109 columns                      |
+| `get_artifact` business_rule     | 2,310     | 1,355            | longer OOB script                |
+| `explain_artifact` business_rule | 1,781     | 1,372            |                                  |
+| `aggregate` group_by priority    | 394       | 397              |                                  |
+| `list_update_sets`               | 16,004    | 15,255           | 50 rows, truncated               |
+| `list_flows`                     | 27,178    | 7,518            | `description` is 20,989 B (77 %) |
+| `list_atf_tests`                 | 10,554    | 15,106           |                                  |
+| `list_scripts` business_rule     | 16,513    | 15,263           |                                  |
+
+Real record sizes, the 50 newest rows per table, raw Table API JSON with
+`exclude_reference_link=true`:
+
+| Table            | Rows | Fields | Bytes min / median / max | Empty share (median) | Omit-empty (median) | `display_value=all` |
+| ---------------- | ---- | ------ | ------------------------ | -------------------- | ------------------- | ------------------- |
+| `incident`       | 50   | 107    | 2,121 / 2,308 / 2,492    | 65 %                 | 1,066 B (−54 %)     | ×2.65               |
+| `change_request` | 31   | 113    | 2,381 / 2,446 / 4,707    | 62 %                 | 1,126 B (−54 %)     | ×2.52               |
+| `sys_user`       | 50   | 72     | 1,703 / 1,856 / 2,097    | 38 %                 | 1,386 B (−25 %)     | ×2.36               |
+| `cmdb_ci_server` | 41   | 121    | 2,503 / 2,696 / 2,784    | 62 %                 | 1,309 B (−51 %)     | ×2.49               |
+| `sys_script`     | 50   | 48     | 1,485 / 1,999 / 9,108    | 27 %                 | 1,770 B (−11 %)     | ×2.27               |
+
+A default `query_table` on `incident` (10 rows, all fields) is 23,518 B.
+
+Findings:
+
+- The synthetic goldens are within 0.7–1.7× of the PDI except `list_flows`.
+  They stay synthetic (`synthetic: true`): they pin a deterministic payload,
+  not instance data.
+- `list_flows` passes each flow's full `description` (about 420 B per flow on
+  this PDI, `src/api/flows-designer.ts`). Shortening it is an output change and
+  waits for the owner.
+- TOKEN-OPTIMIZATION-PLAN §1.3 now carries the measured table. tools/list
+  delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

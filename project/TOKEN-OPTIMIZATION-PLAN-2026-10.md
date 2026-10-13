@@ -134,6 +134,25 @@ What this means for a default call:
 - Omitting empty fields saves −42 % per record.
 - `display_value=all` costs 2.4× the raw size.
 
+**Measured on the PDI (2026-10-13, O-5).** The 50 newest rows per table, raw JSON with
+`exclude_reference_link=true`; details in [PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md).
+
+| Table          | Rows | Fields | Bytes min / median / max | Empty share (median) | Omit-empty (median) | `display_value=all` |
+| -------------- | ---- | ------ | ------------------------ | -------------------- | ------------------- | ------------------- |
+| incident       | 50   | 107    | 2,121 / 2,308 / 2,492    | 65 %                 | 1,066 B (−54 %)     | ×2.65               |
+| change_request | 31   | 113    | 2,381 / 2,446 / 4,707    | 62 %                 | 1,126 B (−54 %)     | ×2.52               |
+| sys_user       | 50   | 72     | 1,703 / 1,856 / 2,097    | 38 %                 | 1,386 B (−25 %)     | ×2.36               |
+| cmdb_ci_server | 41   | 121    | 2,503 / 2,696 / 2,784    | 62 %                 | 1,309 B (−51 %)     | ×2.49               |
+| sys_script     | 50   | 48     | 1,485 / 1,999 / 9,108    | 27 %                 | 1,770 B (−11 %)     | ×2.27               |
+
+- A default `query_table` on `incident` (10 rows, all fields) returned 23,518 B, just under the 24–40 KB
+  estimate.
+- Omit-empty saves about half on task and CMDB tables, a quarter on `sys_user` and a tenth on
+  `sys_script`, so the −42 % average above holds only for the first group.
+- `display_value=all` costs ×2.3–2.7, close to the 2.4× estimate.
+- Field counts are lower than estimated on `change_request`, `sys_user` and `cmdb_ci_server` (a PDI has
+  few plugins); larger instances will be wider.
+
 ### 1.4 Bytes against tokens (verified, R5)
 
 These were measured offline on the live `all` list with `gpt-tokenizer` (o200k), `@anthropic-ai/tokenizer`
@@ -725,7 +744,7 @@ New sub-questions on existing gates (added to [TODO.md](TODO.md) and [ROADMAP-V3
   - the proposed **B14** selective consolidation (N-64), or a name freeze after M-7;
   - `discovery` as the default profile, and `attachment` out of `core` (N-63);
   - the `list_tables` default limit (N-61), unless it is ruled a fix.
-- **O-5** (PDI): the checks listed under N-62, plus real record sizes for the five tables in §1.3.
+- **O-5** (PDI): the checks listed under N-62, plus real record sizes for the five tables in §1.3. Record sizes measured 2026-10-13 (§1.3).
 
 ## 8. Sequencing
 

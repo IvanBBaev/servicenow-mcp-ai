@@ -1,7 +1,8 @@
 // N-57 (TK-35): response-size goldens. Each case runs one tool through
 // runSpec against synthetic, anonymised ServiceNow payloads (a deterministic
-// generator, `synthetic: true` until O-5) and pins what the result costs on
-// the wire, `{textBytes, structuredBytes}` (core/metrics measureResultBytes).
+// generator, `synthetic: true`) and pins what the result costs on the wire,
+// `{textBytes, structuredBytes}` (core/metrics measureResultBytes). The same
+// cases were run on a PDI on 2026-10-13 (O-5): see PDI-VERIFY-2026-10.md.
 // A change in either figure is a reviewed diff of
 // test/fixtures/response-sizes.json: refresh it with UPDATE_GOLDEN=1.
 import test from "node:test";
