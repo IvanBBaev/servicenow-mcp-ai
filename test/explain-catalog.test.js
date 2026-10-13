@@ -67,7 +67,7 @@ const P8_TYPES = {
   ai_agentic_workflow: ["sn_aia_usecase", "ai"],
   now_assist_skill: ["sn_nowassist_skill_config", "ai"],
   application: ["sys_app", "application"],
-  app_dependency: ["sys_scope_dependency", "application"],
+  app_dependency: ["sys_package_dependency_m2m", "application"],
   customer_update: ["sys_update_xml", "application"],
   source_control: ["sys_repo_config", "application"],
 };

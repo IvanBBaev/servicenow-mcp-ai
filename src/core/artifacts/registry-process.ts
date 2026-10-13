@@ -676,17 +676,23 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     group: "application",
     sdkApi: "none",
     sdkSince: null,
-    table: "sys_scope_dependency",
+    // OD-3 / B18: sys_scope_dependency does not exist; the dependency rows
+    // live in the m2m table. sys_app extends sys_package, so `sys_package`
+    // holds the app's sys_id and `sys_package.source` its scope namespace.
+    // `dependency` names an app or a plugin (sys_plugins), so no type.
+    table: "sys_package_dependency_m2m",
     nameField: "dependency",
-    scopeField: "scope",
+    keyFields: ["sys_package", "dependency"],
+    scopeField: "sys_package",
+    scopeNamespaceField: "sys_package.source",
     scriptFields: [],
     refFields: [
-      { field: "scope", table: "sys_app", type: "application" },
-      { field: "dependency", table: "sys_app", type: "application" },
+      { field: "sys_package", table: "sys_package" },
+      { field: "dependency", table: "sys_package" },
     ],
     tiers: SEED_TIERS,
-    verified: false,
-    metaFields: ["scope", "dependency", "min_version"],
+    verified: true,
+    metaFields: ["sys_package", "dependency", "min_version"],
   },
   {
     ...BASE,

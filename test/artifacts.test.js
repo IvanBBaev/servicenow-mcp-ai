@@ -680,3 +680,51 @@ test("OD-2: application filters and reports its own sys_id as the scope", async 
   assert.equal(cat.scopeField, "sys_id");
   assert.equal(cat.scopeNamespaceField, "scope");
 });
+
+test("B18: app_dependency reads the m2m table, scoped through sys_package", async () => {
+  freshRuntime();
+  await withEnv(SDK_OFF, async () => {
+    const seen = [];
+    const DEP_ID = "3f".repeat(16);
+    await withFetch(
+      tableMock({
+        sys_package_dependency_m2m: (p) => {
+          seen.push(p.get("sysparm_query"));
+          const fields = p.get("sysparm_fields").split(",");
+          assert.ok(fields.includes("sys_package.source"));
+          return rows([
+            {
+              sys_id: "2f".repeat(16),
+              sys_package: APP_ID,
+              "sys_package.source": "x_acme_app",
+              dependency: DEP_ID,
+              min_version: "1.0.0",
+            },
+          ]);
+        },
+      }),
+      async () => {
+        const byNs = await call("servicenow_list_artifacts", {
+          artifactType: "app_dependency",
+          scope: "x_acme_app",
+        });
+        assert.equal(byNs.isError, undefined);
+        assert.deepEqual(byNs.structuredContent.artifacts[0].scope, {
+          sys_id: APP_ID,
+          scope: "x_acme_app",
+        });
+        await call("servicenow_list_artifacts", {
+          artifactType: "app_dependency",
+          scope: APP_ID,
+        });
+      },
+    );
+    assert.match(seen[0], /^sys_package\.source=x_acme_app/);
+    assert.match(seen[1], new RegExp(`^sys_package=${APP_ID}`));
+  });
+  const cat = artifactTypeCatalog().types.find(
+    (t) => t.type === "app_dependency",
+  );
+  assert.equal(cat.table, "sys_package_dependency_m2m");
+  assert.equal(cat.verified, true);
+});

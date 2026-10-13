@@ -43,6 +43,8 @@ export const OD4_CORE_VERIFIED = new Set([
   "customer_update",
   "report",
   "report_source",
+  // B18: retargeted to sys_package_dependency_m2m, confirmed on the PDI.
+  "app_dependency",
 ]);
 
 /**
