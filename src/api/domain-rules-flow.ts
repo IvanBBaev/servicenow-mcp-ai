@@ -298,27 +298,63 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
         );
       };
 
-      // Draft vs published, from the snapshot pointers already read.
+      // Draft vs published, from the snapshot pointers already read. O-5:
+      // master_snapshot is the published pointer; latest_snapshot often
+      // names a snapshot row that no longer exists (50 of 51 differing
+      // pointers on a PDI), so only a latest that resolves is a draft.
       out.scanned("flow-draft-differs", flows.rows.length, flows.capped);
-      for (const f of flows.rows) {
+      const differing = flows.rows.filter((f) => {
         const master = str(f, "master_snapshot");
         const latest = str(f, "latest_snapshot");
-        if (master && latest && master !== latest) {
-          out.add(
-            "flow-draft-differs",
-            flowRef(str(f, "sys_id")),
-            "The latest snapshot is not the published one: the draft has unpublished changes (or the published version is stale). Publish or discard the draft.",
-            {
-              master_snapshot: master,
-              latest_snapshot: latest,
-              basis: "snapshot-pointers",
-            },
-          );
+        return master && latest && master !== latest;
+      });
+      const snaps = differing.length
+        ? await readIn(
+            ctx,
+            "sys_hub_flow_snapshot",
+            "sys_id",
+            differing.map((f) => str(f, "latest_snapshot")),
+            ["sys_id"],
+          )
+        : null;
+      const existing =
+        snaps && !snaps.capped
+          ? new Set(snaps.rows.map((r) => str(r, "sys_id")))
+          : null;
+      if (snaps?.capped) out.scanned("flow-draft-differs", 0, true);
+      let dangling = 0;
+      for (const f of differing) {
+        const latest = str(f, "latest_snapshot");
+        if (existing && !existing.has(latest)) {
+          dangling++;
+          continue;
         }
+        out.add(
+          "flow-draft-differs",
+          flowRef(str(f, "sys_id")),
+          "The latest snapshot is not the published one: the draft has unpublished changes (or the published version is stale). Publish or discard the draft.",
+          {
+            master_snapshot: str(f, "master_snapshot"),
+            latest_snapshot: latest,
+            basis: existing
+              ? "snapshot-pointers"
+              : "snapshot-pointers-unresolved",
+          },
+        );
       }
       ctx.caveats.add(
-        "flow-draft-differs compares latest_snapshot with master_snapshot only; the step-by-step comparison (servicenow_explain_flow published.draftDiffers) is not run per flow in the sweep, and the snapshot authority is unverified (gate O-5).",
+        "flow-draft-differs compares latest_snapshot with master_snapshot only (the step-by-step comparison, servicenow_explain_flow published.draftDiffers, is not run per flow in the sweep); a latest_snapshot with no sys_hub_flow_snapshot row is skipped.",
       );
+      if (dangling) {
+        ctx.caveats.add(
+          `flow-draft-differs skipped ${dangling} flow(s) whose latest_snapshot names no sys_hub_flow_snapshot row.`,
+        );
+      }
+      if (differing.length && !snaps) {
+        ctx.caveats.add(
+          "flow-draft-differs could not read sys_hub_flow_snapshot, so dangling latest_snapshot pointers are reported too (basis snapshot-pointers-unresolved).",
+        );
+      }
 
       if (!flows.rows.length) return;
       const { steps, capped } = await readFlowSteps(ctx, [...byId.keys()]);
@@ -332,8 +368,20 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
       // Long waits.
       for (const s of steps) {
         if (s.kind !== "logic" || !WAIT_DURATION.test(s.name)) continue;
-        for (const i of inputsOf(s.row)) {
-          if (!/duration/i.test(i.name)) continue;
+        const inputs = inputsOf(s.row);
+        // O-5: duration_type is explicit_duration, percentage_duration or
+        // relative_duration; only an explicit one has a literal length.
+        const type = inputs.find((i) => i.name === "duration_type")?.value;
+        if (typeof type === "string" && type && type !== "explicit_duration") {
+          continue;
+        }
+        for (const i of inputs) {
+          if (
+            !/duration/i.test(i.name) ||
+            /type|operator|datetime/i.test(i.name)
+          ) {
+            continue;
+          }
           const secs = durationSeconds(i.value);
           if (secs === undefined || secs <= LONG_WAIT_SECONDS) continue;
           out.add(
@@ -354,9 +402,11 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
       ];
       const integration = new Set<string>();
       if (actionIds.length) {
+        // O-5: v2 steps name an action snapshot (sys_hub_action_type_snapshot),
+        // not the definition, so read the base table both extend.
         const defs = await readIn(
           ctx,
-          "sys_hub_action_type_definition",
+          "sys_hub_action_type_base",
           "sys_id",
           actionIds,
           ["sys_id", "name", "internal_name", "sys_scope.scope"],
@@ -388,7 +438,7 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
         if (!defs && !stepRows) {
           throw new Unavailable(
             [
-              ctx.unreadable.get("sys_hub_action_type_definition"),
+              ctx.unreadable.get("sys_hub_action_type_base"),
               ctx.unreadable.get("sys_hub_step_instance"),
             ].join(" "),
           );
@@ -447,6 +497,7 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
       table: "sys_hub_flow",
       callers: SUBFLOW_TABLES,
       field: "subflow",
+      snapshots: { table: "sys_hub_flow_snapshot", field: "parent_flow" },
       what: "subflow",
     });
   });
@@ -467,6 +518,10 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
       table: "sys_hub_action_type_definition",
       callers: ACTION_TABLES,
       field: "action_type",
+      snapshots: {
+        table: "sys_hub_action_type_snapshot",
+        field: "parent_action",
+      },
       what: "action",
     });
   });
@@ -485,6 +540,12 @@ async function unused(
     table: string;
     callers: string[];
     field: string;
+    /**
+     * O-5: a step names a snapshot of the subflow or action (on a PDI every
+     * subflow call and 1,148 of 1,153 v2 action steps), so the candidates'
+     * snapshots are read first and count as the candidate.
+     */
+    snapshots: { table: string; field: string };
     what: string;
   },
 ): Promise<void> {
@@ -492,24 +553,56 @@ async function unused(
   if (!candidates.rows.length) return;
   const called = new Set<string>();
   const unknown = new Set<string>();
-  const ids = candidates.rows.map((r) => str(r, "sys_id"));
+  const ids = candidates.rows
+    .map((r) => str(r, "sys_id"))
+    .filter((id) => SAFE_ID.test(id));
   let readable = false;
+  let snapshotsUnread = false;
   // Chunk by chunk, so a capped chunk only leaves its own ids unknown.
   for (let i = 0; i < ids.length; i += IN_CHUNK) {
     const chunk = ids.slice(i, i + IN_CHUNK);
-    for (const t of o.callers) {
-      const r = await read(
-        ctx,
-        t,
-        `${o.field}IN${chunk.filter((id) => SAFE_ID.test(id)).join(",")}`,
-        [o.field],
-        DOMAIN_CHILD_MAX,
-      );
-      if (!r) continue;
-      readable = true;
-      for (const row of r.rows) called.add(str(row, o.field));
-      if (r.capped) for (const id of chunk) unknown.add(id);
+    const owner = new Map(chunk.map((id) => [id, id]));
+    const snaps = await read(
+      ctx,
+      o.snapshots.table,
+      `${o.snapshots.field}IN${chunk.join(",")}`,
+      ["sys_id", o.snapshots.field],
+      DOMAIN_CHILD_MAX,
+    );
+    if (!snaps || snaps.capped) {
+      // Without every snapshot a candidate cannot be shown uncalled.
+      snapshotsUnread ||= !snaps;
+      for (const id of chunk) unknown.add(id);
     }
+    for (const row of snaps?.rows ?? []) {
+      const id = str(row, "sys_id");
+      if (SAFE_ID.test(id)) owner.set(id, str(row, o.snapshots.field));
+    }
+    const aliases = [...owner.keys()];
+    for (let j = 0; j < aliases.length; j += IN_CHUNK) {
+      const part = aliases.slice(j, j + IN_CHUNK);
+      for (const t of o.callers) {
+        const r = await read(
+          ctx,
+          t,
+          `${o.field}IN${part.join(",")}`,
+          [o.field],
+          DOMAIN_CHILD_MAX,
+        );
+        if (!r) continue;
+        readable = true;
+        for (const row of r.rows) {
+          const id = owner.get(str(row, o.field));
+          if (id) called.add(id);
+        }
+        if (r.capped) for (const id of part) unknown.add(owner.get(id)!);
+      }
+    }
+  }
+  if (snapshotsUnread) {
+    ctx.caveats.add(
+      `${rule} could not read ${o.snapshots.table}; candidates in the unread chunks are not reported.`,
+    );
   }
   if (!readable) need(ctx, null, ...o.callers);
   if (unknown.size) out.scanned(rule, 0, true);

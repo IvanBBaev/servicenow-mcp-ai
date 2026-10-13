@@ -123,16 +123,30 @@ const FLOWS = [
     master_snapshot: "",
     latest_snapshot: "s5",
   },
+  // O-5: latest_snapshot names no snapshot row (dangling) — not a draft.
+  {
+    sys_id: "f5",
+    name: "Dangling latest",
+    type: "flow",
+    active: "true",
+    run_as: "user",
+    master_snapshot: "s6",
+    latest_snapshot: "s_gone",
+  },
 ];
 const SUBFLOWS = [
   { sys_id: "sf1", name: "Called subflow" },
   { sys_id: "sf2", name: "Dead subflow" },
+  // O-5: called through a snapshot only.
+  { sys_id: "sf3", name: "Snapshot-called subflow" },
 ];
 const ACTION_DEFS = [
   { sys_id: "a_rest", name: "REST call", internal_name: "rest_call" },
   { sys_id: "a_log", name: "Log", internal_name: "log" },
   { sys_id: "a_step", name: "Custom lookup", internal_name: "lookup" },
   { sys_id: "a_dead", name: "Dead action", internal_name: "dead" },
+  // O-5: called through a snapshot only.
+  { sys_id: "a_snap", name: "Snapshot-called action", internal_name: "snap" },
 ];
 
 const FLOW_TABLES = {
@@ -202,6 +216,15 @@ const FLOW_TABLES = {
       "action_type.name": "Log",
       values: vals({ table: "sys_user" }),
     },
+    {
+      sys_id: "i6",
+      flow: "f4",
+      ui_id: "u6",
+      parent_ui_id: "",
+      action_type: "snap_a",
+      "action_type.name": "Snapshot-called action",
+      values: "",
+    },
   ],
   sys_hub_flow_logic_instance_v2: [
     {
@@ -231,16 +254,54 @@ const FLOW_TABLES = {
       "logic_definition.name": "Wait For a Duration",
       values: vals({ duration: "1970-01-01 01:00:00" }),
     },
+    // O-5 shape: a relative wait has a date, not a length — no finding.
+    {
+      sys_id: "l4",
+      flow: "f3",
+      ui_id: "w3",
+      parent_ui_id: "",
+      logic_definition: "ld_wait",
+      "logic_definition.name": "Wait for a duration of time",
+      values: vals({
+        duration_type: "relative_duration",
+        timer_duration: "",
+        timer_relative_duration_datetime: "2030-01-01 00:00:00",
+      }),
+    },
+    // O-5 shape: an explicit 3-day wait in timer_duration — a finding.
+    {
+      sys_id: "l5",
+      flow: "f4",
+      ui_id: "w4",
+      parent_ui_id: "",
+      logic_definition: "ld_wait",
+      "logic_definition.name": "Wait for a duration of time",
+      values: vals({
+        duration_type: "explicit_duration",
+        timer_duration: "1970-01-04 00:00:00",
+        timer_relative_duration_datetime: "",
+      }),
+    },
   ],
-  sys_hub_sub_flow_instance_v2: [{ sys_id: "c1", flow: "f1", subflow: "sf1" }],
-  sys_hub_action_type_definition: (q) => {
-    const inq = /^sys_idIN([^^]*)/.exec(q);
-    if (inq) {
-      const ids = new Set(inq[1].split(","));
-      return ACTION_DEFS.filter((d) => ids.has(d.sys_id));
-    }
-    return ACTION_DEFS;
+  sys_hub_sub_flow_instance_v2: [
+    { sys_id: "c1", flow: "f1", subflow: "sf1" },
+    { sys_id: "c2", flow: "f2", subflow: "snap_sf3" },
+  ],
+  sys_hub_action_type_snapshot: [{ sys_id: "snap_a", parent_action: "a_snap" }],
+  sys_hub_action_type_definition: ACTION_DEFS,
+  // O-5: v2 steps name action snapshots, read through the base table.
+  sys_hub_action_type_base: (q) => {
+    const ids = new Set(/^sys_idIN([^^]*)/.exec(q)?.[1].split(",") ?? []);
+    return ACTION_DEFS.filter((d) => ids.has(d.sys_id));
   },
+  sys_hub_flow_snapshot: [
+    { sys_id: "s1" },
+    { sys_id: "s2" },
+    { sys_id: "s3" },
+    { sys_id: "s4" },
+    { sys_id: "s6" },
+    { sys_id: "snap_sf3", parent_flow: "sf3" },
+  ],
   sys_hub_step_instance: [
     { sys_id: "st1", action: "a_step", "step_type.name": "REST" },
     { sys_id: "st2", action: "a_log", "step_type.name": "Log" },
@@ -557,17 +618,38 @@ test("flow-run-as-system-protected: trigger and step tables (positive) vs ordina
   });
 });
 
-test("flow-draft-differs: latest != master (positive) vs equal or unpublished (negative)", async () => {
+test("flow-draft-differs: latest != master (positive) vs equal, unpublished or dangling latest (negative)", async () => {
   await scenario(ALL, async () => {
     const d = await analyseDomains();
     assert.deepEqual(ids(d, "flow-draft-differs"), ["f1"]);
-    assert.ok(d.caveats.some((c) => /draft-differs/.test(c)));
+    const f = d.findings.find((x) => x.rule === "flow-draft-differs");
+    assert.equal(f.details.basis, "snapshot-pointers");
+    assert.ok(d.caveats.some((c) => /skipped 1 flow/.test(c)));
   });
 });
 
+test("flow-draft-differs: an unreadable snapshot table reports every differing pointer", async () => {
+  await scenario(
+    ALL,
+    async () => {
+      const d = await analyseDomains();
+      assert.deepEqual(ids(d, "flow-draft-differs"), ["f1", "f5"]);
+      const f = d.findings.find((x) => x.rule === "flow-draft-differs");
+      assert.equal(f.details.basis, "snapshot-pointers-unresolved");
+      assert.ok(
+        d.caveats.some((c) => /could not read sys_hub_flow_snapshot/.test(c)),
+      );
+    },
+    { sys_hub_flow_snapshot: 403 },
+  );
+});
+
 test("flow-integration-no-error-handling: unguarded REST (name / step type) vs inside Try or non-integration", async () => {
-  await scenario(ALL, async () => {
+  await scenario(ALL, async (calls) => {
     const d = await analyseDomains();
+    // O-5: step action_type ids are snapshots, so the base table is read.
+    const paths = calls.map((c) => new URL(c.url).pathname);
+    assert.ok(paths.some((p) => p.endsWith("/sys_hub_action_type_base")));
     assert.deepEqual(ids(d, "flow-integration-no-error-handling"), [
       "f1",
       "f3",
@@ -575,13 +657,34 @@ test("flow-integration-no-error-handling: unguarded REST (name / step type) vs i
   });
 });
 
-test("flow-long-wait: 2 days (positive) vs 1 hour (negative)", async () => {
+test("flow-long-wait: 2 days / explicit 3 days (positive) vs 1 hour or a relative date (negative)", async () => {
   await scenario(ALL, async () => {
     const d = await analyseDomains();
-    assert.deepEqual(ids(d, "flow-long-wait"), ["f1"]);
-    const f = d.findings.find((x) => x.rule === "flow-long-wait");
-    assert.equal(f.details.seconds, 172800);
+    assert.deepEqual(ids(d, "flow-long-wait"), ["f1", "f4"]);
+    const secs = d.findings
+      .filter((x) => x.rule === "flow-long-wait")
+      .map((x) => x.details.seconds);
+    assert.deepEqual(secs, [172800, 259200]);
   });
+});
+
+test("flow-unused-action: an unreadable snapshot table reports no candidate", async () => {
+  await scenario(
+    ALL,
+    async () => {
+      const d = await analyseDomains();
+      assert.deepEqual(ids(d, "flow-unused-action"), []);
+      assert.ok(
+        d.caveats.some((c) =>
+          /flow-unused-action could not read sys_hub_action_type_snapshot/.test(
+            c,
+          ),
+        ),
+      );
+      assert.deepEqual(ids(d, "flow-unused-subflow"), ["sf2"]);
+    },
+    { sys_hub_action_type_snapshot: 403 },
+  );
 });
 
 test("flow-unused-subflow / flow-unused-action: no calling step (positive) vs called (negative)", async () => {
