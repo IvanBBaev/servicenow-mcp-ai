@@ -729,7 +729,9 @@ test("acceptance: an applied business-rule change lands in the named update set"
           const writes = tables(applyCalls).filter((t) => !t.startsWith("GET"));
           assert.deepEqual(writes, [
             "PATCH sys_user_preference/p1",
+            "POST sys_user_preference",
             "PATCH sys_script/" + BR_ID,
+            "DELETE sys_user_preference/new1",
             "PATCH sys_user_preference/p1",
           ]);
         },
@@ -770,7 +772,9 @@ test("binding: SN_UPDATE_SET applies to create; a missing preference row is crea
       const writes = tables(calls).filter((t) => !t.startsWith("GET"));
       assert.deepEqual(writes, [
         "POST sys_user_preference",
+        "POST sys_user_preference",
         "POST sys_script",
+        "DELETE sys_user_preference/new2",
         "DELETE sys_user_preference/new1",
       ]);
       const pref = JSON.parse(
@@ -782,6 +786,12 @@ test("binding: SN_UPDATE_SET applies to create; a missing preference row is crea
         value: id("a"),
         type: "string",
       });
+      // A global set also points updateSetForScopeglobal at itself (O-5).
+      const scoped = calls.filter((c) => c.init?.method === "POST")[1];
+      assert.equal(
+        JSON.parse(scoped.init.body).name,
+        "updateSetForScopeglobal",
+      );
       assert.equal(sn.rows("sys_user_preference").size, 0);
       assert.equal(readWriteJournal().entries.at(-1).update_set, id("a"));
     });
@@ -1013,10 +1023,14 @@ test("binding: concurrent bound writes of one user do not interleave switch and 
       const writes = tables(calls).filter((t) => !t.startsWith("GET"));
       assert.deepEqual(writes, [
         "PATCH sys_user_preference/p1",
+        "POST sys_user_preference",
         "POST sys_script",
+        "DELETE sys_user_preference/new1",
         "PATCH sys_user_preference/p1",
         "PATCH sys_user_preference/p1",
+        "POST sys_user_preference",
         "POST sys_script",
+        "DELETE sys_user_preference/new3",
         "PATCH sys_user_preference/p1",
       ]);
       assert.equal(sn.rows("sys_user_preference").get("p1").value, id("f"));

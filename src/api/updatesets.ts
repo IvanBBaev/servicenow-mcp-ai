@@ -895,7 +895,9 @@ export async function applyInUpdateSet<T>(
     let result: T;
     try {
       states.push(await setPref("sys_update_set", set.sys_id, lazyUser));
-      if (set.application && set.application !== "global") {
+      // Global too: a global record is captured in updateSetForScopeglobal
+      // when the session's current application is another scope.
+      if (set.application) {
         states.push(
           await setPref(
             `updateSetForScope${set.application}`,
