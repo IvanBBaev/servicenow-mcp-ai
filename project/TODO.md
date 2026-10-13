@@ -390,7 +390,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       `updateSetForScope<app>`; fail closed on an invalid `SN_UPDATE_SET`? bind the other write
       packages (catalog, change, knowledge) later? (c) P-9 — keep the `scriptToolsOptIn` /
       `extended` split, and when do opt-in types join lint and snapshot (resolved: lint in P-18, d5169bb; snapshot in P-20, db67cd9); `wf_activity` parent
-      field and `FLOW_CHILDREN` tables need a live instance (O-5). (d) P-7 — `available`
+      field and `FLOW_CHILDREN` tables need a live instance (O-5) (resolved: PDI-VERIFY twenty-second and
+      thirty-second passes — `wf_activity` hangs off `wf_workflow_version`; both the plain and `_v2`
+      flow tables hold rows, so the v2 trigger table joined `FLOW_CHILDREN`). (d) P-7 — `available`
       semantics (table present vs readable); field names unverified (O-5); `choice_set` has no
       `sdkSince`. (e) `test/cancel-progress.test.js` "a cancelled snapshot stops issuing requests
       within one retry window" is timing-sensitive under load — widen its headroom? (resolved: the wait is bounded by real time, 2acdff8)
@@ -615,7 +617,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       dependency graph merges each root's outbound edges only (no inbound walk).
 - [ ] **P-20 · Snapshot / compare over the registry — done 2026-09-26 (committed db67cd9) bar flow
       snapshots.** `types` / `scope` on both tools; 8 tests. Owner decisions: (a) flows from
-      `sys_hub_flow_snapshot` need the published/draft authority confirmed (O-5); (b) nested
+      `sys_hub_flow_snapshot` need the published/draft authority confirmed (O-5) (resolved: PDI-VERIFY eighteenth and
+      thirty-second passes — `master_snapshot` is the key, draft and snapshot hold the same rows); (b) nested
       children (portal layout rows / columns / instances) are skipped with a warning — walk them?
       (c) secret fields are masked, so a changed secret is not drift — hash them instead? (d)
       `["all"]` reads every registry type (about 100 primary reads plus children) — cap it? (e)

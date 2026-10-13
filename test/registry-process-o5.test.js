@@ -36,6 +36,17 @@ test("O-5: wf_activity hangs off wf_workflow_version, with no order column", () 
   assert.equal(getArtifactType("workflow").activeField, undefined);
 });
 
+test("O-5: flows read both trigger tables; v2 inputs are decoded", () => {
+  for (const type of ["flow", "subflow"]) {
+    assert.equal(child(type, "sys_hub_trigger_instance").parentField, "flow");
+    const v2 = child(type, "sys_hub_trigger_instance_v2");
+    assert.equal(v2.parentField, "flow", type);
+    assert.deepEqual(v2.jsonFields, [
+      { field: "trigger_inputs", decoder: "flow-values", writable: false },
+    ]);
+  }
+});
+
 test("O-5: AI agents — versions by target_id, triggers by use case, no active", () => {
   assert.equal(child("ai_agent", "sn_aia_version").parentField, "target_id");
   assert.equal(child("ai_agent", "sn_aia_trigger_configuration"), undefined);

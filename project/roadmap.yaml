@@ -675,7 +675,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5"]
-    notes: '**Done 2026-09-30 (local).** `types` / `scope`, sys_id → natural-key matching, child-aware diffs; opt-in `mermaid:true` diagram diffs (10 records, not drift); flows from `master_snapshot` children when present (`source:"published"`), else the draft. **GET-only PDI pass 2026-10-13:** `master_snapshot` is the right key (rows for 562 of 563 flows) and published flows have the same steps as their draft, but the snapshot encodes step `values` differently, so a draft-read side shows as changed; the warning says so. See PDI-VERIFY-2026-10.md (eighteenth pass).'
+    notes: '**Done 2026-09-30 (local).** `types` / `scope`, sys_id → natural-key matching, child-aware diffs; opt-in `mermaid:true` diagram diffs (10 records, not drift); flows from `master_snapshot` children when present (`source:"published"`), else the draft. **GET-only PDI pass 2026-10-13:** `master_snapshot` is the right key (rows for 562 of 563 flows) and published flows have the same steps as their draft, but the snapshot encodes step `values` differently, so a draft-read side shows as changed; the warning says so. See PDI-VERIFY-2026-10.md (eighteenth pass). **PDI pass 2026-10-13 (thirty-second):** both plain and `_v2` flow instance tables hold rows under draft and snapshot; `sys_hub_trigger_instance_v2` joined the flow children.'
   - id: "P-21"
     title: "application documentation generator"
     pillar: "P"
