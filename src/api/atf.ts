@@ -1,3 +1,7 @@
+import { ServiceNowError } from "../core/errors.js";
+import { activeProfile } from "../core/config.js";
+import { getProfileEnv } from "../core/settings.js";
+import { settingSource } from "../core/settings-manifest.js";
 import { snRequest } from "../core/http.js";
 import { delay } from "../core/http-util.js";
 import { reportProgress, throwIfCancelled } from "../core/progress.js";
@@ -107,10 +111,30 @@ export function toRun(result: CicdResult): AtfRun {
 }
 
 /**
+ * B21: an ATF run executes code on the instance, so it is refused on a
+ * production-marked profile, as an Instance Scan is.
+ */
+export function assertAtfRunAllowed(profile: string = activeProfile()): void {
+  if (getProfileEnv(profile) !== "prod") return;
+  const key = settingSource("SN_ENV", { profile });
+  throw new ServiceNowError(
+    `An ATF run executes code and runs only on a non-production profile; profile "${profile}" is marked prod (${key}). Nothing was started.`,
+    403,
+    undefined,
+    {
+      code: "POLICY_DENIED",
+      source: "policy",
+      hint: "Run the test against a test or dev profile (servicenow_use_instance), or read earlier results with servicenow_get_atf_result.",
+    },
+  );
+}
+
+/**
  * Run an ATF test suite via the CI/CD API. Returns the execution/progress id to
  * poll with {@link getAtfResult}. A write (executes on the instance).
  */
 export async function runAtfSuite(suiteSysId: string): Promise<AtfRun> {
+  assertAtfRunAllowed();
   assertTableAllowed("sys_atf_test_suite"); // H-4: the backing table
   assertWriteAllowed("run ATF suite");
   return pluginCall(LABEL, async () => {
@@ -130,6 +154,7 @@ export async function runAtfSuite(suiteSysId: string): Promise<AtfRun> {
  * that contains the test instead. A write (executes on the instance).
  */
 export async function runAtfTest(testSysId: string): Promise<AtfRun> {
+  assertAtfRunAllowed();
   assertTableAllowed("sys_atf_test"); // H-4: the backing table
   assertWriteAllowed("run ATF test");
   return pluginCall(LABEL, async () => {

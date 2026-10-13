@@ -18,6 +18,7 @@ import { ServiceNowError } from "../core/errors.js";
 import { reportProgress } from "../core/progress.js";
 import { noteSecretRecords } from "./secret-columns.js";
 import { assertScanAllowed, SCAN_TARGET_TABLES } from "./instance-scan.js";
+import { assertAtfRunAllowed } from "./atf.js";
 
 /**
  * ServiceNow Batch API (`/api/now/v1/batch`): run several REST calls in a
@@ -105,7 +106,10 @@ export const PACKAGE_BY_PATH: [RegExp, string][] = [
   [/^\/api\/sn_sc(?:\/|$)/i, "catalog"],
   // Instance Scan runs belong to check_code_health; first match wins.
   [/^\/api\/sn_cicd\/instance_scan(?:\/|$)/i, "codecheck"],
-  [/^\/api\/sn_cicd(?:\/|$)/i, "atf"],
+  // B21: only the ATF run and the progress poll belong to `atf`. Update set
+  // commits, app installs and plugin activation stay unmapped, so the B8
+  // default refuses them in a batch.
+  [/^\/api\/sn_cicd\/(?:testsuite|progress)(?:\/|$)/i, "atf"],
   [/^\/api\/sn_codesearch(?:\/|$)/i, "scripts"],
   [/^\/api\/now\/(?:v\d+\/)?identifyreconcile(?:\/|$)/i, "cmdb"],
   [/^\/api\/sn_chg_rest(?:\/|$)/i, "change"],
@@ -211,6 +215,9 @@ const BACKING_TABLES_BY_PATH: [RegExp, string[]][] = [
   ],
   [/^\/api\/sn_cicd\/instance_scan(?:\/|$)/i, ["scan_result"]],
 ];
+
+/** `/api/sn_cicd/testsuite/...` — an ATF run, refused on prod (B21). */
+const ATF_RUN = /^\/api\/sn_cicd\/testsuite(?:\/|$)/i;
 
 /** `/api/sn_cicd/instance_scan/...` — starting one is refused on prod. */
 const INSTANCE_SCAN = /^\/api\/sn_cicd\/instance_scan(?:\/|$)/i;
@@ -438,6 +445,10 @@ export async function runBatch(
     // N-3: a scan run is refused on a production-marked profile.
     if (req.method !== "GET" && INSTANCE_SCAN.test(pathOf(req.url))) {
       assertScanAllowed();
+    }
+    // B21: so is an ATF run.
+    if (req.method !== "GET" && ATF_RUN.test(pathOf(req.url))) {
+      assertAtfRunAllowed();
     }
     const pkg = packageForUrl(req.url);
     if (!pkg && getBatchUnmapped() === "deny") {

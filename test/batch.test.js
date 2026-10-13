@@ -357,6 +357,15 @@ test("plugin APIs map to the backing tables their tools check (H-4)", () => {
     "codecheck",
   );
   assert.equal(packageForUrl("/api/sn_cicd/testsuite/run"), "atf");
+  assert.equal(packageForUrl("/api/sn_cicd/progress/exec1"), "atf");
+  // B21: the rest of sn_cicd belongs to no package.
+  for (const url of [
+    "/api/sn_cicd/update_set/commit/x",
+    "/api/sn_cicd/app_repo/install",
+    "/api/sn_cicd/plugin/x/activate",
+  ]) {
+    assert.equal(packageForUrl(url), undefined, url);
+  }
 });
 
 test("a denied backing table refuses its plugin-API sub-request (H-4)", async () => {
@@ -410,6 +419,60 @@ test("Instance Scan sub-requests are governed by the codecheck package (N-3)", a
       },
     );
   });
+});
+
+test("a batched update set commit is refused as unmapped (B21)", async () => {
+  freshRuntime();
+  await withEnv({ SN_WRITE_MODE: "apply" }, async () => {
+    await withFetch(
+      () => {
+        throw new Error("fetch should not be called");
+      },
+      async (calls) => {
+        await assert.rejects(
+          runBatch([
+            { method: "POST", url: "/api/sn_cicd/update_set/commit/us1" },
+          ]),
+          (err) =>
+            err instanceof ServiceNowError &&
+            err.code === "POLICY_DENIED" &&
+            /SN_BATCH_UNMAPPED=deny/.test(err.message),
+        );
+        assert.equal(calls.length, 0);
+      },
+    );
+  });
+  freshRuntime();
+});
+
+test("a batched ATF run is refused on a prod-marked profile (B21)", async () => {
+  freshRuntime();
+  await withEnv(
+    { SN_ENV: "prod", SN_WRITE_MODE: "apply", SN_PROD_WRITES: "I_UNDERSTAND" },
+    async () => {
+      await withFetch(
+        () => {
+          throw new Error("fetch should not be called on prod");
+        },
+        async (calls) => {
+          await assert.rejects(
+            runBatch([
+              {
+                method: "POST",
+                url: "/api/sn_cicd/testsuite/run?test_suite_sys_id=s1",
+              },
+            ]),
+            (err) =>
+              err instanceof ServiceNowError &&
+              err.code === "POLICY_DENIED" &&
+              /marked prod \(SN_ENV\)/.test(err.message),
+          );
+          assert.equal(calls.length, 0);
+        },
+      );
+    },
+  );
+  freshRuntime();
 });
 
 test("a batched Instance Scan run is refused on a prod-marked profile (N-3)", async () => {
