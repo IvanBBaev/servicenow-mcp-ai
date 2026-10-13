@@ -101,6 +101,50 @@ test("a namespace 404 is cached: the next call fails fast without running fn", a
   assert.equal(fnCalls, 1, "fn must not run while the API is cached as absent");
 });
 
+test("a namespace 400 is handled like a namespace 404 (O-5: current releases answer 400)", async () => {
+  let fnCalls = 0;
+  const attempt = () =>
+    pluginCall("Knowledge", async () => {
+      fnCalls += 1;
+      throw new ServiceNowError(
+        "ServiceNow API error (400): Requested URI does not represent any resource",
+        400,
+        {
+          error: {
+            message: "Requested URI does not represent any resource",
+            detail: null,
+          },
+          status: "failure",
+        },
+      );
+    });
+
+  await assert.rejects(
+    attempt,
+    (err) => err.status === 400 && /may not be active/.test(err.message),
+  );
+  assert.deepEqual(pluginAvailability(), { Knowledge: "unavailable" });
+  await assert.rejects(attempt, /probably inactive/);
+  assert.equal(fnCalls, 1, "the cached answer fails fast");
+});
+
+test("a plain 400 (bad request) passes through untouched", async () => {
+  const original = new ServiceNowError(
+    "ServiceNow API error (400): bad query",
+    400,
+    {
+      error: { message: "Invalid query" },
+    },
+  );
+  await assert.rejects(
+    pluginCall("Knowledge", async () => {
+      throw original;
+    }),
+    (err) => err === original,
+  );
+  assert.deepEqual(pluginAvailability(), {});
+});
+
 test("a record-level 404 is NOT cached as plugin absence", async () => {
   let fnCalls = 0;
   const attempt = () =>

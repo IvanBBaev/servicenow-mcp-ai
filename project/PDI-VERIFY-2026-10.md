@@ -830,6 +830,24 @@ pass). Follow-up: `FLOW_CHILDREN` gains `sys_hub_trigger_instance_v2` with its
 `trigger_inputs` decoded; the `flow` explain golden gains the child. **Test
 added.** tools/list delta 0 B.
 
+## Thirty-third pass: plugin ids and missing namespaces (H-8)
+
+GET-only on ven03019 (`v_plugin` through `queryTable`, plugin REST
+namespaces). `sys_plugins` answers 403 to this user, so the probe's fallback
+is never reached here.
+
+| Read              | Finding                                                                                                                                                                                                                                                                                                   |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Missing namespace | `/api/sn_km_api/...` and an invented `/api/sn_doesnotexist_xyz/...` both answer **400** with `Requested URI does not represent any resource`, not 404. `pluginCall` handled only 404, so the plugin hint, the cache and the verdict never fired. **Fixed:** a 400 with that body is handled like the 404. |
+| CI/CD             | `com.glide.continuousdelivery` active; `sn_cicd` is not a `v_plugin` id.                                                                                                                                                                                                                                  |
+| Change Management | `com.snc.change_management` active; `.core` and `sn_chg_rest` absent. `/api/sn_chg_rest/change` answers 200.                                                                                                                                                                                              |
+| Service Catalog   | `com.glideapp.servicecatalog` active; `sn_sc` absent. `/api/sn_sc/servicecatalog/catalogs` answers 200.                                                                                                                                                                                                   |
+| Knowledge         | Neither candidate exists and the `sn_km_api` namespace is missing, so the ids stay unverified; the probe reads "missing", which is right here.                                                                                                                                                            |
+| Code Search       | Neither candidate exists; the plugin is `com.glide.code-search` (active). **Added** as the first candidate. `/api/sn_codesearch/code_search/search` answers 200.                                                                                                                                          |
+| Record 404        | `/api/now/table/incident/<unknown>` still answers 404 `No Record found`, so the record-level path is unchanged.                                                                                                                                                                                           |
+
+tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

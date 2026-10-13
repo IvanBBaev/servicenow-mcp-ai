@@ -32,18 +32,22 @@ function describeWindow(ms: number): string {
 }
 
 /**
- * ServiceNow's 404 body for a missing REST namespace says the URI does not
+ * ServiceNow's body for a missing REST namespace says the URI does not
  * map to a resource; a 404 for a missing record says "No Record found".
- * Only the former proves the plugin is absent.
+ * Only the former proves the plugin is absent. O-5 (PDI, 2026-10): current
+ * releases answer a missing namespace with 400, not 404, and the same body.
  */
 const NAMESPACE_404 = /does not represent any resource|invalid uri/i;
 
 /**
  * Plugin / store-app ids that back each plugin-scoped API (H-8 C-10). Used only
  * to tell "installed but inactive" from "not installed" after a namespace 404.
- * Best-effort: ids differ across releases and are not verified against a live
- * instance — an unknown id simply reads as "not found" in the probe, so the
- * verdict falls back to the generic wording rather than a wrong claim.
+ * Best-effort: ids differ across releases — an unknown id simply reads as
+ * "not found" in the probe, so the verdict falls back to the generic wording
+ * rather than a wrong claim. O-5 (PDI, 2026-10): `com.glide.continuousdelivery`,
+ * `com.snc.change_management`, `com.glideapp.servicecatalog` and
+ * `com.glide.code-search` exist in `v_plugin`; the other ids do not, and the
+ * Knowledge ids stay unverified (that PDI has no `sn_km_api` namespace).
  */
 export const PLUGIN_CANDIDATES: Readonly<Record<string, readonly string[]>> = {
   "CI/CD": ["sn_cicd", "com.glide.continuousdelivery"],
@@ -54,7 +58,7 @@ export const PLUGIN_CANDIDATES: Readonly<Record<string, readonly string[]>> = {
   ],
   "Service Catalog": ["com.glideapp.servicecatalog", "sn_sc"],
   Knowledge: ["com.snc.knowledge_management", "sn_km_api"],
-  "Code Search": ["sn_codesearch", "com.glide.sn-codesearch"],
+  "Code Search": ["com.glide.code-search", "sn_codesearch"],
 };
 
 /** Outcome of the plugin-state probe that follows a namespace 404. */
@@ -197,7 +201,7 @@ export async function pluginCall<T>(
   const state = states().get(key);
   if (state?.status === "unavailable" && state.until > Date.now()) {
     throw new ServiceNowError(
-      `${apiLabel} API is not available on this instance (a namespace 404 was cached in the last ${describeWindow(getPluginNegativeTtlMs())}; the backing plugin is probably inactive).${describeVerdict(apiLabel, state.verdict)}`,
+      `${apiLabel} API is not available on this instance (a missing-namespace answer was cached in the last ${describeWindow(getPluginNegativeTtlMs())}; the backing plugin is probably inactive).${describeVerdict(apiLabel, state.verdict)}`,
       404,
       undefined,
       { code: "INSTANCE_HTTP_404", source: "servicenow" },
@@ -211,10 +215,17 @@ export async function pluginCall<T>(
     });
     return result;
   } catch (err) {
-    if (err instanceof ServiceNowError && err.status === 404) {
-      const haystack = `${err.message} ${JSON.stringify(err.detail ?? "")}`;
+    const haystack =
+      err instanceof ServiceNowError
+        ? `${err.message} ${JSON.stringify(err.detail ?? "")}`
+        : "";
+    const missingNamespace = NAMESPACE_404.test(haystack);
+    if (
+      err instanceof ServiceNowError &&
+      (err.status === 404 || (err.status === 400 && missingNamespace))
+    ) {
       let verdict: PluginVerdict | undefined;
-      if (NAMESPACE_404.test(haystack)) {
+      if (missingNamespace) {
         // H-8 C-10: name the real cause — installed-but-inactive vs missing.
         const ids = PLUGIN_CANDIDATES[apiLabel];
         if (ids?.length) {

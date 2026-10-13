@@ -269,7 +269,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
 - [x] **H-8 · Platform corner-case pins** — done 2026-09-23 (uncommitted): `INSTANCE_HTML_RESPONSE` + wake hint for a 2xx HTML page, `fetchAll` past ACL-short pages with `truncatedReason` /
       `filtered`, `display_value=all` pins, attachment edges (`data:` URLs, `sizeBytes`), plugin
       inactive vs missing, drift / where-used `caveats`; 25 new tests (519/519 after the port onto
-      H-10 / S-1 / H-9). Open: plugin ids and the hibernation wording are unverified live;
+      H-10 / S-1 / H-9). Open: plugin ids (checked on a PDI, thirty-third pass in PDI-VERIFY; the Knowledge ids stay unverified) and the hibernation wording are unverified live;
       snapshot's scan-limit message — ROADMAP-V3 §H-8. With it the 2.1.0 hardening batch (items
       1–5) is complete; the 2.1.0 cut is the owner's (commit, `npm version minor`, tag).
 - [x] **Instance-documentation analysis · S-14…S-16** — done 2026-09-23 (docs only, uncommitted):

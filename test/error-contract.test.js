@@ -379,7 +379,7 @@ test("pluginCall keeps the upstream code, hint and source; a cached 404 is INSTA
       (err) =>
         err.code === "INSTANCE_HTTP_404" &&
         err.source === "servicenow" &&
-        /namespace 404 was cached/.test(err.message),
+        /missing-namespace answer was cached/.test(err.message),
     );
   } finally {
     setPluginProbe(previous);
