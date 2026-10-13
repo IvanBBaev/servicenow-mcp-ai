@@ -12,6 +12,7 @@ import {
   v1Inputs,
   v2Inputs,
 } from "./flow-triggers.js";
+import { ServiceNowError } from "../core/errors.js";
 import { isSysId } from "../core/sys-id.js";
 import {
   ACTION_CAVEAT,
@@ -852,20 +853,67 @@ async function expandCalls(
   return memo.size;
 }
 
+/** Definition columns read on top of ACTION_FIELDS (O-5, checked on a PDI). */
+const ACTION_DEFINITION_FIELDS = [...ACTION_FIELDS, "state", "master_snapshot"];
+
+/** sys_hub_action_type_snapshot has no `active`; it adds its own columns. */
+const ACTION_SNAPSHOT_FIELDS = [
+  ...ACTION_FIELDS.filter((f) => f !== "active"),
+  "master",
+  "parent_action",
+];
+
+const isNotFound = (error: unknown): boolean =>
+  error instanceof ServiceNowError && error.status === 404;
+
+/**
+ * The action root: the sys_hub_action_type_definition (the draft) or, when
+ * no definition matches, the sys_hub_action_type_snapshot a flow's action
+ * steps reference (the published version). Steps, inputs and outputs hang
+ * off either sys_id.
+ */
+async function readActionRoot(
+  ctx: ReadCtx,
+  sysId: string,
+): ReturnType<typeof readRoot> {
+  try {
+    return await readRoot(
+      ctx,
+      "sys_hub_action_type_definition",
+      sysId,
+      ACTION_DEFINITION_FIELDS,
+    );
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+  }
+  try {
+    return await readRoot(
+      ctx,
+      "sys_hub_action_type_snapshot",
+      sysId,
+      ACTION_SNAPSHOT_FIELDS,
+    );
+  } catch (error) {
+    if (!isNotFound(error)) throw error;
+    throw new ServiceNowError(
+      `No sys_hub_action_type_definition or sys_hub_action_type_snapshot record matches sys_id '${sysId}'.`,
+      404,
+      undefined,
+      { hint: (error as ServiceNowError).hint },
+    );
+  }
+}
+
 export async function explainActionDefinition(
   ctx: ReadCtx,
   result: ExplainFlowResult,
   sysId: string,
 ): Promise<ExplainFlowResult> {
   ctx.caveats.push(ACTION_CAVEAT);
-  const root = await readRoot(
-    ctx,
-    "sys_hub_action_type_definition",
-    sysId,
-    ACTION_FIELDS,
-  );
+  const root = await readActionRoot(ctx, sysId);
   if ("unreadable" in root) return degrade(result, root.unreadable);
   const row = root.row;
+  const snapshot = opt(row, "parent_action");
   result.name = opt(row, "name");
   result.action = {
     sys_id: sysId,
@@ -881,7 +929,30 @@ export async function explainActionDefinition(
     ...(opt(row, "description")
       ? { description: str(row, "description") }
       : {}),
+    ...(opt(row, "state") ? { state: str(row, "state") } : {}),
+    ...(opt(row, "master_snapshot")
+      ? { master_snapshot: str(row, "master_snapshot") }
+      : {}),
+    ...(snapshot ? { parent_action: snapshot } : {}),
+    ...(snapshot && bool(row, "master") !== undefined
+      ? { master: bool(row, "master") }
+      : {}),
   };
+  const a = result.action;
+  if (a.state === "draft" && a.master_snapshot) {
+    ctx.caveats.push(
+      `This action has unpublished draft changes (state draft): the steps shown are the draft. Flows run the published sys_hub_action_type_snapshot ${a.master_snapshot}; pass it with kind:'action' to see that version.`,
+    );
+  } else if (a.state === "draft") {
+    ctx.caveats.push(
+      "This action is a draft with no published snapshot (state draft, master_snapshot empty).",
+    );
+  }
+  if (snapshot && a.master === false) {
+    ctx.caveats.push(
+      `This snapshot is not the main (published) snapshot of sys_hub_action_type_definition ${snapshot}.`,
+    );
+  }
   result.inputs = await readVariables(
     ctx,
     "sys_hub_action_input",

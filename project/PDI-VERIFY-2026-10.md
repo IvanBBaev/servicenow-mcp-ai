@@ -448,7 +448,7 @@ Table API reads of the action, decision and `sys_pd_*` tables,
 | Inbound `LIKE` on flow step values | some values may be base64 + gzip             | Every `values` (2,789 action, 4,162 logic) and `subflow_inputs` is base64 + gzip, so the inbound read finds none of them on this PDI. The caveat says so.                                                                 |
 
 Fixed in b2b7b1a. Still open: `kind:"action"` reads the draft definition,
-not `sys_hub_action_type_snapshot` (TODO batch-11 (e)). tools/list delta 0 B.
+not `sys_hub_action_type_snapshot` (TODO batch-11 (e); resolved in the fifteenth pass). tools/list delta 0 B.
 
 ## Fourteenth pass: Service Portal and workflow domain rules (P-19)
 
@@ -469,6 +469,25 @@ Live run: `portal-public-data-widget` 61 scanned / 26 findings,
 `portal-orphan-widget` 49, `portal-orphan-page` 83, `portal-route-map-loop`
 36 / 0, `workflow-migration-candidate` 126 / 11. The domain-analyser caveat
 now names Service Portal and workflow as confirmed. tools/list delta 0 B.
+
+## Fifteenth pass: Flow action snapshots (P-11 (e))
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, the Stats API and
+Table API reads of `sys_hub_action_type_definition`,
+`sys_hub_action_type_snapshot`, `sys_hub_step_instance`,
+`sys_hub_action_input`, `sys_hub_action_instance` / `_v2`).
+
+| Item                       | Was assumed                              | Result                                                                                                                                                                                   |
+| -------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Flow step `action_type`    | the action definition (the hint said so) | **Wrong.** 2,779 of 2,789 `sys_hub_action_instance_v2` rows and 2,604 of 2,711 v1 rows reference a `sys_hub_action_type_snapshot` (76 v1 rows a definition, the rest empty or dangling). |
+| Snapshot children          | not read                                 | Steps (`sys_hub_step_instance.action`) and inputs / outputs (`model`) reference `sys_hub_action_type_base`, so a snapshot carries its own rows: 1,950 steps hang off snapshots.          |
+| Definition publish columns | not read                                 | `state` (`draft` 14, `published` 976), `master_snapshot`, `latest_snapshot` exist. 11 drafts point at a published snapshot; 51 published definitions have an empty `master_snapshot`.    |
+| Snapshot columns           | not read                                 | `master` (948 true, 122 false) and `parent_action` (→ the definition) exist; there is no `active`. A `latest_snapshot` can point at a snapshot that is gone.                             |
+
+`kind:"action"` now falls back to the snapshot when no definition matches,
+reports `state` / `master_snapshot` (definition) or `parent_action` /
+`master` (snapshot), and flags a draft with unpublished changes. The draft
+stays what a definition sys_id shows. tools/list delta 0 B.
 
 ## Next steps
 

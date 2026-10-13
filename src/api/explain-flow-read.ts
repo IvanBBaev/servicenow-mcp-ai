@@ -53,8 +53,8 @@ export async function readRoot(
         hint:
           table === "wf_workflow"
             ? "Pass a wf_workflow sys_id with kind:'workflow' (servicenow_list_flows kind:'workflow' lists them)."
-            : table === "sys_hub_action_type_definition"
-              ? "Pass a sys_hub_action_type_definition sys_id with kind:'action' (a flow's action steps carry it as ref)."
+            : table === "sys_hub_action_type_snapshot"
+              ? "Pass a sys_hub_action_type_definition sys_id, or the sys_hub_action_type_snapshot sys_id a flow's action steps carry as ref, with kind:'action'."
               : table === "sys_pd_process_definition"
                 ? "Pass a sys_pd_process_definition sys_id with kind:'playbook'."
                 : "Pass a sys_hub_flow sys_id (servicenow_list_flows lists them); use kind:'workflow' for a legacy workflow.",

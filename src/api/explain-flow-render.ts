@@ -403,6 +403,15 @@ export function flowMarkdown(
       if (a.category) out.push(`- Category: ${a.category}`);
       if (a.access) out.push(`- Access: ${a.access}`);
       if (a.active !== undefined) out.push(`- Active: ${a.active}`);
+      if (a.state) out.push(`- State: ${a.state}`);
+      if (a.master_snapshot) {
+        out.push(`- Published snapshot: ${a.master_snapshot}`);
+      }
+      if (a.parent_action) {
+        out.push(
+          `- Snapshot of: ${a.parent_action}${a.master === false ? " (not the main snapshot)" : ""}`,
+        );
+      }
       if (a.description) out.push(`- Description: ${fmt(a.description)}`);
     }
     if (f) {
