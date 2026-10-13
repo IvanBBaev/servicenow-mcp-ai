@@ -35,7 +35,7 @@
     {
       "table": "sys_security_acl_role",
       "parentField": "sys_security_acl",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     }

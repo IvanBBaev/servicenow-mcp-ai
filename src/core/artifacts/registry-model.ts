@@ -526,13 +526,11 @@ export const CATALOG_ITEM_CHILDREN: ArtifactChild[] = [
     table: "sc_cat_item_category",
     parentField: "sc_cat_item",
     nameField: "sc_category",
-    verified: false,
   },
   {
     table: "sc_cat_item_user_criteria_mtom",
     parentField: "sc_cat_item",
     nameField: "user_criteria",
-    verified: false,
   },
 ];
 

@@ -151,14 +151,14 @@
     {
       "table": "sc_cat_item_category",
       "parentField": "sc_cat_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sc_cat_item_user_criteria_mtom",
       "parentField": "sc_cat_item",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     }

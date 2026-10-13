@@ -119,7 +119,8 @@ test("get_artifact on ui_policy returns its sys_ui_policy_action children", asyn
           assert.equal(body.children.length, 1);
           const [actions] = body.children;
           assert.equal(actions.table, "sys_ui_policy_action");
-          assert.equal(actions.verified, false);
+          // O-5 (2026-10-13): the actions table was confirmed on a PDI.
+          assert.equal(actions.verified, true);
           assert.equal(actions.count, 2);
           assert.deepEqual(
             actions.records.map((r) => r.field),
