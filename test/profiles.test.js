@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { parseEnv as parseEnvFile } from "node:util";
@@ -181,7 +181,7 @@ test("the automatic instance argument routes a single call (MI-3)", async () => 
   });
 });
 
-test("useProfile switches and persists; unknown/invalid names throw", async () => {
+test("useProfile switches, persists only when asked (B12); unknown/invalid names throw", async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "servicenow-mcp-prof-"));
   const envFile = path.join(dir, ".env");
   try {
@@ -192,7 +192,9 @@ test("useProfile switches and persists; unknown/invalid names throw", async () =
         assert.equal(switched.instance, "dev1.service-now.com");
         assert.equal(activeProfile(), "dev");
         assert.equal(getCredentials().user, "dev-user");
+        assert.equal(existsSync(envFile), false);
 
+        useProfile("dev", { persist: true });
         const parsed = parseEnv(await fs.readFile(envFile, "utf8"));
         assert.equal(parsed.SN_ACTIVE_PROFILE, "dev");
 

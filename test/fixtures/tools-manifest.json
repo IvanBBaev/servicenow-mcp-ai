@@ -7053,7 +7053,7 @@
             "type": "string"
           },
           "persist": {
-            "description": "Write the env file (journaled). Default: stdio yes, HTTP no.",
+            "description": "Write the env file (journaled; default false).",
             "type": "boolean"
           }
         },
@@ -7062,8 +7062,8 @@
       },
       "sizes": {
         "description": 78,
-        "inputSchema": 363,
-        "paramDescriptions": 122,
+        "inputSchema": 349,
+        "paramDescriptions": 108,
         "outputSchema": 0
       }
     },

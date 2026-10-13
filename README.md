@@ -469,8 +469,8 @@ With `SN_TRANSPORT=http` every MCP session (one `initialize`) gets its own serve
 - **`servicenow_use_instance` is session-scoped over HTTP.** It switches the profile of
   the calling session only; other sessions keep theirs and nothing is written. Pass
   `persist: true` to also write `SN_ACTIVE_PROFILE` to the env file (journaled) — that
-  changes the default for sessions that have not switched. Over stdio the switch is
-  persisted by default, as before (`persist: false` makes it process-only).
+  changes the default for sessions that have not switched. Over stdio the switch lasts
+  until the process exits; `persist: true` writes it there too (3.0, B12).
 - **Lifetime.** A session ends on `DELETE` or after `SN_HTTP_SESSION_TTL_SEC` idle
   (default 30 min); a request with an ended session id gets 404 and the client
   re-initializes. At most `SN_HTTP_MAX_SESSIONS` (64) are open at once.
@@ -701,7 +701,7 @@ The bare SN_INSTANCE / SN_USER / SN_PASSWORD keys are the 'default' profile. Mor
 | Variable | Required | Default | Since | Description |
 | -------- | :------: | ------- | ----- | ----------- |
 | `SN_PROFILE_<NAME>_*` | no | — | 1.1.0 | Named connection profiles: `SN_PROFILE_DEV_INSTANCE` / `_USER` / `_PASSWORD` define profile `dev`. The bare `SN_INSTANCE`/`SN_USER`/`SN_PASSWORD` keys are the `default` profile. The auth, policy, write-mode, `ENV`, `PROD_WRITES` and `UPDATE_SET` settings take the same prefix. Example: `SN_PROFILE_DEV_INSTANCE=dev12345.service-now.com`, `SN_PROFILE_DEV_USER=admin`, `SN_PROFILE_DEV_PASSWORD=dev-password`. |
-| `SN_ACTIVE_PROFILE` | no | `default` | 1.1.0 | Which profile tools use. Switch at runtime with `servicenow_use_instance` (persisted to the env file). |
+| `SN_ACTIVE_PROFILE` | no | `default` | 1.1.0 | Which profile tools use. Switch at runtime with `servicenow_use_instance` (written to the env file only with `persist: true`). |
 | `SN_ENV_FILE` | no | `~/.config/servicenow-mcp-ai/.env` | 1.1.0 | Explicit path to the env file to read/write. Otherwise the server uses `$XDG_CONFIG_HOME/servicenow-mcp-ai/.env` (`~/.config/…`). A project-root `.env` next to the installed package is no longer read (B5): if one exists while the XDG file is missing, startup fails and names it. `doctor` prints the chosen file and why. |
 
 #### Network, TLS and resilience

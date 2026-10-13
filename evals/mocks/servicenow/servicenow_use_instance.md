@@ -5,4 +5,4 @@
 type: fixed
 ---
 
-{"message":"Profile switched","scope":"process","persisted":true,"activeProfile":"default","instance":"acme-dev.eval-double.invalid","user":"eval.user","readOnly":false}
+{"message":"Profile switched","scope":"process","persisted":false,"activeProfile":"default","instance":"acme-dev.eval-double.invalid","user":"eval.user","readOnly":false}

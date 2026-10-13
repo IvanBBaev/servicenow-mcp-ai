@@ -901,7 +901,7 @@ No parameters.
 
 No parameters.
 
-`servicenow_use_instance` write Switch the active ServiceNow connection profile (persisted to the env file). All identity-scoped caches (OAuth tokens, schema, plugin availability) are cleared.
+`servicenow_use_instance` write Switch the active ServiceNow connection profile for this session or process (`persist: true` also writes the env file). All identity-scoped caches (OAuth tokens, schema, plugin availability) are cleared.
 
 | Parameter | Type |  | Notes |
 | --- | --- | --- | --- |

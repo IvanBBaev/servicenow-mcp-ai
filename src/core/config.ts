@@ -490,8 +490,8 @@ export function resolveProfileName(name: string): string {
 }
 
 /**
- * Switch the process-wide active profile — persisted to the env file unless
- * `persist: false` (then it lasts until the process exits). The caller is
+ * Switch the process-wide active profile until the process exits; written to
+ * the env file only with `persist: true` (B12). The caller is
  * responsible for clearing identity-scoped caches (tokens, schema, plugin
  * availability) — the admin tool does that.
  */
@@ -500,7 +500,7 @@ export function useProfile(
   options: { persist?: boolean } = {},
 ): ServiceNowCredentials {
   const profile = resolveProfileName(name);
-  if (options.persist !== false) {
+  if (options.persist === true) {
     updateEnvFile({ SN_ACTIVE_PROFILE: profile });
   }
   process.env.SN_ACTIVE_PROFILE = profile;

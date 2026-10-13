@@ -244,7 +244,7 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
     since: V110,
     default: "default",
     description:
-      "Which profile tools use. Switch at runtime with `servicenow_use_instance` (persisted to the env file).",
+      "Which profile tools use. Switch at runtime with `servicenow_use_instance` (written to the env file only with `persist: true`).",
     schema: profileNameSchema,
   },
   filePath({

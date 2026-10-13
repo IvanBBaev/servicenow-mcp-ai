@@ -73,7 +73,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
 | `name` | string | yes | Profile to activate, e.g. 'dev'. |
-| `persist` | boolean | no | Write the env file (journaled). Default: stdio yes, HTTP no. |
+| `persist` | boolean | no | Write the env file (journaled; default false). |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

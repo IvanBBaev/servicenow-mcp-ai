@@ -559,21 +559,20 @@ export const specs: AnyToolSpec[] = [
       persist: z
         .boolean()
         .optional()
-        .describe(
-          "Write the env file (journaled). Default: stdio yes, HTTP no.",
-        ),
+        .describe("Write the env file (journaled; default false)."),
     },
     logFields: (args) => ({ name: args.name, persist: args.persist }),
     handler: ({ name, persist }) => {
       try {
         // H-7: over HTTP the switch belongs to the calling session — other
-        // sessions keep their profile and nothing is written unless asked.
+        // sessions keep their profile. B12: nothing is written unless asked,
+        // on any transport.
         const session = currentSession();
-        const persisted = persist ?? !session;
+        const persisted = persist === true;
         let switched: ServiceNowCredentials;
         if (session) {
           const profile = resolveProfileName(name);
-          if (persisted) useProfile(profile);
+          if (persisted) useProfile(profile, { persist: true });
           session.profile = profile;
           switched = getCredentials(profile);
           // The token, schema and connection caches are shared by every

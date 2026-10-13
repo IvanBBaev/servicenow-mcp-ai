@@ -473,7 +473,7 @@ test("config entries carry key names only; concurrent set_credentials leaves a v
         );
 
         const use = ALL_TOOLS.find((s) => s.name === "servicenow_use_instance");
-        const switched = await runSpec(use, { name: "default" });
+        const switched = await runSpec(use, { name: "default", persist: true });
         assert.ok(!switched.isError, JSON.stringify(switched));
 
         const raw = readFileSync(journalFile(dir), "utf8");

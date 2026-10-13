@@ -3346,7 +3346,7 @@
             "description": "Profile to activate, e.g. 'dev'."
           },
           "persist": {
-            "description": "Write the env file (journaled). Default: stdio yes, HTTP no.",
+            "description": "Write the env file (journaled; default false).",
             "type": "boolean"
           },
           "instance": {
