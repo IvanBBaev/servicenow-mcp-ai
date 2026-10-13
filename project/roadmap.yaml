@@ -594,7 +594,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: ["O-5"]
-    notes: '**Done 2026-09-26 (local, uncommitted).** `explain_flow` `kind:"action"` + `depth` call expansion (cap 3, cycle guard, 20 callees); `decision-table` explainer via `explain_artifact`; all (U), O-5.'
+    notes: '**Done 2026-09-26 (local, uncommitted).** `explain_flow` `kind:"action"` + `depth` call expansion (cap 3, cycle guard, 20 callees); `decision-table` explainer via `explain_artifact`; all (U), O-5. **Action snapshot 2026-10-13 (O-5):** a flow step references the published `sys_hub_action_type_snapshot` (2,779 of 2,789 `_v2` steps on the PDI); `kind:"action"` falls back to the snapshot when no definition matches and flags a draft with unpublished changes (TODO batch-11 (e)); 0 B tools/list.'
   - id: "P-12"
     title: "playbooks"
     pillar: "P"

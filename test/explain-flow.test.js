@@ -1359,7 +1359,9 @@ test("P-11 acceptance: a flow calling a custom action shows its steps one level 
     1,
   );
   assert.ok(
-    res.caveats.some((c) => /draft sys_hub_action_type_definition/.test(c)),
+    res.caveats.some((c) =>
+      /a flow's action steps reference the snapshot/.test(c),
+    ),
   );
   // depth:0 expands nothing and reads no action table.
   const none = instance();
@@ -1535,8 +1537,9 @@ test("P-11: kind:'action' explains a custom action definition", async () => {
   assert.equal(res.runs, undefined);
   assert.ok(res.caveats.some((c) => /runs applies to flows/.test(c)));
   assert.equal(
-    res.caveats.filter((c) => /draft sys_hub_action_type_definition/.test(c))
-      .length,
+    res.caveats.filter((c) =>
+      /a flow's action steps reference the snapshot/.test(c),
+    ).length,
     1,
   );
   const md = payload(
@@ -1558,7 +1561,7 @@ test("P-11: kind:'action' explains a custom action definition", async () => {
   assert.equal(missing.isError, true);
   assert.match(
     missing.content[0].text,
-    /No sys_hub_action_type_definition record matches/,
+    /No sys_hub_action_type_definition or sys_hub_action_type_snapshot record matches/,
   );
   const degraded = payload(
     await run(
@@ -1568,6 +1571,105 @@ test("P-11: kind:'action' explains a custom action definition", async () => {
   );
   assert.equal(degraded.degraded.table, "sys_hub_action_type_definition");
   assert.equal(degraded.steps, undefined);
+});
+
+test("P-11 (e): kind:'action' reads a published snapshot and flags a draft (O-5)", async () => {
+  const tables = fixture();
+  tables.sys_hub_action_type_definition.push(
+    {
+      sys_id: "at5",
+      name: "Close Task",
+      access: "public",
+      active: "true",
+      state: "draft",
+      master_snapshot: "ats5",
+    },
+    { sys_id: "at6", name: "New Action", active: "true", state: "draft" },
+  );
+  tables.sys_hub_action_type_snapshot = [
+    {
+      sys_id: "ats5",
+      name: "Close Task",
+      access: "public",
+      master: "true",
+      parent_action: "at5",
+    },
+    {
+      sys_id: "ats5old",
+      name: "Close Task",
+      master: "false",
+      parent_action: "at5",
+    },
+  ];
+  tables.sys_hub_step_instance.push(
+    { sys_id: "si5", action: "at5", order: "1", label: "Draft step" },
+    { sys_id: "si5p", action: "ats5", order: "1", label: "Published step" },
+  );
+  // A draft with a published snapshot names it.
+  const draft = payload(
+    await run({ sys_id: "at5", kind: "action" }, instance(tables)),
+  );
+  assert.equal(draft.action.state, "draft");
+  assert.equal(draft.action.master_snapshot, "ats5");
+  assert.deepEqual(
+    draft.steps.map((s) => s.name),
+    ["Draft step"],
+  );
+  assert.ok(
+    draft.caveats.some((c) =>
+      /unpublished draft changes .* sys_hub_action_type_snapshot ats5/.test(c),
+    ),
+  );
+  // A snapshot sys_id (what a flow step carries as ref) is read as the root.
+  const mock = instance(tables);
+  const snap = payload(await run({ sys_id: "ats5", kind: "action" }, mock));
+  assert.deepEqual(snap.action, {
+    sys_id: "ats5",
+    name: "Close Task",
+    access: "public",
+    parent_action: "at5",
+    master: true,
+  });
+  assert.deepEqual(
+    snap.steps.map((s) => s.name),
+    ["Published step"],
+  );
+  assert.deepEqual(mock.reads.slice(0, 2), [
+    "sys_hub_action_type_definition",
+    "sys_hub_action_type_snapshot",
+  ]);
+  assert.ok(!snap.caveats.some((c) => /unpublished|not the main/.test(c)));
+  const md = payload(
+    await run(
+      { sys_id: "ats5", kind: "action", format: "markdown" },
+      instance(tables),
+    ),
+  ).markdown;
+  assert.match(md, /- Snapshot of: at5\n/);
+  // An older snapshot says it is not the published one.
+  const old = payload(
+    await run({ sys_id: "ats5old", kind: "action" }, instance(tables)),
+  );
+  assert.equal(old.action.master, false);
+  assert.ok(
+    old.caveats.some((c) =>
+      /not the main \(published\) snapshot of sys_hub_action_type_definition at5/.test(
+        c,
+      ),
+    ),
+  );
+  // A draft never published says so.
+  const fresh = payload(
+    await run(
+      { sys_id: "at6", kind: "action", format: "markdown" },
+      instance(tables),
+    ),
+  );
+  assert.match(fresh.markdown, /- State: draft/);
+  const freshJson = payload(
+    await run({ sys_id: "at6", kind: "action" }, instance(tables)),
+  );
+  assert.ok(freshJson.caveats.some((c) => /no published snapshot/.test(c)));
 });
 
 test("the action Mermaid tree matches its golden", async () => {

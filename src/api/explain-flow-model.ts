@@ -35,7 +35,7 @@ export const WORKFLOW_CAVEAT =
   "Legacy workflow tables are verified:false: their table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
 
 export const ACTION_CAVEAT =
-  "Action steps come from the draft sys_hub_action_type_definition; the published sys_hub_action_type_snapshot is not read, so an action edited since it was published shows its draft steps.";
+  "Action steps, inputs and outputs are read for the record passed: a sys_hub_action_type_definition shows the draft, a sys_hub_action_type_snapshot the published version. Checked on one PDI (gate O-5): a flow's action steps reference the snapshot, so an expanded call shows the version the flow runs.";
 
 export const PLAYBOOK_CAVEAT =
   "Playbook tables are verified:false: the sys_pd_* table and field names (lane / activity keying, trigger, timer and variant columns, sys_pd_context fields) come from the SDK inventory and have not been confirmed on a live instance (gates O-5, O-9).";
@@ -324,6 +324,14 @@ export interface ExplainFlowResult {
     access?: string;
     active?: boolean;
     description?: string;
+    /** Definition only: `draft` or `published`. */
+    state?: string;
+    /** Definition only: the published sys_hub_action_type_snapshot. */
+    master_snapshot?: string;
+    /** Snapshot only: the sys_hub_action_type_definition it was published from. */
+    parent_action?: string;
+    /** Snapshot only: true for the definition's main (published) snapshot. */
+    master?: boolean;
   };
   trigger?: FlowTrigger | null;
   steps?: FlowStep[];

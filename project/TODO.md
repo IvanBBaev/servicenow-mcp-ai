@@ -547,7 +547,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       `sys_decision.answer_table`; no PDI fixture yet. (Resolved 2026-10-13, PDI-VERIFY thirteenth pass: all confirmed
       except `values` — step inputs are `sys_variable_value` rows, now read.) (d) `decision_table` is `R` + `X` now; the
       SDK-PARITY target is R/X/A/S — the `A`/`S` tiers wait for P-17 / P-20. (e) `kind:"action"` does
-      not read `sys_hub_action_type_snapshot` (published vs draft) — a later item? (f) The `tools/list`
+      not read `sys_hub_action_type_snapshot` (published vs draft) — a later item? (Resolved 2026-10-13, PDI-VERIFY
+      fifteenth pass: flow steps reference the snapshot; `kind:"action"` accepts a snapshot sys_id and a draft names its
+      published snapshot. The draft stays the default for a definition sys_id.) (f) The `tools/list`
       `all` budget measured 129,926 (ratchet unchanged at 130,000; core 31,151) and the pack grows
       further past the 800 KB ceiling (1,312.7 KB) (resolved: ADR 0006 budgets; 3 MB ceiling, 05de939).
 - [ ] **Owner decisions from batch 12 (P-17, 2026-09-26):** (a) `servicenow_artifact_dependencies`
