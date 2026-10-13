@@ -900,6 +900,27 @@ reach the script tools, snapshots and stats; the encoded-query reference
 resource says how to match a stored `javascript:` prefix. **Tests updated.**
 tools/list delta 0 B.
 
+## Thirty-seventh pass: verifier re-run on 2026-10-13 main
+
+GET-only on ven03019: `node scripts/pdi-verify.mjs` over main at e69969b, to
+catch field-name regressions from the code merged since the 2026-10-10
+re-run. It checked **276 tables and 1,345 names**. No regressions. What is
+left is what the earlier passes already list:
+
+- **Absent or plugin-gated tables (4):** `change_risk_asmt`,
+  `change_risk_asmt_threshold`, `sys_scope_dependency`,
+  `sys_ux_composite_definition`.
+- **BREAKING key fields (3, O-4):** `sys_declarative_action_definition.action_name`,
+  `sys_declarative_action_payload_definition.key`, `sys_ux_event.name`.
+- **Verified types with missing names:** none.
+- **`verified:false` types the instance confirms (37):** the Service Portal,
+  UI Builder and Next Experience rows. Flipping them stays the owner's call
+  (OD-4, N-25).
+
+The verifier checks names only, not query values; the thirty-sixth pass shows
+why that matters (a `javascript:` value is evaluated, not matched). No code
+change. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
