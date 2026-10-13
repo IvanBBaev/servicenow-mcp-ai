@@ -604,6 +604,27 @@ not read it.
 
 Fixed in this pass: the stale caveat ("a flow-level error handler … not
 read") is gone; a test fixture pins the Top Level Try shape. tools/list
+
+## Twenty-second pass: workflow, playbook and decision caveats (O-5)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_db_object`
+for the `wf_*` tables). The thirteenth pass already covered the playbook and
+decision tables; this pass checks the legacy workflow columns the explainer
+reads, then rewrites the three caveats that still said "unconfirmed".
+
+| Table                 | Columns read by the explainer                       | Result                                                                                         |
+| --------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `wf_workflow`         | `name`, `table`, `description`                      | Confirmed (`table` is `table_name`).                                                           |
+| `wf_workflow_version` | `workflow`, `name`, `published`, `active`           | Confirmed; `condition` and `table` also live here.                                             |
+| `wf_activity`         | `workflow_version`, `activity_definition`, `x`, `y` | Confirmed (`activity_definition` → `wf_element_definition`); no `order` column (first pass).   |
+| `wf_condition`        | `activity`, `name`, `order`                         | Confirmed (`condition` is a `condition_string`).                                               |
+| `wf_transition`       | `from`, `to`, `condition`                           | Confirmed: `from` / `to` → `wf_activity`, `condition` → `wf_condition`.                        |
+| `wf_stage`            | `workflow_version`, `name`, `value`, `order`        | **Gap.** No `duration` column (it is on `sys_hub_flow_stage`). The read no longer asks for it. |
+| `wf_context`          | `workflow`, `state`                                 | Confirmed; also `workflow_version`, `active`, `table`.                                         |
+
+Fixed in this pass: `WORKFLOW_CAVEAT`, `PLAYBOOK_CAVEAT` and the decision
+table caveat now use the "Checked on one PDI (gate O-5)" form (output stays
+`verified:false`), and the `wf_stage` read drops `duration`. tools/list
 delta 0 B.
 
 ## Twenty-third pass: trace lanes and structural where-used (S-5, S-9)

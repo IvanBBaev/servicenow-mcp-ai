@@ -2,7 +2,7 @@
 // artifactType `decision_table`): the inputs and rows are explained in order
 // with their condition and answer, default and inactive rows are marked, a
 // capped or unreadable child table is noted, and the whole explanation stays
-// verified:false (the sys_decision* fields are unconfirmed, gate O-5).
+// verified:false (the sys_decision* fields were checked on one PDI, gate O-5).
 import test from "node:test";
 import assert from "node:assert/strict";
 

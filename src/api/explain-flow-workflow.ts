@@ -309,6 +309,7 @@ export async function explainWorkflow(
     );
   }
 
+  // O-5: wf_stage has no `duration` column (sys_hub_flow_stage does).
   result.stages =
     versionId && SAFE_ID.test(versionId)
       ? (
@@ -316,7 +317,7 @@ export async function explainWorkflow(
             ctx,
             "wf_stage",
             `workflow_version=${versionId}^ORDERBYorder`,
-            ["sys_id", "name", "value", "order", "duration"],
+            ["sys_id", "name", "value", "order"],
           )
         ).map(stage)
       : [];
