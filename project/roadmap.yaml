@@ -630,7 +630,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local).** Workspaces, dashboards, list menus and applicability records join the UI experience tree and the workspace page map in `document_app`."
+    notes: '**Done 2026-09-30 (local).** Workspaces, dashboards, list menus and applicability records join the UI experience tree and the workspace page map in `document_app`. PDI pass 2026-10-13 (O-5, PDI-VERIFY "Twenty-fourth pass"): list menu fields confirmed; lists linked to a menu only through `configuration` (no category) are now read, and inactive lists and categories carry `active`.'
   - id: "P-16"
     title: "Service Portal tree"
     pillar: "P"

@@ -9,10 +9,12 @@ import { MermaidDoc, ident, label } from "./mermaid.js";
 import { UIB_PAGE_RULES } from "./uib-page-lint.js";
 import { UIB_BROKER_RULES } from "./uib-broker-lint.js";
 import { conditionText, workspaceLines } from "./uib-workspace.js";
-import type {
-  ExplainUiExperienceResult,
-  UxEventTarget,
-  UxMacroponent,
+import {
+  menuLists,
+  type ExplainUiExperienceResult,
+  type UxEventTarget,
+  type UxList,
+  type UxMacroponent,
 } from "./ui-experience-types.js";
 
 const macroName = (
@@ -123,7 +125,7 @@ export function uiExperienceMermaid(result: ExplainUiExperienceResult): {
     );
   }
   for (const m of result.listMenus) {
-    const lists = m.categories.reduce((n, c) => n + c.lists.length, 0);
+    const lists = menuLists(m).length;
     doc.edgeTo(
       root,
       `lm_${ident(m.sys_id)}`,
@@ -495,25 +497,32 @@ export function uiExperienceMarkdown(
     out.push("## Lists", "");
     for (const m of result.listMenus) {
       out.push(`- **${m.name ?? m.sys_id}**`);
+      const listLine = (l: UxList, indent: string): void => {
+        const who = l.applicability
+          .map((a) => audience(result, a))
+          .filter(Boolean);
+        out.push(
+          `${indent}- ${l.title ?? l.sys_id}${l.table ? ` (${l.table})` : ""}${
+            l.active === "false" ? " · inactive" : ""
+          }${who.length ? ` · audience ${who.join("; ")}` : ""}`,
+        );
+        const decoded = [
+          ...(l.columns?.length ? [`columns ${l.columns.join(", ")}`] : []),
+          ...(l.conditionTerms?.length
+            ? [`condition ${conditionText(l.conditionTerms)}`]
+            : []),
+        ];
+        if (decoded.length) out.push(`${indent}  - ${decoded.join(" · ")}`);
+      };
       for (const cat of m.categories) {
-        out.push(`  - ${cat.title ?? cat.sys_id}`);
-        for (const l of cat.lists) {
-          const who = l.applicability
-            .map((a) => audience(result, a))
-            .filter(Boolean);
-          out.push(
-            `    - ${l.title ?? l.sys_id}${l.table ? ` (${l.table})` : ""}${
-              who.length ? ` · audience ${who.join("; ")}` : ""
-            }`,
-          );
-          const decoded = [
-            ...(l.columns?.length ? [`columns ${l.columns.join(", ")}`] : []),
-            ...(l.conditionTerms?.length
-              ? [`condition ${conditionText(l.conditionTerms)}`]
-              : []),
-          ];
-          if (decoded.length) out.push(`      - ${decoded.join(" · ")}`);
-        }
+        out.push(
+          `  - ${cat.title ?? cat.sys_id}${cat.active === "false" ? " · inactive" : ""}`,
+        );
+        for (const l of cat.lists) listLine(l, "    ");
+      }
+      if (m.lists?.length) {
+        out.push("  - (no category)");
+        for (const l of m.lists) listLine(l, "    ");
       }
     }
     out.push("");

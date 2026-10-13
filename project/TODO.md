@@ -760,7 +760,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     Warn vs refuse stays the owner's call.
   - O-5 verification on a PDI: ~~P-24 fields~~ (done 2026-10-13, "Tenth pass"), flow `master_snapshot` behaviour (P-25; needs a
     writable PDI — the 2026-10-13 pass was GET-only), the `sys_ux_*`
-    (P-14 / P-15) and `sys_pd_*` (P-12) tables.
+    (P-14 / P-15; ~~P-15 list menus~~ done 2026-10-13, "Twenty-fourth pass") and `sys_pd_*` (P-12) tables.
   - M-6: restate the `tools/list` budget (`TOOLS_LIST_BUDGET_ALL` raised to 146,500 in
     `test/output-schema.test.js`) (resolved: ADR 0006).
   - P-19: severity of `uib-data-broker-no-acl`. P-21: UIB depth beyond page-map diagrams.

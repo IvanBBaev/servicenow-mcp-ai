@@ -674,6 +674,26 @@ where-used sources are now `verified: true` (`src/api/references.ts`). The UI
 Builder sources stay unverified (N-25, owner). The lanes need no code change.
 tools/list delta 0 B.
 
+## Twenty-fourth pass: workspace list menus (P-15)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, Table API reads of
+`sys_ux_list_menu_config`, `sys_ux_list_category`, `sys_ux_list`,
+`sys_ux_applicability_m2m_list`, `sys_ux_page_property`,
+`sys_ux_registry_m2m_category`).
+
+| Item                            | Was read as                                       | Result                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Menu reference                  | a page property value                             | Confirmed: the property is `listConfigId` (`type` string, value = a `sys_ux_list_menu_config` sys_id); 5 pages, 4 menus.                                                                                                                                                                                                                                  |
+| `sys_ux_list_menu_config`       | `name`, `active`                                  | Confirmed; 11 menus, all active (one, "My Workorders", has no lists).                                                                                                                                                                                                                                                                                     |
+| `sys_ux_list_category`          | `configuration`, `title`, `order`                 | Confirmed; also `active`, `description`, `sys_overrides`. 54 categories, 1 inactive ("Fuels"). Inactive categories were shown without the flag; now `active` is read.                                                                                                                                                                                     |
+| `sys_ux_list` → menu            | through `category` only                           | **Gap.** A list also names its menu in `configuration`. 3 of 207 lists have no category and were missed ("All Transfer Orders", "My Transfer Orders", "Resolution Codes"); now lists are read by both links, deduplicated, and listed under the menu's `lists` ("(no category)" in markdown). Every other list's category belongs to its `configuration`. |
+| `sys_ux_list` fields            | `title`, `table`, `condition`, `columns`, `order` | Confirmed (`columns` field*list, `condition` conditions, `table` table_name). 1 inactive list; `active` is now read. Not read: `fixed_query`, `roles`, `groups`, `view`, the `hide*\*`flags; 0 lists use`sys_overrides`.                                                                                                                                  |
+| `sys_ux_applicability_m2m_list` | `list`, `applicability`                           | Confirmed; 178 rows, all active (`order`, `active` not read).                                                                                                                                                                                                                                                                                             |
+| `sys_ux_registry_m2m_category`  | `page_registry`, `experience_category`            | Confirmed.                                                                                                                                                                                                                                                                                                                                                |
+| `sys_ux_page_property`          | `page`, `name`, `type`, `value`                   | Confirmed; also `route` (route-level properties, not read).                                                                                                                                                                                                                                                                                               |
+
+Fixed in this pass: the list menu reads above. tools/list delta 0 B.
+
 ## Twenty-fifth pass: Service Portal explainer (P-16)
 
 GET-only on ven03019, against `sys_dictionary` and `sys_db_object`. Every
