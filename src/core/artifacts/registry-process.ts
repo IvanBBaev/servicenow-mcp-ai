@@ -84,9 +84,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
         table: "sys_hub_step_instance",
         parentField: "action",
         orderField: "order",
-        jsonFields: [
-          { field: "inputs", decoder: "flow-values", writable: false },
-        ],
+        // O-5: `inputs` is a glide_var (values in sys_variable_value), not
+        // JSON, so no decoder.
       },
     ],
     nameField: "name",
@@ -185,9 +184,10 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     refFields: [
       {
+        // O-5: a run references the sys_pd_snapshot it ran, whose
+        // `source` is the playbook.
         field: "process_definition",
-        table: "sys_pd_process_definition",
-        type: "playbook",
+        table: "sys_pd_snapshot",
       },
     ],
     tiers: READ_TIER,

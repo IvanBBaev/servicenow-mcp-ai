@@ -95,7 +95,7 @@ const FLOW_STEP_TABLES: readonly { table: string; field: string }[] = [
 ];
 
 const FLOW_VALUES_CAVEAT =
-  "Flow step values stored base64 + gzip cannot be matched by a LIKE query; steps stored that way are not found as inbound edges.";
+  "Flow step values stored base64 + gzip cannot be matched by a LIKE query, so those steps are not found as inbound edges. On a live instance (O-5) every action, flow-logic and subflow step stored them that way.";
 
 /** Rows of every registry refField that points at `node` (inbound). */
 async function reverseEdges(

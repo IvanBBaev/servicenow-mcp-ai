@@ -187,17 +187,21 @@ async function readSteps(ctx: ReadCtx, owner: string): Promise<RawStep[]> {
   return out;
 }
 
-/** Attach the `sys_variable_value` inputs of v1 step rows (O-5). */
-async function readV1Inputs(
+/**
+ * The `sys_variable_value` rows of step records whose inputs are a
+ * `glide_var` (v1 step tables, sys_hub_step_instance), by step sys_id and
+ * sorted by `order` (O-5).
+ */
+async function readStepVariables(
   ctx: ReadCtx,
   table: string,
-  steps: RawStep[],
-): Promise<void> {
+  ids: string[],
+): Promise<Map<string, SnRecord[]>> {
   const rows = await boundedReadIn(
     ctx,
     "sys_variable_value",
     "document_key",
-    steps.map((s) => str(s.row, "sys_id")),
+    ids,
     ["document_key", "variable.element", "variable.label", "value", "order"],
     { prefix: `document=${table}` },
   );
@@ -206,10 +210,26 @@ async function readV1Inputs(
     const id = str(r, "document_key");
     byStep.set(id, [...(byStep.get(id) ?? []), r]);
   }
+  for (const vars of byStep.values()) {
+    vars.sort((a, b) => num(a, "order") - num(b, "order"));
+  }
+  return byStep;
+}
+
+/** Attach the `sys_variable_value` inputs of v1 step rows (O-5). */
+async function readV1Inputs(
+  ctx: ReadCtx,
+  table: string,
+  steps: RawStep[],
+): Promise<void> {
+  const byStep = await readStepVariables(
+    ctx,
+    table,
+    steps.map((s) => str(s.row, "sys_id")),
+  );
   for (const s of steps) {
     const vars = byStep.get(str(s.row, "sys_id"));
-    if (vars)
-      s.variables = vars.sort((a, b) => num(a, "order") - num(b, "order"));
+    if (vars) s.variables = vars;
   }
 }
 
@@ -642,12 +662,15 @@ const ACTION_STEP_FIELDS = [
   "comment",
   "step_type",
   "step_type.name",
-  "values",
 ];
 
 const ACTION_VAR_FIELDS = [...VAR_FIELDS, "name"];
 
-/** The sys_hub_step_instance steps of each action, by `order`. */
+/**
+ * The sys_hub_step_instance steps of each action, by `order`. O-5: the step
+ * table has no `values` (or `comment`) column; its `inputs` is a glide_var
+ * whose values are `sys_variable_value` rows, read as format `variables`.
+ */
 async function readActionSteps(
   ctx: ReadCtx,
   actionIds: string[],
@@ -661,10 +684,18 @@ async function readActionSteps(
     ACTION_STEP_FIELDS,
     { suffix: "^ORDERBYorder" },
   );
+  const vars = rows.length
+    ? await readStepVariables(
+        ctx,
+        "sys_hub_step_instance",
+        rows.map((row) => str(row, "sys_id")),
+      )
+    : new Map<string, SnRecord[]>();
   const out = new Map<string, FlowStep[]>();
   for (const row of rows) {
     const r = ref(row, "step_type");
-    const values = decodeValues(str(row, "values"), new Map());
+    const stepVars = vars.get(str(row, "sys_id"));
+    const values = stepVars ? variableValues(stepVars, new Map()) : undefined;
     const list = out.get(str(row, "action")) ?? [];
     list.push({
       number: "",
@@ -674,7 +705,6 @@ async function readActionSteps(
       order: num(row, "order"),
       name: opt(row, "label") ?? r?.name ?? r?.sys_id ?? "(step)",
       ...(r ? { ref: r } : {}),
-      ...(opt(row, "comment") ? { comment: str(row, "comment") } : {}),
       ...(values ? { values } : {}),
       children: [],
     });
