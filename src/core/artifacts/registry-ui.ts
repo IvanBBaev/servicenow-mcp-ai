@@ -512,7 +512,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
-    // P-24 (U, O-5).
+    // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["quick_start_config", "default", "logo", "icon"],
     unique: [{ fields: ["url_suffix"] }],
   },
@@ -526,7 +526,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     // Layout: page → containers → rows → columns → widget instances.
     // P-24: upsert_artifact writes the whole tree as one plan; each nested
     // child names its parent child by position (`parent`). The layout field
-    // names beyond the links, `order` and `widget_parameters` are (U), O-5.
+    // names were checked on a PDI 2026-10-13 (O-5).
     children: [
       {
         table: "sp_container",
@@ -643,7 +643,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
-    // P-24 (U, O-5): SP-3 fields; `module` is the Angular module name.
+    // P-24 (checked on a PDI 2026-10-13, O-5): SP-3 fields; `module` is the Angular module name.
     writeFields: ["module", "page_load"],
     unique: [{ fields: ["name"] }, { fields: ["module"] }],
   },
@@ -679,7 +679,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     ],
     tiers: READ_TIER,
     verified: false,
-    // P-24 (U, O-5).
+    // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["source", "url"],
   },
   {
@@ -694,7 +694,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     refFields: [{ field: "sp_css", table: "sp_css", type: "sp_css" }],
     tiers: READ_TIER,
     verified: false,
-    // P-24 (U, O-5).
+    // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["source", "url"],
   },
   {
@@ -709,7 +709,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
         table: "m2m_sp_theme_js_include",
         parentField: "sp_theme",
         orderField: "order",
-        // P-24 (U, O-5).
+        // P-24 (checked on a PDI 2026-10-13, O-5).
         writeFields: ["sp_js_include"],
       },
       {
@@ -746,7 +746,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
         orderField: "order",
         nameField: "label",
         refFields: [{ field: "sp_page", table: "sp_page", type: "sp_page" }],
-        // P-24 (U, O-5).
+        // P-24 (checked on a PDI 2026-10-13, O-5).
         writeFields: ["type", "url", "condition"],
       },
     ],
@@ -769,7 +769,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     tiers: READ_TIER,
     verified: false,
-    // P-24 (U, O-5): the widget fields it inherits; ids are unique across
+    // P-24 (checked on a PDI 2026-10-13, O-5): the widget fields it inherits; ids are unique across
     // sp_widget and every table extending it.
     writeFields: [
       "template",
@@ -798,7 +798,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     ],
     tiers: READ_TIER,
     verified: false,
-    // P-24 (U, O-5).
+    // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["portals", "roles", "order"],
   },
   // Portal tables the SDK does not model (SP-11).
