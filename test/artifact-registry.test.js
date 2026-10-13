@@ -766,3 +766,16 @@ test("O-5 (twenty-sixth pass): only unconfirmed child tables of a verified type 
   }
   assert.equal(getArtifactType("ui_policy").children[0].verified, undefined);
 });
+
+test("OD-1: UIB key fields name real columns (B17)", () => {
+  // The old names (action_name, key, name) have no sys_dictionary row on
+  // these tables, so the keys were always empty.
+  assert.deepEqual(
+    getArtifactType("ux_declarative_action_definition").keyFields,
+    ["name"],
+  );
+  assert.deepEqual(getArtifactType("ux_declarative_action_payload").keyFields, [
+    "action_key",
+  ]);
+  assert.deepEqual(getArtifactType("uib_event").keyFields, ["event_name"]);
+});

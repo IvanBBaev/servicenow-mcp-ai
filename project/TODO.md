@@ -53,6 +53,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
   - Evidence: PDI-VERIFY "Re-run after the fixes". The old names have no `sys_dictionary` row.
   - Why it is BREAKING: they are key fields, so the output keys change.
   - Recommend: (1). Today the keys are empty, so no client can depend on their values.
+  - **Decided 2026-10-13: (1).** Done: B17 in the breaking register; the three keys read
+    `name`, `action_key` and `event_name` (columns confirmed in `sys_dictionary` on the PDI).
 - **OD-2 · `scopeField` on seven tables without `sys_scope`.** _Not BREAKING (a filter that
   matches nothing today starts matching)._
   - The seven tables (registry type in brackets):
