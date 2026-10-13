@@ -82,7 +82,11 @@ export async function confirmDestructiveApply(
     ? checkPlanToken(token || undefined, expected)
     : consumePlanToken(token || undefined, expected);
   if (!check.ok) return planRefusal(check.reason);
-  call.plan = { argsHash: expected.argsHash, token };
+  call.plan = {
+    argsHash: expected.argsHash,
+    token,
+    ...(check.binding === undefined ? {} : { binding: check.binding }),
+  };
 
   if (mode !== "elicit") return null;
   return elicitOrRefuse(

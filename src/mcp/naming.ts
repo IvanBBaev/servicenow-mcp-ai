@@ -22,6 +22,7 @@ export const TOOLS = {
   check_change_conflicts: "servicenow_check_change_conflicts",
   check_code_health: "servicenow_check_code_health",
   check_data_health: "servicenow_check_data_health",
+  commit_update_set: "servicenow_commit_update_set",
   compare_instances: "servicenow_compare_instances",
   compare_update_set: "servicenow_compare_update_set",
   create_change: "servicenow_create_change",

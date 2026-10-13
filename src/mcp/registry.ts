@@ -48,6 +48,7 @@ import { specs as atfSpecs } from "../tools/atf.js";
 import { specs as revertSpecs } from "../tools/revert.js";
 import { specs as artifactsSpecs } from "../tools/artifacts.js";
 import { specs as updatesetsSpecs } from "../tools/updatesets.js";
+import { specs as cicdSpecs } from "../tools/cicd.js";
 import { specs as opsSpecs } from "../tools/ops.js";
 import { specs as historySpecs } from "../tools/history.js";
 import { specs as propertiesSpecs } from "../tools/properties.js";
@@ -117,6 +118,7 @@ export const PACKAGES: PackageSpec[] = [
     resources: registerArtifactResources,
   },
   { name: "updatesets", tools: updatesetsSpecs },
+  { name: "cicd", tools: cicdSpecs },
   { name: "ops", tools: opsSpecs },
   { name: "history", tools: historySpecs },
   { name: "properties", tools: propertiesSpecs },

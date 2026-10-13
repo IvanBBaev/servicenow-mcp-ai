@@ -803,6 +803,68 @@
       }
     },
     {
+      "name": "servicenow_commit_update_set",
+      "package": "cicd",
+      "title": "Preview or commit a retrieved update set",
+      "since": "2.0.1",
+      "description_sha256": "b954cd7ef56b9471d3450bfc8fb001b8d48b9582328f6eda584ca7a7f6fb11e9",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Plan preview token (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "step": { "enum": ["preview", "commit"], "type": "string" },
+          "update_set": {
+            "description": "sys_remote_update_set sys_id.",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "type": "string"
+          },
+          "wait_seconds": {
+            "description": "Seconds to wait for the job, polling (default 0). On timeout wait.tracker is the progress id.",
+            "maximum": 300,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": ["update_set", "step"],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "clean": { "type": "boolean" },
+          "executionId": { "type": "string" },
+          "mode": { "type": "string" },
+          "status": { "type": "string" }
+        },
+        "type": "object"
+      },
+      "sizes": {
+        "description": 250,
+        "inputSchema": 746,
+        "paramDescriptions": 281,
+        "outputSchema": 169
+      }
+    },
+    {
       "name": "servicenow_compare_instances",
       "package": "instance",
       "title": "Compare two instances",

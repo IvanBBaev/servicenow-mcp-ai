@@ -29,6 +29,11 @@ interface PlanRecord {
   profile: string;
   tool: string;
   argsHash: string;
+  /**
+   * N-4: state the plan was made against (the clean update set preview of a
+   * commit); the apply compares it with a fresh read before it writes.
+   */
+  binding?: string;
   /** Epoch ms after which the token is refused. */
   expiresAt: number;
 }
@@ -146,6 +151,7 @@ export function issuePlanToken(plan: {
   profile: string;
   tool: string;
   argsHash: string;
+  binding?: string;
 }): { token: string; expiresAt: string } {
   const now = Date.now();
   const store = plans(true);
@@ -157,7 +163,7 @@ export function issuePlanToken(plan: {
 }
 
 export type PlanTokenCheck =
-  | { ok: true }
+  | { ok: true; binding?: string }
   | {
       ok: false;
       reason:
@@ -190,7 +196,9 @@ export function checkPlanToken(
   if (plan.argsHash !== expected.argsHash) {
     return { ok: false, reason: "args_changed" };
   }
-  return { ok: true };
+  return plan.binding === undefined
+    ? { ok: true }
+    : { ok: true, binding: plan.binding };
 }
 
 /**

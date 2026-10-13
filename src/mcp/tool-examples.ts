@@ -57,6 +57,10 @@ export const TOOL_EXAMPLES: Record<ToolName, ToolExample> = {
       key_fields: ["number"],
     },
   },
+  servicenow_commit_update_set: {
+    summary: "Preview committing a retrieved update set after a clean preview.",
+    arguments: { update_set: ID, step: "commit" },
+  },
   servicenow_compare_instances: {
     summary: "Compare dev with test for one scope, ACLs included.",
     arguments: { a: "dev", b: "test", scope: "x_acme_app", sections: ["acls"] },

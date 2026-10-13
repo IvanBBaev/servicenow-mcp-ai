@@ -86,9 +86,10 @@ export interface CallContext {
   /**
    * H-3: set on a destructive-apply tool's call while SN_DESTRUCTIVE_CONFIRM
    * is on — the hash of the arguments a plan preview binds its plan_token to,
-   * and, once an apply was confirmed, the consumed token (journaled).
+   * and, once an apply was confirmed, the consumed token (journaled) and the
+   * state its plan was bound to (N-4, see plan-token.ts).
    */
-  plan?: { argsHash: string; token?: string };
+  plan?: { argsHash: string; token?: string; binding?: string };
   /**
    * N-55: the process-unique id of the call's diagnostics_channel events
    * (tracing.ts); the HTTP request events of the call carry it as `callId`.

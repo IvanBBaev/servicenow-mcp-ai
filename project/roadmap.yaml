@@ -824,11 +824,11 @@ items:
     title: "CI/CD promotion lane"
     pillar: "N"
     effort: "L"
-    status: "open"
+    status: "partial"
     phase: "D"
     done: null
     gates: ["O-11"]
-    notes: "Phase D, waits for O-11. Opt-in `cicd` package: update-set preview / commit, app install / publish, plugin activation through plan → token → apply (NX-04)."
+    notes: "**Update set lane done 2026-10-14** (O-11 option B, [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md)): opt-in `cicd` package with one tool, `servicenow_commit_update_set` (`step: preview | commit` on a `sys_remote_update_set`). A commit needs a clean preview (state `previewed`, no unresolved `sys_update_preview_problem`, ≤ 1000 problems), never sends `force_commit`, and binds the preview fingerprint into its plan_token; a preview that changed after the plan is refused (`STALE_RECORD`). `servicenow_batch` maps `/api/sn_cicd/update_set` to `cicd` and always refuses it. all +1,303 B (budgets raised by hand per ADR 0011), core +0 B. Tables unverified until O-5. **Open:** app install / publish and plugin activation wait for a later gate (NX-04)."
   - id: "N-9"
     title: "sampling summaries"
     pillar: "N"

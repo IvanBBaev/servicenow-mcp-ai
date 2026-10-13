@@ -367,8 +367,13 @@ async function runSpecInner(
 
   call.profile = profile || activeProfile();
   // H-3: a destructive-apply tool's call knows its plan binding, so its plan
-  // preview can issue a plan_token for exactly these arguments.
-  if (spec.confirm && getDestructiveConfirm(call.profile) !== "off") {
+  // preview can issue a plan_token for exactly these arguments — only when
+  // `when` selects the call, so a plan whose apply needs no token issues none.
+  if (
+    spec.confirm &&
+    (spec.confirm.when?.(args) ?? true) &&
+    getDestructiveConfirm(call.profile) !== "off"
+  ) {
     call.plan = { argsHash: planArgsHash(args) };
   }
   const fields = spec.logFields?.(args) ?? {};

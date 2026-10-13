@@ -43,7 +43,8 @@ function holdDetail(): { write_mode_hold?: string } {
 /**
  * A non-mutating before/after preview returned by a write tool in plan mode.
  * `details` carries tool-specific facts (S-2's revert adds the reverted entry
- * and its drift check).
+ * and its drift check). `binding` (N-4) is stored with a plan_token, so the
+ * apply can refuse when the state the plan was made against has changed.
  */
 export function planPreview(
   plan: {
@@ -54,6 +55,7 @@ export function planPreview(
     after?: unknown;
   },
   details: Record<string, unknown> = {},
+  binding?: string,
 ): ToolResult {
   // H-3: a destructive-apply tool's call under SN_DESTRUCTIVE_CONFIRM carries
   // a plan binding (define.ts) — issue the token the apply must hand back.
@@ -63,6 +65,7 @@ export function planPreview(
       profile: call.profile ?? activeProfile(),
       tool: call.tool,
       argsHash: call.plan.argsHash,
+      ...(binding === undefined ? {} : { binding }),
     });
     return ok({
       mode: "plan",

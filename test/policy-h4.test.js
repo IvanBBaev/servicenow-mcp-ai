@@ -591,6 +591,7 @@ const WRITE_ARGS = {
     content_base64: "aGVsbG8=",
   },
   servicenow_delete_attachment: { sys_id: SYS_ID },
+  servicenow_commit_update_set: { update_set: SYS_ID, step: "commit" },
   servicenow_insert_import_set_row: {
     table: "u_imp_x",
     values: { a: "1" },
@@ -647,6 +648,7 @@ const WRITE_TABLE = {
   servicenow_identify_reconcile: "cmdb_ci_server",
   servicenow_send_email: "sys_email",
   servicenow_run_atf: "sys_atf_test",
+  servicenow_commit_update_set: "sys_remote_update_set",
   servicenow_check_code_health: "scan_result",
   servicenow_set_property: "sys_properties",
   servicenow_upsert_artifact: "sys_ui_policy",

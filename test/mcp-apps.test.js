@@ -70,6 +70,7 @@ const PLAN_TOOLS = [
   "servicenow_batch",
   "servicenow_check_change_conflicts",
   "servicenow_check_code_health",
+  "servicenow_commit_update_set",
   "servicenow_create_change",
   "servicenow_create_ci",
   "servicenow_create_record",

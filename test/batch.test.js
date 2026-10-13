@@ -358,9 +358,10 @@ test("plugin APIs map to the backing tables their tools check (H-4)", () => {
   );
   assert.equal(packageForUrl("/api/sn_cicd/testsuite/run"), "atf");
   assert.equal(packageForUrl("/api/sn_cicd/progress/exec1"), "atf");
+  // N-4: update set jobs belong to `cicd` (and are never batched).
+  assert.equal(packageForUrl("/api/sn_cicd/update_set/commit/x"), "cicd");
   // B21: the rest of sn_cicd belongs to no package.
   for (const url of [
-    "/api/sn_cicd/update_set/commit/x",
     "/api/sn_cicd/app_repo/install",
     "/api/sn_cicd/plugin/x/activate",
   ]) {
@@ -421,27 +422,30 @@ test("Instance Scan sub-requests are governed by the codecheck package (N-3)", a
   });
 });
 
-test("a batched update set commit is refused as unmapped (B21)", async () => {
+test("a batched update set commit is refused, even with unmapped paths allowed (B21, N-4)", async () => {
   freshRuntime();
-  await withEnv({ SN_WRITE_MODE: "apply" }, async () => {
-    await withFetch(
-      () => {
-        throw new Error("fetch should not be called");
-      },
-      async (calls) => {
-        await assert.rejects(
-          runBatch([
-            { method: "POST", url: "/api/sn_cicd/update_set/commit/us1" },
-          ]),
-          (err) =>
-            err instanceof ServiceNowError &&
-            err.code === "POLICY_DENIED" &&
-            /SN_BATCH_UNMAPPED=deny/.test(err.message),
-        );
-        assert.equal(calls.length, 0);
-      },
-    );
-  });
+  await withEnv(
+    { SN_WRITE_MODE: "apply", SN_BATCH_UNMAPPED: "allow" },
+    async () => {
+      await withFetch(
+        () => {
+          throw new Error("fetch should not be called");
+        },
+        async (calls) => {
+          await assert.rejects(
+            runBatch([
+              { method: "POST", url: "/api/sn_cicd/update_set/commit/us1" },
+            ]),
+            (err) =>
+              err instanceof ServiceNowError &&
+              err.code === "POLICY_DENIED" &&
+              /never batched/.test(err.message),
+          );
+          assert.equal(calls.length, 0);
+        },
+      );
+    },
+  );
   freshRuntime();
 });
 

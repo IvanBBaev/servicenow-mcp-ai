@@ -106,10 +106,12 @@ export const PACKAGE_BY_PATH: [RegExp, string][] = [
   [/^\/api\/sn_sc(?:\/|$)/i, "catalog"],
   // Instance Scan runs belong to check_code_health; first match wins.
   [/^\/api\/sn_cicd\/instance_scan(?:\/|$)/i, "codecheck"],
-  // B21: only the ATF run and the progress poll belong to `atf`. Update set
-  // commits, app installs and plugin activation stay unmapped, so the B8
-  // default refuses them in a batch.
+  // B21: only the ATF run and the progress poll belong to `atf`. App
+  // installs and plugin activation stay unmapped, so the B8 default refuses
+  // them in a batch.
   [/^\/api\/sn_cicd\/(?:testsuite|progress)(?:\/|$)/i, "atf"],
+  // N-4: update set preview / commit belong to `cicd` (never batchable).
+  [/^\/api\/sn_cicd\/update_set(?:\/|$)/i, "cicd"],
   [/^\/api\/sn_codesearch(?:\/|$)/i, "scripts"],
   [/^\/api\/now\/(?:v\d+\/)?identifyreconcile(?:\/|$)/i, "cmdb"],
   [/^\/api\/sn_chg_rest(?:\/|$)/i, "change"],
@@ -218,6 +220,12 @@ const BACKING_TABLES_BY_PATH: [RegExp, string[]][] = [
 
 /** `/api/sn_cicd/testsuite/...` — an ATF run, refused on prod (B21). */
 const ATF_RUN = /^\/api\/sn_cicd\/testsuite(?:\/|$)/i;
+
+/**
+ * N-4: `/api/sn_cicd/update_set/...` — a preview or commit runs only through
+ * servicenow_commit_update_set, which holds the clean-preview gate.
+ */
+const UPDATE_SET_JOB = /^\/api\/sn_cicd\/update_set(?:\/|$)/i;
 
 /** `/api/sn_cicd/instance_scan/...` — starting one is refused on prod. */
 const INSTANCE_SCAN = /^\/api\/sn_cicd\/instance_scan(?:\/|$)/i;
@@ -449,6 +457,17 @@ export async function runBatch(
     // B21: so is an ATF run.
     if (req.method !== "GET" && ATF_RUN.test(pathOf(req.url))) {
       assertAtfRunAllowed();
+    }
+    if (UPDATE_SET_JOB.test(pathOf(req.url))) {
+      throw new ServiceNowError(
+        `Sub-request ${index + 1} targets the CI/CD update set API; a preview or commit is never batched.`,
+        403,
+        undefined,
+        {
+          code: "POLICY_DENIED",
+          hint: "Use servicenow_commit_update_set: a commit needs a clean preview.",
+        },
+      );
     }
     const pkg = packageForUrl(req.url);
     if (!pkg && getBatchUnmapped() === "deny") {

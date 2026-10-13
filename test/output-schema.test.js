@@ -166,6 +166,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * description; measured 23,689 / 23,689 / 119,543 / 120,603 / 140,063 (all
  * −1,728 B; core +0 B; all+legacy +1,454 B from the four new aliases):
  * `all` becomes 119,552, `all+tasks` 120,832 and `all+legacy` 140,288.
+ * N-4, 2026-10-14 (owner: ADR 0011, O-11): the opt-in `cicd` package and
+ * its one tool, `servicenow_commit_update_set`, measured 23,675 / 23,675 /
+ * 120,831 / 121,891 / 141,351 (all +1,303 B; core +0 B): `all` becomes
+ * 120,832, `all+tasks` 122,112 and `all+legacy` 141,568.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(
