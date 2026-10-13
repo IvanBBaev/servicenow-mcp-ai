@@ -4,8 +4,8 @@
   "profiles": {
     "core": 23808,
     "discovery": 23808,
-    "all": 120832,
-    "all+tasks": 122112,
-    "all+legacy": 141568
+    "all": 122112,
+    "all+tasks": 123136,
+    "all+legacy": 142592
   }
 }

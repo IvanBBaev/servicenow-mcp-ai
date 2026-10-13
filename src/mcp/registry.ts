@@ -49,6 +49,7 @@ import { specs as revertSpecs } from "../tools/revert.js";
 import { specs as artifactsSpecs } from "../tools/artifacts.js";
 import { specs as updatesetsSpecs } from "../tools/updatesets.js";
 import { specs as cicdSpecs } from "../tools/cicd.js";
+import { specs as accessSpecs } from "../tools/access.js";
 import { specs as opsSpecs } from "../tools/ops.js";
 import { specs as historySpecs } from "../tools/history.js";
 import { specs as propertiesSpecs } from "../tools/properties.js";
@@ -119,6 +120,7 @@ export const PACKAGES: PackageSpec[] = [
   },
   { name: "updatesets", tools: updatesetsSpecs },
   { name: "cicd", tools: cicdSpecs },
+  { name: "access", tools: accessSpecs },
   { name: "ops", tools: opsSpecs },
   { name: "history", tools: historySpecs },
   { name: "properties", tools: propertiesSpecs },

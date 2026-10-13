@@ -38,6 +38,7 @@ export const ALL_PACKAGES: string[] = [
   "artifacts",
   "updatesets",
   "cicd",
+  "access",
   "ops",
   "history",
   "properties",

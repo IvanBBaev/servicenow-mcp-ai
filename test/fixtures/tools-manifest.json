@@ -514,6 +514,66 @@
       }
     },
     {
+      "name": "servicenow_change_access",
+      "package": "access",
+      "title": "Grant or revoke a user role",
+      "since": "2.0.1",
+      "description_sha256": "07e154e8cfa86d23263a3832334e394de8d1d5a9e819565af537c0b149c3afb8",
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": true
+      },
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "action": { "enum": ["grant", "revoke"], "type": "string" },
+          "apply": {
+            "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "maxLength": 128,
+            "type": "string"
+          },
+          "plan_token": {
+            "description": "Plan preview token (apply:true)",
+            "maxLength": 64,
+            "type": "string"
+          },
+          "role": {
+            "description": "Role name, e.g. 'itil'.",
+            "pattern": "^[A-Za-z0-9_.-]{1,100}$",
+            "type": "string"
+          },
+          "user": {
+            "description": "sys_user sys_id.",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$",
+            "type": "string"
+          }
+        },
+        "required": ["user", "role", "action"],
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": {},
+        "properties": {
+          "message": { "type": "string" },
+          "mode": { "type": "string" },
+          "sys_id": { "type": "string" }
+        },
+        "type": "object"
+      },
+      "sizes": {
+        "description": 242,
+        "inputSchema": 661,
+        "paramDescriptions": 198,
+        "outputSchema": 138
+      }
+    },
+    {
       "name": "servicenow_check_capabilities",
       "package": "admin",
       "title": "Check achievable capabilities",

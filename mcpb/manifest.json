@@ -3,7 +3,7 @@
   "name": "servicenow-mcp-ai",
   "display_name": "ServiceNow MCP",
   "version": "2.0.1",
-  "description": "ServiceNow MCP server: 99 tools in 27 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
+  "description": "ServiceNow MCP server: 100 tools in 28 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "author": { "name": "Ivan Baev", "email": "ivanbbaev@gmail.com" },
   "repository": {
     "type": "git",
@@ -52,6 +52,10 @@
       "description": "Aggregate ServiceNow records"
     },
     { "name": "servicenow_batch", "description": "Run a ServiceNow batch" },
+    {
+      "name": "servicenow_change_access",
+      "description": "Grant or revoke a user role"
+    },
     {
       "name": "servicenow_check_capabilities",
       "description": "Check achievable capabilities"
@@ -527,7 +531,7 @@
     "tool_packages": {
       "type": "string",
       "title": "Tool packages",
-      "description": "Comma/space-separated tool packages or profiles to enable. Profiles: discovery (default; core is its older name), all and the presets reader | developer | admin (see Presets). Packages: table, schema, aggregate, attachment, importset, batch, catalog, change, knowledge, cmdb, scripts, flows, codecheck, docs, instance, email, atf, revert, artifacts, updatesets, cicd, ops, history, properties, directory, ui. The admin tools are always on. atf runs tests on the instance — enable it only on a non-production instance. cicd previews and commits retrieved update sets. Default: discovery. (SN_TOOL_PACKAGES)",
+      "description": "Comma/space-separated tool packages or profiles to enable. Profiles: discovery (default; core is its older name), all and the presets reader | developer | admin (see Presets). Packages: table, schema, aggregate, attachment, importset, batch, catalog, change, knowledge, cmdb, scripts, flows, codecheck, docs, instance, email, atf, revert, artifacts, updatesets, cicd, access, ops, history, properties, directory, ui. The admin tools are always on. atf runs tests on the instance — enable it only on a non-production instance. cicd previews and commits retrieved update sets. access grants and revokes one non-privileged role for one user. Default: discovery. (SN_TOOL_PACKAGES)",
       "required": false
     }
   }

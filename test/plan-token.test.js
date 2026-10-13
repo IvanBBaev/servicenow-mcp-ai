@@ -451,12 +451,14 @@ test("token: SN_REDACT_PII cannot mangle the token (letters only)", async () => 
   );
 });
 
-test("schema: exactly the nine plan-token tools gain plan_token", () => {
+test("schema: exactly the ten plan-token tools gain plan_token", () => {
   const withToken = ALL_TOOLS.filter(
     (s) => "plan_token" in buildInputSchema(s).shape,
   ).map((s) => s.name);
   assert.deepEqual(withToken.sort(), [
     "servicenow_batch",
+    // N-24: both grant and revoke need the token.
+    "servicenow_change_access",
     "servicenow_check_change_conflicts",
     // N-4: the commit step; a preview issues no token.
     "servicenow_commit_update_set",

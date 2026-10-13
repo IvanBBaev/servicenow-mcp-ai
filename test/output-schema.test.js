@@ -170,6 +170,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * its one tool, `servicenow_commit_update_set`, measured 23,675 / 23,675 /
  * 120,831 / 121,891 / 141,351 (all +1,303 B; core +0 B): `all` becomes
  * 120,832, `all+tasks` 122,112 and `all+legacy` 141,568.
+ * N-24, 2026-10-14 (owner: ADR 0011, O-17): the opt-in `access` package and
+ * its one tool, `servicenow_change_access`, measured 23,675 / 23,675 /
+ * 121,992 / 123,052 / 142,512 (all +1,161 B; core +0 B): `all` becomes
+ * 122,112, `all+tasks` 123,136 and `all+legacy` 142,592.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

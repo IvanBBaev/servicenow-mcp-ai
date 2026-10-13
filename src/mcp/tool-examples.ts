@@ -57,6 +57,10 @@ export const TOOL_EXAMPLES: Record<ToolName, ToolExample> = {
       key_fields: ["number"],
     },
   },
+  servicenow_change_access: {
+    summary: "Preview granting the itil role to one user.",
+    arguments: { user: ID, role: "itil", action: "grant" },
+  },
   servicenow_commit_update_set: {
     summary: "Preview committing a retrieved update set after a clean preview.",
     arguments: { update_set: ID, step: "commit" },

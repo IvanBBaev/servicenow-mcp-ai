@@ -14,7 +14,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "^mcp__.+__servicenow_(?:batch|change_conflicts|check_change_conflicts|commit_update_set|delete_attachment|delete_record|order_catalog_item|revert_write|send_email|upsert_artifact)$",
+        "matcher": "^mcp__.+__servicenow_(?:batch|change_access|change_conflicts|check_change_conflicts|commit_update_set|delete_attachment|delete_record|order_catalog_item|revert_write|send_email|upsert_artifact)$",
         "hooks": [
           {
             "type": "command",

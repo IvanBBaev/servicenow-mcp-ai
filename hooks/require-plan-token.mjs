@@ -47,6 +47,7 @@ export const DESTRUCTIVE_TOOLS = {
     input.requests.some((r) => r?.method !== "GET"),
   servicenow_check_change_conflicts: (input) => input.calculate === true,
   servicenow_commit_update_set: (input) => input.step === "commit",
+  servicenow_change_access: () => true,
   servicenow_delete_attachment: () => true,
   servicenow_delete_record: () => true,
   servicenow_order_catalog_item: () => true,

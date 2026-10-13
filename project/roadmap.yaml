@@ -977,11 +977,11 @@ items:
     title: "grant and revoke access"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: "D"
-    done: null
+    done: "2026-10-14"
     gates: ["O-17"]
-    notes: "Phase D. Opt-in `access` package, `servicenow_change_access` with an effective-roles before/after plan; waits for O-17 (NX-30)."
+    notes: "**Done 2026-10-14** (O-17 option B, [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md)): opt-in `access` package with one tool, `servicenow_change_access` (`action: grant | revoke`, one role for one user as a direct `sys_user_has_role` row). Both actions need the plan_token; the plan shows the effective roles before and after (a revoke drops the rows the revoked row brought in) and binds the user's role rows into the token, so roles that changed after the plan are refused (`STALE_RECORD`). Always refused: `admin`, `security_admin`, `maint`, every `elevated_privilege` role and every role that contains one (transitive `sys_user_role_contains` walk, fails closed past 200 roles), and inherited rows (group or containing role). `sys_user_has_role` stays a protected table (B11): a write also needs `SN_TABLES_ALLOW` or `SN_PROTECTED_TABLES_WRITE=allow`. all +1,161 B (budgets raised by hand per ADR 0011), core +0 B. Field names follow the access review (PDI-checked)."
   - id: "N-25"
     title: "UIB live verification"
     pillar: "N"

@@ -1,6 +1,6 @@
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-99-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-100-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: MIT](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
 
@@ -737,7 +737,7 @@ Which tools are registered. The admin tools (set_credentials, get_status, use_in
 
 | Variable | Required | Default | Since | Description |
 | -------- | :------: | ------- | ----- | ----------- |
-| `SN_TOOL_PACKAGES` | no | `discovery` | 1.0.0 | Comma/space-separated tool packages or profiles to enable. Profiles: `discovery` (default; `core` is its older name), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `cicd`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. `cicd` previews and commits retrieved update sets. |
+| `SN_TOOL_PACKAGES` | no | `discovery` | 1.0.0 | Comma/space-separated tool packages or profiles to enable. Profiles: `discovery` (default; `core` is its older name), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `cicd`, `access`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. `cicd` previews and commits retrieved update sets. `access` grants and revokes one non-privileged role for one user. |
 | `SN_PACKAGES_DENY` | no | — | 1.0.0 | Comma/space-separated packages to exclude even if enabled by `SN_TOOL_PACKAGES`. The only way to block plugin APIs (catalog, change, knowledge…) — the table policy does not see them. |
 | `SN_PACKAGES_READONLY` | no | — | 1.0.0 | Comma/space-separated packages whose write tools are not registered; their read tools stay. Per-package complement to the global `SN_READONLY`. |
 | `SN_CODESEARCH` | no | `false` | 1.1.0 | Opt in to the Code Search API (`sn_codesearch`) for `servicenow_search_code` (FT-7). When `true` and the plugin is active it replaces the LIKE iteration; falls back to LIKE on any failure. |
@@ -1126,6 +1126,7 @@ name carries the `servicenow_` prefix, left out below._
 | [`artifacts`](docs/tools/artifacts.md) | no | `list_artifacts`, `get_artifact`, `explain_artifact`, `get_artifact_dependencies` | `upsert_artifact` |
 | [`updatesets`](docs/tools/updatesets.md) | no | `list_update_sets`, `get_update_set`, `compare_update_set` | — |
 | [`cicd`](docs/tools/cicd.md) | no | — | `commit_update_set` |
+| [`access`](docs/tools/access.md) | no | — | `change_access` |
 | [`ops`](docs/tools/ops.md) | no | `read_ops`, `check_data_health` | — |
 | [`history`](docs/tools/history.md) | no | `get_record_history`, `get_task_context` | — |
 | [`properties`](docs/tools/properties.md) | no | `get_properties` | `set_property` |
@@ -1751,7 +1752,7 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 │   ├── mcp/               # MCP surface: package registry/manifest, tool definition,
 │   │                      # resources, prompts, result envelopes, redaction, write mode
 │   │                      # (plan/apply), CSV export, stdio + HTTP transports
-│   └── tools/             # tool registrations, one file per package (27 packages)
+│   └── tools/             # tool registrations, one file per package (28 packages)
 ├── test/                  # node:test suite (406 tests): unit, mock-fetch api, MCP smoke, doc guards
 └── build/                 # compiled output (after npm run build)
 ```

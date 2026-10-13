@@ -68,6 +68,7 @@ const isUi = (r) => r.uri.startsWith("ui://");
 
 const PLAN_TOOLS = [
   "servicenow_batch",
+  "servicenow_change_access",
   "servicenow_check_change_conflicts",
   "servicenow_check_code_health",
   "servicenow_commit_update_set",

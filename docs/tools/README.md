@@ -2,7 +2,7 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-99 tools in 27 packages. Select packages with `SN_TOOL_PACKAGES` (default `discovery`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
+100 tools in 28 packages. Select packages with `SN_TOOL_PACKAGES` (default `discovery`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
 
 | Package | Tools | Read-only | Default `discovery` |
 | ------- | ----: | --------: | :-----------------: |
@@ -27,6 +27,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | [`artifacts`](artifacts.md) | 5 | 4 | no |
 | [`updatesets`](updatesets.md) | 3 | 3 | no |
 | [`cicd`](cicd.md) | 1 | 0 | no |
+| [`access`](access.md) | 1 | 0 | no |
 | [`ops`](ops.md) | 2 | 2 | no |
 | [`history`](history.md) | 2 | 2 | no |
 | [`properties`](properties.md) | 2 | 1 | no |
