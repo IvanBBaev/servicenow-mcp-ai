@@ -62,7 +62,7 @@ export interface ArtifactRow {
   /**
    * Flows only: `"published"` when the children were read under the
    * published snapshot (`master_snapshot`) rather than the draft; absent
-   * otherwise. Not part of the hash. Unverified authority (O-5).
+   * otherwise. Not part of the hash. Checked on a PDI (O-5).
    */
   source?: "published";
   /** With `source`: the sys_hub_flow_snapshot sys_id the children came from. */
@@ -161,12 +161,14 @@ const FLOW_TABLE = "sys_hub_flow";
 /**
  * P-20: the published-snapshot caveat. The flow's child rows are read under
  * `master_snapshot` (the sys_hub_flow_snapshot record Flow Designer publishes)
- * — the same keying `servicenow_explain_flow` uses for `draftDiffers`. O-5:
- * on a PDI the six step tables hold rows under both the flow and its
- * snapshots.
+ * — the same keying `servicenow_explain_flow` uses for `draftDiffers`. O-5
+ * (PDI-VERIFY eighteenth pass): rows sit under `master_snapshot` for 562 of
+ * 563 flows (`latest_snapshot` is mostly dangling), and every published flow
+ * has the same steps under its draft and its snapshot. The snapshot encodes
+ * step `values` differently, so the two sources do not hash alike.
  */
 export const PUBLISHED_FLOW_WARNING =
-  "read from the published snapshot (sys_hub_flow_snapshot via master_snapshot); which of the published snapshot and the draft is authoritative is unverified (O-5).";
+  "read from the published snapshot (sys_hub_flow_snapshot via master_snapshot). A draft with unpublished edits differs from it, and the snapshot encodes step values differently from the draft, so a flow read from its draft on the other side shows as changed.";
 
 type Parent = { sys_id: string; fields: Record<string, unknown> };
 

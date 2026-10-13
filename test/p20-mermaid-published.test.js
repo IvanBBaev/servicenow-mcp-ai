@@ -168,7 +168,7 @@ test("flow with master_snapshot: children read under the published snapshot, mar
     const w = snap.warnings.find((x) => /published snapshot/.test(x));
     assert.ok(w, snap.warnings.join("\n"));
     assert.match(w, /^flow: 1 record\(s\) read from the published snapshot/);
-    assert.match(w, /unverified \(O-5\)/);
+    assert.match(w, /encodes step values differently/);
   });
 });
 

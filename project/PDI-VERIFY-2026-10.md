@@ -537,6 +537,26 @@ changed here (TODO P-19 (n)).
 
 Fixed in this pass: the `active` filter. tools/list delta 0 B.
 
+## Eighteenth pass: published flow snapshots (P-20)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_hub_flow`, `sys_hub_flow_snapshot`,
+the nine `FLOW_CHILDREN` tables, `sys_flow_trigger_plan`). The artefact
+snapshot reads a flow's children under `master_snapshot`; the question was
+whether that key is right and how the snapshot compares with the draft.
+
+| Item                                | Was assumed       | Result                                                                                                                                                                                                                     |
+| ----------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Key for the published children      | `master_snapshot` | **Confirmed.** 563 flows set it (published 554, draft 9); 562 have child rows under it, 1 falls back to the draft. `latest_snapshot` differs from it for 57 flows and only 1 of those ids has child rows.                  |
+| Draft vs snapshot, row counts       | unknown           | Equal per child table for all published flows; only 3 drafts with unpublished edits differ.                                                                                                                                |
+| Draft vs snapshot, structure        | unknown           | Equal for every published flow: `_v2` actions 286 / 286, logic 261 / 261, triggers 85 / 85 (type, order, definition). The legacy `sys_hub_action_instance` differs for 10 of 300.                                          |
+| Draft vs snapshot, `values` content | same encoding     | **Different encoding.** The snapshot's gzip JSON uses other keys (`typeLabel` / `type_label`), extra keys (`choices`, `fDataStructure`) and other child names; reduced to name / value / children most match, but not all. |
+
+So `master_snapshot` is the right key and, for a published flow, the snapshot
+holds the same steps as the draft. Their child hashes still differ, so a flow
+read from its snapshot on one side and from its draft on the other shows as
+changed. The warning now says so instead of calling the path unverified; no
+code path changes. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
