@@ -340,7 +340,11 @@ const explainDataPolicy: Explainer = (ctx) => {
 
 // -- Service Catalog forms (P-8) -----------------------------------------------
 
-/** Catalog variable type codes (`item_option_new.type`). */
+/**
+ * Catalog variable type codes (`item_option_new.type`): the `question.type`
+ * choices, confirmed on a PDI (O-5; 40 is an inactive choice still used by
+ * older variables).
+ */
 const VARIABLE_TYPES: Record<string, string> = {
   "1": "Yes / No",
   "2": "Multi Line Text",
@@ -373,6 +377,7 @@ const VARIABLE_TYPES: Record<string, string> = {
   "31": "Requested For",
   "32": "Rich Text Label",
   "33": "Attachment",
+  "40": "Table Name",
 };
 
 /** Catalog client script / UI policy `ui_type` codes. */
