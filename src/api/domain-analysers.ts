@@ -115,7 +115,7 @@ export async function analyseDomains(
   await analyseUib(ctx, out);
   await analyseWorkflows(ctx, out);
   ctx.caveats.add(
-    "Flow Designer, Service Portal, UI Builder and workflow tables are verified:false: their field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+    "Service Portal and legacy workflow rule fields were confirmed on one PDI (gate O-5). Flow Designer and UI Builder rule fields are verified:false: not all of them have been confirmed on a live instance.",
   );
   for (const [, why] of ctx.unreadable) ctx.warnings.push(why);
 

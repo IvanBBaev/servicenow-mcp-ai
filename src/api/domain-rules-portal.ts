@@ -64,6 +64,12 @@ const PORTAL_PAGE_FIELDS = [
   "sc_category_page",
 ];
 
+/** sp_instance → page, in a top-level row and in a row nested in a column. */
+const INSTANCE_PAGE_PATHS = [
+  "sp_column.sp_row.sp_container.sp_page",
+  "sp_column.sp_row.sp_column.sp_row.sp_container.sp_page",
+];
+
 const truthy = (v: string): boolean => v === "true" || v === "1";
 
 const quoted = (text: string, id: string): boolean =>
@@ -99,30 +105,34 @@ export async function analysePortal(ctx: Ctx, out: Collector): Promise<void> {
     const onPublic = new Map<string, string[]>();
     let capped = widgets.capped || !!pages?.capped;
     if (pages?.rows.length) {
-      const inst = await readIn(
-        ctx,
-        "sp_instance",
-        "sp_column.sp_row.sp_container.sp_page",
-        pages.rows.map((p) => str(p, "sys_id")),
-        ["sys_id", "sp_widget", "sp_column.sp_row.sp_container.sp_page"],
-      );
-      capped ||= !!inst?.capped;
       const pageId = new Map(
         pages.rows.map((p) => [
           str(p, "sys_id"),
           str(p, "id") || str(p, "sys_id"),
         ]),
       );
-      for (const i of inst?.rows ?? []) {
-        const w = str(i, "sp_widget");
-        const p = pageId.get(str(i, "sp_column.sp_row.sp_container.sp_page"));
-        if (!w || !p) continue;
-        const list = onPublic.get(w) ?? [];
-        if (!list.includes(p)) list.push(p);
-        onPublic.set(w, list);
+      // O-5: on a PDI 750 of 875 instances sit in a top-level row and 86 in
+      // a row nested in a column (none deeper), so both paths are read.
+      for (const path of INSTANCE_PAGE_PATHS) {
+        const inst = await readIn(
+          ctx,
+          "sp_instance",
+          path,
+          pages.rows.map((p) => str(p, "sys_id")),
+          ["sys_id", "sp_widget", path],
+        );
+        capped ||= !!inst?.capped;
+        for (const i of inst?.rows ?? []) {
+          const w = str(i, "sp_widget");
+          const p = pageId.get(str(i, path));
+          if (!w || !p) continue;
+          const list = onPublic.get(w) ?? [];
+          if (!list.includes(p)) list.push(p);
+          onPublic.set(w, list);
+        }
       }
       ctx.caveats.add(
-        "portal-public-data-widget follows sp_instance → column → row → container → page by dot-walk: a widget in a nested row (a row inside a column) is not attributed to its page.",
+        "portal-public-data-widget follows sp_instance → column → row → container → page by dot-walk, through at most one nested row (a row inside a column); a widget nested deeper is not attributed to its page.",
       );
     }
     const known = new Map(widgets.rows.map((w) => [str(w, "sys_id"), w]));
