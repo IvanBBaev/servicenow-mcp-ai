@@ -935,6 +935,33 @@ scoped apps or update sets (no scan started):
 Follow-up: `scan_run: "apps"` / `"update_sets"` with `targets` on
 `servicenow_check_code_health`. tools/list delta +202 B on `all`.
 
+## Thirty-ninth pass: store-app reads and the flow toggle runtime (N-1b, P-25b)
+
+On ven03019 (domain-separated), as an admin without `security_admin`:
+
+| Read                                                          | Finding                                                                                                                                |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_store_app` (Table API)                                   | 403 `Failed API level ACL Validation`: a REST API access rule, not a row ACL.                                                          |
+| `sys_scope` with `sys_class_name=sys_store_app`               | Readable: 901 installed store apps with `scope`, `name`, `version`.                                                                    |
+| `sys_scope` filtered on `update_available` / `latest_version` | The child fields are not on the parent table: the filter does not narrow the result, so the update flag cannot be read this way.       |
+| `sys_remote_app`                                              | Readable (3,043 rows, `latest_version`), but it lists store apps that are not installed; none of the sampled scopes is in `sys_scope`. |
+
+So `readStoreUpdates` stays unavailable on an instance with this REST API rule;
+installed versions alone are readable through `sys_scope`. N-1b stays blocked
+until an instance (or role) passes the `sys_store_app` API-level ACL.
+
+P-25b (runtime effect of toggling `active` on a flow) was prepared but not run.
+The only inactive published global flow is the base-system `Change - Standard -
+Proposal` (record trigger on `std_change_proposal`, `state=2`, and the one
+inactive published flow without a `sys_flow_trigger_plan`). The write was not
+executed, and no update set received a change (0 `sys_update_xml` rows).
+
+Side finding: `applyInUpdateSet` switched only the `sys_update_set` preference
+for a global set, never `updateSetForScopeglobal`; on this instance the user's
+global preference pointed at a real ticket set, so a bound global write could
+be captured there. Fixed: a global set now switches `updateSetForScopeglobal`
+too, and restores it afterwards.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
