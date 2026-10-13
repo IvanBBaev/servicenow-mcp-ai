@@ -467,22 +467,22 @@ a CHANGELOG line. Breaking items add a row to the migration table in the CHANGEL
 
 **Done 2026-09-30 (local, uncommitted) bar the BREAKING default flips.** `src/mcp/http-sessions.ts` (`HttpSessionManager`): a server + runtime per session, idle TTL, session cap (503), SSE keep-alive; Host / Origin guard; per-session `use_instance`; `test/http-transport-v2.test.js` (18) runs over a real port. Refusing a tokenless non-loopback bind is opt-in (`SN_HTTP_REQUIRE_TOKEN`, B6) and `persist` over stdio (B12) waits for O-4; the OAuth mode stays design-only.
 
-- [ ] One `StreamableHTTPServerTransport` **per session**, kept in a `Map<sessionId, transport>`
+- [x] One `StreamableHTTPServerTransport` **per session**, kept in a `Map<sessionId, transport>`
       created on `initialize` (`onsessioninitialized`) and dropped on `DELETE`
       (`onsessionclosed`) or idle timeout (`SN_HTTP_SESSION_TTL_SEC`); a fresh `McpServer`
       instance per session so notifications and `setLevel` are per client
-      (`src/mcp/transport.ts`).
+      (`src/mcp/transport.ts`). _(done, `src/mcp/http-sessions.ts`)_
 - [ ] `enableDnsRebindingProtection` + `allowedHosts` (default loopback names) and an `Origin`
       allowlist (`SN_HTTP_ALLOWED_ORIGINS`); `/healthz`; `listen` error handler; graceful shutdown
-      on SIGTERM; non-loopback bind **refuses to start** without `SN_HTTP_TOKEN`.
-- [ ] Active profile lives in the session context (E-3 runtime + ALS), not in `process.env`;
+      on SIGTERM; non-loopback bind **refuses to start** without `SN_HTTP_TOKEN`. _(2026-10-13: all done except the non-loopback refusal, which is opt-in via `SN_HTTP_REQUIRE_TOKEN`; the default flip is BREAKING and waits for the owner)_
+- [x] Active profile lives in the session context (E-3 runtime + ALS), not in `process.env`;
       `use_instance` in HTTP mode is per session; token/schema/plugin caches keyed by profile +
-      host (closes C-7).
-- [ ] Optional `SN_HTTP_AUTH=oauth` using the SDK's `requireBearerAuth` + a token verifier for
-      hosted deployments (design only; the static bearer stays the default).
-- [ ] Tests: two concurrent sessions on different profiles with no cross-talk; reconnect after
-      `DELETE`; rebinding request rejected; bearer required; e2e over a real port.
-- [ ] _(gap pass 2026-09-09)_ `sseKeepAlive` (`SN_HTTP_KEEPALIVE_MS`, 25 s) and `/readyz` (`?probe=1`) — L5-06; `use_instance({persist})` is session-scoped by default, `persist:true` writes the env file and is journaled (B12) — L2-13.
+      host (closes C-7). _(done, `src/core/request-context.ts` ALS + child runtime; test/http-transport-v2.test.js)_
+- [x] Optional `SN_HTTP_AUTH=oauth` using the SDK's `requireBearerAuth` + a token verifier for
+      hosted deployments (design only; the static bearer stays the default). _(done as N-17: OAuth 2.1 JWT/JWKS + introspection, `SN_HTTP_OAUTH_\*`)\_
+- [x] Tests: two concurrent sessions on different profiles with no cross-talk; reconnect after
+      `DELETE`; rebinding request rejected; bearer required; e2e over a real port. _(done, test/http-transport-v2.test.js)_
+- [x] _(gap pass 2026-09-09)_ `sseKeepAlive` (`SN_HTTP_KEEPALIVE_MS`, 25 s) and `/readyz` (`?probe=1`) — L5-06; `use_instance({persist})` is session-scoped by default, `persist:true` writes the env file and is journaled (B12) — L2-13. _(done: `SN_HTTP_KEEPALIVE_MS`, `/readyz` in `src/mcp/transport.ts`, `use_instance({persist})` e2e)_
 - **Acceptance:** the transport passes the MCP inspector against two simultaneous clients.
 
 ### H-8 — Platform corner-case pins (M)
@@ -573,7 +573,7 @@ a CHANGELOG line. Breaking items add a row to the migration table in the CHANGEL
 - [x] Explicit port and bracketed IPv6 accepted only for allow-listed hosts (L1-05).
 - [x] Per-host circuit breaker (`SN_BREAKER_THRESHOLD`, `SN_BREAKER_RESET_MS`, `CIRCUIT_OPEN`) —
       landed opt-in, off by default (L1-07).
-- [ ] Rate-limit header parsing into telemetry (the second half of L1-07) — slipped to 3.x.
+- [x] Rate-limit header parsing into telemetry (the second half of L1-07) — slipped to 3.x. _(done: `RateLimitInfo` in `src/core/metrics.ts`, `\_ratelimit_\*`in`src/mcp/observability.ts`)\_
 - **Acceptance:** dispatcher option matrix (8 combinations) and proxy/`NO_PROXY` matrix green on the
   E-6 fetch double v2; a token request under mTLS or proxy uses the dispatcher; a 300 KB HTML 502
   yields an error ≤ 1 KB; the 65th queued call fails fast with `BUSY`.
@@ -726,7 +726,7 @@ to 32,000; owner questions in TODO.md → batch 11 (M-1).
       (closes SEC-21) (`src/mcp/docs.ts:86,116`).
 - [x] _(gap pass 2026-09-09)_ `completable()` on prompt arguments (tables, profiles); `list` callbacks on the three resource templates, capped at 100 — L5-03.
 - [x] _(instance-docs pass 2026-09-23)_ The docs `list` is served from the S-14 manifest (`index.json`): `name` = title, `description` = `<profile> · <kind> · <generated_at>`, `mimeType` `text/markdown` (or `application/json` for companions), generated documents first; the cap of 100 never hides a final `servicenow://docs/index.md` entry; `complete` on `{path}` completes from the manifest by prefix and profile — ID-13.
-- [ ] _(instance-docs pass 2 2026-09-25)_ The docs resource serves `.json` companions with `mimeType` `application/json` (by extension — today fixed to `text/markdown`, `src/mcp/resources.ts:280,290`) and passes the profile segment to `docsRead`; the manifest-driven `list` gets the companions from ID-21's manifest entries — ID-21. The prompt's use of the reference resource moves to S-15 (ID-25).
+- [x] _(instance-docs pass 2 2026-09-25)_ The docs resource serves `.json` companions with `mimeType` `application/json` (by extension — today fixed to `text/markdown`, `src/mcp/resources.ts:280,290`) and passes the profile segment to `docsRead`; the manifest-driven `list` gets the companions from ID-21's manifest entries — ID-21. The prompt's use of the reference resource moves to S-15 (ID-25). _(done: `servicenow://docs/{+path}` declares its mime by extension, `src/mcp/resources.ts`)_
 - **Acceptance:** the inspector shows completions for `{table}`; `servicenow://reference/tools`
   lists every registered tool (the prompt's use of the encoded-query resource is S-15's
   acceptance, ID-25).
@@ -1192,13 +1192,13 @@ to 32,000; owner questions in TODO.md → batch 11 (M-1).
 **Done 2026-09-30 (local, uncommitted).** `npm run docs:env` (`scripts/env-docs.mjs`) regenerates the README env table, `.env.example` and the `server.json` env block from the E-4 manifest; `npm run docs:sync` (`scripts/docs-sync.mjs`) writes tool / package counts into 8 files; both run with `--check` in `npm run check`; `docs/llms.txt` added.
 
 - [ ] From the E-4 settings manifest: the README env table, `.env.example`, the `server.json`
-      env block (+ a `remotes` entry for HTTP mode); the `env-docs-sync` test becomes the guard.
+      env block (+ a `remotes` entry for HTTP mode); the `env-docs-sync` test becomes the guard. _(2026-10-13: README, `.env.example` and `server.json` env are generated; the `remotes` entry for HTTP mode is still missing)_
 - [ ] `npm run docs:sync` writes tool/package/test/coverage counts into badges, package
       descriptions, `server.json`, plugin/marketplace JSON and the docs site; a guard test; prose
       counts removed from roadmap docs.
 - [ ] `docs/llms.txt`, a changelog page and per-version links on the site; the stale
       `sincronia-mcp` path in `.env.example:145` gone.
-- [ ] _(gap pass 2026-09-09)_ `.env.example`, the `server.json` env list and the README env table generated from the E-4 settings manifest (`npm run docs:env`, `--check` in the gate); fixes GAP C-3/C-4 — L4-08.
+- [x] _(gap pass 2026-09-09)_ `.env.example`, the `server.json` env list and the README env table generated from the E-4 settings manifest (`npm run docs:env`, `--check` in the gate); fixes GAP C-3/C-4 — L4-08. _(done: `scripts/env-docs.mjs`, `docs:env -- --check` in `npm run check`)_
 
 ### D-4 — Install matrix + deeplinks (S)
 
@@ -1272,8 +1272,8 @@ to 32,000; owner questions in TODO.md → batch 11 (M-1).
 
 ### D-9 — Security policy + community standard (S)
 
-- [ ] SECURITY.md v2: supported versions, private reporting (GitHub advisory — the owner enables it,
-      O-1 checklist), response targets, scope, threat-model pointer (GAP L9-11).
+- [x] SECURITY.md v2: supported versions, private reporting (GitHub advisory — the owner enables it,
+      O-1 checklist), response targets, scope, threat-model pointer (GAP L9-11). _(done: SECURITY.md supported versions, advisory reporting, response targets, scope, threat model)_
 - [x] `CODEOWNERS`, `CODE_OF_CONDUCT.md`, `SUPPORT.md` (support bundle from D-1), issue and PR
       templates, `.github/release.yml` (L9-10).
 - **Acceptance:** GitHub community profile complete; the bug template asks for `doctor --json`.
@@ -1329,10 +1329,10 @@ to 32,000; owner questions in TODO.md → batch 11 (M-1).
       (`key, type, default, description, section, since`); invalid values are startup errors
       (`SN_TIMEOUT_MS=abc` no longer silently defaults); dynamic `process.env` reads in
       `policy.ts`, `host.ts`, `auth.ts`, `config.ts` go through it (closes A2-2; ARCH-12b resolves
-      here with namespaced keys if Jira lands).
+      here with namespaced keys if Jira lands). _(2026-10-13: manifest + zod validation done; invalid values warn by default and fail only under `SN_STRICT_SETTINGS=1` — the default flip waits for the owner)_
 - [ ] The cwd `.env` fallback is removed (`SN_ENV_FILE` → XDG only); `doctor` prints the chosen
       file.
-- [ ] _(gap pass 2026-09-09)_ Manifest fields `secret`, `since`, `group`, `description` feed the D-3 generators and the `_FILE` resolver (D-5) — L2-12, L4-08.
+- [x] _(gap pass 2026-09-09)_ Manifest fields `secret`, `since`, `group`, `description` feed the D-3 generators and the `_FILE` resolver (D-5) — L2-12, L4-08. _(done: `secret`/`since`/`section` in `src/core/settings-model.ts` feed `docs:env` and the `_FILE` resolver)_
 
 ### E-5 — Observability (S)
 
@@ -1353,8 +1353,8 @@ to 32,000; owner questions in TODO.md → batch 11 (M-1).
 - [ ] _(gap pass 2026-09-09)_ Fetch double v2 (headers, delay, streaming, routes, fake timers) — L9-01; six new property tests (redaction, CSV, docs path, policy glob, env value, journal chain) — L9-02; `test/**/*.test.js` + `.c8rc.json` + a folder layout mirroring `src/` — L9-03; manifest v2 fixture — L5-01.
       _(batch 11)_ Fetch double v2 (`createFetchDouble` / `withFetchDouble` / `fakeClock` in `test/helpers.js`: routes, headers, delay, streaming bodies, call log with virtual timestamps; `test/fetch-double.test.js`) with `http-resilience`, `http-retry` and `cancel-progress` migrated — L9-01; the six L9-02 properties (redaction, CSV, docs path, host / MIME allow-list globs — the table glob waits for H-11, env value with an extended alphabet, journal chain) in `test/property-{http,policy,data}.test.js`, fixed seed via `fcParams()` (`SN_FC_SEED` / `SN_FC_RUNS`) — done 2026-09-26 (local, uncommitted). Three properties found real defects, kept as `todo` tests (see TODO.md batch 11). **Open:** L9-03 layout (deferred), L5-01.
       _(batch 15)_ L5-01 verified done under M-6 (`test/fixtures/tools-manifest.json` is `manifestVersion: 2` with `description_sha256`, sorted `inputSchema`, `outputSchema`, `since`); nothing left here. **Open:** L9-03 layout (deferred — no files moved).
-- [ ] _(instance-docs pass 2 2026-09-25)_ The metadata-only guard (`METADATA_TABLES` / `assertMetadataUrl` / `fetchMeta`, today local to `test/docs-goldens.test.js:46-88`) moves to `test/helpers.js` as `withMetadataFetch`, its allow-list grows with the S-3 / S-15 tables and every `ARTIFACT_TYPES` table (derived at test time), and the `snapshot` / `compare` / `codecheck` / `security-scan` suites switch to it — ID-27. One golden per Markdown writer output (snapshot ×4, compare, code-health; volatile frontmatter fields masked, `UPDATE_GOLDENS=1` to regenerate) lands before the E-7 split so the split is provably byte-neutral — ID-28.
-      _(batch 15)_ ID-27: `withMetadataFetch` in `test/helpers.js` now records every rejected URL and re-throws after the run, so a collector that swallows the fetch error into `unreadable` still fails the test (before, such violations were silently degraded); the allow-list gains the S-9 where-used tables (`sys_ui_list`, `sys_ui_list_element`, `sys_ui_section`, `sys_ui_element`, `sys_report`) that the old silent guard had been hiding; a registry-enumeration test pins every `ARTIFACT_TYPES` table (primary and child) plus the named S-3 / S-15 tables; `snapshot`, `compare`, `codecheck`, `security-scan`, `collectors`, `writer-goldens` and the P-18 / P-19 / P-20 suites switched wholesale (no test reads a runtime table, none left on `withFetch`), each of the four named suites has a negative test (an `incident` read fails with the guard's message). ID-28: snapshot ×3 scenarios and compare ×3 already existed; the missing code-health golden (`test/fixtures/docs/writers/code-health/`, `UPDATE_GOLDEN=1`) added — done 2026-09-30 (local, uncommitted). **Open:** nothing for ID-27 / ID-28.
+- [x] _(instance-docs pass 2 2026-09-25)_ The metadata-only guard (`METADATA_TABLES` / `assertMetadataUrl` / `fetchMeta`, today local to `test/docs-goldens.test.js:46-88`) moves to `test/helpers.js` as `withMetadataFetch`, its allow-list grows with the S-3 / S-15 tables and every `ARTIFACT_TYPES` table (derived at test time), and the `snapshot` / `compare` / `codecheck` / `security-scan` suites switch to it — ID-27. One golden per Markdown writer output (snapshot ×4, compare, code-health; volatile frontmatter fields masked, `UPDATE_GOLDENS=1` to regenerate) lands before the E-7 split so the split is provably byte-neutral — ID-28.
+      _(batch 15)_ ID-27: `withMetadataFetch` in `test/helpers.js` now records every rejected URL and re-throws after the run, so a collector that swallows the fetch error into `unreadable` still fails the test (before, such violations were silently degraded); the allow-list gains the S-9 where-used tables (`sys_ui_list`, `sys_ui_list_element`, `sys_ui_section`, `sys_ui_element`, `sys_report`) that the old silent guard had been hiding; a registry-enumeration test pins every `ARTIFACT_TYPES` table (primary and child) plus the named S-3 / S-15 tables; `snapshot`, `compare`, `codecheck`, `security-scan`, `collectors`, `writer-goldens` and the P-18 / P-19 / P-20 suites switched wholesale (no test reads a runtime table, none left on `withFetch`), each of the four named suites has a negative test (an `incident` read fails with the guard's message). ID-28: snapshot ×3 scenarios and compare ×3 already existed; the missing code-health golden (`test/fixtures/docs/writers/code-health/`, `UPDATE_GOLDEN=1`) added — done 2026-09-30 (local, uncommitted). **Open:** nothing for ID-27 / ID-28. _(done: batch 15 — **Open:** nothing)_
 
 ### E-7 — Code health (M)
 
