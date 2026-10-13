@@ -927,7 +927,7 @@ items:
     phase: null
     done: null
     gates: ["O-10"]
-    notes: "**Harness done 2026-10-05 (local, uncommitted).** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. **Repeats + McNemar done 2026-10-09:** `--repeats <n>` with a majority vote, an exact McNemar p-value and the 4-point acceptance rule in the comparison. O-10 (d) decided 2026-10-09: `claude-sonnet-5-5`, three repeats. Open: the real-model baseline run (it waits for the owner's `ANTHROPIC_API_KEY`) before any N-59 description change, a real `discovery` profile after N-63 (NX-23)."
+    notes: "**Harness done 2026-10-05 (local, uncommitted).** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. **Repeats + McNemar done 2026-10-09:** `--repeats <n>` with a majority vote, an exact McNemar p-value and the 4-point acceptance rule in the comparison. O-10 (d) decided 2026-10-09: `claude-sonnet-5-5`, three repeats. **Real-model baseline dropped 2026-10-13 (owner: no `ANTHROPIC_API_KEY`, so no paid eval run for 3.0.0).** Open: a real `discovery` profile after N-63 (NX-23)."
   - id: "N-19"
     title: "prompts for the N flagships"
     pillar: "N"
@@ -1098,7 +1098,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-10"]
-    notes: "**Partly done 2026-10-05 (local, uncommitted).** Manifest v5 per-tool `sizes` (via `toolSizes()`), `servicenow://reference/tools/{name}`; size lint is N-57. 0 B tools/list. **Example calls done 2026-10-09:** the reference carries `example: { summary, arguments }` for every tool (`src/mcp/tool-examples.ts`, schema-checked by test), 0 B tools/list. Open: moving usage notes out of descriptions to the reference (O-10 / N-59), N-60 (TK-07, TK-08). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Partly done 2026-10-05 (local, uncommitted).** Manifest v5 per-tool `sizes` (via `toolSizes()`), `servicenow://reference/tools/{name}`; size lint is N-57. 0 B tools/list. **Example calls done 2026-10-09:** the reference carries `example: { summary, arguments }` for every tool (`src/mcp/tool-examples.ts`, schema-checked by test), 0 B tools/list. Moving usage notes out of descriptions to the reference was dropped 2026-10-13 with the N-18 real-model baseline (owner). Open: N-60 (TK-07, TK-08). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-38"
     title: "cache-friendly listing"
     pillar: "N"
@@ -1296,7 +1296,7 @@ items:
     phase: "T1"
     done: null
     gates: []
-    notes: "Phase T1 done 2026-10-06: the stale `generate_fluent` text and the internal gate id O-5 in `upsert_artifact` removed (`all` −34 B). **Shared parameters done 2026-10-10:** `src/mcp/params.ts` is the single source of `instance`, `plan_token`, `apply` and both `update_set` inputs (the private `updatesets.ts` copy is gone; `define.ts` and `write-mode.ts` re-export), pinned by `test/params.test.js`; text unchanged, 0 B tools/list. Open: phase T2 behind the N-18 eval (TK-41, TK-42) — `src/mcp/params.ts`, short safety-bearing parameter text, heaviest descriptions rewritten, mechanics to the N-37 reference resource. `all` ≈ −6 KB. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: "Phase T1 done 2026-10-06: the stale `generate_fluent` text and the internal gate id O-5 in `upsert_artifact` removed (`all` −34 B). **Shared parameters done 2026-10-10:** `src/mcp/params.ts` is the single source of `instance`, `plan_token`, `apply` and both `update_set` inputs (the private `updatesets.ts` copy is gone; `define.ts` and `write-mode.ts` re-export), pinned by `test/params.test.js`; text unchanged, 0 B tools/list. **Phase T2 dropped 2026-10-13 (owner):** with no N-18 real-model baseline, descriptions and parameter text stay as they are for 3.0.0 (TK-41, TK-42 not done; `all` ≈ −6 KB forgone). See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-60"
     title: "shallow output schemas"
     pillar: "N"
