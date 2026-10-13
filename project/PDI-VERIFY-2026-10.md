@@ -866,6 +866,20 @@ layouts by `action_config IN` the `actionConfigId` values, with the
 application scope as a fallback that keeps its own caveat. The dashboard and
 list menu caveat is dropped. **Tests added.** tools/list delta 0 B.
 
+## Thirty-fifth pass: UI Builder client script includes (N-28)
+
+GET-only on ven03019, against the include edge `servicenow_get_artifact_dependencies`
+and `servicenow_where_used` follow from a UI Builder client script:
+
+| Read                                       | Finding                                                                                                                                                                                     |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_ux_client_script.includes` dictionary | Confirmed: `glide_list` referencing `sys_ux_client_script_include` (label "Client Script Include Dependencies").                                                                            |
+| Values                                     | Confirmed: 2,332 client scripts carry one or more include sys_ids, joined by commas without spaces; every sampled id resolves to a `sys_ux_client_script_include` row (`name`, `api_name`). |
+| Reverse read `includesLIKE<sys_id>`        | Confirmed: `sn_access_analyzer.AccessSimulatorUtil` is listed by 15 client scripts.                                                                                                         |
+
+Follow-up: the "unverified" notes on the `includes` field are dropped; reads
+and output are unchanged. tools/list delta 0 B.
+
 ## Thirty-sixth pass: registry field sweep and the `dictionary_script` query (S-4, P-7)
 
 GET-only on ven03019. Every field name the artefact registry reads —
