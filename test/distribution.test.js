@@ -107,6 +107,30 @@ test("D-6: publish.yml creates a GitHub Release from the CHANGELOG section", () 
   assert.match(wf, /npm publish --provenance --access public/);
 });
 
+test("O-14: a prerelease tag goes to npm next, a prerelease GitHub Release, and no registry", () => {
+  const wf = read(".github/workflows/publish.yml");
+  const tag = wf.slice(wf.indexOf("- name: Choose the npm dist-tag"));
+  assert.match(tag, /\*-\*\) echo "NPM_DIST_TAG=next" >> "\$GITHUB_ENV"/);
+  assert.match(tag, /\*\) echo "NPM_DIST_TAG=latest" >> "\$GITHUB_ENV"/);
+  assert.match(wf, /npm publish [^\n]*--tag "\$NPM_DIST_TAG"/);
+  const job = wf.slice(wf.indexOf("  github-release:"));
+  assert.match(job, /\*-\*\) pre=--prerelease/);
+  assert.match(
+    job,
+    /gh release create "\$GITHUB_REF_NAME" --verify-tag \$pre \\/,
+  );
+  assert.match(job, /gh release edit [^\n]*release-notes\.md \$pre\n/);
+  // The MCP Registry and the extension move only on a GA tag.
+  assert.match(
+    read(".github/workflows/publish-mcp.yml"),
+    /!contains\(github\.event\.workflow_run\.head_branch, '-'\)/,
+  );
+  assert.match(
+    read(".github/workflows/publish-vscode.yml"),
+    /publish-vscode:\n {4}if: \$\{\{ github\.event_name == 'workflow_dispatch' \|\| !contains\(github\.ref_name, '-'\) \}\}/,
+  );
+});
+
 test("H-9: every workflow action is pinned to a commit SHA", () => {
   const dir = path.join(root, ".github/workflows");
   for (const file of readdirSync(dir).filter((f) => f.endsWith(".yml"))) {

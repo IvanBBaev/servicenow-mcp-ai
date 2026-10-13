@@ -5,6 +5,8 @@ name: Publish to MCP Registry
 # can verify the published tarball's mcpName), and can be re-run on demand via
 # workflow_dispatch without re-publishing to npm. server.json carries the version
 # (kept in sync with package.json), so this always registers the current release.
+# O-14 (ADR 0011): a prerelease tag (`v3.0.0-beta.1`) is not registered; the
+# registry entry moves only on a GA version.
 on:
   workflow_run:
     workflows: ["Publish"]
@@ -18,7 +20,7 @@ permissions:
 jobs:
   publish-mcp:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.head_branch, '-')) }}
     env:
       # H-9: a pinned mcp-publisher release instead of `releases/latest`, verified
       # against the checksums file of the same release, so a moved or tampered

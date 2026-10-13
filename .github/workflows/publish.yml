@@ -7,7 +7,10 @@ name: Publish
 # CHANGELOG section (scripts/release-notes.mjs). N-51: the MCP bundle
 # (.mcpb) is attached to that release only once the owner enables it (O-22) by
 # setting the repository variable MCPB_RELEASE to "true"; until then the
-# mcpb-asset job is skipped.
+# mcpb-asset job is skipped. O-14 (ADR 0011): a prerelease version
+# (`3.0.0-beta.1`, anything with a `-`) goes to the npm `next` dist-tag and
+# its GitHub Release is marked as a prerelease, so `latest` and the release
+# list only ever point at a GA version.
 on:
   push:
     tags: ["v*"]
@@ -33,7 +36,13 @@ jobs:
           pkg=$(node -p "require('./package.json').version")
           test "$tag" = "$pkg" || { echo "tag v$tag != package.json $pkg"; exit 1; }
       - run: npm run check
-      - run: npm publish --provenance --access public
+      - name: Choose the npm dist-tag (a prerelease goes to next)
+        run: |
+          case "${GITHUB_REF_NAME#v}" in
+            *-*) echo "NPM_DIST_TAG=next" >> "$GITHUB_ENV" ;;
+            *) echo "NPM_DIST_TAG=latest" >> "$GITHUB_ENV" ;;
+          esac
+      - run: npm publish --provenance --access public --tag "$NPM_DIST_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -53,10 +62,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # $pre stays unquoted: a GA tag passes no flag.
+          case "${GITHUB_REF_NAME#v}" in
+            *-*) pre=--prerelease ;;
+            *) pre="" ;;
+          esac
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md
+            gh release edit "$GITHUB_REF_NAME" --notes-file release-notes.md $pre
           else
-            gh release create "$GITHUB_REF_NAME" --verify-tag \
+            gh release create "$GITHUB_REF_NAME" --verify-tag $pre \
               --title "$GITHUB_REF_NAME" --notes-file release-notes.md
           fi
 

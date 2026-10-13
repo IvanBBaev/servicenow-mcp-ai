@@ -8,6 +8,9 @@ name: Publish VS Code Extension
 # VSCE_PAT repo secret (Azure DevOps PAT, scope Marketplace > Manage) and the
 # OVSX_PAT repo secret (an open-vsx.org access token; the Open VSX step is
 # skipped while it is not set); the tokens never touch a laptop or the logs.
+# O-14 (ADR 0011): a prerelease tag (`v3.0.0-beta.1`) does not publish the
+# extension — the Marketplace takes no semver prerelease versions, and the
+# extension moves only on a GA version. workflow_dispatch still runs.
 on:
   push:
     tags: ["v*"]
@@ -22,6 +25,7 @@ env:
 
 jobs:
   publish-vscode:
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     env:
       # Read into the environment so a step can be skipped when it is unset
