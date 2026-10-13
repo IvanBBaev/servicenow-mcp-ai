@@ -505,8 +505,14 @@ export async function reviewSkippedRecord(
   };
 }
 
+// O-5: every column read on sys_upgrade_history, sys_upgrade_history_log,
+// sys_update_version and sys_update_xml was checked on one PDI dictionary.
+// sys_store_app rows answer 403 to the PDI admin, so the store side stays
+// unverified beyond its dictionary.
 const UNVERIFIED =
-  "_Table, field and choice names are unverified until O-5 (PDI)._";
+  "_Upgrade tables are verified:false. Checked on one PDI (gate O-5): every table, field and choice read exists._";
+const STORE_UNVERIFIED =
+  "_Store app rows are unverified: the PDI dictionary has sys_store_app.update_available and latest_version, but its rows answer 403 to an admin (gate O-5)._";
 
 /** Markdown for the upgrade history. */
 export function renderUpgradeHistory(
@@ -659,7 +665,8 @@ async function readScopeCustomisations(
 /**
  * NX-21 — installed store apps with a newer version available, and for each
  * one the customised artefacts in its scope that the update would touch.
- * sys_store_app.update_available / latest_version exist on the PDI (O-5).
+ * sys_store_app.update_available / latest_version exist in the PDI dictionary,
+ * but its rows answer 403 to the PDI admin (O-5).
  */
 export async function readStoreUpdates({
   limit = STORE_APP_LIMIT,
@@ -712,7 +719,7 @@ export async function readStoreUpdates({
 export function renderStoreUpdates(s: StoreUpdates | Unavailable): string[] {
   if (!s.available) return [`Unavailable: ${s.unavailableReason}`];
   if (s.apps.length === 0) {
-    return ["_No store app has an update available._", "", UNVERIFIED];
+    return ["_No store app has an update available._", "", STORE_UNVERIFIED];
   }
   const count = (a: StoreAppUpdate): string =>
     Array.isArray(a.customisations)
@@ -756,5 +763,5 @@ export function renderStoreUpdates(s: StoreUpdates | Unavailable): string[] {
       "",
     );
   }
-  return [...out, UNVERIFIED];
+  return [...out, STORE_UNVERIFIED];
 }

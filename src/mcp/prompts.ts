@@ -704,7 +704,7 @@ function registerUpgradeReview(server: McpServer): void {
                 `3. Per skip: for the records that matter most (security, business rules, script includes, client scripts first), ${TOOLS.review_upgrade} with update_name. only_customer_changes keeps the customer version; only_base_changes can revert to the new base; both_changed needs a merge — show the field diff.`,
                 `4. Store apps: ${TOOLS.review_upgrade} with store_updates true — apps with an update and the customised artefacts in their scope that the update can overwrite.`,
                 `5. To keep the result, ${TOOLS.document_instance} with kinds ['upgrade'] writes upgrade.md (the 'docs' package).`,
-                "6. Report per application: skips to revert, to keep and to merge, and the store updates to plan, with the reason read for each. Table and field names are unverified until a live check, so report an unavailable section as not checked.",
+                "6. Report per application: skips to revert, to keep and to merge, and the store updates to plan, with the reason read for each. Upgrade tables were checked on one PDI and store app rows are unverified, so report an unavailable section as not checked.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
             },
