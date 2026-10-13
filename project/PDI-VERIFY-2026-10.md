@@ -509,6 +509,33 @@ runtime question for a writable instance. Fixed in 2842da3 (the
 `FLOW_ACTIVE_ONLY` hint and comments drop the O-5 caveat). tools/list
 delta 0 B.
 
+## Seventeenth pass: UI Builder domain rules (P-19)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, Table API and
+stats reads of `sys_ux_app_route`, `sys_ux_screen`, the broker tables).
+
+| Item                                     | Was read as                                                | Result                                                                                                                                                                                                                                  |
+| ---------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_ux_app_route` fields                | `name`, `route_type`, `screen_type`, `app_config`          | Confirmed. `screen_type` references `sys_ux_screen_type`, `app_config` references `sys_ux_app_config`; `name` is a translated field.                                                                                                    |
+| `sys_ux_screen` fields                   | `name`, `screen_type`, `order`                             | Confirmed (`order` is an integer).                                                                                                                                                                                                      |
+| `sys_ux_screen.active`                   | not read                                                   | **Gap.** 74 screens are inactive (22 outside `sn_*`); 21 screen types have inactive screens only, with 19 routes on them. An inactive screen counted as covering a route and as a variant. Now `active=true` on all three screen reads. |
+| Broker fields                            | `name`, `props`, `mutates_server_data`, transform `script` | Confirmed. `name` and `props` are on `sys_ux_data_broker`, `mutates_server_data` on `sys_ux_data_broker_simple`; transform, scriptlet and GraphQL have `script`, REST has none.                                                         |
+| `NOT_OOB` (`sys_scope.scopeNOT LIKEsn_`) | custom records only                                        | **Lets OOB through.** Of 806 non-`sn_` screens, 198 are global (platform packages such as Change Request, API Authentication Console) and some are `polaris_` / `now_` / `app_` OOB scopes. Owner decision below.                       |
+
+Counts (all / not `sn_*` / global): routes 2,798 / 599 / 187, screens 3,008 /
+806 / 198, transform brokers 2,287 / 408 / 185, scriptlet 29 / 13 / 12, REST
+192 / 17 / 9, GraphQL 212 / 46 / 34.
+
+A candidate filter, `sys_packageSAMEASsys_scope` (the record's package is its
+own scope, so it was not shipped by a plugin), keeps 611 of the 806 screens
+(3 global, all customer-made), 414 of 599 routes (2 global), 223 of 408
+transform brokers (0 global) and 4,447 of 10,378 business rules (19 global,
+customer-made). Its cost: an OOB global record a customer has edited keeps
+its plugin package and drops out. `NOT_OOB` is shared by every domain rule,
+so it is not changed here (TODO P-19 (n)).
+
+Fixed in this pass: the `active` filter. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

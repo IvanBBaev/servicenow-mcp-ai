@@ -435,6 +435,14 @@ const UIB_SCREENS = [
     screen_type: "st3",
     order: "100",
   },
+  // Inactive: covers no route, shadows nothing, is not reported.
+  {
+    sys_id: "sc4",
+    name: "Retired",
+    screen_type: "st9",
+    order: "200",
+    active: "false",
+  },
 ];
 const UIB_TABLES = {
   sys_ux_app_route: [
@@ -443,10 +451,12 @@ const UIB_TABLES = {
     { sys_id: "r3", name: "blank", screen_type: "" },
   ],
   sys_ux_screen: (q) => {
+    assert.match(q, /active=true/);
+    const active = UIB_SCREENS.filter((s) => s.active !== "false");
     const m = /^screen_typeIN([^^]*)/.exec(q);
-    if (!m) return UIB_SCREENS;
-    const types = new Set(m ? m[1].split(",") : []);
-    return UIB_SCREENS.filter((s) => types.has(s.screen_type));
+    if (!m) return active;
+    const types = new Set(m[1].split(","));
+    return active.filter((s) => types.has(s.screen_type));
   },
   // Audiences are m2m links (sys_ux_screen has no applicability column, O-5);
   // sc3's only link is inactive.

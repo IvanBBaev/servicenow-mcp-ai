@@ -666,7 +666,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local).** 11 flow / portal / workflow rules (2026-09-28) plus 3 UIB rules (`uib-route-no-screen`, `uib-screen-no-applicability`, `uib-data-broker-no-acl`) in `code_health` behind opt-in `domains`."
+    notes: "**Done 2026-09-30 (local).** 11 flow / portal / workflow rules (2026-09-28) plus 3 UIB rules (`uib-route-no-screen`, `uib-screen-no-applicability`, `uib-data-broker-no-acl`) in `code_health` behind opt-in `domains`. UIB fields confirmed on a PDI 2026-10-13 (inactive screens now skipped); `NOT_OOB` lets global OOB records through (owner decision)."
   - id: "P-20"
     title: "snapshot/compare over the registry"
     pillar: "P"

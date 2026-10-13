@@ -71,7 +71,9 @@ const BROKER_READS: readonly (readonly [
 export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
   const { limit } = ctx;
 
-  // 1. Routes whose screen type has no screen.
+  // 1. Routes whose screen type has no active screen. An inactive screen
+  // renders nothing, so it does not cover a route (O-5: 21 screen types on
+  // the PDI had inactive screens only).
   await out.run(["uib-route-no-screen"], async () => {
     const routes = need(
       ctx,
@@ -89,9 +91,14 @@ export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
     const screens = types.length
       ? need(
           ctx,
-          await readIn(ctx, "sys_ux_screen", "screen_type", types, [
+          await readIn(
+            ctx,
+            "sys_ux_screen",
             "screen_type",
-          ]),
+            types,
+            ["screen_type"],
+            "^active=true",
+          ),
           "sys_ux_screen",
         )
       : { rows: [], capped: false };
@@ -120,14 +127,14 @@ export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
 
   // 2. Screens with no applicability (audience). sys_ux_screen has no
   // applicability column: audiences are sys_ux_applicability_m2m_screen links
-  // (O-5), so read the custom screens, then their active links.
+  // (O-5), so read the active custom screens, then their active links.
   await out.run(["uib-screen-no-applicability"], async () => {
     const custom = need(
       ctx,
       await read(
         ctx,
         "sys_ux_screen",
-        `${NOT_OOB}^${NEWEST}`,
+        `active=true^${NOT_OOB}^${NEWEST}`,
         ["sys_id", "name", "screen_type", "order"],
         limit,
       ),
@@ -158,11 +165,14 @@ export async function analyseUib(ctx: Ctx, out: Collector): Promise<void> {
       .map((r) => str(r, "screen_type"))
       .filter(Boolean);
     const siblings = types.length
-      ? await readIn(ctx, "sys_ux_screen", "screen_type", types, [
-          "sys_id",
+      ? await readIn(
+          ctx,
+          "sys_ux_screen",
           "screen_type",
-          "order",
-        ])
+          types,
+          ["sys_id", "screen_type", "order"],
+          "^active=true",
+        )
       : { rows: [], capped: false };
     if (!siblings || siblings.capped) {
       out.scanned("uib-screen-no-applicability", 0, true);
