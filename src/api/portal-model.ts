@@ -18,8 +18,8 @@ export const LAYOUT_PAGES = 5;
  */
 export const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
-export const UNVERIFIED_CAVEAT =
-  "Service Portal tables are verified:false. Checked on one PDI (gate O-5): every table and field read exists; rows nest in columns (sp_row.sp_column), route maps list portals in a glide_list, and widget_parameters values that are JS object literals rather than JSON come back raw.";
+export const PORTAL_CAVEAT =
+  "Service Portal tables were checked on one PDI (gate O-5): every table and field read exists; rows nest in columns (sp_row.sp_column), route maps list portals in a glide_list, and widget_parameters values that are JS object literals rather than JSON come back raw.";
 
 export const OPTIONS_CAVEAT =
   "Widget options are read from widget_parameters only; the classic sp_instance columns (title, glyph, color, size, url, css, class_name) are not mapped.";
@@ -185,7 +185,8 @@ export interface ExplainPortalResult {
   routeMaps: RouteMap[];
   counts: PortalCounts;
   depth: number;
-  verified: false;
+  /** The registry `verified` flag of `sp_portal` / `sp_page` (OD-4). */
+  verified: boolean;
   caveats: string[];
   unreadable: Unreadable[];
   missingFields?: Record<string, string[]>;

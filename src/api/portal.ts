@@ -14,13 +14,14 @@
  *
  * Bounds: at most `CHILD_LIMIT` rows per read, IN lists chunked, full layout
  * for `LAYOUT_PAGES` pages, nested rows (a row inside a column) followed to
- * `depth` levels. Every SP table is `verified:false` in the registry (gate
- * O-5), so an unreadable table (policy denial, ACL, missing plugin) becomes a
- * caveat with the table name and status — never a failure — and fields the
+ * `depth` levels. `verified` is the registry flag of `sp_portal` / `sp_page`
+ * (OD-4). Whatever the flag, an unreadable table (policy denial, ACL, missing
+ * plugin) becomes a caveat with the table name and status — never a failure — and fields the
  * instance did not return are listed per table in `missingFields`.
  *
  * All reads are metadata only: no widget scripts, templates or CSS bodies.
  */
+import { getArtifactType } from "../core/artifacts/registry.js";
 import { ServiceNowError } from "../core/errors.js";
 import { trackProgress } from "../core/progress.js";
 import { boundedRead, boundedReadIn, type ReadCtx } from "./bounded-read.js";
@@ -33,7 +34,7 @@ import {
   OPTIONS_CAVEAT,
   PORTAL_DEPTH,
   SAFE_ID,
-  UNVERIFIED_CAVEAT,
+  PORTAL_CAVEAT,
 } from "./portal-model.js";
 import {
   buildLayout,
@@ -98,7 +99,7 @@ export async function explainPortal(
     PORTAL_DEPTH.max,
   );
   const ctx: ReadCtx = {
-    caveats: [UNVERIFIED_CAVEAT],
+    caveats: [PORTAL_CAVEAT],
     scope: "the tree",
     unreadable: [],
     missing: {},
@@ -119,7 +120,8 @@ export async function explainPortal(
       dependencies: 0,
     },
     depth,
-    verified: false,
+    verified:
+      getArtifactType(hasPortal ? "sp_portal" : "sp_page")?.verified ?? false,
     caveats: ctx.caveats,
     unreadable: ctx.unreadable,
   };

@@ -45,8 +45,8 @@
  * `extended`), child reads capped at `DOMAIN_CHILD_MAX` rows per table and
  * chunked IN lists; a capped read marks the rule `truncated`. An unused /
  * orphan rule never reports a candidate whose callers were not fully read.
- * Flow Designer and legacy workflow types are registry-verified (OD-4);
- * Service Portal and UI Builder types stay `verified:false` (gate O-5).
+ * Flow Designer, legacy workflow and Service Portal types are
+ * registry-verified (OD-4); UI Builder types stay `verified:false` (gate O-5).
  * An unreadable table (policy denial, ACL, missing plugin) makes the rules
  * that need it `available:false` with the reason — never a failure.
  *
@@ -116,7 +116,7 @@ export async function analyseDomains(
   await analyseUib(ctx, out);
   await analyseWorkflows(ctx, out);
   ctx.caveats.add(
-    "Flow Designer and legacy workflow rule fields are registry-verified; Service Portal and UI Builder rule fields were checked on one PDI (gate O-5) and stay verified:false.",
+    "Flow Designer, legacy workflow and Service Portal rule fields are registry-verified; UI Builder rule fields were checked on one PDI (gate O-5) and stay verified:false.",
   );
   for (const [, why] of ctx.unreadable) ctx.warnings.push(why);
 

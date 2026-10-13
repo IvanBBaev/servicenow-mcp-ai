@@ -172,8 +172,9 @@ test("get_artifact by natural key reads nested children level by level", async (
           key: "index",
         });
         const body = out(res);
-        assert.equal(body.verified, false);
-        assert.match(body.caveat, /O-5/);
+        // OD-4 (P-2): sp_page is verified, so no unverified caveat.
+        assert.equal(body.verified, true);
+        assert.equal(body.caveat, undefined);
         assert.deepEqual(body.key, { id: "index" });
         assert.deepEqual(body.scope, { sys_id: "global", scope: "global" });
         assert.deepEqual(

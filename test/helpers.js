@@ -47,8 +47,8 @@ export const OD4_CORE_VERIFIED = new Set([
 
 /**
  * OD-4 (3), plugin-backed batch: types the ven03019 PDI pass confirmed whose
- * table a plugin or store app provides (portal, UIB and Next Experience rows
- * stay unverified for now).
+ * table a plugin or store app provides (UIB and Next Experience rows stay
+ * unverified for now).
  */
 export const OD4_PLUGIN_VERIFIED = new Set([
   "state_model",
@@ -101,10 +101,28 @@ export const OD4_PLUGIN_VERIFIED = new Set([
   "table_check",
 ]);
 
+/** The Service Portal types OD-4 (3) flipped (P-2; a PDI confirmed all 13). */
+export const OD4_PORTAL_VERIFIED = new Set([
+  "sp_portal",
+  "sp_page",
+  "sp_ng_template",
+  "sp_dependency",
+  "sp_angular_provider",
+  "sp_js_include",
+  "sp_css_include",
+  "sp_theme",
+  "sp_menu",
+  "sp_header_footer",
+  "sp_page_route_map",
+  "sp_css",
+  "sp_search_source",
+]);
+
 /** Every type OD-4 (3) flipped to `verified:true`. */
 export const OD4_VERIFIED = new Set([
   ...OD4_CORE_VERIFIED,
   ...OD4_PLUGIN_VERIFIED,
+  ...OD4_PORTAL_VERIFIED,
 ]);
 
 /** Proxy variables H-10's dispatcher reads (both spellings). */

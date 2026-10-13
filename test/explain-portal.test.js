@@ -366,7 +366,7 @@ test("explain_portal lives in the opt-in ui package", () => {
 test("the fixture portal home page renders its full layout", async () => {
   const res = payload(await run({ portal: "acme" }));
   assert.equal(res.mode, "portal");
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true);
   assert.equal(res.portal.title, "Acme Portal");
   assert.deepEqual(
     res.pages.map((p) => [p.id, p.roles_in_portal]),
@@ -553,7 +553,7 @@ test("the Mermaid layout tree matches its golden", async () => {
   const res = payload(await run({ portal: "acme", format: "mermaid" }));
   lintMermaid(res.mermaid);
   assert.equal(res.mermaidTruncated, undefined);
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true);
   const file = path.join(FIXTURES, "portal.mmd");
   if (process.env.UPDATE_GOLDEN === "1") {
     mkdirSync(FIXTURES, { recursive: true });
@@ -589,7 +589,10 @@ test("markdown renders the tree, options, dependencies and caveats", async () =>
   assert.match(md, /ng-template hello-item\.html/);
   assert.match(md, /Catalog to home: d{32} → b{32}/);
   assert.match(md, /```mermaid\nflowchart TD/);
-  assert.match(md, /## Caveats\n\n- Service Portal tables are verified:false/);
+  assert.match(
+    md,
+    /## Caveats\n\n- Service Portal tables were checked on one PDI/,
+  );
   assert.deepEqual(Object.keys(res).sort(), [
     "caveats",
     "counts",

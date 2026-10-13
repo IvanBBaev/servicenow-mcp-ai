@@ -511,7 +511,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     ],
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["quick_start_config", "default", "logo", "icon"],
     unique: [{ fields: ["url_suffix"] }],
@@ -581,7 +581,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     keyFields: ["id"],
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     writeFields: ["public", "roles", "draft", "short_description", "internal"],
     unique: [{ fields: ["id"] }],
     scopePrefixFields: ["id"],
@@ -600,7 +600,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     markupFields: ["template"],
     refFields: [{ field: "sp_widget", table: "sp_widget", type: "sp_widget" }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: ["sp_widget"],
     unique: [{ fields: ["id"] }],
@@ -642,7 +642,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     // P-24 (checked on a PDI 2026-10-13, O-5): SP-3 fields; `module` is the Angular module name.
     writeFields: ["module", "page_load"],
     unique: [{ fields: ["name"] }, { fields: ["module"] }],
@@ -660,7 +660,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: ["script"],
     clientFields: ["script"],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: ["type"],
     unique: [{ fields: ["name"] }],
@@ -678,7 +678,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       { field: "sys_ui_script", table: "sys_ui_script", type: "ui_script" },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["source", "url"],
   },
@@ -693,7 +693,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: [],
     refFields: [{ field: "sp_css", table: "sp_css", type: "sp_css" }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["source", "url"],
   },
@@ -728,7 +728,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       { field: "footer", table: "sp_header_footer", type: "sp_header_footer" },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: ["header", "footer"],
   },
@@ -753,7 +753,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     nameField: "title",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -768,7 +768,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     keyFields: ["id"],
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     // P-24 (checked on a PDI 2026-10-13, O-5): the widget fields it inherits; ids are unique across
     // sp_widget and every table extending it.
     writeFields: [
@@ -797,7 +797,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
       { field: "route_to_page", table: "sp_page", type: "sp_page" },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     // P-24 (checked on a PDI 2026-10-13, O-5).
     writeFields: ["portals", "roles", "order"],
   },
@@ -813,7 +813,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     scriptFields: ["css"],
     markupFields: ["css"],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: [],
   },
@@ -829,7 +829,7 @@ export const UI_TYPES: readonly ArtifactType[] = [
     // Server scripts of a scripted search source.
     scriptFields: ["data_fetch_script", "facet_generation_script"],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     scriptToolsOptIn: true,
     metaFields: ["id", "is_scripted_source"],
   },

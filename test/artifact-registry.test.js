@@ -318,7 +318,8 @@ test("seeded breadth: the P-1 representative types are registered", () => {
 });
 
 test("validateArtifactTypes reports every kind of defect", () => {
-  const good = getArtifactType("sp_page");
+  // An unverified base row, so only the defects below are reported.
+  const good = { ...getArtifactType("sp_page"), verified: false };
   const bad = [
     // sp_page's layout references sp_widget: keep that target registered.
     getArtifactType("sp_widget"),

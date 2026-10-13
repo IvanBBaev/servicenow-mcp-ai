@@ -1,8 +1,7 @@
 {
   "artifactType": "sp_page",
   "table": "sp_page",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "name": "Acme home",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "sp_page 'Acme home' (sp_page); scope x_acme_app; 5 child record(s) in 4 table(s); 1/2 JSON field(s) decoded; unverified type",
+  "summary": "sp_page 'Acme home' (sp_page); scope x_acme_app; 5 child record(s) in 4 table(s); 1/2 JSON field(s) decoded",
   "when": null,
   "fields": {
     "title": "Acme home",
@@ -28,7 +27,7 @@
     {
       "table": "sp_container",
       "parentField": "sp_page",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -43,7 +42,7 @@
       "table": "sp_row",
       "parentField": "sp_container",
       "parentTable": "sp_container",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -57,7 +56,7 @@
       "table": "sp_column",
       "parentField": "sp_row",
       "parentTable": "sp_row",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -72,7 +71,7 @@
       "table": "sp_instance",
       "parentField": "sp_column",
       "parentTable": "sp_column",
-      "verified": false,
+      "verified": true,
       "count": 2,
       "items": [
         {

@@ -139,7 +139,7 @@ export function portalMarkdown(
   out.push("");
   const c = result.counts;
   out.push(
-    `${c.pages} page(s), ${c.containers} container(s), ${c.rows} row(s), ${c.columns} column(s), ${c.instances} instance(s), ${c.widgets} widget(s), ${c.dependencies} dependency(ies). verified:false.`,
+    `${c.pages} page(s), ${c.containers} container(s), ${c.rows} row(s), ${c.columns} column(s), ${c.instances} instance(s), ${c.widgets} widget(s), ${c.dependencies} dependency(ies). verified:${result.verified}.`,
   );
   if (result.theme) {
     const t = result.theme;
