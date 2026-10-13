@@ -489,6 +489,26 @@ reports `state` / `master_snapshot` (definition) or `parent_action` /
 `master` (snapshot), and flags a draft with unpublished changes. The draft
 stays what a definition sys_id shows. tools/list delta 0 B.
 
+## Sixteenth pass: flow active toggle (P-25)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_hub_flow`, `sys_hub_flow_snapshot`,
+`sys_script`, `sys_flow_trigger_plan`, `sys_hub_trigger_instance[_v2]`,
+`sys_audit`). A write would answer it directly; this pass reads the server
+logic and the state of the flows that are already inactive.
+
+| Item                                 | Was assumed                  | Result                                                                                                                                                           |
+| ------------------------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Business rules on an `active` update | none touch `master_snapshot` | **Confirmed.** On `sys_hub_flow` / `sys_hub_flow_base` the update rules only clear ACLs or high-security roles and propagate the policy; the rest run on delete. |
+| `master_snapshot` of inactive flows  | kept                         | **Confirmed.** 82 inactive flows keep it, and the snapshot it names still has `master=true` and `active=true`.                                                   |
+| Trigger plans of inactive flows      | not considered               | Kept: `sys_flow_trigger_plan` rows for 21 of 22 inactive published flows (129 of 129 active). The plan has no active flag of its own.                            |
+| `sys_audit` for `sys_hub_flow`       | could show a past toggle     | Not audited (0 rows).                                                                                                                                            |
+
+Toggling `active` through the Table API leaves the published snapshot as it
+is. Whether the engine then stops (or resumes) firing the trigger is a
+runtime question for a writable instance. Fixed in 2842da3 (the
+`FLOW_ACTIVE_ONLY` hint and comments drop the O-5 caveat). tools/list
+delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

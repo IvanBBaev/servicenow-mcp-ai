@@ -143,8 +143,8 @@ export type ServiceNowErrorCode =
   /** P-24: an SDK pre-flight rule refuses a value (catalog variable name). */
   | "PREFLIGHT_INVALID"
   /**
-   * P-25: a flow accepts only {active} on an existing flow — unverified until
-   * O-5 confirms master_snapshot stays unchanged.
+   * P-25: a flow accepts only {active} on an existing flow; O-5 (a PDI): the
+   * toggle leaves master_snapshot unchanged.
    */
   | "FLOW_ACTIVE_ONLY"
   /** P-23: a field outside the type's write allow-list (the registry). */
