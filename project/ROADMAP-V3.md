@@ -1505,9 +1505,13 @@ no code is executed on the instance. Every new table or field is unverified unti
       Deferred 2026-10-01 — [ADR 0005](adr/0005-jira-surface.md). **NO-GO 2026-10-09:** the
       scaffold is deleted (E-8, B10) — [ADR 0007](adr/0007-delete-jira-scaffold.md).
 - [ ] **O-2** PDI + credentials for the fixture corpus and the live smoke (GA-9).
+      **Decided 2026-10-13:** the owner provides a PDI and the `SN_*` repository secrets; the live
+      smoke stays an exit criterion — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md). Open until the secrets exist.
 - [ ] **O-3** Distribution: registry cleanup, Open VSX, Marketplace refresh, DX-3 GIF, launch
       posts (GA-8) — the KPI checkpoint set for 2026-08-01 passed without review; set the next one
       at 3.0.0 + 30 days.
+      **Decided 2026-10-13:** deprecate the LeassTaTT registry entries, Open VSX with `OVSX_PAT`,
+      Marketplace refresh at 3.0.0 GA, check the `VSCE_PAT` expiry — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md). Owner actions pending.
 - [x] **O-4** Approve the breaking-change register below before the 3.0 branch opens. **Approved
       2026-10-01:** B1–B13 except B10 (ARCH-14 deferred, so O-1 stays open) —
       [ADR 0001](adr/0001-approve-breaking-change-register.md).
@@ -1528,26 +1532,38 @@ no code is executed on the instance. Every new table or field is unverified unti
       [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md) §6–§7.
       **(a) and (b) decided 2026-10-06:** budgets as data with a tightening-only ratchet;
       `discovery` ≤ 22 KB (stretch 14 KB), `all` ≤ 120 KB; N-58 first, then opt-in tools in the
-      freed room — [ADR 0006](adr/0006-tools-list-budget-ratchet.md). (c) and (d) stay open.
-- [ ] **O-11** CI/CD promotion lane (N-4): go / no-go, endpoint list, production rule.
+      freed room — [ADR 0006](adr/0006-tools-list-budget-ratchet.md). **(c) and (d) decided
+      2026-10-13:** N-60 ratified as shipped; no paid eval in 3.x — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
+- [x] **O-11** CI/CD promotion lane (N-4): go / no-go, endpoint list, production rule.
+      **Decided 2026-10-13:** go for update sets only (preview + commit, never `force_commit`,
+      opt-in `cicd` package, prod-write rule); apps and plugins wait — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
 - [x] **O-12** Sampling (N-9): opt-in default; whether summaries may enter the docs store.
       **Moot 2026-10-10:** N-9 is dropped — [ADR 0009](adr/0009-drop-sampling-summaries.md).
 - [x] **O-13** Access explainer (N-2): package placement; privacy stance on reading another
       user's roles. **Decided 2026-10-09** with the O-10 exposure: the opt-in `directory` package,
       the same user-data surface as `lookup_directory`; `SN_PACKAGES_DENY=directory` removes both.
-- [ ] **O-14** Cut `3.0.0-beta.1` on `next` (N-11); decide the `pack:check` ceiling before it.
+- [x] **O-14** Cut `3.0.0-beta.1` on `next` (N-11); decide the `pack:check` ceiling before it.
+      **Decided 2026-10-13:** cut it after the prerelease workflow changes; the ceiling stays 3 MB;
+      B5 flips in 3.0 — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
 - [x] **O-15** HTTP identity (N-17): in or out of scope; if in, the authorization server and the
       per-user credential custody model. **Decided 2026-10-10:** in scope; a generic external OIDC
       issuer (tokens validated locally via JWKS); custody phased — phase 1 validates tokens and
       records the subject while the instance is called with the service account, phase 2 keeps a
       per-user ServiceNow OAuth token, encrypted in the credential store.
-- [ ] **O-16** Elevated-privilege roles (N-20): go / no-go after the EL-0 spike, the allowed
+- [x] **O-16** Elevated-privilege roles (N-20): go / no-go after the EL-0 spike, the allowed
       roles, and whether stdio-only is enough.
-- [ ] **O-17** Access changes (N-24): whether the server may grant or revoke roles and groups,
+      **Decided 2026-10-13:** no-go for 3.0 — elevation is reported, never performed; re-open
+      after EL-0 on a PDI — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
+- [x] **O-17** Access changes (N-24): whether the server may grant or revoke roles and groups,
       and whether admin and elevated grants are allowed or always refused.
-- [ ] **O-18** UIB writes (N-33): whether they ship, whether they need an open update set, and
+      **Decided 2026-10-13:** go, opt-in `access` package; admin, elevated and containing roles
+      are always refused — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
+- [x] **O-18** UIB writes (N-33): whether they ship, whether they need an open update set, and
       whether `/api/now/uxf/*` and custom-component deployment stay out.
-- [ ] **O-19** Protocol 2026-07-28 (N-35): the migration window to the MCP SDK v2 packages,
+      **Decided 2026-10-13:** ship in 3.x after GA, off the 3.0 cut; a non-Default update set is
+      mandatory; `uxf` and component deployment stay out; writable macroponent JSON only after
+      the N-25 round-trip and a byte-identical revert test — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
+- [x] **O-19** Protocol 2026-07-28 (N-35): the migration window to the MCP SDK v2 packages,
       whether dropping protocol versions before 2025-11-25 is BREAKING, and whether N-9 is
       re-scoped or dropped.
       Round 9 sub-question (d): how M-5 dynamic packages and N-63 meet the 2026-07-28 rule that
@@ -1557,16 +1573,23 @@ no code is executed on the instance. Every new table or field is unverified unti
       [ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md). The N-9 fate and the end of
       the legacy window stay open. **N-9 dropped 2026-10-10** —
       [ADR 0009](adr/0009-drop-sampling-summaries.md); only the end of the legacy window stays open.
-- [ ] **O-20** Whether to publish a public `AGENTS.md` for contributor agents (N-43).
-- [ ] **O-21** Response defaults: structured-only payloads for capable clients (N-39), and
+      **Legacy window decided 2026-10-13:** it ends in 4.0, not earlier than 3.0.0 GA + 6 months —
+      [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
+- [x] **O-20** Whether to publish a public `AGENTS.md` for contributor agents (N-43).
+      **Decided 2026-10-13:** go; `AGENTS.md` is the single source and the Copilot file is
+      generated from it — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
+- [x] **O-21** Response defaults: structured-only payloads for capable clients (N-39), and
       `fields:"display"` / `format:"table"` as defaults (N-40).
       Round 9 sub-questions (N-61, N-62, N-65): (a) summary / display / table defaults and
       `aggregate` display values; (b) a 48 k `SN_MAX_RESULT_CHARS` default, the automatic file
       result, and whether the `list_tables` default limit is a bug fix; (c) the Claude Code
       `_meta` hints; (d) N-39 parked until N-35. See
       [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md) §7.
-- [ ] **O-22** External distribution: `.mcpb` bundles on releases (N-51) and an agent doc index
+      **Decided 2026-10-13:** (a)–(d) ratified as shipped — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
+- [x] **O-22** External distribution: `.mcpb` bundles on releases (N-51) and an agent doc index
       such as Context7 (N-53).
+      **Decided 2026-10-13:** `.mcpb` on releases once prerelease handling lands
+      (`MCPB_RELEASE=true`); Context7 at GA — [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
 
 ## SDK parity epic
 
@@ -1606,6 +1629,8 @@ before its P2 phase.
 | B18 | `app_dependency` retargeted from the absent `sys_scope_dependency` to `sys_package_dependency_m2m`, `verified:true`, key `sys_package` + `dependency` (OD-4, 2026-10-13)                                          | P-2  | Read the new key and meta fields; the type listed nothing before.                                                                    |
 | B19 | `sys_ux_form_action` has one descriptor: `uib_form_action` merged into `workspace_form_action` (`verified:true`), the old id kept as an input alias (O-4, 2026-10-13)                                             | N-34 | Read `workspace_form_action` where outputs named `uib_form_action`.                                                                  |
 | B20 | `discovery` (`table`, `schema`, `aggregate` + admin) is the default tool profile; `attachment` leaves `core`, which names the same set (O-4, 2026-10-13)                                                          | N-63 | Add `attachment` to `SN_TOOL_PACKAGES` or enable it with `servicenow_enable_package`.                                                |
+| B21 | `batch`: only `/api/sn_cicd/testsuite` and `/api/sn_cicd/progress` map to `atf`; other `sn_cicd` paths are unmapped, and ATF runs are refused on a production profile (O-4, 2026-10-13)                           | H-4  | Use the dedicated tools; `SN_BATCH_UNMAPPED=allow` lets unmapped paths through the table and read-only checks.                       |
+| B22 | `sys_group_has_role` and `sys_user_role_contains` join the write-protected tables (O-4, 2026-10-13)                                                                                                               | H-11 | List the table in `SN_TABLES_ALLOW` or set `SN_PROTECTED_TABLES_WRITE=allow`.                                                        |
 
 ## Explicitly NOT in 3.0
 
@@ -1637,7 +1662,8 @@ before its P2 phase.
 
 - `npm run check` green, including the production audit, on the Node 22/24/26 matrix.
 - A re-run of the five audits reports no open high finding; every H item has its test.
-- `tools/list` for `all` ≤ 45,000 chars and `core` ≤ 14,000 (budget test).
+- `tools/list` within the budgets in `test/fixtures/token-budgets.json` for every profile
+  (budget and ratchet tests; ADR 0006, OD-11 in ADR 0011).
 - HTTP e2e: two concurrent sessions on different profiles, no cross-talk; rebinding rejected.
 - Every write tool: plan → token → apply; every journal line has `before`; revert round-trips.
 - The live PDI smoke has passed at least once against the release candidate (O-2).

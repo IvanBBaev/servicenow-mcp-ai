@@ -222,6 +222,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     default tools (trade-off with N-54's code-mode goal, O-10 (c)).
   - Recommend: (1) for 3.0. Both cuts remove tools or contracts the first call of a session
     relies on.
+  - **Decided 2026-10-13: (1).** The budgets in `test/fixtures/token-budgets.json` are the
+    targets; the 3.0 exit criteria cite them —
+    [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
 
 ## Active (2026-09-02)
 
