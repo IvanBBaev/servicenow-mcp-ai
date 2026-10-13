@@ -20,7 +20,7 @@
   "rules": [
     "Tool names follow servicenow_<verb>_<noun>; docs/tools/<package>.md lists each tool's parameters and output.",
     "Write tools return a non-mutating plan preview unless called with apply: true (or SN_WRITE_MODE=apply).",
-    "Only the core profile is on by default; other packages are enabled with SN_TOOL_PACKAGES or servicenow_enable_package.",
+    "Only the discovery profile is on by default (core is its older name); other packages are enabled with SN_TOOL_PACKAGES or servicenow_enable_package.",
     "Configure credentials with npx servicenow-mcp-ai init and diagnose with npx servicenow-mcp-ai doctor."
   ]
 }

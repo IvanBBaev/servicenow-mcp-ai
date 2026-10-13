@@ -1242,7 +1242,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-22"]
-    notes: "**P0. Done 2026-10-05 (local, uncommitted) bar registration (O-22).** `context7.json` indexes `docs/` (`docs/tools/`, `llms-full.txt`, which bundles README and SECURITY), excludes `project/`, `test/`, fixtures; validated by `docs:sync --check` (TK-29). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (local, uncommitted) bar registration (O-22).** `context7.json` indexes `docs/` (`docs/tools/`, `llms-full.txt`, which bundles README and SECURITY), excludes `project/`, `test/`, fixtures; validated by `docs:sync --check` (TK-29). 2026-10-14: its default-profile rule names `discovery` (O-22, ADR 0011). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-54"
     title: "code-mode-ready outputs"
     pillar: "N"
