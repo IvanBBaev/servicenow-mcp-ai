@@ -421,7 +421,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       collector signatures are ctx-first; `expectJson` skipped. (f) The pack ceiling (1136.2 KB) (resolved: 3 MB, 05de939).
 - [ ] **Owner decisions from batch 10 (S-15, 2026-09-26):** (a) ID-23 — `security` is reachable
       only through `document_instance({kinds:["security"]})`; ship `servicenow_document_kind`
-      (88th tool) or leave it there? (b) the README is written first, so its links may point at
+      (88th tool) or leave it there? (resolved 2026-10-13: leave it there, no `document_kind` tool; S-15 done) (b) the README is written first, so its links may point at
       documents a cancelled run never reached (a Caveats line says so) — accept, or write it last?
       (c) with no `tables` / `apps` the run writes only the README, the requested kinds and
       `artifact-types.md` — auto-select (e.g. every custom scope) instead? (d) the 50-target cap

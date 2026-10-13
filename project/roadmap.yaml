@@ -482,11 +482,11 @@ items:
     title: "document generators"
     pillar: "S"
     effort: "L"
-    status: "partial"
+    status: "done"
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26** (part 1 + batch 10). `servicenow_document_table`, `servicenow_document_app` and `servicenow_document_instance` (security / catalog / integrations sections) have landed; the generators are split per kind in `src/api/doc-*.ts` (E-7, 982c7cf). Open: a generic `document_kind` tool (owner, ID-23); S-7 only for `choices` (ID-08…ID-11, ID-22…ID-25). **GET-only PDI pass 2026-10-13:** the catalog and integrations fields are confirmed; two variable-type labels (14, 17) were wrong and 40 was missing. See PDI-VERIFY-2026-10.md (twenty-first pass)."
+    notes: "**Done 2026-09-26** (part 1 + batch 10). `servicenow_document_table`, `servicenow_document_app` and `servicenow_document_instance` (security / catalog / integrations sections) have landed; the generators are split per kind in `src/api/doc-*.ts` (E-7, 982c7cf). S-7 only for `choices` (ID-08…ID-11, ID-22…ID-25). **ID-23 closed 2026-10-13 (owner): no `document_kind` tool;** `security` stays reachable through `document_instance({kinds})`, so S-15 is done. **GET-only PDI pass 2026-10-13:** the catalog and integrations fields are confirmed; two variable-type labels (14, 17) were wrong and 40 was missing. See PDI-VERIFY-2026-10.md (twenty-first pass)."
   - id: "S-16"
     title: "native discovery"
     pillar: "S"
