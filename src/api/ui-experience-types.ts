@@ -255,6 +255,22 @@ export interface UxDashboard {
   }[];
 }
 
+/** P-15: a `sys_ux_list` of a list menu. */
+export interface UxList {
+  sys_id: string;
+  title?: string;
+  table?: string;
+  /** `false` for an inactive list (shown, not dropped). */
+  active?: string;
+  condition?: string;
+  /** N-30: `columns`, split. */
+  columns?: string[];
+  /** N-30: `condition` read by the encoded-query reader. */
+  conditionTerms?: EncodedQueryTerm[];
+  order: number;
+  applicability: string[];
+}
+
 export interface UxListMenu {
   sys_id: string;
   name?: string;
@@ -262,20 +278,21 @@ export interface UxListMenu {
   categories: {
     sys_id: string;
     title?: string;
+    /** `false` for an inactive category (shown, not dropped). */
+    active?: string;
     order: number;
-    lists: {
-      sys_id: string;
-      title?: string;
-      table?: string;
-      condition?: string;
-      /** N-30: `columns`, split. */
-      columns?: string[];
-      /** N-30: `condition` read by the encoded-query reader. */
-      conditionTerms?: EncodedQueryTerm[];
-      order: number;
-      applicability: string[];
-    }[];
+    lists: UxList[];
   }[];
+  /**
+   * Lists that name the menu in `configuration` but have no category of it
+   * (O-5, a PDI: such lists exist; the category link alone misses them).
+   */
+  lists?: UxList[];
+}
+
+/** Every list of a menu: by category, then the ones with no category. */
+export function menuLists(m: UxListMenu): UxList[] {
+  return [...m.categories.flatMap((c) => c.lists), ...(m.lists ?? [])];
 }
 
 /**

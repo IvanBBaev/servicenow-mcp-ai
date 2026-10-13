@@ -13,7 +13,8 @@
  *
  * and, for workspaces (P-15), the experience's page properties, the
  * dashboards and list menus they reference (`par_dashboard` → tabs →
- * widgets; `sys_ux_list_menu_config` → categories → lists), the audience
+ * widgets; `sys_ux_list_menu_config` → categories → lists, plus lists that
+ * name the menu directly with no category), the audience
  * (`sys_ux_applicability`, with roles) of screens and lists, and the form
  * action layouts of the experience's application scope.
  *
@@ -139,6 +140,8 @@ import {
   type UxDataBroker,
   type UxEventTarget,
   type UxComponent,
+  type UxList,
+  menuLists,
 } from "./ui-experience-types.js";
 
 export { UI_EXPERIENCE_DETAILS } from "./ui-experience-types.js";
@@ -160,6 +163,7 @@ export type {
   UxBrokerHint,
   UxDataBroker,
   UxDashboard,
+  UxList,
   UxListMenu,
   UxFormActionLayout,
   UxProperty,
@@ -772,22 +776,52 @@ export async function explainUiExperience(
       referenced,
       ["sys_id", "name", "active"],
     );
+    // O-5 (a PDI, 2026-10-13): a list names its category and, directly, its
+    // menu (`configuration`); some lists have no category, so lists are read
+    // through both links. Inactive categories and lists are kept with their
+    // `active` flag.
     const catRows = await boundedReadIn(
       ctx,
       "sys_ux_list_category",
       "configuration",
       ids(menuRows),
-      ["sys_id", "configuration", "title", "order"],
+      ["sys_id", "configuration", "title", "active", "order"],
       { order: "order" },
     );
-    const listRows = await boundedReadIn(
+    const listFields = [
+      "sys_id",
+      "category",
+      "configuration",
+      "title",
+      "table",
+      "active",
+      "condition",
+      "columns",
+      "order",
+    ];
+    const byCategory = await boundedReadIn(
       ctx,
       "sys_ux_list",
       "category",
       ids(catRows),
-      ["sys_id", "category", "title", "table", "condition", "columns", "order"],
+      listFields,
       { order: "order" },
     );
+    const catIds = new Set(ids(catRows));
+    const seen = new Set(ids(byCategory));
+    const byMenu = (
+      await boundedReadIn(
+        ctx,
+        "sys_ux_list",
+        "configuration",
+        ids(menuRows),
+        listFields,
+        { order: "order" },
+      )
+    ).filter(
+      (l) => !seen.has(str(l, "sys_id")) && !catIds.has(str(l, "category")),
+    );
+    const listRows = [...byCategory, ...byMenu];
     const m2mRows = await boundedReadIn(
       ctx,
       "sys_ux_applicability_m2m_list",
@@ -796,9 +830,24 @@ export async function explainUiExperience(
       ["sys_id", "list", "applicability"],
     );
     const catsBy = groupBy(catRows, "configuration");
-    const listsBy = groupBy(listRows, "category");
+    const listsBy = groupBy(byCategory, "category");
+    const menuListsBy = groupBy(byMenu, "configuration");
     const m2mBy = groupBy(m2mRows, "list");
+    const toList = (l: SnRecord): UxList => ({
+      sys_id: str(l, "sys_id"),
+      ...(opt(l, "title") ? { title: opt(l, "title") } : {}),
+      ...(opt(l, "table") ? { table: opt(l, "table") } : {}),
+      ...(opt(l, "active") ? { active: opt(l, "active") } : {}),
+      ...(opt(l, "condition") ? { condition: opt(l, "condition") } : {}),
+      ...(opt(l, "columns") ? { columns: listColumns(str(l, "columns")) } : {}),
+      ...listConditionTerms(str(l, "condition")),
+      order: num(l, "order"),
+      applicability: ids(m2mBy.get(str(l, "sys_id")) ?? [], "applicability"),
+    });
     for (const m of menuRows) {
+      const loose = (menuListsBy.get(str(m, "sys_id")) ?? [])
+        .map(toList)
+        .sort(byOrder);
       result.listMenus.push({
         sys_id: str(m, "sys_id"),
         ...(opt(m, "name") ? { name: opt(m, "name") } : {}),
@@ -807,28 +856,14 @@ export async function explainUiExperience(
           .map((c) => ({
             sys_id: str(c, "sys_id"),
             ...(opt(c, "title") ? { title: opt(c, "title") } : {}),
+            ...(opt(c, "active") ? { active: opt(c, "active") } : {}),
             order: num(c, "order"),
             lists: (listsBy.get(str(c, "sys_id")) ?? [])
-              .map((l) => ({
-                sys_id: str(l, "sys_id"),
-                ...(opt(l, "title") ? { title: opt(l, "title") } : {}),
-                ...(opt(l, "table") ? { table: opt(l, "table") } : {}),
-                ...(opt(l, "condition")
-                  ? { condition: opt(l, "condition") }
-                  : {}),
-                ...(opt(l, "columns")
-                  ? { columns: listColumns(str(l, "columns")) }
-                  : {}),
-                ...listConditionTerms(str(l, "condition")),
-                order: num(l, "order"),
-                applicability: ids(
-                  m2mBy.get(str(l, "sys_id")) ?? [],
-                  "applicability",
-                ),
-              }))
+              .map(toList)
               .sort(byOrder),
           }))
           .sort(byOrder),
+        ...(loose.length ? { lists: loose } : {}),
       });
     }
   }
@@ -939,7 +974,7 @@ export async function explainUiExperience(
   const applicabilityIds = new Set<string>([
     ...[...screenAudiences.values()].flat(),
     ...result.listMenus.flatMap((m) =>
-      m.categories.flatMap((c) => c.lists.flatMap((l) => l.applicability)),
+      menuLists(m).flatMap((l) => l.applicability),
     ),
     ...result.formActionLayouts.flatMap((l) => l.applicability ?? []),
   ]);
@@ -981,10 +1016,7 @@ export async function explainUiExperience(
   c.applicabilities = result.applicabilities.length;
   c.dashboards = result.dashboards.length;
   c.listMenus = result.listMenus.length;
-  c.lists = result.listMenus.reduce(
-    (n, m) => n + m.categories.reduce((k, cat) => k + cat.lists.length, 0),
-    0,
-  );
+  c.lists = result.listMenus.reduce((n, m) => n + menuLists(m).length, 0);
   c.formActionLayouts = result.formActionLayouts.length;
   c.actions = result.actions.length;
   c.themes = result.themes.length;
@@ -1043,7 +1075,7 @@ async function readWorkspace(
       : undefined,
   );
   const uxListTables = result.listMenus.flatMap((m) =>
-    m.categories.flatMap((c) => c.lists.flatMap((l) => l.table ?? [])),
+    menuLists(m).flatMap((l) => l.table ?? []),
   );
   const tables = new Set<string>([
     ...uxListTables,

@@ -280,12 +280,20 @@ function fixture() {
       { sys_id: LMENU, name: "Acme lists", active: "true" },
     ],
     sys_ux_list_category: [
-      { sys_id: "cat1", configuration: LMENU, title: "Incidents", order: "1" },
+      {
+        sys_id: "cat1",
+        configuration: LMENU,
+        title: "Incidents",
+        active: "true",
+        order: "1",
+      },
     ],
     sys_ux_list: [
       {
         sys_id: "l2",
         category: "cat1",
+        configuration: LMENU,
+        active: "true",
         title: "All",
         table: "incident",
         condition: "",
@@ -295,6 +303,8 @@ function fixture() {
       {
         sys_id: "l1",
         category: "cat1",
+        configuration: LMENU,
+        active: "true",
         title: "Mine",
         table: "incident",
         condition: "assigned_toDYNAMIC90d1921e5f510100a9ad2572f2b477fe",
@@ -772,6 +782,61 @@ test("P-15: properties, dashboards, lists, audiences and form actions", async ()
     },
   ]);
   assert.ok(res.caveats.some((c) => /page properties/.test(c)));
+});
+
+test("P-15 (O-5): lists linked to the menu only, and inactive ones, are kept", async () => {
+  const tables = fixture();
+  tables.sys_ux_list_category.push({
+    sys_id: "cat2",
+    configuration: LMENU,
+    title: "Old",
+    active: "false",
+    order: "2",
+  });
+  // Categorised lists also name their menu; they are not repeated.
+  tables.sys_ux_list.push(
+    {
+      sys_id: "l4",
+      category: "",
+      configuration: LMENU,
+      title: "Transfer orders",
+      table: "alm_transfer_order",
+      active: "true",
+      order: "4",
+    },
+    {
+      sys_id: "l3",
+      category: "",
+      configuration: LMENU,
+      title: "Retired",
+      table: "incident",
+      active: "false",
+      order: "3",
+    },
+  );
+  const mock = instance(tables);
+  const res = payload(await run({ path: "now/acme" }, mock));
+  const [menu] = res.listMenus;
+  assert.deepEqual(
+    menu.categories.map((c) => [c.title, c.active, c.lists.length]),
+    [
+      ["Incidents", "true", 2],
+      ["Old", "false", 0],
+    ],
+  );
+  assert.deepEqual(
+    menu.lists.map((l) => [l.title, l.active, l.order]),
+    [
+      ["Retired", "false", 3],
+      ["Transfer orders", "true", 4],
+    ],
+  );
+  assert.equal(res.counts.lists, 4);
+  const md = payload(
+    await run({ path: "now/acme", format: "markdown" }, instance(tables)),
+  ).markdown;
+  assert.match(md, /- Old · inactive/);
+  assert.match(md, /- \(no category\)\n {4}- Retired \(incident\) · inactive/);
 });
 
 test("the Mermaid page map matches its golden", async () => {
