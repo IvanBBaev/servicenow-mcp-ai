@@ -129,6 +129,8 @@ async function rebuildIndex(update?: RunsUpdate): Promise<void> {
   const runs = await readRuns(root);
   update?.(runs);
   const partial = files.some((e) => e.partial);
+  // A run can open before anything was written: the store may not exist yet.
+  await fs.mkdir(root, { recursive: true });
   await fs.writeFile(
     path.join(root, MANIFEST_FILE),
     `${JSON.stringify(

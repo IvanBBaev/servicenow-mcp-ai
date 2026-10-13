@@ -486,3 +486,17 @@ test("docsRead of a large document skips a partial multi-byte tail", async () =>
     await assert.rejects(docsRead("missing.md"), (e) => e.status === 404);
   });
 });
+
+test("a generator run opens index.json in a docs folder that does not exist yet", async () => {
+  const { docsRunBegin, docsRunEnd } =
+    await import("../build/api/docs-manifest.js");
+  const fresh = path.join(DOCS_DIR, "not-created-yet");
+  await withEnv({ SN_DOCS_DIR: fresh }, async () => {
+    await docsRunBegin("test-gen", "default");
+    await docsRunEnd("test-gen", "default", { files: 0 });
+    const manifest = JSON.parse(
+      await fs.readFile(path.join(fresh, "index.json"), "utf8"),
+    );
+    assert.equal(manifest.runs["test-gen"].partial, false);
+  });
+});
