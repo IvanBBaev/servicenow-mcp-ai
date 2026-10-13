@@ -30,8 +30,15 @@
  * handler shapes (`propertyValues`, `{type: "STATE_BINDING", binding:
  * {address}}`, `{type, definition, targetId, operationName, parameters}`) are
  * modelled on UI Builder exports. O-5 confirmed `propertyValues` and found
- * handlers encoded as typed sub-objects (see {@link UibEventHandler}); the
- * binding shapes are still unverified. O-5 also found most wiring on the
+ * handlers encoded as typed sub-objects (see {@link UibEventHandler}). A
+ * second O-5 pass (2026-10-13, every PDI macroponent) confirmed the binding
+ * shapes: `{type, binding: {address: [...], category?}}` with
+ * `STATE_BINDING`, `DATA_OUTPUT_BINDING`, `CONTEXT_BINDING` (category
+ * `props` / `session` / `app`), `REPEATER_ITEM_BINDING` (category `value` /
+ * `index` / `parent`; the address may be empty) and `ELEMENT_BINDING`
+ * (`[elementId, prop, …]`). `CLIENT_TRANSFORM` (an operator over operands),
+ * `BINARY` and `UNARY` wrap bindings; `CLIENT_TRANSFORM_SCRIPT` names a
+ * script. O-5 also found most wiring on the
  * elements themselves: each composition element carries an `eventMappings`
  * array (`[{sourceEventApiName, targets: [handler]}]`, read by
  * {@link elementEventMappings}); `internal_event_mappings` is often `{}`.
@@ -59,15 +66,18 @@ const LITERAL_MAX = 200;
 
 /**
  * How a prop gets its value (N-26, UX-02): bound to a data resource output
- * (`@data.*`), client state (`@state.*`), page context (`@context.*`) or an
- * event payload (`@payload.*`); a literal; a client transform script; or an
- * `expression` that mixes literals with one or more bindings.
+ * (`@data.*`), client state (`@state.*`), page context (`@context.*`), an
+ * event payload (`@payload.*`), the current repeater item (`@item.*`) or
+ * another element's prop (`@elements.*`); a literal; a client transform
+ * script; or an `expression` that mixes literals, operators and bindings.
  */
 export type UibBindingKind =
   | "data"
   | "state"
   | "context"
   | "payload"
+  | "item"
+  | "element"
   | "literal"
   | "script"
   | "expression";
@@ -106,10 +116,30 @@ export interface CompositionOptions {
   props?: boolean;
 }
 
-const BINDING_KINDS = ["data", "state", "context", "payload"] as const;
+/** Binding kinds and the expression prefix each one is written with. */
+const PREFIX = {
+  data: "data",
+  state: "state",
+  context: "context",
+  payload: "payload",
+  item: "item",
+  element: "elements",
+} as const satisfies Partial<Record<UibBindingKind, string>>;
+
+type BoundKind = keyof typeof PREFIX;
+
+const KIND_OF = Object.fromEntries(
+  Object.entries(PREFIX).map(([k, p]) => [p, k]),
+) as Record<string, BoundKind>;
+
+const isBound = (k: UibBindingKind | undefined): k is BoundKind =>
+  !!k && k in PREFIX;
+
+/** Kinds whose `binding.category` is part of the path (`@context.props.x`). */
+const CATEGORY_KINDS: ReadonlySet<string> = new Set(["context", "item"]);
 
 const EXPRESSION =
-  /@(data|state|context|payload)\.([A-Za-z0-9_$-]+(?:\.[A-Za-z0-9_$-]+|\[[^\]]{0,40}\])*)/g;
+  /@(data|state|context|payload|item|elements)\.([A-Za-z0-9_$-]+(?:\.[A-Za-z0-9_$-]+|\[[^\]]{0,40}\])*)/g;
 
 /** The binding kind a typed value object names (`STATE_BINDING`, …). */
 function typedKind(type: string): UibBindingKind | undefined {
@@ -118,20 +148,29 @@ function typedKind(type: string): UibBindingKind | undefined {
   if (/STATE_BINDING|CLIENT_STATE/.test(t)) return "state";
   if (/CONTEXT_BINDING/.test(t)) return "context";
   if (/PAYLOAD_BINDING|EVENT_PAYLOAD/.test(t)) return "payload";
-  if (/SCRIPT|TRANSFORM/.test(t)) return "script";
+  if (/REPEATER_ITEM_BINDING/.test(t)) return "item";
+  if (/ELEMENT_BINDING/.test(t)) return "element";
+  // CLIENT_TRANSFORM is an operator over operands: its bindings are walked.
+  if (/SCRIPT/.test(t)) return "script";
   if (/LITERAL/.test(t)) return "literal";
   return undefined;
 }
 
-/** `@kind.a.b` from a binding `address` (array or dotted string). */
-function addressExpr(kind: string, binding: unknown): string | undefined {
+/**
+ * `@prefix.a.b` from a binding `address` (array or dotted string); a
+ * context or repeater item binding puts its `category` first.
+ */
+function addressExpr(kind: BoundKind, binding: unknown): string | undefined {
   const b = isObj(binding) ? (binding.address ?? binding.path) : binding;
   const parts = Array.isArray(b)
     ? b.filter((p) => typeof p === "string" || typeof p === "number")
     : typeof b === "string" && b
       ? [b.replace(/^@\w+\./, "")]
       : [];
-  return parts.length ? `@${kind}.${parts.join(".")}` : undefined;
+  const category =
+    isObj(binding) && CATEGORY_KINDS.has(kind) ? text(binding.category) : "";
+  if (category) parts.unshift(category);
+  return parts.length ? `@${PREFIX[kind]}.${parts.join(".")}` : undefined;
 }
 
 /** Binding expressions anywhere inside a value, bounded. */
@@ -143,7 +182,7 @@ function bindingsIn(v: unknown, out: Set<string>, depth = 0): void {
     for (const x of v) bindingsIn(x, out, depth + 1);
   } else if (isObj(v)) {
     const kind = text(v.type) ? typedKind(v.type as string) : undefined;
-    if (kind && (BINDING_KINDS as readonly string[]).includes(kind)) {
+    if (isBound(kind)) {
       const expr = addressExpr(kind, v.binding ?? v.value);
       if (expr) out.add(expr);
       return;
@@ -163,18 +202,19 @@ function literal(v: unknown): unknown {
 /** Classify one prop value (N-26). Never throws. */
 export function classifyProp(v: unknown): Omit<UibProp, "name" | "source"> {
   if (typeof v === "string") {
-    const whole = /^\s*@(data|state|context|payload)\.[^\s]+\s*$/.exec(v);
+    const whole =
+      /^\s*@(data|state|context|payload|item|elements)\.[^\s]+\s*$/.exec(v);
     const found = new Set<string>();
     bindingsIn(v, found);
     if (whole && found.size === 1) {
-      return { kind: whole[1] as UibBindingKind, bindings: [...found] };
+      return { kind: KIND_OF[whole[1]!]!, bindings: [...found] };
     }
     if (found.size) return { kind: "expression", bindings: [...found] };
     return { kind: "literal", value: literal(v) };
   }
   if (isObj(v) && text(v.type)) {
     const kind = typedKind(v.type as string);
-    if (kind && (BINDING_KINDS as readonly string[]).includes(kind)) {
+    if (isBound(kind)) {
       const expr = addressExpr(kind, v.binding ?? v.value);
       return { kind, ...(expr ? { bindings: [expr] } : {}) };
     }

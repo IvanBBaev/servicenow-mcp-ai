@@ -1627,6 +1627,76 @@ test("N-26: prop and handler readers are tolerant and bounded", async () => {
   assert.deepEqual(classifyProp({ type: "STATE_BINDING" }), { kind: "state" });
   assert.deepEqual(classifyProp(undefined), { kind: "literal" });
 
+  // N-25 (O-5): the binding shapes seen across every PDI macroponent.
+  const bound = (type, binding) => classifyProp({ type, binding });
+  assert.deepEqual(
+    bound("CONTEXT_BINDING", { address: ["requestedFor"], category: "props" }),
+    { kind: "context", bindings: ["@context.props.requestedFor"] },
+  );
+  assert.deepEqual(
+    bound("REPEATER_ITEM_BINDING", { address: ["label"], category: "value" }),
+    { kind: "item", bindings: ["@item.value.label"] },
+  );
+  assert.deepEqual(
+    bound("REPEATER_ITEM_BINDING", { address: [], category: "index" }),
+    { kind: "item", bindings: ["@item.index"] },
+  );
+  assert.deepEqual(bound("ELEMENT_BINDING", { address: ["list_1", "rows"] }), {
+    kind: "element",
+    bindings: ["@elements.list_1.rows"],
+  });
+  assert.deepEqual(
+    bound("STATE_BINDING", { address: ["tab"], category: "props" }),
+    { kind: "state", bindings: ["@state.tab"] },
+  );
+  assert.deepEqual(classifyProp("@elements.list_1.rows"), {
+    kind: "element",
+    bindings: ["@elements.list_1.rows"],
+  });
+  assert.deepEqual(
+    classifyProp({
+      type: "CLIENT_TRANSFORM",
+      transform: {
+        operator: "CONCAT",
+        operands: {
+          type: "LIST_CONTAINER",
+          container: [
+            { type: "JSON_LITERAL", value: "Total: " },
+            { type: "STATE_BINDING", binding: { address: ["count"] } },
+          ],
+        },
+      },
+    }),
+    { kind: "expression", bindings: ["@state.count"] },
+  );
+  assert.deepEqual(
+    classifyProp({
+      type: "BINARY",
+      operation: {
+        left: { type: "STATE_BINDING", binding: { address: ["a"] } },
+        operator: "AND",
+        right: {
+          type: "UNARY",
+          operation: {
+            operand: {
+              type: "ELEMENT_BINDING",
+              binding: { address: ["e", "open"] },
+            },
+            operator: "NOT",
+          },
+        },
+      },
+    }),
+    { kind: "expression", bindings: ["@state.a", "@elements.e.open"] },
+  );
+  assert.deepEqual(
+    classifyProp({
+      type: "CLIENT_TRANSFORM_SCRIPT",
+      script: { scriptSysId: "abc", inlineScript: "return @state.x;" },
+    }),
+    { kind: "script" },
+  );
+
   const many = Object.fromEntries(
     Array.from({ length: ELEMENT_MAX_PROPS + 5 }, (_, i) => [`p${i}`, i]),
   );

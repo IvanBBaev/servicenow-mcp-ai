@@ -127,7 +127,7 @@ export interface UxBinding {
     state?: string;
     /** Whether the state property is declared on the macroponent. */
     declared?: boolean;
-    /** `@context.<path>`: page context, resolved at run time. */
+    /** `@context.<category>.<path>` (props / session / app), resolved at run time. */
     context?: string;
   };
 }
