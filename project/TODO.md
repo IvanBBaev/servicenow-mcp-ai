@@ -773,7 +773,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       (j) confirm the 3 / 7 / 30-day targets and "< 2.0 unsupported"; (k) the fallback e-mail in
       SECURITY.md; (l) create labels `breaking`, `security`, `changed`, `ci`, `internal`,
       `skip-changelog`; (m) the roadmap's "O-1 checklist" names ARCH-14 go/no-go — no such
-      checklist exists. **P-19:** (n) field names verified on mocks only (O-5) (portal and workflow confirmed on a PDI, PDI-VERIFY fourteenth pass; UI Builder seventeenth pass — `NOT_OOB` lets global and non-`sn_` OOB records through, owner decision; Flow Designer nineteenth pass — steps name snapshots, fixed; flow-level error handler still unread); (o) make the
+      checklist exists. **P-19:** (n) field names verified on mocks only (O-5) (portal and workflow confirmed on a PDI, PDI-VERIFY fourteenth pass; UI Builder seventeenth pass — `NOT_OOB` lets global and non-`sn_` OOB records through, owner decision; Flow Designer nineteenth pass — steps name snapshots, fixed; twentieth pass — a flow-level error handler is a root "Top Level Try", already matched); (o) make the
       long-wait threshold configurable? **P-23:** (p) the strict `writeFields` allow-list (none
       yet for business rules / script includes); (q) `apps.current_app` unverified (O-5), and a
       child create takes the current app's scope, not its parent's; (r) add `prune_children`,

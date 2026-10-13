@@ -171,6 +171,10 @@ const INTEGRATION_STEP =
 
 const INTEGRATION_SCOPE = /^sn_.*spoke/i;
 
+// O-5: a flow-level error handler is a root "Top Level Try" holding the
+// main steps (with a sibling "Top Level Catch"), so it matches too. An
+// action's own error evaluation (sys_hub_step_instance.error_handling_type)
+// only decides whether the action fails, so it is not a handler.
 const TRY_LOGIC = /\btry\b/i;
 
 const WAIT_DURATION = /wait.*duration|duration.*wait/i;
@@ -473,9 +477,6 @@ export async function analyseFlows(ctx: Ctx, out: Collector): Promise<void> {
           { steps: names },
         );
       }
-      ctx.caveats.add(
-        "flow-integration-no-error-handling looks for a Try flow-logic ancestor only; a flow-level error handler and an action's own error evaluation are not read (unverified fields, gate O-5).",
-      );
     },
   );
 

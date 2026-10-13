@@ -225,8 +225,37 @@ const FLOW_TABLES = {
       "action_type.name": "Snapshot-called action",
       values: "",
     },
+    // O-5 shape: a flow-level error handler wraps the main steps in a
+    // root "Top Level Try" (the handler is a sibling "Top Level Catch").
+    {
+      sys_id: "i7",
+      flow: "f4",
+      ui_id: "u7",
+      parent_ui_id: "tlt1",
+      action_type: "a_rest",
+      "action_type.name": "REST call",
+      values: "",
+    },
   ],
   sys_hub_flow_logic_instance_v2: [
+    {
+      sys_id: "l6",
+      flow: "f4",
+      ui_id: "tlt1",
+      parent_ui_id: "",
+      logic_definition: "ld_tlt",
+      "logic_definition.name": "Top Level Try",
+      values: "",
+    },
+    {
+      sys_id: "l7",
+      flow: "f4",
+      ui_id: "tlc1",
+      parent_ui_id: "",
+      logic_definition: "ld_tlc",
+      "logic_definition.name": "Top Level Catch",
+      values: "",
+    },
     {
       sys_id: "l1",
       flow: "f2",
@@ -644,7 +673,7 @@ test("flow-draft-differs: an unreadable snapshot table reports every differing p
   );
 });
 
-test("flow-integration-no-error-handling: unguarded REST (name / step type) vs inside Try or non-integration", async () => {
+test("flow-integration-no-error-handling: unguarded REST (name / step type) vs inside Try, a flow-level error handler or non-integration", async () => {
   await scenario(ALL, async (calls) => {
     const d = await analyseDomains();
     // O-5: step action_type ids are snapshots, so the base table is read.

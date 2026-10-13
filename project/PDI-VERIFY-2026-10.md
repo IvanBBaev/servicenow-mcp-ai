@@ -584,6 +584,28 @@ evaluation.
 
 Fixed in this pass: the four rule reads above. tools/list delta 0 B.
 
+## Twentieth pass: flow-level error handler (P-19)
+
+GET-only on ven03019. A flow-level error handler is no separate field:
+`sys_hub_flow_logic_instance_v2` rows with the logic definition
+"Top Level Try" (34) and "Top Level Catch" (36) sit at the flow root
+(`parent_ui_id` empty), and every main step of such a flow has the
+Top Level Try as its ancestor (checked on "Change - Conflict Detection"
+and "HR Activity Launcher"). The handler's own steps sit under the
+Top Level Catch. `TRY_LOGIC` (`/\btry\b/i`) already matches the Top Level
+Try, so `flow-integration-no-error-handling` treats steps under a flow-level
+handler as guarded; the re-run counts of the nineteenth pass stand.
+
+`sys_hub_step_instance.error_handling_type` (1 "Stop the action and
+evaluate errors" 3,003 rows, 2 "Don't stop the action and go to next step"
+50, empty 919) is a step setting inside an action: it decides whether the
+action fails, not whether the flow handles the failure, so the rule does
+not read it.
+
+Fixed in this pass: the stale caveat ("a flow-level error handler … not
+read") is gone; a test fixture pins the Top Level Try shape. tools/list
+delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

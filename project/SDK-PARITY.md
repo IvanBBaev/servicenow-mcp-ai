@@ -672,7 +672,8 @@ unless it says so.
   `portal-public-data-widget`, `portal-orphan-widget`, `portal-orphan-page`, `portal-route-map-loop`,
   `workflow-migration-candidate`. Newest `limit` candidates per rule (50 / 200), child reads ≤ 500
   rows, `truncated` and `available:false` per rule, caveats for unverified fields (O-5). UI Builder
-  rules wait for P-14 / O-5; the flow-level error handler and FlowAPI script callers are not read.
+  rules wait for P-14 / O-5; FlowAPI script callers are not read (a flow-level error handler counts
+  as a Try: its root "Top Level Try" holds the main steps, O-5).
   `test/p19-domain-analysers.test.js` (19 tests, mutation-checked).
 - **UIB rules added 2026-09-30:** `uib-route-no-screen`, `uib-screen-no-applicability`,
   `uib-data-broker-no-acl` (severity is an owner call).
