@@ -385,6 +385,25 @@ left without one). Fixed in 912abab. `UibBindingKind` is internal (no
 output-schema enum), so tools/list delta 0 B; the `@context` expressions in
 opt-in binding detail now carry the category.
 
+## Twelfth pass: Flow actions, decision tables, playbooks (P-11, P-12, P-17)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_dictionary`, `sys_db_object`,
+Table API reads of the action, decision and `sys_pd_*` tables,
+`sys_variable_value`).
+
+| Item                               | Was assumed                                  | Result                                                                                                                                                                                                                    |
+| ---------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_hub_step_instance` inputs     | a `values` JSON column (registry: `inputs`)  | **Wrong.** No `values` or `comment` column; `inputs` is a `glide_var`. Values are `sys_variable_value` rows (`document` = `sys_hub_step_instance`): 14,698 rows on 3,953 of 3,972 steps. Now read, as format `variables`. |
+| Step keying                        | `action` → the action definition             | Confirmed (`action` references `sys_hub_action_type_base`): 1,857 steps under `sys_hub_action_type_definition`, 1,950 under `sys_hub_action_type_snapshot`, 165 orphaned. `label`, `order`, `step_type` exist.            |
+| Action root, inputs, outputs       | SDK inventory                                | Confirmed. `name`, `internal_name`, `category`, `access`, `description` are inherited from `sys_hub_action_type_base`; inputs / outputs extend `var_dictionary`, keyed by `model`.                                        |
+| Decision tables                    | `sys_decision_input.model`, question columns | Confirmed (61 of 61 inputs, 47 of 47 questions keyed). `answer` is a `document_id`, `default_answer` a boolean.                                                                                                           |
+| Playbook tables                    | readers aligned in e1b0aa6                   | Confirmed: 58 definitions, 142 of 143 lanes and 275 of 275 activities keyed. No timer or variant rows on this PDI; their columns exist.                                                                                   |
+| `playbook_context` refField        | `process_definition` → the playbook          | **Wrong.** It references `sys_pd_snapshot` (44 of 44 runs); the snapshot's `source` is the playbook. Registry fixed; the explainer already queried `process_definition.source`.                                           |
+| Inbound `LIKE` on flow step values | some values may be base64 + gzip             | Every `values` (2,789 action, 4,162 logic) and `subflow_inputs` is base64 + gzip, so the inbound read finds none of them on this PDI. The caveat says so.                                                                 |
+
+Fixed in b2b7b1a. Still open: `kind:"action"` reads the draft definition,
+not `sys_hub_action_type_snapshot` (TODO batch-11 (e)). tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
