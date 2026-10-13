@@ -429,7 +429,7 @@ test("catalog_variable: reference / list / lookup tables, mapped fields, qualifi
       q.refs.map((x) => [x.sys_id, x.field]),
       [["v2", "reference_qual"]],
     );
-    assert.equal(q.sources.catalog_variable.verified, false);
+    assert.equal(q.sources.catalog_variable.verified, true);
   });
 });
 
@@ -468,7 +468,7 @@ test("flow_input: action and flow inputs that reference the table", async () => 
           ["sys_hub_flow_input", "fi1", "rec", "reference"],
         ],
       );
-      assert.equal(r.sources.flow_action_input.verified, false);
+      assert.equal(r.sources.flow_action_input.verified, true);
       assert.equal(r.sources.flow_input.available, true);
     },
   );
@@ -564,7 +564,7 @@ test("where_used of a field finds the report and the PA indicator source that fi
           ],
         ],
       );
-      assert.equal(f.sources.pa_indicator_source.verified, false);
+      assert.equal(f.sources.pa_indicator_source.verified, true);
       assert.ok(
         calls.some(
           (c) =>

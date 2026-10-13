@@ -349,8 +349,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       sys_ids 500, recipients 50, batch 1000); optional filters now reject `""`; `SN_LOG_NOTIFY_RATE`
       default 20/s; private SDK `isMessageIgnored` reached via a guard.
 - [x] **S-9 · Structural where-used** — done 2026-09-24 (uncommitted). Owner questions: default ON
-      (up to 9 extra reads per call); unverified catalog / flow-input / report columns; catalog
-      mapped fields match on any table.
+      (up to 9 extra reads per call); unverified catalog / flow-input / report columns (**resolved
+      2026-10-13 on a PDI, O-5**: the catalog, flow input, report and PA sources are `verified:true`;
+      the UI Builder sources stay unverified, N-25); catalog mapped fields match on any table.
 - [x] **E-5 · Observability** — done 2026-09-24 (uncommitted). Owner questions: logger now masks
       credential keys and applies `SN_REDACT_*`; `SN_LOG_FILE` always JSONL, 5 generations fixed;
       `/metrics` needs `SN_HTTP_TOKEN`; `diagnostics_channel` names become public API.
@@ -363,7 +364,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       (INSTANCE-DOCS pass 2 §7). **Resolved:** the ceiling was raised to 3 MB (owner, 2026-10-05; commit 05de939, `scripts/pack-check.mjs`).
 - [x] **S-5 · Trace v2** — done 2026-09-25 (uncommitted). Owner questions: lane placement in the
       chain is a modelling choice; scheduled jobs matched by `scriptLIKE<table>` (false positives);
-      transform maps on the traced table only; script-fired events missed; lane columns unverified (O-5).
+      transform maps on the traced table only; script-fired events missed; lane columns unverified (O-5) — **resolved 2026-10-13**: every lane
+      column is present on a PDI (PDI-VERIFY twenty-third pass).
 - [x] **S-7 · Snapshot/compare v2** — done 2026-09-25 (uncommitted). Owner questions: snapshot
       default now all eleven sections (7 more reads) vs the old four; `renamed` status lowers drift
       count for renames; property redaction heuristic; should the manifest read `sn_*` from `.json`.

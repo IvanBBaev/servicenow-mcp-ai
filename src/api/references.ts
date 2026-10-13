@@ -412,7 +412,7 @@ const catalogVariable: ReferenceSource = {
   kind: "catalog_variable",
   table: "item_option_new",
   scopeField: "sys_scope",
-  verified: false,
+  verified: true,
   fields: [
     "sys_id",
     "name",
@@ -471,14 +471,17 @@ const catalogVariable: ReferenceSource = {
   },
 };
 
-/** Flow Designer input definitions (var_dictionary rows); unverified tables. */
+/**
+ * Flow Designer input definitions (var_dictionary rows). O-5 (a PDI): `reference`
+ * holds the table name, so `reference=<table>` matches.
+ */
 function flowInputSource(id: string, table: string): ReferenceSource {
   return {
     id,
     kind: "flow_input",
     table,
     scopeField: "sys_scope",
-    verified: false,
+    verified: true,
     fields: ["sys_id", "element", "label", "reference", "model.name"],
     query: (t) => (t.kind === "table" ? `reference=${t.name}` : undefined),
     extract(r) {
@@ -503,7 +506,7 @@ const report: ReferenceSource = {
   kind: "report",
   table: "sys_report",
   scopeField: "sys_scope",
-  verified: false,
+  verified: true,
   fields: ["sys_id", "title", "table", "field", "filter"],
   query: (t) => {
     if (t.kind === "table") return `table=${t.name}`;
@@ -562,14 +565,14 @@ const report: ReferenceSource = {
 /**
  * N-8 — Performance Analytics indicator sources (`pa_cubes`): the facts table
  * and the conditions every indicator built on the source inherits. Licensed
- * (O-9); O-5: verify on a live instance.
+ * (O-9); the columns are confirmed on a PDI (O-5).
  */
 const paIndicatorSource: ReferenceSource = {
   id: "pa_indicator_source",
   kind: "pa_indicator_source",
   table: "pa_cubes",
   scopeField: "sys_scope",
-  verified: false,
+  verified: true,
   licensed: PERFORMANCE_ANALYTICS,
   fields: ["sys_id", "name", "facts_table", "conditions"],
   query: (t) => {
