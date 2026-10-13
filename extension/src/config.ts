@@ -15,8 +15,8 @@ export const SERVER_PACKAGE = "servicenow-mcp-ai";
  * installed extension silently — it ships with an extension that raises the
  * pin. The extension is versioned in lockstep with the server
  * (`npm run version:sync`), so the range is always the `package.json` major:
- * `test/distribution.test.js` fails a major bump that leaves it behind (the
- * 3.0.0 bump raises it to `3.x`). Every launcher (MCP definition, doctor,
+ * `npm version` rewrites it through `scripts/sync-version.mjs`, and
+ * `test/distribution.test.js` fails a major bump that leaves it behind. Every launcher (MCP definition, doctor,
  * http transport) goes through `SERVER_SPEC`; the same test keeps it that way.
  *
  * Written `N.x` rather than `^N`: npm treats both as `>=N.0.0 <N+1.0.0-0`, but

@@ -182,11 +182,16 @@ function fixture(t, { next, stale }) {
     `<script type="application/ld+json">{ "softwareVersion": "${stale}", "x": "${stale}" }</script>\n` +
       `<span class="ver-pill">v${stale}</span> v${stale}\n`,
   );
+  writeFixture(
+    dir,
+    "extension/src/config.ts",
+    `export const SERVER_VERSION_RANGE = "${stale.split(".")[0]}.x";\n`,
+  );
   return dir;
 }
 
 test("sync-version: --check reports every drifting follower and writes nothing", (t) => {
-  const dir = fixture(t, { next: "3.1.0", stale: "3.0.0" });
+  const dir = fixture(t, { next: "3.1.0", stale: "2.9.0" });
   const before = Object.fromEntries(
     FOLLOWERS.map((f) => [
       f.file,
@@ -207,7 +212,7 @@ test("sync-version: --check reports every drifting follower and writes nothing",
 });
 
 test("sync-version: writes the root version into every follower, then is a no-op", (t) => {
-  const dir = fixture(t, { next: "3.1.0", stale: "3.0.0" });
+  const dir = fixture(t, { next: "3.1.0", stale: "2.9.0" });
   const at = (rel) => readFileSync(path.join(dir, rel), "utf8");
 
   const first = syncVersion({ root: dir });
@@ -241,15 +246,20 @@ test("sync-version: writes the root version into every follower, then is a no-op
   assert.ok(site.includes('"softwareVersion": "3.1.0"'));
   assert.ok(site.includes('<span class="ver-pill">v3.1.0</span>'));
   // Only the two documented patterns move; other occurrences are untouched.
-  assert.ok(site.includes('"x": "3.0.0"'));
-  assert.ok(site.endsWith("</span> v3.0.0\n"));
+  assert.ok(site.includes('"x": "2.9.0"'));
+  assert.ok(site.endsWith("</span> v2.9.0\n"));
+  // B9: the extension's server range follows the major.
+  assert.equal(
+    at("extension/src/config.ts"),
+    'export const SERVER_VERSION_RANGE = "3.x";\n',
+  );
 
   const second = syncVersion({ root: dir, check: true });
   assert.deepEqual(second.drift, []);
 });
 
 test("sync-version: rejects a non-canonical follower with nested version fields", (t) => {
-  const dir = fixture(t, { next: "3.1.0", stale: "3.0.0" });
+  const dir = fixture(t, { next: "3.1.0", stale: "2.9.0" });
   // A prettier-shaped server.json whose packages[].version the top-level line
   // patch cannot reach must fail loudly rather than sync half of the file.
   writeFixture(
@@ -264,7 +274,7 @@ test("sync-version: rejects a non-canonical follower with nested version fields"
 });
 
 test("sync-version: rejects a docs page without both version patterns", (t) => {
-  const dir = fixture(t, { next: "3.1.0", stale: "3.0.0" });
+  const dir = fixture(t, { next: "3.1.0", stale: "2.9.0" });
   writeFixture(
     dir,
     "docs/index.html",
@@ -276,11 +286,31 @@ test("sync-version: rejects a docs page without both version patterns", (t) => {
   );
 });
 
+test("sync-version: rejects an extension config without SERVER_VERSION_RANGE", (t) => {
+  const dir = fixture(t, { next: "3.1.0", stale: "2.9.0" });
+  writeFixture(dir, "extension/src/config.ts", "export const X = 1;\n");
+  assert.throws(
+    () => syncVersion({ root: dir }),
+    /extension\/src\/config\.ts: expected export const SERVER_VERSION_RANGE/,
+  );
+});
+
 test("sync-version: rejects a package.json without a version", (t) => {
-  const dir = fixture(t, { next: "3.1.0", stale: "3.0.0" });
+  const dir = fixture(t, { next: "3.1.0", stale: "2.9.0" });
   writeFixture(dir, "package.json", canonical({ name: "x" }));
   assert.throws(
     () => syncVersion({ root: dir }),
     /package\.json: missing version/,
   );
+});
+
+test("sync-version: the npm version script stages every follower", () => {
+  const script = JSON.parse(readFileSync("package.json", "utf8")).scripts
+    .version;
+  // npm stages package.json and package-lock.json itself.
+  for (const { file } of FOLLOWERS.filter(
+    (f) => f.file !== "package-lock.json",
+  )) {
+    assert.ok(script.split(" ").includes(file), `${file} is not git-added`);
+  }
 });

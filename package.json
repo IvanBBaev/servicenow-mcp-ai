@@ -61,7 +61,7 @@
     "check": "npm run build && npm run eval:mocks:check && npm run lint && npm run format:check && npm run docs:env -- --check && npm run docs:sync -- --check && npm run roadmap:sync -- --check && npm run docs:instructions -- --check && npm run scan:surface && npm run mcpb:manifest -- --check && npm run test:coverage && npm run pack:check && npm audit --omit=dev --audit-level=high",
     "release:dry": "npm run check && npm publish --dry-run",
     "version:sync": "node scripts/sync-version.mjs",
-    "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json mcpb/manifest.json docs/index.html",
+    "version": "node scripts/sync-version.mjs && git add server.json extension/package.json extension/package-lock.json .claude-plugin/plugin.json mcpb/manifest.json docs/index.html extension/src/config.ts",
     "prepublishOnly": "npm run check",
     "eval:skills": "claude plugin eval . --trust-plugin --no-publish",
     "eval:mocks": "npm run build && node test/evals/record-mocks.js",

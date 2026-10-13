@@ -254,6 +254,31 @@ taken). Publishing happens **from CI on a version tag**, never from a laptop.
 SemVer: patch = fixes, minor = new tools/back-compatible additions, major =
 a breaking tool/contract change.
 
+### Prereleases (betas)
+
+A breaking major ships a beta first (O-14, ADR 0011). A version with a `-`
+(`3.0.0-beta.1`) is a prerelease, and the release workflows treat it that way:
+
+| Channel                                                                                       | GA tag (`v3.0.0`) | Prerelease tag (`v3.0.0-beta.1`) |
+| --------------------------------------------------------------------------------------------- | ----------------- | -------------------------------- |
+| npm ([`publish.yml`](.github/workflows/publish.yml))                                          | `latest` dist-tag | `next` dist-tag                  |
+| GitHub Release                                                                                | normal release    | marked as a prerelease           |
+| MCP Registry ([`publish-mcp.yml`](.github/workflows/publish-mcp.yml))                         | published         | skipped                          |
+| VS Code Marketplace / Open VSX ([`publish-vscode.yml`](.github/workflows/publish-vscode.yml)) | published         | skipped                          |
+
+1. Keep the notes under `## [Unreleased]` while betas run; move them under
+   `## [x.y.z]` only for the GA release.
+2. First beta of a major: `npm version premajor --preid beta`
+   (2.0.1 → 3.0.0-beta.0). Next betas: `npm version prerelease --preid beta`.
+   The `version` script raises `SERVER_VERSION_RANGE` with the major.
+3. `git push --follow-tags`, as for a GA release.
+4. Testers install it with `npx -y servicenow-mcp-ai@next`. A `3.x` range does
+   not match a prerelease, so the published extension keeps launching the last
+   GA major until `3.0.0` ships.
+5. GA: `npm version major` from the last beta gives `3.0.0`; the `next`
+   dist-tag can stay behind, or `npm dist-tag add servicenow-mcp-ai@3.0.0 next`
+   moves it.
+
 ### Version bump
 
 `npm version <patch|minor|major>` is the only way the version changes. Its
@@ -261,7 +286,8 @@ a breaking tool/contract change.
 which copies the new `package.json` version into every other file that carries
 one — `package-lock.json`, `server.json`, `extension/package.json`,
 `extension/package-lock.json`, `.claude-plugin/plugin.json`,
-`mcpb/manifest.json` and `docs/index.html` — and stages them, so a single commit and tag carry a single
+`mcpb/manifest.json`, `docs/index.html` and the extension's
+`SERVER_VERSION_RANGE` (`extension/src/config.ts`, set to `<major>.x`, B9) — and stages them, so a single commit and tag carry a single
 version. `test/version-sync.test.js` fails CI on any skew (by hand:
 `node scripts/sync-version.mjs --check`; `npm run version:sync` rewrites). Never
 edit a version field directly.

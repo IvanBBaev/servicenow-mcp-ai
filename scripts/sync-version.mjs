@@ -8,6 +8,8 @@
 //   .claude-plugin/plugin.json    version
 //   mcpb/manifest.json            version (N-51 bundle manifest)
 //   docs/index.html               "softwareVersion": "<v>"  and  <span class="ver-pill">v<v></span>
+//   extension/src/config.ts       SERVER_VERSION_RANGE = "<major>.x" (B9: the
+//                                 extension launches the server major it ships with)
 //
 // It is wired into `npm version` through the "version" lifecycle script, so a
 // bump can never leave a follower behind (the 2.0.0-vs-2.0.1 plugin/extension
@@ -48,6 +50,7 @@ export const FOLLOWERS = [
   { file: ".claude-plugin/plugin.json", kind: "json", apply: setTopLevel },
   { file: "mcpb/manifest.json", kind: "json", apply: setTopLevel },
   { file: "docs/index.html", kind: "html" },
+  { file: "extension/src/config.ts", kind: "range" },
 ];
 
 const SOFTWARE_VERSION = /"softwareVersion": "[^"]*"/;
@@ -83,6 +86,21 @@ function nextHtml(file, text, version) {
     .replace(VER_PILL, `<span class="ver-pill">v${version}</span>`);
 }
 
+const SERVER_RANGE = /export const SERVER_VERSION_RANGE = "[^"]*";/;
+
+function nextRange(file, text, version) {
+  if (!SERVER_RANGE.test(text)) {
+    throw new Error(
+      `${file}: expected export const SERVER_VERSION_RANGE = "<major>.x";`,
+    );
+  }
+  const major = version.split(".")[0];
+  return text.replace(
+    SERVER_RANGE,
+    `export const SERVER_VERSION_RANGE = "${major}.x";`,
+  );
+}
+
 /**
  * Bring every follower in `root` to the package.json version.
  * With `check` nothing is written. Returns the version and the followers that
@@ -102,7 +120,9 @@ export function syncVersion({ root, check = false }) {
     const next =
       follower.kind === "html"
         ? nextHtml(follower.file, text, version)
-        : nextJson(follower.file, text, version, follower.apply);
+        : follower.kind === "range"
+          ? nextRange(follower.file, text, version)
+          : nextJson(follower.file, text, version, follower.apply);
     if (next === text) continue;
     drift.push(follower.file);
     if (!check) writeFileSync(abs, next);
