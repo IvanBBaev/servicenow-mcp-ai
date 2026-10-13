@@ -31,8 +31,8 @@ import { isSysIdAnyCase } from "../core/sys-id.js";
  * A create that names no `sys_scope` lands in the session user's current
  * application: for a table that extends `sys_metadata` the guard reads the
  * user's `apps.current_app` preference (no row = `global`, never
- * SDK-managed). The preference name and its sys_id value are unverified on a
- * live instance (O-5). When the scope cannot be read the guard degrades: the
+ * SDK-managed). O-5: on a PDI the preference is a string whose value is a
+ * `sys_app` sys_id or the literal `global`. When the scope cannot be read the guard degrades: the
  * result carries `sdkScopeWarning` and the write is judged unscoped — it
  * never fails the call.
  */

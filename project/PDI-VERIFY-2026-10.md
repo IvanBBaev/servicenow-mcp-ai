@@ -715,6 +715,22 @@ Follow-up (caveats/portal): `UNVERIFIED_CAVEAT` and `OPTIONS_CAVEAT` in
 `src/api/portal-model.ts` now state these findings; output stays
 `verified:false`. tools/list delta 0 B.
 
+## Twenty-seventh pass: current application preference (P-23)
+
+GET-only on ven03019, against `sys_user_preference` and `sys_scope`. The
+SDK-managed guard reads `apps.current_app` to place a create that names no
+`sys_scope`:
+
+| Read                                     | Finding                                                                                                                                         |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_user_preference` `apps.current_app` | **Exists:** 60 rows, `type=string`, `system=false`, one per user.                                                                               |
+| `value`                                  | A `sys_scope` sys_id on 52 rows (the 9 sampled all resolve to `sys_app` rows, e.g. `x_nuvo_eam`) and the literal `global` on 8.                 |
+| `scopeRefOf`                             | Already reads both: a sys_id becomes `{sys_id}`, `global` becomes `{scope: "global"}`, which is never SDK-managed. **Test added** for `global`. |
+
+Follow-up: the `sdk-guard.ts` header states the finding. Still open (owner):
+a child create takes the current application's scope, not its parent's.
+tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

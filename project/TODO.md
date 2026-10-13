@@ -778,8 +778,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       `skip-changelog`; (m) the roadmap's "O-1 checklist" names ARCH-14 go/no-go — no such
       checklist exists. **P-19:** (n) field names verified on mocks only (O-5) (portal and workflow confirmed on a PDI, PDI-VERIFY fourteenth pass; UI Builder seventeenth pass — `NOT_OOB` lets global and non-`sn_` OOB records through, owner decision; Flow Designer nineteenth pass — steps name snapshots, fixed; twentieth pass — a flow-level error handler is a root "Top Level Try", already matched); (o) make the
       long-wait threshold configurable? **P-23:** (p) the strict `writeFields` allow-list (none
-      yet for business rules / script includes); (q) `apps.current_app` unverified (O-5), and a
-      child create takes the current app's scope, not its parent's; (r) add `prune_children`,
+      yet for business rules / script includes); (q) `apps.current_app` (resolved: PDI-VERIFY twenty-seventh pass — a
+      `sys_app` sys_id or `global`); a child create takes the current app's scope, not its parent's; (r) add `prune_children`,
       whole-artefact revert, child staleness? (s) a plan token on a tool with
       `destructiveHint:false`; (t) `tools/list` `all` budget 144,000 (measured 143,644) (resolved: ADR 0006).
       **All:** (u) pack 1596.2 KB unpacked vs the 800 KB ceiling (resolved: 3 MB, 05de939).

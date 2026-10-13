@@ -445,6 +445,27 @@ test("create without sys_scope: no preference row is global (not flagged); a fai
       assert.equal(mutating(calls).length, 1);
     },
   );
+  // O-5: on a PDI the value is a sys_app sys_id or the literal `global`.
+  const global = (u) =>
+    metadataChain(u) ??
+    (u.pathname === "/api/now/table/sys_user_preference"
+      ? jsonResponse(200, {
+          result: [{ sys_id: REC, value: "global", user: REC }],
+        })
+      : null);
+  await scenarioWith(
+    { SN_SDK_MANAGED_WRITES: "deny" },
+    global,
+    async (calls) => {
+      const res = await call("servicenow_create_record", {
+        ...createNoScope,
+        apply: true,
+      });
+      assert.equal(res.isError, undefined, res.content[0].text);
+      assert.equal(out(res).sdkManaged, undefined);
+      assert.equal(mutating(calls).length, 1);
+    },
+  );
   const failing = (u) =>
     metadataChain(u) ??
     (u.pathname === "/api/now/table/sys_user_preference"
