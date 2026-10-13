@@ -29,16 +29,16 @@ export const RAW_PREVIEW = 1000;
 export const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const FLOW_CAVEAT =
-  "Flow Designer tables are verified:false. Checked on one PDI (gate O-5): step rows hang off the flow (draft) and off its sys_hub_flow_snapshot (published); _v2 inputs are base64 + gzip JSON (values, subflow_inputs), v1 inputs are sys_variable_value rows; label_cache is a JSON array. Unconfirmed: which of the v1 / _v2 tables is authoritative per release (on the PDI every clashing _v2 row was the newer one).";
+  "Flow Designer tables were checked on one PDI (gate O-5): step rows hang off the flow (draft) and off its sys_hub_flow_snapshot (published); _v2 inputs are base64 + gzip JSON (values, subflow_inputs), v1 inputs are sys_variable_value rows; label_cache is a JSON array. Unconfirmed: which of the v1 / _v2 tables is authoritative per release (on the PDI every clashing _v2 row was the newer one).";
 
 export const WORKFLOW_CAVEAT =
-  "Legacy workflow tables are verified:false. Checked on one PDI (gate O-5): activities hang off wf_workflow_version (no workflow or order column) and are ordered by canvas position; active and condition live on the version; wf_condition, wf_transition (from, to, condition) and wf_stage (name, value, order; no duration) match the columns read; runs come from wf_context (workflow, state).";
+  "Legacy workflow tables were checked on one PDI (gate O-5): activities hang off wf_workflow_version (no workflow or order column) and are ordered by canvas position; active and condition live on the version; wf_condition, wf_transition (from, to, condition) and wf_stage (name, value, order; no duration) match the columns read; runs come from wf_context (workflow, state).";
 
 export const ACTION_CAVEAT =
   "Action steps, inputs and outputs are read for the record passed: a sys_hub_action_type_definition shows the draft, a sys_hub_action_type_snapshot the published version. Checked on one PDI (gate O-5): a flow's action steps reference the snapshot, so an expanded call shows the version the flow runs.";
 
 export const PLAYBOOK_CAVEAT =
-  "Playbook tables are verified:false. Checked on one PDI (gate O-5): lanes and activities are keyed as read and sys_pd_context.process_definition points at sys_pd_snapshot. Unconfirmed: timer and variant rows (the columns exist but that PDI has none); Process Automation Designer is licensed (gate O-9).";
+  "Playbook tables were checked on one PDI (gate O-5): lanes and activities are keyed as read and sys_pd_context.process_definition points at sys_pd_snapshot. Unconfirmed: timer and variant rows (the columns exist but that PDI has none); Process Automation Designer is licensed (gate O-9).";
 
 export const PLAYBOOK_UNAVAILABLE =
   "Process Automation Designer (sys_pd_*) is not available on this instance: the playbook tables are absent or not readable. The family is licensed (gate O-9); install / license Process Automation Designer to explain playbooks.";
@@ -372,7 +372,8 @@ export interface ExplainFlowResult {
   runs?: Run[];
   migration?: MigrationReport;
   counts: ExplainFlowCounts;
-  verified: false;
+  /** The registry `verified` flag of the explained type (OD-4). */
+  verified: boolean;
   caveats: string[];
   unreadable: Unreadable[];
   missingFields?: Record<string, string[]>;

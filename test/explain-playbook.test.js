@@ -270,7 +270,7 @@ test("P-12: the playbook's lanes, activities, triggers, variables and variants",
   const mock = instance();
   const res = payload(await run({ sys_id: PB }, mock));
   assert.equal(res.kind, "playbook");
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true);
   assert.equal(res.name, "Laptop Onboarding");
   assert.deepEqual(res.playbook, {
     sys_id: PB,
@@ -337,7 +337,7 @@ test("P-12: the playbook's lanes, activities, triggers, variables and variants",
   assert.equal(res.counts.variants, 2);
   assert.equal(res.counts.inputs, 1);
   assert.equal(res.counts.outputs, 1);
-  assert.ok(res.caveats.some((c) => /verified:false/.test(c)));
+  assert.ok(res.caveats.some((c) => /checked on one PDI/.test(c)));
 });
 
 test("P-12: opt-in runs read sys_pd_context with activity states", async () => {
@@ -389,7 +389,7 @@ test("P-12: the markdown report and the file format", async () => {
   assert.match(md, /^# Playbook Laptop Onboarding$/m);
   assert.match(
     md,
-    /3 lane\(s\), 4 activity\(ies\), 2 trigger\(s\), 2 timer\(s\), 2 variant\(s\)\. verified:false\./,
+    /3 lane\(s\), 4 activity\(ies\), 2 trigger\(s\), 2 timer\(s\), 2 variant\(s\)\. verified:true\./,
   );
   assert.match(md, /- Internal name: laptop_onboarding/);
   assert.match(md, /- Description: Guides an agent through onboarding\./);

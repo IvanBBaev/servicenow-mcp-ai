@@ -279,7 +279,7 @@ function playbookLines(result: ExplainFlowResult): string[] {
     return out;
   }
   out.push(
-    `${c.lanes ?? 0} lane(s), ${c.activities} activity(ies), ${c.triggers ?? 0} trigger(s), ${c.timers ?? 0} timer(s), ${c.variants ?? 0} variant(s). verified:false.`,
+    `${c.lanes ?? 0} lane(s), ${c.activities} activity(ies), ${c.triggers ?? 0} trigger(s), ${c.timers ?? 0} timer(s), ${c.variants ?? 0} variant(s). verified:${result.verified}.`,
     "",
   );
   if (p.internal_name) out.push(`- Internal name: ${p.internal_name}`);
@@ -351,7 +351,7 @@ export function flowMarkdown(
     );
     if (w) {
       out.push(
-        `${c.activities} activity(ies), ${c.transitions} transition(s), ${c.stages} stage(s). verified:false.`,
+        `${c.activities} activity(ies), ${c.transitions} transition(s), ${c.stages} stage(s). verified:${result.verified}.`,
       );
       if (w.table) out.push("", `- Table: ${w.table}`);
       if (w.active !== undefined) out.push(`- Active: ${w.active}`);
@@ -394,8 +394,8 @@ export function flowMarkdown(
     );
     out.push(
       result.kind === "action"
-        ? `${c.steps} step(s), ${c.inputs} input(s), ${c.outputs} output(s). verified:false.`
-        : `${c.steps} step(s): ${c.actions} action(s), ${c.logic} logic, ${c.subflows} subflow call(s)${c.callees ? `; ${c.callees} callee(s) expanded` : ""}. verified:false.`,
+        ? `${c.steps} step(s), ${c.inputs} input(s), ${c.outputs} output(s). verified:${result.verified}.`
+        : `${c.steps} step(s): ${c.actions} action(s), ${c.logic} logic, ${c.subflows} subflow call(s)${c.callees ? `; ${c.callees} callee(s) expanded` : ""}. verified:${result.verified}.`,
     );
     if (a) {
       out.push("");

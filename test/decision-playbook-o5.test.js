@@ -1,7 +1,7 @@
 // O-5 — the decision-table and playbook readers ask only for columns that the
 // sys_dictionary of a live instance (the ven03019 PDI) has. A rename that
 // drifts from the dictionary fails here, not on a customer instance. The
-// output keys are unchanged; the explanations stay verified:false.
+// output keys are unchanged; the explanations carry the registry flag (OD-4).
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -173,7 +173,7 @@ test("O-5: the playbook reader asks only for PDI dictionary columns", async () =
     new RegExp(`^process_definition\\.source=${PB}\\^`),
   );
   assert.equal(query("sys_pd_timer_attributes"), `sourceIN${ACT}`);
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true);
   assert.deepEqual(res.lanes[0].activities[0].timers, [
     {
       sys_id: "t1",
@@ -238,5 +238,5 @@ test("O-5: decision tables ignore the columns the PDI does not have", async () =
     { sys_id: "i1", element: "", label: "Priority", order: "1" },
   ]);
   assert.deepEqual(x.rows, [{ sys_id: "q1", order: "1" }]);
-  assert.equal(x.verified, false);
+  assert.equal(x.verified, true);
 });
