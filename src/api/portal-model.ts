@@ -19,10 +19,10 @@ export const LAYOUT_PAGES = 5;
 export const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 export const UNVERIFIED_CAVEAT =
-  "Service Portal tables are verified:false: their table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
+  "Service Portal tables are verified:false. Checked on one PDI (gate O-5): every table and field read exists; rows nest in columns (sp_row.sp_column), route maps list portals in a glide_list, and widget_parameters values that are JS object literals rather than JSON come back raw.";
 
 export const OPTIONS_CAVEAT =
-  "Widget options are read from widget_parameters only; some classic options (title, glyph, color, size) may live in sp_instance columns instead.";
+  "Widget options are read from widget_parameters only; the classic sp_instance columns (title, glyph, color, size, url, css, class_name) are not mapped.";
 
 export interface ExplainPortalOptions {
   /** Portal url_suffix or sys_id. */
