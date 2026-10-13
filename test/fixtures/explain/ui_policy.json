@@ -52,7 +52,7 @@
     {
       "table": "sys_ui_policy_action",
       "parentField": "ui_policy",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {

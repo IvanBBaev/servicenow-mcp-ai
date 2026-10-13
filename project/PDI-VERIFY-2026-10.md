@@ -715,6 +715,25 @@ Follow-up (caveats/portal): `UNVERIFIED_CAVEAT` and `OPTIONS_CAVEAT` in
 `src/api/portal-model.ts` now state these findings; output stays
 `verified:false`. tools/list delta 0 B.
 
+## Twenty-sixth pass: registry rows outside portal, UI Builder and Next Experience (OD-3, OD-4)
+
+Date: 2026-10-13. Same PDI, GETs only (`scripts/pdi-verify.mjs`,
+`sys_db_object`, `sys_dictionary`, Stats API counts).
+
+| Item                                                     | Was                    | Result                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `risk_assessment` (`change_risk_asmt`, `_threshold`)     | `verified:false`       | Still absent (plugin `com.snc.change_management.risk_assessment` inactive). Stays `verified:false` (OD-3 (1)).                                                                                                                                                                       |
+| `app_dependency`, `application` > `sys_scope_dependency` | `verified:false`       | Still absent; no `*scope_dep*` table. App dependencies live in `sys_package_dependency_m2m` (`sys_package`, `dependency`, `min_version`; 114 rows on a `sys_app`). Stays `verified:false` (OD-3 (1)); retargeting `app_dependency` changes its meta keys, so it waits for the owner. |
+| `catalog_item` > `sc_cat_item_category`                  | child `verified:false` | Confirmed: `sc_cat_item` → `sc_cat_item`, `sc_category` → `sc_category` (664 rows). Override removed.                                                                                                                                                                                |
+| `catalog_item` > `sc_cat_item_user_criteria_mtom`        | child `verified:false` | Confirmed: `sc_cat_item`, `user_criteria` → `user_criteria` (280 rows). Override removed.                                                                                                                                                                                            |
+| `ui_policy` > `sys_ui_policy_action`                     | child `verified:false` | Confirmed: `ui_policy` → `sys_ui_policy`, `field` field_name (9,234 rows; write fields in the tenth pass). Override removed.                                                                                                                                                         |
+| `acl` > `sys_security_acl_role`                          | child `verified:false` | Confirmed: `sys_security_acl` → `sys_security_acl`, `sys_user_role` → `sys_user_role` (92,457 rows). Override removed.                                                                                                                                                               |
+
+A child's flag only labels its result (a child read degrades on 400 / 403 /
+404 either way), so the four children now report `verified:true` with no other
+behaviour change. Outside the OD-4 owner rows (portal, UI Builder, Next
+Experience), every remaining `verified:false` is one of the three OD-3 types.
+
 ## Twenty-seventh pass: current application preference (P-23)
 
 GET-only on ven03019, against `sys_user_preference` and `sys_scope`. The

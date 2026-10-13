@@ -95,7 +95,6 @@ export const SCRIPT_ROWS: readonly ArtifactType[] = [
           "field_message",
           "field_message_type",
         ],
-        verified: false,
       },
     ],
     nameField: "short_description",
@@ -215,7 +214,6 @@ export const SCRIPT_ROWS: readonly ArtifactType[] = [
         refFields: [
           { field: "sys_user_role", table: "sys_user_role", type: "role" },
         ],
-        verified: false,
       },
     ],
     nameField: "name",

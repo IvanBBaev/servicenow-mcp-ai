@@ -747,3 +747,22 @@ test("O-5: UI rows use the column names confirmed on a PDI", () => {
   ]);
   assert.deepEqual(t("sp_dependency").writeFields, ["module", "page_load"]);
 });
+
+test("O-5 (twenty-sixth pass): only unconfirmed child tables of a verified type override verified", () => {
+  const overrides = ARTIFACT_TYPES.filter((t) => t.verified).flatMap((t) =>
+    t.children
+      .filter((c) => c.verified === false)
+      .map((c) => `${t.type}>${c.table}`),
+  );
+  // Confirmed on a PDI 2026-10-13: catalog categories and user criteria,
+  // UI policy actions and ACL roles now inherit the type's flag.
+  for (const confirmed of [
+    "catalog_item>sc_cat_item_category",
+    "catalog_item>sc_cat_item_user_criteria_mtom",
+    "ui_policy>sys_ui_policy_action",
+    "acl>sys_security_acl_role",
+  ]) {
+    assert.ok(!overrides.includes(confirmed), confirmed);
+  }
+  assert.equal(getArtifactType("ui_policy").children[0].verified, undefined);
+});
