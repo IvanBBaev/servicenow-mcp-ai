@@ -750,7 +750,7 @@ Follow-up: the `sdk-guard.ts` header states the finding. Still open (owner):
 a child create takes the current application's scope, not its parent's.
 tools/list delta 0 B.
 
-## Thirtieth pass: Service Portal lint rules (P-18)
+## Thirty-first pass: Service Portal lint rules (P-18)
 
 GET-only on ven03019, against `sp_widget` (557 rows) and `sp_angular_provider`
 (139 rows). Every script field was run through `lintSourceDetailed` with the

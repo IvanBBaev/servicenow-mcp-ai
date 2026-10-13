@@ -625,7 +625,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       about 30 bounded reads; make it the default? (b) per-type default 50 / max 200; (c) the
       `sp-param-unvalidated` sinks (encoded query, GlideRecord / GlideAggregate table name,
       `gs.eval`, `GlideEvaluator`) — more? (d) findings verified on mocks only (O-5) (resolved:
-      PDI-VERIFY thirtieth pass — portal client functions now reach the AST engine, sanitised
+      PDI-VERIFY thirty-first pass — portal client functions now reach the AST engine, sanitised
       `trustAsHtml` values are skipped, the 5 `sp-param-unvalidated` hits are true).
 - [x] **H-3 remainder** — done 2026-09-26 (committed 062f4be): `expected_mod_count` → `STALE_RECORD` on
       update / delete, `unknown_fields` from the schema cache, email `body_preview` (2 KB) +
