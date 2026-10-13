@@ -750,6 +750,25 @@ Follow-up: the `sdk-guard.ts` header states the finding. Still open (owner):
 a child create takes the current application's scope, not its parent's.
 tools/list delta 0 B.
 
+## Thirtieth pass: Service Portal lint rules (P-18)
+
+GET-only on ven03019, against `sp_widget` (557 rows) and `sp_angular_provider`
+(139 rows). Every script field was run through `lintSourceDetailed` with the
+P-18 portal rules:
+
+| Read                                       | Finding                                                                                                                                                                                                                                           |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Engine on client sources                   | **Gap:** 248 widget `client_script`, 56 `link` and 79 provider sources fell back to the regex engine ("Unexpected token"): a portal client source is a bare `function (...) {...}` expression, which does not parse as a script. **Fixed** below. |
+| Engine after the fix                       | `sp_widget` fields: 1,386 AST, 4 regex; providers: 130 AST, 1 regex. The 5 left are a function followed by more statements, a legitimate fallback.                                                                                                |
+| `sce-trust-as-html`                        | 88 findings before, 76 after: 10 wrap the value in `$sanitize(...)` and 2 in `spUtil.sanitizeHtml(...)`, which no longer flag. By scope: global 24, `sn_hr_sp` 24, `sn_ex_sp` 10, `sn_cd` 10, others small.                                       |
+| `sp-param-unvalidated`                     | 5 findings, all true per the rule's design: OOB HR, chat and ticket widgets pass a `$sp.getParameter` value to `new GlideRecord(tableName)` or concatenate it into `addEncodedQuery`.                                                             |
+| `sanitize-bypass` (`$sceProvider.enabled`) | 0 findings.                                                                                                                                                                                                                                       |
+
+Follow-up: `lintSourceDetailed` parses a client source that starts with
+`function` in parentheses (line numbers unchanged), and the `sce-trust-as-html`
+rule skips an argument that is a `$sanitize` or `spUtil.sanitizeHtml` call.
+**Tests added.** tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

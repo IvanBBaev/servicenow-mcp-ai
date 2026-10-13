@@ -657,7 +657,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: ["O-5"]
-    notes: "**Done 2026-09-26 (local).** Portal rules, `lint_script` over opt-in types, `code_health({extended})` registry sweep, `where_used({extended})`. PDI fixture pending (O-5)."
+    notes: "**Done 2026-09-26 (local).** Portal rules, `lint_script` over opt-in types, `code_health({extended})` registry sweep, `where_used({extended})`. PDI-checked 2026-10-13 (PDI-VERIFY thirtieth pass): portal client functions parse as AST, sanitised `trustAsHtml` values are skipped (88 → 76 findings)."
   - id: "P-19"
     title: "domain analysers (flow, UIB, portal)"
     pillar: "P"
