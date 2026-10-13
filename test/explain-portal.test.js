@@ -242,7 +242,7 @@ function fixture() {
         sys_id: id("3"),
         name: "Charts",
         module: "chartModule",
-        include_on_page_load: "true",
+        page_load: "true",
       },
     ],
     m2m_sp_dependency_js_include: [

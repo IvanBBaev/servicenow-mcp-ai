@@ -110,6 +110,7 @@ export interface PortalWidget {
     sys_id: string;
     name?: string;
     module?: string;
+    /** sp_dependency.page_load. */
     include_on_page_load?: string;
     jsIncludes: Include[];
     cssIncludes: Include[];

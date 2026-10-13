@@ -631,6 +631,25 @@ where-used sources are now `verified: true` (`src/api/references.ts`). The UI
 Builder sources stay unverified (N-25, owner). The lanes need no code change.
 tools/list delta 0 B.
 
+## Twenty-fifth pass: Service Portal explainer (P-16)
+
+GET-only on ven03019, against `sys_dictionary` and `sys_db_object`. Every
+table and field `explain_portal` reads exists, with one exception:
+
+| Read                                                                                                          | Finding                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sp_dependency.include_on_page_load`                                                                          | **No such column:** it is `page_load` (boolean; 3 of 59 rows true). **Fixed:** the read uses `page_load`; the output key stays.                                                                                                   |
+| `sp_column.size`                                                                                              | Integer (Bootstrap grid width): 2–12 on 655 of 735 columns, empty on 80.                                                                                                                                                          |
+| `sp_row.sp_column`                                                                                            | Reference to `sp_column` (rows nested in a column, as in the fourteenth pass).                                                                                                                                                    |
+| `sp_page_route_map.portals`                                                                                   | `glide_list` of `sp_portal` sys_ids (36 of the route maps set it), so `portalsLIKE<id>` matches.                                                                                                                                  |
+| `sp_instance.widget_parameters`                                                                               | `script_server` column holding JSON: 372 of 397 non-empty values are `{key: {value, displayValue}}` (unwrapped); the rest are plain values or JS object literals (`{display_field:'…'}`), which fail to decode and come back raw. |
+| `sp_header_footer.id` / `name`                                                                                | Inherited: `sp_header_footer` extends `sp_widget`.                                                                                                                                                                                |
+| `sp_instance_menu.title`                                                                                      | Inherited: `sp_instance_menu` extends `sp_instance`.                                                                                                                                                                              |
+| m2m includes (`m2m_sp_theme_*`, `m2m_sp_dependency_*`, `m2m_sp_widget_dependency`, `m2m_sp_ng_pro_sp_widget`) | Confirmed, with the reference fields the code reads and `order` where it sorts.                                                                                                                                                   |
+| Classic options                                                                                               | `sp_instance` has `size`, `color`, `glyph`, `title`, `url`, `css`, `class_name` columns, as `OPTIONS_CAVEAT` says; still not mapped.                                                                                              |
+
+tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

@@ -437,7 +437,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       `servicenow_explain_portal` (SDK-PARITY §5(d)) — or fold it into `artifacts`? (b) Every SP
       field name is unverified (O-5): `sp_column.size`, rows nested in a column via
       `sp_row.sp_column`, `sp_page_route_map.portals` as a sys_id list, `sp_instance.widget_parameters`
-      as JSON, the m2m include tables. (c) Bounds: full layout for 5 pages (`LAYOUT_PAGES`), depth
+      as JSON, the m2m include tables. (Resolved 2026-10-13, PDI-VERIFY twenty-fifth pass: all confirmed
+      except `sp_dependency.include_on_page_load`, which is `page_load` — fixed.) (c) Bounds: full layout for 5 pages (`LAYOUT_PAGES`), depth
       default 3 / max 6 — right defaults? (d) Classic widget options stored in `sp_instance`
       columns (not `widget_parameters`) are not mapped; a `widget_parameters` key absent from
       `option_schema` lands in `unknownOptions`. (e) The pack grows further past the 800 KB ceiling (resolved: 3 MB, 05de939).

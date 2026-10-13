@@ -368,7 +368,7 @@ export async function explainPortal(
       "sp_dependency",
       "sys_id",
       depLinks.map((l) => str(l, "sp_dependency")),
-      ["sys_id", "name", "module", "include_on_page_load"],
+      ["sys_id", "name", "module", "page_load"],
     ),
   );
   const depIds = [...deps.keys()];
@@ -470,8 +470,9 @@ export async function explainPortal(
           sys_id: depId,
           ...(dep && opt(dep, "name") ? { name: opt(dep, "name") } : {}),
           ...(dep && opt(dep, "module") ? { module: opt(dep, "module") } : {}),
-          ...(dep && opt(dep, "include_on_page_load")
-            ? { include_on_page_load: opt(dep, "include_on_page_load") }
+          // O-5: the column is `page_load`; the output keeps its name.
+          ...(dep && opt(dep, "page_load")
+            ? { include_on_page_load: opt(dep, "page_load") }
             : {}),
           jsIncludes: (jsByDep.get(depId) ?? []).map((r) =>
             js(str(r, "sp_js_include")),
