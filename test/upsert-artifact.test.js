@@ -966,6 +966,8 @@ test("P-25: anything but {active} on an existing flow is FLOW_ACTIVE_ONLY", asyn
         }),
       );
       assert.equal(res?.code, "FLOW_ACTIVE_ONLY", JSON.stringify(extra));
+      // O-5: the toggle is checked on a PDI, so the hint has no gate caveat.
+      assert.match(res?.hint ?? "", /published snapshot is left as it is/);
     }
     assert.equal(mutating(calls).length, 0);
   });

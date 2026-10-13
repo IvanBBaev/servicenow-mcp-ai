@@ -47,8 +47,11 @@ import { isSysIdAnyCase } from "../core/sys-id.js";
  * — instance-wide uniqueness (`unique`), the scope prefix
  * (`scopePrefixFields`, a warning) and valid variable names.
  *
- * P-25: a `flow` accepts `{active}` only, unverified until O-5 confirms on a
- * PDI that toggling `active` leaves `master_snapshot` unchanged.
+ * P-25: a `flow` accepts `{active}` only. O-5 (a PDI, GET only): no business
+ * rule on `sys_hub_flow` reacts to an `active` update, and inactive flows keep
+ * their `master_snapshot` and trigger plans, so the toggle leaves the
+ * published snapshot unchanged. Whether the engine then stops (or resumes)
+ * firing the flow's trigger needs a writable instance.
  */
 
 export type Scalar = string | number | boolean | null;
@@ -128,7 +131,7 @@ function notWritable(message: string, hint?: string): ServiceNowError {
 function flowActiveOnly(message: string): ServiceNowError {
   return new ServiceNowError(message, 400, undefined, {
     code: "FLOW_ACTIVE_ONLY",
-    hint: "servicenow_upsert_artifact only toggles an existing flow's `active` flag (unverified until O-5); edit the flow itself in Flow Designer or through the ServiceNow SDK.",
+    hint: "servicenow_upsert_artifact only toggles an existing flow's `active` flag (the published snapshot is left as it is); edit the flow itself in Flow Designer or through the ServiceNow SDK.",
   });
 }
 
