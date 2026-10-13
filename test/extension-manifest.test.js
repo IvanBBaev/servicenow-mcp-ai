@@ -14,7 +14,7 @@ const ext = path.join(root, "extension");
 const manifest = JSON.parse(
   readFileSync(path.join(ext, "package.json"), "utf8"),
 );
-const PROFILES = ["core", "all", "reader", "developer", "admin"];
+const PROFILES = ["discovery", "core", "all", "reader", "developer", "admin"];
 
 test("servicenowMcp.packages offers exactly the registry packages plus the profiles", () => {
   const prop =

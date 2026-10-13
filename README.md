@@ -136,7 +136,7 @@ with the model and client of your choice.
   impact, instance discovery) that orchestrate the tools; every plugin skill
   has a prompt twin for clients without the plugin.
 - **Tool packages**: load only the tool groups you need via `SN_TOOL_PACKAGES`
-  (default profile `core`; `all` enables everything).
+  (default profile `discovery`; `all` enables everything).
 - **Basic** or **OAuth 2.0** authentication over HTTPS; the password/token is
   never echoed back.
 - Least-privilege controls: table allow/deny lists and a global read-only mode.
@@ -734,7 +734,7 @@ Which tools are registered. The admin tools (set_credentials, get_status, use_in
 
 | Variable | Required | Default | Since | Description |
 | -------- | :------: | ------- | ----- | ----------- |
-| `SN_TOOL_PACKAGES` | no | `core` | 1.0.0 | Comma/space-separated tool packages or profiles to enable. Profiles: `core` (default), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. |
+| `SN_TOOL_PACKAGES` | no | `discovery` | 1.0.0 | Comma/space-separated tool packages or profiles to enable. Profiles: `discovery` (default; `core` is its older name), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. |
 | `SN_PACKAGES_DENY` | no | — | 1.0.0 | Comma/space-separated packages to exclude even if enabled by `SN_TOOL_PACKAGES`. The only way to block plugin APIs (catalog, change, knowledge…) — the table policy does not see them. |
 | `SN_PACKAGES_READONLY` | no | — | 1.0.0 | Comma/space-separated packages whose write tools are not registered; their read tools stay. Per-package complement to the global `SN_READONLY`. |
 | `SN_CODESEARCH` | no | `false` | 1.1.0 | Opt in to the Code Search API (`sn_codesearch`) for `servicenow_search_code` (FT-7). When `true` and the plugin is active it replaces the LIKE iteration; falls back to LIKE on any failure. |
@@ -1100,12 +1100,12 @@ _This table is generated from the tool registrations — edit the tool
 definitions in `src/tools/`, then run `npm run docs:readme`. Every tool
 name carries the `servicenow_` prefix, left out below._
 
-| Package | Default `core` | Read tools | Write tools |
-| ------- | :------------: | ---------- | ----------- |
+| Package | Default `discovery` | Read tools | Write tools |
+| ------- | :-----------------: | ---------- | ----------- |
 | [`table`](docs/tools/table.md) | yes | `query_table`, `get_record` | `create_record`, `update_record`, `upsert_record`, `delete_record` |
 | [`schema`](docs/tools/schema.md) | yes | `list_tables`, `describe_table` | — |
 | [`aggregate`](docs/tools/aggregate.md) | yes | `aggregate` | — |
-| [`attachment`](docs/tools/attachment.md) | yes | `list_attachments`, `get_attachment`, `download_attachment` | `upload_attachment`, `delete_attachment` |
+| [`attachment`](docs/tools/attachment.md) | no | `list_attachments`, `get_attachment`, `download_attachment` | `upload_attachment`, `delete_attachment` |
 | [`importset`](docs/tools/importset.md) | no | `get_import_set_row` | `insert_import_set_row` |
 | [`batch`](docs/tools/batch.md) | no | — | `batch` |
 | [`catalog`](docs/tools/catalog.md) | no | `list_catalogs`, `list_catalog_categories`, `list_catalog_items`, `get_catalog_item` | `order_catalog_item` |
@@ -1177,7 +1177,9 @@ Tools are grouped into packages so you can expose only what a given client needs
 (fewer tools keep the model focused). Set `SN_TOOL_PACKAGES` to a comma/space
 separated list of profiles or package names:
 
-- `core` (default) — `table`, `schema`, `aggregate`, `attachment`.
+- `discovery` (default) — `table`, `schema`, `aggregate`, plus the always-on
+  admin tools; `servicenow_find_tools` names the package for anything else.
+  `core` is its older name (`attachment` left it in 3.0, B20).
 - `all` — every package below.
 - Individual packages: `table`, `schema`, `aggregate`, `attachment`,
   `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`,

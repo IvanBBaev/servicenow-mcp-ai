@@ -31,7 +31,7 @@ Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email), plus:
    recent active incidents with their priority."_
 
 Start read-only and safe: set `SN_READONLY=true` in your env file and keep the
-default `core` package set until you trust the workflow.
+default `discovery` package set until you trust the workflow.
 
 ## Credentials
 
@@ -57,7 +57,7 @@ default `core` package set until you trust the workflow.
 | Setting                   | Default | Meaning                                                                                                                                                                                                  |
 | ------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `servicenowMcp.envFile`   | _empty_ | Env file the server reads and writes (`SN_ENV_FILE`). Supports `~`, `${userHome}` and `${workspaceFolder}`; a relative path resolves against the first workspace folder. Empty = the server default.      |
-| `servicenowMcp.packages`  | `[]`    | Tool packages or profiles (`SN_TOOL_PACKAGES`), e.g. `["core", "flows"]`. Empty = `core`. **ServiceNow MCP: Choose Tool Packages** picks them from a list.                                                |
+| `servicenowMcp.packages`  | `[]`    | Tool packages or profiles (`SN_TOOL_PACKAGES`), e.g. `["discovery", "flows"]`. Empty = `discovery`. **ServiceNow MCP: Choose Tool Packages** picks them from a list.                                                |
 | `servicenowMcp.transport` | `stdio` | `stdio` (recommended) or `http`: the extension starts the server's Streamable HTTP transport on a free `127.0.0.1` port with a random per-launch bearer token and VS Code connects to it.                  |
 
 Changing a setting, signing in or signing out re-registers the server definition,

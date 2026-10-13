@@ -44,8 +44,13 @@ export const ALL_PACKAGES: string[] = [
   "ui",
 ];
 
-/** The default package set when SN_TOOL_PACKAGES is unset or unusable. */
-const CORE_PROFILE = ["table", "schema", "aggregate", "attachment"];
+/**
+ * The default package set when SN_TOOL_PACKAGES is unset or unusable: the
+ * `discovery` profile (N-63, B20). It reads data and schema; every other
+ * package is one `servicenow_find_tools` / `servicenow_enable_package` away.
+ * `core` names the same set; `attachment` left it with N-63.
+ */
+const DISCOVERY_PROFILE = ["table", "schema", "aggregate"];
 
 /**
  * The read-first surface: browse data and inspect schema without any write or
@@ -69,14 +74,16 @@ const DEVELOPER_PROFILE = [
 
 /**
  * Named profiles that expand to a set of packages, resolved by
- * {@link resolveEnabledPackages}. `core` is the default profile loaded when
- * SN_TOOL_PACKAGES is unset; `all` (and its `admin` alias) enables everything.
+ * {@link resolveEnabledPackages}. `discovery` is the default profile loaded
+ * when SN_TOOL_PACKAGES is unset, and `core` is its older name; `all` (and its
+ * `admin` alias) enables everything.
  * The `reader` / `developer` / `admin` presets (UX review §11) give clients a
  * memorable name for the common surfaces instead of a hand-typed package list;
  * a preset may still be combined with explicit packages in SN_TOOL_PACKAGES.
  */
 const PROFILES: Record<string, string[]> = {
-  core: CORE_PROFILE,
+  discovery: DISCOVERY_PROFILE,
+  core: DISCOVERY_PROFILE,
   all: ALL_PACKAGES,
   reader: READER_PROFILE,
   developer: DEVELOPER_PROFILE,
@@ -86,7 +93,7 @@ const PROFILES: Record<string, string[]> = {
 /**
  * Resolve requested package/profile names into a concrete package set.
  * Unknown names are ignored (with a warning); an empty result falls back to
- * the `core` profile so the server always exposes a usable tool set.
+ * the `discovery` profile so the server always exposes a usable tool set.
  */
 export function resolveEnabledPackages(requested: string[]): Set<string> {
   const enabled = new Set<string>();
@@ -101,7 +108,7 @@ export function resolveEnabledPackages(requested: string[]): Set<string> {
     }
   }
   if (enabled.size === 0) {
-    for (const p of CORE_PROFILE) enabled.add(p);
+    for (const p of DISCOVERY_PROFILE) enabled.add(p);
   }
   return enabled;
 }

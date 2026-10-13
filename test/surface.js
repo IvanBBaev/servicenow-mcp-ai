@@ -15,10 +15,11 @@ import { withEnv } from "./helpers.js";
 /**
  * The measured profiles and the env each one pins. Tasks and legacy names are
  * off unless the profile turns them on, so a developer's shell cannot skew a
- * measurement. `discovery` joins with N-63.
+ * measurement. `discovery` is the default (N-63); `core` names it explicitly.
  */
 export const PROFILES = {
-  core: {},
+  core: { SN_TOOL_PACKAGES: "core" },
+  discovery: {},
   all: { SN_TOOL_PACKAGES: "all" },
   "all+tasks": { SN_TOOL_PACKAGES: "all", SN_EXPERIMENTAL_TASKS: "1" },
   "all+legacy": { SN_TOOL_PACKAGES: "all", SN_LEGACY_TOOL_NAMES: "1" },

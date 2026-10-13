@@ -2,7 +2,7 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-5 tools (3 read-only, 2 write). In the default `core` profile. [All packages](README.md).
+5 tools (3 read-only, 2 write). Opt-in: add `attachment` to `SN_TOOL_PACKAGES`, or call `servicenow_enable_package`. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |

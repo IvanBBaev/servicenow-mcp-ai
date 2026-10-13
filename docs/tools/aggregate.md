@@ -2,7 +2,7 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-1 tool (1 read-only, 0 write). In the default `core` profile. [All packages](README.md).
+1 tool (1 read-only, 0 write). In the default `discovery` profile. [All packages](README.md).
 
 | Tool | Read-only | Title |
 | ---- | :-------: | ----- |

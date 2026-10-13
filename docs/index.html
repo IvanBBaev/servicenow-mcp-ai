@@ -809,7 +809,7 @@ export SN_PASSWORD=••••••</code></pre>
               <strong>First time? Start safe.</strong> Set
               <code>SN_READONLY=true</code> so the assistant can read and explore
               but never writes, and keep the default
-              <code>SN_TOOL_PACKAGES=core</code> to expose a small tool set.
+              <code>SN_TOOL_PACKAGES=discovery</code> to expose a small tool set.
               Loosen both once you trust the workflow.
             </p>
           </div>
@@ -1281,7 +1281,7 @@ SN_ACTIVE_PROFILE=dev</code></pre>
                 </tr>
                 <tr>
                   <td><code>SN_TOOL_PACKAGES</code></td>
-                  <td><code>core</code></td>
+                  <td><code>discovery</code></td>
                   <td>Packages/profiles to enable (see below).</td>
                 </tr>
                 <tr>
@@ -1361,9 +1361,11 @@ SN_ACTIVE_PROFILE=dev</code></pre>
           </p>
           <ul>
             <li>
-              <code>core</code> (default) — <code>table</code>,
-              <code>schema</code>, <code>aggregate</code>,
-              <code>attachment</code>.
+              <code>discovery</code> (default) — <code>table</code>,
+              <code>schema</code>, <code>aggregate</code>, plus the always-on
+              admin tools; <code>servicenow_find_tools</code> names the
+              package for anything else. <code>core</code> is its older name
+              (<code>attachment</code> left it in 3.0, B20).
             </li>
             <li><code>all</code> — every package.</li>
             <li>

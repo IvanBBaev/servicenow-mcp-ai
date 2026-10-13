@@ -420,12 +420,12 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
     key: "SN_TOOL_PACKAGES",
     section: "packages",
     since: V100,
-    default: ["core"],
-    example: "core",
+    default: ["discovery"],
+    example: "discovery",
     description:
-      "Comma/space-separated tool packages or profiles to enable. Profiles: `core` (default), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance.",
+      "Comma/space-separated tool packages or profiles to enable. Profiles: `discovery` (default; `core` is its older name), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance.",
     registry:
-      "Which tool packages to expose, e.g. core (default), all, or a comma-separated list.",
+      "Which tool packages to expose, e.g. discovery (default), all, or a comma-separated list.",
   }),
   list({
     key: "SN_PACKAGES_DENY",

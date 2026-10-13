@@ -1085,11 +1085,11 @@ items:
     title: "tool discovery instead of a bigger budget"
     pillar: "N"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: "B"
-    done: null
+    done: "2026-10-13"
     gates: ["O-10"]
-    notes: "**`servicenow_find_tools` done 2026-10-09** (admin, always on, +761 B on every profile, budgets raised with the owner's O-10 approval of 2026-10-09): ranks the session's permitted tools by intent and names the package to enable. Open, carried by N-63: `attachment` out of `core` (O-4), `discovery` as the default budget profile, `core` ≤ 22 KB, per-session enabling (O-19 (d)). Phase B, with O-10. `servicenow_find_tools` in `core`, on-demand packages, `core` ≤ 20 KB, a discovery budget profile (TK-06). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**`servicenow_find_tools` done 2026-10-09** (admin, always on, +761 B on every profile, budgets raised with the owner's O-10 approval of 2026-10-09): ranks the session's permitted tools by intent and names the package to enable. Open, carried by N-63: `attachment` out of `core` (O-4), `discovery` as the default budget profile, `core` ≤ 22 KB, per-session enabling (O-19 (d)). **Rest done 2026-10-13 under N-63 (B20):** `attachment` out of `core`, `discovery` the default and a budget profile; per-session enabling stays `servicenow_enable_package` (M-5), `tools/list` fixed per server (O-19 (d)). `core` measures 23,689 B, above the restated ≤ 22 KB (see N-63). Phase B, with O-10. `servicenow_find_tools` in `core`, on-demand packages, `core` ≤ 20 KB, a discovery budget profile (TK-06). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-37"
     title: "lean definitions and per-tool reference"
     pillar: "N"
@@ -1328,11 +1328,11 @@ items:
     title: "narrow core and discovery profile"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: "T3"
-    done: null
+    done: "2026-10-13"
     gates: ["O-4", "O-10"]
-    notes: "Phase T3, waits for O-10 (b) and O-4 (O-19 (d) decided 2026-10-10: `tools/list` fixed per server on 2026-07-28) entries (TK-43, TK-45). Refines N-36 (`core` ≈ 21 KB, restated ≤ 22 KB): `attachment` out of `core`, `find_tools` in (done 2026-10-09 under N-36), `discovery` as the default budget profile; per-connection `tools/list` rule of 2026-07-28 decided first. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: 'Phase T3, waits for O-10 (b) and O-4 (O-19 (d) decided 2026-10-10: `tools/list` fixed per server on 2026-07-28) entries (TK-43, TK-45). Refines N-36 (`core` ≈ 21 KB, restated ≤ 22 KB): `attachment` out of `core`, `find_tools` in (done 2026-10-09 under N-36), `discovery` as the default budget profile; per-connection `tools/list` rule of 2026-07-28 decided first. **Done 2026-10-13 (owner O-4, B20):** `discovery` (`table`, `schema`, `aggregate` + admin) is the default profile and `SN_TOOL_PACKAGES` default; `core` names the same set; `attachment` is opt-in; budget profiles `core` and `discovery` 23,808 B (measured 23,689 B, −3,395 B, 25 → 20 tools; `all` +0 B); the VS Code picker offers `discovery`. The restated `core` ≤ 22 KB target is **not met** (23,689 B against the ~21.2 KB estimate); the next cut, `schema` out of the default or no outputSchema on the core tools, is an owner decision (O-10). The `_meta["anthropic/alwaysLoad"]` hint waits for O-21 (c). See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
   - id: "N-64"
     title: "selective consolidation"
     pillar: "N"

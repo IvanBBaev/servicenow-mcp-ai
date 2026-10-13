@@ -20,7 +20,7 @@ Read-only analysis through the ServiceNow MCP server.
 ## Steps
 
 1. Packages: this skill calls tools from `scripts`, `artifacts`, `flows` and
-   `docs` (the diagram), which the default `core` profile leaves off. Read
+   `docs` (the diagram), which the default `discovery` profile leaves off. Read
    `enabledPackages` in `servicenow_get_status`; for a missing package, enable
    it with the server's `enable_package` admin tool and tell the user, or ask
    the operator to add it to `SN_TOOL_PACKAGES`. A package listed in

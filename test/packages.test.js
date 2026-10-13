@@ -4,14 +4,11 @@ import assert from "node:assert/strict";
 import { resolveEnabledPackages, ALL_PACKAGES } from "../build/mcp/registry.js";
 import { getRequestedPackages } from "../build/core/settings.js";
 
-test("the core profile expands to the default read tools", () => {
-  const enabled = resolveEnabledPackages(["core"]);
-  assert.deepEqual([...enabled].sort(), [
-    "aggregate",
-    "attachment",
-    "schema",
-    "table",
-  ]);
+test("the discovery profile expands to the default read tools; core names the same set (B20)", () => {
+  for (const profile of ["discovery", "core"]) {
+    const enabled = resolveEnabledPackages([profile]);
+    assert.deepEqual([...enabled].sort(), ["aggregate", "schema", "table"]);
+  }
 });
 
 test("the all profile enables every package", () => {
@@ -31,19 +28,14 @@ test("unknown names are ignored but known ones still apply", () => {
   assert.deepEqual([...enabled], ["table"]);
 });
 
-test("an all-unknown request falls back to the core profile", () => {
+test("an all-unknown request falls back to the discovery profile", () => {
   const enabled = resolveEnabledPackages(["nonsense"]);
-  assert.deepEqual([...enabled].sort(), [
-    "aggregate",
-    "attachment",
-    "schema",
-    "table",
-  ]);
+  assert.deepEqual([...enabled].sort(), ["aggregate", "schema", "table"]);
 });
 
-test("getRequestedPackages defaults to core when unset", () => {
+test("getRequestedPackages defaults to discovery when unset", () => {
   delete process.env.SN_TOOL_PACKAGES;
-  assert.deepEqual(getRequestedPackages(), ["core"]);
+  assert.deepEqual(getRequestedPackages(), ["discovery"]);
 });
 
 test("getRequestedPackages splits on commas and whitespace", () => {
@@ -55,10 +47,10 @@ test("getRequestedPackages splits on commas and whitespace", () => {
   }
 });
 
-test("getRequestedPackages treats a blank value as core", () => {
+test("getRequestedPackages treats a blank value as discovery", () => {
   process.env.SN_TOOL_PACKAGES = "   ";
   try {
-    assert.deepEqual(getRequestedPackages(), ["core"]);
+    assert.deepEqual(getRequestedPackages(), ["discovery"]);
   } finally {
     delete process.env.SN_TOOL_PACKAGES;
   }

@@ -48,23 +48,19 @@ async function startServer() {
 const toolNames = async (client) =>
   (await client.listTools()).tools.map((t) => t.name).sort();
 
-/** The contract for the default (core) profile: admin + table/schema/aggregate/attachment. */
+/** The contract for the default (discovery / core) profile: admin + table/schema/aggregate. */
 const CORE_TOOLS = [
   "servicenow_aggregate",
   "servicenow_check_capabilities",
   "servicenow_create_record",
-  "servicenow_delete_attachment",
   "servicenow_delete_record",
   "servicenow_describe_table",
   "servicenow_disable_package",
-  "servicenow_download_attachment",
   "servicenow_enable_package",
   "servicenow_explain_policy",
   "servicenow_find_tools",
-  "servicenow_get_attachment",
   "servicenow_get_record",
   "servicenow_get_status",
-  "servicenow_list_attachments",
   "servicenow_list_instances",
   "servicenow_list_packages",
   "servicenow_list_tables",
@@ -72,7 +68,6 @@ const CORE_TOOLS = [
   "servicenow_set_credentials",
   "servicenow_test_connection",
   "servicenow_update_record",
-  "servicenow_upload_attachment",
   "servicenow_upsert_record",
   "servicenow_use_instance",
 ];

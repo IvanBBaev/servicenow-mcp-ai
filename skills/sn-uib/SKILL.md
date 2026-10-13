@@ -21,7 +21,7 @@ available as the server's "Review a UI Builder page" MCP prompt.
 ## Steps
 
 1. Packages: this skill calls tools from `ui`, `artifacts`, `scripts`,
-   `updatesets`, `codecheck` and `instance`, which the default `core` profile
+   `updatesets`, `codecheck` and `instance`, which the default `discovery` profile
    leaves off. Read `enabledPackages` in `servicenow_get_status`; for a missing
    package, enable it with the server's `enable_package` admin tool and tell
    the user, or ask the operator to add it to `SN_TOOL_PACKAGES`. A package

@@ -100,7 +100,7 @@ test("instructions (configured): version, profile, auth, packages, tool count, w
       assert.match(
         text,
         new RegExp(
-          `Tools: ${activeToolSpecs().length} in 5 packages: admin, aggregate, attachment, schema, table\\.`,
+          `Tools: ${activeToolSpecs().length} in 4 packages: admin, aggregate, schema, table\\.`,
         ),
       );
       assert.match(

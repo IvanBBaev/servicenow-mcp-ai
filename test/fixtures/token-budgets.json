@@ -1,8 +1,9 @@
 {
-  "note": "tools/list byte budgets per surface profile (JSON.stringify of the tools array, measured by test/surface.js), rounded up to 256 B. `npm run tokens:budget -- --write` lowers them; raising one is a hand edit and an owner decision (O-10). A budget more than slackPct above its measurement fails the ratchet test. `discovery` joins with N-63. N-57.",
+  "note": "tools/list byte budgets per surface profile (JSON.stringify of the tools array, measured by test/surface.js), rounded up to 256 B. `npm run tokens:budget -- --write` lowers them; raising one is a hand edit and an owner decision (O-10). A budget more than slackPct above its measurement fails the ratchet test. `discovery` is the default profile and `core` its older name (N-63, B20). N-57.",
   "slackPct": 2,
   "profiles": {
-    "core": 27136,
+    "core": 23808,
+    "discovery": 23808,
     "all": 121344,
     "all+tasks": 122624,
     "all+legacy": 138752

@@ -395,7 +395,7 @@ export function activate(context: vscode.ExtensionContext): void {
       })),
       {
         title: "ServiceNow MCP: tool packages",
-        placeHolder: "Nothing selected = the server default (core)",
+        placeHolder: "Nothing selected = the server default (discovery)",
         canPickMany: true,
         ignoreFocusOut: true,
       },

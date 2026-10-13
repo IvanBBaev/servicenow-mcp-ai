@@ -107,7 +107,7 @@ export function sessionContext(env = {}, fileEnv = {}) {
     writeModeSentence({ readonly, held, configured, confirm, marked }),
   );
   parts.push(
-    `tool packages: ${packageList(config.SN_TOOL_PACKAGES) ?? "core"}`,
+    `tool packages: ${packageList(config.SN_TOOL_PACKAGES) ?? "discovery"}`,
   );
   const denied = packageList(config.SN_PACKAGES_DENY);
   if (denied) parts.push(`denied packages: ${denied}`);

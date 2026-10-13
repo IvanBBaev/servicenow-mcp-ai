@@ -156,6 +156,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * 121,180 / 122,417 / 138,427 (all +1,651 B; core +0 B): the budgets become
  * 121,344 / 122,624 / 138,496. The register keeps only the 12 core tools
  * (ceiling 12).
+ * N-63, 2026-10-13 (owner: O-4, B20): `attachment` leaves `core`, and
+ * `discovery` (the same set) becomes the default profile; measured 23,689 /
+ * 23,689 / 121,271 / 122,508 / 138,609 (core −3,395 B, 25 → 20 tools; all
+ * +0 B): `core` and `discovery` become 23,808.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

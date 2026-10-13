@@ -50,7 +50,7 @@
         },
         {
           "name": "SN_TOOL_PACKAGES",
-          "description": "Which tool packages to expose, e.g. core (default), all, or a comma-separated list.",
+          "description": "Which tool packages to expose, e.g. discovery (default), all, or a comma-separated list.",
           "isRequired": false,
           "format": "string"
         }

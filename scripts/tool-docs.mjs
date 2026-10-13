@@ -136,7 +136,7 @@ export function buildPackagePage({ name, tools, schemas, core }) {
       name === "admin"
         ? "Always on."
         : core
-          ? "In the default `core` profile."
+          ? "In the default `discovery` profile."
           : `Opt-in: add \`${name}\` to \`SN_TOOL_PACKAGES\`, or call \`servicenow_enable_package\`.`
     } [All packages](README.md).`,
     "",
@@ -176,10 +176,10 @@ export function buildIndexPage({ packages, errorCodes }) {
     "",
     GENERATED_NOTE,
     "",
-    `${packages.reduce((n, p) => n + p.tools.length, 0)} tools in ${packages.length} packages. Select packages with \`SN_TOOL_PACKAGES\` (default \`core\`); the \`admin\` tools are always on. Setup and settings are in the [README](../../README.md).`,
+    `${packages.reduce((n, p) => n + p.tools.length, 0)} tools in ${packages.length} packages. Select packages with \`SN_TOOL_PACKAGES\` (default \`discovery\`); the \`admin\` tools are always on. Setup and settings are in the [README](../../README.md).`,
     "",
-    "| Package | Tools | Read-only | Default `core` |",
-    "| ------- | ----: | --------: | :------------: |",
+    "| Package | Tools | Read-only | Default `discovery` |",
+    "| ------- | ----: | --------: | :-----------------: |",
     ...packages.map(
       (p) =>
         `| [\`${p.name}\`](${p.name}.md) | ${p.tools.length} | ${p.tools.filter((t) => t.readOnly).length} | ${p.name === "admin" || p.core ? "yes" : "no"} |`,

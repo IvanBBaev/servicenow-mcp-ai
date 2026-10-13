@@ -102,7 +102,7 @@ export function useCodeSearch(): boolean {
 }
 
 /** Default tool package profile when SN_TOOL_PACKAGES is unset. */
-export const DEFAULT_TOOL_PACKAGES = "core";
+export const DEFAULT_TOOL_PACKAGES = "discovery";
 
 /** Parse a comma/space separated, case-insensitive name list from an env var. */
 function parseNameList(raw: string | undefined): string[] {
@@ -116,8 +116,8 @@ function parseNameList(raw: string | undefined): string[] {
 
 /**
  * Tool packages/profiles requested via SN_TOOL_PACKAGES (comma or space
- * separated, case-insensitive). Defaults to "core". The registry resolves
- * these names — including the "core" and "all" profiles — into concrete
+ * separated, case-insensitive). Defaults to "discovery". The registry resolves
+ * these names — including the "discovery" and "all" profiles — into concrete
  * packages and ignores unknown entries.
  */
 export function getRequestedPackages(): string[] {

@@ -212,6 +212,16 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     - Recommend: (1) for 3.0; (2) as a later item if a client reports cache problems.
   - **Decided 2026-10-13: (1) for both.** Done: both rows have the new `deviation` status in the
     conformance matrix, `pendingCeiling` is 0, and N-35 is done.
+- **OD-11 · The default profile is above the restated ≤ 22 KB.** _BREAKING (O-4) for
+  options (2) and (3)._
+  - Status: N-63 (B20) made `discovery` (`table`, `schema`, `aggregate` + admin) the default.
+    It measures 23,689 B on `tools/list`; the plan estimated ~21.2 KB, and §6 restates the
+    target as ≤ 22 KB (stretch 14 KB).
+  - Options: (1) accept 23.7 KB and restate the target; (2) move `schema` out of the default
+    (`describe_table` / `list_tables` behind `find_tools`); (3) drop the outputSchema on the
+    default tools (trade-off with N-54's code-mode goal, O-10 (c)).
+  - Recommend: (1) for 3.0. Both cuts remove tools or contracts the first call of a session
+    relies on.
 
 ## Active (2026-09-02)
 
@@ -474,7 +484,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       `tools/list` vs M-5 / N-63 (**decided 2026-10-10**, fixed per server on the 2026-07-28 wire, [ADR 0008](adr/0008-full-protocol-2026-07-28-conformance.md)). O-21 (**decided 2026-10-09**): (a) compact reads (N-62) are opt-in only, defaults stay
       byte-identical; (b) 48 k result cap with the automatic file result on, and the `list_tables`
       default limit ruled a bug fix (N-61, done); (c) Claude Code `_meta` hints (N-65) on by default
-      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. Done 2026-10-09: (a) 7cdf79c, (b) d071f09, (c) f5071f9, (d) 3af9a45 (`SN_STRUCTURED=false`). O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63).
+      with an env off switch; (d) an opt-in `SN_STRUCTURED=0` that drops `structuredContent`. Done 2026-10-09: (a) 7cdf79c, (b) d071f09, (c) f5071f9, (d) 3af9a45 (`SN_STRUCTURED=false`). O-4 amendments: proposed B14 selective consolidation (N-64) or a name freeze; `discovery` as default and `attachment` out of `core` (N-63, done 2026-10-13 as B20).
 - [ ] **Owner decisions from batch 11 (D-4, 2026-09-26):** (a) client syntaxes not verified
       against a live client — Zed `context_servers` (`"source": "custom"` + flat `command` /
       `args`; older Zed builds nest `command: {path, args}`), the JetBrains AI Assistant menu path

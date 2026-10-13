@@ -2,14 +2,14 @@
 
 _Generated from the tool registrations by `npm run docs:sync` — edit the tool definitions in `src/tools/`, not this file._
 
-100 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `core`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
+100 tools in 26 packages. Select packages with `SN_TOOL_PACKAGES` (default `discovery`); the `admin` tools are always on. Setup and settings are in the [README](../../README.md).
 
-| Package | Tools | Read-only | Default `core` |
-| ------- | ----: | --------: | :------------: |
+| Package | Tools | Read-only | Default `discovery` |
+| ------- | ----: | --------: | :-----------------: |
 | [`table`](table.md) | 6 | 2 | yes |
 | [`schema`](schema.md) | 2 | 2 | yes |
 | [`aggregate`](aggregate.md) | 1 | 1 | yes |
-| [`attachment`](attachment.md) | 5 | 3 | yes |
+| [`attachment`](attachment.md) | 5 | 3 | no |
 | [`importset`](importset.md) | 2 | 1 | no |
 | [`batch`](batch.md) | 1 | 0 | no |
 | [`catalog`](catalog.md) | 5 | 4 | no |

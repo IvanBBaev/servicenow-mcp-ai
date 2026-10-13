@@ -152,7 +152,7 @@ You → assistant "Using ServiceNow, list the 5 most recent active incidents wit
 
 The assistant calls `servicenow_query_table` with the right encoded query and returns the rows.
 
-**First time? Start safe.** Set `SN_READONLY=true` so the assistant can read and explore but never writes, and keep the default `SN_TOOL_PACKAGES=core` to expose a small tool set. Loosen both once you trust the workflow.
+**First time? Start safe.** Set `SN_READONLY=true` so the assistant can read and explore but never writes, and keep the default `SN_TOOL_PACKAGES=discovery` to expose a small tool set. Loosen both once you trust the workflow.
 
 Developing from source instead? `npm install && npm run build`, then `npm run inspector` to drive it from the MCP Inspector, or `npm start` to run it directly.
 
@@ -345,7 +345,7 @@ Only the first three are required; the rest are optional tuning knobs. See [.env
 | `SN_LOG_FILE` | — | Also write JSON log lines to this size-rotated file. |
 | `SN_LOG_NOTIFY_RATE` | `20` | Log notifications per second and client session (burst 50); the excess is summarised once a minute. `0` = no limit. |
 | `SN_ENV_FILE` | — | Explicit path to the env file. |
-| `SN_TOOL_PACKAGES` | `core` | Packages/profiles to enable (see below). |
+| `SN_TOOL_PACKAGES` | `discovery` | Packages/profiles to enable (see below). |
 | `SN_PACKAGES_DENY` | — | Drop whole packages — the only way to block plugin APIs. |
 | `SN_PACKAGES_READONLY` | — | Register only a package's read tools. |
 | `SN_SCHEMA_CACHE_TTL_SEC` | `300` | TTL for the schema-read cache. `0` disables. |
@@ -363,7 +363,7 @@ Only the first three are required; the rest are optional tuning knobs. See [.env
 
 Tools are grouped into packages so you expose only what a given client needs — fewer tools keep the model focused. Set `SN_TOOL_PACKAGES` to a comma/space-separated list of profiles or package names:
 
-- `core` (default) — `table`, `schema`, `aggregate`, `attachment`.
+- `discovery` (default) — `table`, `schema`, `aggregate`, plus the always-on admin tools; `servicenow_find_tools` names the package for anything else. `core` is its older name (`attachment` left it in 3.0, B20).
 - `all` — every package.
 - Individual: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`.
 

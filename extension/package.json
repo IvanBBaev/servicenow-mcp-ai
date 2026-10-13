@@ -94,6 +94,7 @@
           "items": {
             "type": "string",
             "enum": [
+              "discovery",
               "core",
               "all",
               "reader",
@@ -126,7 +127,8 @@
               "ui"
             ],
             "enumDescriptions": [
-              "Profile (default): table, schema, aggregate, attachment.",
+              "Profile (default): table, schema, aggregate.",
+              "Profile: older name of discovery.",
               "Profile: every package.",
               "Profile: table, schema, aggregate — read-first, no scripting tools.",
               "Profile: reader + scripts, flows, codecheck, docs.",
@@ -158,7 +160,7 @@
               "Service Portal explain (opt-in)."
             ]
           },
-          "markdownDescription": "Tool packages or profiles to register (`SN_TOOL_PACKAGES`). Empty = the server default (`core`). Use **ServiceNow MCP: Choose Tool Packages** to pick them. Changing it re-registers the server definition."
+          "markdownDescription": "Tool packages or profiles to register (`SN_TOOL_PACKAGES`). Empty = the server default (`discovery`). Use **ServiceNow MCP: Choose Tool Packages** to pick them. Changing it re-registers the server definition."
         },
         "servicenowMcp.transport": {
           "type": "string",
@@ -196,7 +198,7 @@
           {
             "id": "packages",
             "title": "Pick the tool packages",
-            "description": "Start with the default core set; add scripts, flows or docs when you need them.\n[Choose Tool Packages](command:servicenowMcp.selectPackages)",
+            "description": "Start with the default discovery set; add scripts, flows or docs when you need them.\n[Choose Tool Packages](command:servicenowMcp.selectPackages)",
             "media": {
               "markdown": "media/walkthrough/packages.md"
             },
