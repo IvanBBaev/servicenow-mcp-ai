@@ -131,7 +131,11 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `tables` | string[] |  |
 
 ## servicenow_generate_table_flow
 
@@ -151,7 +155,12 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `table` | string |  |
+| `count` | number |  |
 
 ## servicenow_document_table
 
@@ -172,7 +181,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `kind` | string |  |
+| `path` | string |  |
+| `caveats` | number |  |
 
 ## servicenow_document_app
 
@@ -194,7 +209,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `kind` | string |  |
+| `path` | string |  |
+| `caveats` | number |  |
 
 ## servicenow_document_instance
 
@@ -217,4 +238,10 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `profile` | string |  |
+| `path` | string |  |
+| `files` | number |  |

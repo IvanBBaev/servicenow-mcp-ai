@@ -53,6 +53,7 @@ export const specs: AnyToolSpec[] = [
       "Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC queue). Unreadable section: available:false + why.",
     package: "ops",
     annotations: READ_ONLY,
+    output: { kind: z.string(), window_minutes: z.number() },
     input: {
       kind: z.enum(OPS_KINDS).describe("View to read."),
       minutes: bounded(WINDOW_MINUTES, "Time window in minutes"),
@@ -86,6 +87,7 @@ export const specs: AnyToolSpec[] = [
       "Data-quality counts for one table: duplicate groups over key_fields, orphaned or stale references per field, each with the query listing the rows. Unreadable checks: available:false.",
     package: "ops",
     annotations: READ_ONLY,
+    output: { table: z.string(), available: z.boolean() },
     input: {
       table: tableName().describe("Table to check, e.g. 'incident'."),
       key_fields: fieldList(MAX_KEY_FIELDS)

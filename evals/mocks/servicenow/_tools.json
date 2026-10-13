@@ -351,6 +351,22 @@
         ],
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "string"
+          },
+          "b": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": {}
+      },
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
@@ -723,6 +739,26 @@
         ],
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "caveats": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "path",
+          "caveats"
+        ],
+        "additionalProperties": {}
+      },
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
@@ -805,6 +841,26 @@
         },
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "files": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "profile",
+          "path",
+          "files"
+        ],
+        "additionalProperties": {}
+      },
       "annotations": {
         "destructiveHint": false,
         "idempotentHint": true
@@ -857,6 +913,26 @@
           "table"
         ],
         "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "caveats": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "path",
+          "caveats"
+        ],
+        "additionalProperties": {}
       },
       "annotations": {
         "destructiveHint": false,
@@ -1150,6 +1226,18 @@
           "tables"
         ],
         "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "tables": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "tables"
+        ],
+        "additionalProperties": {}
       },
       "annotations": {
         "readOnlyHint": true,
@@ -2549,6 +2637,22 @@
         ],
         "additionalProperties": false
       },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "window_minutes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "window_minutes"
+        ],
+        "additionalProperties": {}
+      },
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2920,6 +3024,22 @@
           }
         },
         "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile",
+          "generatedAt"
+        ],
+        "additionalProperties": {}
       },
       "annotations": {
         "destructiveHint": false,

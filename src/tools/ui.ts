@@ -45,6 +45,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { mode: z.string(), verified: z.boolean() },
     input: {
       portal: shortText(100)
         .optional()

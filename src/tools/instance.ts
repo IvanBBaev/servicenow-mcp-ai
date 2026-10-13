@@ -63,6 +63,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { profile: z.string(), generatedAt: z.string() },
     input: {
       tables: tableList(1000)
         .optional()
@@ -106,6 +107,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { a: z.string(), b: z.string() },
     input: {
       a: shortText(128).describe("First profile, e.g. 'dev'."),
       b: shortText(128).describe("Second profile, e.g. 'prod'."),

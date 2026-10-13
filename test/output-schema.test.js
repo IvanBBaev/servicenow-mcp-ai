@@ -151,6 +151,11 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * `apps` / `update_sets` and `targets` on `servicenow_check_code_health`,
  * measured 27,084 / 119,529 / 120,899 / 136,441 (all +202 B; core +0 B):
  * `all+tasks` becomes 121,088 and `all+legacy` 136,448; `all` still fits.
+ * N-54, 2026-10-13 (owner: O-10, 256 B steps): outputSchemas on the ten
+ * non-core register tools (docs, instance, ui, ops packages), measured 27,084 /
+ * 121,180 / 122,417 / 138,427 (all +1,651 B; core +0 B): the budgets become
+ * 121,344 / 122,624 / 138,496. The register keeps only the 12 core tools
+ * (ceiling 12).
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

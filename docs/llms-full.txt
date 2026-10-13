@@ -3905,7 +3905,11 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `tables` | string[] |  |
 
 ## servicenow_generate_table_flow
 
@@ -3925,7 +3929,12 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `table` | string |  |
+| `count` | number |  |
 
 ## servicenow_document_table
 
@@ -3946,7 +3955,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `kind` | string |  |
+| `path` | string |  |
+| `caveats` | number |  |
 
 ## servicenow_document_app
 
@@ -3968,7 +3983,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `kind` | string |  |
+| `path` | string |  |
+| `caveats` | number |  |
 
 ## servicenow_document_instance
 
@@ -3991,7 +4012,13 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `profile` | string |  |
+| `path` | string |  |
+| `files` | number |  |
 
 ---
 
@@ -4027,7 +4054,12 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `profile` | string |  |
+| `generatedAt` | string |  |
 
 ## servicenow_compare_instances
 
@@ -4052,7 +4084,12 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `a` | string |  |
+| `b` | string |  |
 
 ## servicenow_review_upgrade
 
@@ -4694,7 +4731,12 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `kind` | string |  |
+| `window_minutes` | number |  |
 
 ## servicenow_check_data_health
 
@@ -4716,7 +4758,12 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `table` | string |  |
+| `available` | boolean |  |
 
 ---
 
@@ -4945,7 +4992,12 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ### Output
 
-Free-form JSON text (no declared `outputSchema`); errors follow the [error contract](README.md#error-codes).
+Declared `outputSchema` (more keys may be present); errors follow the [error contract](README.md#error-codes).
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mode` | string |  |
+| `verified` | boolean |  |
 
 ## servicenow_explain_ui_experience
 

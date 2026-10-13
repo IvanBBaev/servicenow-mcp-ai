@@ -188,6 +188,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { tables: z.array(z.string()) },
     input: {
       tables: tableList()
         .min(1)
@@ -231,6 +232,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { table: z.string(), count: z.number() },
     input: {
       table: tableName().describe("Table to diagram, e.g. 'incident'."),
       operation: z
@@ -265,6 +267,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { kind: z.string(), path: z.string(), caveats: z.number() },
     input: {
       table: tableName().describe("Table to document, e.g. 'incident'."),
       profile: docProfileArg,
@@ -302,6 +305,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { kind: z.string(), path: z.string(), caveats: z.number() },
     input: {
       scope: shortText(128).describe(
         "Scope namespace (e.g. 'x_acme_app') or sys_id.",
@@ -356,6 +360,7 @@ export const specs: AnyToolSpec[] = [
       idempotentHint: true,
       openWorldHint: true,
     },
+    output: { profile: z.string(), path: z.string(), files: z.number() },
     input: {
       profile: docProfileArg,
       tables: tableList(INSTANCE_TARGETS_MAX)
