@@ -649,7 +649,7 @@ test("explain_flow lives in the flows package, read-only", () => {
 test("the fixture flow renders its trigger and nested step tree", async () => {
   const res = payload(await run({ sys_id: FLOW }));
   assert.equal(res.kind, "flow");
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true);
   assert.equal(res.name, "Incident Triage");
   assert.equal(res.flow.run_as, "system");
   assert.deepEqual(res.flow.run_with_roles, [{ sys_id: ROLE, name: "itil" }]);
@@ -962,7 +962,7 @@ test("the flow Mermaid tree matches its golden", async () => {
   const res = payload(await run({ sys_id: FLOW, format: "mermaid" }));
   lintMermaid(res.mermaid);
   assert.equal(res.mermaidTruncated, undefined);
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true);
   assert.equal(res.kind, "flow");
   const file = path.join(FIXTURES, "flow.mmd");
   if (process.env.UPDATE_GOLDEN === "1") {
@@ -1173,7 +1173,7 @@ test("markdown renders the tree, values, variables, runs and caveats", async () 
   assert.match(md, /^# Flow Incident Triage/);
   assert.match(
     md,
-    /11 step\(s\): 5 action\(s\), 5 logic, 1 subflow call\(s\); 6 callee\(s\) expanded\. verified:false\./,
+    /11 step\(s\): 5 action\(s\), 5 logic, 1 subflow call\(s\); 6 callee\(s\) expanded\. verified:true\./,
   );
   assert.match(md, /- Run with roles: itil/);
   assert.match(md, /- Published: yes — the draft differs/);
@@ -1194,7 +1194,10 @@ test("markdown renders the tree, values, variables, runs and caveats", async () 
   assert.match(md, /## Latest runs/);
   assert.match(md, / {2}- error: Create Task failed: ACL/);
   assert.match(md, /```mermaid\nflowchart TD/);
-  assert.match(md, /## Caveats\n\n- Flow Designer tables are verified:false/);
+  assert.match(
+    md,
+    /## Caveats\n\n- Flow Designer tables were checked on one PDI/,
+  );
   const wf = payload(
     await run({
       sys_id: WF,
@@ -1455,7 +1458,7 @@ test("P-11: subflow calls resolve recursively with a depth cap and a cycle guard
       instance(recursive()),
     ),
   ).markdown;
-  assert.match(md, /callee\(s\) expanded\. verified:false\./);
+  assert.match(md, /callee\(s\) expanded\. verified:true\./);
   assert.match(
     md,
     / {6}- ↳ calls Subflow: Notify Approvers _\(cycle — not expanded\)_/,
@@ -1508,7 +1511,7 @@ test("P-11: distinct callees are capped and an unreadable action table degrades"
 test("P-11: kind:'action' explains a custom action definition", async () => {
   const res = payload(await run({ sys_id: "at4", kind: "action", runs: 2 }));
   assert.equal(res.kind, "action");
-  assert.equal(res.verified, false);
+  assert.equal(res.verified, true);
   assert.equal(res.name, "Create Task");
   assert.deepEqual(res.action, {
     sys_id: "at4",
@@ -1548,7 +1551,7 @@ test("P-11: kind:'action' explains a custom action definition", async () => {
   assert.match(md, /^# Action Create Task/);
   assert.match(
     md,
-    /2 step\(s\), 1 input\(s\), 1 output\(s\)\. verified:false\./,
+    /2 step\(s\), 1 input\(s\), 1 output\(s\)\. verified:true\./,
   );
   assert.match(md, /- Internal name: x_acme_create_task\n- Category: Acme/);
   assert.match(

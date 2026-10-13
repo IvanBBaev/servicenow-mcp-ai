@@ -668,7 +668,7 @@ const explainCatalogUiPolicy: Explainer = (ctx) =>
 // extends var_dictionary (element, label, internal_type, order).
 
 const DECISION_CAVEAT =
-  "sys_decision, sys_decision_input and sys_decision_question are verified:false. Checked on one PDI (gate O-5): inputs and questions are keyed by their decision, answer is a document_id and default_answer a boolean.";
+  "sys_decision, sys_decision_input and sys_decision_question were checked on one PDI (gate O-5): inputs and questions are keyed by their decision, answer is a document_id and default_answer a boolean.";
 
 const explainDecisionTable: Explainer = (ctx) => {
   const { record } = ctx;
@@ -723,7 +723,7 @@ const explainDecisionTable: Explainer = (ctx) => {
     ...(answerTable ? { answerTable } : {}),
     inputs,
     rows,
-    verified: false,
+    verified: ctx.t.verified,
     lines,
   };
 };

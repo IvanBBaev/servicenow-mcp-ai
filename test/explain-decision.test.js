@@ -1,8 +1,9 @@
 // P-11 — decision tables through the P-6 machinery (`servicenow_explain_artifact`,
 // artifactType `decision_table`): the inputs and rows are explained in order
 // with their condition and answer, default and inactive rows are marked, a
-// capped or unreadable child table is noted, and the whole explanation stays
-// verified:false (the sys_decision* fields were checked on one PDI, gate O-5).
+// capped or unreadable child table is noted, and the explanation carries the
+// registry flag, verified:true (the sys_decision* fields were checked on one
+// PDI, gate O-5; OD-4).
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -136,7 +137,7 @@ test("P-11: a decision table explains its inputs and rows in order", async () =>
   const x = ex.explanation;
   assert.equal(x.kind, "decision-table");
   assert.equal(x.answerTable, "sys_user_group");
-  assert.equal(x.verified, false);
+  assert.equal(x.verified, true);
   assert.deepEqual(
     x.inputs.map((i) => [i.order, i.element, i.label, i.type]),
     [
@@ -183,7 +184,7 @@ test("P-11: a decision table explains its inputs and rows in order", async () =>
     x.lines[4],
     `3. Fallback: when (always) -> ${id("a3")} [default]`,
   );
-  assert.match(x.lines.at(-1), /verified:false.*gate O-5/);
+  assert.match(x.lines.at(-1), /checked on one PDI \(gate O-5\)/);
 });
 
 test("P-11: an empty decision table, a rejected input read and a capped row read", async () => {

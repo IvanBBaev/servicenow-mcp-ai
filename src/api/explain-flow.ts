@@ -44,12 +44,14 @@
  * Bounds: `CHILD_LIMIT` rows per read, IN lists chunked, `EXPLAIN_FLOW_RUNS`
  * runs, `RUN_ERRORS` log rows per run, `TREE_DEPTH_MAX` nesting levels,
  * `INPUTS_PER_STEP` decoded inputs per step, `RAW_PREVIEW` characters of an
- * undecodable value. Every table here is `verified:false` (gate O-5): an
- * unreadable one (policy denial, ACL, missing plugin) becomes a caveat with
+ * undecodable value. `verified` is the registry flag of the explained type
+ * (OD-4). Whatever the flag, an
+ * unreadable table (policy denial, ACL, missing plugin) becomes a caveat with
  * the table name and status — never a failure — and fields the instance did
  * not return are listed per table in `missingFields`. Every read reports a
  * progress tick and stops when the call is cancelled.
  */
+import { getArtifactType } from "../core/artifacts/registry.js";
 import { ServiceNowError } from "../core/errors.js";
 import { trackProgress } from "../core/progress.js";
 import { type ReadCtx } from "./bounded-read.js";
@@ -166,7 +168,9 @@ export async function explainFlow(
       runs: 0,
       callees: 0,
     },
-    verified: false,
+    verified:
+      getArtifactType(kind === "action" ? "flow_action" : kind)?.verified ??
+      false,
     caveats: ctx.caveats,
     unreadable: ctx.unreadable,
   };
