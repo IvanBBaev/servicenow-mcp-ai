@@ -1038,6 +1038,9 @@ test("get: uib_completeness lists the page records the set does not carry", asyn
   const CS = id("9");
   const BROKER = "ab".repeat(16);
   const ACL = "cd".repeat(16);
+  const LINK = "ef".repeat(16);
+  // sys_security_acl.type is a sys_security_type reference (O-5).
+  const SEC_TYPE = "6d9c40e9531210101cb3ddeeff7b12f6";
   const seed = devSeed();
   seed.sys_update_xml = [
     ...seed.sys_update_xml,
@@ -1065,7 +1068,15 @@ test("get: uib_completeness lists the page records the set does not carry", asyn
         name: "Home default",
         screen_type: SCREEN,
         macroponent: MP,
+      },
+    ],
+    sys_ux_applicability_m2m_screen: [
+      {
+        sys_id: LINK,
+        screen: VARIANT,
         applicability: APPL,
+        order: "100",
+        active: "true",
       },
     ],
     sys_ux_applicability: [{ sys_id: APPL, name: "Agents" }],
@@ -1085,7 +1096,8 @@ test("get: uib_completeness lists the page records the set does not carry", asyn
         sys_id: ACL,
         name: BROKER,
         operation: "execute",
-        type: "ux_data_broker",
+        type: SEC_TYPE,
+        "type.name": "ux_data_broker",
       },
     ],
   });
@@ -1105,6 +1117,7 @@ test("get: uib_completeness lists the page records the set does not carry", asyn
       route: 1,
       screen: 1,
       variant: 1,
+      applicability_link: 1,
       applicability: 1,
       macroponent: 1,
       client_script: 1,
@@ -1116,6 +1129,7 @@ test("get: uib_completeness lists the page records the set does not carry", asyn
       [
         `route:sys_ux_app_route:${ROUTE}`,
         `screen:sys_ux_screen_type:${SCREEN}`,
+        `applicability_link:sys_ux_applicability_m2m_screen:${LINK}`,
         `applicability:sys_ux_applicability:${APPL}`,
         `data_broker:sys_ux_data_broker_transform:${BROKER}`,
         `acl:sys_security_acl:${ACL}`,

@@ -8,6 +8,7 @@ import {
   macroponentUses,
 } from "./uib-usage.js";
 import { isSysId } from "../core/sys-id.js";
+import { SCREEN_AUDIENCE_TABLE, screenAudienceIds } from "./uib-variant.js";
 
 /**
  * N-28 (UX-09) — the `uib_completeness` block of `get_update_set`: for every
@@ -19,7 +20,7 @@ import { isSysId } from "../core/sys-id.js";
  * (sys_ux_macroponent) or client script (sys_ux_client_script). For each page
  * variant it expects:
  *
- *   route(s) → screen → variant → applicability → macroponent
+ *   route(s) → screen → variant → audience links → applicability → macroponent
  *     → client scripts → data brokers → their `ux_data_broker` ACLs
  *     → nested macroponents (composition components that are
  *       sys_ux_macroponent records, `NESTED_DEPTH` levels) → theirs in turn
@@ -32,11 +33,14 @@ import { isSysId } from "../core/sys-id.js";
  * rows per read). An unreadable table degrades to an `unavailable` entry;
  * cancellation propagates.
  *
- * Unverified until gate O-5 (a PDI): that a captured record's update name is
- * `<table>_<sys_id>`; the field names `sys_ux_screen.screen_type` /
- * `.macroponent` / `.applicability`, `sys_ux_app_route.screen_type`,
- * `sys_ux_client_script.macroponent`; the broker tables (uib-usage.ts); that a
- * data broker ACL is `type=ux_data_broker` named by the broker sys_id.
+ * Checked on a PDI (O-5, 2026-10-13): every UI Builder update name is
+ * `<table>_<sys_id>` (557 of 557); `sys_ux_screen.screen_type` /
+ * `.macroponent`, `sys_ux_app_route.screen_type` and
+ * `sys_ux_client_script.macroponent` are references; `sys_ux_screen` has no
+ * `applicability` column, so audiences come from
+ * `sys_ux_applicability_m2m_screen`; a data broker ACL is named by the broker
+ * sys_id and its `type` is a `sys_security_type` reference, so it is queried
+ * as `type.name=ux_data_broker` (2,376 such ACLs).
  */
 
 /** Pages checked per call; more are reported as `truncated`. */
@@ -54,6 +58,7 @@ const T = {
   macroponent: "sys_ux_macroponent",
   clientScript: "sys_ux_client_script",
   applicability: "sys_ux_applicability",
+  audienceLink: SCREEN_AUDIENCE_TABLE,
   acl: "sys_security_acl",
 } as const;
 
@@ -62,6 +67,7 @@ export type UibRole =
   | "screen"
   | "variant"
   | "applicability"
+  | "applicability_link"
   | "macroponent"
   | "nested_macroponent"
   | "client_script"
@@ -192,13 +198,7 @@ export async function uibCompleteness(
     return undefined;
   }
   const ctx: Ctx = { unavailable: [], caveats: [] };
-  const VARIANT_FIELDS = [
-    "sys_id",
-    "name",
-    "screen_type",
-    "macroponent",
-    "applicability",
-  ];
+  const VARIANT_FIELDS = ["sys_id", "name", "screen_type", "macroponent"];
 
   // 1. Anchors → variants (and macroponents with no variant).
   const routeAnchors = await readIn(ctx, T.route, "sys_id", get(T.route), [
@@ -263,11 +263,21 @@ export async function uibCompleteness(
     keptVariants.map((v) => str(v, "screen_type")),
     ["sys_id", "name", "screen_type"],
   );
+  // A variant's audiences are m2m links (sys_ux_screen has no applicability
+  // column, O-5); both the link and its applicability record travel.
+  const linkRows = await readIn(
+    ctx,
+    T.audienceLink,
+    "screen",
+    keptVariants.map((v) => str(v, "sys_id")),
+    ["sys_id", "screen", "applicability", "order", "active"],
+  );
+  const audiencesBy = screenAudienceIds(linkRows);
   const applicabilityRows = await readIn(
     ctx,
     T.applicability,
     "sys_id",
-    keptVariants.map((v) => str(v, "applicability")),
+    [...audiencesBy.values()].flat(),
     ["sys_id", "name"],
   );
   const macroponentRows = await readIn(
@@ -349,7 +359,7 @@ export async function uibCompleteness(
     "name",
     brokerIds,
     ["sys_id", "name", "operation"],
-    "type=ux_data_broker",
+    "type.name=ux_data_broker",
   );
 
   // 3. Assemble pages.
@@ -359,6 +369,7 @@ export async function uibCompleteness(
   const applicabilities = byId(applicabilityRows);
   const macroponents = byId(macroponentRows);
   const routesBy = groupBy(routeRows, "screen_type");
+  const linksBy = groupBy(linkRows, "screen");
   const scriptsBy = groupBy(scriptRows, "macroponent");
   const aclsBy = groupBy(aclRows, "name");
   const named = (
@@ -427,8 +438,16 @@ export async function uibCompleteness(
     }
     if (isSysId(st)) e.push(named("screen", T.screen, screens.get(st), st));
     e.push(named("variant", T.variant, v, str(v, "sys_id")));
-    const ap = str(v, "applicability");
-    if (isSysId(ap)) {
+    for (const link of linksBy.get(str(v, "sys_id")) ?? []) {
+      if (str(link, "active") === "false") continue;
+      e.push({
+        role: "applicability_link",
+        table: T.audienceLink,
+        sys_id: str(link, "sys_id"),
+      });
+    }
+    for (const ap of audiencesBy.get(str(v, "sys_id")) ?? []) {
+      if (!isSysId(ap)) continue;
       e.push(
         named("applicability", T.applicability, applicabilities.get(ap), ap),
       );
@@ -515,8 +534,7 @@ export async function uibCompleteness(
 
   const caveats = [
     "A record listed as missing may already exist on the target instance (out of the box, or shipped by an earlier update set); only records changed for this page need to travel with it.",
-    `Data brokers, their ux_data_broker ACLs, the variant's own applicability and nested macroponents (up to ${NESTED_DEPTH} levels) are checked; roles and page properties are not.`,
-    "UI Builder table and field names and the <table>_<sys_id> update name are unverified (gate O-5).",
+    `Data brokers, their ux_data_broker ACLs, the variant's audiences (sys_ux_applicability_m2m_screen links and their applicability records) and nested macroponents (up to ${NESTED_DEPTH} levels) are checked; roles and page properties are not.`,
     ...ctx.caveats,
   ];
   if (opts.partial) {

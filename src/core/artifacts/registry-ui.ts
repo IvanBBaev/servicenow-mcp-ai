@@ -152,8 +152,8 @@ export const UI_TYPES: readonly ArtifactType[] = [
       { field: "props", decoder: "json", writable: false },
       { field: "internal_event_mappings", decoder: "json", writable: false },
       { field: "state_properties", decoder: "json", writable: false },
-      { field: "dispatched_events", decoder: "json", writable: false },
-      { field: "handled_events", decoder: "json", writable: false },
+      // dispatched_events / handled_events are glide_lists of sys_ux_event
+      // sys_ids, not JSON (O-5).
       { field: "required_translations", decoder: "json", writable: false },
     ],
     tiers: READ_TIER,

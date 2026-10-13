@@ -27,14 +27,20 @@ import { isSysId } from "../core/sys-id.js";
  * silent. `uibLintContextFromMacroponent` builds that context from a raw
  * `sys_ux_macroponent` row.
  *
- * ASSUMPTION (unverified until O-5, PDI): the UIB client-script runtime API
- * modelled here is the documented Next Experience shape — a handler
- * `function handler({api, event, helpers, imports}) {…}`, `api.state`
- * (read-only), `api.setState(name, valueOrUpdater)`, `api.emit(eventName,
- * payload)`, `api.data.<resourceId>`, `helpers.timing.setTimeout`,
- * `helpers.snHttp`, `helpers.modal`, and client script includes reached as
- * `imports["<scope>.<name>"]()`. The shape of `dispatched_events` (names,
- * ids or `{name|eventName|id}` objects) is also unverified.
+ * The UIB client-script runtime API modelled here was checked on a PDI
+ * (O-5): handlers are `function handler({api, event, helpers, imports}) {…}`
+ * and use `api.state`, `api.setState(name, valueOrUpdater)`,
+ * `api.emit(eventName, payload)`, `api.data.<resourceId>`,
+ * `helpers.timing.setTimeout`, `helpers.snHttp`, `helpers.modal`, and client
+ * script includes reached as `imports["<scope>.<name>"]()`.
+ *
+ * `dispatched_events` is a glide_list of sys_ux_event sys_ids, not names
+ * (O-5). Even resolved to `event_name` (relays included), about two thirds
+ * of OOB `api.emit` calls on the PDI name an event the macroponent does not
+ * declare — page and framework events such as
+ * `NOW_UXF_PAGE#ADD_NOTIFICATIONS` or `NAV_ITEM_SELECTED` — so
+ * `uib-undeclared-event` only runs on an explicit list of names and stays
+ * silent on a raw row.
  */
 
 export type UibSeverity = "error" | "warn" | "info";
@@ -731,12 +737,19 @@ function parseMaybeJson(value: unknown): unknown {
   }
 }
 
+/** A glide_list of sys_ids: `id` or `id,id,…`. */
+const GLIDE_LIST_OF_IDS = /^[0-9a-f]{32}(,[0-9a-f]{32})*$/;
+
 /**
- * Declared event names of a decoded `dispatched_events`; undefined when
- * the shape is unknown (the rule then stays silent). ASSUMPTION (O-5): an
- * array of names / ids, or of `{name|eventName|id}` objects.
+ * Declared event names of an explicit `dispatched_events` list (names, or
+ * `{name|eventName|id}` objects); undefined when the shape is unknown (the
+ * rule then stays silent). A raw row's glide_list of sys_ux_event sys_ids
+ * (O-5) is unknown on purpose: see the module comment.
  */
 export function dispatchedEventNames(value: unknown): string[] | undefined {
+  if (typeof value === "string" && GLIDE_LIST_OF_IDS.test(value.trim())) {
+    return undefined;
+  }
   const v = parseMaybeJson(value);
   if (v === undefined) return [];
   if (!Array.isArray(v)) return undefined;

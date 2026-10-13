@@ -25,8 +25,8 @@ import { isSysId } from "../core/sys-id.js";
  * sys_id of a record in the table its `definition.type` names (seven types on
  * the PDI, CONTROLLER being a sys_ux_controller rather than a broker), and an
  * import key is the include's `api_name`, `scope.name`, whose name may hold
- * spaces. Still unverified: that `definition.id` is the sys_ux_macroponent
- * sys_id for composition elements.
+ * spaces. A composition element's `definition.id` is a sys_ux_macroponent
+ * sys_id (O-5, 4d794b6).
  */
 
 /**

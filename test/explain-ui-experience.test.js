@@ -57,6 +57,9 @@ const AGENT_MP = id("e");
 const ST_HOME = id("f");
 const ST_REC = id("1");
 const APP_AGENT = id("2");
+// sys_security_acl.type is a sys_security_type reference (O-5).
+const SEC_TYPE_BROKER = "6d9c40e9531210101cb3ddeeff7b12f6";
+const SEC_TYPE_RECORD = "5d9c40e9531210101cb3ddeeff7b12f6";
 const BROKER_T = id("3");
 const BROKER_S = id("4");
 const BROKER_X = id("5");
@@ -250,14 +253,16 @@ function fixture() {
       {
         sys_id: "acl1",
         name: BROKER_T,
-        type: "ux_data_broker",
+        type: SEC_TYPE_BROKER,
+        "type.name": "ux_data_broker",
         operation: "execute",
         active: "true",
       },
       {
         sys_id: "acl2",
         name: BROKER_S,
-        type: "record",
+        type: SEC_TYPE_RECORD,
+        "type.name": "record",
         operation: "read",
         active: "true",
       },
@@ -371,10 +376,12 @@ function fixture() {
 
 function matchTerm(row, term) {
   let m;
-  if ((m = /^(\w+)IN(.*)$/.exec(term))) {
+  if ((m = /^([\w.]+)IN(.*)$/.exec(term))) {
     return m[2].split(",").includes(String(row[m[1]] ?? ""));
   }
-  if ((m = /^(\w+)=(.*)$/.exec(term))) return String(row[m[1]] ?? "") === m[2];
+  if ((m = /^([\w.]+)=(.*)$/.exec(term))) {
+    return String(row[m[1]] ?? "") === m[2];
+  }
   throw new Error(`unsupported term ${term}`);
 }
 

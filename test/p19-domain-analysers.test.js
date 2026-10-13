@@ -414,29 +414,26 @@ const WF_TABLES = {
 };
 
 // UI Builder: r1 has a screen, r2's screen type has none, r3 has no screen type.
-// sc1 has no audience and shadows sc2 (same type, later order); sc3 has no
-// audience and no later sibling. Broker b1 has an ACL, b2 / b3 have none.
+// sc1 has no audience and shadows sc2 (same type, later order); sc3 has only
+// an inactive audience link and no later sibling. Broker b1 has an ACL, b2 / b3 have none.
 const UIB_SCREENS = [
   {
     sys_id: "sc1",
     name: "Default home",
     screen_type: "st1",
     order: "10",
-    applicability: "",
   },
   {
     sys_id: "sc2",
     name: "Agent home",
     screen_type: "st1",
     order: "20",
-    applicability: "ap1",
   },
   {
     sys_id: "sc3",
     name: "Record",
     screen_type: "st3",
     order: "100",
-    applicability: "",
   },
 ];
 const UIB_TABLES = {
@@ -446,20 +443,24 @@ const UIB_TABLES = {
     { sys_id: "r3", name: "blank", screen_type: "" },
   ],
   sys_ux_screen: (q) => {
-    if (q.startsWith("applicabilityISEMPTY")) {
-      return UIB_SCREENS.filter((s) => !s.applicability);
-    }
     const m = /^screen_typeIN([^^]*)/.exec(q);
+    if (!m) return UIB_SCREENS;
     const types = new Set(m ? m[1].split(",") : []);
     return UIB_SCREENS.filter((s) => types.has(s.screen_type));
   },
+  // Audiences are m2m links (sys_ux_screen has no applicability column, O-5);
+  // sc3's only link is inactive.
+  sys_ux_applicability_m2m_screen: [
+    { sys_id: "l1", screen: "sc2", applicability: "ap1", active: "true" },
+    { sys_id: "l2", screen: "sc3", applicability: "ap2", active: "false" },
+  ],
   sys_ux_data_broker_transform: [
     { sys_id: "b1", name: "Guarded transform" },
     { sys_id: "b2", name: "Open transform" },
   ],
   sys_ux_data_broker_scriptlet: [{ sys_id: "b3", name: "Open scriptlet" }],
   sys_security_acl: (q) => {
-    assert.match(q, /\^type=ux_data_broker$/);
+    assert.match(q, /\^type\.name=ux_data_broker$/);
     return q.startsWith("nameIN") && q.includes("b1") ? [{ name: "b1" }] : [];
   },
 };
