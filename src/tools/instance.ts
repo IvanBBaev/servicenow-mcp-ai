@@ -98,7 +98,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_compare_instances",
     title: "Compare two instances",
     description:
-      "Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app inventory, optional record sections. Writes _compare/<a>-vs-<b>.md.",
+      "Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app inventory, optional record sections. Writes <a>/compare/<a>-vs-<b>.md.",
     package: "instance",
     annotations: {
       readOnlyHint: false,

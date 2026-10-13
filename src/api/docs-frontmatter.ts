@@ -158,6 +158,11 @@ export interface DocMeta {
    * `sn_generator_version`. Default: DOCS_GENERATOR_VERSION.
    */
   generatorVersion?: string;
+  /**
+   * Extra `sn_*` fields the writer records next to the standard ones (ID-20:
+   * `sn_compare_with`). Keys must start with `sn_`.
+   */
+  extra?: Record<`sn_${string}`, string>;
 }
 
 export type DocWriteStatus = "created" | "updated" | "unchanged";

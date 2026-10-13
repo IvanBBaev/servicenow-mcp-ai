@@ -7,6 +7,7 @@ sn_profile: default
 sn_instance: dev00000.service-now.com
 sn_generated_at: <generatedAt>
 sn_source_hash: sha256:cb5eabb1c5f5e24c32fc3fed24d8b6b5f79bba807c8930f95fae9dec40214026
+sn_compare_with: prod
 ---
 
 # Instance comparison — `default` vs `prod`

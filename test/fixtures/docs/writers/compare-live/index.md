@@ -6,7 +6,7 @@ Auto-generated index of documents in this folder.
 
 ### compare
 
-- [_compare/default-vs-prod.md](_compare/default-vs-prod.md) — Instance comparison — `default` vs `prod`
+- [default/compare/default-vs-prod.md](default/compare/default-vs-prod.md) — Instance comparison — `default` vs `prod`
 
 ## Hand-written
 

@@ -832,7 +832,7 @@ No parameters.
 | `sections` | array | optional | Sections to collect (tables, plugins, apps, automation, properties, choices, acls, notifications, flows, catalog, roles); default all. |
 | `resume` | boolean | optional | Finish an interrupted snapshot: units whose files still carry the recorded source hash are skipped. |
 
-`servicenow_compare_instances` write Diff two connection profiles: tables present in only one, common columns whose type/mandatory/reference differ, scripts (per type+name) missing or with different source (compared by SHA-256, always live), and plugin/app inventory differences. Writes a Markdown report to _compare/<a>-vs-<b>.md in the docs folder and returns the structured summary. With from_snapshot, tables/plugins/apps are read from the profiles' stored snapshots when available.
+`servicenow_compare_instances` write Diff two connection profiles: tables present in only one, common columns whose type/mandatory/reference differ, scripts (per type+name) missing or with different source (compared by SHA-256, always live), and plugin/app inventory differences. Writes a Markdown report to <a>/compare/<a>-vs-<b>.md (with a JSON companion) in the docs folder and returns the structured summary. With from_snapshot, tables/plugins/apps are read from the profiles' stored snapshots when available.
 
 | Parameter | Type |  | Notes |
 | --- | --- | --- | --- |

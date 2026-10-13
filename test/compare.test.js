@@ -176,9 +176,10 @@ test("compareInstances diffs tables, columns, scripts, plugins and apps", async 
   assert.deepEqual(result.appDiffs, ["only in prod: x_prod Prod App@1.0"]);
 
   // The Markdown report landed in the docs folder and names both profiles.
-  assert.equal(result.report, "_compare/default-vs-prod.md");
+  assert.equal(result.report, "default/compare/default-vs-prod.md");
+  assert.equal(result.reportJson, "default/compare/default-vs-prod.json");
   const report = await fs.readFile(
-    path.join(DOCS_DIR, "_compare", "default-vs-prod.md"),
+    path.join(DOCS_DIR, "default", "compare", "default-vs-prod.md"),
     "utf8",
   );
   assert.match(report, /`default` vs `prod`/);
@@ -191,6 +192,87 @@ test("compareInstances diffs tables, columns, scripts, plugins and apps", async 
   // H-8 C-11/C-12: the drift report states what it cannot see.
   assert.ok(result.caveats.some((c) => /Domain separation/.test(c)));
   assert.match(report, /## Caveats[\s\S]*Domain separation/);
+});
+
+test("the compare report is filed under profile a with sn_compare_with and a JSON companion (ID-20)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const dir = path.join(DOCS_DIR, "default", "compare");
+  await withEnv(PROFILE_ENV, () =>
+    withMetadataFetch(twoInstanceFetch, () =>
+      compareInstances({ a: "default", b: "prod" }),
+    ),
+  );
+  const md = await fs.readFile(path.join(dir, "default-vs-prod.md"), "utf8");
+  assert.match(md, /^sn_profile: default$/m);
+  assert.match(md, /^sn_compare_with: prod$/m);
+  const json = JSON.parse(
+    await fs.readFile(path.join(dir, "default-vs-prod.json"), "utf8"),
+  );
+  assert.equal(json.sn_generator, "servicenow_compare_instances");
+  assert.equal(json.sn_compare_with, "prod");
+  assert.equal(json.a, "default");
+  assert.equal(json.b, "prod");
+  assert.deepEqual(json.tablesOnlyInA, ["u_dev_only"]);
+  assert.ok(json.caveats.some((c) => /Domain separation/.test(c)));
+  const index = JSON.parse(
+    await fs.readFile(path.join(DOCS_DIR, "index.json"), "utf8"),
+  );
+  const entry = index.files.find(
+    (e) => e.path === "default/compare/default-vs-prod.md",
+  );
+  assert.equal(entry?.companion, "default/compare/default-vs-prod.json");
+});
+
+test("a legacy _compare report is taken over with its manual blocks; a hand-written one stays (ID-20)", async () => {
+  baselineEnv();
+  clearSchemaCache();
+  const legacyDir = path.join(DOCS_DIR, "_compare");
+  const target = path.join(
+    DOCS_DIR,
+    "default",
+    "compare",
+    "default-vs-prod.md",
+  );
+  const run = () =>
+    withEnv(PROFILE_ENV, () =>
+      withMetadataFetch(twoInstanceFetch, () =>
+        compareInstances({ a: "default", b: "prod" }),
+      ),
+    );
+  await run();
+  const generated = await fs.readFile(target, "utf8");
+  await fs.rm(target);
+  await fs.mkdir(legacyDir, { recursive: true });
+  await fs.writeFile(
+    path.join(legacyDir, "default-vs-prod.md"),
+    generated
+      .replace(/^sn_compare_with: prod\n/m, "")
+      .replace(
+        /\n$/,
+        "\n\n<!-- sn:manual:start notes -->\nKeep me.\n<!-- sn:manual:end -->\n",
+      ),
+  );
+  await run();
+  await assert.rejects(fs.access(legacyDir));
+  const adopted = await fs.readFile(target, "utf8");
+  assert.match(adopted, /^sn_compare_with: prod$/m);
+  assert.match(adopted, /Keep me\./);
+
+  // A hand-written file at the old path is not the generator's to move.
+  await fs.rm(target);
+  await fs.mkdir(legacyDir, { recursive: true });
+  await fs.writeFile(
+    path.join(legacyDir, "default-vs-prod.md"),
+    "# My notes\n",
+  );
+  await run();
+  assert.equal(
+    await fs.readFile(path.join(legacyDir, "default-vs-prod.md"), "utf8"),
+    "# My notes\n",
+  );
+  await fs.access(target);
+  await fs.rm(legacyDir, { recursive: true });
 });
 
 test("compareInstances validates profiles and rejects self-comparison", async () => {
@@ -297,7 +379,7 @@ test("compareInstances warns when sys_dictionary hits the SN_MAX_RECORDS cap (QA
   );
   // The warning must also reach the persisted Markdown report.
   const report = await fs.readFile(
-    path.join(DOCS_DIR, "_compare", "default-vs-prod.md"),
+    path.join(DOCS_DIR, "default", "compare", "default-vs-prod.md"),
     "utf8",
   );
   assert.match(report, /Warnings/);
@@ -362,7 +444,7 @@ test("compare matches scripts by sys_id and shows a unified diff (S-7)", async (
   assert.equal(result.recordDiffs, undefined);
 
   const report = await fs.readFile(
-    path.join(DOCS_DIR, "_compare", "default-vs-prod.md"),
+    path.join(DOCS_DIR, "default", "compare", "default-vs-prod.md"),
     "utf8",
   );
   assert.match(report, /NewUtil → OldUtil/);
@@ -390,7 +472,7 @@ test("compare diffs record sections live and from the snapshot (S-7)", async () 
   const withoutRecords = { ...live, recordDiffs: undefined };
   assert.equal(driftCount(live), driftCount(withoutRecords) + 2);
   const report = await fs.readFile(
-    path.join(DOCS_DIR, "_compare", "default-vs-prod.md"),
+    path.join(DOCS_DIR, "default", "compare", "default-vs-prod.md"),
     "utf8",
   );
   assert.match(report, /## Records/);

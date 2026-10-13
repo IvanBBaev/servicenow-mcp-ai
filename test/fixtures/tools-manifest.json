@@ -767,7 +767,7 @@
       "package": "instance",
       "title": "Compare two instances",
       "since": "2.0.1",
-      "description_sha256": "69e887a4f2061145b1161d0ca206fd804ba11e8e10c7205ee15d4edd6d8f7f03",
+      "description_sha256": "65dd51409331ce666763faa65f43f817a5114bd7a96cfe1ea1bcf75f0f1ccd71",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -844,7 +844,7 @@
         "type": "object"
       },
       "sizes": {
-        "description": 175,
+        "description": 178,
         "inputSchema": 1370,
         "paramDescriptions": 581,
         "outputSchema": 0

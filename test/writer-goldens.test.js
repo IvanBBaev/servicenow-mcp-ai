@@ -430,10 +430,6 @@ test("compare writer golden: from snapshot", async () => {
   await fresh();
   const r = await withEnv(PROFILE_ENV, async () => {
     await withMetadataFetch(instanceFetch, () => snapshotInstance());
-    await fs.rm(path.join(DOCS_DIR, "_compare"), {
-      recursive: true,
-      force: true,
-    });
     return withMetadataFetch(twoInstanceFetch, () =>
       compareInstances({
         a: "default",
@@ -444,9 +440,14 @@ test("compare writer golden: from snapshot", async () => {
     );
   });
   // Only the comparison is under test here; the snapshot has its own goldens.
+  // The snapshot also writes under default/, so keep default/compare only.
   for (const f of await fs.readdir(DOCS_DIR)) {
-    if (f !== "_compare")
+    if (f !== "default")
       await fs.rm(path.join(DOCS_DIR, f), { recursive: true });
+  }
+  const own = path.join(DOCS_DIR, "default");
+  for (const f of await fs.readdir(own)) {
+    if (f !== "compare") await fs.rm(path.join(own, f), { recursive: true });
   }
   await assertTree("compare-snapshot", r);
 });

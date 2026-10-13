@@ -34,7 +34,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_compare_instances
 
-**Compare two instances.** Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app inventory, optional record sections. Writes _compare/<a>-vs-<b>.md.
+**Compare two instances.** Diff two profiles: tables, column differences, scripts missing/renamed/changed (unified diff), plugin/app inventory, optional record sections. Writes <a>/compare/<a>-vs-<b>.md.
 
 **Writes:** Write, idempotent.
 

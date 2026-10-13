@@ -3,14 +3,25 @@
   "generated_at": "<generatedAt>",
   "files": [
     {
-      "path": "_compare/default-vs-prod.md",
+      "path": "default/compare/default-vs-prod.json",
+      "kind": "compare",
+      "title": null,
+      "profile": "default",
+      "generator": "servicenow_compare_instances",
+      "generated_at": "<generatedAt>",
+      "source_hash": "sha256:8983eea02da95b3c4771d08f15f0c9688563911882e749f3ccc994411b4572fd",
+      "bytes": 3292,
+      "headings": []
+    },
+    {
+      "path": "default/compare/default-vs-prod.md",
       "kind": "compare",
       "title": "Instance comparison — `default` vs `prod`",
       "profile": "default",
       "generator": "servicenow_compare_instances",
       "generated_at": "<generatedAt>",
       "source_hash": "sha256:8983eea02da95b3c4771d08f15f0c9688563911882e749f3ccc994411b4572fd",
-      "bytes": 3119,
+      "bytes": 3141,
       "headings": [
         "Instance comparison — `default` vs `prod`",
         "Tables",
@@ -22,7 +33,8 @@
         "Applications",
         "Warnings",
         "Caveats"
-      ]
+      ],
+      "companion": "default/compare/default-vs-prod.json"
     },
     {
       "path": "default/write-journal.md",
@@ -32,7 +44,7 @@
       "generator": null,
       "generated_at": null,
       "source_hash": null,
-      "bytes": 350,
+      "bytes": 467,
       "headings": [
         "Write journal — default"
       ]

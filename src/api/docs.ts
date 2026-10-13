@@ -206,7 +206,8 @@ export async function docsWriteRaw(
     prevFields.sn_generator_version === version &&
     prevFields.sn_profile === profile &&
     prevFields.sn_source_hash === hash &&
-    (prevFields.sn_partial === "true") === (meta.partial === true)
+    (prevFields.sn_partial === "true") === (meta.partial === true) &&
+    Object.entries(meta.extra ?? {}).every(([k, v]) => prevFields[k] === v)
   ) {
     return {
       path: relPath,
@@ -225,6 +226,7 @@ export async function docsWriteRaw(
     ["sn_instance", meta.instance ?? instanceHost(profile)],
     ["sn_generated_at", meta.generatedAt ?? new Date().toISOString()],
     ["sn_source_hash", hash],
+    ...Object.entries(meta.extra ?? {}),
     ...(meta.partial ? [["sn_partial", "true"] as [string, string]] : []),
   ];
   let out: string;
@@ -295,6 +297,50 @@ function withJsonFields(
     if (!k.startsWith("sn_")) out[k] = v;
   }
   return JSON.stringify(out, null, 2);
+}
+
+/**
+ * ID-20: move a generator's file from an old path to its new one, so the
+ * next write takes it over (manual blocks included). Only a file the same
+ * generator wrote (or one `meta.legacy` recognises) moves; a hand-written
+ * file, or a target that already exists, leaves both alone. The move is
+ * journalled and an emptied old folder is removed. True when it moved.
+ */
+export async function docsAdopt(
+  fromRel: string,
+  toRel: string,
+  meta: DocMeta,
+  extensions = [".md"],
+): Promise<boolean> {
+  const from = resolveDocPath(fromRel, extensions);
+  const to = resolveDocPath(toRel, extensions);
+  const previous = await readIfExists(from);
+  if (previous === undefined || (await readIfExists(to)) !== undefined) {
+    return false;
+  }
+  const ext = path.extname(from).toLowerCase();
+  const fields = fieldsOf(previous, ext);
+  const ours = isGenerated(fields)
+    ? fields.sn_generator === meta.generator
+    : isLegacyOutput(previous, ext, meta);
+  if (!ours) return false;
+  await fs.mkdir(path.dirname(to), { recursive: true });
+  await fs.rename(from, to);
+  const rel = (abs: string): string =>
+    `docs/${path.relative(getDocsDir(), abs).split(path.sep).join("/")}`;
+  appendWriteJournal({
+    action: "local_write",
+    table: "local",
+    target: rel(to),
+    fields: { moved_from: rel(from) },
+    bytes: Buffer.byteLength(previous, "utf8"),
+    sha256: sha256Hex(previous),
+  });
+  if (path.dirname(from) !== getDocsDir()) {
+    // Not recursive: a folder that still holds anything stays.
+    await fs.rmdir(path.dirname(from)).catch(() => undefined);
+  }
+  return true;
 }
 
 /** Write a file and journal it (L2-04). */

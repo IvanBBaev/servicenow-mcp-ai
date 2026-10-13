@@ -4,7 +4,7 @@ import path from "node:path";
 import type { TableInfo } from "./meta.js";
 import { queryTable } from "./table.js";
 import { SCRIPT_TYPES, scriptArtifact } from "./scripts.js";
-import { docsWriteRaw } from "./docs.js";
+import { docsAdopt, docsWriteRaw, type DocMeta } from "./docs.js";
 import {
   APP_SOURCES,
   RECORD_SECTIONS,
@@ -111,7 +111,10 @@ interface RecordDiff {
 export interface CompareResult {
   a: string;
   b: string;
+  /** ID-20: `<a>/compare/<a>-vs-<b>.md`, filed under profile `a`. */
   report: string;
+  /** ID-20: the same comparison as JSON, next to the report. */
+  reportJson: string;
   tablesOnlyInA: string[];
   tablesOnlyInB: string[];
   columnDiffs: ColumnDiff[];
@@ -736,7 +739,36 @@ export async function compareInstances(
   ];
 
   // -- report ---------------------------------------------------------------
-  const report = `_compare/${a}-vs-${b}.md`;
+  // ID-20: filed under profile `a` (so a profile-scoped docs_list sees it),
+  // with `sn_compare_with: b`; a report left at the old store-root
+  // `_compare/` path is taken over.
+  const report = `${a}/compare/${a}-vs-${b}.md`;
+  const reportJson = `${a}/compare/${a}-vs-${b}.json`;
+  const source = {
+    a,
+    b,
+    fromSnapshot,
+    tablesOnlyInA,
+    tablesOnlyInB,
+    columnDiffs,
+    scriptDiffs,
+    pluginDiffs,
+    appDiffs,
+    ...(sections.length > 0 ? { sections, recordDiffs } : {}),
+    ...(types.length > 0 ? { types, scope: typeScope, artifactDiffs } : {}),
+    ...(withMermaid ? { mermaidDiffs } : {}),
+    warnings,
+  };
+  const meta: DocMeta = {
+    generator: "servicenow_compare_instances",
+    kind: "compare",
+    profile: a,
+    generatedAt,
+    source,
+    extra: { sn_compare_with: b },
+    legacy: /^# Instance comparison — /,
+  };
+  await docsAdopt(`_compare/${a}-vs-${b}.md`, report, meta);
   await docsWriteRaw(
     report,
     [
@@ -893,29 +925,13 @@ export async function compareInstances(
       "",
     ].join("\n"),
     [".md"],
-    {
-      generator: "servicenow_compare_instances",
-      kind: "compare",
-      // Filed under the first profile; the report covers both.
-      profile: a,
-      generatedAt,
-      source: {
-        a,
-        b,
-        fromSnapshot,
-        tablesOnlyInA,
-        tablesOnlyInB,
-        columnDiffs,
-        scriptDiffs,
-        pluginDiffs,
-        appDiffs,
-        ...(sections.length > 0 ? { sections, recordDiffs } : {}),
-        ...(types.length > 0 ? { types, scope: typeScope, artifactDiffs } : {}),
-        ...(withMermaid ? { mermaidDiffs } : {}),
-        warnings,
-      },
-      legacy: /^# Instance comparison — /,
-    },
+    meta,
+  );
+  await docsWriteRaw(
+    reportJson,
+    JSON.stringify({ ...source, caveats: COMPARE_CAVEATS }),
+    [".json"],
+    meta,
   );
   progress.tick("report");
 
@@ -923,6 +939,7 @@ export async function compareInstances(
     a,
     b,
     report,
+    reportJson,
     tablesOnlyInA,
     tablesOnlyInB,
     columnDiffs,

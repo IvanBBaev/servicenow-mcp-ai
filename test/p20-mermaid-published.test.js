@@ -312,7 +312,7 @@ test("compare mermaid:true diffs the changed flow's diagram as text; drift count
     assert.match(d.diff, /\n-.*Create Record/);
     assert.match(d.diff, /\n\+.*Update Record/);
     const report = readFileSync(
-      path.join(docs, "_compare", "default-vs-b.md"),
+      path.join(docs, "default", "compare", "default-vs-b.md"),
       "utf8",
     );
     assert.match(report, /### Mermaid diffs/);
@@ -325,7 +325,10 @@ test("compare mermaid:true diffs the changed flow's diagram as text; drift count
       b: "b",
       types: ["flow"],
     }).then(() =>
-      readFileSync(path.join(docs, "_compare", "default-vs-b.md"), "utf8"),
+      readFileSync(
+        path.join(docs, "default", "compare", "default-vs-b.md"),
+        "utf8",
+      ),
     );
     assert.doesNotMatch(plainReport, /Mermaid/);
   });

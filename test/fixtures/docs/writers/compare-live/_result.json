@@ -1,7 +1,8 @@
 {
   "a": "default",
   "b": "prod",
-  "report": "_compare/default-vs-prod.md",
+  "report": "default/compare/default-vs-prod.md",
+  "reportJson": "default/compare/default-vs-prod.json",
   "tablesOnlyInA": [
     "u_dev_only"
   ],
