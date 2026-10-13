@@ -429,7 +429,7 @@ test("snapshot automation follows the registry: base query, active field (S-4)",
   // sys_dictionary is narrowed to the rows that carry script.
   assert.match(
     statsUrls.get("sys_dictionary").get("sysparm_query"),
-    /^virtual=true\^ORdefault_valueSTARTSWITHjavascript:$/,
+    /^virtual=true\^ORdefault_valueSTARTSWITHjavascript$/,
   );
   // A fix script has no active flag: no group-by, active is null / n/a.
   assert.equal(statsUrls.get("sys_script_fix").get("sysparm_group_by"), null);
