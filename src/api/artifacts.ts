@@ -24,6 +24,7 @@ import { assertTableAllowed } from "../core/policy.js";
 import { REDACTED } from "../core/redaction.js";
 import {
   ARTIFACT_TYPES,
+  ARTIFACT_TYPE_ALIASES,
   getArtifactType,
   scopeNamespacePath,
   type ArtifactChild,
@@ -613,5 +614,6 @@ export function artifactTypeCatalog(): Record<string, unknown> {
       verified: t.verified,
       ...(t.licensed ? { licensed: t.licensed } : {}),
     })),
+    aliases: { ...ARTIFACT_TYPE_ALIASES },
   };
 }

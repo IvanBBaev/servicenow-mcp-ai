@@ -285,26 +285,6 @@ export const UI_TYPES: readonly ArtifactType[] = [
   },
   {
     ...BASE,
-    type: "uib_form_action",
-    group: "uib",
-    sdkApi: "Record",
-    sdkSince: null,
-    table: "sys_ux_form_action",
-    nameField: "name",
-    scriptFields: [],
-    refFields: [
-      { field: "ui_action", table: "sys_ui_action" },
-      {
-        field: "declarative_action",
-        table: "sys_declarative_action_assignment",
-        type: "ux_declarative_action",
-      },
-    ],
-    tiers: READ_TIER,
-    verified: false,
-  },
-  {
-    ...BASE,
     type: "uib_form_action_layout",
     group: "uib",
     sdkApi: "Record",

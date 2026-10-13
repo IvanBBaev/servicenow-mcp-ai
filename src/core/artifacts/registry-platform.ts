@@ -706,7 +706,9 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
       },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    // N-34b / B19: the one descriptor of sys_ux_form_action (UI Builder's
+    // uib_form_action is an alias); confirmed on a PDI (O-5, OD-4).
+    verified: true,
     appliesToField: "table",
     metaFields: ["table", "action_type", "specificity", "active"],
   },

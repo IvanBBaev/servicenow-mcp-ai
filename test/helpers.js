@@ -122,8 +122,8 @@ export const OD4_PORTAL_VERIFIED = new Set([
 
 /**
  * The UI Builder, Next Experience and workspace types OD-4 (3) flipped (N-25,
- * N-30; a PDI confirmed all 25). Still unverified: the two `sys_ux_form_action`
- * rows (N-34b merges them) and `uib_composite_definition` (no such table).
+ * N-30; a PDI confirmed all 25), plus the `sys_ux_form_action` descriptor
+ * N-34b merged. Still unverified: `uib_composite_definition` (no such table).
  */
 export const OD4_WORKSPACE_VERIFIED = new Set([
   "uib_app_config",
@@ -151,6 +151,8 @@ export const OD4_WORKSPACE_VERIFIED = new Set([
   "workspace",
   "ux_list_menu_config",
   "ux_applicability",
+  // N-34b (B19): the merged sys_ux_form_action descriptor lands verified.
+  "workspace_form_action",
 ]);
 
 /** Every type OD-4 (3) flipped to `verified:true`. */

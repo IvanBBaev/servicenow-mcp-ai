@@ -13,7 +13,7 @@ sn_source_hash: <masked>
 
 Every artefact type this server knows (servicenow_artifact_types), with what this scope has of it and, when nothing was collected, why. [Overview](overview.md) · [Applications](apps.md)
 
-- **Types:** 144
+- **Types:** 143
 - **Collected:** 12
 
 ## Types
@@ -75,7 +75,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `inbound_email_action` | server | `sysevent_in_email_action` | yes | no — no records in this scope |
 | `sla` | server | `contract_sla` | yes | no — no records in this scope |
 | `data_policy` | classic-ui | `sys_data_policy2` | yes | no — no records in this scope |
-| `workspace_form_action` | classic-ui | `sys_ux_form_action` | no | no — no records in this scope |
+| `workspace_form_action` | classic-ui | `sys_ux_form_action` | yes | no — no records in this scope |
 | `form` | classic-ui | `sys_ui_form` | yes | no — no records in this scope |
 | `ui_section` | classic-ui | `sys_ui_section` | yes | no — no records in this scope |
 | `formatter` | classic-ui | `sys_ui_formatter` | yes | no — no records in this scope |
@@ -101,7 +101,6 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `uib_component` | uib | `sys_ux_lib_component` | yes | no — no records in this scope |
 | `uib_theme` | uib | `sys_ux_theme` | yes | no — no records in this scope |
 | `uib_style` | uib | `sys_ux_style` | yes | no — no records in this scope |
-| `uib_form_action` | uib | `sys_ux_form_action` | no | no — no records in this scope |
 | `uib_form_action_layout` | uib | `sys_ux_form_action_layout` | yes | no — no records in this scope |
 | `uib_composite_definition` | uib | `sys_ux_composite_definition` | no | no — no records in this scope |
 | `uib_data_broker_rest` | uib | `sys_ux_data_broker_rest` | yes | no — no records in this scope |

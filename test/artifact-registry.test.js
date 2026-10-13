@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   ARTIFACT_GROUPS,
   ARTIFACT_TYPES,
+  ARTIFACT_TYPE_ALIASES,
   PERFORMANCE_ANALYTICS,
   SDK_BASELINE,
   SDK_APIS,
@@ -18,6 +19,10 @@ import {
   OPT_IN_SCRIPT_TYPES,
   OPT_IN_SCRIPT_TYPE_NAMES,
 } from "../build/api/scripts.js";
+import {
+  artifactTypeCatalog,
+  resolveArtifactType,
+} from "../build/api/artifacts.js";
 import { OD4_VERIFIED } from "./helpers.js";
 
 /**
@@ -423,7 +428,6 @@ const P9_TYPES = {
     "uib_component",
     "uib_theme",
     "uib_style",
-    "uib_form_action",
     "uib_form_action_layout",
     "uib_composite_definition",
     // N-29 / N-30
@@ -692,17 +696,10 @@ test("N-8: reports and PA rows carry the dependency edges and children", () => {
  * N-34 (UX-24) — registry lint: one table (and base query) has exactly one
  * descriptor, so a table name maps back to one artefact type. Types that
  * split a table by `baseQuery` (flow / subflow) are distinct slices.
- *
- * Known exception: sys_ux_form_action is described twice. Merging
- * workspace_form_action and uib_form_action would change public outputs
- * (the servicenow://artifact-types catalog, the discovery artefact
- * document, compare_instances "all", where-used reverse types), so the pair
- * stays until the owner decides the breaking change (O-4). Remove the entry
- * here when the merge lands; a new duplicate fails this test.
+ * N-34b (B19) merged the last duplicate: sys_ux_form_action is described by
+ * workspace_form_action, with uib_form_action kept as an alias.
  */
-const KNOWN_DUPLICATE_TABLES = {
-  sys_ux_form_action: ["workspace_form_action", "uib_form_action"],
-};
+const KNOWN_DUPLICATE_TABLES = {};
 
 test("registry lint: one descriptor per table, known exceptions documented (N-34)", () => {
   const byTable = new Map();
@@ -733,6 +730,7 @@ test("O-5: UI rows use the column names confirmed on a PDI", () => {
   assert.ok(!refs(t("uib_screen")).includes("applicability"));
   assert.equal(t("uib_component").nameField, "tag");
   assert.deepEqual(json(t("uib_component")), []);
+  assert.equal(t("uib_form_action").type, "workspace_form_action");
   assert.equal(t("uib_form_action").nameField, "name");
   assert.deepEqual(refs(t("uib_form_action")), [
     "ui_action",
@@ -779,4 +777,32 @@ test("OD-1: UIB key fields name real columns (B17)", () => {
     "action_key",
   ]);
   assert.deepEqual(getArtifactType("uib_event").keyFields, ["event_name"]);
+});
+
+test("N-34b (B19): uib_form_action is an alias of workspace_form_action", () => {
+  assert.deepEqual(ARTIFACT_TYPE_ALIASES, {
+    uib_form_action: "workspace_form_action",
+  });
+  assert.ok(!ARTIFACT_TYPES.some((t) => t.type === "uib_form_action"));
+  const merged = getArtifactType("uib_form_action");
+  assert.equal(merged, getArtifactType("workspace_form_action"));
+  assert.equal(merged.table, "sys_ux_form_action");
+  assert.equal(merged.verified, true);
+  assert.equal(resolveArtifactType(" uib_form_action ").type, merged.type);
+  assert.deepEqual(artifactTypeCatalog().aliases, ARTIFACT_TYPE_ALIASES);
+  assert.equal(getArtifactType("toString"), undefined);
+});
+
+test("validateArtifactTypes flags an alias that shadows a type or targets none", () => {
+  const types = [getArtifactType("workspace_form_action")];
+  assert.deepEqual(
+    validateArtifactTypes(types, undefined, {
+      workspace_form_action: "workspace_form_action",
+      ghost: "nope",
+    }).filter((p) => p.startsWith("alias ")),
+    [
+      "alias workspace_form_action: shadows a type id",
+      "alias ghost: targets unknown type nope",
+    ],
+  );
 });

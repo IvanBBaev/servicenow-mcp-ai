@@ -92,9 +92,20 @@ export const ARTIFACT_TYPES: readonly ArtifactType[] = [
   ...PROCESS_ROWS,
 ];
 
-/** Registry lookup by type id. */
+/**
+ * Retired type ids that still resolve to their merged descriptor (N-34b, B19):
+ * input keeps working, output names the surviving type.
+ */
+export const ARTIFACT_TYPE_ALIASES: Readonly<Record<string, string>> = {
+  uib_form_action: "workspace_form_action",
+};
+
+/** Registry lookup by type id or alias. */
 export function getArtifactType(type: string): ArtifactType | undefined {
-  return ARTIFACT_TYPES.find((t) => t.type === type);
+  const id = Object.hasOwn(ARTIFACT_TYPE_ALIASES, type)
+    ? ARTIFACT_TYPE_ALIASES[type]
+    : type;
+  return ARTIFACT_TYPES.find((t) => t.type === id);
 }
 
 /**
@@ -106,12 +117,16 @@ export function getArtifactType(type: string): ArtifactType | undefined {
  * children without a parent field or with a parent table
  * that is neither the primary table nor an earlier child, an empty value link
  * (`parentKey` / `alsoMatch`) or an `alsoMatch` on a nested child, empty
- * or system-field P-24 unique / scope-prefix rules, and references to
- * unregistered types.
+ * or system-field P-24 unique / scope-prefix rules, references to
+ * unregistered types, and aliases that shadow a type id or target no type
+ * (the registry's own aliases are checked only against the registry).
  */
 export function validateArtifactTypes(
   types: readonly ArtifactType[] = ARTIFACT_TYPES,
   nextApis: readonly string[] = SDK_NEXT_APIS,
+  aliases: Readonly<Record<string, string>> = types === ARTIFACT_TYPES
+    ? ARTIFACT_TYPE_ALIASES
+    : {},
 ): string[] {
   const problems: string[] = [];
   const ids = new Set(types.map((t) => t.type));
@@ -219,6 +234,12 @@ export function validateArtifactTypes(
       tables.add(c.table);
       checkJson(cw, c.jsonFields);
       checkRefs(cw, c.refFields);
+    }
+  }
+  for (const [alias, target] of Object.entries(aliases)) {
+    if (ids.has(alias)) problems.push(`alias ${alias}: shadows a type id`);
+    if (!ids.has(target)) {
+      problems.push(`alias ${alias}: targets unknown type ${target}`);
     }
   }
   return problems;
