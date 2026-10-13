@@ -13,10 +13,11 @@
 # Run over stdio instead (an MCP client spawning the container):
 #   docker run --rm -i -e SN_TRANSPORT=stdio -e SN_INSTANCE=... servicenow-mcp-ai
 #
-# The image binds 0.0.0.0 so the published port is reachable — set
-# SN_HTTP_TOKEN (or SN_HTTP_TOKEN_FILE) whenever the port is reachable from
-# anything but this host; without it every client that reaches the port can
-# drive the instance with the configured credentials.
+# The image binds 0.0.0.0 so the published port is reachable, so it needs
+# SN_HTTP_TOKEN (or SN_HTTP_TOKEN_FILE, or OAuth): without one the server
+# refuses to start (B6). SN_HTTP_REQUIRE_TOKEN=0 starts it anyway, and then
+# every client that reaches the port can drive the instance with the
+# configured credentials.
 
 # ---- build: compile, pack, and install production dependencies ----------
 FROM node:22-bookworm-slim AS build

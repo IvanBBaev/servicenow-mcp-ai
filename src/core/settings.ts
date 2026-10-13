@@ -524,11 +524,11 @@ export function getHttpAllowedOrigins(): string[] {
 
 /**
  * Refuse to start the HTTP transport on a non-loopback bind without
- * `SN_HTTP_TOKEN` (`SN_HTTP_REQUIRE_TOKEN=1`). Off by default in 2.x — the
- * server only warns; planned to become the default in 3.0 (O-4, B6).
+ * `SN_HTTP_TOKEN`. On by default since 3.0 (O-4, B6);
+ * `SN_HTTP_REQUIRE_TOKEN=0` only warns, as 2.x did.
  */
 export function httpRequireToken(): boolean {
-  return /^(1|true|yes|on)$/i.test(
+  return !/^(0|false|no|off)$/i.test(
     process.env.SN_HTTP_REQUIRE_TOKEN?.trim() ?? "",
   );
 }

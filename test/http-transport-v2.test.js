@@ -175,7 +175,7 @@ test("H-7 settings: defaults and overrides", async () => {
       assert.equal(getHttpMaxSessions(), 64);
       assert.deepEqual(getHttpAllowedHosts(), []);
       assert.deepEqual(getHttpAllowedOrigins(), []);
-      assert.equal(httpRequireToken(), false);
+      assert.equal(httpRequireToken(), true);
     },
   );
   await withEnv(
@@ -185,7 +185,7 @@ test("H-7 settings: defaults and overrides", async () => {
       SN_HTTP_MAX_SESSIONS: "3",
       SN_HTTP_ALLOWED_HOSTS: "MCP.example.com, proxy:8443",
       SN_HTTP_ALLOWED_ORIGINS: "https://App.example.com",
-      SN_HTTP_REQUIRE_TOKEN: "true",
+      SN_HTTP_REQUIRE_TOKEN: "off",
     },
     () => {
       assert.equal(getHttpSessionTtlSec(), 0);
@@ -196,7 +196,7 @@ test("H-7 settings: defaults and overrides", async () => {
         "proxy:8443",
       ]);
       assert.deepEqual(getHttpAllowedOrigins(), ["https://app.example.com"]);
-      assert.equal(httpRequireToken(), true);
+      assert.equal(httpRequireToken(), false);
     },
   );
 });
@@ -1069,7 +1069,7 @@ test("/readyz answers 503 without credentials", async () => {
   );
 });
 
-test("SN_HTTP_REQUIRE_TOKEN refuses a public bind without a token; the default only warns", async () => {
+test("B6: a public bind without a token is refused by default; SN_HTTP_REQUIRE_TOKEN=0 only warns", async () => {
   const port = await freePort();
   const factory = () => new McpServer({ name: "h7", version: "0" });
   await withEnv(
@@ -1082,10 +1082,10 @@ test("SN_HTTP_REQUIRE_TOKEN refuses a public bind without a token; the default o
       SN_LOG_LEVEL: "error",
     },
     async () => {
-      await withEnv({ SN_HTTP_REQUIRE_TOKEN: "1" }, async () => {
+      await withEnv({ SN_HTTP_REQUIRE_TOKEN: undefined }, async () => {
         await assert.rejects(connectTransport(factory), /Refusing to bind/);
       });
-      await withEnv({ SN_HTTP_REQUIRE_TOKEN: undefined }, async () => {
+      await withEnv({ SN_HTTP_REQUIRE_TOKEN: "0" }, async () => {
         try {
           assert.equal(await connectTransport(factory), "http");
         } finally {

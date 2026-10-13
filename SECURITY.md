@@ -87,7 +87,8 @@ Out of scope:
 - behaviour after an operator explicitly opts out of a safety default
   (`SN_WRITE_MODE=apply`, `SN_TLS_REJECT_UNAUTHORIZED=false`,
   `SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE=1`, a broad `SN_ALLOWED_HOSTS` entry,
-  a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN`);
+  a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN` under
+  `SN_HTTP_REQUIRE_TOKEN=0`);
 - the MCP client or the model — a prompt injection is in scope only where it
   defeats one of the rails below;
 - vulnerabilities in dependencies with no demonstrated impact on this project
@@ -158,8 +159,8 @@ The details follow.
   non-loopback bind without `SN_HTTP_ALLOWED_HOSTS` the Host is not checked
   and a warning is logged. `/healthz` and `/readyz` answer without the token
   and reveal only up / configured; `/readyz?probe=1` calls the instance and
-  needs the token. `SN_HTTP_REQUIRE_TOKEN=1` turns the open-bind warning into
-  a refusal to start (planned default in 3.0). A session-scoped
+  needs the token. A non-loopback bind without a token or OAuth refuses to
+  start (3.0, B6); `SN_HTTP_REQUIRE_TOKEN=0` turns that into a warning. A session-scoped
   `use_instance` writes nothing; `persist: true` writes the env file and a
   journal entry.
 - **OAuth resource server (N-17, O-15 phase 1):** with `SN_HTTP_OAUTH_ISSUER`
@@ -304,13 +305,13 @@ conservative defaults win, and both are now enforced in code (with tests):
   exchanging a code, and TLS verification off is reported at startup and in
   `get_status`. Not covered: a public name that resolves to an internal address
   (no connect-time DNS check yet).
-- **Container image is non-root and warns on an open bind** (`Dockerfile`,
+- **Container image is non-root and refuses an open bind** (`Dockerfile`,
   `transport.ts`, D-5): the image runs distroless Node as uid 65532 with no
   shell and serves HTTP on `0.0.0.0`; binding any non-loopback host without
-  `SN_HTTP_TOKEN` logs a warning at startup (`SN_HTTP_REQUIRE_TOKEN=1` makes
-  it a refusal). `SN_HTTP_TOKEN` is required for any non-loopback bind —
-  without it every client that reaches the port acts with the configured
-  ServiceNow credentials.
+  `SN_HTTP_TOKEN` (or OAuth) refuses to start (3.0, B6).
+  `SN_HTTP_REQUIRE_TOKEN=0` downgrades that to a startup warning, and then
+  every client that reaches the port acts with the configured ServiceNow
+  credentials.
 - **Redaction reaches display-value pairs** (`redact.ts`, H-8): with
   `sysparm_display_value=all` or reference links, PII is masked in every
   string of a `{ value, display_value, link }` field object, not only in

@@ -1005,7 +1005,7 @@
       "status": "covered",
       "tests": [
         "test/http-transport-v2.test.js :: bearer: MCP requests need the token; /healthz and plain /readyz do not",
-        "test/http-transport-v2.test.js :: SN_HTTP_REQUIRE_TOKEN refuses a public bind without a token; the default only warns"
+        "test/http-transport-v2.test.js :: B6: a public bind without a token is refused by default; SN_HTTP_REQUIRE_TOKEN=0 only warns"
       ]
     },
     {

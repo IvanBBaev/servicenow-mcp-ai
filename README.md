@@ -418,8 +418,9 @@ docker run --rm -p 127.0.0.1:3000:3000 \
 ```
 
 - **`SN_HTTP_TOKEN` is required for any non-loopback bind.** The image binds `0.0.0.0`
-  so the published port works; without a token every client that reaches the port
-  drives your instance with the configured credentials (the server logs a warning).
+  so the published port works; without a token (or OAuth) the server refuses to start
+  (3.0, B6). `SN_HTTP_REQUIRE_TOKEN=0` lets it start with a warning, and then every
+  client that reaches the port drives your instance with the configured credentials.
   Clients send `Authorization: Bearer <token>`; terminate TLS in front of the container.
 - **OAuth instead of a shared token (N-17):** set `SN_HTTP_OAUTH_ISSUER` (your OIDC
   provider) and `SN_HTTP_OAUTH_RESOURCE` (this server's public URL, e.g.
@@ -840,7 +841,7 @@ stdio (default, one local client) or Streamable HTTP for remote and agent client
 | `SN_HTTP_OAUTH_USER_MATCH` | no | `email=email` | next | N-17: `<token claim>=<sys_user field>` — a linked ServiceNow account is accepted only when its `sys_user` field equals the subject's claim (case-insensitive), so nobody can link someone else's account. |
 | `SN_HTTP_OAUTH_TOKEN_KEY` | no | — | next | N-17: the AES-256-GCM key (32 bytes, base64 or hex) that encrypts the per-user refresh tokens at rest. Rotating it drops every link. |
 | `SN_HTTP_OAUTH_TOKEN_STORE` | no | `oauth-user-tokens.json` next to the env file | next | N-17: the encrypted per-user token store (written 0600, its directory 0700). |
-| `SN_HTTP_REQUIRE_TOKEN` | no | off | next | H-7: refuse to start the http transport on a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN` (instead of logging a warning). |
+| `SN_HTTP_REQUIRE_TOKEN` | no | on | next | H-7 / B6: refuse to start the http transport on a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN` or OAuth. Set `0` to log a warning and accept every client instead. |
 | `SN_HTTP_SESSION_TTL_SEC` | no | `1800` | next | H-7: idle TTL of an http session in seconds; an idle session is closed and its runtime disposed. `0` keeps sessions until the client sends DELETE. |
 | `SN_HTTP_MAX_SESSIONS` | no | `64` | next | H-7: cap on concurrent http sessions; a new session beyond it is refused with 503. |
 | `SN_HTTP_KEEPALIVE_MS` | no | `25000` | next | H-7: interval of the SSE keep-alive comment on an open stream (below common proxy idle timeouts). `0` disables it. |

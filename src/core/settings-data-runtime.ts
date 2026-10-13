@@ -589,11 +589,11 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     key: "SN_HTTP_REQUIRE_TOKEN",
     section: "transport",
     since: NEXT,
-    default: false,
-    defaultText: "off",
-    example: "0",
+    default: true,
+    defaultText: "on",
+    example: "1",
     description:
-      "H-7: refuse to start the http transport on a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN` (instead of logging a warning).",
+      "H-7 / B6: refuse to start the http transport on a non-loopback `SN_HTTP_HOST` without `SN_HTTP_TOKEN` or OAuth. Set `0` to log a warning and accept every client instead.",
   }),
   nonNegative({
     key: "SN_HTTP_SESSION_TTL_SEC",

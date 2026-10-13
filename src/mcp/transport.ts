@@ -358,11 +358,11 @@ async function startHttp(
     // can reach the port drives the instance with the configured credentials.
     if (httpRequireToken()) {
       throw new Error(
-        `Refusing to bind the HTTP transport to ${host} without SN_HTTP_TOKEN (SN_HTTP_REQUIRE_TOKEN is set) — set SN_HTTP_TOKEN or SN_HTTP_TOKEN_FILE, or bind 127.0.0.1`,
+        `Refusing to bind the HTTP transport to ${host} without SN_HTTP_TOKEN — set SN_HTTP_TOKEN or SN_HTTP_TOKEN_FILE, bind 127.0.0.1, or set SN_HTTP_REQUIRE_TOKEN=0 to accept every client`,
       );
     }
     logger.warn(
-      "HTTP transport bound to a non-loopback address without SN_HTTP_TOKEN — every client that can reach the port is accepted; set SN_HTTP_TOKEN (or SN_HTTP_TOKEN_FILE), or SN_HTTP_REQUIRE_TOKEN=1 to refuse",
+      "HTTP transport bound to a non-loopback address without SN_HTTP_TOKEN (SN_HTTP_REQUIRE_TOKEN=0) — every client that can reach the port is accepted; set SN_HTTP_TOKEN or SN_HTTP_TOKEN_FILE",
       { host },
     );
   }
