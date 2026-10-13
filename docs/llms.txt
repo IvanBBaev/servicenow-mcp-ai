@@ -9,7 +9,8 @@ Install it with `npx -y servicenow-mcp-ai`. Run `npx servicenow-mcp-ai init` for
 - [README](https://github.com/IvanBBaev/servicenow-mcp-ai#readme): install, client setup, the tool reference per package, and the environment variable reference
 - [.env.example](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/.env.example): every setting with its default, grouped by section
 - [SECURITY.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/SECURITY.md): the credential handling, policy and write-safety model
-- [CHANGELOG.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/CHANGELOG.md): release notes
+- [CHANGELOG.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/CHANGELOG.md): release notes, unreleased changes included
+- [Changelog page](https://ivanbbaev.github.io/servicenow-mcp-ai/changelog.md): the released versions, as Markdown on the documentation site
 - [Architecture](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/ARCHITECTURE.md): the layers, ports and adapters, and the request pipeline
 
 <!-- GENERATED:TOOL-REFERENCE:BEGIN (npm run docs:sync) -->

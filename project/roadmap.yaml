@@ -252,7 +252,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local).** `npm run docs:env` regenerates the README env table, `.env.example` and the `server.json` env block from the manifest; `npm run docs:sync` writes tool / package counts into 8 files; both `--check` in `npm run check`; `docs/llms.txt`."
+    notes: "**Done 2026-09-30 (local).** `npm run docs:env` regenerates the README env table, `.env.example` and the `server.json` env block from the manifest; `npm run docs:sync` writes tool / package counts into 8 files; both `--check` in `npm run check`; `docs/llms.txt`. **2026-10-13:** `npm run docs:sync` also writes the site changelog page `docs/changelog.md` (released versions) and the footer release links in `docs/index.html` (`scripts/changelog-docs.mjs`)."
   - id: "D-4"
     title: "install matrix + deeplinks"
     pillar: "D"
