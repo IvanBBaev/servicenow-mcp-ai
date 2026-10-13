@@ -1001,7 +1001,9 @@ function discoveryStatus(
     case "unverified":
       return "no — unverified: table not readable here (O-5)";
     case "absent":
-      return "no — unverified: the instance has no such table";
+      return t.verified
+        ? "no — the instance has no such table (plugin not installed)"
+        : "no — unverified: the instance has no such table";
     case "unreadable":
       return "no — unreadable for this user (ACL or table policy)";
     case "unscoped":

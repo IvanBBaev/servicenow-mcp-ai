@@ -18,7 +18,7 @@ import {
   OPT_IN_SCRIPT_TYPES,
   OPT_IN_SCRIPT_TYPE_NAMES,
 } from "../build/api/scripts.js";
-import { OD4_CORE_VERIFIED } from "./helpers.js";
+import { OD4_VERIFIED } from "./helpers.js";
 
 /**
  * P-1 — the artefact registry. The literal below is the pre-P-1
@@ -259,7 +259,7 @@ test("P-7 guide-audit rows CORE-18, 19, 21 and CUI-6 sys_ui_formatter are regist
     const t = getArtifactType(type);
     assert.equal(t.group, group, type);
     assert.equal(t.table, table, type);
-    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
+    assert.equal(t.verified, OD4_VERIFIED.has(type), type);
   }
   assert.deepEqual(
     getArtifactType("knowledge_base").children.map((c) => c.table),
@@ -463,13 +463,13 @@ const P9_TYPES = {
   workflow: ["workflow", "workflow_activity_definition", "workflow_context"],
 };
 
-test("P-9: every NX / UIB / portal / flow / workflow row is an unverified R-tier type", () => {
+test("P-9: every NX / UIB / portal / flow / workflow row is an R-tier type; only the OD-4 rows are verified", () => {
   for (const [group, types] of Object.entries(P9_TYPES)) {
     for (const type of types) {
       const t = getArtifactType(type);
       assert.ok(t, type);
       assert.equal(t.group, group, type);
-      assert.equal(t.verified, false, type);
+      assert.equal(t.verified, OD4_VERIFIED.has(type), type);
       // P-11 gave decision_table an explainer (X).
       assert.deepEqual(
         t.tiers,
@@ -628,7 +628,7 @@ test("N-8: every report / PA row is an R + X reporting type; only core reports a
     assert.equal(t.group, "reporting", type);
     assert.equal(t.sdkApi, "none", type);
     assert.equal(t.sdkSince, null, type);
-    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
+    assert.equal(t.verified, OD4_VERIFIED.has(type), type);
     assert.deepEqual(t.tiers, ["R", "X"], type);
     assert.equal(t.licensed, licensed, type);
     // No script-tools enum grows (tools/list budget).

@@ -1,8 +1,7 @@
 {
   "artifactType": "workflow",
   "table": "wf_workflow",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b1b",
   "name": "Acme approval",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "workflow 'Acme approval' (wf_workflow); scope x_acme_app; 4 child record(s) in 3 table(s); unverified type. Legacy approval workflow.",
+  "summary": "workflow 'Acme approval' (wf_workflow); scope x_acme_app; 4 child record(s) in 3 table(s). Legacy approval workflow.",
   "when": null,
   "fields": {
     "name": "Acme approval",
@@ -27,7 +26,7 @@
     {
       "table": "wf_workflow_version",
       "parentField": "workflow",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -43,7 +42,7 @@
       "table": "wf_activity",
       "parentField": "workflow_version",
       "parentTable": "wf_workflow_version",
-      "verified": false,
+      "verified": true,
       "count": 2,
       "items": [
         {
@@ -62,7 +61,7 @@
       "table": "wf_transition",
       "parentField": "from",
       "parentTable": "wf_activity",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -76,7 +75,7 @@
       "table": "wf_condition",
       "parentField": "activity",
       "parentTable": "wf_activity",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
@@ -84,7 +83,7 @@
       "table": "wf_stage",
       "parentField": "workflow_version",
       "parentTable": "wf_workflow_version",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     }

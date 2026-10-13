@@ -839,7 +839,7 @@ export function renderApp(data: AppDocData, ctx: RenderContext): string {
     lines.push(
       "## Not confirmed on this instance",
       "",
-      "These artefact types are not confirmed on a live instance (gate O-5): their table could not be read here, so they are left out rather than reported empty.",
+      "These artefact types could not be read here: an unverified type (gate O-5) whose table was rejected, or a type whose table this instance does not have (plugin not installed). They are left out rather than reported empty.",
       "",
       ...data.degraded.map(
         (t) => `- ${code(t)} (${code(typeOf.get(t)?.table ?? "")})`,

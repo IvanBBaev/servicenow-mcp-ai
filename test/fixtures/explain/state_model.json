@@ -1,8 +1,7 @@
 {
   "artifactType": "state_model",
   "table": "sttrm_model",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "11111111111111111111111111111111",
   "name": "Acme task lifecycle",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "state_model 'Acme task lifecycle' (sttrm_model); applies to x_acme_task; scope x_acme_app; 8 child record(s) in 3 table(s); unverified type",
+  "summary": "state_model 'Acme task lifecycle' (sttrm_model); applies to x_acme_task; scope x_acme_app; 8 child record(s) in 3 table(s)",
   "when": null,
   "fields": {
     "name": "Acme task lifecycle",
@@ -74,7 +73,7 @@
     {
       "table": "sttrm_state",
       "parentField": "sttrm_model",
-      "verified": false,
+      "verified": true,
       "count": 3,
       "items": [
         {
@@ -101,7 +100,7 @@
       "table": "sttrm_state_transition",
       "parentField": "from_state",
       "parentTable": "sttrm_state",
-      "verified": false,
+      "verified": true,
       "count": 3,
       "items": [
         {
@@ -125,7 +124,7 @@
       "table": "sttrm_transition_condition",
       "parentField": "sttrm_state_transition",
       "parentTable": "sttrm_state_transition",
-      "verified": false,
+      "verified": true,
       "count": 2,
       "items": [
         {

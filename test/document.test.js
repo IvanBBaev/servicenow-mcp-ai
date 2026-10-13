@@ -1579,12 +1579,12 @@ test("discovery: artifacts-<scope>.md says why each type was not collected", asy
     router({
       ...base,
       sys_db_object: (q) =>
-        q.startsWith("name=sys_alias")
-          ? [{ name: "sys_alias" }]
+        q.startsWith("name=change_risk_asmt")
+          ? [{ name: "change_risk_asmt" }]
           : base.sys_db_object(q),
       // Unverified, the table exists but this user cannot read it (O-5).
-      sys_alias: 403,
-      // Unverified, no such table on this instance.
+      change_risk_asmt: 403,
+      // Verified (OD-4), but no such table on this instance.
       sys_retry_policy: 404,
       // Licensed family whose plugin is not installed.
       sn_aia_agent: 404,
@@ -1606,12 +1606,12 @@ test("discovery: artifacts-<scope>.md says why each type was not collected", asy
       assert.match(row("business_rule"), /\| yes \(\d+\) \|$/);
       assert.match(row("script_include"), /\| yes, 1000 of 1001 \(cap\) \|$/);
       assert.match(
-        row("alias"),
+        row("risk_assessment"),
         /no — unverified: table not readable here \(O-5\)/,
       );
       assert.match(
         row("retry_policy"),
-        /no — unverified: the instance has no such table/,
+        /no — the instance has no such table \(plugin not installed\)/,
       );
       assert.match(
         row("client_script"),

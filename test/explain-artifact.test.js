@@ -678,14 +678,17 @@ test("an unreadable unverified type degrades instead of failing", async () => {
       () => jsonResponse(400, { error: { message: "Invalid table" } }),
       async () => {
         const res = await explain({
-          artifactType: "workflow",
+          artifactType: "risk_assessment",
           sys_id: id("1"),
         });
         assert.equal(res.isError, undefined);
         const body = res.structuredContent;
         assert.equal(body.verified, false);
         assert.ok(body.caveat);
-        assert.equal(body.summary, "workflow (wf_workflow) could not be read.");
+        assert.equal(
+          body.summary,
+          "risk_assessment (change_risk_asmt) could not be read.",
+        );
         assert.equal(body.when, null);
         assert.deepEqual(body.fields, {});
         assert.deepEqual(body.children, []);

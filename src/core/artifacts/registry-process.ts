@@ -38,7 +38,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { field: "master_snapshot", table: "sys_hub_flow_snapshot" },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -60,7 +60,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { field: "master_snapshot", table: "sys_hub_flow_snapshot" },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -93,7 +93,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -105,7 +105,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -128,7 +128,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     refFields: [{ field: "flow", table: "sys_hub_flow", type: "flow" }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -167,7 +167,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -191,7 +191,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       },
     ],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -212,7 +212,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     // P-11: explained by the `decision-table` enricher (explainers.ts).
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
   },
   // Legacy workflow (no SDK API; SDK-PARITY §4.8). Inbound references (WF-6)
   // are the `workflow` refFields of the referring types.
@@ -254,7 +254,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -266,7 +266,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   {
     ...BASE,
@@ -291,7 +291,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     refFields: [{ field: "workflow", table: "wf_workflow", type: "workflow" }],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
   },
   // -- P-8: catalog, quality, AI and application rows (SDK-PARITY §4.9 –
   // §4.12). Definition records, not the `sn_sc` consumer view; all unverified
@@ -310,7 +310,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     scriptFields: [],
     refFields: [{ field: "workflow", table: "wf_workflow", type: "workflow" }],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     metaFields: ["sys_class_name", "category", "sc_catalogs", "order"],
     // P-24 (CAT-1, checked on a PDI 2026-10-13, O-5).
     writeFields: ["short_description", "description"],
@@ -328,7 +328,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: ["script"],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     appliesToField: "table_name",
     metaFields: ["table_name", "category", "sc_catalogs", "order"],
     writeFields: ["short_description", "description"],
@@ -364,7 +364,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "title",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     metaFields: ["internal_name", "type", "order"],
     // P-24 (CAT-2, checked on a PDI 2026-10-13, O-5).
     writeFields: ["description"],
@@ -398,7 +398,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     metaFields: [
       "question_text",
       "type",
@@ -437,7 +437,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     metaFields: ["applies_to", "catalog_item", "variable_set", "order"],
     whenFields: ["catalog_conditions", "on_load", "reverse_if_false"],
   },
@@ -461,7 +461,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     metaFields: ["description", "active"],
   },
   {
@@ -487,7 +487,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { field: "parent", table: "sys_atf_test_suite", type: "atf_test_suite" },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     metaFields: ["parent", "active"],
   },
   ...SCAN_CHECKS.map(
@@ -502,7 +502,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       activeField: "active",
       scriptFields: ["script"],
       tiers: SEED_TIERS,
-      verified: false,
+      verified: true,
       metaFields: ["category", "priority", "short_description", ...meta],
     }),
   ),
@@ -537,7 +537,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     appliesToField: "table",
     metaFields: ["table", "condition", "active"],
   },
@@ -587,7 +587,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: AI_AGENTS_APP,
     metaFields: ["description"],
   },
@@ -618,7 +618,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: AI_AGENTS_APP,
     metaFields: ["description", "team"],
   },
@@ -634,7 +634,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: "Now Assist Skill Kit (sn_nowassist_skill)",
   },
   // Application, scope and delivery
@@ -715,7 +715,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "url",
     scriptFields: [],
     tiers: READ_TIER,
-    verified: false,
+    verified: true,
     metaFields: ["url", "current_branch", "sys_app"],
   },
   // -- N-8: reports and Performance Analytics (SDK-PARITY §4.13) -----------
@@ -809,7 +809,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { field: "script", table: "pa_scripts", type: "pa_script" },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: PERFORMANCE_ANALYTICS,
     metaFields: [
       "type",
@@ -832,7 +832,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: PERFORMANCE_ANALYTICS,
     appliesToField: "facts_table",
     metaFields: ["facts_table", "conditions", "frequency"],
@@ -859,7 +859,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     // O-5: verify on a live instance.
     refFields: [{ field: "dimension", table: "pa_dimensions" }],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: PERFORMANCE_ANALYTICS,
     metaFields: ["dimension"],
   },
@@ -875,7 +875,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: ["script"],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: PERFORMANCE_ANALYTICS,
     appliesToField: "table",
     metaFields: ["table", "arguments"],
@@ -922,7 +922,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
       { field: "owner", table: "sys_user" },
     ],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     licensed: PERFORMANCE_ANALYTICS,
     metaFields: ["description", "group", "owner", "active"],
   },
@@ -941,6 +941,6 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     nameField: "name",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
   },
 ];

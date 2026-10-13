@@ -1,8 +1,7 @@
 {
   "artifactType": "atf_test",
   "table": "sys_atf_test",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d",
   "name": "Acme laptop order",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "atf_test 'Acme laptop order' (sys_atf_test); active; scope x_acme_app; 1 child record(s) in 1 table(s); unverified type. Orders a laptop through the catalog.",
+  "summary": "atf_test 'Acme laptop order' (sys_atf_test); active; scope x_acme_app; 1 child record(s) in 1 table(s). Orders a laptop through the catalog.",
   "when": null,
   "fields": {
     "name": "Acme laptop order",
@@ -28,7 +27,7 @@
     {
       "table": "sys_atf_step",
       "parentField": "test",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {

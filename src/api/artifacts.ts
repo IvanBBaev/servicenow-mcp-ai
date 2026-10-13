@@ -15,6 +15,9 @@
  * `sys_db_object` for the table and says `available:false` when the instance
  * has no such table (the plugin or SDK feature is not installed there); for a
  * licensed family (`licensed`, P-8) it also names the plugin as `requires`.
+ * A verified type fails loudly on the same errors, with one exception (OD-4):
+ * a 400 / 404 on a table the probe reports absent (a plugin-backed type on an
+ * instance without the plugin) degrades the same way.
  */
 import { ServiceNowError } from "../core/errors.js";
 import { assertTableAllowed } from "../core/policy.js";
@@ -210,13 +213,19 @@ export async function listArtifacts(
     }));
   } catch (error) {
     const status = degradeStatus(error);
-    if (t.verified || status === undefined) throw error;
+    if (status === undefined) throw error;
+    const probe = await availability(t);
+    // A verified type fails loudly, unless its table is absent (plugin not
+    // installed); a 403 says the table exists, so it always fails.
+    if (t.verified && (status === 403 || probe.available !== false)) {
+      throw error;
+    }
     return {
       ...head,
       count: 0,
       artifacts: [],
       degraded: { status, reason: (error as Error).message },
-      ...(await availability(t)),
+      ...probe,
     };
   }
 
@@ -495,10 +504,14 @@ export async function getArtifactFor(
     record = await readPrimary(t, read);
   } catch (error) {
     const status = degradeStatus(error);
-    if (t.verified || status === undefined) throw error;
+    if (status === undefined) throw error;
     const probe = await availability(t);
-    // A 404 is a genuine "not found", unless the table itself is absent.
-    if (status === 404 && probe.available !== false) throw error;
+    // A verified type fails loudly and a 404 is a genuine "not found",
+    // unless the table itself is absent (plugin not installed).
+    if (t.verified && status === 403) throw error;
+    if ((t.verified || status === 404) && probe.available !== false) {
+      throw error;
+    }
     return {
       ...head,
       record: null,

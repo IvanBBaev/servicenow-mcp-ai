@@ -47,33 +47,33 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `rest_api` | server | `sys_ws_definition` | yes | yes (1) |
 | `table` | core | `sys_db_object` | yes | see [tables-x_acme.md](tables-x_acme.md) |
 | `choice_set` | core | `sys_choice_set` | yes | no — no records in this scope |
-| `state_model` | core | `sttrm_model` | no | no — no records in this scope |
+| `state_model` | core | `sttrm_model` | yes | no — no records in this scope |
 | `property` | core | `sys_properties` | yes | yes (1) |
 | `user_preference` | core | `sys_user_preference` | yes | no — no application scope column (OD-2) |
 | `role` | core | `sys_user_role` | yes | yes (1) |
 | `cross_scope_privilege` | core | `sys_scope_privilege` | yes | no — no records in this scope |
-| `user_criteria` | core | `user_criteria` | no | no — no records in this scope |
+| `user_criteria` | core | `user_criteria` | yes | no — no records in this scope |
 | `assignment_rule` | core | `sysrule_assignment` | yes | no — no records in this scope |
-| `knowledge_base` | core | `kb_knowledge_base` | no | no — no application scope column (OD-2) |
-| `security_attribute` | core | `sys_security_attribute` | no | no — no records in this scope |
-| `security_data_filter` | core | `sys_security_data_filter` | no | no — no records in this scope |
+| `knowledge_base` | core | `kb_knowledge_base` | yes | no — no application scope column (OD-2) |
+| `security_attribute` | core | `sys_security_attribute` | yes | no — no records in this scope |
+| `security_data_filter` | core | `sys_security_data_filter` | yes | no — no records in this scope |
 | `field_style` | core | `sys_ui_style` | yes | no — no records in this scope |
 | `schedule` | core | `cmn_schedule` | yes | no — no records in this scope |
 | `event` | core | `sysevent_register` | yes | no — no records in this scope |
 | `relationship` | core | `sys_relationship` | yes | no — no records in this scope |
 | `ldap_server` | core | `ldap_server_config` | yes | no — no records in this scope |
-| `js_module` | server | `sys_module` | no | no — no records in this scope |
+| `js_module` | server | `sys_module` | yes | no — no records in this scope |
 | `rest_message` | server | `sys_rest_message` | yes | yes (1) |
-| `graphql_api` | server | `sys_graphql_schema` | no | no — no records in this scope |
-| `graphql_resolver` | server | `sys_graphql_resolver` | no | no — no records in this scope |
-| `graphql_type_resolver` | server | `sys_graphql_typeresolver` | no | no — no records in this scope |
-| `alias` | server | `sys_alias` | no | no — unverified: the instance has no such table |
-| `alias_template` | server | `sys_alias_templates` | no | no — no records in this scope |
-| `retry_policy` | server | `sys_retry_policy` | no | no — no records in this scope |
-| `data_lookup` | server | `dl_definition` | no | no — no records in this scope |
+| `graphql_api` | server | `sys_graphql_schema` | yes | no — no records in this scope |
+| `graphql_resolver` | server | `sys_graphql_resolver` | yes | no — no records in this scope |
+| `graphql_type_resolver` | server | `sys_graphql_typeresolver` | yes | no — no records in this scope |
+| `alias` | server | `sys_alias` | yes | no — the instance has no such table (plugin not installed) |
+| `alias_template` | server | `sys_alias_templates` | yes | no — no records in this scope |
+| `retry_policy` | server | `sys_retry_policy` | yes | no — no records in this scope |
+| `data_lookup` | server | `dl_definition` | yes | no — no records in this scope |
 | `email_notification` | server | `sysevent_email_action` | yes | no — no records in this scope |
 | `inbound_email_action` | server | `sysevent_in_email_action` | yes | no — no records in this scope |
-| `sla` | server | `contract_sla` | no | no — no records in this scope |
+| `sla` | server | `contract_sla` | yes | no — no records in this scope |
 | `data_policy` | classic-ui | `sys_data_policy2` | yes | no — no records in this scope |
 | `workspace_form_action` | classic-ui | `sys_ux_form_action` | no | no — no records in this scope |
 | `form` | classic-ui | `sys_ui_form` | yes | no — no records in this scope |
@@ -85,7 +85,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `ui_view` | classic-ui | `sys_ui_view` | yes | no — no records in this scope |
 | `list_control` | classic-ui | `sys_ui_list_control` | yes | no — no records in this scope |
 | `workspace` | next-experience | `sys_ux_page_registry` | no | no — no records in this scope |
-| `dashboard` | next-experience | `par_dashboard` | no | no — no records in this scope |
+| `dashboard` | next-experience | `par_dashboard` | yes | no — no records in this scope |
 | `ux_list_menu_config` | next-experience | `sys_ux_list_menu_config` | no | no — no records in this scope |
 | `ux_applicability` | next-experience | `sys_ux_applicability` | no | no — no records in this scope |
 | `uib_app_config` | uib | `sys_ux_app_config` | no | no — no records in this scope |
@@ -125,45 +125,45 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `sp_page_route_map` | portal | `sp_page_route_map` | no | no — no records in this scope |
 | `sp_css` | portal | `sp_css` | no | no — no records in this scope |
 | `sp_search_source` | portal | `sp_search_source` | no | no — no records in this scope |
-| `flow` | flow | `sys_hub_flow` | no | no — no records in this scope |
-| `subflow` | flow | `sys_hub_flow` | no | no — no records in this scope |
-| `flow_action` | flow | `sys_hub_action_type_definition` | no | no — no records in this scope |
-| `flow_trigger_definition` | flow | `sys_hub_trigger_definition` | no | no — no records in this scope |
-| `flow_context` | flow | `sys_flow_context` | no | no — no application scope column (OD-2) |
-| `playbook` | flow | `sys_pd_process_definition` | no | no — no records in this scope |
-| `playbook_context` | flow | `sys_pd_context` | no | no — no application scope column (OD-2) |
-| `decision_table` | flow | `sys_decision` | no | no — no records in this scope |
-| `workflow` | workflow | `wf_workflow` | no | no — no records in this scope |
-| `workflow_activity_definition` | workflow | `wf_activity_definition` | no | no — no records in this scope |
-| `workflow_context` | workflow | `wf_context` | no | no — no application scope column (OD-2) |
-| `catalog_item` | catalog | `sc_cat_item` | no | yes (2) |
-| `record_producer` | catalog | `sc_cat_item_producer` | no | no — no records in this scope |
-| `variable_set` | catalog | `item_option_new_set` | no | no — no records in this scope |
-| `catalog_variable` | catalog | `item_option_new` | no | yes (3) |
-| `catalog_ui_policy` | catalog | `catalog_ui_policy` | no | no — no records in this scope |
-| `atf_test` | quality | `sys_atf_test` | no | no — no records in this scope |
-| `atf_test_suite` | quality | `sys_atf_test_suite` | no | no — no records in this scope |
-| `linter_check` | quality | `scan_linter_check` | no | no — no records in this scope |
-| `script_only_check` | quality | `scan_script_only_check` | no | no — no records in this scope |
-| `column_type_check` | quality | `scan_column_type_check` | no | no — no records in this scope |
-| `table_check` | quality | `scan_table_check` | no | no — no records in this scope |
-| `assessment` | quality | `asmt_metric_type` | no | no — no records in this scope |
+| `flow` | flow | `sys_hub_flow` | yes | no — no records in this scope |
+| `subflow` | flow | `sys_hub_flow` | yes | no — no records in this scope |
+| `flow_action` | flow | `sys_hub_action_type_definition` | yes | no — no records in this scope |
+| `flow_trigger_definition` | flow | `sys_hub_trigger_definition` | yes | no — no records in this scope |
+| `flow_context` | flow | `sys_flow_context` | yes | no — no application scope column (OD-2) |
+| `playbook` | flow | `sys_pd_process_definition` | yes | no — no records in this scope |
+| `playbook_context` | flow | `sys_pd_context` | yes | no — no application scope column (OD-2) |
+| `decision_table` | flow | `sys_decision` | yes | no — no records in this scope |
+| `workflow` | workflow | `wf_workflow` | yes | no — no records in this scope |
+| `workflow_activity_definition` | workflow | `wf_activity_definition` | yes | no — no records in this scope |
+| `workflow_context` | workflow | `wf_context` | yes | no — no application scope column (OD-2) |
+| `catalog_item` | catalog | `sc_cat_item` | yes | yes (2) |
+| `record_producer` | catalog | `sc_cat_item_producer` | yes | no — no records in this scope |
+| `variable_set` | catalog | `item_option_new_set` | yes | no — no records in this scope |
+| `catalog_variable` | catalog | `item_option_new` | yes | yes (3) |
+| `catalog_ui_policy` | catalog | `catalog_ui_policy` | yes | no — no records in this scope |
+| `atf_test` | quality | `sys_atf_test` | yes | no — no records in this scope |
+| `atf_test_suite` | quality | `sys_atf_test_suite` | yes | no — no records in this scope |
+| `linter_check` | quality | `scan_linter_check` | yes | no — no records in this scope |
+| `script_only_check` | quality | `scan_script_only_check` | yes | no — no records in this scope |
+| `column_type_check` | quality | `scan_column_type_check` | yes | no — no records in this scope |
+| `table_check` | quality | `scan_table_check` | yes | no — no records in this scope |
+| `assessment` | quality | `asmt_metric_type` | yes | no — no records in this scope |
 | `risk_assessment` | quality | `change_risk_asmt` | no | no — no records in this scope |
-| `ai_agent` | ai | `sn_aia_agent` | no | no — no records in this scope |
-| `ai_agentic_workflow` | ai | `sn_aia_usecase` | no | no — no records in this scope |
-| `now_assist_skill` | ai | `sn_nowassist_skill_config` | no | no — no records in this scope |
+| `ai_agent` | ai | `sn_aia_agent` | yes | no — no records in this scope |
+| `ai_agentic_workflow` | ai | `sn_aia_usecase` | yes | no — no records in this scope |
+| `now_assist_skill` | ai | `sn_nowassist_skill_config` | yes | no — no records in this scope |
 | `application` | application | `sys_app` | no | yes (1) |
 | `app_dependency` | application | `sys_scope_dependency` | no | no — no records in this scope |
 | `customer_update` | application | `sys_update_xml` | yes | no — no records in this scope |
-| `source_control` | application | `sys_repo_config` | no | no — no application scope column (OD-2) |
+| `source_control` | application | `sys_repo_config` | yes | no — no application scope column (OD-2) |
 | `report` | reporting | `sys_report` | yes | no — no records in this scope |
 | `report_source` | reporting | `sys_report_source` | yes | no — no records in this scope |
-| `pa_indicator` | reporting | `pa_indicators` | no | no — no records in this scope |
-| `pa_indicator_source` | reporting | `pa_cubes` | no | no — no records in this scope |
-| `pa_breakdown` | reporting | `pa_breakdowns` | no | no — no records in this scope |
-| `pa_script` | reporting | `pa_scripts` | no | no — no records in this scope |
-| `pa_dashboard` | reporting | `pa_dashboards` | no | no — no records in this scope |
-| `database_view` | core | `sys_db_view` | no | no — no records in this scope |
+| `pa_indicator` | reporting | `pa_indicators` | yes | no — no records in this scope |
+| `pa_indicator_source` | reporting | `pa_cubes` | yes | no — no records in this scope |
+| `pa_breakdown` | reporting | `pa_breakdowns` | yes | no — no records in this scope |
+| `pa_script` | reporting | `pa_scripts` | yes | no — no records in this scope |
+| `pa_dashboard` | reporting | `pa_dashboards` | yes | no — no records in this scope |
+| `database_view` | core | `sys_db_view` | yes | no — no records in this scope |
 
 ## core
 

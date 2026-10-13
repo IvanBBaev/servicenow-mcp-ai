@@ -1,8 +1,7 @@
 {
   "artifactType": "flow",
   "table": "sys_hub_flow",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a",
   "name": "Acme onboarding",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "flow 'Acme onboarding' (sys_hub_flow); active; scope x_acme_app; 2 child record(s) in 2 table(s); 1/2 JSON field(s) decoded; unverified type",
+  "summary": "flow 'Acme onboarding' (sys_hub_flow); active; scope x_acme_app; 2 child record(s) in 2 table(s); 1/2 JSON field(s) decoded",
   "when": null,
   "fields": {
     "name": "Acme onboarding",
@@ -30,7 +29,7 @@
     {
       "table": "sys_hub_trigger_instance",
       "parentField": "flow",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -43,14 +42,14 @@
     {
       "table": "sys_hub_action_instance",
       "parentField": "flow",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sys_hub_action_instance_v2",
       "parentField": "flow",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -64,42 +63,42 @@
     {
       "table": "sys_hub_flow_logic_instance_v2",
       "parentField": "flow",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sys_hub_sub_flow_instance_v2",
       "parentField": "flow",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sys_hub_flow_input",
       "parentField": "model",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sys_hub_flow_output",
       "parentField": "model",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sys_hub_flow_variable",
       "parentField": "model",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sys_hub_flow_stage",
       "parentField": "flow",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     }

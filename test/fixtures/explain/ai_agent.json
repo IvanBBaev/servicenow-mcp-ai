@@ -1,8 +1,7 @@
 {
   "artifactType": "ai_agent",
   "table": "sn_aia_agent",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e",
   "name": "Acme triage agent",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "ai_agent 'Acme triage agent' (sn_aia_agent); scope x_acme_app; 2 child record(s) in 2 table(s); unverified type. Routes incidents.",
+  "summary": "ai_agent 'Acme triage agent' (sn_aia_agent); scope x_acme_app; 2 child record(s) in 2 table(s). Routes incidents.",
   "when": null,
   "fields": {
     "name": "Acme triage agent",
@@ -27,14 +26,14 @@
     {
       "table": "sn_aia_agent_config",
       "parentField": "agent",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     },
     {
       "table": "sn_aia_agent_tool_m2m",
       "parentField": "agent",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -48,7 +47,7 @@
       "table": "sn_aia_tool",
       "parentField": "sys_id",
       "parentTable": "sn_aia_agent_tool_m2m",
-      "verified": false,
+      "verified": true,
       "count": 1,
       "items": [
         {
@@ -61,7 +60,7 @@
     {
       "table": "sn_aia_version",
       "parentField": "target_id",
-      "verified": false,
+      "verified": true,
       "count": 0,
       "items": []
     }

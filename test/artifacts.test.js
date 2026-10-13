@@ -362,7 +362,7 @@ test("get_artifact: an unverified type degrades on 400, a verified one fails", a
       () => jsonResponse(400, { error: { message: "Invalid table" } }),
       async () => {
         const res = await call("servicenow_get_artifact", {
-          artifactType: "flow",
+          artifactType: "risk_assessment",
           sys_id: "1".repeat(32),
         });
         assert.equal(res.isError, undefined);
@@ -385,7 +385,7 @@ test("get_artifact: an unverified type degrades on 400, a verified one fails", a
       async () => {
         const body = out(
           await call("servicenow_get_artifact", {
-            artifactType: "flow",
+            artifactType: "risk_assessment",
             sys_id: "1".repeat(32),
           }),
         );
@@ -487,7 +487,7 @@ test("list_artifacts: base query first, missing fields, active refusal, degrade 
       () => jsonResponse(403, { error: { message: "ACL" } }),
       async () => {
         const degraded = await call("servicenow_list_artifacts", {
-          artifactType: "flow",
+          artifactType: "risk_assessment",
         });
         assert.equal(degraded.isError, undefined);
         assert.equal(degraded.structuredContent.degraded.status, 403);

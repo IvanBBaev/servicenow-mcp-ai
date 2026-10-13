@@ -25,7 +25,7 @@ import {
   withEnv,
   withFetch,
   jsonResponse,
-  OD4_CORE_VERIFIED,
+  OD4_VERIFIED,
 } from "./helpers.js";
 
 baselineEnv();
@@ -138,7 +138,7 @@ test("P-7: every core / server / classic-UI row is registered and script-tools f
     const t = getArtifactType(type);
     assert.ok(t, `missing ${type}`);
     assert.equal(t.table, table, type);
-    assert.equal(t.verified, OD4_CORE_VERIFIED.has(type), type);
+    assert.equal(t.verified, OD4_VERIFIED.has(type), type);
     assert.ok(["core", "server", "classic-ui"].includes(t.group), type);
     assert.equal(
       t.scriptTools,
@@ -230,7 +230,7 @@ test("P-7: list_artifacts and explain_artifact work for every new row", async ()
     assert.equal(list.error, undefined, `${type}: ${list.error}`);
     assert.equal(list.count, 1, type);
     assert.equal(list.artifacts[0].name, `A ${type}`, type);
-    assert.equal(list.verified, OD4_CORE_VERIFIED.has(type), type);
+    assert.equal(list.verified, OD4_VERIFIED.has(type), type);
 
     const calls = [];
     const ex = await run(
@@ -415,11 +415,11 @@ test("availability: an absent table answers available:false on list, get and exp
 
 test("availability: a present table is available:true; a 404 there is a real not-found", async () => {
   const present = {
-    sys_graphql_schema: invalidTable,
-    sys_db_object: [{ name: "sys_graphql_schema" }],
+    change_risk_asmt: invalidTable,
+    sys_db_object: [{ name: "change_risk_asmt" }],
   };
   const list = await run("servicenow_list_artifacts", present, {
-    artifactType: "graphql_api",
+    artifactType: "risk_assessment",
   });
   assert.equal(list.available, true);
 
@@ -433,11 +433,11 @@ test("availability: a present table is available:true; a 404 there is a real not
 
 test("availability: a probe that cannot answer leaves the field out", async () => {
   const denied = {
-    sys_graphql_schema: invalidTable,
+    change_risk_asmt: invalidTable,
     sys_db_object: () => jsonResponse(403, { error: { message: "denied" } }),
   };
   const list = await run("servicenow_list_artifacts", denied, {
-    artifactType: "graphql_api",
+    artifactType: "risk_assessment",
   });
   assert.equal(list.degraded.status, 400);
   assert.ok(!("available" in list));
