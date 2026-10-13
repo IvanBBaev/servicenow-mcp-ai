@@ -950,11 +950,23 @@ So `readStoreUpdates` stays unavailable on an instance with this REST API rule;
 installed versions alone are readable through `sys_scope`. N-1b stays blocked
 until an instance (or role) passes the `sys_store_app` API-level ACL.
 
-P-25b (runtime effect of toggling `active` on a flow) was prepared but not run.
-The only inactive published global flow is the base-system `Change - Standard -
-Proposal` (record trigger on `std_change_proposal`, `state=2`, and the one
-inactive published flow without a `sys_flow_trigger_plan`). The write was not
-executed, and no update set received a change (0 `sys_update_xml` rows).
+P-25b (runtime effect of toggling `active` on a flow): the target was the
+base-system `Change - Standard - Proposal`, the only inactive published global
+flow (record trigger on `std_change_proposal`, `state=2`, no
+`sys_flow_trigger_plan`). The run first bound the user's three preferences
+(`sys_update_set`, `updateSetForScopeglobal`, `apps.current_app`) to a scratch
+global set. The Table API `PATCH sys_hub_flow {active: true}` was then refused:
+403 `ACL Exception Update Failed due to security constraints`. The user holds
+`admin`, `flow_designer`, `security_admin` (not elevated in a REST session)
+and `snc_platform_rest_api_access`. The flow stayed unchanged
+(`sys_mod_count` 0), the scratch set held no `sys_update_xml` rows, and the
+preferences were restored and the scratch set deleted (0 rows left).
+
+So the `servicenow_upsert_artifact` flow toggle (the same Table API PATCH)
+cannot run on an instance with this ACL, and the error surfaces as
+`INSTANCE_HTTP_403` with the generic ACL hint. The runtime trigger effect stays
+unobserved; P-25b needs an instance where `sys_hub_flow` is writable through
+REST.
 
 Side finding: `applyInUpdateSet` switched only the `sys_update_set` preference
 for a global set, never `updateSetForScopeglobal`; on this instance the user's
