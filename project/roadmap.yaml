@@ -315,7 +315,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** Opt-in `lanes` on `trace_table_event` / `generate_table_flow`: transform maps, scheduled jobs, client scripts + UI policies, data policies, SLAs, event script actions, each a phase and a Mermaid subgraph; stable order; default output byte-identical. `get_flow` depth moves to P-10."
+    notes: "**Done 2026-09-25 (local).** Opt-in `lanes` on `trace_table_event` / `generate_table_flow`: transform maps, scheduled jobs, client scripts + UI policies, data policies, SLAs, event script actions, each a phase and a Mermaid subgraph; stable order; default output byte-identical. `get_flow` depth moves to P-10. **2026-10-13:** `get_flow` reads all six step tables (`_v2` first) through the `explain_flow` readers and adds step `number` / `kind`, `subflows`, `inputs` and `outputs` as optional fields; on the PDI the old reader returned no steps for `_v2` flows."
   - id: "S-9"
     title: "where-used structural references"
     pillar: "S"

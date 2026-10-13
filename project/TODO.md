@@ -500,7 +500,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       move it to an opt-in package (`artifacts`, a new `explain`)? (b) The `tools/list` budget moved
       again: `all` measured 129,083 with 89 tools and the ratchet is now 130,000 (resolved: ADR 0006). (c) `get_flow` does
       not delegate to `explain_flow` (S-5 bullet, SDK-PARITY P-10): its `FlowDetail` contract differs,
-      so a delegation is a behaviour change — do it under O-4, or leave `get_flow` as the light read?
+      so a delegation is a behaviour change — do it under O-4, or leave `get_flow` as the light read? (2026-10-13: `get_flow` now reads the same step tables and adds step kinds, subflow calls and inputs/outputs as optional fields, without delegating; full delegation is still this decision.)
       (d) Flow Designer and workflow fields: checked on the PDI 2026-10-13
       ([PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md) → "Eighth pass") — snapshot keying, encoding,
       `label_cache`, `wf_activity`, the log levels and `wf_context` states are confirmed; `_v2`

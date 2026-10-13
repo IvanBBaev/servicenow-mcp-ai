@@ -371,6 +371,26 @@ export async function readVariables(
   return rows.map(variable);
 }
 
+/**
+ * S-5: the step tree (all six step tables), inputs and outputs of one flow,
+ * without labels, stages, snapshots or call expansion. Read by `get_flow`.
+ */
+export async function readFlowOutline(
+  ctx: ReadCtx,
+  flowId: string,
+): Promise<{
+  steps: FlowStep[];
+  inputs: FlowVariable[];
+  outputs: FlowVariable[];
+}> {
+  const steps = buildTree(ctx, await readSteps(ctx, flowId), new Map());
+  return {
+    steps: [...allSteps(steps)],
+    inputs: await readVariables(ctx, "sys_hub_flow_input", flowId),
+    outputs: await readVariables(ctx, "sys_hub_flow_output", flowId),
+  };
+}
+
 async function readTrigger(
   ctx: ReadCtx,
   flowId: string,

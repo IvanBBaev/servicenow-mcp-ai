@@ -459,17 +459,26 @@ test("getFlow assembles trigger + ordered steps (FT-1)", async () => {
         return jsonResponse(200, {
           result: [
             {
+              sys_id: "ai1",
               order: "1",
               action_type: "at1",
               "action_type.name": "Create Task",
             },
             {
+              sys_id: "ai2",
               order: "2",
               action_type: "at2",
               "action_type.name": "Send Notification",
             },
           ],
         });
+      if (
+        /^sys_hub_(action_instance_v2|flow_logic|flow_logic_instance_v2|sub_flow_instance|sub_flow_instance_v2|flow_input|flow_output)$/.test(
+          table,
+        ) ||
+        table === "sys_variable_value"
+      )
+        return jsonResponse(200, { result: [] });
       throw new Error("unexpected " + table);
     },
     async () => {
@@ -480,6 +489,91 @@ test("getFlow assembles trigger + ordered steps (FT-1)", async () => {
       assert.equal(flow.trigger.when, "always");
       assert.equal(flow.steps.length, 2);
       assert.equal(flow.steps[0].action, "Create Task");
+    },
+  );
+});
+
+test("getFlow reads _v2 actions, flow logic, subflow calls, inputs and outputs (S-5)", async () => {
+  await withFetch(
+    (url) => {
+      const table = tableOf(url);
+      if (table === "sys_hub_flow")
+        return jsonResponse(200, {
+          result: { sys_id: "f1", name: "Modern flow", active: "true" },
+        });
+      if (table === "sys_hub_action_instance_v2")
+        return jsonResponse(200, {
+          result: [
+            {
+              sys_id: "a1",
+              order: "2",
+              ui_id: "u-a1",
+              parent_ui_id: "u-if",
+              action_type: "at1",
+              "action_type.name": "Update Record",
+            },
+          ],
+        });
+      if (table === "sys_hub_flow_logic_instance_v2")
+        return jsonResponse(200, {
+          result: [
+            {
+              sys_id: "l1",
+              order: "1",
+              ui_id: "u-if",
+              logic_definition: "ld1",
+              "logic_definition.name": "If",
+            },
+          ],
+        });
+      if (table === "sys_hub_sub_flow_instance_v2")
+        return jsonResponse(200, {
+          result: [
+            {
+              sys_id: "s1",
+              order: "3",
+              ui_id: "u-s1",
+              subflow: "sf1",
+              "subflow.name": "Notify team",
+            },
+          ],
+        });
+      if (table === "sys_hub_flow_input")
+        return jsonResponse(200, {
+          result: [
+            {
+              sys_id: "i1",
+              element: "record",
+              label: "Record",
+              internal_type: "reference",
+              mandatory: "true",
+            },
+          ],
+        });
+      if (table === "sys_hub_flow_output")
+        return jsonResponse(403, { error: { message: "Forbidden" } });
+      return jsonResponse(200, { result: [] });
+    },
+    async () => {
+      const flow = await getFlow("f1");
+      assert.deepEqual(
+        flow.steps.map((s) => [s.number, s.kind, s.action, s.type]),
+        [
+          ["1", "logic", "If", "ld1"],
+          ["1.1", "action", "Update Record", "at1"],
+          ["2", "subflow", "Notify team", "sf1"],
+        ],
+      );
+      assert.deepEqual(flow.subflows, [{ sys_id: "sf1", name: "Notify team" }]);
+      assert.deepEqual(flow.inputs, [
+        { name: "record", label: "Record", type: "reference", mandatory: true },
+      ]);
+      assert.deepEqual(flow.outputs, []);
+      assert.equal(flow.unreadable[0].table, "sys_hub_flow_output");
+      assert.match(
+        flow.caveats.join(" "),
+        /sys_hub_flow_output could not be read/,
+      );
     },
   );
 });

@@ -1,6 +1,10 @@
 import { queryTable, getRecord } from "./table.js";
 import { assertNoCaret, snString } from "./shared.js";
 import { ServiceNowError } from "../core/errors.js";
+import { trackProgress } from "../core/progress.js";
+import { type ReadCtx, type Unreadable } from "./bounded-read.js";
+import { readFlowOutline } from "./explain-flow-hub.js";
+import { type FlowVariable } from "./explain-flow-model.js";
 import {
   TRIGGER_V1,
   TRIGGER_V2,
@@ -116,9 +120,22 @@ export interface FlowTrigger {
 }
 
 export interface FlowStep {
+  /** Position in the step tree: "1", "2", "2.1", … (flows only). */
+  number?: string;
   order?: number;
+  /** Flows only: an action, a flow logic block or a subflow call. */
+  kind?: "action" | "logic" | "subflow";
+  /** The action type, logic definition or subflow name (or its sys_id). */
   action: string;
+  /** The action type, logic definition or subflow sys_id. */
   type?: string;
+}
+
+export interface FlowIo {
+  name: string;
+  label?: string;
+  type?: string;
+  mandatory?: boolean;
 }
 
 export interface FlowDetail {
@@ -129,11 +146,32 @@ export interface FlowDetail {
   description?: string;
   trigger?: FlowTrigger;
   steps: FlowStep[];
+  /** Flows only: the subflows the steps call, once each. */
+  subflows?: { sys_id: string; name?: string }[];
+  /** Flows only: sys_hub_flow_input / sys_hub_flow_output. */
+  inputs?: FlowIo[];
+  outputs?: FlowIo[];
+  /** Flows only, when a part could not be read in full. */
+  caveats?: string[];
+  unreadable?: Unreadable[];
+}
+
+function flowIo(v: FlowVariable): FlowIo {
+  return {
+    name: v.element,
+    ...(v.label ? { label: v.label } : {}),
+    ...(v.type ? { type: v.type } : {}),
+    ...(v.mandatory !== undefined ? { mandatory: v.mandatory } : {}),
+  };
 }
 
 /**
  * FT-1 — a structured view of one flow: its trigger and ordered steps. Not a
  * full decompilation — enough for a model to reason about the logic.
+ *
+ * S-5: a flow's steps come from all six step tables (actions, flow logic and
+ * subflow calls, v1 and `_v2`) as a numbered tree, flattened; its inputs and
+ * outputs are listed. `explain_flow` has the decoded step inputs.
  */
 export async function getFlow(
   sysId: string,
@@ -188,13 +226,18 @@ export async function getFlow(
   } catch {
     // trigger optional
   }
-  const { records: actions } = await queryTable({
-    table: "sys_hub_action_instance",
-    query: `flow=${sysId}^ORDERBYorder`,
-    fields: ["order", "action_type", "action_type.name"],
-    displayValue: "false",
-    limit: 200,
-  });
+  const ctx: ReadCtx = {
+    caveats: [],
+    unreadable: [],
+    missing: {},
+    progress: trackProgress(),
+    scope: "the steps",
+  };
+  const outline = await readFlowOutline(ctx, sysId);
+  const subflows = new Map<string, { sys_id: string; name?: string }>();
+  for (const s of outline.steps) {
+    if (s.kind === "subflow" && s.ref) subflows.set(s.ref.sys_id, s.ref);
+  }
   return {
     kind,
     sys_id: snString(flow.sys_id),
@@ -202,11 +245,18 @@ export async function getFlow(
     active: snString(flow.active) || undefined,
     description: snString(flow.description) || undefined,
     trigger,
-    steps: actions.map((a) => ({
-      order: a.order !== undefined ? Number(snString(a.order)) : undefined,
-      action: snString(a["action_type.name"]) || snString(a.action_type),
-      type: snString(a.action_type) || undefined,
+    steps: outline.steps.map((s) => ({
+      number: s.number,
+      order: s.order,
+      kind: s.kind === "step" ? "action" : s.kind,
+      action: s.name,
+      ...(s.ref ? { type: s.ref.sys_id } : {}),
     })),
+    ...(subflows.size ? { subflows: [...subflows.values()] } : {}),
+    inputs: outline.inputs.map(flowIo),
+    outputs: outline.outputs.map(flowIo),
+    ...(ctx.caveats.length ? { caveats: ctx.caveats } : {}),
+    ...(ctx.unreadable.length ? { unreadable: ctx.unreadable } : {}),
   };
 }
 
