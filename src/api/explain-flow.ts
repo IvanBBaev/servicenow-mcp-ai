@@ -17,7 +17,7 @@
  * `kind:"action"` (P-11) reads a custom action definition the same way:
  * sys_hub_action_type_definition → inputs / outputs (sys_hub_action_input /
  * sys_hub_action_output) → its sys_hub_step_instance steps by `order`, each
- * with its `values` decoded.
+ * with its inputs read from sys_variable_value.
  *
  * Calls (P-11): the action and subflow steps of a flow / subflow are
  * resolved to their callee — the action's steps, the subflow's own step

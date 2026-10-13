@@ -544,7 +544,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       (c) Unverified fields (O-5): `sys_hub_step_instance` (`action`, `label`, `step_type`, `values`),
       `sys_hub_action_input` / `_output` with `element` falling back to `name`, `sys_decision_input.model`,
       `sys_decision_question` (`condition`, `answer`, `default_answer`, `label`) and
-      `sys_decision.answer_table`; no PDI fixture yet. (d) `decision_table` is `R` + `X` now; the
+      `sys_decision.answer_table`; no PDI fixture yet. (Resolved 2026-10-13, PDI-VERIFY thirteenth pass: all confirmed
+      except `values` — step inputs are `sys_variable_value` rows, now read.) (d) `decision_table` is `R` + `X` now; the
       SDK-PARITY target is R/X/A/S — the `A`/`S` tiers wait for P-17 / P-20. (e) `kind:"action"` does
       not read `sys_hub_action_type_snapshot` (published vs draft) — a later item? (f) The `tools/list`
       `all` budget measured 129,926 (ratchet unchanged at 130,000; core 31,151) and the pack grows
@@ -553,8 +554,9 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       sits in the opt-in `artifacts` package — keep it there (it is not in `reader` / `developer`)?
       (b) The `tools/list` budget moved again: `all` measured 133,469 with 90 tools and the ratchet
       is now 134,000; `core` is unchanged at 31,151 (resolved: ADR 0006). (c) Inbound flow-step edges use a `valuesLIKE`
-      query, so steps whose `values` are stored base64 + gzip are not found (O-5 still open; the
-      result carries a caveat). (d) Script callers come from `search_code` over the default script
+      query, so steps whose `values` are stored base64 + gzip are not found (O-5, 2026-10-13: on the
+      PDI every action / logic `values` and subflow `subflow_inputs` is gzip, so the read finds
+      nothing there; the caveat says so — drop the read or keep it for older instances?). (d) Script callers come from `search_code` over the default script
       types (not the `extended` set) and are re-checked for a real call (`new X(`, `X.method(`,
       `GlideAjax('X')`); a name mentioned only in a comment line with a call shape still counts.
       (e) Bounds: depth default 1 / max 3, 25 rows per inbound source (max 100), 150 nodes — right

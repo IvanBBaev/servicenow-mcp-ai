@@ -370,7 +370,6 @@ function fixture() {
         label: "Create the task",
         step_type: "stt_create",
         "step_type.name": "Create Record",
-        values: JSON.stringify([{ name: "table", value: "task" }]),
       },
       {
         sys_id: "stp1",
@@ -379,8 +378,16 @@ function fixture() {
         label: "",
         step_type: "stt_script",
         "step_type.name": "Script",
-        comment: "build the description",
-        values: "",
+      },
+    ],
+    // O-5: step inputs are sys_variable_value rows, not a `values` column.
+    sys_variable_value: [
+      {
+        document: "sys_hub_step_instance",
+        document_key: "stp2",
+        "variable.element": "table",
+        value: "task",
+        order: "1",
       },
     ],
     sys_hub_flow_snapshot: [
@@ -802,8 +809,9 @@ test("O-5: v1 step inputs come from sys_variable_value, _v2 subflow inputs from 
   assert.deepEqual(v2.values.inputs, [
     { name: "record", label: "Record", value: "inc1" },
   ]);
-  // Only the v1 tables with kept rows read their variables.
-  assert.equal(mock.reads.filter((t) => t === "sys_variable_value").length, 1);
+  // Only the v1 tables with kept rows read their variables, plus the steps
+  // of the called action at4 (depth 1).
+  assert.equal(mock.reads.filter((t) => t === "sys_variable_value").length, 2);
 });
 
 test("draft vs published compares the snapshot's steps", async () => {
@@ -1330,7 +1338,8 @@ test("P-11 acceptance: a flow calling a custom action shows its steps one level 
     ],
   );
   assert.equal(call.callee.steps[0].source, "sys_hub_step_instance");
-  assert.equal(call.callee.steps[0].comment, "build the description");
+  assert.equal(call.callee.steps[0].values, undefined);
+  assert.equal(call.callee.steps[1].values.format, "variables");
   assert.deepEqual(call.callee.steps[1].values.inputs, [
     { name: "table", value: "task" },
   ]);
@@ -1350,7 +1359,7 @@ test("P-11 acceptance: a flow calling a custom action shows its steps one level 
     1,
   );
   assert.ok(
-    res.caveats.some((c) => /Action tables are verified:false/.test(c)),
+    res.caveats.some((c) => /draft sys_hub_action_type_definition/.test(c)),
   );
   // depth:0 expands nothing and reads no action table.
   const none = instance();
@@ -1526,7 +1535,7 @@ test("P-11: kind:'action' explains a custom action definition", async () => {
   assert.equal(res.runs, undefined);
   assert.ok(res.caveats.some((c) => /runs applies to flows/.test(c)));
   assert.equal(
-    res.caveats.filter((c) => /Action tables are verified:false/.test(c))
+    res.caveats.filter((c) => /draft sys_hub_action_type_definition/.test(c))
       .length,
     1,
   );

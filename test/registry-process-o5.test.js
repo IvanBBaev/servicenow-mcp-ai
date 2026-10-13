@@ -16,12 +16,15 @@ test("O-5: the registry still validates after the PDI column fixes", () => {
   assert.deepEqual(validateArtifactTypes(), []);
 });
 
-test("O-5: flow_action steps decode sys_hub_step_instance.inputs", () => {
+test("O-5: sys_hub_step_instance.inputs is a glide_var, not decoded as JSON", () => {
   const step = child("flow_action", "sys_hub_step_instance");
-  assert.deepEqual(
-    step.jsonFields.map((j) => j.field),
-    ["inputs"],
-  );
+  assert.equal(step.jsonFields, undefined);
+});
+
+test("O-5: a playbook run references the sys_pd_snapshot it ran", () => {
+  assert.deepEqual(getArtifactType("playbook_context").refFields, [
+    { field: "process_definition", table: "sys_pd_snapshot" },
+  ]);
 });
 
 test("O-5: wf_activity hangs off wf_workflow_version, with no order column", () => {

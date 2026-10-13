@@ -35,7 +35,7 @@ export const WORKFLOW_CAVEAT =
   "Legacy workflow tables are verified:false: their table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
 
 export const ACTION_CAVEAT =
-  "Action tables are verified:false: sys_hub_action_type_definition, sys_hub_action_input / sys_hub_action_output (keyed by model) and sys_hub_step_instance (keyed by action; label, step_type) come from the SDK inventory and have not been confirmed on a live instance (gate O-5).";
+  "Action steps come from the draft sys_hub_action_type_definition; the published sys_hub_action_type_snapshot is not read, so an action edited since it was published shows its draft steps.";
 
 export const PLAYBOOK_CAVEAT =
   "Playbook tables are verified:false: the sys_pd_* table and field names (lane / activity keying, trigger, timer and variant columns, sys_pd_context fields) come from the SDK inventory and have not been confirmed on a live instance (gates O-5, O-9).";
