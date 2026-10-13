@@ -81,7 +81,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local).** `src/core/settings-manifest.ts`: 118 zod-validated specs are the single source for reading, docs and `doctor`; invalid values warn once and fall back, fail-fast only under opt-in `SN_STRICT_SETTINGS` (default flip is an owner call, 3.0)."
+    notes: "**Done 2026-09-30 (local).** `src/core/settings-manifest.ts`: 118 zod-validated specs are the single source for reading, docs and `doctor`; invalid values warn once and fall back, fail-fast only under opt-in `SN_STRICT_SETTINGS`. **B5 2026-10-14 (ADR 0011):** strict is the default (`SN_STRICT_SETTINGS=0` restores the warnings) and the project-root `.env` is no longer read."
   - id: "E-3"
     title: "runtime container"
     pillar: "E"
@@ -99,7 +99,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local) bar the B6 / B12 default flips.** `src/mcp/http-sessions.ts`: one server + runtime per session, idle TTL, session cap (503), SSE keep-alive, Host / Origin guard (DNS rebinding), `SN_HTTP_REQUIRE_TOKEN` opt-in, per-session `use_instance`; 18 e2e tests."
+    notes: "**Done 2026-09-30 (local); B6 / B12 default flips done 2026-10-14 (ADR 0001).** `src/mcp/http-sessions.ts`: one server + runtime per session, idle TTL, session cap (503), SSE keep-alive, Host / Origin guard (DNS rebinding), `SN_HTTP_REQUIRE_TOKEN` (on by default since B6), per-session `use_instance` (writes the env file only with `persist:true` since B12); 18 e2e tests."
   - id: "M-2"
     title: "error contract v2"
     pillar: "M"
