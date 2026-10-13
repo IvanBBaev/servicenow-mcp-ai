@@ -606,6 +606,31 @@ Fixed in this pass: the stale caveat ("a flow-level error handler … not
 read") is gone; a test fixture pins the Top Level Try shape. tools/list
 delta 0 B.
 
+## Twenty-third pass: trace lanes and structural where-used (S-5, S-9)
+
+Date: 2026-10-13. Same PDI, GETs only (`sys_db_object` super-class chains,
+`sys_dictionary`, Table API counts). The trace lanes (S-5) and the structural
+where-used sources (S-9) read columns that were never checked on an instance.
+
+| Item                                                        | Was read as                                                               | Result                                                                                                                                                            |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client script lane (`sys_script_client`)                    | `name`, `type`, `field`, `table`, `applies_extended`, `order`             | Confirmed; all present (with `active`).                                                                                                                           |
+| UI policy lane (`sys_ui_policy`)                            | `short_description`, `conditions`, `table`, `inherit`, `order`, `on_load` | Confirmed.                                                                                                                                                        |
+| Data policy lane (`sys_data_policy2`)                       | `short_description`, `conditions`, `model_table`, `inherit`               | Confirmed.                                                                                                                                                        |
+| SLA lane (`contract_sla`)                                   | `name`, `collection`, `start_condition`                                   | Confirmed.                                                                                                                                                        |
+| Event lanes (`sysevent_register`, `sysevent_script_action`) | `event_name`, `table`; `name`, `event_name`, `order`                      | Confirmed.                                                                                                                                                        |
+| Transform map lane (`sys_transform_map`)                    | `name`, `source_table`, `target_table`                                    | Confirmed.                                                                                                                                                        |
+| Scheduled job lane (`sysauto_script`)                       | `name`, `run_type`, `script`                                              | Confirmed.                                                                                                                                                        |
+| Catalog variables (`item_option_new`)                       | `reference`, `list_table`, `lookup_table`, `map_to_field`, `field`        | **Confirmed** (chain `question` → `sys_metadata`): the three table columns are `table_name`, `map_to_field` is a boolean, `field` is `field_name`.                |
+| Flow inputs (`sys_hub_action_input`, `sys_hub_flow_input`)  | `reference=<table>`                                                       | **Confirmed** (chain `var_dictionary` → `sys_dictionary`): `reference` stores the table name. Action inputs 832 set, 59 with `sys_user`; flow inputs 651 set, 80. |
+| Reports (`sys_report`)                                      | `table`, `field`, `filter`                                                | **Confirmed** (chain `analytics_visualization` → `par_component`): `field` is a string and may be a dot-walk (`asset.model_name`); `filter` is `conditions`.      |
+| PA indicator sources (`pa_cubes`)                           | `name`, `facts_table`, `conditions`                                       | **Confirmed**: `translated_field`, `table_name`, `conditions`; rows exist.                                                                                        |
+
+Fixed in this pass: the catalog variable, flow input, report and PA indicator
+where-used sources are now `verified: true` (`src/api/references.ts`). The UI
+Builder sources stay unverified (N-25, owner). The lanes need no code change.
+tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
