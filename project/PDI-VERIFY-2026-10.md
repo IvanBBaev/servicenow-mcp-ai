@@ -921,6 +921,20 @@ The verifier checks names only, not query values; the thirty-sixth pass shows
 why that matters (a `javascript:` value is evaluated, not matched). No code
 change. tools/list delta 0 B.
 
+## Thirty-eighth pass: Instance Scan suite over targets (N-3)
+
+GET-only on ven03019, against the CICD Spoke actions that start a suite over
+scoped apps or update sets (no scan started):
+
+| Read                                                       | Finding                                                                                                              |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `sys_hub_action_type_definition` / `sys_hub_step_instance` | Confirmed: REST steps POST to `/api/sn_cicd/instance_scan/suite_scan/{suite_sys_id}/scoped_apps` and `/update_sets`. |
+| `sys_element_mapping` (step body)                          | Confirmed: the bodies are `{ "app_scope_sys_ids": [...] }` and `{ "update_set_sys_ids": [...] }`.                    |
+| `sys_hub_action_input`                                     | The suite sys_id is a `scan_check_suite` (not a `scan_combo`); the targets are app scope or update set sys_ids.      |
+
+Follow-up: `scan_run: "apps"` / `"update_sets"` with `targets` on
+`servicenow_check_code_health`. tools/list delta +202 B on `all`.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

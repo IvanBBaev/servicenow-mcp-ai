@@ -261,6 +261,20 @@ test("scanRunRequest maps each target to its CI/CD path", () => {
   assert.deepEqual(scanRunRequest({ kind: "suite", comboSysId: "a/b" }), {
     path: "/api/sn_cicd/instance_scan/suite_scan/combo/a%2Fb",
   });
+  assert.deepEqual(
+    scanRunRequest({ kind: "apps", suiteSysId: "cs1", targets: ["a1", "a2"] }),
+    {
+      path: "/api/sn_cicd/instance_scan/suite_scan/cs1/scoped_apps",
+      body: { app_scope_sys_ids: ["a1", "a2"] },
+    },
+  );
+  assert.deepEqual(
+    scanRunRequest({ kind: "update_sets", suiteSysId: "cs1", targets: ["u1"] }),
+    {
+      path: "/api/sn_cicd/instance_scan/suite_scan/cs1/update_sets",
+      body: { update_set_sys_ids: ["u1"] },
+    },
+  );
   assert.throws(() =>
     scanRunRequest({ kind: "point", table: "a^b", sysId: "x" }),
   );
@@ -309,6 +323,16 @@ test("runInstanceScan is refused in read-only mode and on a denied table", async
       await withEnv({ SN_TABLES_DENY: "scan_result" }, () =>
         assert.rejects(
           runInstanceScan({ kind: "suite", comboSysId: "s1" }),
+          (err) => err instanceof ServiceNowError && err.status === 403,
+        ),
+      );
+      await withEnv({ SN_TABLES_DENY: "sys_update_set" }, () =>
+        assert.rejects(
+          runInstanceScan({
+            kind: "update_sets",
+            suiteSysId: "cs1",
+            targets: ["u1"],
+          }),
           (err) => err instanceof ServiceNowError && err.status === 403,
         ),
       );
@@ -426,6 +450,44 @@ test("check_code_health scan_run with apply starts the scan and journals it", as
   );
 });
 
+test("check_code_health scan_run apps / update_sets posts the suite over its targets", async () => {
+  freshRuntime();
+  await withFetch(
+    () => started("p7"),
+    async (calls) => {
+      const plan = out(
+        await healthTool.handler({
+          scan_run: "apps",
+          sys_id: "cs1",
+          targets: ["a1", "a2", "a1"],
+        }),
+      );
+      assert.equal(plan.mode, "plan");
+      assert.equal(plan.sys_id, "cs1");
+      assert.deepEqual(plan.after.targets, ["a1", "a2"]);
+      assert.equal(calls.length, 0);
+      const o = out(
+        await healthTool.handler({
+          scan_run: "update_sets",
+          sys_id: "cs1",
+          targets: ["u1"],
+          apply: true,
+        }),
+      );
+      assert.equal(o.executionId, "p7");
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].init.method, "POST");
+      assert.match(
+        calls[0].url,
+        /\/instance_scan\/suite_scan\/cs1\/update_sets$/,
+      );
+      assert.deepEqual(JSON.parse(calls[0].init.body), {
+        update_set_sys_ids: ["u1"],
+      });
+    },
+  );
+});
+
 test("check_code_health scan_run refuses a target without its sys_id or table", async () => {
   freshRuntime();
   await withFetch(
@@ -436,13 +498,16 @@ test("check_code_health scan_run refuses a target without its sys_id or table", 
         { scan_run: "point", scope: "sys_script" },
         { scan_run: "suite", apply: true },
         { scan_run: "suite", sys_id: "a b", apply: true },
+        { scan_run: "apps", sys_id: "cs1" },
+        { scan_run: "update_sets", targets: ["u1"] },
+        { scan_run: "apps", sys_id: "cs1", targets: ["a^b"] },
       ]) {
         await assert.rejects(
           () => healthTool.handler(args),
           (e) =>
             e instanceof ServiceNowError &&
             e.code === "INVALID_INPUT" &&
-            /needs|must be a sys_id/.test(e.message),
+            /needs|must be sys_ids/.test(e.message),
         );
       }
       assert.equal(calls.length, 0);

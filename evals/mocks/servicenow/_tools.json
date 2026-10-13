@@ -204,18 +204,30 @@
             "type": "boolean"
           },
           "scan_run": {
-            "description": "Run Instance Scan; point: scope+sys_id, suite: sys_id.",
+            "description": "Run Instance Scan; point: scope+sys_id, suite: sys_id, apps/update_sets: suite sys_id+targets.",
             "type": "string",
             "enum": [
               "full",
               "point",
-              "suite"
+              "suite",
+              "apps",
+              "update_sets"
             ]
           },
           "sys_id": {
             "description": "Its target.",
             "type": "string",
             "maxLength": 32
+          },
+          "targets": {
+            "description": "Scope or update set sys_ids.",
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 32
+            }
           },
           "apply": {
             "description": "true runs it.",

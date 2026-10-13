@@ -147,6 +147,10 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * ADR 0010, 2026-10-10 (B15): `servicenow_generate_fluent` leaves the opt-in
  * artifacts package (100 tools), measured 27,084 / 119,204 / 120,574 /
  * 135,914: the budgets ratchet down to 27,136 / 119,296 / 120,576 / 135,936.
+ * N-3, 2026-10-13 (owner: O-10, one 256 B step where needed): `scan_run`
+ * `apps` / `update_sets` and `targets` on `servicenow_check_code_health`,
+ * measured 27,084 / 119,529 / 120,899 / 136,441 (all +202 B; core +0 B):
+ * `all+tasks` becomes 121,088 and `all+legacy` 136,448; `all` still fits.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

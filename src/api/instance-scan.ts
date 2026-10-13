@@ -297,26 +297,41 @@ export function renderInstanceScan(report: InstanceScanReport): string[] {
 // ── run (phase D) ─────────────────────────────────────────────────────────
 
 /**
- * What a scan run covers: the whole instance, one record, or a suite run
+ * What a scan run covers: the whole instance, one record, a suite run
  * through a combo — a `scan_combo` record that pairs a check suite with its
- * targets (the CI/CD API has no plain suite run; a bare suite needs its
- * scoped apps or update sets in the body).
+ * targets (the CI/CD API has no plain suite run) — or a check suite
+ * (`scan_check_suite`) run over the scoped apps or update sets named in the
+ * body.
  */
 export type InstanceScanTarget =
   | { kind: "full" }
   | { kind: "point"; table: string; sysId: string }
-  | { kind: "suite"; comboSysId: string };
+  | { kind: "suite"; comboSysId: string }
+  | { kind: "apps" | "update_sets"; suiteSysId: string; targets: string[] };
+
+/**
+ * The table a suite-over-targets scan reads its targets from, checked
+ * against the table policy as the point scan's target table is.
+ */
+export const SCAN_TARGET_TABLES = {
+  apps: "sys_scope",
+  update_sets: "sys_update_set",
+} as const;
 
 const SCAN_PATH = "/api/sn_cicd/instance_scan";
 
 /**
- * The CI/CD path and query of a scan run. Paths checked on a PDI (O-5,
- * 2026-10-12) against the CICD Spoke's REST steps and by GET (405 = the
- * POST route exists); no scan was started.
+ * The CI/CD path, query and body of a scan run. Paths checked on a PDI
+ * (O-5, 2026-10-12) against the CICD Spoke's REST steps and by GET (405 =
+ * the POST route exists); no scan was started. The suite-over-targets routes
+ * and their bodies (`app_scope_sys_ids` / `update_set_sys_ids`, an array of
+ * sys_ids) come from the Spoke's "Instance Scan Execute Suite Scan For
+ * Scoped Apps / Update Sets" REST steps (PDI, 2026-10-13).
  */
 export function scanRunRequest(target: InstanceScanTarget): {
   path: string;
   params?: URLSearchParams;
+  body?: Record<string, string[]>;
 } {
   switch (target.kind) {
     case "full":
@@ -334,6 +349,19 @@ export function scanRunRequest(target: InstanceScanTarget): {
       return {
         path: `${SCAN_PATH}/suite_scan/combo/${encodeURIComponent(target.comboSysId)}`,
       };
+    case "apps":
+    case "update_sets": {
+      const suite = encodeURIComponent(target.suiteSysId);
+      return target.kind === "apps"
+        ? {
+            path: `${SCAN_PATH}/suite_scan/${suite}/scoped_apps`,
+            body: { app_scope_sys_ids: target.targets },
+          }
+        : {
+            path: `${SCAN_PATH}/suite_scan/${suite}/update_sets`,
+            body: { update_set_sys_ids: target.targets },
+          };
+    }
   }
 }
 
@@ -361,7 +389,8 @@ export function assertScanAllowed(profile: string = activeProfile()): void {
  * Start an Instance Scan through the CI/CD API, behind the same rails as an
  * ATF run: a write (the instance executes every check), refused in read-only
  * mode and on a table the policy blocks (`scan_result`, plus the target
- * table of a point scan), and wrapped in {@link pluginCall} so an inactive
+ * table of a point scan or the app / update set table of a suite run over
+ * targets), and wrapped in {@link pluginCall} so an inactive
  * `sn_cicd` plugin reports clearly. Returns the progress id to poll with
  * {@link waitForInstanceScan}. Refused on a production-marked profile
  * ({@link assertScanAllowed}).
@@ -372,13 +401,16 @@ export async function runInstanceScan(
   assertScanAllowed();
   assertTableAllowed(SCAN_RESULT_TABLE); // H-4: the backing table
   if (target.kind === "point") assertTableAllowed(target.table);
+  if (target.kind === "apps" || target.kind === "update_sets")
+    assertTableAllowed(SCAN_TARGET_TABLES[target.kind]);
   assertWriteAllowed(`run instance scan (${target.kind})`);
-  const { path, params } = scanRunRequest(target);
+  const { path, params, body } = scanRunRequest(target);
   return pluginCall("CI/CD", async () => {
     const { data } = await snRequest<{ result: CicdResult }>({
       method: "POST",
       path,
       ...(params ? { params } : {}),
+      ...(body ? { body } : {}),
     });
     return toRun(expectResult(data, "CI/CD instance scan"));
   });

@@ -17,7 +17,7 @@ import { getAttachmentMeta, getWritableAttachmentMeta } from "./attachment.js";
 import { ServiceNowError } from "../core/errors.js";
 import { reportProgress } from "../core/progress.js";
 import { noteSecretRecords } from "./secret-columns.js";
-import { assertScanAllowed } from "./instance-scan.js";
+import { assertScanAllowed, SCAN_TARGET_TABLES } from "./instance-scan.js";
 
 /**
  * ServiceNow Batch API (`/api/now/v1/batch`): run several REST calls in a
@@ -215,9 +215,14 @@ const BACKING_TABLES_BY_PATH: [RegExp, string[]][] = [
 /** `/api/sn_cicd/instance_scan/...` — starting one is refused on prod. */
 const INSTANCE_SCAN = /^\/api\/sn_cicd\/instance_scan(?:\/|$)/i;
 
+/** An Instance Scan suite run over scoped apps or update sets. */
+const SCAN_OVER_TARGETS =
+  /^\/api\/sn_cicd\/instance_scan\/suite_scan\/[^/]+\/(scoped_apps|update_sets)\/?$/i;
+
 /**
  * The backing tables of a plugin-API sub-request, plus the target table of
- * an Instance Scan point scan (`target_table`), as `runInstanceScan` checks.
+ * an Instance Scan point scan (`target_table`) or the app / update set table
+ * of a suite run over targets, as `runInstanceScan` checks.
  */
 export function backingTablesForSubRequest(url: string): string[] {
   const path = pathOf(url);
@@ -235,6 +240,13 @@ export function backingTablesForSubRequest(url: string): string[] {
     const target = query.get("target_table");
     if (target) tables.add(target);
   }
+  const overTargets = SCAN_OVER_TARGETS.exec(path)?.[1];
+  if (overTargets)
+    tables.add(
+      SCAN_TARGET_TABLES[
+        overTargets === "scoped_apps" ? "apps" : "update_sets"
+      ],
+    );
   return [...tables];
 }
 
