@@ -935,9 +935,9 @@ args = ["-y", "servicenow-mcp-ai"]</code></pre>
             </li>
           </ol>
           <p>
-            A project-root <code>.env</code> is no longer read (3.0, B5); if one
-            exists while neither of the above is in use, startup fails and names
-            it.
+            A project-root <code>.env</code> is deprecated (3.0, B5); if one
+            exists while neither of the above is in use, it is still read and
+            startup warns where to move it.
           </p>
           <p>
             Real environment variables always win over the file. The file is

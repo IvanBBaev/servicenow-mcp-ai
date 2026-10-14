@@ -223,7 +223,7 @@ The env file is resolved in this order:
 1. `SN_ENV_FILE` — an explicit path, if set.
 2. `~/.config/servicenow-mcp-ai/.env` (XDG) — if it exists. A global / `npx` install writes here, not into `node_modules`.
 
-A project-root `.env` is no longer read (3.0, B5); if one exists while neither of the above is in use, startup fails and names it.
+A project-root `.env` is deprecated (3.0, B5); if one exists while neither of the above is in use, it is still read and startup warns where to move it.
 
 Real environment variables always win over the file. The file is written **owner-only (`0600`)** because it holds a plaintext password, and it is git-ignored — never commit real credentials.
 

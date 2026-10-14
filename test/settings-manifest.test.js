@@ -40,7 +40,7 @@ import {
   getMaxRetries,
   getTimeoutMs,
 } from "../build/core/settings.js";
-import { assertNoProjectEnv, envFileChoice } from "../build/core/config.js";
+import { envFileChoice, projectEnvNotice } from "../build/core/config.js";
 import { envFileLine } from "../build/api/doctor.js";
 import { setLogSink } from "../build/core/logging.js";
 import { withEnv } from "./helpers.js";
@@ -433,24 +433,26 @@ test("envFileChoice names why the env file was chosen; doctor prints it", async 
       assert.deepEqual(envFileChoice(), { path: xdgFile, source: "xdg" });
     });
     rmSync(xdgFile);
+    const projectFile = path.join(dir, "project.env");
     await withEnv({ SN_ENV_FILE: undefined, XDG_CONFIG_HOME: dir }, () => {
-      // B5: the project-root .env is never chosen.
-      assert.deepEqual(envFileChoice(), {
+      assert.deepEqual(envFileChoice(projectFile), {
         path: xdgFile,
         source: "xdg-default",
       });
+      // B5: a project-root .env is a deprecated fallback, read with a warning.
+      writeFileSync(projectFile, "SN_INSTANCE=x\n");
+      const choice = envFileChoice(projectFile);
+      assert.deepEqual(choice, { path: projectFile, source: "project" });
+      assert.match(
+        projectEnvNotice(choice),
+        /project\.env is read as a deprecated fallback \(B5\): move it to .*servicenow-mcp-ai.*SN_ENV_FILE/,
+      );
+      // An XDG file wins over it, and is not a deprecated source.
+      writeFileSync(xdgFile, "SN_INSTANCE=x\n");
+      const xdg = envFileChoice(projectFile);
+      assert.equal(xdg.source, "xdg");
+      assert.equal(projectEnvNotice(xdg), undefined);
     });
-    // B5: a project-root .env with nothing else in play is a startup error.
-    const projectFile = path.join(dir, "project.env");
-    assert.doesNotThrow(() => assertNoProjectEnv("xdg-default", projectFile));
-    writeFileSync(projectFile, "SN_INSTANCE=x\n");
-    assert.throws(
-      () => assertNoProjectEnv("xdg-default", projectFile),
-      /project\.env is no longer read \(3\.0, B5\): move it to .*SN_ENV_FILE/,
-    );
-    for (const source of ["SN_ENV_FILE", "xdg"]) {
-      assert.doesNotThrow(() => assertNoProjectEnv(source, projectFile));
-    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -460,5 +462,6 @@ test("envFileChoice names why the env file was chosen; doctor prints it", async 
     "env file: /a/.env (missing, from SN_ENV_FILE)",
   );
   assert.match(envFileLine("/a/.env", true, "xdg"), /XDG config\)$/);
+  assert.match(envFileLine("/a/.env", true, "project"), /deprecated \(B5\)/);
   assert.match(envFileLine("/a/.env", true, "other"), /\(exists, other\)$/);
 });

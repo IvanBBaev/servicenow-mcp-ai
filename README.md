@@ -565,8 +565,8 @@ Windows the env file inherits its folder's ACL — restrict it yourself (for exa
 `icacls`.
 
 The env file is resolved in this order: `SN_ENV_FILE`, then
-`~/.config/servicenow-mcp-ai/.env` (XDG). A project-root `.env` is no longer read (3.0, B5):
-if one exists while neither of the two is in use, startup fails and names it.
+`~/.config/servicenow-mcp-ai/.env` (XDG). A project-root `.env` is deprecated (3.0, B5):
+if one exists while neither of the two is in use, it is still read and startup warns where to move it.
 A global/`npx` install therefore writes to your user config rather than into
 `node_modules`. Real environment variables always take precedence over the file.
 
@@ -702,7 +702,7 @@ The bare SN_INSTANCE / SN_USER / SN_PASSWORD keys are the 'default' profile. Mor
 | -------- | :------: | ------- | ----- | ----------- |
 | `SN_PROFILE_<NAME>_*` | no | — | 1.1.0 | Named connection profiles: `SN_PROFILE_DEV_INSTANCE` / `_USER` / `_PASSWORD` define profile `dev`. The bare `SN_INSTANCE`/`SN_USER`/`SN_PASSWORD` keys are the `default` profile. The auth, policy, write-mode, `ENV`, `PROD_WRITES` and `UPDATE_SET` settings take the same prefix. Example: `SN_PROFILE_DEV_INSTANCE=dev12345.service-now.com`, `SN_PROFILE_DEV_USER=admin`, `SN_PROFILE_DEV_PASSWORD=dev-password`. |
 | `SN_ACTIVE_PROFILE` | no | `default` | 1.1.0 | Which profile tools use. Switch at runtime with `servicenow_use_instance` (written to the env file only with `persist: true`). |
-| `SN_ENV_FILE` | no | `~/.config/servicenow-mcp-ai/.env` | 1.1.0 | Explicit path to the env file to read/write. Otherwise the server uses `$XDG_CONFIG_HOME/servicenow-mcp-ai/.env` (`~/.config/…`). A project-root `.env` next to the installed package is no longer read (B5): if one exists while the XDG file is missing, startup fails and names it. `doctor` prints the chosen file and why. |
+| `SN_ENV_FILE` | no | `~/.config/servicenow-mcp-ai/.env` | 1.1.0 | Explicit path to the env file to read/write. Otherwise the server uses `$XDG_CONFIG_HOME/servicenow-mcp-ai/.env` (`~/.config/…`). A project-root `.env` next to the installed package is still read when neither is in play, as a deprecated fallback (B5) with a startup warning naming where to move it. `doctor` prints the chosen file and why. |
 
 #### Network, TLS and resilience
 

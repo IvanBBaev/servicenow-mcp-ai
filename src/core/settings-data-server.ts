@@ -253,7 +253,7 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
     since: V110,
     defaultText: "`~/.config/servicenow-mcp-ai/.env`",
     description:
-      "Explicit path to the env file to read/write. Otherwise the server uses `$XDG_CONFIG_HOME/servicenow-mcp-ai/.env` (`~/.config/…`). A project-root `.env` next to the installed package is no longer read (B5): if one exists while the XDG file is missing, startup fails and names it. `doctor` prints the chosen file and why.",
+      "Explicit path to the env file to read/write. Otherwise the server uses `$XDG_CONFIG_HOME/servicenow-mcp-ai/.env` (`~/.config/…`). A project-root `.env` next to the installed package is still read when neither is in play, as a deprecated fallback (B5) with a startup warning naming where to move it. `doctor` prints the chosen file and why.",
   }),
 
   // --- network ----------------------------------------------------------------

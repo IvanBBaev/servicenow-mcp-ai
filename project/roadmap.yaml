@@ -81,7 +81,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30.** `src/core/settings-manifest.ts`: 118 zod-validated specs are the single source for reading, docs and `doctor`; invalid values warn once and fall back, fail-fast only under opt-in `SN_STRICT_SETTINGS`. **B5 2026-10-14 (ADR 0011):** strict is the default (`SN_STRICT_SETTINGS=0` restores the warnings) and the project-root `.env` is no longer read."
+    notes: "**Done 2026-09-30.** `src/core/settings-manifest.ts`: 118 zod-validated specs are the single source for reading, docs and `doctor`; invalid values warn once and fall back, fail-fast only under opt-in `SN_STRICT_SETTINGS`. **B5 2026-10-14 (ADR 0011):** invalid safety settings fail fast by default while tuning values still warn (`SN_STRICT_SETTINGS=1` / `0` for all / none), and the project-root `.env` is a deprecated fallback read with a warning."
   - id: "E-3"
     title: "runtime container"
     pillar: "E"

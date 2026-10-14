@@ -20,8 +20,8 @@ import { delegatedUserMarker } from "./delegation.js";
 const moduleDir = import.meta.dirname;
 
 /**
- * The project-root .env (parent of build/ or src/). B5: no longer read — its
- * presence without SN_ENV_FILE or an XDG file is a startup error.
+ * The project-root .env (parent of build/ or src/). B5: deprecated — read
+ * only when neither SN_ENV_FILE nor an XDG file is in play, with a warning.
  */
 const projectEnvPath = join(moduleDir, "..", ".env");
 
@@ -35,7 +35,7 @@ function xdgEnvPath(): string {
  * Resolve which env file to read/write, in order of precedence:
  *   1. SN_ENV_FILE — explicit override.
  *   2. an existing XDG config file (~/.config/servicenow-mcp-ai/.env).
- *   3. an existing project-root .env (local development).
+ *   3. an existing project-root .env (local development; deprecated, B5).
  *   4. otherwise the XDG path, so a global install writes to user space rather
  *      than into a (possibly read-only or transient) node_modules directory.
  */
@@ -44,35 +44,36 @@ export function getEnvPath(): string {
 }
 
 /** Why an env file was chosen (E-4: printed by `doctor`). */
-export type EnvFileSource = "SN_ENV_FILE" | "xdg" | "xdg-default";
+export type EnvFileSource = "SN_ENV_FILE" | "xdg" | "project" | "xdg-default";
 
 /**
  * The env file {@link getEnvPath} resolves to, and which rule picked it:
- * `SN_ENV_FILE`, an existing XDG file (`xdg`), or the XDG path nothing exists
- * at yet (`xdg-default`). B5: the project-root `.env` is never chosen.
+ * `SN_ENV_FILE`, an existing XDG file (`xdg`), an existing project-root
+ * `.env` (`project`, deprecated since B5 — the 2.x fallback, kept so a 2.x
+ * setup keeps working), or the XDG path nothing exists at yet (`xdg-default`).
  */
-export function envFileChoice(): { path: string; source: EnvFileSource } {
+export function envFileChoice(projectPath: string = projectEnvPath): {
+  path: string;
+  source: EnvFileSource;
+} {
   const explicit = readString("SN_ENV_FILE");
   if (explicit) return { path: explicit, source: "SN_ENV_FILE" };
   const xdg = xdgEnvPath();
   if (existsSync(xdg)) return { path: xdg, source: "xdg" };
+  if (existsSync(projectPath)) return { path: projectPath, source: "project" };
   return { path: xdg, source: "xdg-default" };
 }
 
 /**
- * B5 (3.0): the project-root .env fallback is gone. When no SN_ENV_FILE or
- * XDG file is in play and that file exists, fail fast instead of silently
- * ignoring the credentials in it.
+ * B5: the deprecation warning for an env file read from the project root,
+ * naming where to move it; undefined for any other source.
  */
-export function assertNoProjectEnv(
-  source: EnvFileSource,
-  projectPath: string = projectEnvPath,
-): void {
-  if (source === "xdg-default" && existsSync(projectPath)) {
-    throw new Error(
-      `${projectPath} is no longer read (3.0, B5): move it to ~/.config/servicenow-mcp-ai/.env or point SN_ENV_FILE at it.`,
-    );
-  }
+export function projectEnvNotice(choice: {
+  path: string;
+  source: EnvFileSource;
+}): string | undefined {
+  if (choice.source !== "project") return undefined;
+  return `${choice.path} is read as a deprecated fallback (B5): move it to ${xdgEnvPath()} or point SN_ENV_FILE at it.`;
 }
 
 export interface ServiceNowCredentials {
@@ -101,8 +102,11 @@ export function dropUnsetBundleValues(
 export function loadEnv(): void {
   // Before the env file, so a placeholder does not shadow a value from it.
   dropUnsetBundleValues();
-  const { path, source } = envFileChoice();
-  assertNoProjectEnv(source);
+  const choice = envFileChoice();
+  const notice = projectEnvNotice(choice);
+  // Before the logger exists: stderr is the log channel of a stdio server.
+  if (notice) process.stderr.write(`servicenow-mcp-ai: warning: ${notice}\n`);
+  const { path } = choice;
   if (existsSync(path)) {
     // Node's own env-file loader (E-2, replaces dotenv): a value already in
     // the environment (e.g. supplied by the MCP client) takes precedence over
