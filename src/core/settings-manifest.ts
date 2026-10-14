@@ -557,12 +557,15 @@ export function validateSettings(env: Env = process.env): ValidatedSettings {
   // B5: unset = only safety settings are fatal; 1 = all; 0 = none.
   const strictSpec = settingSpec("SN_STRICT_SETTINGS");
   const strictParsed = parseSetting(strictSpec, env.SN_STRICT_SETTINGS);
+  // SN_COMPAT=2: unset means none, as in 2.x (an invalid value warned).
   const strict: StrictMode =
     strictParsed.ok && strictParsed.value !== undefined
       ? strictParsed.value === true
         ? "all"
         : "off"
-      : "safety";
+      : env.SN_COMPAT?.trim() === "2"
+        ? "off"
+        : "safety";
   const check = (
     spec: SettingSpec,
     source: string,
@@ -634,7 +637,7 @@ export function applySettingsAtStartup(
   const errors = result.issues.filter((i) => i.level === "error");
   if (errors.length > 0) {
     throw new Error(
-      `Invalid settings (fix them, or set SN_STRICT_SETTINGS=0 to warn and keep the defaults): ${errors.map((e) => e.message).join(" | ")}`,
+      `Invalid settings (fix them, run servicenow-mcp-ai migrate for a 2.x env file, or set SN_STRICT_SETTINGS=0 to warn and keep the defaults): ${errors.map((e) => e.message).join(" | ")}`,
     );
   }
   for (const issue of result.issues) {

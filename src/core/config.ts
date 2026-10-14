@@ -73,7 +73,7 @@ export function projectEnvNotice(choice: {
   source: EnvFileSource;
 }): string | undefined {
   if (choice.source !== "project") return undefined;
-  return `${choice.path} is read as a deprecated fallback (B5): move it to ${xdgEnvPath()} or point SN_ENV_FILE at it.`;
+  return `${choice.path} is read as a deprecated fallback (B5): move it to ${xdgEnvPath()} (\`servicenow-mcp-ai migrate --write\`) or point SN_ENV_FILE at it.`;
 }
 
 export interface ServiceNowCredentials {
@@ -153,7 +153,7 @@ function reservedProfileError(profile: string): ServiceNowError {
     undefined,
     {
       code: "RESERVED_PROFILE_NAME",
-      hint: `Rename the profile: move its SN_PROFILE_${profile.toUpperCase()}_* keys to a name that is not reserved.`,
+      hint: `Rename the profile: move its SN_PROFILE_${profile.toUpperCase()}_* keys to a name that is not reserved (\`servicenow-mcp-ai migrate\` does it for a 2.x env file).`,
     },
   );
 }

@@ -755,7 +755,7 @@ Least-privilege table policy, plan-and-apply writes, destructive-write confirmat
 | `SN_TABLES_DENY` | no | — | 1.1.0 | Comma-separated table denylist; always wins over the allowlist. |
 | `SN_READONLY` | no | `false` | 1.1.0 | When truthy, refuse every create/update/delete. |
 | `SN_WRITE_MODE` | no | `plan` | 2.0.0 | `plan` (default) previews a write as a before/after diff without mutating; `apply` executes; passing `apply:true` forces a single call. |
-| `SN_COMPAT` | no | `3` | next | Upgrade bridge (owner, 2026-10-14): `2` keeps the 2.x defaults for every one of these settings left unset — `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core` (discovery plus `attachment`). A setting you set yourself always wins. `3` (the default) uses the 3.0 defaults. Meant for the migration, not as a permanent setting. |
+| `SN_COMPAT` | no | `3` | next | Upgrade bridge (owner, 2026-10-14): `2` keeps the 2.x defaults for every one of these settings left unset — `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core` (discovery plus `attachment`) — and an invalid value warns and keeps its default instead of stopping the server (`SN_STRICT_SETTINGS=0`). A setting you set yourself always wins. `servicenow-mcp-ai migrate` adds it when it converts a 2.x env file. `3` (the default) uses the 3.0 defaults. Meant for the migration, not as a permanent setting. |
 | `SN_DESTRUCTIVE_CONFIRM` | no | `token` | next | H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `upsert_artifact`, `check_change_conflicts` with `calculate:true`) in plan mode. `token` (the 3.0 default, B4): the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments — an apply with no token returns that preview and its token instead (nothing runs), a wrong, used or expired one is `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it, except on a profile marked `prod` (`SN_ENV`), which is always at least `elicit` and is confirmed in apply mode too. `off` is the explicit opt-out (the pre-3.0 behaviour). |
 | `SN_PLAN_TOKEN_TTL_SEC` | no | `600` | next | H-3: lifetime of a `plan_token` in seconds (30–86400). Tokens live only in the server process and are used up by the apply. |
 | `SN_BATCH_UNMAPPED` | no | `deny` | next | H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `deny` (the 3.0 default, B8) refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch); `allow` is the opt-out and checks it against the table and read-only axes only. A nested batch is always refused. |
@@ -870,7 +870,7 @@ Every setting is validated at startup. An invalid safety value is a startup erro
 
 | Variable | Required | Default | Since | Description |
 | -------- | :------: | ------- | ----- | ----------- |
-| `SN_STRICT_SETTINGS` | no | safety settings only | next | E-4 / B5: which invalid setting values (a non-number, an unknown enum value, an out-of-range port…) stop the server with a startup error that names every offending key. Unset: only safety settings — connection, profiles, packages, policy, transport and the trust / privacy keys (`SN_ALLOWED_HOSTS`, `SN_TLS_*`, `SN_REDACT_*`, `SN_CSV_FORMULA_GUARD`); an invalid tuning value (timeouts, caps, caches, logging) logs a warning and keeps its default, as in 2.x. `1`: every invalid value is an error. `0`: none is. Unknown `SN_*` keys stay warnings. |
+| `SN_STRICT_SETTINGS` | no | safety settings only | next | E-4 / B5: which invalid setting values (a non-number, an unknown enum value, an out-of-range port…) stop the server with a startup error that names every offending key. Unset: only safety settings — connection, profiles, packages, policy, transport and the trust / privacy keys (`SN_ALLOWED_HOSTS`, `SN_TLS_*`, `SN_REDACT_*`, `SN_CSV_FORMULA_GUARD`); an invalid tuning value (timeouts, caps, caches, logging) logs a warning and keeps its default, as in 2.x. `1`: every invalid value is an error. `0`: none is (the default under `SN_COMPAT=2`). Unknown `SN_*` keys stay warnings. |
 
 #### Standard variables
 
@@ -1011,6 +1011,7 @@ starts the server.
 | `servicenow-mcp-ai login`                       | `--profile <name>`                       | One-time OAuth 2.1 Authorization Code + PKCE login: opens the browser, captures the loopback redirect, stores a refresh token.      | `0` success · `1` login failed                              |
 | `servicenow-mcp-ai drift <profileA> <profileB>` | _(none)_                                 | DF-3 CI drift gate: compares the two instances and writes a Markdown diff report.                                                  | `0` no drift · `1` drift found · `2` usage / error          |
 | `servicenow-mcp-ai support-bundle`              | `--out <file>`, `--profile <name>`       | Writes one JSON file for a bug report and prints its path on stdout.                                                               | `0` written · `1` write failed                              |
+| `servicenow-mcp-ai migrate`                     | `--write`, `--from <file>`, `--v3-defaults` | Carries a 2.x env file over to 3.x and prints every change; a dry run unless `--write`.                                         | `0` done or nothing to do · `1` refused / write failed       |
 
 **`init`** writes through the same atomic, owner-only (`0600`) env-file writer as
 `servicenow_set_credentials`, to the file `doctor` names (by default
@@ -1044,6 +1045,27 @@ manifest summary (version, tool and package counts, active tools) and the last
 from the whole file. The default path is
 `./servicenow-mcp-ai-support-<timestamp>.json` (mode `0600`). Instance and user
 names are **not** masked — review the file before you attach it to an issue.
+
+**`migrate`** upgrades the settings of a 2.x install. It reads the env file the
+server resolves (or `--from <file>`) without loading it, so a file 3.x would refuse
+still migrates, and keeps every key, value and comment except:
+
+- a project-root `.env` (deprecated, B5) or the `--from` file is copied to
+  `~/.config/servicenow-mcp-ai/.env` (or `SN_ENV_FILE`); the original stays;
+- a profile named `capabilities`, `docs`, `policy`, `profiles`, `reference`,
+  `schema` or `status` (reserved, B13) becomes `<name>_v2`, with all its
+  `SN_PROFILE_<NAME>_*` keys and `SN_ACTIVE_PROFILE`;
+- a value 3.x rejects at startup (B5) is commented out, so the default applies,
+  as it did in 2.x;
+- `SN_COMPAT=2` is appended unless the file sets it or `--v3-defaults` is given.
+
+With `--write` a file rewritten in place is first copied to `<file>.v2.bak`; both
+are `0600`. Run it once after the upgrade:
+
+```bash
+npx servicenow-mcp-ai migrate          # review the plan
+npx servicenow-mcp-ai migrate --write  # apply it
+```
 
 **`login`** operates on the active profile (`SN_ACTIVE_PROFILE`, default
 `default`) and reads, for that profile:

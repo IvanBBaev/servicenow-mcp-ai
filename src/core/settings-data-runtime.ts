@@ -66,7 +66,7 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     default: "3",
     example: "2",
     description:
-      "Upgrade bridge (owner, 2026-10-14): `2` keeps the 2.x defaults for every one of these settings left unset — `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core` (discovery plus `attachment`). A setting you set yourself always wins. `3` (the default) uses the 3.0 defaults. Meant for the migration, not as a permanent setting.",
+      "Upgrade bridge (owner, 2026-10-14): `2` keeps the 2.x defaults for every one of these settings left unset — `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core` (discovery plus `attachment`) — and an invalid value warns and keeps its default instead of stopping the server (`SN_STRICT_SETTINGS=0`). A setting you set yourself always wins. `servicenow-mcp-ai migrate` adds it when it converts a 2.x env file. `3` (the default) uses the 3.0 defaults. Meant for the migration, not as a permanent setting.",
   }),
   oneOf(["off", "token", "elicit"], {
     key: "SN_DESTRUCTIVE_CONFIRM",
@@ -724,7 +724,7 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     since: NEXT,
     defaultText: "safety settings only",
     description:
-      "E-4 / B5: which invalid setting values (a non-number, an unknown enum value, an out-of-range port…) stop the server with a startup error that names every offending key. Unset: only safety settings — connection, profiles, packages, policy, transport and the trust / privacy keys (`SN_ALLOWED_HOSTS`, `SN_TLS_*`, `SN_REDACT_*`, `SN_CSV_FORMULA_GUARD`); an invalid tuning value (timeouts, caps, caches, logging) logs a warning and keeps its default, as in 2.x. `1`: every invalid value is an error. `0`: none is. Unknown `SN_*` keys stay warnings.",
+      "E-4 / B5: which invalid setting values (a non-number, an unknown enum value, an out-of-range port…) stop the server with a startup error that names every offending key. Unset: only safety settings — connection, profiles, packages, policy, transport and the trust / privacy keys (`SN_ALLOWED_HOSTS`, `SN_TLS_*`, `SN_REDACT_*`, `SN_CSV_FORMULA_GUARD`); an invalid tuning value (timeouts, caps, caches, logging) logs a warning and keeps its default, as in 2.x. `1`: every invalid value is an error. `0`: none is (the default under `SN_COMPAT=2`). Unknown `SN_*` keys stay warnings.",
   }),
 
   // --- external -----------------------------------------------------------------------------

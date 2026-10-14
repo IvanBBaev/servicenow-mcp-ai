@@ -53,6 +53,10 @@ Commands:
   drift <a> <b>         Compare two profiles; exit 0 clean / 1 drift / 2 error.
   support-bundle        Write a JSON bundle for a bug report (doctor, redacted
                         settings, npm ls, manifest, log tail); prints its path.
+  migrate               Carry a 2.x env file over to 3.x: move a project-root
+                        .env to the XDG file, rename reserved profiles, comment
+                        out values 3.x rejects, add SN_COMPAT=2. A dry run
+                        unless --write; the old file is kept as <file>.v2.bak.
 
 Options:
   -h, --help            Show this help.
@@ -63,6 +67,10 @@ Options:
                         a terminal, and on Windows outside Windows Terminal).
   --skip-doctor         init: do not run doctor after writing the env file.
   --out <file>          support-bundle: where to write the bundle.
+  --write               migrate: write the migrated env file.
+  --from <file>         migrate: the 2.x env file to read (default: the env
+                        file the server resolves).
+  --v3-defaults         migrate: do not add SN_COMPAT=2.
 
 The env file is SN_ENV_FILE, else ~/.config/servicenow-mcp-ai/.env
 (XDG_CONFIG_HOME is honoured).
@@ -76,6 +84,9 @@ const OPTIONS = {
   ascii: { type: "boolean" },
   "skip-doctor": { type: "boolean" },
   out: { type: "string" },
+  write: { type: "boolean" },
+  from: { type: "string" },
+  "v3-defaults": { type: "boolean" },
 } as const;
 
 type OptionName = keyof typeof OPTIONS;
@@ -86,6 +97,7 @@ export const COMMANDS = [
   "login",
   "drift",
   "support-bundle",
+  "migrate",
 ] as const;
 export type Command = (typeof COMMANDS)[number];
 
@@ -97,6 +109,7 @@ const COMMAND_OPTIONS: Record<Command | "serve", OptionName[]> = {
   login: ["profile"],
   drift: [],
   "support-bundle": ["profile", "out"],
+  migrate: ["write", "from", "v3-defaults"],
 };
 
 /** How many positionals (after the command) each command takes. */
@@ -107,6 +120,7 @@ const COMMAND_ARITY: Record<Command | "serve", [number, number]> = {
   login: [0, 0],
   drift: [0, 2],
   "support-bundle": [0, 0],
+  migrate: [0, 0],
 };
 
 export type ParsedCli =
@@ -122,6 +136,9 @@ export type ParsedCli =
       ascii: boolean;
       skipDoctor: boolean;
       out?: string;
+      write: boolean;
+      from?: string;
+      v3Defaults: boolean;
     };
 
 /** Parse argv (without `node` and the script) into a command. Never throws. */
@@ -189,6 +206,9 @@ export function parseCli(argv: string[]): ParsedCli {
     ascii: values.ascii === true,
     skipDoctor: values["skip-doctor"] === true,
     ...(values.out !== undefined ? { out: values.out } : {}),
+    write: values.write === true,
+    ...(values.from !== undefined ? { from: values.from } : {}),
+    v3Defaults: values["v3-defaults"] === true,
   };
 }
 
@@ -688,6 +708,66 @@ async function cmdSupportBundle(
 }
 
 // ---------------------------------------------------------------------------
+// migrate
+// ---------------------------------------------------------------------------
+
+type RunCli = Extract<ParsedCli, { kind: "run" }>;
+
+/** `migrate`: plan (and with --write, apply) the 2.x → 3.x env file move. */
+async function cmdMigrate(parsed: RunCli, io: CliIO): Promise<number> {
+  const { migrationPaths, planMigration, readEnvFile, writeMigration } =
+    await import("./migrate.js");
+  const paths = migrationPaths(parsed.from);
+  if (!paths) {
+    io.stdout.write(
+      `No env file to migrate (${getEnvPath()} does not exist); pass --from <file> for a 2.x file elsewhere.\n`,
+    );
+    return 0;
+  }
+  const { source, target } = paths;
+  const moving = resolve(source) !== resolve(target);
+  if (moving && existsSync(target)) {
+    io.stderr.write(
+      `${target} already exists — merge ${source} into it by hand, or set SN_ENV_FILE to a new file and run migrate again.\n`,
+    );
+    return 1;
+  }
+  let text: string;
+  try {
+    text = readEnvFile(source);
+  } catch (error) {
+    io.stderr.write(`${errorText(error)}\n`);
+    return 1;
+  }
+  const plan = planMigration({
+    text,
+    source,
+    target,
+    v3Defaults: parsed.v3Defaults,
+  });
+  io.stdout.write(`Migrating ${source}${moving ? ` -> ${target}` : ""}\n`);
+  if (plan.changes.length === 0) {
+    io.stdout.write("Nothing to change: 3.x reads this file as 2.x did.\n");
+    return 0;
+  }
+  for (const change of plan.changes) io.stdout.write(`- ${change.message}\n`);
+  if (!parsed.write) {
+    io.stdout.write("Dry run: nothing written. Run again with --write.\n");
+    return 0;
+  }
+  try {
+    const backup = writeMigration(plan);
+    io.stdout.write(
+      `Wrote ${target}${backup ? ` (the previous file is ${backup})` : ""}.\n`,
+    );
+  } catch (error) {
+    io.stderr.write(`${errorText(error)}\n`);
+    return 1;
+  }
+  return 0;
+}
+
+// ---------------------------------------------------------------------------
 // dispatch
 // ---------------------------------------------------------------------------
 
@@ -713,6 +793,8 @@ export async function runCli(
       io.stderr.write(`${parsed.message}\n\n${USAGE}`);
       return 2;
   }
+  // Before the doctor deps: a 2.x file may not load as 3.x.
+  if (parsed.command === "migrate") return cmdMigrate(parsed, io);
   const resolved = deps ?? (await defaultDeps());
   switch (parsed.command) {
     case "serve":
@@ -740,6 +822,12 @@ export async function main(argv: string[] = process.argv.slice(2)) {
   const runtime = createRuntime();
   installRuntime(runtime);
   try {
+    // `migrate` reads the 2.x file itself: one 3.x refuses (a reserved
+    // profile, an invalid safety value) must not stop it.
+    const parsed = parseCli(argv);
+    if (parsed.kind === "run" && parsed.command === "migrate") {
+      process.exit(await cmdMigrate(parsed, processIO()));
+    }
     loadEnv();
     // E-4 / B5: validate every declared setting once; an invalid safety
     // value is this startup error (every invalid value under

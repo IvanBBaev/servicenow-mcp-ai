@@ -397,7 +397,7 @@ test("applySettingsAtStartup: throws on a safety value (B5), warns on tuning val
   assert.equal(warnings.length, 2, warnings.join("\n"));
   assert.throws(
     () => applySettingsAtStartup({ ...env, SN_STRICT_SETTINGS: "1" }),
-    /Invalid settings \(fix them, or set SN_STRICT_SETTINGS=0 [^)]*\): Invalid SN_MAX_RECORDS="lots"/,
+    /Invalid settings \(fix them, run servicenow-mcp-ai migrate for a 2\.x env file, or set SN_STRICT_SETTINGS=0 [^)]*\): Invalid SN_MAX_RECORDS="lots"/,
   );
   assert.throws(
     () =>
