@@ -759,7 +759,7 @@ Least-privilege table policy, plan-and-apply writes, destructive-write confirmat
 | `SN_PLAN_TOKEN_TTL_SEC` | no | `600` | next | H-3: lifetime of a `plan_token` in seconds (30–86400). Tokens live only in the server process and are used up by the apply. |
 | `SN_BATCH_UNMAPPED` | no | `deny` | next | H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `deny` (the 3.0 default, B8) refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch); `allow` is the opt-out and checks it against the table and read-only axes only. A nested batch is always refused. |
 | `SN_BATCH_MAX_REQUESTS` | no | `50` | next | H-4: most sub-requests one `servicenow_batch` call may carry (1–1000; 50 since 3.0), checked before anything is sent. |
-| `SN_PROTECTED_TABLES_WRITE` | no | `deny` | next | H-11: `deny` (the 3.0 default, B11) refuses writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them) with `POLICY_DENIED`; an exact `SN_TABLES_ALLOW` entry re-enables one; `allow` is the opt-out for all of them. Reads are unaffected. |
+| `SN_PROTECTED_TABLES_WRITE` | no | `confirm` | next | H-11: writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them). `confirm` (the 3.0 default, B11) runs one only when the tool call itself passes `apply: true` — under `SN_WRITE_MODE=apply` a call without it is refused with `POLICY_DENIED` and a hint to re-run; `deny` refuses them all; `allow` is the 2.x behaviour. An exact `SN_TABLES_ALLOW` entry lifts the rule for one table. Reads are unaffected. |
 | `SN_IMPORT_SET_TABLES` | no | `u_*,imp_*` | next | H-11: patterns (`*`, `?`) the import-set staging table must match (3.0 default `u_*,imp_*`); `*` is the opt-out (any table the table policy allows). |
 | `SN_MAX_WRITES_PER_SESSION` | no | 500 per HTTP session, none on stdio | next | H-11: most applied instance writes per session (the process on stdio, one MCP session over HTTP; a batch counts its write sub-requests). Past it, writes fail with `WRITE_CAP` before any request; `get_status.writes.caps` shows the usage. Unset = 500 per HTTP session and no cap on stdio (3.0 default); `0` = no cap. |
 | `SN_MAX_DELETES_PER_SESSION` | no | `100` | next | H-11: most applied deletes per session (`WRITE_CAP`; 100 since 3.0). `0` = no cap. |
@@ -915,8 +915,9 @@ trimmed in both, and table matching is case-insensitive — so
 `SN_TABLES_DENY=Change_Request, sys_user` works. Since H-11 a table entry may be
 a pattern (`*` any run, `?` one character): `SN_TABLES_DENY=sys_*` blocks
 `sys_user` and leaves `incident` alone. The order is: an exact deny, an exact
-allow, a pattern deny, the protected tables (writes; denied by default since
-3.0, `SN_PROTECTED_TABLES_WRITE=allow` lifts it), then the allowlist's
+allow, a pattern deny, the protected tables (writes; since 3.0 they need the
+call's own `apply: true` — `SN_PROTECTED_TABLES_WRITE=confirm`; `deny` refuses
+them, `allow` lifts the rule), then the allowlist's
 patterns. Ask
 `servicenow_explain_policy({table, action})` which rule decides, or read
 `servicenow://policy`.

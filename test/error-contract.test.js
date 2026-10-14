@@ -312,7 +312,17 @@ test("policy denials carry POLICY_DENIED, source policy and the setting to chang
   await withEnv({ SN_PROTECTED_TABLES_WRITE: "deny" }, () => {
     const prot = denied(() => assertTableWriteAllowed("sys_user_has_role"));
     assert.equal(prot.code, "POLICY_DENIED");
-    assert.match(prot.hint, /SN_PROTECTED_TABLES_WRITE=allow/);
+    assert.match(prot.hint, /SN_PROTECTED_TABLES_WRITE=confirm or allow/);
+  });
+  // B11 confirm (the default): an apply without the call's own apply: true.
+  await withEnv({ SN_PROTECTED_TABLES_WRITE: undefined }, () => {
+    const conf = denied(() => assertTableWriteAllowed("sys_user_has_role"));
+    assert.equal(conf.code, "POLICY_DENIED");
+    assert.match(conf.error, /need an explicit apply: true/);
+    assert.match(conf.hint, /re-run the call with apply: true/);
+    assert.doesNotThrow(() =>
+      assertTableWriteAllowed("sys_user_has_role", "preview"),
+    );
   });
   await withEnv({ SN_READONLY: "true" }, () => {
     const ro = denied(() => assertWriteAllowed("create_record"));

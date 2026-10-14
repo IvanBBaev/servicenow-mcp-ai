@@ -264,7 +264,8 @@ test("acceptance: create_record on sys_user_has_role is refused under the protec
       assert.equal(mutating(calls).length, 1);
     },
   );
-  // Unset is the 3.0 default (B11): the write is refused.
+  // Unset is the 3.0 default `confirm` (B11): SN_WRITE_MODE=apply alone is
+  // refused with a hint to re-run; the call's own apply: true runs it.
   await scenario(
     { SN_WRITE_MODE: "apply", SN_PROTECTED_TABLES_WRITE: undefined },
     async (calls) => {
@@ -275,8 +276,37 @@ test("acceptance: create_record on sys_user_has_role is refused under the protec
         }),
       );
       assert.equal(res.code, "POLICY_DENIED");
-      assert.match(res.error, /SN_PROTECTED_TABLES_WRITE=deny/);
+      assert.match(res.error, /SN_PROTECTED_TABLES_WRITE=confirm/);
+      assert.match(res.hint, /re-run the call with apply: true/);
       assert.equal(mutating(calls).length, 0);
+      const ok = await call("servicenow_create_record", {
+        table: "sys_user_has_role",
+        values: { user: "x" },
+        apply: true,
+      });
+      assert.equal(ok.isError, undefined, ok.content[0].text);
+      assert.equal(mutating(calls).length, 1);
+    },
+  );
+  // Plan mode under confirm: the preview is free, apply: true writes.
+  await scenario(
+    { SN_WRITE_MODE: "plan", SN_PROTECTED_TABLES_WRITE: "confirm" },
+    async (calls) => {
+      const plan = out(
+        await call("servicenow_create_record", {
+          table: "sys_user_has_role",
+          values: { user: "x" },
+        }),
+      );
+      assert.equal(plan.mode, "plan");
+      assert.equal(mutating(calls).length, 0);
+      const res = await call("servicenow_create_record", {
+        table: "sys_user_has_role",
+        values: { user: "x" },
+        apply: true,
+      });
+      assert.equal(res.isError, undefined, res.content[0].text);
+      assert.equal(mutating(calls).length, 1);
     },
   );
   // SN_PROTECTED_TABLES_WRITE=allow is the explicit opt-out.
@@ -474,7 +504,7 @@ test("SN_IMPORT_SET_TABLES: unset means u_*,imp_* (3.0, B11); * lifts the restri
 // --- explain_policy / servicenow://policy -----------------------------------------
 
 test("explain_policy answers with the guards' own verdict (acceptance: sys_user update → protected-default)", async () => {
-  await scenario({ SN_PROTECTED_TABLES_WRITE: "deny" }, async (calls) => {
+  await scenario({ SN_PROTECTED_TABLES_WRITE: "deny" }, async () => {
     const r = out(
       await call("servicenow_explain_policy", {
         table: "sys_user",
@@ -484,6 +514,17 @@ test("explain_policy answers with the guards' own verdict (acceptance: sys_user 
     assert.equal(r.allowed, false);
     assert.equal(r.rule, "protected-default");
     assert.equal(r.protected, true);
+  });
+  await scenario({ SN_PROTECTED_TABLES_WRITE: undefined }, async (calls) => {
+    const r = out(
+      await call("servicenow_explain_policy", {
+        table: "sys_user",
+        action: "write",
+      }),
+    );
+    assert.equal(r.allowed, true);
+    assert.equal(r.rule, "protected-confirm");
+    assert.match(r.reason, /apply: true/);
     const read = out(
       await call("servicenow_explain_policy", { table: "sys_user" }),
     );
@@ -499,6 +540,7 @@ test("explain_policy answers with the guards' own verdict (acceptance: sys_user 
     { SN_TABLES_ALLOW: "u_*,incident" },
     { SN_TABLES_ALLOW: "sys_user", SN_TABLES_DENY: "sys_*" },
     { SN_PROTECTED_TABLES_WRITE: "deny" },
+    { SN_PROTECTED_TABLES_WRITE: "allow" },
     { SN_READONLY: "1" },
   ];
   for (const env of policies) {
@@ -512,7 +554,8 @@ test("explain_policy answers with the guards' own verdict (acceptance: sys_user 
           try {
             if (action === "read") assertTableAllowed(table);
             else {
-              assertTableWriteAllowed(table);
+              // B11 confirm: explain answers for a call that passes apply: true.
+              assertTableWriteAllowed(table, "preview");
               if (env.SN_READONLY) guard = false;
             }
           } catch {
@@ -544,7 +587,7 @@ test("explain_policy without a table and servicenow://policy return the effectiv
         exact: ["hr_case"],
         patterns: ["sys_*"],
       });
-      assert.equal(p.protectedTables.write, "deny", "3.0 default (B11)");
+      assert.equal(p.protectedTables.write, "confirm", "3.0 default (B11)");
       assert.ok(p.protectedTables.list.includes("sys_rest_message*"));
       const res = policyResourcePayload();
       assert.equal(res.activeProfile, "default");

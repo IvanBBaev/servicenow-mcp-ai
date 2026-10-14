@@ -100,15 +100,15 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
         "H-4: most sub-requests one `servicenow_batch` call may carry (1–1000; 50 since 3.0), checked before anything is sent.",
     },
   ),
-  oneOf(["allow", "deny"], {
+  oneOf(["allow", "confirm", "deny"], {
     key: "SN_PROTECTED_TABLES_WRITE",
     section: "policy",
     since: NEXT,
     profile: "override",
-    default: "deny",
-    example: "deny",
+    default: "confirm",
+    example: "confirm",
     description:
-      "H-11: `deny` (the 3.0 default, B11) refuses writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them) with `POLICY_DENIED`; an exact `SN_TABLES_ALLOW` entry re-enables one; `allow` is the opt-out for all of them. Reads are unaffected.",
+      "H-11: writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them). `confirm` (the 3.0 default, B11) runs one only when the tool call itself passes `apply: true` — under `SN_WRITE_MODE=apply` a call without it is refused with `POLICY_DENIED` and a hint to re-run; `deny` refuses them all; `allow` is the 2.x behaviour. An exact `SN_TABLES_ALLOW` entry lifts the rule for one table. Reads are unaffected.",
   }),
   list({
     key: "SN_IMPORT_SET_TABLES",

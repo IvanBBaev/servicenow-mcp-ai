@@ -124,7 +124,7 @@ export const specs: AnyToolSpec[] = [
         // Never echo the base64 payload — preview the validated envelope only
         // (sanitised name, effective type, decoded size, sha256). H-11: the
         // preview fails like apply when the parent table is not writable.
-        assertTableWriteAllowed(table);
+        assertTableWriteAllowed(table, "preview");
         const upload = prepareUpload({
           fileName: file_name,
           contentBase64: content_base64,

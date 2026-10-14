@@ -18,7 +18,7 @@ import { BASE_PRIVILEGED_ROLES } from "./access-review.js";
  *
  * The write itself goes through the table rails: sys_user_has_role is a
  * protected table (B11), so a grant or revoke also needs it listed in
- * SN_TABLES_ALLOW (or SN_PROTECTED_TABLES_WRITE=allow). Field names follow
+ * SN_TABLES_ALLOW (or SN_PROTECTED_TABLES_WRITE=allow; `confirm` needs apply: true). Field names follow
  * the access review, checked on a PDI (O-5).
  */
 

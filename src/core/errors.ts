@@ -103,7 +103,8 @@ export type ServiceNowErrorCode =
   | "CONFIRM_DECLINED"
   /**
    * H-11: the table policy refused the call (SN_TABLES_ALLOW / SN_TABLES_DENY,
-   * a protected table under SN_PROTECTED_TABLES_WRITE=deny, or
+   * a protected table under SN_PROTECTED_TABLES_WRITE=deny — or under
+   * `confirm` without the call's own apply: true — or
    * SN_IMPORT_SET_TABLES). servicenow_explain_policy names the rule.
    */
   | "POLICY_DENIED"

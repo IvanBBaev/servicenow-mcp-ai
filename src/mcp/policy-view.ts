@@ -43,7 +43,7 @@ export function policyPayload(profile: string = activeProfile()) {
         "deny-exact",
         "allow-exact",
         "deny-pattern",
-        "protected-default",
+        "protected-default / protected-confirm",
         "allow-pattern / not-in-allowlist",
         "no-policy",
       ],

@@ -366,6 +366,7 @@ async function runSpecInner(
   }
 
   call.profile = profile || activeProfile();
+  call.explicitApply = args.apply === true;
   // H-3: a destructive-apply tool's call knows its plan binding, so its plan
   // preview can issue a plan_token for exactly these arguments — only when
   // `when` selects the call, so a plan whose apply needs no token issues none.

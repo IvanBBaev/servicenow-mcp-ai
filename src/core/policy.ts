@@ -1,5 +1,6 @@
 import { ServiceNowError } from "./errors.js";
 import { activeProfile } from "./config.js";
+import { currentCall } from "./request-context.js";
 import { getDeniedPackages, getReadOnlyPackages } from "./settings.js";
 import { rawSetting, readBool, readEnum } from "./settings-manifest.js";
 
@@ -57,9 +58,10 @@ export function isReadOnly(profile?: string): boolean {
 
 /**
  * Tables whose writes can grant access, change security or run code on the
- * instance (GAP L3-01). Writes to them are refused while
- * SN_PROTECTED_TABLES_WRITE=deny (the 3.0 default, B11) unless
- * SN_TABLES_ALLOW lists the table *exactly* — explicit listing is informed
+ * instance (GAP L3-01). Under SN_PROTECTED_TABLES_WRITE=confirm (the 3.0
+ * default, B11) a write to one runs only when the call itself passed
+ * `apply: true`; under `deny` it is refused. Either way an exact
+ * SN_TABLES_ALLOW entry lifts the rule — explicit listing is informed
  * consent. Reads are never affected. `*` / `?` are globs.
  */
 export const PROTECTED_TABLES: readonly string[] = [
@@ -93,6 +95,7 @@ export type PolicyRule =
   | "allow-exact"
   | "deny-pattern"
   | "protected-default"
+  | "protected-confirm"
   | "import-set-allowlist"
   | "allow-pattern"
   | "not-in-allowlist"
@@ -105,6 +108,11 @@ export interface PolicyVerdict {
   matched?: string;
   /** One sentence, the text a denial error carries. */
   reason: string;
+  /**
+   * B11 `confirm`: the write is allowed only for a call that passed
+   * `apply: true` itself — {@link assertTableWriteAllowed} enforces it.
+   */
+  confirm?: boolean;
 }
 
 const compiled = new Map<string, RegExp | null>();
@@ -150,12 +158,17 @@ function firstMatch(
   );
 }
 
-/** H-11: `SN_PROTECTED_TABLES_WRITE` — `deny` (the 3.0 default, B11) or `allow` (the opt-out). */
-export function protectedTablesWrite(profile?: string): "allow" | "deny" {
+export type ProtectedTablesWrite = "allow" | "confirm" | "deny";
+
+/**
+ * H-11: `SN_PROTECTED_TABLES_WRITE` — `confirm` (the 3.0 default, B11: a
+ * write needs the call's own `apply: true`), `deny`, or `allow` (2.x).
+ */
+export function protectedTablesWrite(profile?: string): ProtectedTablesWrite {
   return (
-    readEnum<"allow" | "deny">("SN_PROTECTED_TABLES_WRITE", {
+    readEnum<ProtectedTablesWrite>("SN_PROTECTED_TABLES_WRITE", {
       profile: profile ?? activeProfile(),
-    }) ?? "deny"
+    }) ?? "confirm"
   );
 }
 
@@ -184,7 +197,8 @@ export function getImportSetTables(profile?: string): string[] {
  * match wins): an exact deny, an exact allow (which also overrides the
  * protected list), a pattern deny, the protected list for writes (when
  * SN_PROTECTED_TABLES_WRITE=deny), then the allowlist's patterns — a table
- * outside a non-empty allowlist is refused. With only exact entries this is
+ * outside a non-empty allowlist is refused. Under `confirm` a protected
+ * write the later rules allow becomes `protected-confirm`. With only exact entries this is
  * the pre-H-11 behaviour (deny wins, allowlist restricts).
  */
 export function evaluateTable(
@@ -223,7 +237,23 @@ export function evaluateTable(
       reason: `Access to table "${table}" is denied by SN_TABLES_DENY (pattern "${patternDeny}").`,
     };
   }
-  if (action === "write" && protectedTablesWrite(profile) === "deny") {
+  const protectedMode =
+    action === "write" ? protectedTablesWrite(profile) : "allow";
+  if (protectedMode === "confirm") {
+    const entry = protectedEntry(t);
+    const rest = allowlistVerdict(table, t, allow);
+    if (entry && rest.allowed) {
+      return {
+        allowed: true,
+        confirm: true,
+        rule: "protected-confirm",
+        matched: entry,
+        reason: `Table "${table}" is a protected table (security, identity or code): under SN_PROTECTED_TABLES_WRITE=confirm a write runs only when the call passes apply: true itself, after the user agrees.`,
+      };
+    }
+    return rest;
+  }
+  if (protectedMode === "deny") {
     const entry = protectedEntry(t);
     if (entry) {
       return {
@@ -234,6 +264,15 @@ export function evaluateTable(
       };
     }
   }
+  return allowlistVerdict(table, t, allow);
+}
+
+/** H-11: the last rules — the allowlist's patterns, else no policy. */
+function allowlistVerdict(
+  table: string,
+  t: string,
+  allow: string[],
+): PolicyVerdict {
   if (allow.length > 0) {
     const patternAllow = firstMatch(t, allow, "pattern");
     if (patternAllow) {
@@ -269,7 +308,9 @@ const TABLE_HINTS: Partial<Record<PolicyRule, (table: string) => string>> = {
   "deny-pattern": (t) =>
     `Narrow the SN_TABLES_DENY (or SN_PROFILE_<NAME>_TABLES_DENY) pattern that matches "${t}" and restart.${EXPLAIN}`,
   "protected-default": (t) =>
-    `List "${t}" exactly in SN_TABLES_ALLOW, or set SN_PROTECTED_TABLES_WRITE=allow (or the SN_PROFILE_<NAME>_ forms), and restart.${EXPLAIN}`,
+    `List "${t}" exactly in SN_TABLES_ALLOW, or set SN_PROTECTED_TABLES_WRITE=confirm or allow (or the SN_PROFILE_<NAME>_ forms), and restart.${EXPLAIN}`,
+  "protected-confirm": (t) =>
+    `Show the user the change to "${t}" and, once they agree, re-run the call with apply: true. To skip this step, list "${t}" exactly in SN_TABLES_ALLOW or set SN_PROTECTED_TABLES_WRITE=allow, and restart.${EXPLAIN}`,
   "not-in-allowlist": (t) =>
     `Add "${t}" to SN_TABLES_ALLOW (or SN_PROFILE_<NAME>_TABLES_ALLOW) and restart.${EXPLAIN}`,
 };
@@ -305,11 +346,23 @@ export function assertTableAllowed(table: string): void {
 
 /**
  * H-11: the write check for a table — the read rules plus the protected list.
- * Callers still call assertWriteAllowed for the read-only axis.
+ * Callers still call assertWriteAllowed for the read-only axis. B11
+ * `confirm`: an `apply` write to a protected table also needs the tool call
+ * to have passed `apply: true` itself (SN_WRITE_MODE=apply alone is not
+ * consent); a `preview` check lets the plan through, since it writes nothing.
  */
-export function assertTableWriteAllowed(table: string): void {
+export function assertTableWriteAllowed(
+  table: string,
+  phase: "apply" | "preview" = "apply",
+): void {
   const verdict = evaluateTable(table, "write");
   if (!verdict.allowed) throw tableDenied(table, verdict);
+  if (verdict.confirm && phase === "apply" && !currentCall()?.explicitApply) {
+    throw policyDenied(
+      `Writes to table "${table}" need an explicit apply: true: it is a protected table (security, identity or code), and SN_PROTECTED_TABLES_WRITE=confirm. Nothing was changed.`,
+      TABLE_HINTS["protected-confirm"]!(table),
+    );
+  }
 }
 
 /**

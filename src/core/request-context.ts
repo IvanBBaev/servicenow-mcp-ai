@@ -91,6 +91,11 @@ export interface CallContext {
    */
   plan?: { argsHash: string; token?: string; binding?: string };
   /**
+   * B11: the call passed `apply: true` itself — the consent a write to a
+   * protected table needs under SN_PROTECTED_TABLES_WRITE=confirm.
+   */
+  explicitApply?: boolean;
+  /**
    * N-55: the process-unique id of the call's diagnostics_channel events
    * (tracing.ts); the HTTP request events of the call carry it as `callId`.
    */
