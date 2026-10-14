@@ -150,6 +150,60 @@ test("D-6: package.json publishConfig matches the publish workflow", () => {
   assert.deepEqual(pkg.publishConfig, { access: "public", provenance: true });
 });
 
+// --- the exports map (B23) ---------------------------------------------------
+
+test("B23: only the entry point and package.json are exported", () => {
+  const pkg = json("package.json");
+  assert.deepEqual(pkg.exports, {
+    ".": "./build/index.js",
+    "./package.json": "./package.json",
+  });
+  assert.equal(pkg.main, pkg.exports["."]);
+  // The entry point runs the CLI when it is imported; every other module is
+  // free of import-time effects (D-1), so only the entry is listed.
+  assert.deepEqual(pkg.sideEffects, ["./build/index.js"]);
+});
+
+test("B23: deep imports stop resolving through the package name", () => {
+  const resolve = (spec) => import.meta.resolve(spec);
+  assert.equal(
+    resolve("servicenow-mcp-ai"),
+    new URL("../build/index.js", import.meta.url).href,
+  );
+  assert.equal(
+    resolve("servicenow-mcp-ai/package.json"),
+    new URL("../package.json", import.meta.url).href,
+  );
+  for (const deep of [
+    "servicenow-mcp-ai/build/cli.js",
+    "servicenow-mcp-ai/build/server.js",
+    "servicenow-mcp-ai/bin/servicenow-mcp-ai.cjs",
+  ]) {
+    assert.throws(
+      () => resolve(deep),
+      { code: "ERR_PACKAGE_PATH_NOT_EXPORTED" },
+      deep,
+    );
+  }
+});
+
+test("B23: no shipped file deep-imports the package by name", () => {
+  const files = [
+    "bin/servicenow-mcp-ai.cjs",
+    ...extensionSources,
+    ...readdirSync(path.join(root, "scripts"))
+      .filter((f) => /\.(c|m)?js$/.test(f))
+      .map((f) => `scripts/${f}`),
+  ];
+  for (const file of files) {
+    assert.doesNotMatch(
+      read(file),
+      /["']servicenow-mcp-ai\/(?!package\.json["'])/,
+      `${file} deep-imports servicenow-mcp-ai`,
+    );
+  }
+});
+
 // --- stale registry namespace ------------------------------------------------
 
 test("D-6: no distribution file names the stale LeassTaTT namespace", () => {

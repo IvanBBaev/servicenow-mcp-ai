@@ -18,6 +18,13 @@
     "servicenow-mcp-ai": "./bin/servicenow-mcp-ai.cjs"
   },
   "main": "./build/index.js",
+  "exports": {
+    ".": "./build/index.js",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "./build/index.js"
+  ],
   "files": [
     "build",
     "!build/**/*.map",

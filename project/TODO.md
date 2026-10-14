@@ -793,7 +793,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     `test/output-schema.test.js`) (resolved: ADR 0006).
   - P-19: severity of `uib-data-broker-no-acl`. P-21: UIB depth beyond page-map diagrams.
   - D-6: publish the extension only after 3.0.0; delete the stale registry entries; the Open VSX
-    namespace and `OVSX_PAT` secret; the `exports` map (B10).
+    namespace and `OVSX_PAT` secret; ~~the `exports` map~~ (resolved: B23, 2026-10-14).
 - [ ] **Owner decisions from batch 13 (2026-09-28, committed 88358f9).**
       **D-5:** (a) publish the image (GHCR / Docker Hub) and pin base images by digest? (b) list on
       Smithery / Glama? (c) a public `/healthz` so `HEALTHCHECK` can use HTTP instead of TCP? (d)

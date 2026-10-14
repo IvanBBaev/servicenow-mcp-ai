@@ -270,7 +270,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Partly done 2026-09-30 (local).** Open VSX publish job (`OVSX_PAT`-gated), GitHub release job with `scripts/release-notes.mjs`, extension pinned to `servicenow-mcp-ai@3.x`, `publishConfig`; the owner publishes and deletes the stale registry entries; `exports` map waits for B10."
+    notes: "**Partly done 2026-09-30 (local).** Open VSX publish job (`OVSX_PAT`-gated), GitHub release job with `scripts/release-notes.mjs`, extension pinned to `servicenow-mcp-ai@3.x`, `publishConfig`. **`exports` map done 2026-10-14 (owner, BREAKING B23):** `exports` names only `.` (`build/index.js`) and `./package.json`, `sideEffects` lists only the entry point (it runs the CLI on import); deep imports such as `servicenow-mcp-ai/build/...` stop resolving; pinned by `test/distribution.test.js`. Open: the owner publishes and deletes the stale registry entries."
   - id: "S-3"
     title: "security-scan extension"
     pillar: "S"
