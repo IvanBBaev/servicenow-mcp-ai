@@ -18,17 +18,18 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 export const CASE_KINDS = ["positive", "cluster", "write", "negative"];
-export const SURFACE_PROFILES = ["core", "all", "discovery"];
+export const SURFACE_PROFILES = ["discovery", "all", "deferred"];
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
 
 /** The env each eval profile publishes `tools/list` under. */
 export const PROFILE_ENV = {
-  core: {},
+  discovery: {},
   all: { SN_TOOL_PACKAGES: "all" },
 };
 
 /** Tools that resolve a "tool not loaded" situation on a narrow surface. */
 export const PACKAGE_RESCUE = [
+  "servicenow_find_tools",
   "servicenow_enable_package",
   "servicenow_list_packages",
 ];
@@ -104,24 +105,25 @@ export function loadCases(path, knownTools) {
 
 /**
  * Build the eval surface for one profile from published tool lists.
- * `core` and `all` are the real `tools/list` of those profiles. `discovery`
- * simulates a deferred-loading surface until N-63 ships `find_tools`: the
- * core tools in full, every other tool as a name + title stub with an open
- * schema. Picking a stub counts as picking that tool.
+ * `discovery` and `all` are the real `tools/list` of those profiles
+ * (`discovery` is the default since N-63). `deferred` simulates a client that
+ * defers tool definitions: the discovery tools in full, every other tool as a
+ * name + title stub with an open schema. Picking a stub counts as picking
+ * that tool.
  */
-export function buildSurface(profile, { core, all }) {
+export function buildSurface(profile, { discovery, all }) {
   const full = (t) => ({
     name: t.name,
     title: t.title ?? "",
     description: t.description ?? "",
     inputSchema: t.inputSchema ?? { type: "object" },
   });
-  if (profile === "core") return { profile, tools: core.map(full) };
+  if (profile === "discovery") return { profile, tools: discovery.map(full) };
   if (profile === "all") return { profile, tools: all.map(full) };
-  if (profile === "discovery") {
-    const coreNames = new Set(core.map((t) => t.name));
+  if (profile === "deferred") {
+    const loaded = new Set(discovery.map((t) => t.name));
     const stubs = all
-      .filter((t) => !coreNames.has(t.name))
+      .filter((t) => !loaded.has(t.name))
       .map((t) => ({
         name: t.name,
         title: t.title ?? "",
@@ -129,7 +131,7 @@ export function buildSurface(profile, { core, all }) {
         inputSchema: { type: "object" },
         stub: true,
       }));
-    return { profile, tools: [...core.map(full), ...stubs] };
+    return { profile, tools: [...discovery.map(full), ...stubs] };
   }
   throw new Error(
     `unknown profile ${profile}; use ${SURFACE_PROFILES.join(", ")}`,

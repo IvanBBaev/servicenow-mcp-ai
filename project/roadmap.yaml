@@ -923,11 +923,11 @@ items:
     title: "tool-selection eval"
     pillar: "N"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-14"
     gates: ["O-10"]
-    notes: "**Harness done 2026-10-05 (local, uncommitted).** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. **Repeats + McNemar done 2026-10-09:** `--repeats <n>` with a majority vote, an exact McNemar p-value and the 4-point acceptance rule in the comparison. O-10 (d) decided 2026-10-09: `claude-sonnet-5-5`, three repeats. **Real-model baseline dropped 2026-10-13 (owner: no `ANTHROPIC_API_KEY`, so no paid eval run for 3.0.0).** Open: a real `discovery` profile after N-63 (NX-23)."
+    notes: "**Harness done 2026-10-05 (local, uncommitted).** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. **Repeats + McNemar done 2026-10-09:** `--repeats <n>` with a majority vote, an exact McNemar p-value and the 4-point acceptance rule in the comparison. O-10 (d) decided 2026-10-09: `claude-sonnet-5-5`, three repeats. **Real-model baseline dropped 2026-10-13 (owner: no `ANTHROPIC_API_KEY`, so no paid eval run for 3.0.0).** **Discovery profile done 2026-10-14:** the eval profiles are `discovery` (the real default `tools/list` since N-63), `all` and `deferred` (the former simulation); `find_tools` counts as a package rescue; offline lexical baseline rewritten (discovery 16.1 %, all 33.6 %, deferred 30.2 %). Offline scope closed (NX-23)."
   - id: "N-19"
     title: "prompts for the N flagships"
     pillar: "N"

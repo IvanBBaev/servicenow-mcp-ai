@@ -14,7 +14,7 @@
  *   node evals/tool-selection/run.mjs [options]
  *
  *   --backend lexical|recorded|anthropic   default lexical (offline)
- *   --profile core,all,discovery           default all three
+ *   --profile discovery,all,deferred       default all three
  *   --model <id>                           anthropic model (default claude-sonnet-5-5)
  *   --answers <file>                       recorded answers to replay (recorded backend)
  *   --record <file>                        save this run's answers for later replay
@@ -162,7 +162,7 @@ const concurrency = Number(
   opts.concurrency ?? (backend.id === "anthropic" ? 4 : 1),
 );
 const published = {
-  core: await listPublishedTools(PROFILE_ENV.core),
+  discovery: await listPublishedTools(PROFILE_ENV.discovery),
   all: await listPublishedTools(PROFILE_ENV.all),
 };
 

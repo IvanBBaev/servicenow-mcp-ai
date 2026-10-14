@@ -110,8 +110,11 @@ report goes to the job summary.
 `npm run eval:tools` (N-18) is the tool-selection eval in
 `evals/tool-selection/`: about 150 natural-language tasks (one paraphrase per
 tool, confusable clusters, write tasks with expected arguments, and tasks no
-tool fits) are scored against the published `tools/list` of the `core`, `all`
-and a simulated `discovery` profile. It is on demand and **not** part of
+tool fits) are scored against the published `tools/list` of the `discovery`
+(default) and `all` profiles, and a simulated `deferred` profile (the
+discovery tools in full, every other tool as a stub). When a task's tool is not
+loaded, `find_tools`, `enable_package` or `list_packages` counts as the right
+first step. It is on demand and **not** part of
 `npm run check`. The default backend is an offline lexical (TF-IDF) baseline
 that needs no key; `-- --backend anthropic [--model claude-sonnet-5-5]` calls
 the Messages API with `ANTHROPIC_API_KEY` and spends real budget, and

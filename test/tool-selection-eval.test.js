@@ -14,6 +14,7 @@ import {
   ACCEPT_MAX_DROP,
   PACKAGE_RESCUE,
   PROFILE_ENV,
+  SURFACE_PROFILES,
   buildSurface,
   caseToolNames,
   compareToBaseline,
@@ -64,18 +65,19 @@ const WRITE_SCHEMA = {
 };
 
 const fixture = () => {
-  const core = [
+  const discovery = [
     tool("servicenow_query_table"),
     tool("servicenow_create_record", { inputSchema: WRITE_SCHEMA }),
+    tool("servicenow_find_tools"),
     tool("servicenow_enable_package"),
     tool("servicenow_list_packages"),
   ];
   const all = [
-    ...core,
+    ...discovery,
     tool("servicenow_search_code"),
     tool("servicenow_list_cis"),
   ];
-  return { core, all };
+  return { discovery, all };
 };
 
 test("the shipped case set is valid and names only real tools", () => {
@@ -115,17 +117,37 @@ test("validateCases reports structural problems", () => {
   ]);
 });
 
-test("buildSurface: core, all, and the simulated discovery stubs", () => {
+test("buildSurface: discovery, all, and the simulated deferred stubs", () => {
   const pub = fixture();
-  assert.equal(buildSurface("core", pub).tools.length, 4);
-  assert.equal(buildSurface("all", pub).tools.length, 6);
-  const disc = buildSurface("discovery", pub);
-  assert.equal(disc.tools.length, 6);
-  const stub = disc.tools.find((t) => t.name === "servicenow_search_code");
+  assert.deepEqual(SURFACE_PROFILES, ["discovery", "all", "deferred"]);
+  assert.deepEqual(PROFILE_ENV.discovery, {});
+  assert.equal(buildSurface("discovery", pub).tools.length, 5);
+  assert.equal(buildSurface("all", pub).tools.length, 7);
+  const deferred = buildSurface("deferred", pub);
+  assert.equal(deferred.tools.length, 7);
+  const stub = deferred.tools.find((t) => t.name === "servicenow_search_code");
   assert.equal(stub.stub, true);
   assert.deepEqual(stub.inputSchema, { type: "object" });
-  assert.ok(!disc.tools.find((t) => t.name === "servicenow_query_table").stub);
+  assert.ok(
+    !deferred.tools.find((t) => t.name === "servicenow_query_table").stub,
+  );
   assert.throws(() => buildSurface("nope", pub), /unknown profile/);
+  // `core` names the same packages as `discovery` since N-63 (B20).
+  assert.throws(() => buildSurface("core", pub), /unknown profile/);
+});
+
+test("find_tools is a package rescue on a narrow surface (N-63)", () => {
+  assert.ok(PACKAGE_RESCUE.includes("servicenow_find_tools"));
+  const names = new Set(
+    buildSurface("discovery", fixture()).tools.map((t) => t.name),
+  );
+  const c = {
+    id: "c",
+    kind: "positive",
+    prompt: "p",
+    expected: ["servicenow_list_cis"],
+  };
+  assert.ok(effectiveExpected(c, names).includes("servicenow_find_tools"));
 });
 
 test("effectiveExpected falls back to package tools when nothing is loaded", () => {
@@ -169,7 +191,7 @@ test("validateArgs checks required, unknown and typed properties", () => {
 });
 
 test("scoreCase: correctness, abstention, plan-first and expected args", () => {
-  const surface = buildSurface("core", fixture());
+  const surface = buildSurface("discovery", fixture());
   const write = {
     id: "w",
     kind: "write",
@@ -251,10 +273,12 @@ test("lexical backend is deterministic and abstains on unrelated text", async ()
 });
 
 test("recorded backend replays answers and flags missing ones", async () => {
-  const surface = buildSurface("core", fixture());
+  const surface = buildSurface("discovery", fixture());
   const rec = createRecordedBackend({
     model: "m",
-    answers: { core: { a: { tool: "servicenow_query_table", input: {} } } },
+    answers: {
+      discovery: { a: { tool: "servicenow_query_table", input: {} } },
+    },
   });
   assert.equal(rec.model, "recorded:m");
   assert.equal(
@@ -268,7 +292,7 @@ test("recorded backend replays answers and flags missing ones", async () => {
 });
 
 test("anthropic backend: request shape, tool_use parsing, retry, errors", async () => {
-  const surface = buildSurface("core", fixture());
+  const surface = buildSurface("discovery", fixture());
   const calls = [];
   const replies = [
     { status: 529, body: { type: "error" } },
@@ -351,7 +375,7 @@ test("anthropic backend: request shape, tool_use parsing, retry, errors", async 
 
 test("evaluate + baseline comparison and description drift", async () => {
   const pub = fixture();
-  const surface = buildSurface("core", pub);
+  const surface = buildSurface("discovery", pub);
   const cases = [
     {
       id: "a",
@@ -381,14 +405,14 @@ test("evaluate + baseline comparison and description drift", async () => {
   assert.deepEqual(results[1].expected, PACKAGE_RESCUE);
 
   const baseline = {
-    profiles: { core: { top1: 100 } },
-    picks: { core: { a: { correct: true }, b: { correct: true } } },
+    profiles: { discovery: { top1: 100 } },
+    picks: { discovery: { a: { correct: true }, b: { correct: true } } },
   };
   const cmp = compareToBaseline(baseline, {
-    profiles: { core: summary },
-    results: { core: results },
+    profiles: { discovery: summary },
+    results: { discovery: results },
   });
-  assert.deepEqual(cmp.core, {
+  assert.deepEqual(cmp.discovery, {
     before: 100,
     after: 50,
     delta: -50,

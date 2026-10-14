@@ -9,15 +9,15 @@
   },
   "repeats": 1,
   "profiles": {
-    "core": {
+    "discovery": {
       "tools": 20,
       "n": 149,
-      "top1": 12.8,
+      "top1": 16.1,
       "byKind": {
         "cluster": {
           "n": 30,
-          "correct": 4,
-          "accuracy": 13.3
+          "correct": 5,
+          "accuracy": 16.7
         },
         "negative": {
           "n": 8,
@@ -26,8 +26,8 @@
         },
         "positive": {
           "n": 96,
-          "correct": 8,
-          "accuracy": 8.3
+          "correct": 12,
+          "accuracy": 12.5
         },
         "write": {
           "n": 15,
@@ -93,8 +93,8 @@
         },
         "directory": {
           "n": 1,
-          "correct": 0,
-          "accuracy": 0
+          "correct": 1,
+          "accuracy": 100
         },
         "docs": {
           "n": 12,
@@ -118,8 +118,8 @@
         },
         "importset": {
           "n": 3,
-          "correct": 0,
-          "accuracy": 0
+          "correct": 1,
+          "accuracy": 33.3
         },
         "instance": {
           "n": 2,
@@ -128,13 +128,13 @@
         },
         "knowledge": {
           "n": 4,
-          "correct": 0,
-          "accuracy": 0
+          "correct": 1,
+          "accuracy": 25
         },
         "ops": {
           "n": 2,
-          "correct": 0,
-          "accuracy": 0
+          "correct": 1,
+          "accuracy": 50
         },
         "properties": {
           "n": 3,
@@ -153,8 +153,8 @@
         },
         "scripts": {
           "n": 10,
-          "correct": 0,
-          "accuracy": 0
+          "correct": 1,
+          "accuracy": 10
         },
         "table": {
           "n": 12,
@@ -200,8 +200,8 @@
         },
         "docs": {
           "n": 3,
-          "correct": 0,
-          "accuracy": 0
+          "correct": 1,
+          "accuracy": 33.3
         },
         "flows": {
           "n": 3,
@@ -228,9 +228,9 @@
       "planFirst": null
     },
     "all": {
-      "tools": 98,
+      "tools": 100,
       "n": 149,
-      "top1": 32.9,
+      "top1": 33.6,
       "byKind": {
         "cluster": {
           "n": 30,
@@ -249,8 +249,8 @@
         },
         "write": {
           "n": 15,
-          "correct": 9,
-          "accuracy": 60
+          "correct": 10,
+          "accuracy": 66.7
         }
       },
       "byPackage": {
@@ -276,8 +276,8 @@
         },
         "atf": {
           "n": 6,
-          "correct": 4,
-          "accuracy": 66.7
+          "correct": 5,
+          "accuracy": 83.3
         },
         "attachment": {
           "n": 5,
@@ -445,8 +445,8 @@
       "argValidity": null,
       "planFirst": null
     },
-    "discovery": {
-      "tools": 98,
+    "deferred": {
+      "tools": 100,
       "n": 149,
       "top1": 30.2,
       "byKind": {
@@ -665,7 +665,7 @@
     }
   },
   "picks": {
-    "core": {
+    "discovery": {
       "pos-aggregate": {
         "pick": null,
         "correct": false
@@ -688,7 +688,7 @@
       },
       "pos-check-data-health": {
         "pick": "servicenow_find_tools",
-        "correct": false
+        "correct": true
       },
       "pos-compare-instances": {
         "pick": "servicenow_test_connection",
@@ -864,7 +864,7 @@
       },
       "pos-insert-import-set-row": {
         "pick": "servicenow_find_tools",
-        "correct": false
+        "correct": true
       },
       "pos-lint-script": {
         "pick": "servicenow_query_table",
@@ -948,7 +948,7 @@
       },
       "pos-lookup-directory": {
         "pick": "servicenow_find_tools",
-        "correct": false
+        "correct": true
       },
       "pos-order-catalog-item": {
         "pick": "servicenow_set_credentials",
@@ -980,7 +980,7 @@
       },
       "pos-search-code": {
         "pick": "servicenow_find_tools",
-        "correct": false
+        "correct": true
       },
       "pos-search-docs": {
         "pick": null,
@@ -1132,7 +1132,7 @@
       },
       "cl-docs-kb": {
         "pick": "servicenow_find_tools",
-        "correct": false
+        "correct": true
       },
       "cl-conn-status": {
         "pick": "servicenow_get_status",
@@ -1337,7 +1337,7 @@
         "correct": true
       },
       "pos-document-table": {
-        "pick": "servicenow_generate_er_diagram",
+        "pick": "servicenow_generate_table_flow",
         "correct": false
       },
       "pos-download-attachment": {
@@ -1773,7 +1773,7 @@
         "correct": true
       },
       "w-update-incident": {
-        "pick": "servicenow_insert_import_set_row",
+        "pick": "servicenow_get_atf_result",
         "correct": false
       },
       "w-delete-record": {
@@ -1817,8 +1817,8 @@
         "correct": true
       },
       "w-run-atf-test": {
-        "pick": "servicenow_list_atf",
-        "correct": false
+        "pick": "servicenow_run_atf",
+        "correct": true
       },
       "w-revert-write": {
         "pick": "servicenow_revert_write",
@@ -1861,7 +1861,7 @@
         "correct": true
       }
     },
-    "discovery": {
+    "deferred": {
       "pos-aggregate": {
         "pick": "servicenow_lookup_directory",
         "correct": false
@@ -2463,10 +2463,12 @@
   "descriptions": {
     "servicenow_aggregate": "4d3a7129847f8db8c48c416a4550d7558c6f88f57e46db957835ae390aeeb8ed",
     "servicenow_batch": "13dd2fcbd7a9eb33eca2ce6bbbcb07222cfccc9efa1daf01e8038f9892a93b5c",
+    "servicenow_change_access": "07e154e8cfa86d23263a3832334e394de8d1d5a9e819565af537c0b149c3afb8",
     "servicenow_check_capabilities": "9321dfc04dc16d804d264c4c4f3ce424380f01a84a5507893fd82f54c15f308e",
     "servicenow_check_change_conflicts": "fb2795d506bd9e20440d329dc998b92cf503e3e1cf64c55f25aa231adb13a085",
     "servicenow_check_code_health": "25eda3a0c2715e1432e54b0a22b4d8e34df89ee0415114705adc9b50f7f4b1d4",
     "servicenow_check_data_health": "a571593c47e25864e891cbd8fdf1ddf9e8fe153024e8f118001e725253628963",
+    "servicenow_commit_update_set": "b954cd7ef56b9471d3450bfc8fb001b8d48b9582328f6eda584ca7a7f6fb11e9",
     "servicenow_compare_instances": "65dd51409331ce666763faa65f43f817a5114bd7a96cfe1ea1bcf75f0f1ccd71",
     "servicenow_compare_update_set": "82117cdb7a36e334a13e61e80fd63b43978edc431b49087a22f7ad73b2f58b2d",
     "servicenow_create_change": "ba6cab0a04b3ed540990be3042877901e8e06c321cfb4338ae562351336304cf",
