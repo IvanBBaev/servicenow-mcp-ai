@@ -209,8 +209,11 @@ test("commit: clean plan → token → apply posts force_commit=false once", asy
       assert.equal(plan.clean, true);
       assert.match(plan.plan_token, /^pt[a-z]{28}$/);
       assert.equal(plan.after.force_commit, false);
-      const refused = out(await call(args("commit", { apply: true })));
-      assert.equal(refused.code, "PLAN_REQUIRED");
+      // B4 self-healing: no token → a fresh plan, nothing posted.
+      const replanned = out(await call(args("commit", { apply: true })));
+      assert.equal(replanned.mode, "plan");
+      assert.match(replanned.apply_skipped, /plan_token/);
+      assert.equal(posts(calls).length, 0);
       const res = await call(
         args("commit", { apply: true, plan_token: plan.plan_token }),
       );

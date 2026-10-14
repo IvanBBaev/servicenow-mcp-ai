@@ -89,7 +89,16 @@ export interface CallContext {
    * and, once an apply was confirmed, the consumed token (journaled) and the
    * state its plan was bound to (N-4, see plan-token.ts).
    */
-  plan?: { argsHash: string; token?: string; binding?: string };
+  plan?: {
+    argsHash: string;
+    token?: string;
+    binding?: string;
+    /**
+     * B4 self-healing: the call asked for apply:true without a plan_token,
+     * so it runs as the plan preview that issues one.
+     */
+    autoPlanned?: boolean;
+  };
   /**
    * B11: the call passed `apply: true` itself — the consent a write to a
    * protected table needs under SN_PROTECTED_TABLES_WRITE=confirm.

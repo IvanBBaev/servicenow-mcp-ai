@@ -34,7 +34,7 @@ import { capResult, supportsFileFormat } from "./result-cap.js";
 import { withFileLink } from "./file-link.js";
 import { planArgsHash } from "./plan-token.js";
 import { createSecretRegistry } from "../core/secret-columns.js";
-import { confirmDestructiveApply } from "./confirm.js";
+import { AUTO_PLAN, confirmDestructiveApply } from "./confirm.js";
 import {
   inputRoundFromContext,
   isBackground,
@@ -383,9 +383,14 @@ async function runSpecInner(
   try {
     // H-3: the gate runs in the call's profile context, so a refusal is
     // journaled under the profile the write targeted.
-    const invoke = async (): Promise<SpecResult> =>
-      (await confirmDestructiveApply(spec, args, call)) ??
-      (await spec.handler(args));
+    const invoke = async (): Promise<SpecResult> => {
+      const gate = await confirmDestructiveApply(spec, args, call);
+      if (gate !== AUTO_PLAN) return gate ?? (await spec.handler(args));
+      // B4 self-healing: an apply without a plan_token runs as its preview.
+      call.plan = { argsHash: planArgsHash(args), autoPlanned: true };
+      call.explicitApply = false;
+      return spec.handler({ ...args, apply: false });
+    };
     const result = profile
       ? await runWithProfile(profile, invoke)
       : await invoke();

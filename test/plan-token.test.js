@@ -121,16 +121,21 @@ test("settings: SN_DESTRUCTIVE_CONFIRM and SN_PLAN_TOKEN_TTL_SEC parse with safe
   }
 });
 
-test("default (B4): an apply:true without a plan_token is refused with nothing changed", async () => {
-  await scenario({ SN_DESTRUCTIVE_CONFIRM: undefined }, async (calls) => {
-    const plan = out(await call("servicenow_delete_record", deleteArgs));
+test("default (B4): an apply:true without a plan_token returns the plan and its token, with nothing changed", async () => {
+  await scenario({ SN_DESTRUCTIVE_CONFIRM: undefined }, async (calls, docs) => {
+    // Self-healing (owner, 2026-10-14): the 2.x call shape gets the preview.
+    const res = await call("servicenow_delete_record", {
+      ...deleteArgs,
+      apply: true,
+    });
+    assert.equal(res.isError, undefined, res.content[0].text);
+    const plan = out(res);
+    assert.equal(plan.mode, "plan");
     assert.match(plan.plan_token, /^pt[a-z]{28}$/);
-    const refused = out(
-      await call("servicenow_delete_record", { ...deleteArgs, apply: true }),
-    );
-    assert.equal(refused.code, "PLAN_REQUIRED");
-    assert.equal(refused.status, 428);
+    assert.match(plan.apply_skipped, /apply:true was not executed/);
+    assert.match(plan.note, /once they agree/);
     assert.equal(mutations(calls).length, 0);
+    assert.deepEqual(journal(docs), []);
     const applied = await call("servicenow_delete_record", {
       ...deleteArgs,
       apply: true,
@@ -193,6 +198,7 @@ test("token: plan → apply with the token deletes once; the token is journaled 
 
 test("token: an apply without a plan cannot reach the instance (acceptance)", async () => {
   await scenario({ SN_DESTRUCTIVE_CONFIRM: "token" }, async (calls, docs) => {
+    // B4 self-healing: no token at all → the preview with a fresh token.
     const cases = [
       ["servicenow_delete_record", { ...deleteArgs, apply: true }],
       ["servicenow_delete_attachment", { sys_id: SYS_ID, apply: true }],
@@ -214,23 +220,30 @@ test("token: an apply without a plan cannot reach the instance (acceptance)", as
         "servicenow_revert_write",
         { entry_id: "01J0000000000000000000000", apply: true },
       ],
-      [
-        "servicenow_delete_record",
-        {
-          ...deleteArgs,
-          apply: true,
-          plan_token: "ptforgedforgedforgedforgedforg",
-        },
-      ],
     ];
     for (const [name, args] of cases) {
       const res = await call(name, args);
-      assert.equal(res.isError, true, name);
       const body = out(res);
-      assert.equal(body.code, "PLAN_REQUIRED", name);
-      assert.match(body.hint, /without apply/);
+      if (res.isError) {
+        // A preview that needs the instance fails offline — never a write.
+        assert.notEqual(body.code, undefined, name);
+      } else {
+        assert.equal(body.mode, "plan", name);
+        assert.match(body.plan_token, /^pt[a-z]{28}$/, name);
+        assert.match(body.apply_skipped, /plan_token/, name);
+      }
     }
-    assert.equal(calls.length, 0, "not even a read reached the instance");
+    // A wrong token is still refused.
+    const forged = out(
+      await call("servicenow_delete_record", {
+        ...deleteArgs,
+        apply: true,
+        plan_token: "ptforgedforgedforgedforgedforg",
+      }),
+    );
+    assert.equal(forged.code, "PLAN_REQUIRED");
+    assert.match(forged.hint, /without apply/);
+    assert.equal(mutations(calls).length, 0, "no write reached the instance");
     assert.deepEqual(journal(docs), [], "a refused token is not journaled");
   });
 });
@@ -413,10 +426,11 @@ test("token: a GET-only batch needs no plan; a writing batch does", async () => 
         };
         const plan = out(await call("servicenow_batch", write));
         assert.match(plan.plan_token, /^pt[a-z]{28}$/);
-        const refused = out(
+        const replanned = out(
           await call("servicenow_batch", { ...write, apply: true }),
         );
-        assert.equal(refused.code, "PLAN_REQUIRED");
+        assert.equal(replanned.mode, "plan");
+        assert.match(replanned.apply_skipped, /plan_token/);
         assert.equal(calls.length, 1);
         const applied = await call("servicenow_batch", {
           ...write,
@@ -590,7 +604,9 @@ test("elicit: a failing prompt fails closed; a client without elicitation relies
       const noToken = out(
         await call("servicenow_delete_record", { ...deleteArgs, apply: true }),
       );
-      assert.equal(noToken.code, "PLAN_REQUIRED");
+      assert.equal(noToken.mode, "plan");
+      assert.match(noToken.plan_token, /^pt[a-z]{28}$/);
+      assert.equal(mutations(calls).length, 0);
       const res = await planThenApply();
       assert.equal(res.isError, undefined, res.content[0].text);
       assert.equal(mutations(calls).length, 1);

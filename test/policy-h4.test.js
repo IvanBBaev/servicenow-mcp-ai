@@ -556,14 +556,15 @@ test("check_change_conflicts(calculate) needs a plan_token under SN_DESTRUCTIVE_
       await call("servicenow_check_change_conflicts", { sys_id: SYS_ID }),
     );
     assert.equal(read.error, undefined);
-    const refused = out(
+    const replanned = out(
       await call("servicenow_check_change_conflicts", {
         sys_id: SYS_ID,
         calculate: true,
         apply: true,
       }),
     );
-    assert.equal(refused.code, "PLAN_REQUIRED");
+    assert.equal(replanned.mode, "plan");
+    assert.match(replanned.apply_skipped, /plan_token/);
     assert.equal(mutating(calls).length, 0);
   });
 });

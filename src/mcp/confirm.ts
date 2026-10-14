@@ -30,6 +30,14 @@ const WHY: Record<Mismatch, string> = {
   args_changed: "the arguments differ from the planned call",
 };
 
+/**
+ * B4 self-healing (owner, 2026-10-14): what {@link confirmDestructiveApply}
+ * returns for an apply that carries no plan_token at all — the 2.x call
+ * shape. The caller runs the tool as a plan preview instead of refusing, so
+ * the model gets the preview and its plan_token in one step.
+ */
+export const AUTO_PLAN = Symbol("auto-plan");
+
 const PLAN_HINT =
   "Call the tool again without apply, review the preview, then repeat the same call with apply:true and the preview's plan_token. SN_WRITE_MODE=apply (trusted automation) or SN_DESTRUCTIVE_CONFIRM=off disables this check.";
 
@@ -41,7 +49,9 @@ const PLAN_HINT =
  *
  * 1. the call must carry the plan_token of a matching plan preview — same
  *    tool, profile and arguments, unexpired, not used before (it is consumed
- *    here, so a replay is refused) → PLAN_REQUIRED, nothing journaled;
+ *    here, so a replay is refused) → PLAN_REQUIRED, nothing journaled; a
+ *    call with no plan_token at all answers {@link AUTO_PLAN} instead, so
+ *    the caller returns the preview that issues one (B4 self-healing);
  * 2. with `elicit`, a client that advertises elicitation is asked to
  *    confirm; a decline or a failed prompt is refused (CONFIRM_DECLINED) and
  *    journaled as `refused`. A client without elicitation relies on step 1.
@@ -55,7 +65,7 @@ export async function confirmDestructiveApply(
   spec: AnyToolSpec,
   args: Record<string, unknown>,
   call: CallContext,
-): Promise<ToolResult | InputRequiredResult | null> {
+): Promise<ToolResult | InputRequiredResult | typeof AUTO_PLAN | null> {
   const confirm = spec.confirm;
   if (!confirm) return null;
   // The gate runs in the call's profile context (define.ts), so these read
@@ -81,7 +91,8 @@ export async function confirmDestructiveApply(
   const check = twoRounds
     ? checkPlanToken(token || undefined, expected)
     : consumePlanToken(token || undefined, expected);
-  if (!check.ok) return planRefusal(check.reason);
+  if (!check.ok)
+    return check.reason === "missing" ? AUTO_PLAN : planRefusal(check.reason);
   call.plan = {
     argsHash: expected.argsHash,
     token,

@@ -74,7 +74,15 @@ export function planPreview(
       plan_token: token,
       plan_token_expires_at: expiresAt,
       ...holdDetail(),
-      note: "No change was made (plan mode). To execute, re-run the same call with the same arguments plus apply:true and this plan_token (single use).",
+      ...(call.plan.autoPlanned
+        ? {
+            apply_skipped:
+              "apply:true was not executed: a destructive apply needs this preview's plan_token first.",
+          }
+        : {}),
+      note: call.plan.autoPlanned
+        ? "No change was made. Show the user this preview; once they agree, re-run the same call with the same arguments plus apply:true and this plan_token (single use)."
+        : "No change was made (plan mode). To execute, re-run the same call with the same arguments plus apply:true and this plan_token (single use).",
     });
   }
   return ok({

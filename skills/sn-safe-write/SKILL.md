@@ -57,9 +57,10 @@ first step is always to learn the mode — never send a write call before it.
    `apply: true`. A non-destructive write (create, update, upsert) needs
    nothing else. A destructive apply (`servicenow_delete_record`, a writing
    `servicenow_batch`, `servicenow_revert_write`, …) also needs the
-   `plan_token` from that preview — the server refuses it with
-   `PLAN_REQUIRED` otherwise, and the plugin's hook stops it before it is
-   sent. In apply mode, the approved call from step 2 is the one and only
+   `plan_token` from that preview — without one the server returns the
+   preview again (with `apply_skipped`) instead of running it, a stale token
+   is `PLAN_REQUIRED`, and the plugin's hook stops a token-less apply before
+   it is sent. In apply mode, the approved call from step 2 is the one and only
    call. For configuration records pass `update_set` so the change is
    captured.
 6. Verify: read the record back with `servicenow_get_record`.

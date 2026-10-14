@@ -173,12 +173,14 @@ test("grant: the plan shows effective roles before and after, then grants once",
   });
 });
 
-test("an apply without the plan_token is refused", async () => {
+test("an apply without the plan_token returns the plan instead (B4 self-healing)", async () => {
   await scenario({}, [], async (calls) => {
     const res = out(
       await call({ user: USER, role: "itil", action: "grant", apply: true }),
     );
-    assert.equal(res.code, "PLAN_REQUIRED");
+    assert.equal(res.mode, "plan");
+    assert.match(res.apply_skipped, /plan_token/);
+    assert.match(res.plan_token, /^pt[a-z]{28}$/);
     assert.equal(writes(calls).length, 0);
   });
 });
