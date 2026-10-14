@@ -456,7 +456,17 @@ test("session context: the write-mode sentence matches the server's gate", () =>
   assert.doesNotMatch(plan, /write mode apply/);
   assert.match(
     ctx({ SN_DESTRUCTIVE_CONFIRM: "off" }),
-    /a destructive one needs no plan_token \(SN_DESTRUCTIVE_CONFIRM=off\)/,
+    /a destructive one needs no plan_token \(SN_DESTRUCTIVE_CONFIRM=off, or unset under SN_COMPAT=2\)/,
+  );
+  // SN_COMPAT=2 defaults the confirm to off, as the server does; an explicit
+  // value wins.
+  assert.match(
+    ctx({ SN_COMPAT: "2" }),
+    /a destructive one needs no plan_token/,
+  );
+  assert.match(
+    ctx({ SN_COMPAT: "2", SN_DESTRUCTIVE_CONFIRM: "token" }),
+    /a destructive one also needs the preview's plan_token/,
   );
   assert.match(
     ctx({ SN_DESTRUCTIVE_CONFIRM: "elicit" }),

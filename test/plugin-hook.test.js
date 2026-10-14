@@ -294,6 +294,31 @@ test("hookDecision: prod denies a token-less apply, and ignores SN_DESTRUCTIVE_C
   assert.match(acked.reason, /marked prod/);
 });
 
+test("hookDecision: SN_COMPAT=2 mirrors the server's 2.x confirm default", () => {
+  // Unset SN_DESTRUCTIVE_CONFIRM is `off` under SN_COMPAT=2 (settings.ts
+  // getDestructiveConfirm), so the server would let a token-less apply run.
+  for (const compat of ["2", " 2 "]) {
+    assert.equal(hookDecision(DELETE, { SN_COMPAT: compat }), undefined);
+  }
+  // An explicit value wins over the compat default.
+  for (const confirm of ["token", "elicit"]) {
+    assert.equal(
+      hookDecision(DELETE, {
+        SN_COMPAT: "2",
+        SN_DESTRUCTIVE_CONFIRM: confirm,
+      })?.decision,
+      "deny",
+      `confirm=${confirm}`,
+    );
+  }
+  // SN_COMPAT=3 (the default) keeps the 3.0 deny.
+  assert.equal(hookDecision(DELETE, { SN_COMPAT: "3" })?.decision, "deny");
+  // A prod profile is always at least `elicit`, compat or not.
+  const prod = hookDecision(DELETE, { SN_COMPAT: "2", SN_ENV: "prod" });
+  assert.equal(prod?.decision, "deny");
+  assert.match(prod.reason, /marked prod/);
+});
+
 test("hookDecision: SN_DESTRUCTIVE_CONFIRM=off, read-only and unknown profiles are silent", () => {
   for (const confirm of ["off", " OFF "]) {
     assert.equal(

@@ -77,8 +77,8 @@ export function activeProfile(config) {
  * - `held`: apply is configured but a prod profile lacks SN_PROD_WRITES;
  * - `mode`: the effective write mode (`plan` while held);
  * - `readonly`: SN_READONLY refuses every write;
- * - `confirm`: SN_DESTRUCTIVE_CONFIRM (`off` / `token` / `elicit`); a prod
- *   profile is always at least `elicit`.
+ * - `confirm`: SN_DESTRUCTIVE_CONFIRM (`off` / `token` / `elicit`; `off`
+ *   when unset under SN_COMPAT=2); a prod profile is always at least `elicit`.
  */
 export function writePolicy(config, profile) {
   const environment = setting(
@@ -100,7 +100,11 @@ export function writePolicy(config, profile) {
   const readonly = TRUTHY.has(
     setting(config, "READONLY", profile, "override")?.toLowerCase() ?? "",
   );
-  const raw = clean(config.SN_DESTRUCTIVE_CONFIRM)?.toLowerCase();
+  // SN_COMPAT=2 keeps the 2.x default (`off`) while SN_DESTRUCTIVE_CONFIRM is
+  // unset; an explicit value wins (settings.ts getDestructiveConfirm).
+  const raw =
+    clean(config.SN_DESTRUCTIVE_CONFIRM)?.toLowerCase() ??
+    (clean(config.SN_COMPAT) === "2" ? "off" : undefined);
   const confirm =
     marked === "prod"
       ? "elicit"

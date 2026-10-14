@@ -72,7 +72,7 @@ function writeModeSentence({ readonly, held, configured, confirm, marked }) {
     : "write mode plan";
   const destructive =
     confirm === "off"
-      ? "a destructive one needs no plan_token (SN_DESTRUCTIVE_CONFIRM=off)"
+      ? "a destructive one needs no plan_token (SN_DESTRUCTIVE_CONFIRM=off, or unset under SN_COMPAT=2)"
       : confirm === "elicit"
         ? "a destructive one also needs the preview's plan_token and is confirmed in a client prompt when the client can prompt"
         : "a destructive one also needs the preview's plan_token";

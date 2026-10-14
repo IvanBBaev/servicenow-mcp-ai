@@ -8,8 +8,8 @@
 // reading the local config the server reads: the process environment over
 // the server's env file (hooks/sn-config.mjs).
 // - plan mode (the default): an `apply:true` without a `plan_token` is
-//   denied — the server would refuse it (PLAN_REQUIRED); the reason says to
-//   preview first. A token is checked for presence, never for validity (the
+//   denied — the server would not execute it either (it returns the plan
+//   preview instead, B4 eased); the reason says to preview first. A token is checked for presence, never for validity (the
 //   server does that).
 // - apply mode (SN_WRITE_MODE=apply, and on a prod profile also
 //   SN_PROD_WRITES=I_UNDERSTAND): every destructive call executes as soon as
@@ -23,8 +23,8 @@
 // different environment than the client; it stays authoritative.
 //
 // Escape hatch: SN_DESTRUCTIVE_CONFIRM=off (the same opt-out the server
-// honours) disables the hook — except on a profile marked prod (SN_ENV),
-// where the server ignores the opt-out too.
+// honours, and its default under SN_COMPAT=2) disables the hook — except on
+// a profile marked prod (SN_ENV), where the server ignores the opt-out too.
 import { pathToFileURL } from "node:url";
 
 import {
