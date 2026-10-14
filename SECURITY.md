@@ -7,11 +7,11 @@ what to expect after you do, and which safety rails the server already has.
 
 ## Supported versions
 
-| Version | Status                                                         | Security fixes                           |
-| ------- | -------------------------------------------------------------- | ---------------------------------------- |
-| 3.x     | Planned ([ROADMAP-V3.md](project/ROADMAP-V3.md)); not released | —                                        |
-| 2.x     | Current line                                                   | Yes — fixes ship in the next 2.x release |
-| < 2.0   | Superseded by 2.0.0 (2026-06-22)                               | No — upgrade to the latest 2.x           |
+| Version | Status                                                                      | Security fixes                           |
+| ------- | --------------------------------------------------------------------------- | ---------------------------------------- |
+| 3.x     | Beta on the npm `next` tag ([ROADMAP-V3.md](project/ROADMAP-V3.md)); not GA | —                                        |
+| 2.x     | Current line                                                                | Yes — fixes ship in the next 2.x release |
+| < 2.0   | Superseded by 2.0.0 (2026-06-22)                                            | No — upgrade to the latest 2.x           |
 
 Only the latest published release of a supported line receives fixes; there
 are no backports to older patch releases. The VS Code extension and the

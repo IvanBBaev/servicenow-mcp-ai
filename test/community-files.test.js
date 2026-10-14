@@ -65,7 +65,12 @@ test("the bug form requires the doctor --json output, version, client and transp
 
 test("SECURITY.md has a supported-versions table naming the current line and a private channel", () => {
   const security = read("SECURITY.md");
-  const major = pkg.version.split(".")[0];
+  // A first prerelease of a major (3.0.0-beta.1) ships on the npm `next` tag,
+  // so the previous major stays the current line until the GA release.
+  const [major, minor, patch] = pkg.version.split(/[.-]/).map(Number);
+  const firstPrerelease =
+    pkg.version.includes("-") && minor === 0 && patch === 0;
+  const currentMajor = firstPrerelease ? major - 1 : major;
   const section = security.slice(
     security.indexOf("## Supported versions"),
     security.indexOf("## Reporting a vulnerability"),
@@ -74,7 +79,7 @@ test("SECURITY.md has a supported-versions table naming the current line and a p
   assert.match(section, /^\| Version +\| Status +\| Security fixes +\|$/m);
   assert.match(
     section,
-    new RegExp(`^\\| ${major}\\.x +\\| Current line +\\| Yes`, "m"),
+    new RegExp(`^\\| ${currentMajor}\\.x +\\| Current line +\\| Yes`, "m"),
     "the table names the current major line as supported",
   );
   assert.ok(security.includes(ADVISORY_URL));
