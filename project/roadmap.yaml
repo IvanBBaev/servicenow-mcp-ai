@@ -16,7 +16,7 @@ items:
     phase: null
     done: "2026-09-03"
     gates: []
-    notes: "**Done 2026-09-03 (local).** SDK `^1.30.0`, zod `^3.25.0`, lock-only audit fix, no overrides; 406/406, audit 0. CI matrix runs on push. Ships in 2.1.0."
+    notes: "**Done 2026-09-03.** SDK `^1.30.0`, zod `^3.25.0`, lock-only audit fix, no overrides; 406/406, audit 0. CI matrix runs on push. Ships in 2.1.0."
   - id: "H-2"
     title: "credential host binding"
     pillar: "H"
@@ -25,7 +25,7 @@ items:
     phase: null
     done: "2026-09-09"
     gates: []
-    notes: "**Done 2026-09-09 (local).** Instance change needs `user` + `password` in the same call (`CREDENTIALS_INCOMPLETE`), the confirmation fails closed, `SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE` opt-out; the allow-list bullet is deferred to H-6."
+    notes: "**Done 2026-09-09.** Instance change needs `user` + `password` in the same call (`CREDENTIALS_INCOMPLETE`), the confirmation fails closed, `SN_ALLOW_UNCONFIRMED_CREDENTIAL_CHANGE` opt-out; the allow-list bullet is deferred to H-6."
   - id: "S-1"
     title: "inherited + global business rules"
     pillar: "S"
@@ -34,7 +34,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "Verified correctness bug in the hero demo path; ships on 2.1. Done 2026-09-23 (local)."
+    notes: "Verified correctness bug in the hero demo path; ships on 2.1. Done 2026-09-23."
   - id: "H-8"
     title: "platform corner-case pins"
     pillar: "H"
@@ -43,7 +43,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "**Done 2026-09-23 (local).** `INSTANCE_HTML_RESPONSE` + wake hint, `fetchAll` past ACL-short pages (`truncatedReason` / `filtered`), `display_value=all` pins, attachment edges, plugin inactive vs missing, drift / where-used caveats; 25 tests."
+    notes: "**Done 2026-09-23.** `INSTANCE_HTML_RESPONSE` + wake hint, `fetchAll` past ACL-short pages (`truncatedReason` / `filtered`), `display_value=all` pins, attachment edges, plugin inactive vs missing, drift / where-used caveats; 25 tests."
   - id: "H-9"
     title: "CI + version hygiene"
     pillar: "H"
@@ -52,7 +52,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "Cheap; must be in place before any 3.0 publish. Done 2026-09-23 (local)."
+    notes: "Cheap; must be in place before any 3.0 publish. Done 2026-09-23."
   - marker: "_cut **2.1.0** here (non-breaking)_"
     notes: "`[Unreleased]` + H-1/H-2/S-1/H-8/H-9."
   - id: "E-1"
@@ -63,7 +63,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: []
-    notes: "**Done 2026-10-01 (local).** `>=22.12`, launcher + guard, CI 22/24/26 + macOS/Windows + 22.12.0 floor job, c8 12, coverage guard deleted, `import.meta.dirname`."
+    notes: "**Done 2026-10-01.** `>=22.12`, launcher + guard, CI 22/24/26 + macOS/Windows + 22.12.0 floor job, c8 12, coverage guard deleted, `import.meta.dirname`."
   - id: "E-2"
     title: "toolchain majors (zod 4, SDK, TS 7)"
     pillar: "E"
@@ -72,7 +72,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: []
-    notes: "**Done 2026-10-01 (local).** zod 4, SDK 1.31, ESLint 10, dotenv → `process.loadEnvFile`; TS stays 5.9 and prettier 3.8 (see E-2); schema drift listed in CHANGELOG."
+    notes: "**Done 2026-10-01.** zod 4, SDK 1.31, ESLint 10, dotenv → `process.loadEnvFile`; TS stays 5.9 and prettier 3.8 (see E-2); schema drift listed in CHANGELOG."
   - id: "E-4"
     title: "validated settings manifest"
     pillar: "E"
@@ -81,7 +81,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local).** `src/core/settings-manifest.ts`: 118 zod-validated specs are the single source for reading, docs and `doctor`; invalid values warn once and fall back, fail-fast only under opt-in `SN_STRICT_SETTINGS`. **B5 2026-10-14 (ADR 0011):** strict is the default (`SN_STRICT_SETTINGS=0` restores the warnings) and the project-root `.env` is no longer read."
+    notes: "**Done 2026-09-30.** `src/core/settings-manifest.ts`: 118 zod-validated specs are the single source for reading, docs and `doctor`; invalid values warn once and fall back, fail-fast only under opt-in `SN_STRICT_SETTINGS`. **B5 2026-10-14 (ADR 0011):** strict is the default (`SN_STRICT_SETTINGS=0` restores the warnings) and the project-root `.env` is no longer read."
   - id: "E-3"
     title: "runtime container"
     pillar: "E"
@@ -90,7 +90,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "**Done 2026-09-23 (local).** `src/core/runtime.ts`: one runtime (schema cache, tokens, telemetry, queue, breakers, dispatchers, profiles, plugin availability) passed to `registerAllTools`; `dispose()` in place; `_reset*` hooks gone."
+    notes: "**Done 2026-09-23.** `src/core/runtime.ts`: one runtime (schema cache, tokens, telemetry, queue, breakers, dispatchers, profiles, plugin availability) passed to `registerAllTools`; `dispose()` in place; `_reset*` hooks gone."
   - id: "H-7"
     title: "HTTP transport v2"
     pillar: "H"
@@ -99,7 +99,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local); B6 / B12 default flips done 2026-10-14 (ADR 0001).** `src/mcp/http-sessions.ts`: one server + runtime per session, idle TTL, session cap (503), SSE keep-alive, Host / Origin guard (DNS rebinding), `SN_HTTP_REQUIRE_TOKEN` (on by default since B6), per-session `use_instance` (writes the env file only with `persist:true` since B12); 18 e2e tests."
+    notes: "**Done 2026-09-30; B6 / B12 default flips done 2026-10-14 (ADR 0001).** `src/mcp/http-sessions.ts`: one server + runtime per session, idle TTL, session cap (503), SSE keep-alive, Host / Origin guard (DNS rebinding), `SN_HTTP_REQUIRE_TOKEN` (on by default since B6), per-session `use_instance` (writes the env file only with `persist:true` since B12); 18 e2e tests."
   - id: "M-2"
     title: "error contract v2"
     pillar: "M"
@@ -108,7 +108,7 @@ items:
     phase: null
     done: "2026-10-02"
     gates: []
-    notes: "**Done 2026-10-02 (local).** Flat payload + code table (B3); ship with M-7."
+    notes: "**Done 2026-10-02.** Flat payload + code table (B3); ship with M-7."
   - id: "M-7"
     title: "tool naming convention v3"
     pillar: "M"
@@ -117,7 +117,7 @@ items:
     phase: null
     done: "2026-10-03"
     gates: []
-    notes: "**Done 2026-10-03 (local).** Renames + parameter normalization (B2), profile URI + reserved names (B13); ships with M-2."
+    notes: "**Done 2026-10-03.** Renames + parameter normalization (B2), profile URI + reserved names (B13); ships with M-2."
   - id: "H-4"
     title: "policy-axis bypass closure"
     pillar: "H"
@@ -126,7 +126,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: ["O-4"]
-    notes: "**Done 2026-10-01 (local; BREAKING B8, O-4).** Nested batch refused, tables from query/body, attachment parent-table checks, backing tables for plugin APIs, `change_conflicts` plan/apply, sweep test; `SN_BATCH_UNMAPPED` defaults to `deny`, `SN_BATCH_MAX_REQUESTS` to 50. The Code Search LIKE fallback skips a denied default table (`unreadable`) since 2026-10-10. **Batch backing tables done 2026-10-13:** a batched plugin-API sub-request now meets the backing tables its tool checks (catalog, knowledge, change, ATF, Instance Scan incl. `target_table`), which the batch path had skipped. 0 B tools/list."
+    notes: "**Done 2026-10-01 (BREAKING B8, O-4).** Nested batch refused, tables from query/body, attachment parent-table checks, backing tables for plugin APIs, `change_conflicts` plan/apply, sweep test; `SN_BATCH_UNMAPPED` defaults to `deny`, `SN_BATCH_MAX_REQUESTS` to 50. The Code Search LIKE fallback skips a denied default table (`unreadable`) since 2026-10-10. **Batch backing tables done 2026-10-13:** a batched plugin-API sub-request now meets the backing tables its tool checks (catalog, knowledge, change, ATF, Instance Scan incl. `target_table`), which the batch path had skipped. 0 B tools/list."
   - id: "H-5"
     title: "journal v2 + deep redaction"
     pillar: "H"
@@ -135,7 +135,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "**Done 2026-09-23 (local).** v2 lines (ULID, `result`, `before`, `client`, sha256 `prev` chain + head file), rotation at `SN_JOURNAL_MAX_BYTES`, batch sub-request lines, `local_write`/`config` entries, deep redaction at `ok`/`fail`, CSV formula guard + BOM."
+    notes: "**Done 2026-09-23.** v2 lines (ULID, `result`, `before`, `client`, sha256 `prev` chain + head file), rotation at `SN_JOURNAL_MAX_BYTES`, batch sub-request lines, `local_write`/`config` entries, deep redaction at `ok`/`fail`, CSV formula guard + BOM."
   - id: "H-3"
     title: "plan-token binding + elicitation"
     pillar: "H"
@@ -144,7 +144,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: ["O-4", "O-5"]
-    notes: "**Done 2026-10-01 (local; BREAKING B4, O-4).** `SN_DESTRUCTIVE_CONFIRM` defaults to `token` (`off` opts out): single-use `plan_token`, `PLAN_REQUIRED` / `CONFIRM_DECLINED`, journaled; `STALE_RECORD`, email preview cap, `change_conflicts`; the D-8 hook enforces it at the client. Open: O-5 PDI verification."
+    notes: "**Done 2026-10-01 (BREAKING B4, O-4).** `SN_DESTRUCTIVE_CONFIRM` defaults to `token` (`off` opts out): single-use `plan_token`, `PLAN_REQUIRED` / `CONFIRM_DECLINED`, journaled; `STALE_RECORD`, email preview cap, `change_conflicts`; the D-8 hook enforces it at the client. Open: O-5 PDI verification."
   - id: "H-6"
     title: "outbound hardening"
     pillar: "H"
@@ -153,7 +153,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: ["O-4"]
-    notes: "**Done 2026-09-23 (local).** Redirects blocked, `SN_MAX_BODY_BYTES`, IPv6-aware host guard (suffix entries never open internal hosts), TLS-off warning, OAuth callback path/`state`, upload caps + MIME allow-list, docs store device-name/`:`/symlink/size guards, `send_email` recipient allow-list (behaviour change → O-4)."
+    notes: "**Done 2026-09-23.** Redirects blocked, `SN_MAX_BODY_BYTES`, IPv6-aware host guard (suffix entries never open internal hosts), TLS-off warning, OAuth callback path/`state`, upload caps + MIME allow-list, docs store device-name/`:`/symlink/size guards, `send_email` recipient allow-list (behaviour change → O-4)."
   - id: "S-2"
     title: "journal-based revert"
     pillar: "S"
@@ -162,7 +162,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "**Done 2026-09-23 (local).** Opt-in `revert` package: `list_writes` + `revert_write` (plan/apply, `STALE_RECORD` drift guard, `NOT_REVERTIBLE` reasons, `reverts:<id>`); H-3 `plan_token` plugs in later."
+    notes: "**Done 2026-09-23.** Opt-in `revert` package: `list_writes` + `revert_write` (plan/apply, `STALE_RECORD` drift guard, `NOT_REVERTIBLE` reasons, `reverts:<id>`); H-3 `plan_token` plugs in later."
   - id: "S-6"
     title: "update-set awareness"
     pillar: "S"
@@ -171,7 +171,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** Opt-in `updatesets` package (3 tools) + `update_set` binding on table writes."
+    notes: "**Done 2026-09-25.** Opt-in `updatesets` package (3 tools) + `update_set` binding on table writes."
   - id: "M-1"
     title: "server instructions + config state"
     pillar: "M"
@@ -180,7 +180,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** Generated `instructions` + `title`/`websiteUrl`/`icons` (`src/mcp/server-info.ts`); additive `NOT_CONFIGURED` code + hint; `get_status` v2 groups. Open: per-profile env (H-11), owner (TODO batch 11)."
+    notes: "**Done 2026-09-26.** Generated `instructions` + `title`/`websiteUrl`/`icons` (`src/mcp/server-info.ts`); additive `NOT_CONFIGURED` code + hint; `get_status` v2 groups. Open: per-profile env (H-11), owner (TODO batch 11)."
   - id: "M-3"
     title: "`extra` plumbing"
     pillar: "M"
@@ -189,7 +189,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** SDK `extra` → call context; `signal` aborts fetch / queue wait / backoff (`CANCELLED`); throttled `notifications/progress` from `query_table` fetchAll, snapshot, compare, batch; log lines carry `{profile, requestId, sessionId?, tool}`."
+    notes: "**Done 2026-09-24.** SDK `extra` → call context; `signal` aborts fetch / queue wait / backoff (`CANCELLED`); throttled `notifications/progress` from `query_table` fetchAll, snapshot, compare, batch; log lines carry `{profile, requestId, sessionId?, tool}`."
   - id: "M-6"
     title: "outputSchema + token budget"
     pillar: "M"
@@ -198,7 +198,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** 30 tools publish a passthrough `outputSchema` + `structuredContent` (errors never carry it); descriptions ≤ 250, `instance` param ≤ 30; manifest v2; `tools/list` budget ratchet at the measured size (owner to restate)."
+    notes: "**Done 2026-09-26.** 30 tools publish a passthrough `outputSchema` + `structuredContent` (errors never carry it); descriptions ≤ 250, `instance` param ≤ 30; manifest v2; `tools/list` budget ratchet at the measured size (owner to restate)."
   - id: "M-4"
     title: "completions + reference resources"
     pillar: "M"
@@ -207,7 +207,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** `complete` + `list` (cap 100) on the schema / profile-schema / docs templates from local state only; docs list from the S-14 manifest; `servicenow://reference/tools`; encoded-query reference widened; `src/mcp/boundary.ts` untrusted-content block on prompt arguments and docs resources."
+    notes: "**Done 2026-09-25.** `complete` + `list` (cap 100) on the schema / profile-schema / docs templates from local state only; docs list from the S-14 manifest; `servicenow://reference/tools`; encoded-query reference widened; `src/mcp/boundary.ts` untrusted-content block on prompt arguments and docs resources."
   - id: "M-5"
     title: "dynamic packages + listChanged"
     pillar: "M"
@@ -216,7 +216,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** `list/enable/disable_package` toggle registered tools (list_changed, debounced) within DENY/READONLY; prompts follow packages; resources subscribe + list_changed on profile change."
+    notes: "**Done 2026-09-26.** `list/enable/disable_package` toggle registered tools (list_changed, debounced) within DENY/READONLY; prompts follow packages; resources subscribe + list_changed on profile change."
   - id: "M-8"
     title: "small protocol fixes"
     pillar: "M"
@@ -225,7 +225,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `src/mcp/log-bridge.ts`: `logging/setLevel` over HTTP, per-session token bucket (`SN_LOG_NOTIFY_RATE`); all four annotation hints required on every tool; `buildInputSchema` replaces the `.strict()` cast; bounded zod builders + schema-walker test."
+    notes: "**Done 2026-09-24.** `src/mcp/log-bridge.ts`: `logging/setLevel` over HTTP, per-session token bucket (`SN_LOG_NOTIFY_RATE`); all four annotation hints required on every tool; `buildInputSchema` replaces the `.strict()` cast; bounded zod builders + schema-walker test."
   - id: "D-1"
     title: "`init` wizard + real CLI"
     pillar: "D"
@@ -234,7 +234,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** `src/cli.ts` (`parseArgs`): `--help`/`--version`, `init` (hidden prompt, piped stdin, doctor at the end), `doctor --json/--ascii/--profile` (env file first line), `support-bundle`; bootstrap in `src/server.ts`."
+    notes: "**Done 2026-09-26.** `src/cli.ts` (`parseArgs`): `--help`/`--version`, `init` (hidden prompt, piped stdin, doctor at the end), `doctor --json/--ascii/--profile` (env file first line), `support-bundle`; bootstrap in `src/server.ts`."
   - id: "D-2"
     title: "credentials model completeness"
     pillar: "D"
@@ -243,7 +243,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `credentialStatus` per auth method (Basic, API key, bearer, OAuth grants); `set_credentials` takes `auth` / `oauth_client_id` / `oauth_grant`, secrets via elicitation; `SN_TOKEN_FILE` reload on 401, `AUTH_EXPIRED`, token-expiry and env-file ACL warnings."
+    notes: "**Done 2026-09-24.** `credentialStatus` per auth method (Basic, API key, bearer, OAuth grants); `set_credentials` takes `auth` / `oauth_client_id` / `oauth_grant`, secrets via elicitation; `SN_TOKEN_FILE` reload on 401, `AUTH_EXPIRED`, token-expiry and env-file ACL warnings."
   - id: "D-3"
     title: "generated config docs + counts"
     pillar: "D"
@@ -252,7 +252,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local).** `npm run docs:env` regenerates the README env table, `.env.example` and the `server.json` env block from the manifest; `npm run docs:sync` writes tool / package counts into 8 files; both `--check` in `npm run check`; `docs/llms.txt`. **2026-10-13:** `npm run docs:sync` also writes the site changelog page `docs/changelog.md` (released versions) and the footer release links in `docs/index.html` (`scripts/changelog-docs.mjs`)."
+    notes: "**Done 2026-09-30.** `npm run docs:env` regenerates the README env table, `.env.example` and the `server.json` env block from the manifest; `npm run docs:sync` writes tool / package counts into 8 files; both `--check` in `npm run check`; `docs/llms.txt`. **2026-10-13:** `npm run docs:sync` also writes the site changelog page `docs/changelog.md` (released versions) and the footer release links in `docs/index.html` (`scripts/changelog-docs.mjs`)."
   - id: "D-4"
     title: "install matrix + deeplinks"
     pillar: "D"
@@ -261,7 +261,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** README + site install matrix for 11 clients; `scripts/install-links.mjs` generates the VS Code / Cursor deeplinks from `package.json`, `test/install-links.test.js` guards them."
+    notes: "**Done 2026-09-26.** README + site install matrix for 11 clients; `scripts/install-links.mjs` generates the VS Code / Cursor deeplinks from `package.json`, `test/install-links.test.js` guards them."
   - id: "D-6"
     title: "distribution hygiene"
     pillar: "D+O"
@@ -270,7 +270,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Partly done 2026-09-30 (local).** Open VSX publish job (`OVSX_PAT`-gated), GitHub release job with `scripts/release-notes.mjs`, extension pinned to `servicenow-mcp-ai@3.x`, `publishConfig`. **`exports` map done 2026-10-14 (owner, BREAKING B23):** `exports` names only `.` (`build/index.js`) and `./package.json`, `sideEffects` lists only the entry point (it runs the CLI on import); deep imports such as `servicenow-mcp-ai/build/...` stop resolving; pinned by `test/distribution.test.js`. Open: the owner publishes and deletes the stale registry entries."
+    notes: "**Partly done 2026-09-30.** Open VSX publish job (`OVSX_PAT`-gated), GitHub release job with `scripts/release-notes.mjs`, extension pinned to `servicenow-mcp-ai@3.x`, `publishConfig`. **`exports` map done 2026-10-14 (owner, BREAKING B23):** `exports` names only `.` (`build/index.js`) and `./package.json`, `sideEffects` lists only the entry point (it runs the CLI on import); deep imports such as `servicenow-mcp-ai/build/...` stop resolving; pinned by `test/distribution.test.js`. Open: the owner publishes and deletes the stale registry entries."
   - id: "S-3"
     title: "security-scan extension"
     pillar: "S"
@@ -279,7 +279,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `src/api/security.ts`: paged ACL scan with `truncated`, role wildcard + inheritance; public REST / UI page, table-no-ACL, admin-overlap, elevated-privilege checks, each `available:false` when unreadable."
+    notes: "**Done 2026-09-24.** `src/api/security.ts`: paged ACL scan with `truncated`, role wildcard + inheritance; public REST / UI page, table-no-ACL, admin-overlap, elevated-privilege checks, each `available:false` when unreadable."
   - id: "S-4"
     title: "script-intelligence widening"
     pillar: "S"
@@ -288,7 +288,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** Registry `clientFields` / `markupFields` / `baseQuery` + 15 unverified script types; `scope` filter, per-artefact `hits` / `hitCount` and `unreadable` list on search and where-used."
+    notes: "**Done 2026-09-24.** Registry `clientFields` / `markupFields` / `baseQuery` + 15 unverified script types; `scope` filter, per-artefact `hits` / `hitCount` and `unreadable` list on search and where-used."
   - id: "S-7"
     title: "snapshot/compare v2"
     pillar: "S"
@@ -297,7 +297,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** `describe_table` column metadata + opt-in `details` (choices, overrides); seven record snapshot sections, fan-out, `sn_partial` + `resume`; compare matches sys_id then name (`renamed`), unified `diff`, opt-in record `sections`. Drift CLI exit codes unchanged."
+    notes: "**Done 2026-09-25.** `describe_table` column metadata + opt-in `details` (choices, overrides); seven record snapshot sections, fan-out, `sn_partial` + `resume`; compare matches sys_id then name (`renamed`), unified `diff`, opt-in record `sections`. Drift CLI exit codes unchanged."
   - id: "S-8"
     title: "Table API completeness + paging"
     pillar: "S"
@@ -306,7 +306,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `view` / `queryCategory` / `noCount` / `queryNoDomain` / `suppressPaginationHeader`, `inputDisplayValue`; keyset `sys_id>last` paging without ORDERBY (C-2); encoded-query reference resource (C-6); `servicenow_upsert_record` (L2-14)."
+    notes: "**Done 2026-09-24.** `view` / `queryCategory` / `noCount` / `queryNoDomain` / `suppressPaginationHeader`, `inputDisplayValue`; keyset `sys_id>last` paging without ORDERBY (C-2); encoded-query reference resource (C-6); `servicenow_upsert_record` (L2-14)."
   - id: "S-5"
     title: "trace v2"
     pillar: "S"
@@ -315,7 +315,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** Opt-in `lanes` on `trace_table_event` / `generate_table_flow`: transform maps, scheduled jobs, client scripts + UI policies, data policies, SLAs, event script actions, each a phase and a Mermaid subgraph; stable order; default output byte-identical. `get_flow` depth moves to P-10. **2026-10-13:** `get_flow` reads all six step tables (`_v2` first) through the `explain_flow` readers and adds step `number` / `kind`, `subflows`, `inputs` and `outputs` as optional fields; on the PDI the old reader returned no steps for `_v2` flows."
+    notes: "**Done 2026-09-25.** Opt-in `lanes` on `trace_table_event` / `generate_table_flow`: transform maps, scheduled jobs, client scripts + UI policies, data policies, SLAs, event script actions, each a phase and a Mermaid subgraph; stable order; default output byte-identical. `get_flow` depth moves to P-10. **2026-10-13:** `get_flow` reads all six step tables (`_v2` first) through the `explain_flow` readers and adds step `number` / `kind`, `subflows`, `inputs` and `outputs` as optional fields; on the PDI the old reader returned no steps for `_v2` flows."
   - id: "S-9"
     title: "where-used structural references"
     pillar: "S"
@@ -324,7 +324,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `src/api/references.ts`: 9 policy-checked structural sources (dictionary, list/form layouts, catalog variables, flow inputs, reports); additive `structural` section on `where_used` (opt-out `structural:false`)."
+    notes: "**Done 2026-09-24.** `src/api/references.ts`: 9 policy-checked structural sources (dictionary, list/form layouts, catalog variables, flow inputs, reports); additive `structural` section on `where_used` (opt-out `structural:false`)."
   - id: "E-5"
     title: "observability"
     pillar: "E"
@@ -333,7 +333,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `src/core/metrics.ts`: per-tool count/errors/p50/p95, cache, retry, queue, breaker and rate-limit stats in `get_status.observability`; `diagnostics_channel` events; `SN_LOG_FORMAT`, rotated `SN_LOG_FILE`; `GET /metrics` behind `SN_METRICS` + `SN_HTTP_TOKEN`."
+    notes: "**Done 2026-09-24.** `src/core/metrics.ts`: per-tool count/errors/p50/p95, cache, retry, queue, breaker and rate-limit stats in `get_status.observability`; `diagnostics_channel` events; `SN_LOG_FORMAT`, rotated `SN_LOG_FILE`; `GET /metrics` behind `SN_METRICS` + `SN_HTTP_TOKEN`."
   - id: "E-6"
     title: "test architecture"
     pillar: "E"
@@ -342,7 +342,7 @@ items:
     phase: null
     done: "2026-10-10"
     gates: ["O-2"]
-    notes: "**Partly done 2026-09-26:** fetch double v2, fake timers, property tests (retry, policy, encoders + the six L9-02), spawn CLI tests, extension typecheck job; batch 15 (2026-09-30): metadata-only guard across the metadata suites (ID-27), code-health golden (ID-28), extension lint; property finding F3 fixed 2026-10-09 (owner: the docs store refuses its own index files). L9-03 done 2026-10-09 (b69a55e): recursive `test/**/*.test.js` in every test script, thresholds only in `.c8rc.json`, a sub-folder sentinel; existing suites not moved. **Done 2026-10-10 (local):** redacted PDI fixture corpus `test/fixtures/pdi/` (7 read-only scenarios, recorded by `npm run fixtures:record`: custom-scope rows dropped, host/people/e-mails redacted, golden result produced by offline replay of the cleaned traffic, recording refused on any leak); `test/pdi-replay.test.js` replays it through the real tool layer and guards the corpus; `npm run test:live` (`SN_LIVE=1`) checks result shapes against a real instance; `.github/workflows/live-smoke.yml` (weekly + manual) runs it once the owner sets the `SN_INSTANCE`/`SN_USER`/`SN_PASSWORD` secrets (O-2)."
+    notes: "**Partly done 2026-09-26:** fetch double v2, fake timers, property tests (retry, policy, encoders + the six L9-02), spawn CLI tests, extension typecheck job; batch 15 (2026-09-30): metadata-only guard across the metadata suites (ID-27), code-health golden (ID-28), extension lint; property finding F3 fixed 2026-10-09 (owner: the docs store refuses its own index files). L9-03 done 2026-10-09 (b69a55e): recursive `test/**/*.test.js` in every test script, thresholds only in `.c8rc.json`, a sub-folder sentinel; existing suites not moved. **Done 2026-10-10:** redacted PDI fixture corpus `test/fixtures/pdi/` (7 read-only scenarios, recorded by `npm run fixtures:record`: custom-scope rows dropped, host/people/e-mails redacted, golden result produced by offline replay of the cleaned traffic, recording refused on any leak); `test/pdi-replay.test.js` replays it through the real tool layer and guards the corpus; `npm run test:live` (`SN_LIVE=1`) checks result shapes against a real instance; `.github/workflows/live-smoke.yml` (weekly + manual) runs it once the owner sets the `SN_INSTANCE`/`SN_USER`/`SN_PASSWORD` secrets (O-2)."
   - id: "E-7"
     title: "code health"
     pillar: "E"
@@ -360,7 +360,7 @@ items:
     phase: null
     done: "2026-09-28"
     gates: []
-    notes: "**Done 2026-09-28 (local).** `<KEY>_FILE` secret sources (profiles too, KEY + KEY_FILE fail-fast), distroless non-root `Dockerfile` + `.dockerignore` + `smithery.yaml`, non-loopback HTTP warning, `project/FOOTPRINT.md`. Image not built locally."
+    notes: "**Done 2026-09-28.** `<KEY>_FILE` secret sources (profiles too, KEY + KEY_FILE fail-fast), distroless non-root `Dockerfile` + `.dockerignore` + `smithery.yaml`, non-loopback HTTP warning, `project/FOOTPRINT.md`. Image not built locally."
   - id: "D-7"
     title: "extension v2"
     pillar: "D"
@@ -369,7 +369,7 @@ items:
     phase: null
     done: "2026-09-28"
     gates: []
-    notes: "**Done 2026-09-28 (local).** Settings `envFile` / `packages` / `transport`, SecretStorage sign-in, 4-step walkthrough, status-bar doctor, `extension/src` linted, CI runs 14 unit tests. Spawned range unchanged (D-6)."
+    notes: "**Done 2026-09-28.** Settings `envFile` / `packages` / `transport`, SecretStorage sign-in, 4-step walkthrough, status-bar doctor, `extension/src` linted, CI runs 14 unit tests. Spawned range unchanged (D-6)."
   - id: "D-8"
     title: "plugin skills + hooks"
     pillar: "D"
@@ -378,7 +378,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: []
-    notes: "**Done 2026-10-01 (local).** Five plugin skills under `skills/` (`sn-discover`, `sn-triage`, `sn-impact`, `sn-drift`, `sn-safe-write`) with the L4-02 manifest walker; `hooks/hooks.json` + `hooks/require-plan-token.mjs` — a `PreToolUse` hook that denies a token-less destructive `apply:true`. Slash commands skipped (skills are invocable)."
+    notes: "**Done 2026-10-01.** Five plugin skills under `skills/` (`sn-discover`, `sn-triage`, `sn-impact`, `sn-drift`, `sn-safe-write`) with the L4-02 manifest walker; `hooks/hooks.json` + `hooks/require-plan-token.mjs` — a `PreToolUse` hook that denies a token-less destructive `apply:true`. Slash commands skipped (skills are invocable)."
   - id: "S-10"
     title: "ops / data / history tables"
     pillar: "S"
@@ -387,7 +387,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local).** `ops`, `history`, `properties`, `directory` packages + CMDB relations / IRE."
+    notes: "**Done 2026-09-26.** `ops`, `history`, `properties`, `directory` packages + CMDB relations / IRE."
   - id: "S-11"
     title: "file-based delivery"
     pillar: "S"
@@ -396,7 +396,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: '**Done 2026-09-25 (local).** `format:"file"` + `SN_OVERSIZE_TO_FILE`, streamed exports.'
+    notes: '**Done 2026-09-25.** `format:"file"` + `SN_OVERSIZE_TO_FILE`, streamed exports.'
   - id: "S-12"
     title: "AST-based lint"
     pillar: "S"
@@ -405,7 +405,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: []
-    notes: "**Done 2026-10-01 (local).** `acorn` AST lint (ES5 global / ES2021 scoped) for the line, loop, query and sp-param rules + ACL / portal checks; regex fallback on parse failure; `code_health` baseline + delta."
+    notes: "**Done 2026-10-01.** `acorn` AST lint (ES5 global / ES2021 scoped) for the line, loop, query and sp-param rules + ACL / portal checks; regex fallback on parse failure; `code_health` baseline + delta."
   - id: "E-8"
     title: "ARCH-14 / ARCH-10 resolution"
     pillar: "E+O"
@@ -423,7 +423,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "**Done 2026-09-23 (local).** One `getDispatcher(host)` for proxy (`SN_HTTPS_PROXY` → `HTTPS_PROXY`/`HTTP_PROXY` + `NO_PROXY`) and TLS without a client cert, identifying `User-Agent`, `SN_DEADLINE_MS`, bounded queue (`BUSY`), `UPSTREAM_HTML`, OAuth through `rawRequest`, host:port / IPv6 policy, opt-in breaker (GAP L1-01…L1-10)."
+    notes: "**Done 2026-09-23.** One `getDispatcher(host)` for proxy (`SN_HTTPS_PROXY` → `HTTPS_PROXY`/`HTTP_PROXY` + `NO_PROXY`) and TLS without a client cert, identifying `User-Agent`, `SN_DEADLINE_MS`, bounded queue (`BUSY`), `UPSTREAM_HTML`, OAuth through `rawRequest`, host:port / IPv6 policy, opt-in breaker (GAP L1-01…L1-10)."
   - id: "E-9"
     title: "process lifecycle + bounded state"
     pillar: "E"
@@ -432,7 +432,7 @@ items:
     phase: null
     done: "2026-09-10"
     gates: []
-    notes: "**Done 2026-09-10 (local).** Crash handlers exit 1 with one structured line, `dispose()` in `src/core/lifecycle.ts`, LRU schema cache `SN_SCHEMA_CACHE_MAX` (GAP L6-03, L6-04, L2-08); H-10's dispatcher / queue / breaker hooks were wired into `dispose()` on 2026-09-23."
+    notes: "**Done 2026-09-10.** Crash handlers exit 1 with one structured line, `dispose()` in `src/core/lifecycle.ts`, LRU schema cache `SN_SCHEMA_CACHE_MAX` (GAP L6-03, L6-04, L2-08); H-10's dispatcher / queue / breaker hooks were wired into `dispose()` on 2026-09-23."
   - id: "H-11"
     title: "policy model v2"
     pillar: "H"
@@ -441,7 +441,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: ["O-4"]
-    notes: "**Done 2026-10-01 (local; BREAKING B11, O-4) bar the policy file.** Glob patterns, one evaluator + `explain_policy` + `servicenow://policy`, protected tables write-denied by default, import-set default `u_*,imp_*`, write caps 500 (HTTP session) / 100 deletes / 50 batch writes, prod marker. Attachments as parent-table writes done 2026-10-10 (upload, delete, batch delete by id). Open: `SN_TABLE_POLICY_FILE` (format unspecified)."
+    notes: "**Done 2026-10-01 (BREAKING B11, O-4) bar the policy file.** Glob patterns, one evaluator + `explain_policy` + `servicenow://policy`, protected tables write-denied by default, import-set default `u_*,imp_*`, write caps 500 (HTTP session) / 100 deletes / 50 batch writes, prod marker. Attachments as parent-table writes done 2026-10-10 (upload, delete, batch delete by id). Open: `SN_TABLE_POLICY_FILE` (format unspecified)."
   - id: "S-13"
     title: "capability preflight v2"
     pillar: "S"
@@ -450,7 +450,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `src/api/capability-matrix.ts`: per-group read-only probes (`groups`, `refresh`), TTL cache (`SN_CAPABILITY_TTL_MS`), plugin negative TTL `SN_PLUGIN_NEGATIVE_TTL_MS`; matrix in doctor and the capabilities resource."
+    notes: "**Done 2026-09-24.** `src/api/capability-matrix.ts`: per-group read-only probes (`groups`, `refresh`), TTL cache (`SN_CAPABILITY_TTL_MS`), plugin negative TTL `SN_PLUGIN_NEGATIVE_TTL_MS`; matrix in doctor and the capabilities resource."
   - id: "D-9"
     title: "security policy + community files"
     pillar: "D"
@@ -468,7 +468,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** `src/mcp/tasks.ts` behind `SN_EXPERIMENTAL_TASKS=1`: `run_as_task` on six long-running tools, task store (1 h TTL, redacted results), `tasks/cancel` aborts the request; 2026-10-09 also `document_app` / `document_instance` (ID-15); 2026-10-10 the 2026-07-28 tasks extension (`io.modelcontextprotocol/tasks`: server-directed task creation, flat `tasks/get`, `tasks/update`, -32021 without the declaration — N-35 step 2 item 4). Open: owner questions (TODO batch 10)."
+    notes: "**Done 2026-09-26.** `src/mcp/tasks.ts` behind `SN_EXPERIMENTAL_TASKS=1`: `run_as_task` on six long-running tools, task store (1 h TTL, redacted results), `tasks/cancel` aborts the request; 2026-10-09 also `document_app` / `document_instance` (ID-15); 2026-10-10 the 2026-07-28 tasks extension (`io.modelcontextprotocol/tasks`: server-directed task creation, flat `tasks/get`, `tasks/update`, -32021 without the declaration — N-35 step 2 item 4). Open: owner questions (TODO batch 10)."
   - id: "S-14"
     title: "docs store v2 + generator depth"
     pillar: "S"
@@ -477,7 +477,7 @@ items:
     phase: null
     done: "2026-09-23"
     gates: []
-    notes: "**Done 2026-09-23 (local).** `sn_*` frontmatter + source hash, manual blocks, `DOC_GENERATED`, `index.json` manifest, docs tool filters, `src/api/mermaid.ts`, ER `columns`/`depth`, table-flow `operation`; defaults byte-identical."
+    notes: "**Done 2026-09-23.** `sn_*` frontmatter + source hash, manual blocks, `DOC_GENERATED`, `index.json` manifest, docs tool filters, `src/api/mermaid.ts`, ER `columns`/`depth`, table-flow `operation`; defaults byte-identical."
   - id: "S-15"
     title: "document generators"
     pillar: "S"
@@ -495,7 +495,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** `document_instance({depth})` writes `<profile>/discovery/` (`overview.md`, `apps.md`, `tables-<scope>.md`, `artifacts-<scope>.md` with a collected / not collected and why column); `sn-discover` skill."
+    notes: "**Done 2026-09-26.** `document_instance({depth})` writes `<profile>/discovery/` (`overview.md`, `apps.md`, `tables-<scope>.md`, `artifacts-<scope>.md` with a collected / not collected and why column); `sn-discover` skill."
   - id: "P-1"
     title: "artefact registry"
     pillar: "P"
@@ -504,7 +504,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** `src/core/artifacts/registry.ts` (SDK baseline 4.12.2, §5(a) descriptor + validator); `SCRIPT_TYPES` / `ARTEFACT_TABLES` derived, byte-identical; unverified seeds for portal, UIB, flow, workflow, catalog, REST, transform."
+    notes: "**Done 2026-09-24.** `src/core/artifacts/registry.ts` (SDK baseline 4.12.2, §5(a) descriptor + validator); `SCRIPT_TYPES` / `ARTEFACT_TABLES` derived, byte-identical; unverified seeds for portal, UIB, flow, workflow, catalog, REST, transform."
   - id: "P-2"
     title: "registry verification probe"
     pillar: "P"
@@ -522,7 +522,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: ["O-5"]
-    notes: "**Done 2026-09-24 (local).** `src/core/artifacts/sdk-managed.ts`: yes / no / unknown with evidence from `SN_SDK_MANAGED_SCOPES` / `SN_SDK_PROJECT_DIRS` (`now.config.json`); `sdkManaged` block in status and capabilities; instance heuristics empty until O-5."
+    notes: "**Done 2026-09-24.** `src/core/artifacts/sdk-managed.ts`: yes / no / unknown with evidence from `SN_SDK_MANAGED_SCOPES` / `SN_SDK_PROJECT_DIRS` (`now.config.json`); `sdkManaged` block in status and capabilities; instance heuristics empty until O-5."
   - id: "P-4"
     title: "SDK release tracking"
     pillar: "P"
@@ -531,7 +531,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: '**Done 2026-09-24 (local).** `scripts/sdk-drift.mjs` (`npm run sdk:drift`) + weekly `sdk-drift.yml` tracking issue; `SDK_NEXT_APIS = ["DatabaseView"]`; not in the gate. 2026-10-09: SDK re-pinned to 4.13.6 (O-7); `DatabaseView` promoted to `SDK_APIS`, `SDK_NEXT_APIS` empty.'
+    notes: '**Done 2026-09-24.** `scripts/sdk-drift.mjs` (`npm run sdk:drift`) + weekly `sdk-drift.yml` tracking issue; `SDK_NEXT_APIS = ["DatabaseView"]`; not in the gate. 2026-10-09: SDK re-pinned to 4.13.6 (O-7); `DatabaseView` promoted to `SDK_APIS`, `SDK_NEXT_APIS` empty.'
   - id: "P-5"
     title: "`list_artifacts` / `get_artifact`"
     pillar: "P"
@@ -540,7 +540,7 @@ items:
     phase: null
     done: "2026-09-24"
     gates: []
-    notes: "**Done 2026-09-24 (local).** Opt-in `artifacts` package: `servicenow_list_artifacts` / `servicenow_get_artifact` over the P-1 registry with children, scope, `sdkManaged`, policy + redaction, `degraded` for unverified types; `servicenow://artifact-types`. 72 tools in 20 packages."
+    notes: "**Done 2026-09-24.** Opt-in `artifacts` package: `servicenow_list_artifacts` / `servicenow_get_artifact` over the P-1 registry with children, scope, `sdkManaged`, policy + redaction, `degraded` for unverified types; `servicenow://artifact-types`. 72 tools in 20 packages."
   - id: "P-6"
     title: "`explain_artifact` + JSON decoders"
     pillar: "P"
@@ -549,7 +549,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** `servicenow_explain_artifact` (opt-in `artifacts` package) over `getArtifactFor`; decoder framework `src/core/artifacts/decoders.ts` (tolerant `json`, `registerDecoder`); size-capped; JSON goldens per §4 group. 73 tools in 20 packages."
+    notes: "**Done 2026-09-25.** `servicenow_explain_artifact` (opt-in `artifacts` package) over `getArtifactFor`; decoder framework `src/core/artifacts/decoders.ts` (tolerant `json`, `registerDecoder`); size-capped; JSON goldens per §4 group. 73 tools in 20 packages."
   - id: "P-7"
     title: "descriptors: core, server, classic UI"
     pillar: "P"
@@ -558,7 +558,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** 31 CORE/SRV/CUI descriptors, `available` via a `sys_db_object` probe; see SDK-PARITY P-7. 2026-10-09: CUI-10 `interceptor` (`sys_wizard`, verified:false) added with the 4.13.6 re-pin; the guide-audit rows CORE-18, CORE-19, CORE-21 and CUI-6 `sys_ui_formatter` added as `assignment_rule`, `knowledge_base`, `security_attribute`, `security_data_filter` and `formatter` (verified:false). CORE-20 table augments stay columns of `table`."
+    notes: "**Done 2026-09-25.** 31 CORE/SRV/CUI descriptors, `available` via a `sys_db_object` probe; see SDK-PARITY P-7. 2026-10-09: CUI-10 `interceptor` (`sys_wizard`, verified:false) added with the 4.13.6 re-pin; the guide-audit rows CORE-18, CORE-19, CORE-21 and CUI-6 `sys_ui_formatter` added as `assignment_rule`, `knowledge_base`, `security_attribute`, `security_data_filter` and `formatter` (verified:false). CORE-20 table augments stay columns of `table`."
   - id: "P-8"
     title: "descriptors: catalog, quality, AI, app"
     pillar: "P"
@@ -567,7 +567,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local).** CAT/QA/AI/APP descriptors (121 types), licensed families degrade to `available:false`; see SDK-PARITY P-8."
+    notes: "**Done 2026-09-26.** CAT/QA/AI/APP descriptors (121 types), licensed families degrade to `available:false`; see SDK-PARITY P-8."
   - id: "P-9"
     title: "descriptors: portal, UIB, flow, workflow"
     pillar: "P"
@@ -576,7 +576,7 @@ items:
     phase: null
     done: "2026-09-25"
     gates: []
-    notes: "**Done 2026-09-25 (local).** Shallow NX/UIB/SP/FLW/WF descriptors, `scriptToolsOptIn`; see SDK-PARITY P-9."
+    notes: "**Done 2026-09-25.** Shallow NX/UIB/SP/FLW/WF descriptors, `scriptToolsOptIn`; see SDK-PARITY P-9."
   - id: "P-10"
     title: "Flow Designer decoder + `explain_flow`"
     pillar: "P"
@@ -585,7 +585,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: ["O-4"]
-    notes: "**Done 2026-09-26 (local).** `servicenow_explain_flow` in the `flows` package + `flow-values` decoder: step tree, decoded values with pills, draft vs published, opt-in runs; `get_flow` not delegated (O-4)."
+    notes: "**Done 2026-09-26.** `servicenow_explain_flow` in the `flows` package + `flow-values` decoder: step tree, decoded values with pills, draft vs published, opt-in runs; `get_flow` not delegated (O-4)."
   - id: "P-11"
     title: "subflows, custom actions, decision tables"
     pillar: "P"
@@ -594,7 +594,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: ["O-5"]
-    notes: '**Done 2026-09-26 (local, uncommitted).** `explain_flow` `kind:"action"` + `depth` call expansion (cap 3, cycle guard, 20 callees); `decision-table` explainer via `explain_artifact`; all (U), O-5. **Action snapshot 2026-10-13 (O-5):** a flow step references the published `sys_hub_action_type_snapshot` (2,779 of 2,789 `_v2` steps on the PDI); `kind:"action"` falls back to the snapshot when no definition matches and flags a draft with unpublished changes (TODO batch-11 (e)); 0 B tools/list.'
+    notes: '**Done 2026-09-26.** `explain_flow` `kind:"action"` + `depth` call expansion (cap 3, cycle guard, 20 callees); `decision-table` explainer via `explain_artifact`; all (U), O-5. **Action snapshot 2026-10-13 (O-5):** a flow step references the published `sys_hub_action_type_snapshot` (2,779 of 2,789 `_v2` steps on the PDI); `kind:"action"` falls back to the snapshot when no definition matches and flags a draft with unpublished changes (TODO batch-11 (e)); 0 B tools/list.'
   - id: "P-12"
     title: "playbooks"
     pillar: "P"
@@ -603,7 +603,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5"]
-    notes: '**Done 2026-09-30 (local).** `explain_flow` `kind:"playbook"`: lanes, activities, timers, triggers, inputs / outputs, variants, opt-in `runs`; `available:false` when the tables are absent; `verified:false` until O-5.'
+    notes: '**Done 2026-09-30.** `explain_flow` `kind:"playbook"`: lanes, activities, timers, triggers, inputs / outputs, variants, opt-in `runs`; `available:false` when the tables are absent; `verified:false` until O-5.'
   - id: "P-13"
     title: "legacy workflow graph + migration report"
     pillar: "P"
@@ -612,7 +612,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: '**Done 2026-09-26 (local).** `explain_flow` `kind:"workflow"`: activity graph, `wf_stage`, opt-in `wf_context` runs, migration report; 24 tests with P-10.'
+    notes: '**Done 2026-09-26.** `explain_flow` `kind:"workflow"`: activity graph, `wf_stage`, opt-in `wf_context` runs, migration report; 24 tests with P-10.'
   - id: "P-14"
     title: "UI Builder experience tree"
     pillar: "P"
@@ -621,7 +621,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5"]
-    notes: "**Done 2026-09-30 (local).** `servicenow_explain_ui_experience` (`ui` package, `src/api/ui-experience.ts`): app shell → routes → screens → variants → macroponents, data brokers, client scripts; composition decoder `src/core/artifacts/uib-composition.ts`; tables unverified (O-5)."
+    notes: "**Done 2026-09-30.** `servicenow_explain_ui_experience` (`ui` package, `src/api/ui-experience.ts`): app shell → routes → screens → variants → macroponents, data brokers, client scripts; composition decoder `src/core/artifacts/uib-composition.ts`; tables unverified (O-5)."
   - id: "P-15"
     title: "workspace, dashboard, list menu, applicability"
     pillar: "P"
@@ -630,7 +630,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: '**Done 2026-09-30 (local).** Workspaces, dashboards, list menus and applicability records join the UI experience tree and the workspace page map in `document_app`. PDI pass 2026-10-13 (O-5, PDI-VERIFY "Twenty-fourth pass"): list menu fields confirmed; lists linked to a menu only through `configuration` (no category) are now read, and inactive lists and categories carry `active`.'
+    notes: '**Done 2026-09-30.** Workspaces, dashboards, list menus and applicability records join the UI experience tree and the workspace page map in `document_app`. PDI pass 2026-10-13 (O-5, PDI-VERIFY "Twenty-fourth pass"): list menu fields confirmed; lists linked to a menu only through `configuration` (no category) are now read, and inactive lists and categories carry `active`.'
   - id: "P-16"
     title: "Service Portal tree"
     pillar: "P"
@@ -639,7 +639,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local).** `servicenow_explain_portal` in the new opt-in `ui` package: portal/page tree, decoded widget options, Mermaid layout; 17 tests."
+    notes: "**Done 2026-09-26.** `servicenow_explain_portal` in the new opt-in `ui` package: portal/page tree, decoded widget options, Mermaid layout; 17 tests."
   - id: "P-17"
     title: "`artifact_dependencies`"
     pillar: "P"
@@ -648,7 +648,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26 (local, uncommitted).** `servicenow_artifact_dependencies` in the opt-in `artifacts` package (`src/api/dependencies.ts`): outbound refFields / decoded JSON / script text, inbound reverse refs + script and flow-step callers + S-9 structural pass; depth 1–3, 150-node cap, JSON or Mermaid; 16 tests."
+    notes: "**Done 2026-09-26.** `servicenow_artifact_dependencies` in the opt-in `artifacts` package (`src/api/dependencies.ts`): outbound refFields / decoded JSON / script text, inbound reverse refs + script and flow-step callers + S-9 structural pass; depth 1–3, 150-node cap, JSON or Mermaid; 16 tests."
   - id: "P-18"
     title: "registry-driven lint and search"
     pillar: "P"
@@ -657,7 +657,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: ["O-5"]
-    notes: "**Done 2026-09-26 (local).** Portal rules, `lint_script` over opt-in types, `code_health({extended})` registry sweep, `where_used({extended})`. PDI-checked 2026-10-13 (PDI-VERIFY thirty-first pass): portal client functions parse as AST, sanitised `trustAsHtml` values are skipped (88 → 76 findings)."
+    notes: "**Done 2026-09-26.** Portal rules, `lint_script` over opt-in types, `code_health({extended})` registry sweep, `where_used({extended})`. PDI-checked 2026-10-13 (PDI-VERIFY thirty-first pass): portal client functions parse as AST, sanitised `trustAsHtml` values are skipped (88 → 76 findings)."
   - id: "P-19"
     title: "domain analysers (flow, UIB, portal)"
     pillar: "P"
@@ -666,7 +666,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local).** 11 flow / portal / workflow rules (2026-09-28) plus 3 UIB rules (`uib-route-no-screen`, `uib-screen-no-applicability`, `uib-data-broker-no-acl`) in `code_health` behind opt-in `domains`. UIB fields confirmed on a PDI 2026-10-13 (inactive screens now skipped); `NOT_OOB` lets global OOB records through (owner decision)."
+    notes: "**Done 2026-09-30.** 11 flow / portal / workflow rules (2026-09-28) plus 3 UIB rules (`uib-route-no-screen`, `uib-screen-no-applicability`, `uib-data-broker-no-acl`) in `code_health` behind opt-in `domains`. UIB fields confirmed on a PDI 2026-10-13 (inactive screens now skipped); `NOT_OOB` lets global OOB records through (owner decision)."
   - id: "P-20"
     title: "snapshot/compare over the registry"
     pillar: "P"
@@ -675,7 +675,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5"]
-    notes: '**Done 2026-09-30 (local).** `types` / `scope`, sys_id → natural-key matching, child-aware diffs; opt-in `mermaid:true` diagram diffs (10 records, not drift); flows from `master_snapshot` children when present (`source:"published"`), else the draft. **GET-only PDI pass 2026-10-13:** `master_snapshot` is the right key (rows for 562 of 563 flows) and published flows have the same steps as their draft, but the snapshot encodes step `values` differently, so a draft-read side shows as changed; the warning says so. See PDI-VERIFY-2026-10.md (eighteenth pass). **PDI pass 2026-10-13 (thirty-second):** both plain and `_v2` flow instance tables hold rows under draft and snapshot; `sys_hub_trigger_instance_v2` joined the flow children.'
+    notes: '**Done 2026-09-30.** `types` / `scope`, sys_id → natural-key matching, child-aware diffs; opt-in `mermaid:true` diagram diffs (10 records, not drift); flows from `master_snapshot` children when present (`source:"published"`), else the draft. **GET-only PDI pass 2026-10-13:** `master_snapshot` is the right key (rows for 562 of 563 flows) and published flows have the same steps as their draft, but the snapshot encodes step `values` differently, so a draft-read side shows as changed; the warning says so. See PDI-VERIFY-2026-10.md (eighteenth pass). **PDI pass 2026-10-13 (thirty-second):** both plain and `_v2` flow instance tables hold rows under draft and snapshot; `sys_hub_trigger_instance_v2` joined the flow children.'
   - id: "P-21"
     title: "application documentation generator"
     pillar: "P"
@@ -684,7 +684,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: []
-    notes: "**Done 2026-09-30 (local); UIB depth is diagrams only.** `document_app({detail})`: diagrams per flow / workflow / portal / workspace page map, dependency graph, lint summary; degrades to caveats. Deeper UIB prose is an owner call."
+    notes: "**Done 2026-09-30; UIB depth is diagrams only.** `document_app({detail})`: diagrams per flow / workflow / portal / workspace page map, dependency graph, lint summary; degrades to caveats. Deeper UIB prose is an owner call."
   - id: "P-22"
     title: "SDK-managed write guard"
     pillar: "P"
@@ -693,7 +693,7 @@ items:
     phase: null
     done: "2026-09-26"
     gates: []
-    notes: "**Done 2026-09-26/28 (local).** `SN_SDK_MANAGED_WRITES` warn / deny / allow (default warn) on the Table-style write tools, `servicenow_batch` sub-requests and `upsert_artifact`; a create without `sys_scope` uses `apps.current_app`; `SDK_MANAGED_SCOPE`."
+    notes: "**Done 2026-09-26/28.** `SN_SDK_MANAGED_WRITES` warn / deny / allow (default warn) on the Table-style write tools, `servicenow_batch` sub-requests and `upsert_artifact`; a create without `sys_scope` uses `apps.current_app`; `SDK_MANAGED_SCOPE`."
   - id: "P-23"
     title: "`upsert_artifact` plan/apply"
     pillar: "P"
@@ -702,7 +702,7 @@ items:
     phase: null
     done: "2026-09-28"
     gates: []
-    notes: "**Done 2026-09-28 (local).** `servicenow_upsert_artifact` (opt-in `artifacts`): parent-first create / update / noop, descriptor `writeFields`, plan-only JSON fields, per-record journal + revert, one plan token. Deferred: prune_children, whole-artefact revert, child staleness. **PDI pass 2026-10-13 (O-5):** the `sys_ui_policy_action` write fields and their choice values are confirmed."
+    notes: "**Done 2026-09-28.** `servicenow_upsert_artifact` (opt-in `artifacts`): parent-first create / update / noop, descriptor `writeFields`, plan-only JSON fields, per-record journal + revert, one plan token. Deferred: prune_children, whole-artefact revert, child staleness. **PDI pass 2026-10-13 (O-5):** the `sys_ui_policy_action` write fields and their choice values are confirmed."
   - id: "P-24"
     title: "portal and catalog structural writes"
     pillar: "P"
@@ -711,7 +711,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5"]
-    notes: "**Done 2026-09-30 (local).** `servicenow_upsert_artifact` for portal and catalog structures: `children[].parent`, uniqueness pre-flight (`DUPLICATE_UNIQUE_FIELD`), `SCOPE_PREFIX` warning. **PDI pass 2026-10-13 (O-5):** every write field exists, the choice values are recorded in PDI-VERIFY (tenth pass), and the scope prefix is an SDK convention the platform does not enforce, so it stays a warning; the instance holds no duplicate of the `unique` fields, and the pre-flight skips empty values (42 dependencies have an empty `module`)."
+    notes: "**Done 2026-09-30.** `servicenow_upsert_artifact` for portal and catalog structures: `children[].parent`, uniqueness pre-flight (`DUPLICATE_UNIQUE_FIELD`), `SCOPE_PREFIX` warning. **PDI pass 2026-10-13 (O-5):** every write field exists, the choice values are recorded in PDI-VERIFY (tenth pass), and the scope prefix is an SDK convention the platform does not enforce, so it stays a warning; the instance holds no duplicate of the `unique` fields, and the pre-flight skips empty values (42 dependencies have an empty `module`)."
   - id: "P-25"
     title: "flow activation toggle"
     pillar: "P"
@@ -720,7 +720,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5"]
-    notes: "**Partly done 2026-09-30 (local).** Flow upsert accepts `{active}` only (`FLOW_ACTIVE_ONLY`) through the plan-and-apply rails; the instance behaviour (`master_snapshot`) waits for O-5. **GET-only PDI pass 2026-10-13 (2842da3):** no business rule reacts to an `active` update and inactive flows keep their `master_snapshot` and trigger plans, so the toggle leaves the published snapshot unchanged; the hint drops the caveat. Open: the runtime effect on the trigger needs a writable instance; on ven03019 (2026-10-13) the Table API `PATCH sys_hub_flow` is ACL-refused (403) even for admin + flow_designer, so the toggle cannot run there. See PDI-VERIFY-2026-10.md (sixteenth and thirty-ninth passes)."
+    notes: "**Partly done 2026-09-30.** Flow upsert accepts `{active}` only (`FLOW_ACTIVE_ONLY`) through the plan-and-apply rails; the instance behaviour (`master_snapshot`) waits for O-5. **GET-only PDI pass 2026-10-13 (2842da3):** no business rule reacts to an `active` update and inactive flows keep their `master_snapshot` and trigger plans, so the toggle leaves the published snapshot unchanged; the hint drops the caveat. Open: the runtime effect on the trigger needs a writable instance; on ven03019 (2026-10-13) the Table API `PATCH sys_hub_flow` is ACL-refused (403) even for admin + flow_designer, so the toggle cannot run there. See PDI-VERIFY-2026-10.md (sixteenth and thirty-ninth passes)."
   - id: "P-26"
     title: "Fluent emitter core (`generate_fluent`)"
     pillar: "P"
@@ -729,7 +729,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-7"]
-    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `servicenow_generate_fluent` (opt-in `artifacts`): `.now.ts` + `keys.ts` + `Now.include` sidecars + `Now.ref`, `Record()` fallback with `unsupported[]`, secret placeholders, `<profile>/fluent/<scope>/` store. Type-checked and built against `@servicenow/sdk` 4.12.2 by the P-29 oracle; `keys.ts` only declares referenced keys (no `DELETE`s)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30; SDK-verified 2026-10-01 (O-7).** `servicenow_generate_fluent` (opt-in `artifacts`): `.now.ts` + `keys.ts` + `Now.include` sidecars + `Now.ref`, `Record()` fallback with `unsupported[]`, secret placeholders, `<profile>/fluent/<scope>/` store. Type-checked and built against `@servicenow/sdk` 4.12.2 by the P-29 oracle; `keys.ts` only declares referenced keys (no `DELETE`s)."
   - id: "P-27"
     title: "flow/subflow/action/playbook emitters"
     pillar: "P"
@@ -738,7 +738,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5", "O-7"]
-    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `src/api/fluent-flow.ts`: `Flow` / `Subflow` / `Action` / `PlaybookDefinition` from the `explain_flow` tree; `action.core` inputs typed from the generated `src/api/fluent-sdk-actions.ts` (`npm run fluent:actions`), `wfa.action` keys on `sys_hub_action_instance_v2`. Open: flow variables / stages / inputs get SDK-minted ids; PDI behaviour (O-5)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30; SDK-verified 2026-10-01 (O-7).** `src/api/fluent-flow.ts`: `Flow` / `Subflow` / `Action` / `PlaybookDefinition` from the `explain_flow` tree; `action.core` inputs typed from the generated `src/api/fluent-sdk-actions.ts` (`npm run fluent:actions`), `wfa.action` keys on `sys_hub_action_instance_v2`. Open: flow variables / stages / inputs get SDK-minted ids; PDI behaviour (O-5)."
   - id: "P-28"
     title: "portal, workspace, catalog emitters"
     pillar: "P"
@@ -747,7 +747,7 @@ items:
     phase: null
     done: "2026-09-30"
     gates: ["O-5", "O-7"]
-    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30 (local); SDK-verified 2026-10-01 (O-7).** `src/api/fluent-ui.ts`: 20 emitters (portal, `SPPage` tree, widgets + sidecars, themes, menus, route maps, providers, includes, `Workspace`, `Dashboard`, `UxListMenuConfig`, `Applicability`, catalog items / producers / sets / client scripts / UI policies) type-checked and built by P-29; UIB and `sp_ng_template` stay `Record()`. Open: `SPPage` takes no `$id` (SDK-minted sys_id, noted per file); PDI behaviour (O-5)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Done 2026-09-30; SDK-verified 2026-10-01 (O-7).** `src/api/fluent-ui.ts`: 20 emitters (portal, `SPPage` tree, widgets + sidecars, themes, menus, route maps, providers, includes, `Workspace`, `Dashboard`, `UxListMenuConfig`, `Applicability`, catalog items / producers / sets / client scripts / UI policies) type-checked and built by P-29; UIB and `sp_ng_template` stay `Record()`. Open: `SPPage` takes no `$id` (SDK-minted sys_id, noted per file); PDI behaviour (O-5)."
   - id: "P-29"
     title: "round-trip verification harness"
     pillar: "P"
@@ -756,7 +756,7 @@ items:
     phase: null
     done: "2026-10-01"
     gates: ["O-2", "O-5"]
-    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Partly done 2026-10-01 (local).** `npm run fluent:verify` (`scripts/fluent-verify.mjs`) + `test/fluent-sdk-oracle.test.js`: strict `tsc` against the SDK 4.12.2 types and offline `now-sdk build` of all 27 goldens in conflict-free projects; every declared key must come out under its sys_id and no `DELETE` may be emitted (93 keyed records among 100 built). Open: per-field comparison with instance records (O-2 / O-5 fixtures)."
+    notes: "**Dropped 2026-10-10** ([ADR 0010](adr/0010-drop-fluent-generation.md), B15): Fluent generation and source control belong to syncrona (`syncrona fluent transform`); the code was removed. Was: **Partly done 2026-10-01.** `npm run fluent:verify` (`scripts/fluent-verify.mjs`) + `test/fluent-sdk-oracle.test.js`: strict `tsc` against the SDK 4.12.2 types and offline `now-sdk build` of all 27 goldens in conflict-free projects; every declared key must come out under its sys_id and no `DELETE` may be emitted (93 keyed records among 100 built). Open: per-field comparison with instance records (O-2 / O-5 fixtures)."
   - id: "N-0"
     title: "tool-budget headroom"
     pillar: "N"
@@ -765,7 +765,7 @@ items:
     phase: null
     done: "2026-10-03"
     gates: ["O-10"]
-    notes: "**Partly done 2026-10-03 (local): byte reclaim, 150,916 → 135,881 B; budget restated 2026-10-06 (O-10 (a)+(b), ADR 0006).** Description-text only (core 36,158 → 32,737 B); no name, type, enum, required-ness, outputSchema or annotation change. Gate for every N item (NX-11)."
+    notes: "**Partly done 2026-10-03: byte reclaim, 150,916 → 135,881 B; budget restated 2026-10-06 (O-10 (a)+(b), ADR 0006).** Description-text only (core 36,158 → 32,737 B); no name, type, enum, required-ness, outputSchema or annotation change. Gate for every N item (NX-11)."
   - id: "N-6"
     title: "`ops` v2: integrations, transactions, MID"
     pillar: "N"
@@ -774,7 +774,7 @@ items:
     phase: null
     done: "2026-10-03"
     gates: ["O-5"]
-    notes: "**Done 2026-10-03 (local).** `servicenow_read_ops` kinds `integrations` (`sys_outbound_http_log` failed/slow by host + calling table, URLs redacted), `transactions` (`syslog_transaction` slow, by URL sans query) and `mid` (`ecc_agent` + `ecc_queue` backlog/errors by agent); each degrades alone, joins `overview` (counts), dictionary-guards its filter fields. Prompt + skill updated; `test/ops-v2.test.js`; tools/list +11 B all, 0 core. **O-5 checked on a PDI 2026-10-12:** `http_method` → `method`, `rest_message` (absent) → groups by `source_table`; the rest matched."
+    notes: "**Done 2026-10-03.** `servicenow_read_ops` kinds `integrations` (`sys_outbound_http_log` failed/slow by host + calling table, URLs redacted), `transactions` (`syslog_transaction` slow, by URL sans query) and `mid` (`ecc_agent` + `ecc_queue` backlog/errors by agent); each degrades alone, joins `overview` (counts), dictionary-guards its filter fields. Prompt + skill updated; `test/ops-v2.test.js`; tools/list +11 B all, 0 core. **O-5 checked on a PDI 2026-10-12:** `http_method` → `method`, `rest_message` (absent) → groups by `source_table`; the rest matched."
   - id: "N-8"
     title: "reports and PA as artefacts"
     pillar: "N"
@@ -783,7 +783,7 @@ items:
     phase: null
     done: "2026-10-03"
     gates: ["O-5", "O-9"]
-    notes: "**Done 2026-10-03 (local, uncommitted); fields unverified (O-5).** Group `reporting`, 7 registry types: `report`, `report_source`, and licensed `pa_indicator`, `pa_indicator_source`, `pa_breakdown`, `pa_script`, `pa_dashboard` (`PERFORMANCE_ANALYTICS`, O-9: absent tables → `available:false`). New where-used source `pa_indicator_source` (`pa_cubes`). `tools/list` unchanged (NX-08)."
+    notes: "**Done 2026-10-03; fields unverified (O-5).** Group `reporting`, 7 registry types: `report`, `report_source`, and licensed `pa_indicator`, `pa_indicator_source`, `pa_breakdown`, `pa_script`, `pa_dashboard` (`PERFORMANCE_ANALYTICS`, O-9: absent tables → `available:false`). New where-used source `pa_indicator_source` (`pa_cubes`). `tools/list` unchanged (NX-08)."
   - id: "N-1"
     title: "upgrade readiness"
     pillar: "N"
@@ -927,7 +927,7 @@ items:
     phase: null
     done: "2026-10-14"
     gates: ["O-10"]
-    notes: "**Harness done 2026-10-05 (local, uncommitted).** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. **Repeats + McNemar done 2026-10-09:** `--repeats <n>` with a majority vote, an exact McNemar p-value and the 4-point acceptance rule in the comparison. O-10 (d) decided 2026-10-09: `claude-sonnet-5-5`, three repeats. **Real-model baseline dropped 2026-10-13 (owner: no `ANTHROPIC_API_KEY`, so no paid eval run for 3.0.0).** **Discovery profile done 2026-10-14:** the eval profiles are `discovery` (the real default `tools/list` since N-63), `all` and `deferred` (the former simulation); `find_tools` counts as a package rescue; offline lexical baseline rewritten (discovery 16.1 %, all 33.6 %, deferred 30.2 %). Offline scope closed (NX-23)."
+    notes: "**Harness done 2026-10-05.** `evals/tool-selection/` (150 cases) + `npm run eval:tools`, outside the gate; lexical / recorded / Anthropic backends; offline lexical baseline committed. **Repeats + McNemar done 2026-10-09:** `--repeats <n>` with a majority vote, an exact McNemar p-value and the 4-point acceptance rule in the comparison. O-10 (d) decided 2026-10-09: `claude-sonnet-5-5`, three repeats. **Real-model baseline dropped 2026-10-13 (owner: no `ANTHROPIC_API_KEY`, so no paid eval run for 3.0.0).** **Discovery profile done 2026-10-14:** the eval profiles are `discovery` (the real default `tools/list` since N-63), `all` and `deferred` (the former simulation); `find_tools` counts as a package rescue; offline lexical baseline rewritten (discovery 16.1 %, all 33.6 %, deferred 30.2 %). Offline scope closed (NX-23)."
   - id: "N-19"
     title: "prompts for the N flagships"
     pillar: "N"
@@ -1053,7 +1053,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-5"]
-    notes: "**Done 2026-10-05 (local, uncommitted).** `src/api/uib-script-lint.ts` (19 `uib-*` rules) wired into `lint_script` (macroponent contract: declared state, events, data resources) and the `check_code_health` `extended` sweep. 0 B tools/list. Follow-ups: batched contract in the sweep, lint from the UIB explainer; UIB API unverified (O-5) (UX-15). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md). **PDI pass 2026-10-13 (O-5, b67dc93):** the client API shape is confirmed; `dispatched_events` / `handled_events` are glide_lists of `sys_ux_event` sys_ids, and about two thirds of OOB `api.emit` calls name undeclared page events even after resolving them, so `lint_script` no longer reads `dispatched_events` and `uib-undeclared-event` runs only on an explicit list of names; 0 B tools/list."
+    notes: "**Done 2026-10-05.** `src/api/uib-script-lint.ts` (19 `uib-*` rules) wired into `lint_script` (macroponent contract: declared state, events, data resources) and the `check_code_health` `extended` sweep. 0 B tools/list. Follow-ups: batched contract in the sweep, lint from the UIB explainer; UIB API unverified (O-5) (UX-15). See [UIB-ANALYSIS-2026-10.md](UIB-ANALYSIS-2026-10.md). **PDI pass 2026-10-13 (O-5, b67dc93):** the client API shape is confirmed; `dispatched_events` / `handled_events` are glide_lists of `sys_ux_event` sys_ids, and about two thirds of OOB `api.emit` calls name undeclared page events even after resolving them, so `lint_script` no longer reads `dispatched_events` and `uib-undeclared-event` runs only on an explicit list of names; 0 B tools/list."
   - id: "N-33"
     title: "structured UIB edits"
     pillar: "N"
@@ -1107,7 +1107,7 @@ items:
     phase: "B"
     done: "2026-10-10"
     gates: []
-    notes: "**Deterministic list order done 2026-10-05 (local):** package resources register after the always-on ones in manifest order and re-register in that order on enable, so a disable/enable round trip no longer reorders `resources/list` / templates; a test pins identical tools/prompts/resources/templates across fresh and toggled sessions. Package switches are already batched to one `list_changed` per list by the SDK debounce. **`ttlMs` / `cacheScope` done 2026-10-10 (N-35 step 2):** every 2026-07-28 list is one page carrying its method's cache hint. Phase B, after N-35. Deterministic list order, `ttlMs` / `cacheScope`, batched package switches (TK-09). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Deterministic list order done 2026-10-05:** package resources register after the always-on ones in manifest order and re-register in that order on enable, so a disable/enable round trip no longer reorders `resources/list` / templates; a test pins identical tools/prompts/resources/templates across fresh and toggled sessions. Package switches are already batched to one `list_changed` per list by the SDK debounce. **`ttlMs` / `cacheScope` done 2026-10-10 (N-35 step 2):** every 2026-07-28 list is one page carrying its method's cache hint. Phase B, after N-35. Deterministic list order, `ttlMs` / `cacheScope`, batched package switches (TK-09). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-39"
     title: "one channel per payload"
     pillar: "N"
@@ -1134,7 +1134,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: []
-    notes: "**Done 2026-10-05 (local, uncommitted).** `project/README.md` corpus index; historical documents moved to `project/archive/` with inbound links updated; this table is generated from `project/roadmap.yaml` by `scripts/roadmap.mjs` (`npm run roadmap:sync`, `--check` in `npm run check`; `npm run roadmap:status`) (TK-15, TK-16). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**Done 2026-10-05.** `project/README.md` corpus index; historical documents moved to `project/archive/` with inbound links updated; this table is generated from `project/roadmap.yaml` by `scripts/roadmap.mjs` (`npm run roadmap:sync`, `--check` in `npm run check`; `npm run roadmap:status`) (TK-15, TK-16). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-42"
     title: "generated tool reference and `llms-full.txt`"
     pillar: "N"
@@ -1170,7 +1170,7 @@ items:
     phase: "R0"
     done: null
     gates: []
-    notes: "**P0.** Phase R0, done 2026-10-04 (local): untracked `.claude/settings.json` (it allowed `git add` / `git commit` unprompted) plus `test/harness-files.test.js`, which fails when an assistant harness path is tracked (TK-21). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0.** Phase R0, done 2026-10-04: untracked `.claude/settings.json` (it allowed `git add` / `git commit` unprompted) plus `test/harness-files.test.js`, which fails when an assistant harness path is tracked (TK-21). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-46"
     title: "path-scoped agent instructions"
     pillar: "N"
@@ -1242,7 +1242,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-22"]
-    notes: "**P0. Done 2026-10-05 (local, uncommitted) bar registration (O-22).** `context7.json` indexes `docs/` (`docs/tools/`, `llms-full.txt`, which bundles README and SECURITY), excludes `project/`, `test/`, fixtures; validated by `docs:sync --check` (TK-29). 2026-10-14: its default-profile rule names `discovery` (O-22, ADR 0011). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 bar registration (O-22).** `context7.json` indexes `docs/` (`docs/tools/`, `llms-full.txt`, which bundles README and SECURITY), excludes `project/`, `test/`, fixtures; validated by `docs:sync --check` (TK-29). 2026-10-14: its default-profile rule names `discovery` (O-22, ADR 0011). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-54"
     title: "code-mode-ready outputs"
     pillar: "N"
@@ -1269,7 +1269,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: []
-    notes: "**P0. Done 2026-10-05 (75e34b2).** `scripts/scan-surface.mjs` in `npm run check` (97 tools, server texts, plugin files clean); OWASP MCP Top 10 mapping in SECURITY.md (TK-32, TK-33). **Windows `start` URL split (MCP05) closed 2026-10-05 (local):** `browserCommand` uses `rundll32 url.dll,FileProtocolHandler`, http(s) only. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (75e34b2).** `scripts/scan-surface.mjs` in `npm run check` (97 tools, server texts, plugin files clean); OWASP MCP Top 10 mapping in SECURITY.md (TK-32, TK-33). **Windows `start` URL split (MCP05) closed 2026-10-05:** `browserCommand` uses `rundll32 url.dll,FileProtocolHandler`, http(s) only. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-57"
     title: "token measurement harness"
     pillar: "N"
@@ -1278,7 +1278,7 @@ items:
     phase: "T0"
     done: "2026-10-14"
     gates: ["O-10"]
-    notes: "**Step 1 done 2026-10-05 (local):** budgets moved to `test/fixtures/token-budgets.json` and lowered to all 136,192 B / core 32,768 B (measured 135,956 / 32,737, rounded up to 256 B). **Harness done 2026-10-05 (local):** `test/surface.js` `measureSurface` (profiles core / all / all+tasks / all+legacy), budgets for all four plus a 2 % ratchet test, `test/tool-size.test.js` (global caps + reasoned `OVERSIZE_ALLOW`, stale check), `npm run tokens:budget` (`--write` only lowers) and `npm run tokens:report` (breakdown, repeated parameter text, top 15, deltas, `--json`). **E-5 result bytes done 2026-10-05 (local):** `measureResultBytes` in `timeToolCall`, `bytesTotal` / `textBytes` / `structuredBytes` / `bytesP50` / `bytesP95` per tool in `get_status`, Prometheus `servicenow_mcp_tool_result_bytes` (summary) and `_tool_result_channel_bytes_total` (counter, `channel` text / structured). **`--base <ref>` and response-size goldens done 2026-10-05 (local):** `tokens:report -- --base <ref>` measures a ref built in a temporary worktree; `test/response-size.test.js` + `test/fixtures/response-sizes.json` (11 synthetic cases, `synthetic: true` until O-5; `get_status` left out, its figures vary per run). **PDI pass 2026-10-13 (O-5):** the 11 cases run on the PDI land within 0.7–1.7× of the synthetic goldens except `list_flows` (27,178 B against 7,518 B; `description` is 77 % of it); real record sizes for the five §1.3 tables are in PDI-VERIFY (omit-empty −11 % to −54 %, `display_value=all` ×2.3–2.7, a default 10-incident `query_table` 23,518 B). The goldens stay synthetic; no code change, 0 B tools/list. **Closed 2026-10-14:** the `discovery` budget landed with N-63 (23,808 B, measured 23,675); every N-57 deliverable is in the gate and the five profiles sit within the 2 % ratchet (core / discovery −133 B, all −120 B, all+tasks −84 B, all+legacy −80 B). Phase T0, first after R0 (TK-34, TK-35, TK-37). Step 1 (lowered budgets) lands in R0 before N-54. Budgets as data (`test/fixtures/token-budgets.json`, profiles core / discovery / all), tightness ratchet, per-tool size caps, manifest v5 sizes, response-size goldens, `npm run tokens:report`, result bytes in E-5; budgets method decided 2026-10-06 (O-10 (a), ADR 0006). See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: "**Step 1 done 2026-10-05:** budgets moved to `test/fixtures/token-budgets.json` and lowered to all 136,192 B / core 32,768 B (measured 135,956 / 32,737, rounded up to 256 B). **Harness done 2026-10-05:** `test/surface.js` `measureSurface` (profiles core / all / all+tasks / all+legacy), budgets for all four plus a 2 % ratchet test, `test/tool-size.test.js` (global caps + reasoned `OVERSIZE_ALLOW`, stale check), `npm run tokens:budget` (`--write` only lowers) and `npm run tokens:report` (breakdown, repeated parameter text, top 15, deltas, `--json`). **E-5 result bytes done 2026-10-05:** `measureResultBytes` in `timeToolCall`, `bytesTotal` / `textBytes` / `structuredBytes` / `bytesP50` / `bytesP95` per tool in `get_status`, Prometheus `servicenow_mcp_tool_result_bytes` (summary) and `_tool_result_channel_bytes_total` (counter, `channel` text / structured). **`--base <ref>` and response-size goldens done 2026-10-05:** `tokens:report -- --base <ref>` measures a ref built in a temporary worktree; `test/response-size.test.js` + `test/fixtures/response-sizes.json` (11 synthetic cases, `synthetic: true` until O-5; `get_status` left out, its figures vary per run). **PDI pass 2026-10-13 (O-5):** the 11 cases run on the PDI land within 0.7–1.7× of the synthetic goldens except `list_flows` (27,178 B against 7,518 B; `description` is 77 % of it); real record sizes for the five §1.3 tables are in PDI-VERIFY (omit-empty −11 % to −54 %, `display_value=all` ×2.3–2.7, a default 10-incident `query_table` 23,518 B). The goldens stay synthetic; no code change, 0 B tools/list. **Closed 2026-10-14:** the `discovery` budget landed with N-63 (23,808 B, measured 23,675); every N-57 deliverable is in the gate and the five profiles sit within the 2 % ratchet (core / discovery −133 B, all −120 B, all+tasks −84 B, all+legacy −80 B). Phase T0, first after R0 (TK-34, TK-35, TK-37). Step 1 (lowered budgets) lands in R0 before N-54. Budgets as data (`test/fixtures/token-budgets.json`, profiles core / discovery / all), tightness ratchet, per-tool size caps, manifest v5 sizes, response-size goldens, `npm run tokens:report`, result bytes in E-5; budgets method decided 2026-10-06 (O-10 (a), ADR 0006). See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-58"
     title: "lean `tools/list` serializer"
     pillar: "N"
@@ -1314,7 +1314,7 @@ items:
     phase: "T1"
     done: "2026-10-12"
     gates: ["O-4", "O-5", "O-21"]
-    notes: "**Bug-fix part done 2026-10-05 (local):** universal shape-preserving cap (`src/mcp/result-cap.ts`, applied in `runSpec`), binary-search truncation in `okQueryResult`, `list_changes` default limit 10; CSV payloads cut by whole rows (header kept), long strings / top-level arrays / plain text capped with a note (`mermaid` never cut, S-11). **48 k default, automatic file result and `list_tables` default limit 200 done 2026-10-09 (O-21 (b))**: `SN_MAX_RESULT_CHARS` defaults to 48,000, `SN_OVERSIZE_TO_FILE` defaults on (an oversize `query_table` JSON result goes to a JSON-lines file), an unfiltered `list_tables` shows the first 200 tables with a hint. **Chain dot-walk done 2026-10-12 (294fc1f, O-5, 0 B tools/list):** `getTableChain` reads six `super_class` levels per `sys_db_object` request (⌈depth / 6⌉ requests, depth cap 20 and cycle detection kept); an empty level is the root, a missing one resumes from the last ancestor. The PDI answers every requested level, empty past the root (`incident`: one request). Phase T1 bug fixes; default lowering waits for O-21 (b) (TK-46 … TK-48, TK-50). Shape-preserving universal cap in `runSpec` (capped results still pass the zod output schema), binary-search truncation, chain dot-walk keeping depth 20, `list_tables` / `list_changes` default limits; opt-in 48 k cap and automatic file result. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
+    notes: "**Bug-fix part done 2026-10-05:** universal shape-preserving cap (`src/mcp/result-cap.ts`, applied in `runSpec`), binary-search truncation in `okQueryResult`, `list_changes` default limit 10; CSV payloads cut by whole rows (header kept), long strings / top-level arrays / plain text capped with a note (`mermaid` never cut, S-11). **48 k default, automatic file result and `list_tables` default limit 200 done 2026-10-09 (O-21 (b))**: `SN_MAX_RESULT_CHARS` defaults to 48,000, `SN_OVERSIZE_TO_FILE` defaults on (an oversize `query_table` JSON result goes to a JSON-lines file), an unfiltered `list_tables` shows the first 200 tables with a hint. **Chain dot-walk done 2026-10-12 (294fc1f, O-5, 0 B tools/list):** `getTableChain` reads six `super_class` levels per `sys_db_object` request (⌈depth / 6⌉ requests, depth cap 20 and cycle detection kept); an empty level is the root, a missing one resumes from the last ancestor. The PDI answers every requested level, empty past the root (`incident`: one request). Phase T1 bug fixes; default lowering waits for O-21 (b) (TK-46 … TK-48, TK-50). Shape-preserving universal cap in `runSpec` (capped results still pass the zod output schema), binary-search truncation, chain dot-walk keeping depth 20, `list_tables` / `list_changes` default limits; opt-in 48 k cap and automatic file result. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md)."
   - id: "N-62"
     title: "platform-aware compact reads"
     pillar: "N"
