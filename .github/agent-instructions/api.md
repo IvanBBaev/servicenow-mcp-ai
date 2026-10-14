@@ -1,6 +1,7 @@
 ---
 applyTo:
   - "src/api/**"
+nested: true
 ---
 
 # src/api — layer 1, one module per ServiceNow REST area

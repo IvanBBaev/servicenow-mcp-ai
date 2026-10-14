@@ -2,6 +2,7 @@
 applyTo:
   - "scripts/**"
   - "bin/**"
+nested: true
 ---
 
 # scripts and bin — generators, gates and the launcher

@@ -1,6 +1,7 @@
 ---
 applyTo:
   - "test/**"
+nested: true
 ---
 
 # test — node:test against the compiled build

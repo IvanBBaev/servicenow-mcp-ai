@@ -16,12 +16,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
+  NESTED_NAME,
   OUTPUT_DIR,
   ROOT_OUTPUT,
   ROOT_SOURCE,
   SOURCE_DIR,
   parseSource,
   render,
+  renderNested,
   renderRoot,
   staticPrefix,
   syncInstructions,
@@ -90,6 +92,12 @@ test("N-46: parseSource rejects malformed sources", () => {
     "comma glob": '---\napplyTo:\n  - "a/**,b/**"\n---\n\nbody\n',
     "absolute glob": '---\napplyTo:\n  - "/src/**"\n---\n\nbody\n',
     "empty body": '---\napplyTo:\n  - "src/**"\n---\n\n',
+    "bad nested value":
+      '---\napplyTo:\n  - "src/**"\nnested: yes\n---\n\nbody\n',
+    "nested without a dir glob":
+      '---\napplyTo:\n  - "src/*.ts"\nnested: true\n---\n\nbody\n',
+    "nested under a dot dir":
+      '---\napplyTo:\n  - ".github/workflows/**"\nnested: true\n---\n\nbody\n',
   };
   for (const [name, text] of Object.entries(cases))
     assert.throws(() => parseSource(text, "x.md"), /^Error: x\.md: /, name);
@@ -201,5 +209,100 @@ test("N-43: AGENTS.md drift is reported, written and then clean", () => {
     assert.throws(() => syncInstructions({ root: dir }), /AGENTS\.md: empty/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+const NESTED = SAMPLE.replace("---\n\n#", "nested: true\n---\n\n#");
+
+test("N-46b: the opted-in areas have a nested AGENTS.md, the rest none", () => {
+  const nested = new Set(
+    [
+      "src/api",
+      "src/core",
+      "src/mcp",
+      "src/tools",
+      "test",
+      "scripts",
+      "extension",
+    ].map((dir) => `${dir}/${NESTED_NAME}`),
+  );
+  for (const rel of nested) assert.ok(existsSync(path.join(root, rel)), rel);
+  for (const dir of ["docs", ".github/workflows", "skills"])
+    assert.equal(existsSync(path.join(root, dir, NESTED_NAME)), false, dir);
+  const ignore = readFileSync(
+    path.join(root, "extension/.vscodeignore"),
+    "utf8",
+  );
+  assert.match(ignore, /^AGENTS\.md$/m, "the .vsix never ships it");
+});
+
+test("N-46b: parseSource takes the nested dir from the first glob", () => {
+  assert.equal(parseSource(SAMPLE).nestedDir, undefined);
+  const parsed = parseSource(NESTED);
+  assert.equal(parsed.nestedDir, "src/api");
+  const text = renderNested("api", parsed);
+  assert.match(
+    text,
+    /^<!-- Generated from \.github\/agent-instructions\/api\.md /,
+  );
+  assert.ok(text.endsWith("# Title\n\n- rule\n"));
+});
+
+test("N-46b: nested files are written, kept in sync and removed when stale", () => {
+  const dir = scratch({ api: NESTED });
+  const nested = `src/api/${NESTED_NAME}`;
+  try {
+    const first = syncInstructions({ root: dir, check: true });
+    assert.ok(first.includes(nested));
+    assert.equal(
+      existsSync(path.join(dir, nested)),
+      false,
+      "check never writes",
+    );
+    syncInstructions({ root: dir });
+    assert.equal(
+      readFileSync(path.join(dir, nested), "utf8"),
+      renderNested("api", parseSource(NESTED)),
+    );
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), []);
+
+    writeFileSync(
+      path.join(dir, nested),
+      "<!-- Generated from .github/agent-instructions/api.md -->\nedit\n",
+    );
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), [nested]);
+    syncInstructions({ root: dir });
+
+    // The source drops the opt-in: the generated file is stale and removed;
+    // a hand-written AGENTS.md elsewhere is left alone.
+    writeFileSync(path.join(dir, SOURCE_DIR, "api.md"), SAMPLE);
+    mkdirSync(path.join(dir, "src/other"), { recursive: true });
+    writeFileSync(path.join(dir, "src/other", NESTED_NAME), "# mine\n");
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), [nested]);
+    syncInstructions({ root: dir });
+    assert.equal(existsSync(path.join(dir, nested)), false);
+    assert.equal(existsSync(path.join(dir, "src/other", NESTED_NAME)), true);
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("N-46b: a hand-written file or a second area on the same dir throws", () => {
+  const handWritten = scratch({ api: NESTED });
+  const twice = scratch({ api: NESTED, core: NESTED });
+  try {
+    writeFileSync(path.join(handWritten, "src/api", NESTED_NAME), "# mine\n");
+    assert.throws(
+      () => syncInstructions({ root: handWritten, check: true }),
+      /src\/api\/AGENTS\.md: hand-written file/,
+    );
+    assert.throws(
+      () => syncInstructions({ root: twice, check: true }),
+      /already rendered by another area/,
+    );
+  } finally {
+    for (const d of [handWritten, twice])
+      rmSync(d, { recursive: true, force: true });
   }
 });

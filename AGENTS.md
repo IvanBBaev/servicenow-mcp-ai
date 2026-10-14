@@ -41,7 +41,9 @@ extension; `skills/`, `hooks/` and `.claude-plugin/` are the agent plugin.
 
 Each area has path-scoped rules in `.github/agent-instructions/<area>.md`
 (rendered to `.github/instructions/<area>.instructions.md` with an `applyTo`
-glob). Read the one for the files you edit.
+glob). Read the one for the files you edit. The same rules are rendered to a
+nested `AGENTS.md` in `src/api/`, `src/core/`, `src/mcp/`, `src/tools/`,
+`test/`, `scripts/` and `extension/` for agents that read the nearest one.
 
 ## Rules
 
@@ -73,7 +75,8 @@ glob). Read the one for the files you edit.
   register (B1–B22) is in `project/ROADMAP-V3.md`; decisions are ADRs in
   `project/adr/`.
 - Edit `scripts/pack-check.mjs` (the 3 MB tarball ceiling).
-- Edit generated files by hand: `.github/instructions/`,
+- Edit generated files by hand: `.github/instructions/`, the nested
+  `AGENTS.md` files,
   `.github/copilot-instructions.md`, `docs/tools/`, `docs/llms-full.txt`,
   `docs/index.md`, `.env.example`, `evals/mocks/`. Edit the source and rerun
   its generator.

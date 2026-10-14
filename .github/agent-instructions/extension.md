@@ -1,6 +1,7 @@
 ---
 applyTo:
   - "extension/**"
+nested: true
 ---
 
 # extension — the VS Code extension (separate package)

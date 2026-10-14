@@ -1175,11 +1175,11 @@ items:
     title: "path-scoped agent instructions"
     pillar: "N"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-05"
+    done: "2026-10-14"
     gates: ["O-20"]
-    notes: "**P0. Done 2026-10-05 (75e34b2).** `.github/agent-instructions/<area>.md` (10 areas) → `.github/instructions/<area>.instructions.md` with `applyTo`, `npm run docs:instructions -- --check` in the gate (TK-22). Nested `AGENTS.md` (N-46b): O-20 approved it (ADR 0011); design in the analysis § N-46, implementation in progress. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (75e34b2).** `.github/agent-instructions/<area>.md` (10 areas) → `.github/instructions/<area>.instructions.md` with `applyTo`, `npm run docs:instructions -- --check` in the gate (TK-22). N-46b done 2026-10-14: sources marked `nested: true` (api, core, mcp, tools, test, scripts, extension) also render `<dir>/AGENTS.md`; stale generated ones are removed, hand-written ones never; the `.vsix` excludes them (O-20, ADR 0011). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-47"
     title: "plugin subagents"
     pillar: "N"

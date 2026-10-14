@@ -2,6 +2,7 @@
 applyTo:
   - "src/mcp/**"
   - "src/*.ts"
+nested: true
 ---
 
 # src/mcp and the entry points — server wiring

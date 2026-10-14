@@ -19,6 +19,12 @@
 // rendered from it (a generated banner + the same body), so the two cannot
 // drift. Its tool and package counts are kept by `npm run docs:sync`.
 //
+// N-46b (O-20, ADR 0011): a source with `nested: true` is also rendered to
+// <dir>/AGENTS.md, where its first glob is `<dir>/**`, for agents that read
+// the nearest AGENTS.md (Codex and others). A generated nested file whose
+// source is gone or no longer opted in is removed; a hand-written AGENTS.md
+// (no generated banner) is never touched.
+//
 // The sources are the single place to edit.
 //
 //   npm run docs:instructions               rewrite the generated files
@@ -45,6 +51,11 @@ export const ROOT_OUTPUT = ".github/copilot-instructions.md";
 /** Copilot's optional excludeAgent values. */
 const EXCLUDE_AGENTS = new Set(["code-review", "cloud-agent"]);
 const AREA_RE = /^[a-z0-9][a-z0-9-]*$/;
+/** A nested file's directory: the literal part of a `<dir>/**` glob. */
+const NESTED_GLOB_RE = /^([^.*?[{/][^*?[{]*)\/\*\*$/;
+export const NESTED_NAME = "AGENTS.md";
+/** Directories the stale nested-file scan never enters. */
+const SCAN_SKIP = new Set(["node_modules", "build", "coverage", "out"]);
 
 /** Strip one pair of matching quotes from a YAML scalar. */
 function unquote(value) {
@@ -54,7 +65,8 @@ function unquote(value) {
 
 /**
  * Parse a source file: a frontmatter block with `applyTo` (a YAML list of
- * globs) and an optional `excludeAgent`, then the Markdown body. Only that
+ * globs), an optional `excludeAgent` and an optional `nested` flag, then the
+ * Markdown body. Only that
  * small YAML subset is accepted; anything else throws with the file name.
  */
 export function parseSource(text, file = "source") {
@@ -65,6 +77,7 @@ export function parseSource(text, file = "source") {
 
   const applyTo = [];
   let excludeAgent;
+  let nested = false;
   let inList = false;
   for (const line of lines.slice(1, end)) {
     if (line.trim() === "") continue;
@@ -81,6 +94,8 @@ export function parseSource(text, file = "source") {
     if (key === "applyTo" && value === "") inList = true;
     else if (key === "excludeAgent" && EXCLUDE_AGENTS.has(unquote(value)))
       excludeAgent = unquote(value);
+    else if (key === "nested" && (value === "true" || value === "false"))
+      nested = value === "true";
     else throw new Error(`${file}: unsupported frontmatter "${line}"`);
   }
 
@@ -94,7 +109,16 @@ export function parseSource(text, file = "source") {
     .join("\n")
     .trim();
   if (body === "") throw new Error(`${file}: empty body`);
-  return { applyTo, excludeAgent, body };
+  let nestedDir;
+  if (nested) {
+    const match = NESTED_GLOB_RE.exec(applyTo[0]);
+    if (!match)
+      throw new Error(
+        `${file}: nested needs a first applyTo glob of the form "<dir>/**"`,
+      );
+    nestedDir = match[1];
+  }
+  return { applyTo, excludeAgent, nestedDir, body };
 }
 
 /**
@@ -108,20 +132,48 @@ export function staticPrefix(glob) {
   return glob.slice(0, glob.lastIndexOf("/", wild) + 1);
 }
 
+/** The banner that stamps a file generated from an area source. */
+function banner(area) {
+  return `<!-- Generated from ${SOURCE_DIR}/${area}.md by scripts/agent-instructions.mjs — edit the source, then run: npm run docs:instructions -->`;
+}
+
 /** Render one Copilot path-specific instructions file. */
 export function render(area, source) {
   const front = [`applyTo: "${source.applyTo.join(",")}"`];
   if (source.excludeAgent) front.push(`excludeAgent: "${source.excludeAgent}"`);
-  return [
-    "---",
-    ...front,
-    "---",
-    "",
-    `<!-- Generated from ${SOURCE_DIR}/${area}.md by scripts/agent-instructions.mjs — edit the source, then run: npm run docs:instructions -->`,
-    "",
-    source.body,
-    "",
-  ].join("\n");
+  return ["---", ...front, "---", "", banner(area), "", source.body, ""].join(
+    "\n",
+  );
+}
+
+/** Render one nested <dir>/AGENTS.md (N-46b): the banner and the body. */
+export function renderNested(area, source) {
+  return [banner(area), "", source.body, ""].join("\n");
+}
+
+/** True when a file's text starts with an area-source banner. */
+function isGenerated(text) {
+  return text.startsWith(`<!-- Generated from ${SOURCE_DIR}/`);
+}
+
+/**
+ * Repo-relative paths of every nested AGENTS.md below the root (the root
+ * file itself excluded), skipping dot directories and build output.
+ */
+function findNested(root, rel = "") {
+  const found = [];
+  for (const entry of readdirSync(path.join(root, rel), {
+    withFileTypes: true,
+  })) {
+    const child = rel === "" ? entry.name : `${rel}/${entry.name}`;
+    if (entry.isDirectory()) {
+      if (entry.name.startsWith(".") || SCAN_SKIP.has(entry.name)) continue;
+      found.push(...findNested(root, child));
+    } else if (rel !== "" && entry.isFile() && entry.name === NESTED_NAME) {
+      found.push(child);
+    }
+  }
+  return found;
 }
 
 /** Render .github/copilot-instructions.md from the AGENTS.md text. */
@@ -164,14 +216,15 @@ export function readSources(root) {
 }
 
 /**
- * Bring .github/instructions/ and .github/copilot-instructions.md in line
- * with the sources. Returns the
+ * Bring .github/instructions/, the nested AGENTS.md files and
+ * .github/copilot-instructions.md in line with the sources. Returns the
  * repo-relative paths that were (check: would be) written or removed.
  */
 export function syncInstructions({ root, check = false }) {
   const outDir = path.join(root, OUTPUT_DIR);
+  const sources = readSources(root);
   const wanted = new Map(
-    readSources(root).map(({ area, source }) => [
+    sources.map(({ area, source }) => [
       `${area}${OUTPUT_SUFFIX}`,
       render(area, source),
     ]),
@@ -196,6 +249,7 @@ export function syncInstructions({ root, check = false }) {
     drift.push(`${OUTPUT_DIR}/${name}`);
     if (!check) rmSync(path.join(outDir, name));
   }
+  drift.push(...syncNested(root, sources, check));
   // N-43: a tree without AGENTS.md has no repository-wide file to render.
   const rootSource = path.join(root, ROOT_SOURCE);
   if (existsSync(rootSource)) {
@@ -209,6 +263,37 @@ export function syncInstructions({ root, check = false }) {
         writeFileSync(target, text);
       }
     }
+  }
+  return drift;
+}
+
+/** N-46b: write the opted-in nested files, remove the stale generated ones. */
+function syncNested(root, sources, check) {
+  const wanted = new Map();
+  for (const { area, file, source } of sources) {
+    if (source.nestedDir === undefined) continue;
+    const rel = `${source.nestedDir}/${NESTED_NAME}`;
+    if (wanted.has(rel))
+      throw new Error(`${file}: ${rel} is already rendered by another area`);
+    wanted.set(rel, renderNested(area, source));
+  }
+  const drift = [];
+  for (const [rel, text] of wanted) {
+    const target = path.join(root, rel);
+    const current = existsSync(target) ? readFileSync(target, "utf8") : null;
+    if (current === text) continue;
+    if (current !== null && !isGenerated(current))
+      throw new Error(
+        `${rel}: hand-written file in the way of a nested source`,
+      );
+    drift.push(rel);
+    if (!check) writeFileSync(target, text);
+  }
+  for (const rel of findNested(root).sort()) {
+    if (wanted.has(rel)) continue;
+    if (!isGenerated(readFileSync(path.join(root, rel), "utf8"))) continue;
+    drift.push(rel);
+    if (!check) rmSync(path.join(root, rel));
   }
   return drift;
 }

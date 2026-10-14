@@ -1,6 +1,7 @@
 ---
 applyTo:
   - "src/tools/**"
+nested: true
 ---
 
 # src/tools — tool definitions as data

@@ -1,6 +1,7 @@
 ---
 applyTo:
   - "src/core/**"
+nested: true
 ---
 
 # src/core — layer 0, instance-agnostic plumbing
