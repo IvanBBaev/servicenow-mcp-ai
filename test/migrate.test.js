@@ -21,7 +21,7 @@ import { parseEnv } from "node:util";
 import { Writable } from "node:stream";
 
 import { runCli } from "../build/cli.js";
-import { planMigration } from "../build/migrate.js";
+import { migrationDocsDir, planMigration } from "../build/migrate.js";
 import { planClientFile } from "../build/migrate-clients.js";
 import { validateSettings } from "../build/core/settings-manifest.js";
 import { freshRuntime, withEnv } from "./helpers.js";
@@ -347,4 +347,79 @@ test("the entry point runs migrate on a 2.x file it would refuse to serve", () =
     encoding: "utf8",
   });
   assert.match(version, /^\d+\.\d+\.\d+/);
+});
+
+test("migrate --write moves a renamed profile's docs folder once, never over one", async () => {
+  const home = dir();
+  const file = join(home, ".env");
+  writeFileSync(
+    file,
+    V2_FILE.replace("SN_TIMEOUT", "SN_DOCS_DIR=notes\nSN_TIMEOUT"),
+    {
+      mode: 0o600,
+    },
+  );
+  // A client block renames the same profile: one folder move, not two.
+  mkdirSync(join(home, ".config", "Claude"), { recursive: true });
+  writeFileSync(
+    join(home, ".config", "Claude", "claude_desktop_config.json"),
+    desktopConfig({ SN_PROFILE_DOCS_INSTANCE: "docs1" }),
+  );
+  const journal = join(home, "notes", "docs", "write-journal.jsonl");
+  mkdirSync(join(home, "notes", "docs"), { recursive: true });
+  writeFileSync(journal, "{}\n");
+  await withEnv({ SN_ENV_FILE: file, SN_DOCS_DIR: undefined }, async () => {
+    const dry = io(home);
+    assert.equal(await runCli(["migrate"], dry), 0);
+    assert.equal(dry.stdout.text.match(/follows profile "docs"/g)?.length, 1);
+    assert.match(dry.stdout.text, /run migrate where the server runs/);
+    assert.ok(existsSync(journal));
+
+    const wet = io(home);
+    assert.equal(await runCli(["migrate", "--write"], wet), 0);
+    assert.match(wet.stdout.text, /Moved .*notes\/docs -> .*notes\/docs_v2\./);
+    assert.equal(
+      readFileSync(
+        join(home, "notes", "docs_v2", "write-journal.jsonl"),
+        "utf8",
+      ),
+      "{}\n",
+    );
+    assert.ok(!existsSync(join(home, "notes", "docs")));
+
+    // A docs folder made again later is never moved over the _v2 one.
+    mkdirSync(join(home, "notes", "docs"));
+    writeFileSync(
+      file,
+      V2_FILE.replace("SN_TIMEOUT", "SN_DOCS_DIR=notes\nSN_TIMEOUT"),
+    );
+    const taken = io(home);
+    assert.equal(await runCli(["migrate", "--write"], taken), 0);
+    assert.match(
+      taken.stdout.text,
+      /docs_v2 already exists, so .* is left as is/,
+    );
+    assert.ok(existsSync(join(home, "notes", "docs")));
+    assert.ok(
+      existsSync(join(home, "notes", "docs_v2", "write-journal.jsonl")),
+    );
+  });
+});
+
+test("migrationDocsDir: the environment wins over the file, then docs/instance", () => {
+  assert.deepEqual(
+    migrationDocsDir({ SN_DOCS_DIR: "/abs" }, { SN_DOCS_DIR: "rel" }, "/w"),
+    {
+      dir: "/abs",
+      cwdRelative: false,
+    },
+  );
+  assert.deepEqual(migrationDocsDir({}, { SN_DOCS_DIR: "rel" }, "/w"), {
+    dir: join("/w", "rel"),
+    cwdRelative: true,
+  });
+  assert.deepEqual(migrationDocsDir({ SN_DOCS_DIR: " " }, {}, "/w"), {
+    dir: join("/w", "docs", "instance"),
+    cwdRelative: true,
+  });
 });

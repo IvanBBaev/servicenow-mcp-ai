@@ -1054,7 +1054,10 @@ still migrates, and keeps every key, value and comment except:
   `~/.config/servicenow-mcp-ai/.env` (or `SN_ENV_FILE`); the original stays;
 - a profile named `capabilities`, `docs`, `policy`, `profiles`, `reference`,
   `schema` or `status` (reserved, B13) becomes `<name>_v2`, with all its
-  `SN_PROFILE_<NAME>_*` keys and `SN_ACTIVE_PROFILE`;
+  `SN_PROFILE_<NAME>_*` keys and `SN_ACTIVE_PROFILE`, and its docs and
+  write-journal folder `<SN_DOCS_DIR>/<name>` is renamed with it (a relative
+  `SN_DOCS_DIR` resolves against the directory you run `migrate` in; an existing
+  `<name>_v2` folder is never overwritten);
 - a value 3.x rejects at startup (B5) is commented out, so the default applies,
   as it did in 2.x;
 - a `KEY: value` line (accepted by the 2.x parser, skipped by 3.x) becomes

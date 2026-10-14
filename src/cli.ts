@@ -721,19 +721,44 @@ type RunCli = Extract<ParsedCli, { kind: "run" }>;
  * file and of the `env` blocks in MCP client config files.
  */
 async function cmdMigrate(parsed: RunCli, io: CliIO): Promise<number> {
-  const envFile = await migrateEnvFile(parsed, io);
-  const clients = await migrateClients(parsed, io);
-  if (envFile === 1 || clients === 1) return 1;
-  if (envFile === "pending" || clients === "pending") {
+  const seen: MigrateSeen = { renamed: new Set(), fileEnv: {} };
+  const envFile = await migrateEnvFile(parsed, io, seen);
+  const clients = await migrateClients(parsed, io, seen);
+  const folders = await migrateFolders(parsed, io, seen);
+  const steps = [envFile, clients, folders];
+  if (steps.includes(1)) return 1;
+  if (steps.includes("pending")) {
     io.stdout.write("Dry run: nothing written. Run again with --write.\n");
   }
   return 0;
 }
 
+/** What the env file and client steps found, for the folder step. */
+interface MigrateSeen {
+  /** Profiles renamed out of the reserved names (B13). */
+  renamed: Set<string>;
+  /** The 2.x env file's settings. */
+  fileEnv: Record<string, string>;
+}
+
+/** Record the profiles a set of changes renames. */
+function noteRenames(
+  changes: readonly { kind: string; key: string }[],
+  seen: MigrateSeen,
+): void {
+  for (const change of changes) {
+    if (change.kind === "rename-profile") seen.renamed.add(change.key);
+  }
+}
+
 /** A migrate step's outcome: an exit code, or "pending" (a dry run found changes). */
 type MigrateStep = 0 | 1 | "pending";
 
-async function migrateEnvFile(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
+async function migrateEnvFile(
+  parsed: RunCli,
+  io: CliIO,
+  seen: MigrateSeen,
+): Promise<MigrateStep> {
   const { migrationPaths, planMigration, readEnvFile, writeMigration } =
     await import("./migrate.js");
   const paths = migrationPaths(parsed.from);
@@ -764,6 +789,8 @@ async function migrateEnvFile(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
     target,
     v3Defaults: parsed.v3Defaults,
   });
+  seen.fileEnv = plan.env;
+  noteRenames(plan.changes, seen);
   io.stdout.write(`Migrating ${source}${moving ? ` -> ${target}` : ""}\n`);
   if (plan.changes.length === 0) {
     io.stdout.write("Nothing to change: 3.x reads this file as 2.x did.\n");
@@ -784,7 +811,11 @@ async function migrateEnvFile(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
 }
 
 /** The `env` blocks of this server in MCP client config files. */
-async function migrateClients(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
+async function migrateClients(
+  parsed: RunCli,
+  io: CliIO,
+  seen: MigrateSeen,
+): Promise<MigrateStep> {
   const { clientConfigFiles, planClientFiles, writeClientFile } =
     await import("./migrate-clients.js");
   const files = clientConfigFiles({
@@ -805,6 +836,7 @@ async function migrateClients(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
       for (const change of server.changes) {
         io.stdout.write(`- ${change.message}\n`);
       }
+      noteRenames(server.changes, seen);
     }
     if (!plan.servers.some((s) => s.changes.length)) continue;
     if (plan.text === undefined) {
@@ -822,6 +854,50 @@ async function migrateClients(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
       io.stdout.write(
         `Wrote ${plan.path} (the previous file is ${backup}); restart ${plan.client.replace(/ \(.*\)$/, "")} to apply it.\n`,
       );
+    } catch (error) {
+      io.stderr.write(`${errorText(error)}\n`);
+      code = 1;
+    }
+  }
+  return code;
+}
+
+/**
+ * The docs and journal folders of renamed profiles follow the new name; only
+ * with --write, and never over an existing folder.
+ */
+async function migrateFolders(
+  parsed: RunCli,
+  io: CliIO,
+  seen: MigrateSeen,
+): Promise<MigrateStep> {
+  if (seen.renamed.size === 0) return 0;
+  const { migrationDocsDir, planFolderMoves, moveFolder } =
+    await import("./migrate.js");
+  const docs = migrationDocsDir(io.env, seen.fileEnv, io.cwd);
+  const moves = planFolderMoves(docs.dir, seen.renamed);
+  if (moves.length === 0) return 0;
+  io.stdout.write(
+    `Docs and journal folders in ${docs.dir}${docs.cwdRelative ? " (relative to this directory: run migrate where the server runs)" : ""}\n`,
+  );
+  let code: MigrateStep = 0;
+  for (const move of moves) {
+    if (move.state === "taken") {
+      io.stdout.write(
+        `- ${move.to} already exists, so ${move.from} is left as is: merge them by hand.\n`,
+      );
+      continue;
+    }
+    io.stdout.write(
+      `- ${move.from} follows profile "${move.profile}" to ${move.to}.\n`,
+    );
+    if (!parsed.write) {
+      code = "pending";
+      continue;
+    }
+    try {
+      moveFolder(move);
+      io.stdout.write(`Moved ${move.from} -> ${move.to}.\n`);
     } catch (error) {
       io.stderr.write(`${errorText(error)}\n`);
       code = 1;

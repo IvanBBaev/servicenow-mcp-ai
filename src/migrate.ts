@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { parseEnv } from "node:util";
 import { RESERVED_PROFILE_NAMES, envFileChoice } from "./core/config.js";
 import {
@@ -55,6 +55,8 @@ export interface MigrationPlan {
   changes: MigrationChange[];
   /** The migrated file content. */
   text: string;
+  /** The 2.x settings as read from the file. */
+  env: Record<string, string>;
 }
 
 const LINE_RE = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=.*)$/;
@@ -114,7 +116,7 @@ export function planEnv(
       changes.push({
         kind: "rename-profile",
         key: name,
-        message: `Profile "${name}" is reserved in 3.x (B13): renamed "${to}" (its SN_PROFILE_${name.toUpperCase()}_* keys${env.SN_ACTIVE_PROFILE?.trim().toLowerCase() === name ? " and SN_ACTIVE_PROFILE" : ""}). Its docs and journal folders keep the old name.`,
+        message: `Profile "${name}" is reserved in 3.x (B13): renamed "${to}" (its SN_PROFILE_${name.toUpperCase()}_* keys${env.SN_ACTIVE_PROFILE?.trim().toLowerCase() === name ? " and SN_ACTIVE_PROFILE" : ""}).`,
       });
     }
   }
@@ -229,7 +231,7 @@ export function planMigration(input: {
     while (lines.length && lines[lines.length - 1] === "") lines.pop();
     lines.push("", COMPAT_LINE, "");
   }
-  return { source, target, changes, text: lines.join("\n") };
+  return { source, target, changes, text: lines.join("\n"), env };
 }
 
 /**
@@ -277,4 +279,55 @@ export function writeMigration(plan: MigrationPlan): string | undefined {
 export function readEnvFile(source: string): string {
   if (!existsSync(source)) throw new Error(`No env file at ${source}.`);
   return readFileSync(source, "utf8");
+}
+
+/**
+ * The docs directory 3.x will use (getDocsDir): SN_DOCS_DIR from the process
+ * environment, then from the migrated env file, else `docs/instance`; a
+ * relative value resolves against `cwd`.
+ */
+export function migrationDocsDir(
+  env: Record<string, string | undefined>,
+  fileEnv: Record<string, string>,
+  cwd: string,
+): { dir: string; cwdRelative: boolean } {
+  const raw = env.SN_DOCS_DIR?.trim() || fileEnv.SN_DOCS_DIR?.trim();
+  const value = raw || "docs/instance";
+  return { dir: resolve(cwd, value), cwdRelative: !isAbsolute(value) };
+}
+
+/** One renamed profile's docs and journal folder. */
+export interface FolderMove {
+  profile: string;
+  from: string;
+  to: string;
+  /** `move`: to be renamed; `taken`: the target exists, left as is. */
+  state: "move" | "taken";
+}
+
+/**
+ * The docs (and write journal) folders of the profiles renamed out of the
+ * reserved names (B13): `<docsDir>/<name>` → `<docsDir>/<name>_v2`. A profile
+ * without a folder is skipped; one whose target already exists is `taken`.
+ */
+export function planFolderMoves(
+  docsDir: string,
+  profiles: Iterable<string>,
+): FolderMove[] {
+  const moves: FolderMove[] = [];
+  for (const profile of new Set(profiles)) {
+    const from = join(docsDir, profile);
+    if (!existsSync(from)) continue;
+    const to = join(docsDir, migratedProfileName(profile));
+    moves.push({ profile, from, to, state: existsSync(to) ? "taken" : "move" });
+  }
+  return moves;
+}
+
+/** Rename one planned folder; never overwrites an existing target. */
+export function moveFolder(move: FolderMove): void {
+  if (move.state !== "move" || existsSync(move.to)) {
+    throw new Error(`${move.to} already exists; ${move.from} is left as is.`);
+  }
+  renameSync(move.from, move.to);
 }
