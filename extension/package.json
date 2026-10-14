@@ -130,7 +130,7 @@
             ],
             "enumDescriptions": [
               "Profile (default): table, schema, aggregate.",
-              "Profile: older name of discovery.",
+              "Profile: the 2.x default — discovery plus attachment.",
               "Profile: every package.",
               "Profile: table, schema, aggregate — read-first, no scripting tools.",
               "Profile: reader + scripts, flows, codecheck, docs.",

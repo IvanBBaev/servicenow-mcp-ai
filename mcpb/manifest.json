@@ -531,7 +531,7 @@
     "tool_packages": {
       "type": "string",
       "title": "Tool packages",
-      "description": "Comma/space-separated tool packages or profiles to enable. Profiles: discovery (default; core is its older name), all and the presets reader | developer | admin (see Presets). Packages: table, schema, aggregate, attachment, importset, batch, catalog, change, knowledge, cmdb, scripts, flows, codecheck, docs, instance, email, atf, revert, artifacts, updatesets, cicd, access, ops, history, properties, directory, ui. The admin tools are always on. atf runs tests on the instance — enable it only on a non-production instance. cicd previews and commits retrieved update sets. access grants and revokes one non-privileged role for one user. Default: discovery. (SN_TOOL_PACKAGES)",
+      "description": "Comma/space-separated tool packages or profiles to enable. Profiles: discovery (default; core, the 2.x default, adds attachment), all and the presets reader | developer | admin (see Presets). Packages: table, schema, aggregate, attachment, importset, batch, catalog, change, knowledge, cmdb, scripts, flows, codecheck, docs, instance, email, atf, revert, artifacts, updatesets, cicd, access, ops, history, properties, directory, ui. The admin tools are always on. atf runs tests on the instance — enable it only on a non-production instance. cicd previews and commits retrieved update sets. access grants and revokes one non-privileged role for one user. Default: discovery. (SN_TOOL_PACKAGES)",
       "required": false
     }
   }

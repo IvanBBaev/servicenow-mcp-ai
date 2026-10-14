@@ -48,7 +48,7 @@ function liveFiles(at = root) {
     tools: describeAllTools(),
     schemas: describeToolSchemas(),
     errorCodes: errorCodeTable(),
-    corePackages: resolveEnabledPackages(["core"]),
+    corePackages: resolveEnabledPackages(["discovery"]),
   });
 }
 

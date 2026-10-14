@@ -155,7 +155,7 @@ test("SN_LEGACY_TOOL_NAMES reads as a boolean, off by default", async () => {
 
 // --- the legacy flag -----------------------------------------------------------
 
-test("legacy off: old names are absent from tools/list and unknown", async () => {
+test("legacy off: old names are hidden from tools/list but still answer (B2)", async () => {
   await session(
     { SN_LEGACY_TOOL_NAMES: undefined },
     async ({ names, call }) => {
@@ -169,13 +169,38 @@ test("legacy off: old names are absent from tools/list and unknown", async () =>
       for (const rename of TOOL_RENAMES) {
         assert.ok(!listed.includes(rename.from), rename.from);
       }
-      // SDK v2 answers an unknown tool with -32602, not a tool result.
-      await assert.rejects(call("servicenow_docs_list"), {
+      // Eased for 2.x upgrades (owner, 2026-10-14): a v2 name is a hidden
+      // alias, so a v2 client's call still reaches the v3 tool.
+      const viaOld = await call("servicenow_docs_list");
+      assert.notEqual(viaOld.isError, true, text(viaOld));
+      // A name that never existed is still unknown.
+      await assert.rejects(call("servicenow_no_such_tool"), {
         code: -32602,
         message: /not found|unknown/i,
       });
     },
   );
+});
+
+test("legacy off: a v2 name accepts its v2 parameters, the v3 name does not (B2)", async () => {
+  await session({ SN_LEGACY_TOOL_NAMES: undefined }, async ({ call }) => {
+    await withFetch(
+      () => jsonResponse(500, { error: { message: "stub" } }),
+      async () => {
+        const viaNew = await call("servicenow_run_atf", {
+          test_sys_id: SYS_ID,
+        });
+        assert.equal(viaNew.isError, true);
+        assert.match(text(viaNew), /test_sys_id|INVALID_INPUT|validation/i);
+        const viaOld = await call("servicenow_run_atf_test", {
+          test_sys_id: SYS_ID,
+        });
+        if (viaOld.isError) {
+          assert.doesNotMatch(text(viaOld), /INVALID_INPUT|validation/i);
+        }
+      },
+    );
+  });
 });
 
 test("legacy on: every old name is listed as a deprecated alias and dispatches", async () => {

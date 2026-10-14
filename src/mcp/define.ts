@@ -188,6 +188,8 @@ export interface CallExtra {
   input?: InputRound;
   /** M-9: a background task run (`run_as_task` or ext-tasks) — no request can carry a prompt. */
   background?: boolean;
+  /** B2: the call came in under a v2 tool name (a hidden alias). */
+  legacyName?: boolean;
 }
 
 /**
@@ -258,6 +260,7 @@ export async function runSpec(
     callId: nextCallId(),
     ...(trace ? { trace } : {}),
     ...(extra.log ? { log: extra.log } : {}),
+    ...(extra.legacyName ? { legacyName: true } : {}),
   };
   // N-55: the diagnostics_channel envelope of the call (tracing.ts) — built
   // lazily, so an unobserved call pays only the hasSubscribers checks.
@@ -348,7 +351,11 @@ async function runSpecInner(
   call: CallContext,
   background: boolean,
 ): Promise<SpecResult> {
-  const normalized = normalizeParamAliases(spec, rawArgs);
+  const normalized = normalizeParamAliases(
+    spec,
+    rawArgs,
+    call.legacyName === true,
+  );
   if ("error" in normalized) return normalized.error;
   const args = normalized.args;
   let profile: string | undefined;
@@ -472,8 +479,9 @@ const warnedAliases = new Set<string>();
 function normalizeParamAliases(
   spec: AnyToolSpec,
   args: Record<string, unknown>,
+  legacyName: boolean,
 ): { args: Record<string, unknown> } | { error: ToolResult } {
-  const aliases = activeParamAliases(spec);
+  const aliases = activeParamAliases(spec, legacyToolNames() || legacyName);
   const used = Object.keys(aliases).filter((a) => a in args);
   if (!used.length) return { args };
   const out: Record<string, unknown> = { ...args };

@@ -174,6 +174,11 @@ const MAX_INSTANCE_PARAM_CHARS = 30;
  * its one tool, `servicenow_change_access`, measured 23,675 / 23,675 /
  * 121,992 / 123,052 / 142,512 (all +1,161 B; core +0 B): `all` becomes
  * 122,112, `all+tasks` 123,136 and `all+legacy` 142,592.
+ * B20 eased, 2026-10-14 (owner: 2.x upgrade compatibility): `attachment` is
+ * back in `core` (the v2 name), measured core 27,070 (+3,395 B, 20 → 25
+ * tools); `discovery`, the default, `all`, `all+tasks` +0 B: `core` becomes
+ * 27,136. The v2 tool names answer tools/call by default but stay out of
+ * tools/list unless SN_LEGACY_TOOL_NAMES=1: every profile +0 B.
  */
 const TOKEN_BUDGETS = JSON.parse(
   readFileSync(

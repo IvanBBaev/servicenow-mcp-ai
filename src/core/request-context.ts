@@ -105,6 +105,11 @@ export interface CallContext {
    */
   explicitApply?: boolean;
   /**
+   * B2: the call came in under a v2 tool name, so the v2 parameter names are
+   * accepted for it even while SN_LEGACY_TOOL_NAMES is off.
+   */
+  legacyName?: boolean;
+  /**
    * N-55: the process-unique id of the call's diagnostics_channel events
    * (tracing.ts); the HTTP request events of the call carry it as `callId`.
    */

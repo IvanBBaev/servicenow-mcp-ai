@@ -205,6 +205,29 @@ type RequestHandlers = Map<
  * handler, and nothing changes. Call it after the tools are registered.
  */
 export function wireLeanToolsList(server: McpServer): void {
+  // The lean form only drops keywords, so it stays a ListToolsResult.
+  mapToolsList(server, leanToolsList);
+}
+
+/**
+ * B2: leave the named tools out of tools/list. They stay registered, so a
+ * tools/call by name still reaches them (the hidden v2 tool-name aliases).
+ */
+export function hideFromToolsList(
+  server: McpServer,
+  names: ReadonlySet<string>,
+): void {
+  if (!names.size) return;
+  mapToolsList(server, (tools) =>
+    tools.filter((tool) => !names.has(String(tool.name))),
+  );
+}
+
+/** Wrap the current tools/list handler so its tools go through `map`. */
+function mapToolsList(
+  server: McpServer,
+  map: (tools: (Json & { name?: unknown })[]) => Json[],
+): void {
   const method = "tools/list";
   const handlers = (server.server as unknown as { _requestHandlers?: unknown })
     ._requestHandlers;
@@ -215,10 +238,9 @@ export function wireLeanToolsList(server: McpServer): void {
     const result = (await original(request, extra)) as Json & {
       tools: Json[];
     };
-    // The lean form only drops keywords, so it stays a ListToolsResult.
     return {
       ...result,
-      tools: leanToolsList(result.tools),
+      tools: map(result.tools),
     } as unknown as ListToolsResult;
   });
 }

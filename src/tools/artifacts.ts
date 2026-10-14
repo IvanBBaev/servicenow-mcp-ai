@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ServiceNowError } from "../core/errors.js";
 import { legacyToolNames } from "../mcp/naming.js";
+import { currentCall } from "../core/request-context.js";
 import { listArtifacts, getArtifact, LIST_LIMIT } from "../api/artifacts.js";
 import { explainArtifact } from "../api/explain-artifact.js";
 import {
@@ -132,14 +133,15 @@ const availableOutput = z.boolean().optional();
 
 /**
  * M-7: a child's write payload is `values`; the v2 name `fields` is accepted
- * only under SN_LEGACY_TOOL_NAMES=1 (the nested alias cannot be expressed by
+ * only under SN_LEGACY_TOOL_NAMES=1 or on a call made under a v2 tool name
+ * (B2) (the nested alias cannot be expressed by
  * the top-level `legacyParams`, so the child schema carries both, optional,
  * and this check enforces exactly one).
  */
 export function normalizeChildValues<V, C extends { values?: V; fields?: V }>(
   children: C[],
 ): (Omit<C, "values" | "fields"> & { fields: V })[] {
-  const legacy = legacyToolNames();
+  const legacy = legacyToolNames() || currentCall()?.legacyName === true;
   return children.map((child, index) => {
     const { values, fields, ...rest } = child;
     if (fields !== undefined && !legacy) {

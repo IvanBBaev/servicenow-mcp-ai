@@ -4,11 +4,18 @@ import assert from "node:assert/strict";
 import { resolveEnabledPackages, ALL_PACKAGES } from "../build/mcp/registry.js";
 import { getRequestedPackages } from "../build/core/settings.js";
 
-test("the discovery profile expands to the default read tools; core names the same set (B20)", () => {
-  for (const profile of ["discovery", "core"]) {
-    const enabled = resolveEnabledPackages([profile]);
-    assert.deepEqual([...enabled].sort(), ["aggregate", "schema", "table"]);
-  }
+test("the discovery profile expands to the default read tools; core adds attachment (B20)", () => {
+  assert.deepEqual([...resolveEnabledPackages(["discovery"])].sort(), [
+    "aggregate",
+    "schema",
+    "table",
+  ]);
+  assert.deepEqual([...resolveEnabledPackages(["core"])].sort(), [
+    "aggregate",
+    "attachment",
+    "schema",
+    "table",
+  ]);
 });
 
 test("the all profile enables every package", () => {

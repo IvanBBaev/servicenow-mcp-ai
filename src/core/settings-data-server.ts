@@ -423,7 +423,7 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
     default: ["discovery"],
     example: "discovery",
     description:
-      "Comma/space-separated tool packages or profiles to enable. Profiles: `discovery` (default; `core` is its older name), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `cicd`, `access`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. `cicd` previews and commits retrieved update sets. `access` grants and revokes one non-privileged role for one user.",
+      "Comma/space-separated tool packages or profiles to enable. Profiles: `discovery` (default; `core`, the 2.x default, adds `attachment`), `all` and the presets `reader` \\| `developer` \\| `admin` (see [Presets](#presets)). Packages: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `cicd`, `access`, `ops`, `history`, `properties`, `directory`, `ui`. The admin tools are always on. `atf` runs tests on the instance — enable it only on a non-production instance. `cicd` previews and commits retrieved update sets. `access` grants and revokes one non-privileged role for one user.",
     registry:
       "Which tool packages to expose, e.g. discovery (default), all, or a comma-separated list.",
   }),
@@ -492,7 +492,7 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
       defaultText: "`0`",
       example: "0",
       description:
-        "M-7 (B2), **deprecated bridge for one minor cycle**: `1` registers every tool name and parameter name renamed by the v3 naming convention as an alias of its new name (the alias dispatches to the new tool and logs a one-time deprecation warning). Off: the old names do not exist and are absent from `tools/list`. See the rename table in the README.",
+        "M-7 (B2), **deprecated bridge for one minor cycle**: every tool name renamed by the v3 naming convention is an alias of its new name — it dispatches to the new tool, accepts the old parameter names, and logs a one-time deprecation warning. Off (the default): the aliases still answer `tools/call` but are left out of `tools/list`. `1` also lists them and accepts the old parameter names on the new tool names. See the rename table in the README.",
     },
     ["1", "true"],
     ["0", "false"],

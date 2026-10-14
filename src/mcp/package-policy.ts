@@ -50,9 +50,15 @@ export const ALL_PACKAGES: string[] = [
  * The default package set when SN_TOOL_PACKAGES is unset or unusable: the
  * `discovery` profile (N-63, B20). It reads data and schema; every other
  * package is one `servicenow_find_tools` / `servicenow_enable_package` away.
- * `core` names the same set; `attachment` left it with N-63.
+ * `attachment` left it with N-63.
  */
 const DISCOVERY_PROFILE = ["table", "schema", "aggregate"];
+
+/**
+ * The v2 default set, kept under its v2 name: discovery plus `attachment`
+ * (back in `core` for 2.x upgrades, owner 2026-10-14, B20).
+ */
+const CORE_PROFILE = [...DISCOVERY_PROFILE, "attachment"];
 
 /**
  * The read-first surface: browse data and inspect schema without any write or
@@ -77,7 +83,8 @@ const DEVELOPER_PROFILE = [
 /**
  * Named profiles that expand to a set of packages, resolved by
  * {@link resolveEnabledPackages}. `discovery` is the default profile loaded
- * when SN_TOOL_PACKAGES is unset, and `core` is its older name; `all` (and its
+ * when SN_TOOL_PACKAGES is unset, and `core` is the v2 default (discovery plus
+ * `attachment`); `all` (and its
  * `admin` alias) enables everything.
  * The `reader` / `developer` / `admin` presets (UX review §11) give clients a
  * memorable name for the common surfaces instead of a hand-typed package list;
@@ -85,7 +92,7 @@ const DEVELOPER_PROFILE = [
  */
 const PROFILES: Record<string, string[]> = {
   discovery: DISCOVERY_PROFILE,
-  core: DISCOVERY_PROFILE,
+  core: CORE_PROFILE,
   all: ALL_PACKAGES,
   reader: READER_PROFILE,
   developer: DEVELOPER_PROFILE,

@@ -27,7 +27,11 @@ import {
   type ToolReferenceDetail,
 } from "./resources.js";
 import { linkToolView, mcpAppsEnabled, registerAppResources } from "./apps.js";
-import { leanJsonSchema, wireLeanToolsList } from "./lean-list.js";
+import {
+  hideFromToolsList,
+  leanJsonSchema,
+  wireLeanToolsList,
+} from "./lean-list.js";
 import { specs as tableSpecs } from "../tools/table.js";
 import { specs as metaSpecs } from "../tools/meta.js";
 import { specs as aggregateSpecs } from "../tools/aggregate.js";
@@ -380,6 +384,7 @@ export function registerAllTools(
     description: string,
     onCall?: () => void,
     fixedArgs?: Readonly<Record<string, string>>,
+    v2Name = false,
   ) => {
     // N-65: the large readers' result-size hint (SN_RESULT_SIZE_HINTS).
     const hint = resultHintMeta(spec.name);
@@ -396,8 +401,12 @@ export function registerAllTools(
         // tool also gets the automatic `instance` (profile) parameter (MI-3),
         // unless its own schema already uses that name.
         // M-9: `run_as_task` only when SN_EXPERIMENTAL_TASKS is on.
-        // M-7: the legacy parameter names only when SN_LEGACY_TOOL_NAMES is on.
-        inputSchema: withTaskInput(spec, buildInputSchema(spec, { legacy })),
+        // M-7: the legacy parameter names only when SN_LEGACY_TOOL_NAMES is on,
+        // or on a v2 tool name (B2), which a v2 caller uses with v2 arguments.
+        inputSchema: withTaskInput(
+          spec,
+          buildInputSchema(spec, { legacy: legacy || v2Name }),
+        ),
         // M-6: a passthrough z.object — see buildOutputSchema.
         ...(structured
           ? { outputSchema: withTaskOutput(spec, buildOutputSchema(spec)!) }
@@ -413,6 +422,7 @@ export function registerAllTools(
         // N-64: a merged tool's alias pins the argument that selects it.
         const args = fixedArgs ? { ...callArgs, ...fixedArgs } : callArgs;
         const extra: TaskCallExtra = callExtraFromContext(ctx, server);
+        if (v2Name) extra.legacyName = true;
         if (acceptsRunAsTask(spec)) {
           extra.taskStore = requestTaskStore(
             taskStoreFor(runtime),
@@ -437,11 +447,14 @@ export function registerAllTools(
     session.addTool(spec.package, spec.name, handle);
   }
 
-  // M-7 (B2): under SN_LEGACY_TOOL_NAMES=1 every v2 name is an alias that
-  // dispatches to its v3 tool (same schema, same handler, logged under the
-  // v3 name; N-64: plus the merged tool's fixed arguments) and follows that
-  // tool's package. Off: the old names do not exist.
-  if (legacy) {
+  // M-7 (B2): every v2 name is an alias that dispatches to its v3 tool (same
+  // handler, logged under the v3 name, v2 parameter names accepted; N-64:
+  // plus the merged tool's fixed arguments) and follows that tool's package.
+  // Eased for 2.x upgrades (owner, 2026-10-14): the aliases always answer
+  // tools/call, but tools/list shows them only under SN_LEGACY_TOOL_NAMES=1,
+  // so the default surface costs nothing.
+  const hidden = new Set<string>();
+  {
     const byName = new Map(ALL_TOOLS.map((s) => [s.name as string, s]));
     for (const rename of TOOL_RENAMES) {
       const spec = byName.get(rename.to);
@@ -468,12 +481,15 @@ export function registerAllTools(
           );
         },
         rename.args,
+        true,
       );
       if (apps) linkToolView(server, spec, handle);
       session.addAlias(spec.package, handle);
+      if (!legacy) hidden.add(rename.from);
     }
   }
   bindPackageSession(session, runtime);
+  hideFromToolsList(server, hidden);
   // N-58 (O-10 (b)): tools/list goes out in the lean form. `leanList: false`
   // keeps the SDK's own list, for measurements against the raw surface.
   if (options.leanList !== false) wireLeanToolsList(server);

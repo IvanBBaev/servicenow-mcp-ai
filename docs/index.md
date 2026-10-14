@@ -364,7 +364,7 @@ Only the first three are required; the rest are optional tuning knobs. See [.env
 
 Tools are grouped into packages so you expose only what a given client needs — fewer tools keep the model focused. Set `SN_TOOL_PACKAGES` to a comma/space-separated list of profiles or package names:
 
-- `discovery` (default) — `table`, `schema`, `aggregate`, plus the always-on admin tools; `servicenow_find_tools` names the package for anything else. `core` is its older name (`attachment` left it in 3.0, B20).
+- `discovery` (default) — `table`, `schema`, `aggregate`, plus the always-on admin tools; `servicenow_find_tools` names the package for anything else. `core`, the 2.x default, is discovery plus `attachment` (B20).
 - `all` — every package.
 - Individual: `table`, `schema`, `aggregate`, `attachment`, `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`, `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`, `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`.
 
