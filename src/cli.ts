@@ -1,4 +1,5 @@
 import { existsSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { Writable } from "node:stream";
@@ -53,10 +54,12 @@ Commands:
   drift <a> <b>         Compare two profiles; exit 0 clean / 1 drift / 2 error.
   support-bundle        Write a JSON bundle for a bug report (doctor, redacted
                         settings, npm ls, manifest, log tail); prints its path.
-  migrate               Carry a 2.x env file over to 3.x: move a project-root
-                        .env to the XDG file, rename reserved profiles, comment
-                        out values 3.x rejects, add SN_COMPAT=2. A dry run
-                        unless --write; the old file is kept as <file>.v2.bak.
+  migrate               Carry 2.x settings over to 3.x, in the env file and in
+                        MCP client configs (Claude Desktop, Claude Code, Cursor,
+                        VS Code, Windsurf): move a project-root .env to the XDG
+                        file, rename reserved profiles, drop values 3.x
+                        rejects, add SN_COMPAT=2. A dry run unless --write;
+                        each old file is kept as <file>.v2.bak.
 
 Options:
   -h, --help            Show this help.
@@ -67,7 +70,7 @@ Options:
                         a terminal, and on Windows outside Windows Terminal).
   --skip-doctor         init: do not run doctor after writing the env file.
   --out <file>          support-bundle: where to write the bundle.
-  --write               migrate: write the migrated env file.
+  --write               migrate: write the migrated files.
   --from <file>         migrate: the 2.x env file to read (default: the env
                         file the server resolves).
   --v3-defaults         migrate: do not add SN_COMPAT=2.
@@ -713,8 +716,24 @@ async function cmdSupportBundle(
 
 type RunCli = Extract<ParsedCli, { kind: "run" }>;
 
-/** `migrate`: plan (and with --write, apply) the 2.x → 3.x env file move. */
+/**
+ * `migrate`: plan (and with --write, apply) the 2.x → 3.x move of the env
+ * file and of the `env` blocks in MCP client config files.
+ */
 async function cmdMigrate(parsed: RunCli, io: CliIO): Promise<number> {
+  const envFile = await migrateEnvFile(parsed, io);
+  const clients = await migrateClients(parsed, io);
+  if (envFile === 1 || clients === 1) return 1;
+  if (envFile === "pending" || clients === "pending") {
+    io.stdout.write("Dry run: nothing written. Run again with --write.\n");
+  }
+  return 0;
+}
+
+/** A migrate step's outcome: an exit code, or "pending" (a dry run found changes). */
+type MigrateStep = 0 | 1 | "pending";
+
+async function migrateEnvFile(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
   const { migrationPaths, planMigration, readEnvFile, writeMigration } =
     await import("./migrate.js");
   const paths = migrationPaths(parsed.from);
@@ -751,10 +770,7 @@ async function cmdMigrate(parsed: RunCli, io: CliIO): Promise<number> {
     return 0;
   }
   for (const change of plan.changes) io.stdout.write(`- ${change.message}\n`);
-  if (!parsed.write) {
-    io.stdout.write("Dry run: nothing written. Run again with --write.\n");
-    return 0;
-  }
+  if (!parsed.write) return "pending";
   try {
     const backup = writeMigration(plan);
     io.stdout.write(
@@ -765,6 +781,53 @@ async function cmdMigrate(parsed: RunCli, io: CliIO): Promise<number> {
     return 1;
   }
   return 0;
+}
+
+/** The `env` blocks of this server in MCP client config files. */
+async function migrateClients(parsed: RunCli, io: CliIO): Promise<MigrateStep> {
+  const { clientConfigFiles, planClientFiles, writeClientFile } =
+    await import("./migrate-clients.js");
+  const files = clientConfigFiles({
+    platform: io.platform,
+    home: io.env.HOME?.trim() || io.env.USERPROFILE?.trim() || homedir(),
+    env: io.env,
+    cwd: io.cwd,
+  });
+  let code: MigrateStep = 0;
+  for (const plan of planClientFiles(files, parsed.v3Defaults)) {
+    for (const server of plan.servers) {
+      io.stdout.write(`${plan.client}: ${plan.path} ${server.entry}\n`);
+      if (server.envFile) {
+        io.stdout.write(
+          `- It loads ${server.envFile}: run migrate --from ${server.envFile} for it.\n`,
+        );
+      }
+      for (const change of server.changes) {
+        io.stdout.write(`- ${change.message}\n`);
+      }
+    }
+    if (!plan.servers.some((s) => s.changes.length)) continue;
+    if (plan.text === undefined) {
+      io.stdout.write(
+        `- ${plan.path} has comments, so migrate does not rewrite it: make these changes by hand.\n`,
+      );
+      continue;
+    }
+    if (!parsed.write) {
+      if (code === 0) code = "pending";
+      continue;
+    }
+    try {
+      const backup = writeClientFile(plan);
+      io.stdout.write(
+        `Wrote ${plan.path} (the previous file is ${backup}); restart ${plan.client.replace(/ \(.*\)$/, "")} to apply it.\n`,
+      );
+    } catch (error) {
+      io.stderr.write(`${errorText(error)}\n`);
+      code = 1;
+    }
+  }
+  return code;
 }
 
 // ---------------------------------------------------------------------------

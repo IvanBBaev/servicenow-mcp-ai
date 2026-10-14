@@ -22,6 +22,7 @@ import { Writable } from "node:stream";
 
 import { runCli } from "../build/cli.js";
 import { planMigration } from "../build/migrate.js";
+import { planClientFile } from "../build/migrate-clients.js";
 import { validateSettings } from "../build/core/settings-manifest.js";
 import { freshRuntime, withEnv } from "./helpers.js";
 
@@ -108,6 +109,152 @@ test("migrate: a project-root file moves to the target", () => {
   );
 });
 
+test("migrate rewrites a dotenv `KEY: value` line that 3.x would skip", () => {
+  const p = plan("SN_INSTANCE: dev1.service-now.com\nSN_USER=admin\n", {
+    v3Defaults: true,
+  });
+  assert.equal(parseEnv(p.text).SN_INSTANCE, "dev1.service-now.com");
+  assert.deepEqual(
+    p.changes.map((c) => [c.kind, c.key]),
+    [["syntax", "SN_INSTANCE"]],
+  );
+});
+
+const DESKTOP = {
+  client: "Claude Desktop",
+  path: "/c/claude_desktop_config.json",
+};
+const desktopConfig = (env, extra = {}) =>
+  JSON.stringify(
+    {
+      mcpServers: {
+        other: {
+          command: "npx",
+          args: ["other-mcp"],
+          env: { SN_WRITE_MODE: "x" },
+        },
+        servicenow: {
+          command: "npx",
+          args: ["-y", "servicenow-mcp-ai"],
+          env,
+          ...extra,
+        },
+      },
+    },
+    null,
+    2,
+  ) + "\n";
+
+test("migrate: a client env block gets the env file rules, other servers stay", () => {
+  const p = planClientFile(
+    DESKTOP,
+    desktopConfig({
+      SN_INSTANCE: "dev1.service-now.com",
+      SN_PASSWORD: "x",
+      SN_ACTIVE_PROFILE: "schema",
+      SN_PROFILE_SCHEMA_INSTANCE: "s1.service-now.com",
+      SN_WRITE_MODE: "sometimes",
+    }),
+  );
+  assert.equal(p.servers.length, 1);
+  assert.equal(p.servers[0].entry, "mcpServers.servicenow");
+  assert.deepEqual(p.servers[0].changes.map((c) => c.kind).sort(), [
+    "compat",
+    "invalid-value",
+    "rename-profile",
+  ]);
+  const out = JSON.parse(p.text);
+  assert.deepEqual(out.mcpServers.servicenow.env, {
+    SN_INSTANCE: "dev1.service-now.com",
+    SN_PASSWORD: "x",
+    SN_ACTIVE_PROFILE: "schema_v2",
+    SN_PROFILE_SCHEMA_V2_INSTANCE: "s1.service-now.com",
+    SN_COMPAT: "2",
+  });
+  assert.deepEqual(out.mcpServers.other.env, { SN_WRITE_MODE: "x" });
+  assert.ok(p.text.endsWith("}\n"));
+});
+
+test("migrate: client files — no SN_ keys, comments, ~/.claude.json projects, envFile", () => {
+  assert.deepEqual(
+    planClientFile(DESKTOP, desktopConfig({ NODE_OPTIONS: "" })).servers,
+    [],
+  );
+  const jsonc = `{\n  // mine\n  "servers": {\n    "sn": { "command": "servicenow-mcp-ai", "env": { "SN_INSTANCE": "dev1" }, },\n  },\n}\n`;
+  const reported = planClientFile(
+    { client: "VS Code", path: "/c/mcp.json" },
+    jsonc,
+  );
+  assert.equal(reported.text, undefined);
+  assert.equal(reported.servers[0].changes[0].kind, "compat");
+
+  const claude = JSON.stringify({
+    numStartups: 3,
+    projects: {
+      "/repo": {
+        mcpServers: {
+          sn: {
+            command: "node",
+            args: ["/x/servicenow-mcp/build/index.js"],
+            env: { SN_INSTANCE: "dev1", SN_COMPAT: "2" },
+          },
+        },
+      },
+    },
+  });
+  assert.deepEqual(
+    planClientFile({ client: "Claude Code", path: "/h/.claude.json" }, claude)
+      .servers,
+    [],
+  );
+  const envFile = planClientFile(
+    { client: "VS Code", path: "/c/mcp.json" },
+    JSON.stringify({
+      servers: {
+        sn: { command: "npx", args: ["servicenow-mcp-ai"], envFile: "/w/.env" },
+      },
+    }),
+  );
+  assert.equal(envFile.servers[0].envFile, "/w/.env");
+  assert.equal(envFile.text, undefined);
+});
+
+test("migrate --write rewrites a client config with a backup, then has nothing left", async () => {
+  const home = dir();
+  const config = join(home, ".config", "Claude", "claude_desktop_config.json");
+  mkdirSync(join(home, ".config", "Claude"), { recursive: true });
+  const original = desktopConfig({
+    SN_INSTANCE: "dev1",
+    SN_WRITE_MODE: "sometimes",
+  });
+  writeFileSync(config, original, { mode: 0o644 });
+  await withEnv({ SN_ENV_FILE: join(home, "none", ".env") }, async () => {
+    const dry = io(home);
+    assert.equal(await runCli(["migrate"], dry), 0);
+    assert.match(
+      dry.stdout.text,
+      /Claude Desktop: .*claude_desktop_config\.json mcpServers\.servicenow$/m,
+    );
+    assert.match(dry.stdout.text, /Dry run/);
+    assert.equal(readFileSync(config, "utf8"), original);
+
+    const wet = io(home);
+    assert.equal(await runCli(["migrate", "--write"], wet), 0);
+    assert.match(wet.stdout.text, /restart Claude Desktop/);
+    assert.equal(readFileSync(`${config}.v2.bak`, "utf8"), original);
+    const env = JSON.parse(readFileSync(config, "utf8")).mcpServers.servicenow
+      .env;
+    assert.deepEqual(env, { SN_INSTANCE: "dev1", SN_COMPAT: "2" });
+    if (process.platform !== "win32") {
+      assert.equal(statSync(config).mode & 0o777, 0o644);
+      assert.equal(statSync(`${config}.v2.bak`).mode & 0o777, 0o600);
+    }
+    const again = io(home);
+    assert.equal(await runCli(["migrate"], again), 0);
+    assert.doesNotMatch(again.stdout.text, /Dry run|Claude Desktop/);
+  });
+});
+
 class Sink extends Writable {
   text = "";
   _write(chunk, _enc, cb) {
@@ -115,13 +262,15 @@ class Sink extends Writable {
     cb();
   }
 }
-const io = () => ({
+// HOME and the config folders point into the sandbox, so the client config
+// scan never reads (or with --write, rewrites) the real ones.
+const io = (home = join(sandbox, "home")) => ({
   stdin: process.stdin,
   stdout: new Sink(),
   stderr: new Sink(),
   platform: "linux",
-  env: process.env,
-  cwd: sandbox,
+  env: { ...process.env, HOME: home, XDG_CONFIG_HOME: join(home, ".config") },
+  cwd: home,
 });
 
 test("migrate is a dry run until --write, which keeps a 0600 backup", async () => {

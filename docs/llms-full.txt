@@ -1027,7 +1027,7 @@ starts the server.
 | `servicenow-mcp-ai login`                       | `--profile <name>`                       | One-time OAuth 2.1 Authorization Code + PKCE login: opens the browser, captures the loopback redirect, stores a refresh token.      | `0` success · `1` login failed                              |
 | `servicenow-mcp-ai drift <profileA> <profileB>` | _(none)_                                 | DF-3 CI drift gate: compares the two instances and writes a Markdown diff report.                                                  | `0` no drift · `1` drift found · `2` usage / error          |
 | `servicenow-mcp-ai support-bundle`              | `--out <file>`, `--profile <name>`       | Writes one JSON file for a bug report and prints its path on stdout.                                                               | `0` written · `1` write failed                              |
-| `servicenow-mcp-ai migrate`                     | `--write`, `--from <file>`, `--v3-defaults` | Carries a 2.x env file over to 3.x and prints every change; a dry run unless `--write`.                                         | `0` done or nothing to do · `1` refused / write failed       |
+| `servicenow-mcp-ai migrate`                     | `--write`, `--from <file>`, `--v3-defaults` | Carries 2.x settings (env file, MCP client `env` blocks) over to 3.x and prints every change; a dry run unless `--write`.         | `0` done or nothing to do · `1` refused / write failed       |
 
 **`init`** writes through the same atomic, owner-only (`0600`) env-file writer as
 `servicenow_set_credentials`, to the file `doctor` names (by default
@@ -1073,10 +1073,21 @@ still migrates, and keeps every key, value and comment except:
   `SN_PROFILE_<NAME>_*` keys and `SN_ACTIVE_PROFILE`;
 - a value 3.x rejects at startup (B5) is commented out, so the default applies,
   as it did in 2.x;
+- a `KEY: value` line (accepted by the 2.x parser, skipped by 3.x) becomes
+  `KEY=value`;
 - `SN_COMPAT=2` is appended unless the file sets it or `--v3-defaults` is given.
 
-With `--write` a file rewritten in place is first copied to `<file>.v2.bak`; both
-are `0600`. Run it once after the upgrade:
+Settings in an MCP client's `env` block reach the server ahead of the env file,
+so `migrate` also looks for this server in the Claude Desktop, Claude Code
+(`~/.claude.json`, `.mcp.json`), Cursor, VS Code (user and `.vscode/mcp.json`)
+and Windsurf config files, and applies the same rules to an `env` block that sets
+`SN_*` keys (an invalid value is removed). A file with comments is reported, not
+rewritten; a VS Code `envFile` is named so you can run `migrate --from` on it.
+Restart the client after a rewrite.
+
+With `--write` each file rewritten in place is first copied to `<file>.v2.bak`
+(`0600`); an env file is `0600` too, a client file keeps its mode. Run it once
+after the upgrade:
 
 ```bash
 npx servicenow-mcp-ai migrate          # review the plan

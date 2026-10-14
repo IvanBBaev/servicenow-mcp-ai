@@ -39,6 +39,7 @@ export type MigrationChangeKind =
   | "location"
   | "rename-profile"
   | "invalid-value"
+  | "syntax"
   | "compat";
 
 export interface MigrationChange {
@@ -57,6 +58,8 @@ export interface MigrationPlan {
 }
 
 const LINE_RE = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*)(\s*=.*)$/;
+/** dotenv's `KEY: value` form (a colon, then whitespace). */
+const COLON_LINE_RE = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_]*):\s+(.*)$/;
 const COMPAT_LINE =
   "# Added by servicenow-mcp-ai migrate: keep the 2.x defaults for the\n# settings left unset (remove it to take the 3.x defaults).\nSN_COMPAT=2";
 
@@ -80,6 +83,101 @@ function profileSuffix(key: string, name: string): string | undefined {
   return undefined;
 }
 
+/** What `planEnv` decided for one set of 2.x settings. */
+export interface EnvPlan {
+  changes: MigrationChange[];
+  /** The 3.x key for `key` (renamed out of a reserved profile), or `key`. */
+  keyFor(key: string): string;
+  /** The new SN_ACTIVE_PROFILE value, when the active profile was renamed. */
+  activeTo: string | undefined;
+  /** 3.x keys whose value 3.x refuses at startup. */
+  invalid: ReadonlySet<string>;
+  /** Whether SN_COMPAT=2 is to be added. */
+  compat: boolean;
+}
+
+/**
+ * Plan the 2.x → 3.x changes to one set of settings (an env file or an MCP
+ * client's `env` block): reserved profiles (B13), values 3.x refuses (B5) and
+ * SN_COMPAT=2. `removal` names what happens to an invalid value.
+ */
+export function planEnv(
+  env: Record<string, string>,
+  options: { v3Defaults?: boolean; removal: string },
+): EnvPlan {
+  const changes: MigrationChange[] = [];
+  const renames = new Map<string, string>();
+  for (const name of RESERVED_PROFILE_NAMES) {
+    if (Object.keys(env).some((key) => profileSuffix(key, name))) {
+      const to = migratedProfileName(name);
+      renames.set(name, to);
+      changes.push({
+        kind: "rename-profile",
+        key: name,
+        message: `Profile "${name}" is reserved in 3.x (B13): renamed "${to}" (its SN_PROFILE_${name.toUpperCase()}_* keys${env.SN_ACTIVE_PROFILE?.trim().toLowerCase() === name ? " and SN_ACTIVE_PROFILE" : ""}). Its docs and journal folders keep the old name.`,
+      });
+    }
+  }
+  const keyFor = (key: string): string => {
+    for (const [from, to] of renames) {
+      const rest = profileSuffix(key, from);
+      if (rest) return `SN_PROFILE_${to.toUpperCase()}_${rest}`;
+    }
+    return key;
+  };
+  const migratedEnv: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    migratedEnv[keyFor(key)] = value;
+  }
+  const active = env.SN_ACTIVE_PROFILE?.trim().toLowerCase();
+  const activeTo = active ? renames.get(active) : undefined;
+  if (activeTo) migratedEnv.SN_ACTIVE_PROFILE = activeTo;
+
+  // B5: values 3.x would refuse at startup (under the settings' own
+  // SN_STRICT_SETTINGS). 2.x ignored them and used the default.
+  const invalid = new Set<string>();
+  for (const issue of validateSettings(migratedEnv).issues) {
+    if (issue.level !== "error") continue;
+    invalid.add(issue.key);
+    changes.push({
+      kind: "invalid-value",
+      key: issue.key,
+      message: `${issue.message} — ${options.removal}, so the default applies (as in 2.x).`,
+    });
+  }
+
+  const compat = !options.v3Defaults && env.SN_COMPAT === undefined;
+  if (compat) {
+    changes.push({
+      kind: "compat",
+      key: "SN_COMPAT",
+      message:
+        "SN_COMPAT=2 is added: every setting left unset keeps its 2.x default (protected tables writable, no plan token, unmapped batch rows allowed, old tool names listed, the core packages). Use --v3-defaults to leave it out.",
+    });
+  }
+  return { changes, keyFor, activeTo, invalid, compat };
+}
+
+/**
+ * 2.x read env files with dotenv, which also took `KEY: value`; 3.x reads
+ * them with `util.parseEnv`, which skips such a line. Rewrite it as
+ * `KEY=value` (pure).
+ */
+function normaliseColonLines(text: string): {
+  text: string;
+  keys: string[];
+} {
+  const keys: string[] = [];
+  const out = text.split(/\r?\n/).map((line) => {
+    const match = COLON_LINE_RE.exec(line);
+    if (!match) return line;
+    const [, lead = "", key = "", value = ""] = match;
+    keys.push(key);
+    return `${lead}${key}=${value}`;
+  });
+  return { text: out.join("\n"), keys };
+}
+
 /** Plan the migration of env file `text` (pure). */
 export function planMigration(input: {
   text: string;
@@ -97,71 +195,37 @@ export function planMigration(input: {
       message: `${source} is copied to ${target} (the project-root .env is deprecated, B5); the original stays as it is.`,
     });
   }
-  const env = parseEnv(input.text) as Record<string, string>;
-
-  // B13: reserved profile names.
-  const renames = new Map<string, string>();
-  for (const name of RESERVED_PROFILE_NAMES) {
-    if (Object.keys(env).some((key) => profileSuffix(key, name))) {
-      const to = migratedProfileName(name);
-      renames.set(name, to);
-      changes.push({
-        kind: "rename-profile",
-        key: name,
-        message: `Profile "${name}" is reserved in 3.x (B13): renamed "${to}" (its SN_PROFILE_${name.toUpperCase()}_* keys${env.SN_ACTIVE_PROFILE?.trim().toLowerCase() === name ? " and SN_ACTIVE_PROFILE" : ""}). Its docs and journal folders keep the old name.`,
-      });
-    }
-  }
-  const renamedKey = (key: string): string | undefined => {
-    for (const [from, to] of renames) {
-      const rest = profileSuffix(key, from);
-      if (rest) return `SN_PROFILE_${to.toUpperCase()}_${rest}`;
-    }
-    return undefined;
-  };
-  const migratedEnv: Record<string, string> = {};
-  for (const [key, value] of Object.entries(env)) {
-    migratedEnv[renamedKey(key) ?? key] = value;
-  }
-  const active = env.SN_ACTIVE_PROFILE?.trim().toLowerCase();
-  const activeTo = active ? renames.get(active) : undefined;
-  if (activeTo) migratedEnv.SN_ACTIVE_PROFILE = activeTo;
-
-  // B5: values 3.x would refuse at startup (under the file's own
-  // SN_STRICT_SETTINGS). 2.x ignored them and used the default.
-  const invalid = new Map<string, string>();
-  for (const issue of validateSettings(migratedEnv).issues) {
-    if (issue.level !== "error") continue;
-    invalid.set(issue.key, issue.message);
+  const colon = normaliseColonLines(input.text);
+  for (const key of colon.keys) {
     changes.push({
-      kind: "invalid-value",
-      key: issue.key,
-      message: `${issue.message} — commented out, so the default applies (as in 2.x).`,
+      kind: "syntax",
+      key,
+      message: `${key}: the 2.x "KEY: value" form is rewritten "KEY=value" (3.x skips the colon form).`,
     });
   }
+  const env = parseEnv(colon.text) as Record<string, string>;
+  const plan = planEnv(env, {
+    v3Defaults: input.v3Defaults,
+    removal: "commented out",
+  });
+  changes.push(...plan.changes);
 
-  const lines = input.text.split(/\r?\n/).map((line) => {
+  const lines = colon.text.split(/\r?\n/).map((line) => {
     const match = LINE_RE.exec(line);
     if (!match) return line;
     const [, lead = "", key = "", rest = ""] = match;
-    const to = renamedKey(key) ?? key;
+    const to = plan.keyFor(key);
     let out = `${lead}${to}${rest}`;
-    if (to === "SN_ACTIVE_PROFILE" && activeTo) {
-      out = `${lead}${to}=${activeTo}`;
+    if (to === "SN_ACTIVE_PROFILE" && plan.activeTo) {
+      out = `${lead}${to}=${plan.activeTo}`;
     }
-    if (invalid.has(to)) {
+    if (plan.invalid.has(to)) {
       return `# servicenow-mcp-ai migrate: invalid in 3.x, the default applies.\n# ${out}`;
     }
     return out;
   });
 
-  if (!input.v3Defaults && env.SN_COMPAT === undefined) {
-    changes.push({
-      kind: "compat",
-      key: "SN_COMPAT",
-      message:
-        "SN_COMPAT=2 is added: every setting left unset keeps its 2.x default (protected tables writable, no plan token, unmapped batch rows allowed, old tool names listed, the core packages). Use --v3-defaults to leave it out.",
-    });
+  if (plan.compat) {
     while (lines.length && lines[lines.length - 1] === "") lines.pop();
     lines.push("", COMPAT_LINE, "");
   }
