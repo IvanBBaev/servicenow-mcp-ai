@@ -274,6 +274,11 @@ A trend check against October 2026 practice found three topics that no item cove
   - `.github/copilot-instructions.md` is generated from the same source, so the two cannot drift.
   - Plugin skills for the N flagships extend D-8 / N-19.
   - O-20 decides whether a public agent-instructions file is wanted at all.
+- **Flagship skills (done 2026-10-14):** `skills/sn-upgrade` (upgrade history, unresolved skips,
+  store updates, upgrade document) and `skills/sn-security` (read-only: explain access, ACL scan and
+  hardening, security posture document). Both follow the portable Agent Skill rules, mirror a prompt
+  (`servicenow_upgrade_review`, `servicenow_security_posture`) and have trigger and negative evals
+  over recorded mocks. No `tools/list` change.
 - **Tests:** a drift check between `AGENTS.md`, the copilot file and the manifest counts.
 
 ### N-44 — Decision records (S)

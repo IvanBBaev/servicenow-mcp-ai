@@ -46,6 +46,7 @@ export const UPDATE_SET_SYS_ID = sid("update_set:Escalation rework");
 export const BUSINESS_RULE_SYS_ID = sid("sys_script:Escalate P1 incidents");
 export const SCRIPT_INCLUDE_SYS_ID = sid("sys_script_include:EscalationUtil");
 /** N-34: one UI Builder experience (page registry → route → screen → page). */
+export const UPGRADE_SYS_ID = sid("sys_upgrade_history:zurich-patch2");
 export const UX_EXPERIENCE_PATH = "acme/vendor";
 export const UX_PAGE_SYS_ID = sid("sys_ux_macroponent:Vendor record page");
 const UX_REGISTRY_SYS_ID = sid("sys_ux_page_registry:acme/vendor");
@@ -429,6 +430,96 @@ function devDataset() {
         user: "beth.anglin",
         sys_created_on: T1,
         record_checkpoint: "4",
+      },
+    ],
+    sys_user_role: [
+      { sys_id: sid("sys_user_role:itil"), name: "itil" },
+      { sys_id: sid("sys_user_role:admin"), name: "admin" },
+    ],
+    sys_user_has_role: [
+      {
+        sys_id: sid("sys_user_has_role:beth.anglin:itil"),
+        user: sid("sys_user:beth.anglin"),
+        "role.name": "itil",
+        state: "active",
+      },
+    ],
+    sys_security_acl: [
+      {
+        sys_id: sid("sys_security_acl:incident:write"),
+        name: "incident",
+        operation: "write",
+        "type.name": "record",
+        active: "true",
+        condition: "",
+        script: "",
+        advanced: "false",
+        admin_overrides: "true",
+      },
+      {
+        sys_id: sid("sys_security_acl:incident:delete"),
+        name: "incident",
+        operation: "delete",
+        "type.name": "record",
+        active: "true",
+        condition: "",
+        script: "",
+        advanced: "false",
+        admin_overrides: "true",
+      },
+    ],
+    sys_security_acl_role: [
+      {
+        sys_id: sid("sys_security_acl_role:incident:write:itil"),
+        sys_security_acl: sid("sys_security_acl:incident:write"),
+        "sys_user_role.name": "itil",
+      },
+      {
+        sys_id: sid("sys_security_acl_role:incident:delete:admin"),
+        sys_security_acl: sid("sys_security_acl:incident:delete"),
+        "sys_user_role.name": "admin",
+      },
+    ],
+    sys_upgrade_history: [
+      {
+        sys_id: UPGRADE_SYS_ID,
+        from_version: "glide-zurich-07-01-2025__patch1-08-12-2025",
+        to_version: "glide-zurich-07-01-2025__patch2-09-10-2025",
+        upgrade_started: "2026-09-20 02:00:00",
+        upgrade_finished: "2026-09-20 03:10:00",
+        summary_complete_status: "Complete",
+      },
+    ],
+    sys_upgrade_history_log: [
+      {
+        sys_id: sid("sys_upgrade_history_log:escalate"),
+        upgrade_history: UPGRADE_SYS_ID,
+        file_name: `sys_script_${BUSINESS_RULE_SYS_ID}`,
+        target_name: "Escalate P1 incidents",
+        plugin: "Incident Management",
+        application_category: "",
+        disposition: "Skipped",
+        resolution_status: "Not Reviewed",
+      },
+      {
+        sys_id: sid("sys_upgrade_history_log:escalation-util"),
+        upgrade_history: UPGRADE_SYS_ID,
+        file_name: `sys_script_include_${SCRIPT_INCLUDE_SYS_ID}`,
+        target_name: "EscalationUtil",
+        plugin: "Incident Management",
+        application_category: "",
+        disposition: "Skipped Manual Merge",
+        resolution_status: "Not Reviewed",
+      },
+      {
+        sys_id: sid("sys_upgrade_history_log:priority-choice"),
+        upgrade_history: UPGRADE_SYS_ID,
+        file_name: "sys_choice_incident_priority",
+        target_name: "incident.priority choices",
+        plugin: "Incident Management",
+        application_category: "",
+        disposition: "Skipped",
+        resolution_status: "Reviewed and Retained",
       },
     ],
     syslog: [

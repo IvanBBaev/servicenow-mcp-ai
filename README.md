@@ -244,7 +244,7 @@ Or a workspace file, `.vscode/mcp.json`:
 /plugin install servicenow-mcp-ai
 ```
 
-The plugin also ships six workflow skills, two read-only subagents and three
+The plugin also ships eight workflow skills, two read-only subagents and three
 hooks — see [Plugin skills](#plugin-skills).
 
 **CLI** — `--scope user` makes it available in every project; `--env` sets a
@@ -1420,7 +1420,7 @@ before.
 
 ### Plugin skills
 
-The Claude Code plugin (`/plugin install servicenow-mcp-ai`) ships six skills
+The Claude Code plugin (`/plugin install servicenow-mcp-ai`) ships eight skills
 under `skills/`. Each one only orchestrates this server's tools; none holds
 credentials or calls ServiceNow on its own.
 
@@ -1432,6 +1432,8 @@ credentials or calls ServiceNow on its own.
 | `sn-drift` | Compare two instances or a saved snapshot, or review an update set |
 | `sn-safe-write` | Make a record change with plan-and-apply, the write journal and a revert path |
 | `sn-uib` | Review a UI Builder page: page map, what a change touches, data broker security, page weight |
+| `sn-upgrade` | Review upgrade readiness: unresolved skipped records, base vs customer versions, store app updates |
+| `sn-security` | Explain why a user can or cannot reach a table, record or field; review ACLs, hardening and cross-scope access |
 
 A test (`test/plugin-skills.test.js`) checks that every `servicenow_*` name in a
 skill exists in the tool manifest. The skills are not part of the npm package.
@@ -1462,7 +1464,7 @@ report); it recommends the scan when a change touches ACLs.
 
 #### Using the skills with other agents
 
-The six skills are portable [Agent Skills](https://agentskills.io): their
+The eight skills are portable [Agent Skills](https://agentskills.io): their
 `SKILL.md` frontmatter uses only `name` and `description`, and they name tools
 by their bare MCP name (`servicenow_query_table`), so any client that has this
 server configured can run them. Copy or symlink the folders under `skills/`
@@ -1483,7 +1485,7 @@ cp -R skills/sn-* ~/.agents/skills/   # or: ln -s "$PWD"/skills/sn-* ~/.agents/s
 ```
 
 In VS Code, the extension's **ServiceNow MCP: Add Agent Skills to Workspace**
-command copies the six skills into one of the project folders above (it asks
+command copies the eight skills into one of the project folders above (it asks
 before replacing a skill that is already there).
 
 The subagents and hooks are Claude Code plugin features and do not carry over.
@@ -1709,8 +1711,8 @@ safe write: `table`; drift review: `instance`; schema impact: `scripts`;
 discover instance: `docs`; the instance overview uses admin tools only and is
 always listed). The safe-write, drift-review, schema-impact and
 discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
-`sn-impact` and `sn-discover` (triage and UIB review mirror `sn-triage` and
-`sn-uib`). The list follows `servicenow_enable_package` /
+`sn-impact` and `sn-discover` (triage, UIB review, upgrade review and security posture mirror
+`sn-triage`, `sn-uib`, `sn-upgrade` and `sn-security`). The list follows `servicenow_enable_package` /
 `servicenow_disable_package` live, with `notifications/prompts/list_changed`:
 
 | Prompt                              | Argument   | Purpose                                                          |

@@ -24,6 +24,8 @@ const TWINS = {
   "sn-safe-write": "servicenow_safe_write",
   "sn-triage": "servicenow_incident_triage",
   "sn-uib": "servicenow_uib_page_review",
+  "sn-upgrade": "servicenow_upgrade_review",
+  "sn-security": "servicenow_security_posture",
 };
 
 /** Arguments that make each mirrored prompt render its full step list. */
@@ -34,6 +36,8 @@ const ARGS = {
   servicenow_safe_write: { change: "set priority 2", table: "incident" },
   servicenow_incident_triage: { incident: "INC0010001" },
   servicenow_uib_page_review: { experience: "now/sow" },
+  servicenow_upgrade_review: {},
+  servicenow_security_posture: { scope: "x_acme_app" },
 };
 
 function skills() {

@@ -59,7 +59,7 @@ Install it with `npx -y servicenow-mcp-ai`. Run `npx servicenow-mcp-ai init` for
 - [Claude Code plugin](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/.claude-plugin): `/plugin marketplace add IvanBBaev/servicenow-mcp-ai`, then `/plugin install servicenow-mcp-ai`; the server wired up plus skills, subagents and hooks
 - [VS Code extension](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/extension): `ivanbbaev.servicenow-mcp-ai`; registers the server in Copilot Chat with no `mcp.json`
 - [MCP bundle (.mcpb)](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/mcpb): one-click Claude Desktop install; built with `npm run mcpb:pack`
-- [Skills](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/skills): six workflow skills (`sn-discover`, `sn-drift`, `sn-impact`, `sn-safe-write`, `sn-triage`, `sn-uib`), usable from Claude Code, Copilot, Codex and Cursor
+- [Skills](https://github.com/IvanBBaev/servicenow-mcp-ai/tree/main/skills): eight workflow skills (`sn-discover`, `sn-drift`, `sn-impact`, `sn-safe-write`, `sn-security`, `sn-triage`, `sn-uib`, `sn-upgrade`), usable from Claude Code, Copilot, Codex and Cursor
 
 ## Optional
 

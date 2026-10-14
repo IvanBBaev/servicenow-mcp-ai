@@ -56,6 +56,7 @@ import {
   SCRIPT_INCLUDE_SYS_ID,
   UX_EXPERIENCE_PATH,
   UX_PAGE_SYS_ID,
+  UPGRADE_SYS_ID,
   installFakeInstance,
 } from "./fake-instance.js";
 
@@ -114,6 +115,11 @@ export const RECORDED_CALLS = [
     { artifactType: "uib_macroponent", sys_id: UX_PAGE_SYS_ID },
   ],
   ["servicenow_check_code_health", { domains: true }],
+  ["servicenow_review_upgrade", { upgrade: UPGRADE_SYS_ID }],
+  [
+    "servicenow_explain_access",
+    { user: "beth.anglin", table: "incident", operation: "delete" },
+  ],
   ["servicenow_describe_table", { table: "incident" }],
   ["servicenow_describe_table_logic", { table: "incident" }],
   ["servicenow_where_used", { kind: "field", name: "incident.priority" }],

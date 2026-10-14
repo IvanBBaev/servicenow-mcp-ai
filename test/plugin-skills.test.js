@@ -60,7 +60,7 @@ function pluginDocs() {
 
 const docs = pluginDocs();
 
-test("the plugin ships the six workflow skills", () => {
+test("the plugin ships the eight workflow skills", () => {
   const skills = docs.filter((d) => d.kind === "skill").map((d) => d.name);
   for (const name of [
     "sn-discover",
@@ -69,6 +69,8 @@ test("the plugin ships the six workflow skills", () => {
     "sn-drift",
     "sn-safe-write",
     "sn-uib",
+    "sn-upgrade",
+    "sn-security",
   ])
     assert.ok(skills.includes(name), `missing skill ${name}`);
 });

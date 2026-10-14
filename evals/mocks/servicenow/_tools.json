@@ -947,6 +947,87 @@
       }
     },
     {
+      "name": "servicenow_explain_access",
+      "title": "Explain a user's access",
+      "description": "Why a user can or cannot read, write, create or delete a table, record or field: roles, the matching row/field ACLs and their role, condition and script parts. Scripts stay undetermined.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "user_name or sys_id."
+          },
+          "table": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,80}$",
+            "description": "Table."
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write",
+              "create",
+              "delete"
+            ],
+            "description": "Operation."
+          },
+          "sys_id": {
+            "description": "Record; conditions run as the connected user.",
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "field": {
+            "description": "Field ACL too.",
+            "type": "string",
+            "maxLength": 255,
+            "pattern": "^[A-Za-z0-9_.]+(?:\\s*,\\s*[A-Za-z0-9_.]+)*$"
+          },
+          "format": {
+            "description": "json (default) or markdown report + Mermaid.",
+            "type": "string",
+            "enum": [
+              "json",
+              "markdown"
+            ]
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "user",
+          "table",
+          "operation"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "decision": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "available",
+          "decision"
+        ],
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
+      }
+    },
+    {
       "name": "servicenow_explain_artifact",
       "title": "Explain artifact",
       "description": "Explain one artifact of any registry type: summary, trigger fields, non-empty fields, children, referenced records, decoded JSON fields and type-specific readings (state models, policy effects).",
@@ -2712,6 +2793,50 @@
           "result": {}
         },
         "additionalProperties": {}
+      }
+    },
+    {
+      "name": "servicenow_review_upgrade",
+      "title": "Review upgrade",
+      "description": "Upgrade history by default; upgrade: its unresolved skipped records by app/type; update_name: one skip classified by base vs customer versions; store_updates: store apps with an update and their customisations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "upgrade": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,32}$"
+          },
+          "update_name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "store_updates": {
+            "type": "boolean"
+          },
+          "instance": {
+            "description": "Profile (default active)",
+            "type": "string",
+            "maxLength": 128
+          }
+        },
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "additionalProperties": {}
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true
       }
     },
     {
