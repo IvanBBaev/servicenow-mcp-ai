@@ -6,6 +6,8 @@
   pre-flight), O-3 / O-22 (publication order), O-16 (N-20 EL-0)
 - **Supersedes:** —
 - **Superseded by:** —
+- **Amended:** 2026-10-14 — P-2: `application` ships `verified:true` (owner, after a read-only
+  analysis showed the `sys_store_app` rationale below did not apply).
 
 ## Context
 
@@ -24,9 +26,12 @@ release workflows and the trackers on 2026-10-14 found:
   five attachment tools, `explain_policy`, `set_credentials` and `use_instance`. Write tools return
   two shapes (plan preview and applied result) that one envelope must cover, or the SDK's
   server-side `structuredContent` validation turns a success into an error.
-- **P-2**: `application` (a `verified` flip turns the 403 a stock PDI admin gets on
-  `sys_store_app` into an error), `risk_assessment` (plugin inactive on the PDI) and
-  `uib_composite_definition` (not confirmed) are still `verified:false`.
+- **P-2**: `application` was still `verified:false` only because its `sys_scope_dependency`
+  child names a table no instance has (OD-3); `risk_assessment` (plugin inactive on the PDI)
+  and `uib_composite_definition` (not confirmed) are still `verified:false`. The first draft
+  of this ADR cited a `sys_store_app` 403; that table is read only by the document and
+  discovery collectors, which degrade on their own, not by the `application` type (`sys_app`
+  plus `sys_package_dependency_m2m`).
 - **P-25b, N-12b, N-20b** need a writable flow table, a non-domain-separated instance and full
   admin respectively; the PDI (ven03019) offers none of them.
 - **N-11 pre-flight**: `publish.yml` passes the tag version to `scripts/release-notes.mjs`, which
@@ -42,19 +47,19 @@ release workflows and the trackers on 2026-10-14 found:
 
 The owner accepted the recommended option for each item on 2026-10-14.
 
-| Item         | Decision                                                                                                                                                                                                                                                                      |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H-11b        | **Deferred to 3.x.** `SN_TABLE_POLICY_FILE` is not part of 3.0.0; a scope proposal may come back as a 3.x design. It is additive (a new optional variable), so it needs no breaking-register row. H-11 counts as done for 3.0.                                                |
-| H-11 (b)–(f) | Ratified as shipped: the protected list (with B22's two role tables), attachment writes meeting the parent table's policy (99b1ec1), `SN_ENV` for the default profile only, and `CONFIRM_REQUIRED` for destructive prod applies without elicitation even with `I_UNDERSTAND`. |
-| N-0          | **Closed, superseded by N-57 / ADR 0006.** The exit criterion is a green budget ratchet; every tool change still states its `tools/list` byte delta.                                                                                                                          |
-| N-54         | **Frozen at 88 / 100 for 3.0.** The 12 registered tools keep their register entry; declaring them is additive and may land in 3.x.                                                                                                                                            |
-| P-2          | **Closed for 3.0.** `application`, `risk_assessment` and `uib_composite_definition` ship `verified:false` (degrade, not fail); a later false → true flip per plugin is a behaviour change, not a breaking one.                                                                |
-| P-25b        | Known limitation: the flow toggle's runtime effect on the trigger is unverified (Table API `PATCH sys_hub_flow` is ACL-refused on the PDI).                                                                                                                                   |
-| N-12b        | Known limitation: on a non-separated instance a missing and an empty `sys_domain` are both read as "no domain"; unverified there.                                                                                                                                             |
-| N-20b        | Known limitation: the EL-0 spike waits for a PDI with full admin; elevation stays reported, never performed (O-16, ADR 0011).                                                                                                                                                 |
-| N-11         | A prerelease version takes its GitHub release notes from `## [Unreleased]`; the first beta is cut with `npm version 3.0.0-beta.1`. The tag cut itself stays the owner's.                                                                                                      |
-| O-3 / O-22   | Before the beta: publish the pinned 2.0.1 extension through `publish-vscode.yml` `workflow_dispatch` (also proves `VSCE_PAT`) and set `MCPB_RELEASE=true`. At GA: deprecate the two LeassTaTT registry entries, register Context7; Open VSX only with an `OVSX_PAT`.          |
-| Housekeeping | Stale local branches and the abandoned `n18/baseline` worktree are removed; `backup-original` is kept as the tag `archive/backup-original`.                                                                                                                                   |
+| Item         | Decision                                                                                                                                                                                                                                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H-11b        | **Deferred to 3.x.** `SN_TABLE_POLICY_FILE` is not part of 3.0.0; a scope proposal may come back as a 3.x design. It is additive (a new optional variable), so it needs no breaking-register row. H-11 counts as done for 3.0.                                                                                    |
+| H-11 (b)–(f) | Ratified as shipped: the protected list (with B22's two role tables), attachment writes meeting the parent table's policy (99b1ec1), `SN_ENV` for the default profile only, and `CONFIRM_REQUIRED` for destructive prod applies without elicitation even with `I_UNDERSTAND`.                                     |
+| N-0          | **Closed, superseded by N-57 / ADR 0006.** The exit criterion is a green budget ratchet; every tool change still states its `tools/list` byte delta.                                                                                                                                                              |
+| N-54         | **Frozen at 88 / 100 for 3.0.** The 12 registered tools keep their register entry; declaring them is additive and may land in 3.x.                                                                                                                                                                                |
+| P-2          | **Closed for 3.0.** `application` ships `verified:true` once its absent `sys_scope_dependency` child is dropped (amended 2026-10-14); `risk_assessment` and `uib_composite_definition` ship `verified:false` (degrade, not fail); a later false → true flip per plugin is a behaviour change, not a breaking one. |
+| P-25b        | Known limitation: the flow toggle's runtime effect on the trigger is unverified (Table API `PATCH sys_hub_flow` is ACL-refused on the PDI).                                                                                                                                                                       |
+| N-12b        | Known limitation: on a non-separated instance a missing and an empty `sys_domain` are both read as "no domain"; unverified there.                                                                                                                                                                                 |
+| N-20b        | Known limitation: the EL-0 spike waits for a PDI with full admin; elevation stays reported, never performed (O-16, ADR 0011).                                                                                                                                                                                     |
+| N-11         | A prerelease version takes its GitHub release notes from `## [Unreleased]`; the first beta is cut with `npm version 3.0.0-beta.1`. The tag cut itself stays the owner's.                                                                                                                                          |
+| O-3 / O-22   | Before the beta: publish the pinned 2.0.1 extension through `publish-vscode.yml` `workflow_dispatch` (also proves `VSCE_PAT`) and set `MCPB_RELEASE=true`. At GA: deprecate the two LeassTaTT registry entries, register Context7; Open VSX only with an `OVSX_PAT`.                                              |
+| Housekeeping | Stale local branches and the abandoned `n18/baseline` worktree are removed; `backup-original` is kept as the tag `archive/backup-original`.                                                                                                                                                                       |
 
 ## Consequences
 
@@ -63,7 +68,7 @@ The owner accepted the recommended option for each item on 2026-10-14.
 - The beta tag no longer needs a CHANGELOG section of its own; GA still moves `[Unreleased]` under
   `## [3.0.0]`.
 - The 3.0.0 CHANGELOG lists P-25b, N-12b and N-20b as known limitations.
-- H-11b, the 12 N-54 tools and the three P-2 rows are 3.x candidates, not release blockers.
+- H-11b, the 12 N-54 tools and the two remaining P-2 rows are 3.x candidates, not release blockers.
 
 ## Links
 

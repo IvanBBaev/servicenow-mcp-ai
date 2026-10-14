@@ -45,6 +45,8 @@ export const OD4_CORE_VERIFIED = new Set([
   "report_source",
   // B18: retargeted to sys_package_dependency_m2m, confirmed on the PDI.
   "app_dependency",
+  // P-2: the absent sys_scope_dependency child dropped, confirmed on the PDI.
+  "application",
 ]);
 
 /**

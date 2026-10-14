@@ -651,12 +651,8 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     table: "sys_app",
     children: [
       {
-        table: "sys_scope_dependency",
-        parentField: "scope",
-        nameField: "dependency",
-      },
-      {
-        // OD-3: the PDI has the m2m table, not sys_package_dependency.
+        // OD-3: the PDI has the m2m table, not sys_package_dependency. P-2:
+        // the sys_scope_dependency child is gone (no such table, B18).
         table: "sys_package_dependency_m2m",
         parentField: "sys_package",
         nameField: "dependency",
@@ -667,7 +663,7 @@ export const PROCESS_ROWS: readonly ArtifactType[] = [
     activeField: "active",
     scriptFields: [],
     tiers: SEED_TIERS,
-    verified: false,
+    verified: true,
     metaFields: ["scope", "version", "vendor", "active"],
   },
   {

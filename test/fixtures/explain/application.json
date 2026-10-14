@@ -1,8 +1,7 @@
 {
   "artifactType": "application",
   "table": "sys_app",
-  "verified": false,
-  "caveat": "This type is verified:false: its table and field names come from the SDK inventory and have not been confirmed on a live instance (gate O-5).",
+  "verified": true,
   "sys_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "name": "Acme app",
   "key": {
@@ -17,7 +16,7 @@
     "unverified": false,
     "evidence": []
   },
-  "summary": "application 'Acme app' (sys_app); active; scope x_acme_app; 1 child record(s) in 1 table(s); unverified type",
+  "summary": "application 'Acme app' (sys_app); active; scope x_acme_app; 1 child record(s) in 1 table(s)",
   "when": null,
   "fields": {
     "name": "Acme app",
@@ -28,24 +27,16 @@
   },
   "children": [
     {
-      "table": "sys_scope_dependency",
-      "parentField": "scope",
-      "verified": false,
+      "table": "sys_package_dependency_m2m",
+      "parentField": "sys_package",
+      "verified": true,
       "count": 1,
       "items": [
         {
           "sys_id": "2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f",
-          "dependency": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f",
-          "scope": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          "dependency": "3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f3f"
         }
       ]
-    },
-    {
-      "table": "sys_package_dependency_m2m",
-      "parentField": "sys_package",
-      "verified": false,
-      "count": 0,
-      "items": []
     }
   ],
   "references": [],

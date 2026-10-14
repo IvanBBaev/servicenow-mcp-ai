@@ -274,12 +274,12 @@ not verify.
 
 ### 4.12 Application, scope and delivery
 
-| Id    | Artefact                       | ServiceNow table(s)                              | R   | X   | A   | S   | W   | G   | Now (refs)                | Target | Phase    | Items          |
-| ----- | ------------------------------ | ------------------------------------------------ | --- | --- | --- | --- | --- | --- | ------------------------- | ------ | -------- | -------------- |
-| APP-1 | scoped app (`now.config.json`) | sys_app, sys_scope                               | —   | —   | —   | ◐   | —   | —   | apps list in `[SN]` :226  | RXSG   | P0,P1,P5 | P-3, P-8, P-26 |
-| APP-2 | app dependencies               | sys_scope_dependency, sys_package_dependency (U) | —   | —   | —   | —   | —   | —   | —                         | RXA    | P1,P3    | P-8, P-17      |
-| APP-3 | customer updates               | sys_update_xml                                   | —   | —   | —   | —   | —   | n/a | — (S-6 plans update sets) | RA     | P0       | S-6, P-3       |
-| APP-4 | instance source control        | sys_repo_config (U)                              | —   | —   | —   | —   | n/a | n/a | —                         | R      | P0       | P-3            |
+| Id    | Artefact                       | ServiceNow table(s)        | R   | X   | A   | S   | W   | G   | Now (refs)                | Target | Phase    | Items          |
+| ----- | ------------------------------ | -------------------------- | --- | --- | --- | --- | --- | --- | ------------------------- | ------ | -------- | -------------- |
+| APP-1 | scoped app (`now.config.json`) | sys_app, sys_scope         | —   | —   | —   | ◐   | —   | —   | apps list in `[SN]` :226  | RXSG   | P0,P1,P5 | P-3, P-8, P-26 |
+| APP-2 | app dependencies               | sys_package_dependency_m2m | —   | —   | —   | —   | —   | —   | —                         | RXA    | P1,P3    | P-8, P-17      |
+| APP-3 | customer updates               | sys_update_xml             | —   | —   | —   | —   | —   | n/a | — (S-6 plans update sets) | RA     | P0       | S-6, P-3       |
+| APP-4 | instance source control        | sys_repo_config (U)        | —   | —   | —   | —   | n/a | n/a | —                         | R      | P0       | P-3            |
 
 ### 4.13 Reports and Performance Analytics
 

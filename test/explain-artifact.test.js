@@ -386,8 +386,12 @@ const CASES = {
         active: "true",
         sys_scope: APP_ID,
       },
-      sys_scope_dependency: [
-        { sys_id: "2f".repeat(16), scope: APP_ID, dependency: "3f".repeat(16) },
+      sys_package_dependency_m2m: [
+        {
+          sys_id: "2f".repeat(16),
+          sys_package: APP_ID,
+          dependency: "3f".repeat(16),
+        },
       ],
     },
   },

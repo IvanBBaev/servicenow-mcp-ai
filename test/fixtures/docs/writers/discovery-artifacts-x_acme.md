@@ -151,7 +151,7 @@ Every artefact type this server knows (servicenow_artifact_types), with what thi
 | `ai_agent` | ai | `sn_aia_agent` | yes | no — no records in this scope |
 | `ai_agentic_workflow` | ai | `sn_aia_usecase` | yes | no — no records in this scope |
 | `now_assist_skill` | ai | `sn_nowassist_skill_config` | yes | no — no records in this scope |
-| `application` | application | `sys_app` | no | yes (1) |
+| `application` | application | `sys_app` | yes | yes (1) |
 | `app_dependency` | application | `sys_package_dependency_m2m` | yes | no — no records in this scope |
 | `customer_update` | application | `sys_update_xml` | yes | no — no records in this scope |
 | `source_control` | application | `sys_repo_config` | yes | no — no application scope column (OD-2) |
