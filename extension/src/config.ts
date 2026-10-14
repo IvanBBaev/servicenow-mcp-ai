@@ -23,7 +23,7 @@ export const SERVER_PACKAGE = "servicenow-mcp-ai";
  * on Windows `npx` is spawned through `cmd.exe`, where `^` is the escape
  * character and would be stripped or mangled.
  */
-export const SERVER_VERSION_RANGE = "2.x";
+export const SERVER_VERSION_RANGE = "3.x";
 
 /** The npm spec every launcher passes to `npx -y`. */
 export const SERVER_SPEC = `${SERVER_PACKAGE}@${SERVER_VERSION_RANGE}`;
