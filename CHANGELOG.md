@@ -9,6 +9,8 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 These are the 3.0 changes the owner approved on 2026-10-01 (O-4). Each write-safety default has an explicit opt-out.
 
+**Upgrading from 2.x in one step:** set **`SN_COMPAT=2`** (owner, 2026-10-14). Every compat setting you leave unset then takes its 2.x default: `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core`. A value you set explicitly always wins, and the `prod` profile still forces `elicit` confirmation. Unset (or `3`), the 3.0 defaults below apply.
+
 #### Migration at a glance
 
 One row per breaking change, from the breaking register in `project/ROADMAP-V3.md`. The bullets below give the details.

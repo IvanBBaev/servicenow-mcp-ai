@@ -2,7 +2,12 @@ import { ServiceNowError } from "./errors.js";
 import { activeProfile } from "./config.js";
 import { currentCall } from "./request-context.js";
 import { getDeniedPackages, getReadOnlyPackages } from "./settings.js";
-import { rawSetting, readBool, readEnum } from "./settings-manifest.js";
+import {
+  compatDefault,
+  rawSetting,
+  readBool,
+  readEnum,
+} from "./settings-manifest.js";
 
 /**
  * Discoverability hint appended to every policy-denial message so a model or
@@ -162,13 +167,19 @@ export type ProtectedTablesWrite = "allow" | "confirm" | "deny";
 
 /**
  * H-11: `SN_PROTECTED_TABLES_WRITE` — `confirm` (the 3.0 default, B11: a
- * write needs the call's own `apply: true`), `deny`, or `allow` (2.x).
+ * write needs the call's own `apply: true`), `deny`, or `allow` (2.x, and the
+ * SN_COMPAT=2 default).
  */
 export function protectedTablesWrite(profile?: string): ProtectedTablesWrite {
+  const opts = { profile: profile ?? activeProfile() };
   return (
-    readEnum<ProtectedTablesWrite>("SN_PROTECTED_TABLES_WRITE", {
-      profile: profile ?? activeProfile(),
-    }) ?? "confirm"
+    compatDefault<ProtectedTablesWrite>(
+      "SN_PROTECTED_TABLES_WRITE",
+      "allow",
+      opts,
+    ) ??
+    readEnum<ProtectedTablesWrite>("SN_PROTECTED_TABLES_WRITE", opts) ??
+    "confirm"
   );
 }
 

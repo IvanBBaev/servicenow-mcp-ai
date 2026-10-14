@@ -59,6 +59,15 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       "`plan` (default) previews a write as a before/after diff without mutating; `apply` executes; passing `apply:true` forces a single call.",
   }),
+  oneOf(["2", "3"], {
+    key: "SN_COMPAT",
+    section: "policy",
+    since: NEXT,
+    default: "3",
+    example: "2",
+    description:
+      "Upgrade bridge (owner, 2026-10-14): `2` keeps the 2.x defaults for every one of these settings left unset — `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core` (discovery plus `attachment`). A setting you set yourself always wins. `3` (the default) uses the 3.0 defaults. Meant for the migration, not as a permanent setting.",
+  }),
   oneOf(["off", "token", "elicit"], {
     key: "SN_DESTRUCTIVE_CONFIRM",
     section: "policy",

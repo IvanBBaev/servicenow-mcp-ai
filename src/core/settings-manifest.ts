@@ -388,6 +388,20 @@ export function readBool(key: string, opts?: ReadOptions): boolean {
   return readSetting<boolean>(key, opts) === true;
 }
 
+/**
+ * SN_COMPAT=2 (owner, 2026-10-14): a 2.x install keeps the 2.x behaviour while
+ * it migrates. Returns `v2` when compat is on and `key` is unset, so the
+ * caller takes it before its own default; an explicit value always wins.
+ */
+export function compatDefault<T>(
+  key: string,
+  v2: T,
+  opts?: ReadOptions,
+): T | undefined {
+  if (readSetting<string>("SN_COMPAT") !== "2") return undefined;
+  return rawSetting(key, opts)?.trim() ? undefined : v2;
+}
+
 /** An enum setting. */
 export function readEnum<T extends string>(
   key: string,

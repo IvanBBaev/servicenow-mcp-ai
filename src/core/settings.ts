@@ -10,6 +10,7 @@
 import path from "node:path";
 import { activeProfile } from "./profile.js";
 import {
+  compatDefault,
   readBool,
   readEnum,
   readInt,
@@ -122,7 +123,9 @@ function parseNameList(raw: string | undefined): string[] {
  */
 export function getRequestedPackages(): string[] {
   const names = parseNameList(rawSetting("SN_TOOL_PACKAGES"));
-  return names.length > 0 ? names : [DEFAULT_TOOL_PACKAGES];
+  if (names.length > 0) return names;
+  // SN_COMPAT=2: the 2.x default set.
+  return [compatDefault("SN_TOOL_PACKAGES", "core") ?? DEFAULT_TOOL_PACKAGES];
 }
 
 /**
@@ -219,7 +222,8 @@ export function getWriteMode(
  * confirmed (`SN_DESTRUCTIVE_CONFIRM`):
  * - `token` (the 3.0 default, B4): in plan mode the call must carry the
  *   `plan_token` of a matching, unexpired, unused plan preview
- *   (`PLAN_REQUIRED` otherwise);
+ *   (none returns the preview instead, B4 eased; a stale one is
+ *   `PLAN_REQUIRED`);
  * - `off`: no extra check — the explicit opt-out (the pre-3.0 behaviour);
  * - `elicit`: `token`, and a client that supports elicitation is also asked
  *   to confirm (a decline or a failed prompt refuses the write).
@@ -232,7 +236,9 @@ export function getDestructiveConfirm(
 ): "off" | "token" | "elicit" {
   if (getProfileEnv(profile) === "prod") return "elicit";
   return (
-    readEnum<"off" | "token" | "elicit">("SN_DESTRUCTIVE_CONFIRM") ?? "token"
+    compatDefault("SN_DESTRUCTIVE_CONFIRM", "off" as const) ??
+    readEnum<"off" | "token" | "elicit">("SN_DESTRUCTIVE_CONFIRM") ??
+    "token"
   );
 }
 
@@ -249,7 +255,11 @@ export function getPlanTokenTtlSec(): number {
  * axes only.
  */
 export function getBatchUnmapped(): "allow" | "deny" {
-  return readEnum<"allow" | "deny">("SN_BATCH_UNMAPPED") ?? "deny";
+  return (
+    compatDefault("SN_BATCH_UNMAPPED", "allow" as const) ??
+    readEnum<"allow" | "deny">("SN_BATCH_UNMAPPED") ??
+    "deny"
+  );
 }
 
 /** H-4 — most sub-requests one batch may carry (`SN_BATCH_MAX_REQUESTS`, 1–1000, default 50 since 3.0). */

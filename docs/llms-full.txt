@@ -771,6 +771,7 @@ Least-privilege table policy, plan-and-apply writes, destructive-write confirmat
 | `SN_TABLES_DENY` | no | — | 1.1.0 | Comma-separated table denylist; always wins over the allowlist. |
 | `SN_READONLY` | no | `false` | 1.1.0 | When truthy, refuse every create/update/delete. |
 | `SN_WRITE_MODE` | no | `plan` | 2.0.0 | `plan` (default) previews a write as a before/after diff without mutating; `apply` executes; passing `apply:true` forces a single call. |
+| `SN_COMPAT` | no | `3` | next | Upgrade bridge (owner, 2026-10-14): `2` keeps the 2.x defaults for every one of these settings left unset — `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core` (discovery plus `attachment`). A setting you set yourself always wins. `3` (the default) uses the 3.0 defaults. Meant for the migration, not as a permanent setting. |
 | `SN_DESTRUCTIVE_CONFIRM` | no | `token` | next | H-3: confirmation for a destructive `apply:true` (`delete_record`, `delete_attachment`, a writing `batch`, `send_email`, `order_catalog_item`, `revert_write`, `upsert_artifact`, `check_change_conflicts` with `calculate:true`) in plan mode. `token` (the 3.0 default, B4): the plan preview returns a single-use `plan_token` and the apply must pass it back with the same arguments — an apply with no token returns that preview and its token instead (nothing runs), a wrong, used or expired one is `PLAN_REQUIRED`; `elicit`: `token` plus a confirmation prompt on clients with elicitation (a decline is `CONFIRM_DECLINED`, journaled as refused). `SN_WRITE_MODE=apply` bypasses it, except on a profile marked `prod` (`SN_ENV`), which is always at least `elicit` and is confirmed in apply mode too. `off` is the explicit opt-out (the pre-3.0 behaviour). |
 | `SN_PLAN_TOKEN_TTL_SEC` | no | `600` | next | H-3: lifetime of a `plan_token` in seconds (30–86400). Tokens live only in the server process and are used up by the apply. |
 | `SN_BATCH_UNMAPPED` | no | `deny` | next | H-4: a `servicenow_batch` sub-request whose REST path no tool package owns: `deny` (the 3.0 default, B8) refuses it (so a new plugin API cannot pass `SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY` inside a batch); `allow` is the opt-out and checks it against the table and read-only axes only. A nested batch is always refused. |
@@ -1197,6 +1198,11 @@ also list the aliases in `tools/list` and accept the old parameter names (`attac
 a write payload, `attributes`) are accepted. Each use logs one deprecation
 warning. The tool manifest lists the renames (`toolRenames`) and each tool's
 accepted aliases.
+
+To keep every 2.x default while you migrate, set `SN_COMPAT=2`: unset
+settings then behave as in 2.x (protected tables writable, no plan token,
+unmapped batch rows allowed, old names listed, the `core` package set). An
+explicit setting still wins.
 
 ### Tool packages
 

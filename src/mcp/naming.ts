@@ -1,4 +1,4 @@
-import { readBool } from "../core/settings-manifest.js";
+import { compatDefault, readBool } from "../core/settings-manifest.js";
 
 /**
  * M-7 (B2): the tool naming convention v3 — every tool is
@@ -232,7 +232,10 @@ export function renamedTo(from: string): ToolName | undefined {
  * time). A deprecated bridge for one minor cycle.
  */
 export function legacyToolNames(): boolean {
-  return readBool("SN_LEGACY_TOOL_NAMES");
+  return (
+    compatDefault("SN_LEGACY_TOOL_NAMES", true) ??
+    readBool("SN_LEGACY_TOOL_NAMES")
+  );
 }
 
 /**
