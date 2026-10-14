@@ -422,6 +422,25 @@ Effort key as in ROADMAP-V3: **S** ≤ 1 day · **M** 2–5 days · **L** 1–2 
 - **Done when:** a baseline report exists, and a change to descriptions (N-0 reclaim, M-7 style
   renames) must not drop accuracy by more than 2 points.
 - **Tests:** a unit test for the scorer and case schema (offline).
+- **Discovery profile (after N-63, design 2026-10-14):**
+  - Before N-63 the eval's `discovery` surface was a simulation: the core tools in full and
+    every other tool as a name + title stub. N-63 made `discovery` the real default profile
+    (`SN_TOOL_PACKAGES` unset), and `core` now names the same package set, so the eval's
+    `core` and `discovery` no longer measure different things.
+  - The eval profiles become:
+    - `discovery`: the real default `tools/list` (no env), the surface a new install sees;
+    - `all`: `SN_TOOL_PACKAGES=all`, unchanged;
+    - `deferred`: the old simulation, renamed. It builds from `discovery` in full plus
+      `all`'s other tools as stubs, and models a client that defers tool definitions
+      (for example Claude Code tool search). Picking a stub counts as picking that tool.
+  - `core` is dropped as an eval profile: it duplicated `discovery` and would double the
+    calls of a paid run. `--profile core` is refused with the list of valid profiles.
+  - Package rescue: when a case's expected tool is not on the surface, the correct first
+    step now also includes `servicenow_find_tools` (the N-36 / N-63 path for "which tool
+    does this?"), next to `servicenow_enable_package` and `servicenow_list_packages`.
+  - The offline lexical baseline is rewritten under the new profile keys. Only the
+    lexical backend runs (no paid model run for 3.0.0, owner 2026-10-13), so this closes
+    the N-18 offline scope; a real-model baseline stays out of 3.0.0.
 
 ### N-19 — Prompts for the N flagships (S)
 
