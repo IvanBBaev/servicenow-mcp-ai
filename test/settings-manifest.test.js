@@ -17,6 +17,7 @@ import {
   invalidMessage,
   isDeclaredSetting,
   isSecretFileSource,
+  isSafetySetting,
   isSecretKey,
   parseSetting,
   profileEnvKey,
@@ -337,22 +338,50 @@ test("validateSettings reports invalid values, profile keys and unknown SN_ keys
     PATH: "/bin",
   });
   const byKey = Object.fromEntries(result.issues.map((i) => [i.key, i]));
-  assert.equal(byKey.SN_TIMEOUT_MS.level, "error");
+  assert.equal(byKey.SN_TIMEOUT_MS.level, "warning", "a tuning key warns");
   assert.equal(byKey.SN_PROFILE_PROD_WRITE_MODE.level, "error");
   assert.equal(byKey.SN_TIMEOUTMS.level, "warning");
   assert.match(byKey.SN_TIMEOUTMS.message, /Unknown setting SN_TIMEOUTMS/);
   assert.equal(byKey.SN_PROFILE_PROD_INSTANCE, undefined);
   assert.equal(byKey.PATH, undefined);
-  assert.equal(result.strict, true, "B5: strict by default");
+  assert.equal(result.strict, "safety", "B5: safety settings by default");
   assert.equal(result.settings.SN_PASSWORD, "<set>");
   assert.equal(
     result.settings.SN_TIMEOUT_MS,
     settingSpec("SN_TIMEOUT_MS").default,
   );
-  assert.deepEqual(validateSettings({ SN_STRICT_SETTINGS: "0" }).strict, false);
+  assert.equal(validateSettings({ SN_STRICT_SETTINGS: "0" }).strict, "off");
+  const all = validateSettings({ SN_STRICT_SETTINGS: "1", SN_TIMEOUT_MS: "x" });
+  assert.equal(all.strict, "all");
+  assert.equal(
+    all.issues.find((i) => i.key === "SN_TIMEOUT_MS")?.level,
+    "error",
+  );
 });
 
-test("applySettingsAtStartup: throws by default (B5), warns under SN_STRICT_SETTINGS=0", async () => {
+test("isSafetySetting: policy, transport and trust keys are fatal, tuning keys are not", () => {
+  for (const key of [
+    "SN_WRITE_MODE",
+    "SN_READONLY",
+    "SN_PROTECTED_TABLES_WRITE",
+    "SN_HTTP_HOST",
+    "SN_TLS_REJECT_UNAUTHORIZED",
+    "SN_REDACT_PII",
+    "SN_ALLOWED_HOSTS",
+  ]) {
+    assert.equal(isSafetySetting(settingSpec(key)), true, key);
+  }
+  for (const key of [
+    "SN_TIMEOUT_MS",
+    "SN_MAX_RECORDS",
+    "SN_LOG_LEVEL",
+    "SN_SCHEMA_CACHE_TTL_SEC",
+  ]) {
+    assert.equal(isSafetySetting(settingSpec(key)), false, key);
+  }
+});
+
+test("applySettingsAtStartup: throws on a safety value (B5), warns on tuning values and under SN_STRICT_SETTINGS=0", async () => {
   resetSettingWarnings();
   const env = {
     SN_MAX_RECORDS: "lots",
@@ -367,8 +396,20 @@ test("applySettingsAtStartup: throws by default (B5), warns under SN_STRICT_SETT
   });
   assert.equal(warnings.length, 2, warnings.join("\n"));
   assert.throws(
-    () => applySettingsAtStartup({ ...env, SN_STRICT_SETTINGS: undefined }),
+    () => applySettingsAtStartup({ ...env, SN_STRICT_SETTINGS: "1" }),
     /Invalid settings \(fix them, or set SN_STRICT_SETTINGS=0 [^)]*\): Invalid SN_MAX_RECORDS="lots"/,
+  );
+  assert.throws(
+    () =>
+      applySettingsAtStartup({ SN_WRITE_MODE: "aply", SN_MAX_RECORDS: "lots" }),
+    (e) =>
+      /Invalid SN_WRITE_MODE="aply"/.test(e.message) &&
+      !/SN_MAX_RECORDS/.test(e.message),
+  );
+  // An invalid tuning value alone only warns by default (2.x behaviour).
+  resetSettingWarnings();
+  await captureWarnings(() =>
+    applySettingsAtStartup({ ...env, SN_STRICT_SETTINGS: undefined }),
   );
   // Strict mode with only unknown keys (warnings) does not throw.
   resetSettingWarnings();

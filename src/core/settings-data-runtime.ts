@@ -713,9 +713,9 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     key: "SN_STRICT_SETTINGS",
     section: "validation",
     since: NEXT,
-    default: true,
+    defaultText: "safety settings only",
     description:
-      "E-4 / B5: an invalid setting value (a non-number, an unknown enum value, an out-of-range port…) is a startup error that names every offending key. Set `0` to log a warning and keep the default instead. Unknown `SN_*` keys stay warnings.",
+      "E-4 / B5: which invalid setting values (a non-number, an unknown enum value, an out-of-range port…) stop the server with a startup error that names every offending key. Unset: only safety settings — connection, profiles, packages, policy, transport and the trust / privacy keys (`SN_ALLOWED_HOSTS`, `SN_TLS_*`, `SN_REDACT_*`, `SN_CSV_FORMULA_GUARD`); an invalid tuning value (timeouts, caps, caches, logging) logs a warning and keeps its default, as in 2.x. `1`: every invalid value is an error. `0`: none is. Unknown `SN_*` keys stay warnings.",
   }),
 
   // --- external -----------------------------------------------------------------------------

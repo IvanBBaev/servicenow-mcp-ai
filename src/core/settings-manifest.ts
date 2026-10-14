@@ -16,11 +16,14 @@
  * mutate the environment keep working.
  *
  * Invalid values: the startup validation ({@link applySettingsAtStartup})
- * turns every invalid value into one startup error (B5, `SN_STRICT_SETTINGS`
- * defaults on). With `SN_STRICT_SETTINGS=0`, and for every read after
- * startup, a rejected value is reported once per key and value (a logged
- * warning) and the setting keeps its default. Secret values are never echoed
- * in a message.
+ * turns an invalid value of a safety setting (connection, profiles,
+ * packages, policy, transport, privacy — see {@link isSafetySetting}) into
+ * one startup error (B5). An invalid tuning value (timeouts, caps, caches,
+ * logging) is a logged warning and keeps its default, as in 2.x.
+ * `SN_STRICT_SETTINGS=1` makes every invalid value an error, `0` none. For
+ * every read after startup, a rejected value is reported once per key and
+ * value (a logged warning) and the setting keeps its default. Secret values
+ * are never echoed in a message.
  *
  * Layout: settings-model.ts holds the spec types and kind helpers; the rows
  * are in settings-data-server.ts (connection … packages) and
@@ -127,7 +130,7 @@ export const SETTING_SECTIONS: readonly SettingSection[] = [
     id: "validation",
     title: "Settings validation",
     blurb:
-      "Every setting is validated at startup. An invalid value is logged as a warning and the setting keeps its default; strict mode makes it a startup error instead.",
+      "Every setting is validated at startup. An invalid safety value is a startup error; an invalid tuning value is logged as a warning and the setting keeps its default (see `SN_STRICT_SETTINGS`).",
   },
   {
     id: "external",
@@ -474,11 +477,49 @@ export interface SettingIssue {
   message: string;
 }
 
+/**
+ * Which invalid values stop the server at startup: `safety` (the default)
+ * only those of safety settings, `all` every one (`SN_STRICT_SETTINGS=1`),
+ * `off` none (`SN_STRICT_SETTINGS=0`).
+ */
+export type StrictMode = "all" | "safety" | "off";
+
 export interface ValidatedSettings {
   /** Resolved global values (defaults applied; secrets shown as "<set>"). */
   settings: Record<string, unknown>;
   issues: SettingIssue[];
-  strict: boolean;
+  strict: StrictMode;
+}
+
+/**
+ * Sections whose settings only tune behaviour: a typo there falling back to
+ * the default cannot widen access or change where data goes.
+ */
+const TUNING_SECTIONS: ReadonlySet<string> = new Set([
+  "network",
+  "results",
+  "caching",
+  "docs",
+  "logging",
+  "external",
+]);
+
+/** Tuning-section settings that still guard access, trust or privacy. */
+const SAFETY_IN_TUNING: readonly RegExp[] = [
+  /^SN_ALLOWED_HOSTS$/,
+  /^SN_TLS_/,
+  /^SN_REDACT_/,
+  /^SN_CSV_FORMULA_GUARD$/,
+];
+
+/**
+ * B5 (eased for 2.x upgrades): true when an invalid value of this setting is
+ * a startup error by default — everything outside the tuning sections, plus
+ * the trust and privacy keys inside them.
+ */
+export function isSafetySetting(spec: SettingSpec): boolean {
+  if (!TUNING_SECTIONS.has(spec.section)) return true;
+  return SAFETY_IN_TUNING.some((re) => re.test(spec.key));
 }
 
 /** Profile-scoped keys: every SN_PROFILE_<NAME>_<X> in `env` with a spec. */
@@ -499,6 +540,15 @@ function profileScopedKeys(env: Env): Array<[string, SettingSpec]> {
 export function validateSettings(env: Env = process.env): ValidatedSettings {
   const issues: SettingIssue[] = [];
   const settings: Record<string, unknown> = {};
+  // B5: unset = only safety settings are fatal; 1 = all; 0 = none.
+  const strictSpec = settingSpec("SN_STRICT_SETTINGS");
+  const strictParsed = parseSetting(strictSpec, env.SN_STRICT_SETTINGS);
+  const strict: StrictMode =
+    strictParsed.ok && strictParsed.value !== undefined
+      ? strictParsed.value === true
+        ? "all"
+        : "off"
+      : "safety";
   const check = (
     spec: SettingSpec,
     source: string,
@@ -506,9 +556,11 @@ export function validateSettings(env: Env = process.env): ValidatedSettings {
   ) => {
     const parsed = parseSetting(spec, raw);
     if (!parsed.ok) {
+      const fatal =
+        strict === "all" || (strict === "safety" && isSafetySetting(spec));
       issues.push({
         key: source,
-        level: "error",
+        level: fatal ? "error" : "warning",
         message: invalidMessage(
           spec,
           source,
@@ -541,11 +593,6 @@ export function validateSettings(env: Env = process.env): ValidatedSettings {
       message: `Unknown setting ${name} — not read by this server (a typo?)`,
     });
   }
-  // B5: on unless explicitly off; an invalid value keeps the default (on).
-  const strictSpec = settingSpec("SN_STRICT_SETTINGS");
-  const strict =
-    (parseSetting(strictSpec, env.SN_STRICT_SETTINGS).value ??
-      strictSpec.default) === true;
   return { settings, issues, strict };
 }
 
@@ -558,8 +605,10 @@ export function startupSettings(): ValidatedSettings | undefined {
 
 /**
  * E-4 — validate the environment once at startup (after the env file and
- * the D-5 secret files are loaded). Invalid values throw one error naming
- * them all (B5); with SN_STRICT_SETTINGS=0 every issue is a logged warning.
+ * the D-5 secret files are loaded). Invalid safety values throw one error
+ * naming them all (B5; every invalid value under SN_STRICT_SETTINGS=1); the
+ * other issues, and every issue under SN_STRICT_SETTINGS=0, are logged
+ * warnings.
  * Runtime reads keep going through the live accessors above, so a later
  * `use_instance` / `set_credentials` change is honoured.
  */
@@ -569,7 +618,7 @@ export function applySettingsAtStartup(
   const result = validateSettings(env);
   startup = result;
   const errors = result.issues.filter((i) => i.level === "error");
-  if (result.strict && errors.length > 0) {
+  if (errors.length > 0) {
     throw new Error(
       `Invalid settings (fix them, or set SN_STRICT_SETTINGS=0 to warn and keep the defaults): ${errors.map((e) => e.message).join(" | ")}`,
     );
@@ -578,9 +627,7 @@ export function applySettingsAtStartup(
     const spec = BY_KEY.get(issue.key);
     const raw = env[issue.key];
     warnOnce(
-      issue.level === "error" && spec
-        ? `${issue.key}\u0000${raw}`
-        : `unknown\u0000${issue.key}`,
+      spec ? `${issue.key}\u0000${raw}` : `unknown\u0000${issue.key}`,
       issue.message,
     );
   }
