@@ -137,6 +137,9 @@ Effort key as in ROADMAP-V3: **S** ≤ 1 day · **M** 2–5 days · **L** 1–2 
   `all` once B13 ships.
 - **Done when:** `TOOLS_LIST_BUDGET_ALL` has ≥ 15 KB of headroom with a dated comment, and the
   `core` budget is unchanged.
+- **Superseded 2026-10-14 (ADR 0012):** the budgets became data with a 2 % slack and a
+  tightening-only ratchet (N-57, ADR 0006), so the headroom criterion cannot hold; N-0 is closed
+  and the exit is a green budget ratchet.
 - **Tests:** `test/output-schema.test.js` (existing).
 
 ### N-1 — Upgrade readiness (L) — flagship

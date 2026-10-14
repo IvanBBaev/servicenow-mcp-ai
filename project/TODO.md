@@ -665,7 +665,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       Owner decisions: (a) O-6 authority order is still the P-3 default; (b) the guard skips batch
       sub-requests and a create without `sys_scope` (resolving the user's current app scope costs
       a preference read per create) — extend? (c) `deny` as the 4.0 default (breaking register).
-- [ ] **H-11 · Policy model v2 — done 2026-09-26 (committed e2656b1) bar the BREAKING defaults.** Glob
+- [x] **H-11 · Policy model v2 — done 2026-09-26 (committed e2656b1) bar the BREAKING defaults.** Glob
       patterns + one evaluator (`explain_policy`, `servicenow://policy`), `POLICY_DENIED`,
       `SN_PROTECTED_TABLES_WRITE` (default `allow`), `SN_IMPORT_SET_TABLES`, write caps (`WRITE_CAP`),
       `SN_ENV` / `SN_PROFILE_<NAME>_ENV` + per-profile `WRITE_MODE` + `PROD_WRITES` ack; 17 tests.
@@ -688,6 +688,8 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
       **(c) implemented 2026-10-10 (99b1ec1), awaiting owner confirmation:** upload, delete
       (preview and apply) and a batch delete by id meet the parent table's write policy, protected
       default included; reverting is one commit.
+      **Closed for 3.0 2026-10-14 (ADR 0012):** (b), (c), (e) and (f) ratified as shipped; (d)
+      `SN_TABLE_POLICY_FILE` deferred to 3.x (additive, no breaking-register row).
 - [ ] **H-4 · Policy-axis bypass closure — partly done 2026-09-26 (committed 1917f57).** Attachments follow
       the parent table; plugin-API tools check backing tables; Code Search hits filtered; batch:
       nested batch refused, tables from query/body, attachment-by-id resolved under a table policy,
@@ -754,7 +756,7 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     in SDK 4.12.2, so `now-sdk build` mints new sys_ids — installing generated Fluent on the
     source instance can duplicate those records. Accept with the per-file note, or refuse to emit
     pages until the SDK supports `$id`? O-2 / O-5: fixtures for the per-field instance comparison.
-  - H-11: the `SN_TABLE_POLICY_FILE` format; attachments as parent-table writes (resolved: implemented 2026-10-10 in 99b1ec1, awaiting owner confirmation).
+  - H-11: the `SN_TABLE_POLICY_FILE` format (deferred to 3.x, ADR 0012); attachments as parent-table writes (resolved: 99b1ec1, ratified by ADR 0012).
   - H-4: the Code Search LIKE fallback refuses the whole search on a denied default table (resolved: the LIKE path skips a denied type, 748765b).
   - E-2: TypeScript 7 waits for typescript-eslint support.
   - `pack:check`: 2012.7 KB vs the 800 KB ceiling (resolved: 3 MB, 05de939, owner 2026-10-05).

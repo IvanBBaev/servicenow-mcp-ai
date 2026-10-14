@@ -437,11 +437,11 @@ items:
     title: "policy model v2"
     pillar: "H"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-01"
+    done: "2026-10-14"
     gates: ["O-4"]
-    notes: "**Done 2026-10-01 (BREAKING B11, O-4) bar the policy file.** Glob patterns, one evaluator + `explain_policy` + `servicenow://policy`, protected tables write-denied by default, import-set default `u_*,imp_*`, write caps 500 (HTTP session) / 100 deletes / 50 batch writes, prod marker. Attachments as parent-table writes done 2026-10-10 (upload, delete, batch delete by id). Open: `SN_TABLE_POLICY_FILE` (format unspecified)."
+    notes: "**Done 2026-10-01 (BREAKING B11, O-4) bar the policy file.** Glob patterns, one evaluator + `explain_policy` + `servicenow://policy`, protected tables write-denied by default, import-set default `u_*,imp_*`, write caps 500 (HTTP session) / 100 deletes / 50 batch writes, prod marker. Attachments as parent-table writes done 2026-10-10 (upload, delete, batch delete by id). Policy file deferred to 3.x. **Closed for 3.0 2026-10-14 (ADR 0012):** `SN_TABLE_POLICY_FILE` deferred to 3.x (no format was ever specified; additive, not breaking); TODO (b)–(f) ratified as shipped."
   - id: "S-13"
     title: "capability preflight v2"
     pillar: "S"
@@ -716,11 +716,11 @@ items:
     title: "flow activation toggle"
     pillar: "P"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-09-30"
+    done: "2026-10-14"
     gates: ["O-5"]
-    notes: "**Partly done 2026-09-30.** Flow upsert accepts `{active}` only (`FLOW_ACTIVE_ONLY`) through the plan-and-apply rails; the instance behaviour (`master_snapshot`) waits for O-5. **GET-only PDI pass 2026-10-13 (2842da3):** no business rule reacts to an `active` update and inactive flows keep their `master_snapshot` and trigger plans, so the toggle leaves the published snapshot unchanged; the hint drops the caveat. Open: the runtime effect on the trigger needs a writable instance; on ven03019 (2026-10-13) the Table API `PATCH sys_hub_flow` is ACL-refused (403) even for admin + flow_designer, so the toggle cannot run there. See PDI-VERIFY-2026-10.md (sixteenth and thirty-ninth passes)."
+    notes: "**Partly done 2026-09-30.** Flow upsert accepts `{active}` only (`FLOW_ACTIVE_ONLY`) through the plan-and-apply rails; the instance behaviour (`master_snapshot`) waits for O-5. **GET-only PDI pass 2026-10-13 (2842da3):** no business rule reacts to an `active` update and inactive flows keep their `master_snapshot` and trigger plans, so the toggle leaves the published snapshot unchanged; the hint drops the caveat. Open: the runtime effect on the trigger needs a writable instance; on ven03019 (2026-10-13) the Table API `PATCH sys_hub_flow` is ACL-refused (403) even for admin + flow_designer, so the toggle cannot run there. See PDI-VERIFY-2026-10.md (sixteenth and thirty-ninth passes). **Closed for 3.0 2026-10-14 (ADR 0012):** the runtime trigger effect is a CHANGELOG known limitation."
   - id: "P-26"
     title: "Fluent emitter core (`generate_fluent`)"
     pillar: "P"
@@ -761,11 +761,11 @@ items:
     title: "tool-budget headroom"
     pillar: "N"
     effort: "S"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-03"
+    done: "2026-10-14"
     gates: ["O-10"]
-    notes: "**Partly done 2026-10-03: byte reclaim, 150,916 → 135,881 B; budget restated 2026-10-06 (O-10 (a)+(b), ADR 0006).** Description-text only (core 36,158 → 32,737 B); no name, type, enum, required-ness, outputSchema or annotation change. Gate for every N item (NX-11)."
+    notes: "**Partly done 2026-10-03: byte reclaim, 150,916 → 135,881 B; budget restated 2026-10-06 (O-10 (a)+(b), ADR 0006).** Description-text only (core 36,158 → 32,737 B); no name, type, enum, required-ness, outputSchema or annotation change. Gate for every N item (NX-11). **Closed 2026-10-14 (ADR 0012):** superseded by N-57 / ADR 0006 — the ≥ 15 KB headroom criterion cannot hold under the 2 % ratchet slack; the exit is a green budget ratchet, and every tool change still states its byte delta."
   - id: "N-6"
     title: "`ops` v2: integrations, transactions, MID"
     pillar: "N"
@@ -864,16 +864,16 @@ items:
     phase: "R"
     done: null
     gates: ["O-14"]
-    notes: "Phase R. `publish.yml` derives the dist-tag from the version (prerelease → `next`); cut `3.0.0-beta.1` with the B1–B13 migration table. Waits for O-14 (NX-13, NX-14)."
+    notes: "Phase R. `publish.yml` derives the dist-tag from the version (prerelease → `next`); cut `3.0.0-beta.1` with the B1–B23 migration table. Waits for O-14 (NX-13, NX-14). A prerelease tag takes its GitHub release notes from `[Unreleased]`; the first beta is `npm version 3.0.0-beta.1` (ADR 0012)."
   - id: "N-12"
     title: "domain separation awareness"
     pillar: "N"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-05"
+    done: "2026-10-14"
     gates: ["O-5", "O-10"]
-    notes: "**Partly done 2026-10-05.** Cached probe (`src/api/domain-separation.ts`, capability matrix) in `check_capabilities` / `get_status`; artefact and script lists, `explain_artifact` and the trace (business rules, flows, workflows, notifications) keep `sys_domain` / `sys_overrides` with one caveat; table documents add a Domain column to logic tables and app documents a per-domain Domains section (`artefactsByDomain`). 0 B tools/list. Per-domain grouping in N-2 done 2026-10-06 (`access-explain.ts`). `domain` query scope done 2026-10-09: `query_table` takes an optional domain sys_id, AND'd as `sys_domain=` into every `^NQ` segment (`scopeQueryToDomain`); absent, byte-identical; tools/list +8 B (descriptions trimmed, no budget raise). **PDI pass 2026-10-11 (O-5, b7238e5):** `sys_domain` / `sys_overrides` exist on business rules, client scripts, UI actions, UI policies and workflows, the `sys_domain.name` dot-walk resolves, a `global` `sys_overrides` is ignored. Open: whether a non-separated instance omits `sys_domain` or returns it empty (the PDI is separated) (NX-16)."
+    notes: "**Partly done 2026-10-05.** Cached probe (`src/api/domain-separation.ts`, capability matrix) in `check_capabilities` / `get_status`; artefact and script lists, `explain_artifact` and the trace (business rules, flows, workflows, notifications) keep `sys_domain` / `sys_overrides` with one caveat; table documents add a Domain column to logic tables and app documents a per-domain Domains section (`artefactsByDomain`). 0 B tools/list. Per-domain grouping in N-2 done 2026-10-06 (`access-explain.ts`). `domain` query scope done 2026-10-09: `query_table` takes an optional domain sys_id, AND'd as `sys_domain=` into every `^NQ` segment (`scopeQueryToDomain`); absent, byte-identical; tools/list +8 B (descriptions trimmed, no budget raise). **PDI pass 2026-10-11 (O-5, b7238e5):** `sys_domain` / `sys_overrides` exist on business rules, client scripts, UI actions, UI policies and workflows, the `sys_domain.name` dot-walk resolves, a `global` `sys_overrides` is ignored. Open: whether a non-separated instance omits `sys_domain` or returns it empty (the PDI is separated) (NX-16). **Closed for 3.0 2026-10-14 (ADR 0012):** the non-separated case is a CHANGELOG known limitation."
   - id: "N-13"
     title: "hardening compliance"
     pillar: "N"
@@ -941,11 +941,11 @@ items:
     title: "elevated-privilege roles"
     pillar: "N"
     effort: "M–L"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-05"
+    done: "2026-10-14"
     gates: ["O-16"]
-    notes: "**EL-1 / EL-2 done 2026-10-05 (93071c9).** The `roles` capability probe reports `elevatable` roles; a 403 on an elevation-gated Table API write (`sys_security_acl*` → security_admin) becomes `ELEVATION_REQUIRED`. 0 B tools/list. Open: EL-0 PDI spike (O-5; on the PDI the `security_admin` and `maint` role rows are counted but hidden from the admin's reads, so GETs cannot confirm the gating), EL-3 … EL-5 behind O-16 (NX-25 … NX-29)."
+    notes: "**EL-1 / EL-2 done 2026-10-05 (93071c9).** The `roles` capability probe reports `elevatable` roles; a 403 on an elevation-gated Table API write (`sys_security_acl*` → security_admin) becomes `ELEVATION_REQUIRED`. 0 B tools/list. Open: EL-0 PDI spike (O-5; on the PDI the `security_admin` and `maint` role rows are counted but hidden from the admin's reads, so GETs cannot confirm the gating), EL-3 … EL-5 behind O-16 (NX-25 … NX-29). **Closed for 3.0 2026-10-14 (ADR 0012):** EL-0 is a CHANGELOG known limitation; EL-3 … EL-5 stay behind O-16 (no-go for 3.0, ADR 0011)."
   - id: "N-21"
     title: "type-based field masking"
     pillar: "N"

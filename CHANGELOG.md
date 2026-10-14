@@ -564,6 +564,15 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 - **Security policy v2 and the community standard files (D-9).** `SECURITY.md` now has a supported-versions table (2.x current, 3.x planned, < 2.0 unsupported), private reporting through a GitHub security advisory instead of a public issue, response targets (acknowledge within 3 business days, triage within 7 days, a critical / high fix within 30 days — targets, not an SLA), the scope (server and CLI, VS Code extension, plugin skills, release pipeline; not the ServiceNow platform or instance configuration), a threat-model summary and the security rails at a glance. New: `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `SUPPORT.md` (where to ask, `doctor --json` and `support-bundle`, what not to paste), `.github/CODEOWNERS`, issue forms (the bug form requires the `doctor --json` output, version, client and transport; blank issues are disabled and the chooser links the private security form), a pull request template with the gate checklist and `.github/release.yml` release-note categories. `CONTRIBUTING.md` links them all. None of these files ships in the npm package. `test/community-files.test.js` (+4 tests).
 - **Install matrix and one-click links (D-4).** The README ("Install in your MCP client") and the docs site (a new "Install in your client" section) cover VS Code and VS Code Insiders (`vscode:mcp/install` deeplinks, vscode.dev redirect buttons, `code --add-mcp`), Claude Code (`claude mcp add` and the plugin), Claude Desktop, Cursor (`cursor://` deeplink and a web button), Windsurf, Cline, Zed, JetBrains AI Assistant, Gemini CLI and Codex CLI (`codex mcp add`, `config.toml`). Every link and snippet launches `npx -y servicenow-mcp-ai` and carries no credentials; secrets stay in the env file, `login` or `servicenow_set_credentials`. `scripts/install-links.mjs` generates the deeplinks from `package.json`, and `test/install-links.test.js` fails when the README or the site drift from them.
 
+### Known limitations
+
+Recorded by the owner on 2026-10-14 (ADR 0012); each needs an instance the project's PDI cannot provide.
+
+- **Flow activation toggle (P-25):** the effect of `{active}` on a flow's trigger at runtime is unverified; on the PDI the Table API `PATCH sys_hub_flow` is ACL-refused even for admin + `flow_designer`.
+- **Domain separation (N-12):** on a non-separated instance a missing and an empty `sys_domain` are both read as "no domain"; only a separated PDI was checked.
+- **Elevated roles (N-20):** elevation is reported (`ELEVATION_REQUIRED`), never performed; the EL-0 spike waits for a PDI with full admin.
+- **Registry rows:** `application`, `risk_assessment` and `uib_composite_definition` stay `verified: false` and degrade instead of failing on a 401 / 403.
+
 ## [2.0.1] - 2026-06-27
 
 No functional changes — a republish release after the GitHub account rename.
