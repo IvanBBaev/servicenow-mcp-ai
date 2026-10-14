@@ -1179,7 +1179,7 @@ items:
     phase: null
     done: "2026-10-05"
     gates: ["O-20"]
-    notes: "**P0. Done 2026-10-05 (75e34b2).** `.github/agent-instructions/<area>.md` (10 areas) → `.github/instructions/<area>.instructions.md` with `applyTo`, `npm run docs:instructions -- --check` in the gate (TK-22). Nested `AGENTS.md` waits for O-20. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (75e34b2).** `.github/agent-instructions/<area>.md` (10 areas) → `.github/instructions/<area>.instructions.md` with `applyTo`, `npm run docs:instructions -- --check` in the gate (TK-22). Nested `AGENTS.md` (N-46b): O-20 approved it (ADR 0011); design in the analysis § N-46, implementation in progress. See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-47"
     title: "plugin subagents"
     pillar: "N"

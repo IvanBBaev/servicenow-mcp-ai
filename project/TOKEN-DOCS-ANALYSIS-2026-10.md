@@ -308,6 +308,23 @@ A trend check against October 2026 practice found three topics that no item cove
     O-20, nested `<area>/AGENTS.md`. The generator is checked in `npm run check`.
   - The root file shrinks to commands and global rules. It is shared with N-43.
 - **Tests:** a drift check between the sources and the generated files.
+- **N-46b (O-20 = go, ADR 0011):** the nested files.
+  - A source opts in with `nested: true` in its frontmatter. Its first `applyTo` glob must be
+    `<dir>/**`; the generator writes `<dir>/AGENTS.md` (banner + the same body). Other globs of
+    that area (`src/*.ts`, `bin/**`) stay Copilot-only, since a nested `AGENTS.md` covers one
+    directory tree.
+  - Opted in: `api`, `core`, `mcp`, `tools`, `test`, `scripts`, `extension`. Left out: `docs`
+    (`docs/` is the published Pages site; a stray `AGENTS.md` would be served), `plugin` (three
+    roots, no single directory) and `workflows` (`.github/workflows/` holds only YAML).
+  - A nested file with no opted-in source is stale: the generator removes it, but only if it
+    carries the generated banner, so a hand-written `AGENTS.md` elsewhere is never deleted.
+  - `extension/.vscodeignore` excludes `AGENTS.md`, so the file never ships in the `.vsix`. The
+    npm package ships only `build/` and `bin/`, so `src/**/AGENTS.md` and `scripts/AGENTS.md`
+    stay out of it.
+  - The root `AGENTS.md` names the nested files; agents that read nested files (Codex and
+    others) combine the root file with the nearest one.
+  - **Tests:** the drift check covers the nested files; scratch-tree tests for opt-in, a
+    non-`<dir>/**` first glob (error), the stale-file removal and the hand-written file kept.
 
 ### N-47 — Plugin subagents (S) — P0
 
