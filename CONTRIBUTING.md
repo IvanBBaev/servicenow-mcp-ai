@@ -275,9 +275,12 @@ A breaking major ships a beta first (O-14, ADR 0011). A version with a `-`
 | VS Code Marketplace / Open VSX ([`publish-vscode.yml`](.github/workflows/publish-vscode.yml)) | published         | skipped                          |
 
 1. Keep the notes under `## [Unreleased]` while betas run; move them under
-   `## [x.y.z]` only for the GA release.
-2. First beta of a major: `npm version premajor --preid beta`
-   (2.0.1 → 3.0.0-beta.0). Next betas: `npm version prerelease --preid beta`.
+   `## [x.y.z]` only for the GA release. A prerelease tag without a section of
+   its own gets the `[Unreleased]` notes as its GitHub release notes
+   (`scripts/release-notes.mjs`, ADR 0012).
+2. First beta of a major: name it explicitly, `npm version 3.0.0-beta.1`
+   (`npm version premajor --preid beta` would give `3.0.0-beta.0`). Next betas:
+   `npm version prerelease --preid beta` (beta.1 → beta.2).
    The `version` script raises `SERVER_VERSION_RANGE` with the major.
 3. `git push --follow-tags`, as for a GA release.
 4. Testers install it with `npx -y servicenow-mcp-ai@next`. A `3.x` range does

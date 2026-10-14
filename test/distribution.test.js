@@ -7,7 +7,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { extractReleaseNotes } from "../scripts/release-notes.mjs";
+import {
+  extractReleaseNotes,
+  releaseNotesFor,
+} from "../scripts/release-notes.mjs";
 
 const root = path.join(import.meta.dirname, "..");
 const read = (rel) => readFileSync(path.join(root, rel), "utf8");
@@ -283,9 +286,34 @@ test("release-notes: a missing, empty or partial version gives undefined", () =>
   assert.equal(extractReleaseNotes(changelog, "v"), undefined);
 });
 
-test("release-notes: the real CHANGELOG has a section for the current version", () => {
+test("release-notes: a prerelease without its own section takes [Unreleased]", () => {
+  // Betas keep their notes under [Unreleased] until GA (ADR 0012).
+  assert.equal(
+    releaseNotesFor(changelog, "3.1.0-beta.1"),
+    "### Added\n\n- next\n",
+  );
+  assert.equal(
+    releaseNotesFor(changelog, "v3.1.0-rc.2"),
+    "### Added\n\n- next\n",
+  );
+  // A version's own section still wins, also for a prerelease.
+  assert.equal(
+    releaseNotesFor(changelog, "3.0.0"),
+    extractReleaseNotes(changelog, "3.0.0"),
+  );
+  // A GA version never falls back.
+  assert.equal(releaseNotesFor(changelog, "9.9.9"), undefined);
+  assert.equal(releaseNotesFor(changelog, "beta-1"), undefined);
+  const noUnreleased = changelog.replace(
+    /## \[Unreleased\][\s\S]*?(?=## \[3\.0\.0\])/,
+    "",
+  );
+  assert.equal(releaseNotesFor(noUnreleased, "3.1.0-beta.1"), undefined);
+});
+
+test("release-notes: the real CHANGELOG has notes for the current version", () => {
   const version = json("package.json").version;
-  const notes = extractReleaseNotes(read("CHANGELOG.md"), version);
+  const notes = releaseNotesFor(read("CHANGELOG.md"), version);
   assert.ok(notes, `CHANGELOG.md has no section for ${version}`);
   assert.ok(!notes.startsWith("## "));
 });

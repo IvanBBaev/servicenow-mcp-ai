@@ -5,8 +5,10 @@
 //
 // and hands the file to `gh release create --notes-file`. The section is the
 // text between `## [3.0.0] …` and the next `## ` heading (or the link
-// reference block at the end of the file), trimmed. A version without a
-// section exits 1 — a tag must never ship with empty notes.
+// reference block at the end of the file), trimmed. A prerelease (a version
+// with a `-`, e.g. `3.0.0-beta.1`) without a section of its own takes the
+// `## [Unreleased]` notes, because betas keep them there until GA (ADR 0012).
+// A version without notes exits 1 — a tag must never ship with empty notes.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -34,6 +36,17 @@ export function extractReleaseNotes(changelog, version) {
   return text ? text + "\n" : undefined;
 }
 
+/**
+ * The release notes for a tag: the version's own section, or for a prerelease
+ * without one the `## [Unreleased]` section. `undefined` when neither applies.
+ */
+export function releaseNotesFor(changelog, version) {
+  const v = String(version).trim().replace(/^v/, "");
+  const own = extractReleaseNotes(changelog, v);
+  if (own || !/^\d+\.\d+\.\d+-/.test(v)) return own;
+  return extractReleaseNotes(changelog, "Unreleased");
+}
+
 const invokedDirectly =
   process.argv[1] !== undefined &&
   path.resolve(process.argv[1]) === import.meta.filename;
@@ -42,7 +55,7 @@ if (invokedDirectly) {
   const version = process.argv[2];
   const file = path.join(import.meta.dirname, "../CHANGELOG.md");
   const notes = version
-    ? extractReleaseNotes(readFileSync(file, "utf8"), version)
+    ? releaseNotesFor(readFileSync(file, "utf8"), version)
     : undefined;
   if (!notes) {
     console.error(
