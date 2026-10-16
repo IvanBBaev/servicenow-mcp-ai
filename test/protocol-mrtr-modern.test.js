@@ -6,6 +6,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -528,7 +529,10 @@ test("stdio-03: the stdio entry point writes no JSON-RPC request to stdout on th
       assert.ok(!("method" in msg && "id" in msg), `a request: ${line}`);
     }
   } finally {
+    // Wait for the exit: on Windows the child's cwd keeps the sandbox busy.
+    const exited = child.exitCode === null ? once(child, "exit") : null;
     child.kill();
-    rmSync(sandbox, { recursive: true, force: true });
+    await exited;
+    rmSync(sandbox, { recursive: true, force: true, maxRetries: 5 });
   }
 });

@@ -179,27 +179,31 @@ test("listen e2e (stdio entry): a taskIds filter without the tasks extension is 
   }
 });
 
-test("listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled", async () => {
-  const { child, received, send, next } = spawnStdio();
-  try {
-    send(request(1, "server/discover"));
-    await next((m) => m.id === 1);
-    send(listen(2, ALL_LISTS));
-    const ack = await next(
-      (m) => m.method === "notifications/subscriptions/acknowledged",
-    );
-    assert.equal(ack.params._meta[SUB_ID], 2);
-    assert.deepEqual(ack.params.notifications, ALL_LISTS);
-    const first = received.findIndex((m) => m.params?._meta?.[SUB_ID] === 2);
-    assert.equal(received[first], ack, "nothing reached the stream first");
+test(
+  "listen e2e (stdio entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled",
+  { skip: process.platform === "win32" && "POSIX signals only" },
+  async () => {
+    const { child, received, send, next } = spawnStdio();
+    try {
+      send(request(1, "server/discover"));
+      await next((m) => m.id === 1);
+      send(listen(2, ALL_LISTS));
+      const ack = await next(
+        (m) => m.method === "notifications/subscriptions/acknowledged",
+      );
+      assert.equal(ack.params._meta[SUB_ID], 2);
+      assert.deepEqual(ack.params.notifications, ALL_LISTS);
+      const first = received.findIndex((m) => m.params?._meta?.[SUB_ID] === 2);
+      assert.equal(received[first], ack, "nothing reached the stream first");
 
-    child.kill("SIGTERM");
-    assert.equal(await exitOf(child), 0);
-    assertTeardown(received.slice(first), 2);
-  } finally {
-    if (child.exitCode === null) child.kill("SIGKILL");
-  }
-});
+      child.kill("SIGTERM");
+      assert.equal(await exitOf(child), 0);
+      assertTeardown(received.slice(first), 2);
+    } finally {
+      if (child.exitCode === null) child.kill("SIGKILL");
+    }
+  },
+);
 
 // ---------------------------------------------------------------------------
 // HTTP (modern leg)
@@ -311,32 +315,36 @@ test("listen e2e (HTTP entry): a taskIds filter without the tasks extension is r
   }
 });
 
-test("listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout", async () => {
-  const { child, post } = await spawnHttp();
-  try {
-    const response = await post(listen(7, ALL_LISTS));
-    assert.equal(response.status, 200);
-    assert.match(response.headers.get("content-type"), /^text\/event-stream/);
-    const stream = sseReader(response);
-    const [ack] = await stream.atLeast(1);
-    assert.equal(ack.method, "notifications/subscriptions/acknowledged");
-    assert.equal(ack.params._meta[SUB_ID], 7);
-    assert.deepEqual(ack.params.notifications, ALL_LISTS);
+test(
+  "listen e2e (HTTP entry): the acknowledgement comes first with the subscription ID; SIGTERM sends the completion result, then notifications/cancelled, well within the drain timeout",
+  { skip: process.platform === "win32" && "POSIX signals only" },
+  async () => {
+    const { child, post } = await spawnHttp();
+    try {
+      const response = await post(listen(7, ALL_LISTS));
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get("content-type"), /^text\/event-stream/);
+      const stream = sseReader(response);
+      const [ack] = await stream.atLeast(1);
+      assert.equal(ack.method, "notifications/subscriptions/acknowledged");
+      assert.equal(ack.params._meta[SUB_ID], 7);
+      assert.deepEqual(ack.params.notifications, ALL_LISTS);
 
-    const started = Date.now();
-    child.kill("SIGTERM");
-    const messages = await stream.rest();
-    const code = await exitOf(child);
-    const elapsed = Date.now() - started;
-    assert.equal(code, 0);
-    assertTeardown(messages, 7);
-    // The open stream is not an in-flight request: shutdown ends it at once
-    // instead of waiting out the drain, then flushes it before exiting.
-    assert.ok(
-      elapsed < DRAIN_TIMEOUT_MS / 2,
-      `shutdown took ${elapsed} ms (drain timeout ${DRAIN_TIMEOUT_MS} ms)`,
-    );
-  } finally {
-    if (child.exitCode === null) child.kill("SIGKILL");
-  }
-});
+      const started = Date.now();
+      child.kill("SIGTERM");
+      const messages = await stream.rest();
+      const code = await exitOf(child);
+      const elapsed = Date.now() - started;
+      assert.equal(code, 0);
+      assertTeardown(messages, 7);
+      // The open stream is not an in-flight request: shutdown ends it at once
+      // instead of waiting out the drain, then flushes it before exiting.
+      assert.ok(
+        elapsed < DRAIN_TIMEOUT_MS / 2,
+        `shutdown took ${elapsed} ms (drain timeout ${DRAIN_TIMEOUT_MS} ms)`,
+      );
+    } finally {
+      if (child.exitCode === null) child.kill("SIGKILL");
+    }
+  },
+);

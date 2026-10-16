@@ -16,7 +16,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { parseEnv } from "node:util";
 import { Writable } from "node:stream";
 
@@ -377,7 +377,10 @@ test("migrate --write moves a renamed profile's docs folder once, never over one
 
     const wet = io(home);
     assert.equal(await runCli(["migrate", "--write"], wet), 0);
-    assert.match(wet.stdout.text, /Moved .*notes\/docs -> .*notes\/docs_v2\./);
+    assert.match(
+      wet.stdout.text,
+      /Moved .*notes[\\/]docs -> .*notes[\\/]docs_v2\./,
+    );
     assert.equal(
       readFileSync(
         join(home, "notes", "docs_v2", "write-journal.jsonl"),
@@ -410,16 +413,16 @@ test("migrationDocsDir: the environment wins over the file, then docs/instance",
   assert.deepEqual(
     migrationDocsDir({ SN_DOCS_DIR: "/abs" }, { SN_DOCS_DIR: "rel" }, "/w"),
     {
-      dir: "/abs",
+      dir: resolve("/abs"),
       cwdRelative: false,
     },
   );
   assert.deepEqual(migrationDocsDir({}, { SN_DOCS_DIR: "rel" }, "/w"), {
-    dir: join("/w", "rel"),
+    dir: resolve("/w", "rel"),
     cwdRelative: true,
   });
   assert.deepEqual(migrationDocsDir({ SN_DOCS_DIR: " " }, {}, "/w"), {
-    dir: join("/w", "docs", "instance"),
+    dir: resolve("/w", "docs", "instance"),
     cwdRelative: true,
   });
 });
