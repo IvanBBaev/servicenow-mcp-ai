@@ -26,6 +26,7 @@ import { redactValue, redactionRules } from "../core/redaction.js";
 import { getRecord } from "../api/table.js";
 import { RECORD_TEMPLATE } from "./record-watch.js";
 import { logger } from "../core/logging.js";
+import { v2UpgradeHint } from "./naming.js";
 import {
   errorCodeOf,
   errorCodeTable,
@@ -694,7 +695,7 @@ export function registerInstanceResources(server: McpServer): void {
       if (!legacyProfileSchemaWarned) {
         legacyProfileSchemaWarned = true;
         logger.warn(
-          `Resource URI ${LEGACY_PROFILE_SCHEMA_TEMPLATE} is deprecated; use ${PROFILE_SCHEMA_TEMPLATE}.`,
+          `Resource URI ${LEGACY_PROFILE_SCHEMA_TEMPLATE} is deprecated; use ${PROFILE_SCHEMA_TEMPLATE}.${v2UpgradeHint()}`,
           { uri: uri.href },
         );
       }

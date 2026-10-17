@@ -27,6 +27,7 @@ import {
   TOOL_RENAMES,
   legacyToolNames,
   renamedTo,
+  v2UpgradeHint,
 } from "../build/mcp/naming.js";
 import { buildInputSchema } from "../build/mcp/define.js";
 import { normalizeChildValues } from "../build/tools/artifacts.js";
@@ -560,4 +561,20 @@ test("servicenow://policy is read-only data with no secrets", async () => {
     const { resources } = await client.listResources();
     assert.ok(resources.some((r) => r.uri === "servicenow://policy"));
   });
+});
+
+test("v2UpgradeHint names migrate while SN_COMPAT is unset, nothing once set", () => {
+  const saved = process.env.SN_COMPAT;
+  try {
+    delete process.env.SN_COMPAT;
+    assert.match(v2UpgradeHint(), /servicenow-mcp-ai migrate --write/);
+    assert.match(v2UpgradeHint(), /SN_COMPAT=2/);
+    process.env.SN_COMPAT = "2";
+    assert.equal(v2UpgradeHint(), "");
+    process.env.SN_COMPAT = "3";
+    assert.equal(v2UpgradeHint(), "");
+  } finally {
+    if (saved === undefined) delete process.env.SN_COMPAT;
+    else process.env.SN_COMPAT = saved;
+  }
 });

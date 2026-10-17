@@ -12,6 +12,7 @@ import {
   legacyToolNames,
   TOOL_OVERLAPS,
   TOOL_RENAMES,
+  v2UpgradeHint,
   type ToolRename,
 } from "./naming.js";
 import {
@@ -477,7 +478,7 @@ export function registerAllTools(
           if (warned) return;
           warned = true;
           logger.warn(
-            `Tool ${rename.from} is a deprecated alias — use ${use}.`,
+            `Tool ${rename.from} is a deprecated alias — use ${use}.${v2UpgradeHint()}`,
           );
         },
         rename.args,

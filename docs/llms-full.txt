@@ -28,6 +28,12 @@ instance through its REST APIs — Table, Aggregate, Attachment, Import Set, Bat
 and CMDB, plus the Service Catalog, Change Management and Knowledge plugin APIs.
 Credentials are kept in a local env file and can be updated at runtime through a tool.
 
+> **Upgrading from 2.x?** 3.0 has breaking defaults (plan tokens for destructive applies,
+> protected system tables, a smaller default tool set). Run
+> `npx servicenow-mcp-ai migrate --write` once: it carries your env file and MCP client
+> config over and adds `SN_COMPAT=2`, which keeps every 2.x default you have not set.
+> See the [CHANGELOG](CHANGELOG.md) → "Migration at a glance" for each change.
+
 > **Upgrading from 1.x?** v2.0 makes writes **plan-by-default**: `create`/`update`/`delete`
 > and the other record-write tools return a non-mutating preview unless you pass
 > `apply: true` (or set `SN_WRITE_MODE=apply` to restore the v1 "execute immediately"

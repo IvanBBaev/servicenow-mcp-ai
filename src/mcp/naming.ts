@@ -1,4 +1,8 @@
-import { compatDefault, readBool } from "../core/settings-manifest.js";
+import {
+  compatDefault,
+  rawSetting,
+  readBool,
+} from "../core/settings-manifest.js";
 
 /**
  * M-7 (B2): the tool naming convention v3 — every tool is
@@ -236,6 +240,16 @@ export function legacyToolNames(): boolean {
     compatDefault("SN_LEGACY_TOOL_NAMES", true) ??
     readBool("SN_LEGACY_TOOL_NAMES")
   );
+}
+
+/**
+ * The upgrade hint appended to a warning about a 2.x signal (a v2 tool name,
+ * the v2 resource URI) while `SN_COMPAT` is unset: such a client most likely
+ * runs on a 2.x setup that was never migrated. Empty once `SN_COMPAT` is set.
+ */
+export function v2UpgradeHint(): string {
+  if (rawSetting("SN_COMPAT")?.trim()) return "";
+  return " This looks like a 2.x setup: run `servicenow-mcp-ai migrate --write`, or set SN_COMPAT=2 to keep the 2.x defaults.";
 }
 
 /**
