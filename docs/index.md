@@ -923,7 +923,7 @@ No parameters.
 
 What you'd actually ask your assistant to do. Each example is plain English — the server maps it to the right tools.
 
-### 🚨 Incident triage
+### Incident triage
 
 Service desk · platform team
 
@@ -933,7 +933,7 @@ Prompt "Triage incident INC0012345 and tell me if its priority looks right."
 
 Tools `servicenow_get_record` → `servicenow_query_table` → `servicenow_search_knowledge`
 
-### 🔁 Change impact analysis
+### Change impact analysis
 
 Change manager · CAB
 
@@ -943,7 +943,7 @@ Prompt "Run an impact analysis on CHG0030001 and give me a go/no-go."
 
 Tools `servicenow_get_change` → `servicenow_check_change_conflicts` → `servicenow_list_changes`
 
-### 🧭 Catch dev → prod drift
+### Catch dev → prod drift
 
 ServiceNow consultancy · release team
 
@@ -953,7 +953,7 @@ Prompt "Compare the dev and prod ServiceNow instances and summarise what drifted
 
 Tools `servicenow_list_instances` → `servicenow_compare_instances`
 
-### 📚 Document a table
+### Document a table
 
 New joiner · platform owner
 
@@ -963,7 +963,7 @@ Prompt "Document the incident table: schema, automation, an ER diagram and the r
 
 Tools `servicenow_describe_table` → `servicenow_describe_table_logic` → `servicenow_generate_er_diagram` → `servicenow_generate_table_flow` → `servicenow_write_doc`
 
-### 🔎 "Where is this used?"
+### "Where is this used?"
 
 Developer
 
@@ -973,7 +973,7 @@ Prompt "Find every business rule or script include that references `GlideRecordS
 
 Tools `servicenow_search_code` → `servicenow_describe_table_logic`
 
-### 🛒 Order from the catalog
+### Order from the catalog
 
 End user · automation
 

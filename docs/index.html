@@ -262,6 +262,38 @@
     />
   </head>
   <body>
+    <!-- Icon sprite: stroke icons drawn on a 24px grid, styled by svg.i -->
+    <svg class="sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7" ry="2.5"/><path d="M5 5.5v13c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-13"/><path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></symbol>
+      <symbol id="i-code-search" viewBox="0 0 24 24"><path d="M8 6l-5 5 5 5"/><path d="M13.5 4 11 14"/><circle cx="17" cy="15.5" r="3.5"/><path d="M19.6 18.1 22 20.5"/></symbol>
+      <symbol id="i-flow" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="6" rx="1.5"/><rect x="13" y="15" width="8" height="6" rx="1.5"/><path d="M11 6h3a3 3 0 0 1 3 3v6"/></symbol>
+      <symbol id="i-servers" viewBox="0 0 24 24"><rect x="3" y="3.5" width="18" height="7" rx="2"/><rect x="3" y="13.5" width="18" height="7" rx="2"/><path d="M7 7h.01M7 17h.01M11 7h6M11 17h6"/></symbol>
+      <symbol id="i-doc-diagram" viewBox="0 0 24 24"><path d="M12 6.5C10.5 5 8 4.5 3 4.5v14c5 0 7.5.5 9 2 1.5-1.5 4-2 9-2v-14c-5 0-7.5.5-9 2z"/><path d="M12 6.5v14"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 2.8v5.4c0 4.4-2.9 8.2-7 9.8-4.1-1.6-7-5.4-7-9.8V5.8z"/><path d="M9 12l2.1 2.1L15.2 10"/></symbol>
+      <symbol id="i-retry" viewBox="0 0 24 24"><path d="M19.5 10A7.5 7.5 0 0 0 4.5 10"/><path d="M2.5 8l2 2 2-2"/><path d="M4.5 14a7.5 7.5 0 0 0 15 0"/><path d="M17.5 16l2-2 2 2"/></symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></symbol>
+      <symbol id="i-landmark" viewBox="0 0 24 24"><path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 10v7M10 10v7M14 10v7M18.5 10v7"/><path d="M4 17.5h16M3 20.5h18"/></symbol>
+      <symbol id="i-siren" viewBox="0 0 24 24"><path d="M7 17v-5a5 5 0 0 1 10 0v5"/><rect x="5" y="17" width="14" height="3.5" rx="1"/><path d="M12 2.5V4M4.2 5.7l1.1 1.1M19.8 5.7l-1.1 1.1"/><path d="M12 10a2 2 0 0 0-2 2"/></symbol>
+      <symbol id="i-ripple" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></symbol>
+      <symbol id="i-compare" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M13 6h3a2 2 0 0 1 2 2v7.5"/><path d="M11 18H8a2 2 0 0 1-2-2V8.5"/><path d="M15.5 3.5 13 6l2.5 2.5"/><path d="M8.5 20.5 11 18l-2.5-2.5"/></symbol>
+      <symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.5h18M3 14.75h18M9.5 9.5V20"/></symbol>
+      <symbol id="i-search-refs" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3 21 21"/><path d="M8 9h5M8 12h3"/></symbol>
+      <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3.5h2.8l2.4 11.2a1.5 1.5 0 0 0 1.5 1.3h8.6a1.5 1.5 0 0 0 1.5-1.2L21 8H6.3"/></symbol>
+      <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9.5 18h5M10.5 21h3"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2v.2h5.2v-.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/></symbol>
+      <symbol id="i-buoy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M5.6 5.6l3.6 3.6M14.8 14.8l3.6 3.6M18.4 5.6l-3.6 3.6M9.2 14.8l-3.6 3.6"/></symbol>
+      <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.4 9.3A1.8 1.8 0 0 0 6.2 21h11.6a1.8 1.8 0 0 0 1.6-2.7L14 9V3"/><path d="M7.2 15h9.6"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2"/><path d="M8 10.5v-3a4 4 0 0 1 8 0v3"/><path d="M12 14.5v2.5"/></symbol>
+      <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18M7.5 21h9M5 7h14"/><path d="M2 14l3-7 3 7a3 3 0 0 1-6 0z"/><path d="M16 14l3-7 3 7a3 3 0 0 1-6 0z"/></symbol>
+      <symbol id="i-warn" viewBox="0 0 24 24"><path d="M10.3 4.2 2.6 17.5a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3 21 21"/></symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-6"/><path d="M16 8h4v4"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z"/></symbol>
+      <symbol id="i-confirm" viewBox="0 0 24 24"><path d="M20 15a2 2 0 0 1-2 2H8l-4 4V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M8.5 10.5l2.5 2.5 4.5-4.5"/></symbol>
+      <symbol id="i-masked" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2.5"/><circle cx="7" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="12" r="1.3" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M7 12h10"/></symbol>
+    </svg>
     <div class="bg-glow" aria-hidden="true"></div>
     <div class="bg-grid" aria-hidden="true"></div>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -551,7 +583,7 @@
             talking about them.
           </p>
           <div class="callout">
-            <span class="c-ico">💡</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-bulb"></use></svg></span>
             <p>
               You never call the tools by hand. You talk to your AI assistant in
               natural language; it picks the right
@@ -571,7 +603,7 @@
           </p>
           <div class="cards">
             <div class="card">
-              <div class="ico">🗂️</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-database"></use></svg></div>
               <h3>Full REST surface</h3>
               <p>
                 Table (CRUD + encoded queries + pagination), Aggregate,
@@ -580,7 +612,7 @@
               </p>
             </div>
             <div class="card">
-              <div class="ico">🔍</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-code-search"></use></svg></div>
               <h3>Script intelligence</h3>
               <p>
                 Read and search the instance's own code — business rules, script
@@ -591,7 +623,7 @@
               </p>
             </div>
             <div class="card">
-              <div class="ico">🧪</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-flow"></use></svg></div>
               <h3>Flow &amp; code checking</h3>
               <p>
                 Trace what a table operation would run (ordered, with a Mermaid
@@ -600,7 +632,7 @@
               </p>
             </div>
             <div class="card">
-              <div class="ico">🏢</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-servers"></use></svg></div>
               <h3>Multi-instance</h3>
               <p>
                 Named profiles (dev / test / prod) with per-call routing,
@@ -609,7 +641,7 @@
               </p>
             </div>
             <div class="card">
-              <div class="ico">📐</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-doc-diagram"></use></svg></div>
               <h3>Self-documentation</h3>
               <p>
                 A local Markdown knowledge base and deterministic Mermaid
@@ -618,7 +650,7 @@
               </p>
             </div>
             <div class="card">
-              <div class="ico">🛡️</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-shield"></use></svg></div>
               <h3>Governance by design</h3>
               <p>
                 Two-axis policy (tables + packages), global read-only mode, SSRF
@@ -627,7 +659,7 @@
               </p>
             </div>
             <div class="card">
-              <div class="ico">⚙️</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-retry"></use></svg></div>
               <h3>Resilience</h3>
               <p>
                 Per-request timeout, retry with backoff and
@@ -804,7 +836,7 @@ export SN_PASSWORD=••••••</code></pre>
           </p>
 
           <div class="callout security">
-            <span class="c-ico">🛟</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-buoy"></use></svg></span>
             <p>
               <strong>First time? Start safe.</strong> Set
               <code>SN_READONLY=true</code> so the assistant can read and explore
@@ -814,7 +846,7 @@ export SN_PASSWORD=••••••</code></pre>
             </p>
           </div>
           <div class="callout">
-            <span class="c-ico">🧪</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-flask"></use></svg></span>
             <p>
               Developing from source instead?
               <code>npm install &amp;&amp; npm run build</code>, then
@@ -907,7 +939,7 @@ args = ["-y", "servicenow-mcp-ai"]</code></pre>
           </div>
 
           <div class="callout security">
-            <span class="c-ico">🔐</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-lock"></use></svg></span>
             <p>
               <strong>Keep secrets out of client configs.</strong> A variable
               set in a client's <code>env</code> block (or via
@@ -946,7 +978,7 @@ args = ["-y", "servicenow-mcp-ai"]</code></pre>
             credentials.
           </p>
           <div class="callout security">
-            <span class="c-ico">🔐</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-lock"></use></svg></span>
             <p>
               The password / token is <strong>never</strong> logged and never
               returned by any tool. <code>servicenow_get_status</code> reports
@@ -1961,7 +1993,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </p>
 
           <div class="usecase">
-            <h3>🚨 Incident triage</h3>
+            <h3><span class="uc-ico"><svg class="i" aria-hidden="true"><use href="#i-siren"></use></svg></span>Incident triage</h3>
             <div class="who">Service desk · platform team</div>
             <p>
               Summarise an incident, sanity-check its priority/urgency/impact,
@@ -1983,7 +2015,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </div>
 
           <div class="usecase">
-            <h3>🔁 Change impact analysis</h3>
+            <h3><span class="uc-ico"><svg class="i" aria-hidden="true"><use href="#i-ripple"></use></svg></span>Change impact analysis</h3>
             <div class="who">Change manager · CAB</div>
             <p>
               Pull a change, identify affected CIs, check schedule conflicts,
@@ -2003,7 +2035,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </div>
 
           <div class="usecase">
-            <h3>🧭 Catch dev → prod drift</h3>
+            <h3><span class="uc-ico"><svg class="i" aria-hidden="true"><use href="#i-compare"></use></svg></span>Catch dev → prod drift</h3>
             <div class="who">ServiceNow consultancy · release team</div>
             <p>
               Configure two profiles and let
@@ -2025,7 +2057,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </div>
 
           <div class="usecase">
-            <h3>📚 Document a table</h3>
+            <h3><span class="uc-ico"><svg class="i" aria-hidden="true"><use href="#i-table"></use></svg></span>Document a table</h3>
             <div class="who">New joiner · platform owner</div>
             <p>
               Combine schema, automation and diagrams into a durable Markdown
@@ -2051,7 +2083,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </div>
 
           <div class="usecase">
-            <h3>🔎 "Where is this used?"</h3>
+            <h3><span class="uc-ico"><svg class="i" aria-hidden="true"><use href="#i-search-refs"></use></svg></span>"Where is this used?"</h3>
             <div class="who">Developer</div>
             <p>
               Search the instance's own code for a function, table or API call
@@ -2071,7 +2103,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </div>
 
           <div class="usecase">
-            <h3>🛒 Order from the catalog</h3>
+            <h3><span class="uc-ico"><svg class="i" aria-hidden="true"><use href="#i-cart"></use></svg></span>Order from the catalog</h3>
             <div class="who">End user · automation</div>
             <p>
               Browse catalogs and categories, inspect an item's variables, and
@@ -2148,7 +2180,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </div>
           <div class="cards">
             <div class="card">
-              <div class="ico">🛠️</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-terminal"></use></svg></div>
               <h3>Choose this when…</h3>
               <p>
                 You're developing, consulting or exploring; you work against PDIs
@@ -2158,7 +2190,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               </p>
             </div>
             <div class="card">
-              <div class="ico">🏛️</div>
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-landmark"></use></svg></div>
               <h3>Choose the official when…</h3>
               <p>
                 You're running production enterprise agents that need native ACL
@@ -2169,7 +2201,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </div>
           </div>
           <div class="callout">
-            <span class="c-ico">⚖️</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-scale"></use></svg></span>
             <p>
               <strong>Not affiliated with ServiceNow, Inc.</strong> This is an
               independent, community-built project; “ServiceNow” is a trademark
@@ -2267,6 +2299,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
           </p>
           <div class="cards">
             <div class="card">
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-sliders"></use></svg></div>
               <h3>Two-axis policy</h3>
               <p>
                 <code>SN_TABLES_ALLOW</code>/<code>_DENY</code> guard the Table
@@ -2276,6 +2309,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               </p>
             </div>
             <div class="card">
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-eye"></use></svg></div>
               <h3>Read-only deployments</h3>
               <p>
                 <code>SN_READONLY=true</code> refuses every write globally;
@@ -2284,6 +2318,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               </p>
             </div>
             <div class="card">
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-globe"></use></svg></div>
               <h3>Host &amp; SSRF guard</h3>
               <p>
                 Without an allow-list, only <code>*.service-now.com</code> hosts
@@ -2292,6 +2327,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               </p>
             </div>
             <div class="card">
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-confirm"></use></svg></div>
               <h3>Confirm before change</h3>
               <p>
                 When the client supports it, a credential change asks for
@@ -2300,6 +2336,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               </p>
             </div>
             <div class="card">
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-masked"></use></svg></div>
               <h3>Secret columns masked</h3>
               <p>
                 Columns whose dictionary type is <code>password</code>,
@@ -2310,6 +2347,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               </p>
             </div>
             <div class="card">
+              <div class="ico"><svg class="i" aria-hidden="true"><use href="#i-scan"></use></svg></div>
               <h3>Scanned tool surface</h3>
               <p>
                 Every tool description, prompt, skill and hook is scanned in CI
@@ -2320,7 +2358,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </div>
           </div>
           <div class="callout warn">
-            <span class="c-ico">⚠️</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-warn"></use></svg></span>
             <p>
               <strong>Denying a table does not stop the plugin APIs.</strong>
               <code>SN_TABLES_DENY=change_request</code> blocks the Table API
@@ -2541,7 +2579,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </table>
           </div>
           <div class="callout">
-            <span class="c-ico">🔎</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-search"></use></svg></span>
             <p>
               Set <code>SN_LOG_LEVEL=debug</code> for verbose
               <code>stderr</code> logging (no secrets, no raw queries), and ask
@@ -2550,7 +2588,7 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             </p>
           </div>
           <div class="callout">
-            <span class="c-ico">📈</span>
+            <span class="c-ico"><svg class="i" aria-hidden="true"><use href="#i-chart"></use></svg></span>
             <p>
               Every tool call and ServiceNow request is published on
               <code>node:diagnostics_channel</code>

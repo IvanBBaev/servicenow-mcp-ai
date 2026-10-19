@@ -809,16 +809,58 @@ li {
   border-radius: 14px;
   padding: 24px;
 }
+/* Stroke icons from the sprite at the top of index.html. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+svg.i {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.card {
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.card:hover {
+  border-color: rgba(46, 232, 158, 0.28);
+  background: rgba(46, 232, 158, 0.025);
+}
 .card .ico {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: rgba(46, 232, 158, 0.1);
-  border: 1px solid rgba(46, 232, 158, 0.22);
-  font-size: 19px;
-  margin-bottom: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  color: var(--accent);
+  background:
+    radial-gradient(120% 120% at 30% 0%, rgba(46, 232, 158, 0.2), transparent 60%),
+    linear-gradient(180deg, rgba(46, 232, 158, 0.1), rgba(46, 232, 158, 0.03));
+  border: 1px solid var(--accent-border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 10px 24px -14px rgba(46, 232, 158, 0.55);
+  margin-bottom: 16px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card:hover .ico {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 12px 28px -12px rgba(46, 232, 158, 0.75);
+}
+.card .ico svg.i {
+  width: 25px;
+  height: 25px;
+  stroke-width: 1.6;
 }
 .card h3 {
   margin: 0 0 6px;
@@ -960,8 +1002,19 @@ th code {
   font-size: 14.5px;
 }
 .callout .c-ico {
-  font-size: 18px;
-  line-height: 1.4;
+  display: flex;
+  padding-top: 1px;
+  color: var(--accent);
+}
+.callout .c-ico svg.i {
+  width: 19px;
+  height: 19px;
+}
+.callout.warn .c-ico {
+  color: var(--write);
+}
+.callout.security .c-ico {
+  color: #ff6b6b;
 }
 .callout.warn {
   border-left-color: var(--write);
@@ -986,6 +1039,21 @@ th code {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.usecase .uc-ico {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  flex: none;
+}
+.usecase .uc-ico svg.i {
+  width: 18px;
+  height: 18px;
 }
 .usecase .who {
   font-family: var(--mono);
