@@ -9,6 +9,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   extractReleaseNotes,
+  fitReleaseNotes,
+  MAX_RELEASE_NOTES,
   releaseNotesFor,
 } from "../scripts/release-notes.mjs";
 
@@ -309,6 +311,20 @@ test("release-notes: a prerelease without its own section takes [Unreleased]", (
     "",
   );
   assert.equal(releaseNotesFor(noUnreleased, "3.1.0-beta.1"), undefined);
+});
+
+test("release-notes: notes over the GitHub limit are cut with a CHANGELOG link", () => {
+  assert.equal(fitReleaseNotes("- a\n- b\n", "3.0.0", 100), "- a\n- b\n");
+  const long = Array.from({ length: 200 }, (_, i) => `- item ${i}`).join("\n");
+  const cut = fitReleaseNotes(long, "3.0.0-beta.1", 500);
+  assert.ok(cut.length <= 500, `${cut.length} > 500`);
+  assert.match(cut, /^- item 0\n/);
+  assert.match(cut, /- item \d+\n\n---\n/); // cut at a whole line
+  assert.match(cut, /blob\/v3\.0\.0-beta\.1\/CHANGELOG\.md\)/);
+  // The real notes for the current version fit GitHub's limit after the cut.
+  const version = json("package.json").version;
+  const notes = releaseNotesFor(read("CHANGELOG.md"), version);
+  assert.ok(fitReleaseNotes(notes, version).length <= MAX_RELEASE_NOTES);
 });
 
 test("release-notes: the real CHANGELOG has notes for the current version", () => {
