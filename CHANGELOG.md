@@ -373,6 +373,7 @@ _Generated from `TOOL_RENAMES` in `src/mcp/naming.ts` — run
 
 ### Changed
 
+- **License: MIT → GPL-3.0-or-later.** From 3.0.0 the server and the VS Code extension are licensed under the GNU General Public License v3.0 or later (`LICENSE`, the `license` field of every manifest, README and the docs site). Versions up to and including 3.0.0-beta.1 stay under the MIT License they were released with.
 - **Upgrade review names the web-service access setting (N-1, OD-6).** A 403 on `sys_store_app` or `sys_upgrade_history_log` now says in `unavailableReason` that the table's "Allow access via web services" (`sys_db_object.ws_access`) is probably off, which an admin can turn on. The read still degrades to `available:false`.
 - **The instance comparison is filed under its first profile (ID-20).** `servicenow_compare_instances` now writes `<a>/compare/<a>-vs-<b>.md` (it was the store-root `_compare/<a>-vs-<b>.md`, which a profile-scoped `docs_list` did not show) plus a `.json` companion with the structured diff and caveats. Both carry `sn_compare_with: <b>` next to the standard `sn_*` fields, and the result gains `reportJson`. A generated report left at the old path is moved to the new one on the next run, keeping its manual blocks (journalled with `moved_from`); a hand-written file there is left alone.
 

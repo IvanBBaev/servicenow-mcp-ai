@@ -103,4 +103,4 @@ e.g. _"Run servicenow_test_connection and show me the result."_
 - Source / issues: https://github.com/IvanBBaev/servicenow-mcp-ai
 - npm package: https://www.npmjs.com/package/servicenow-mcp-ai
 
-MIT licensed. Independent project — not affiliated with or endorsed by ServiceNow, Inc.
+Licensed under GPL-3.0-or-later. Independent project — not affiliated with or endorsed by ServiceNow, Inc.

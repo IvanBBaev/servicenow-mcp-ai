@@ -8,7 +8,7 @@ Model Context Protocol · ServiceNow
 
 Get started → [View on GitHub](https://github.com/IvanBBaev/servicenow-mcp-ai) See use cases
 
-- MIT licensed
+- GPL-3.0 licensed
 - Node.js 22.12+
 - TypeScript · ESM
 - MCP SDK 1.29
@@ -992,7 +992,7 @@ ServiceNow now ships its own **MCP Server Console** — a governed, on-instance 
 | Where it runs | Locally, next to your MCP client | Remote, hosted on the instance |
 | Requirements | Just credentials — **any instance, incl. a free PDI** | Paid Now Assist SKU + a recent release |
 | AI model | **Bring your own** — any client, any model incl. local | Inside ServiceNow's governed AI layer |
-| Cost | **Free** (MIT), plain REST calls | Metered via Assist currency |
+| Cost | **Free** (GPL-3.0), plain REST calls | Metered via Assist currency |
 | Surface | Raw REST breadth + script intelligence + cross-instance diff | Curated Now Assist skills, flows, scripted REST |
 | Governance | Client-side policy, read-only, SSRF guard | Native ACLs + AI Control Tower (enterprise audit) |
 
@@ -1134,6 +1134,6 @@ Any MCP client over stdio — Claude Desktop, Claude Code, VS Code Chat, the MCP
 
 ### Is it production-ready?
 
-The engineering is: clean gates, ~200 tests, type-checked lint, a CI matrix and a security model. It is an open-source project under the MIT license — review the security model for your own deployment.
+The engineering is: clean gates, ~200 tests, type-checked lint, a CI matrix and a security model. It is an open-source project under the GPL-3.0 license — review the security model for your own deployment.
 
 **servicenow-mcp-ai** is an independent, community-built project and is **not affiliated with, endorsed by, or sponsored by ServiceNow, Inc.** "ServiceNow", the ServiceNow logo, "Now", and related marks are trademarks or registered trademarks of ServiceNow, Inc., used here only nominatively to indicate compatibility with the ServiceNow platform.

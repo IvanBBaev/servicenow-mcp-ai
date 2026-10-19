@@ -6,7 +6,7 @@
   "author": { "name": "Ivan Baev", "url": "https://github.com/IvanBBaev" },
   "homepage": "https://ivanbbaev.github.io/servicenow-mcp-ai/",
   "repository": "https://github.com/IvanBBaev/servicenow-mcp-ai",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "keywords": ["servicenow", "mcp", "model-context-protocol", "itsm", "rest"],
   "mcpServers": {
     "servicenow": {

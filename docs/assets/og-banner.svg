@@ -29,7 +29,7 @@
     fill="#9aa6b2" text-anchor="middle">the full REST surface, with governance by design.</text>
 
   <text x="600" y="850" font-family="Helvetica, Arial, sans-serif" font-size="32"
-    font-weight="700" fill="#3ddc97" text-anchor="middle">65 tools · 18 packages · Basic / OAuth 2.0 · MIT</text>
+    font-weight="700" fill="#3ddc97" text-anchor="middle">100 tools · 28 packages · OAuth 2.1 · GPL-3.0</text>
 
   <text x="600" y="1070" font-family="Helvetica, Arial, sans-serif" font-size="26"
     fill="#59636e" text-anchor="middle">github.com/IvanBBaev/servicenow-mcp-ai</text>

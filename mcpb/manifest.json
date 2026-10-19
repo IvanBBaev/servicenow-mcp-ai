@@ -383,7 +383,7 @@
     "ai",
     "rest"
   ],
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "compatibility": {
     "claude_desktop": ">=0.10.0",
     "platforms": ["darwin", "win32", "linux"],
