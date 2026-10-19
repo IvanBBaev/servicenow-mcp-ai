@@ -1901,5 +1901,7 @@ nominatively** — to identify the platform this software interoperates with —
 no affiliation or endorsement is implied. All other product names and marks are
 the property of their respective owners.
 
-This project is licensed under the [GNU GPL v3.0 or later](LICENSE); that license covers
-the source code and does not grant any rights to use the ServiceNow trademarks.
+Copyright (C) 2026 Ivan Baev. This project is licensed under the
+[GNU GPL v3.0 or later](LICENSE); that license covers the source code and does
+not grant any rights to use the ServiceNow trademarks. Versions up to and
+including 3.0.0-beta.1 were released under the MIT License.
