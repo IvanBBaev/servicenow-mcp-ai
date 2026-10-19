@@ -14,7 +14,7 @@
 //
 // The same run regenerates the tool reference (N-42: docs/tools/, the
 // docs/llms-full.txt bundle, the docs/llms.txt link section, the docs/index.md
-// Markdown alternate of the landing page) and checks
+// Markdown alternate of the landing page, docs/sitemap.xml) and checks
 // context7.json (N-53) — see scripts/tool-docs.mjs — and the site's
 // changelog page and footer release links — see scripts/changelog-docs.mjs.
 //

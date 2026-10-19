@@ -32,6 +32,7 @@ export const LANDING_MD = "docs/index.md";
 
 export const REPO_URL = "https://github.com/IvanBBaev/servicenow-mcp-ai";
 export const SITE_URL = "https://ivanbbaev.github.io/servicenow-mcp-ai";
+export const SITEMAP = "docs/sitemap.xml";
 
 export const LLMS_BEGIN =
   "<!-- GENERATED:TOOL-REFERENCE:BEGIN (npm run docs:sync) -->";
@@ -275,6 +276,8 @@ export function generateToolDocs({
     }),
   );
 
+  files.set(SITEMAP, buildSitemap(packages));
+
   const llms = read(LLMS) + "\n";
   const b = llms.indexOf(LLMS_BEGIN);
   const e = llms.indexOf(LLMS_END);
@@ -288,6 +291,38 @@ export function generateToolDocs({
       llms.slice(e + LLMS_END.length),
   );
   return files;
+}
+
+/**
+ * docs/sitemap.xml: every page the site serves — the landing page, its
+ * Markdown alternate, the changelog, the llms files and one page per package.
+ * No <lastmod>: the generated file must not change on every run.
+ */
+function buildSitemap(packages) {
+  const pages = [
+    ["", "1.0"],
+    ["index.md", "0.6"],
+    ["changelog.md", "0.6"],
+    ["llms.txt", "0.5"],
+    ["llms-full.txt", "0.5"],
+    [`tools/README.md`, "0.8"],
+    ...packages.map((p) => [`tools/${p.name}.md`, "0.7"]),
+  ];
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...pages.map(([page, priority]) =>
+      [
+        "  <url>",
+        `    <loc>${SITE_URL}/${page}</loc>`,
+        "    <changefreq>weekly</changefreq>",
+        `    <priority>${priority}</priority>`,
+        "  </url>",
+      ].join("\n"),
+    ),
+    "</urlset>",
+    "",
+  ].join("\n");
 }
 
 /**
