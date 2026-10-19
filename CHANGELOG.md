@@ -5,6 +5,8 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-19
+
 ### Breaking changes
 
 These are the 3.0 changes the owner approved on 2026-10-01 (O-4). Each write-safety default has an explicit opt-out.
@@ -717,7 +719,8 @@ cut and the subsequent work are consolidated here.)
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
 - Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.
 
-[Unreleased]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v2.0.1...v3.0.0
 [2.0.1]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v1.1.2...v2.0.0
 [1.1.2]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v1.1.1...v1.1.2

@@ -94,7 +94,7 @@ O-1…O-22, breaking register B1–B22), its status table mirrored from
 `project/roadmap.yaml`. Open owner decisions are in `project/TODO.md`; the
 analyses behind the N items are the `project/*-2026-10.md` files. Non-breaking
 items ship on the 2.x line; the breaking cluster goes to 3.0.0, previewed as
-`3.0.0-beta.n` on the npm `next` tag.
+`3.0.0-beta.n` on the npm `next` tag until 3.0.0 shipped (2026-10-19).
 
 ## References
 
