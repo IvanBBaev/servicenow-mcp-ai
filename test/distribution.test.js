@@ -83,14 +83,19 @@ test("D-6: every launcher goes through serverLaunch and SERVER_SPEC", () => {
 test("D-6: publish-vscode.yml publishes one .vsix to the Marketplace and Open VSX", () => {
   const wf = read(".github/workflows/publish-vscode.yml");
   assert.match(wf, /vsce package --no-dependencies -o servicenow-mcp-ai\.vsix/);
-  assert.match(wf, /vsce publish .*--packagePath servicenow-mcp-ai\.vsix/);
+  // --skip-duplicate on both registries, so a re-run never fails on a version
+  // one of them already has.
+  assert.match(
+    wf,
+    /vsce publish .*--skip-duplicate --packagePath servicenow-mcp-ai\.vsix/,
+  );
   assert.match(wf, /OVSX_PAT: \$\{\{ secrets\.OVSX_PAT \}\}/);
   assert.match(wf, /OVSX_VERSION: \d+\.\d+\.\d+\n/, "ovsx is not pinned");
   const step = wf.slice(wf.indexOf("- name: Publish to Open VSX"));
   assert.match(step, /if: \$\{\{ env\.OVSX_PAT != '' \}\}/);
   assert.match(
     step,
-    /npx --yes "ovsx@\$\{OVSX_VERSION\}" publish servicenow-mcp-ai\.vsix -p "\$OVSX_PAT"/,
+    /npx --yes "ovsx@\$\{OVSX_VERSION\}" publish servicenow-mcp-ai\.vsix --skip-duplicate -p "\$OVSX_PAT"/,
   );
 });
 

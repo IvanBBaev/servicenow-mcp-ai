@@ -56,9 +56,11 @@ jobs:
       - name: Package the extension
         run: npx vsce package --no-dependencies -o servicenow-mcp-ai.vsix
       - name: Publish to the Marketplace
-        run: npx vsce publish --no-dependencies --packagePath servicenow-mcp-ai.vsix -p "$VSCE_PAT"
+        # --skip-duplicate: a re-run (e.g. to reach Open VSX) must not fail on a
+        # version the Marketplace already has.
+        run: npx vsce publish --no-dependencies --skip-duplicate --packagePath servicenow-mcp-ai.vsix -p "$VSCE_PAT"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
       - name: Publish to Open VSX
         if: ${{ env.OVSX_PAT != '' }}
-        run: npx --yes "ovsx@${OVSX_VERSION}" publish servicenow-mcp-ai.vsix -p "$OVSX_PAT"
+        run: npx --yes "ovsx@${OVSX_VERSION}" publish servicenow-mcp-ai.vsix --skip-duplicate -p "$OVSX_PAT"
