@@ -287,6 +287,7 @@ export async function doctorPayload(
     ...(report.connection ? { connection: report.connection } : {}),
     ...(report.capabilities ? { capabilities: report.capabilities } : {}),
     ...(report.privilege ? { privilege: report.privilege } : {}),
+    ...(report.basicAuth ? { basicAuth: report.basicAuth } : {}),
     serverStatus: buildStatusPayload(),
   };
 }

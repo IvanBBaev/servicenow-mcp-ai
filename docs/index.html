@@ -2512,10 +2512,19 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
               <tbody>
                 <tr>
                   <td><code>401</code> Unauthorized</td>
-                  <td>Wrong username/password, or an expired OAuth token.</td>
+                  <td>
+                    Wrong username/password, an expired OAuth token, or the
+                    instance's basic-auth restriction
+                    (<code>glide.authenticate.basic_auth.restriction.enforce</code>)
+                    refusing a user without
+                    <code>snc_basic_auth_api_access</code>.
+                  </td>
                   <td>
                     Re-check <code>SN_USER</code>/<code>SN_PASSWORD</code>; run
-                    <code>servicenow_test_connection</code>. Update with
+                    <code>servicenow_test_connection</code> or
+                    <code>servicenow-mcp-ai doctor</code> (it preflights the
+                    restriction and names the role). Grant the role or switch
+                    to OAuth (<code>SN_AUTH=oauth</code>). Update with
                     <code>servicenow_set_credentials</code>.
                   </td>
                 </tr>

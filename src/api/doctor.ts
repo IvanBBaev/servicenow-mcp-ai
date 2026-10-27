@@ -6,8 +6,18 @@ import {
   credentialStatus,
   type AuthMode,
 } from "../core/config.js";
-import { credentialWarnings, refreshTokenState } from "../core/auth.js";
-import { testConnection, type ConnectionProbe } from "./diagnostics.js";
+import {
+  BASIC_AUTH_401_HINT,
+  credentialWarnings,
+  refreshTokenState,
+} from "../core/auth.js";
+import {
+  BASIC_AUTH_API_ROLE,
+  basicAuthPreflight,
+  testConnection,
+  type BasicAuthPreflight,
+  type ConnectionProbe,
+} from "./diagnostics.js";
 import { checkCapabilities, type CapabilityReport } from "./capabilities.js";
 import { advisePrivilege, type PrivilegeAdvice } from "./privilege.js";
 
@@ -64,6 +74,12 @@ export interface DoctorReport {
    * informational, it never changes `status`.
    */
   privilege?: PrivilegeAdvice;
+  /**
+   * N-75: the instance's basic-auth restriction and whether the connected
+   * user keeps basic auth once it is enforced. Present for a basic-auth
+   * profile that reached the instance; informational, never changes `status`.
+   */
+  basicAuth?: BasicAuthPreflight;
   /** One-line, human-readable summary of the verdict. */
   summary: string;
   /**
@@ -129,7 +145,13 @@ export function connectionHint(
 ): string | undefined {
   if (c.ok) return undefined;
   if (c.status === 401) {
-    return `Check the credentials: ${configureHint(config)} servicenow_set_credentials updates them at runtime.`;
+    // N-75: under basic auth the password may be right and the instance's
+    // basic-auth restriction the reason — name it instead of the generic fix.
+    const check =
+      config.auth === "basic"
+        ? BASIC_AUTH_401_HINT
+        : `Check the credentials: ${configureHint(config)}`;
+    return `${check} servicenow_set_credentials updates them at runtime.`;
   }
   if (c.status === 403) {
     return "Grant the user a role that can read sys_user over REST (e.g. itil), plus snc_platform_rest_api_access where REST access is restricted.";
@@ -200,6 +222,11 @@ export async function runDoctor(
     };
   }
 
+  // N-75: for a basic-auth profile, whether the instance's basic-auth
+  // restriction will keep this user out — informational, the verdict stays.
+  const basicAuth =
+    config.auth === "basic" ? await basicAuthPreflight(config.user) : undefined;
+
   const status: DoctorStatus = capabilities.degraded ? "degraded" : "healthy";
   const summary =
     status === "healthy"
@@ -214,6 +241,7 @@ export async function runDoctor(
     ...(options.packages
       ? { privilege: advisePrivilege(capabilities, options.packages) }
       : {}),
+    ...(basicAuth ? { basicAuth } : {}),
     summary,
     ...(status === "degraded" && capabilities.recommendation
       ? { hint: capabilities.recommendation }
@@ -233,6 +261,61 @@ function describeConnection(c: ConnectionProbe): string {
 const CHECK = "✓";
 const CROSS = "✗";
 const WARN = "!";
+
+/** N-75: the basic-auth line of a report, as a flat check. */
+export interface BasicAuthVerdict {
+  /** False when the user will be (or is) refused once the restriction is enforced. */
+  ok: boolean;
+  detail: string;
+  /** The fix when not ok: which role to grant, or the OAuth alternative. */
+  hint?: string;
+}
+
+/**
+ * What the basic-auth preflight means for `user`, or undefined when the
+ * restriction could not be read (nothing to report).
+ */
+export function basicAuthVerdict(
+  preflight: BasicAuthPreflight,
+  user: string,
+): BasicAuthVerdict | undefined {
+  if (preflight.restriction === "unknown") return undefined;
+  const roles = (preflight.allowedRoles ?? [BASIC_AUTH_API_ROLE]).join(", ");
+  const state =
+    preflight.restriction === "enforced"
+      ? "restriction enforced"
+      : preflight.restriction === "tracking"
+        ? `restriction active but not enforced${
+            preflight.enforcementDate
+              ? ` (enforcement date ${preflight.enforcementDate})`
+              : ""
+          }`
+        : "restriction off";
+  const who =
+    preflight.userAllowed === undefined
+      ? ""
+      : preflight.userAllowed
+        ? `; user ${user} ${
+            preflight.allowedBy === "allow_list"
+              ? "is in allowed_users"
+              : "holds an allowed role"
+          }`
+        : `; user ${user} holds none of ${roles} and is not in allowed_users`;
+  const atRisk =
+    preflight.userAllowed === false && preflight.restriction !== "off";
+  const hint = atRisk
+    ? `Grant ${user} one of ${roles} (or add the user to glide.authenticate.basic_auth.allowed_users)${
+        preflight.restriction === "tracking"
+          ? " before the restriction is enforced"
+          : ""
+      }, or switch the profile to OAuth (SN_AUTH=oauth).`
+    : undefined;
+  return {
+    ok: !atRisk,
+    detail: `${state}${who}`,
+    ...(hint ? { hint } : {}),
+  };
+}
 
 /** Render a DoctorReport as a readable, plain-text block for the terminal. */
 export function formatDoctorReport(report: DoctorReport): string {
@@ -303,6 +386,18 @@ export function formatDoctorReport(report: DoctorReport): string {
     }
   }
 
+  // -- basic auth (N-75) ---------------------------------------------------
+  const basicAuth = report.basicAuth
+    ? basicAuthVerdict(report.basicAuth, config.user)
+    : undefined;
+  if (basicAuth) {
+    lines.push("");
+    lines.push(
+      `${basicAuth.ok ? CHECK : WARN} Basic auth — ${basicAuth.detail}`,
+    );
+    if (basicAuth.hint) lines.push(`    ${basicAuth.hint}`);
+  }
+
   // -- privilege (N-23) ----------------------------------------------------
   if (report.privilege) {
     const p = report.privilege;
@@ -334,7 +429,7 @@ export function formatDoctorReport(report: DoctorReport): string {
 
 /** One stage of the report as a flat check (`doctor --json | jq .checks`). */
 export interface DoctorCheck {
-  name: "credentials" | "connectivity" | "capabilities";
+  name: "credentials" | "connectivity" | "capabilities" | "basic_auth";
   ok: boolean;
   detail: string;
   /** M-2: the fix for a failed check (absent when it passed). */
@@ -375,6 +470,11 @@ export function doctorChecks(report: DoctorReport): DoctorCheck[] {
         : {}),
     });
   }
+  // N-75: present for a basic-auth profile whose restriction was readable.
+  const basicAuth = report.basicAuth
+    ? basicAuthVerdict(report.basicAuth, config.user)
+    : undefined;
+  if (basicAuth) checks.push({ name: "basic_auth", ...basicAuth });
   return checks;
 }
 

@@ -3,6 +3,7 @@ import { getCredentials, credentialStatus, activeProfile } from "./config.js";
 import { resolveHost } from "./host.js";
 import {
   AUTH_EXPIRED_HINT,
+  BASIC_AUTH_401_HINT,
   getAuthProvider,
   getAuthMode,
   invalidateToken,
@@ -216,14 +217,25 @@ export async function snRequest<T>({
       if (
         status === 401 &&
         (!options?.code || options.code === "INSTANCE_HTTP_401") &&
-        !delegated &&
-        getAuthMode() === "token"
+        !delegated
       ) {
-        return new ServiceNowError(message, status, detail, {
-          ...options,
-          code: "AUTH_EXPIRED",
-          hint: AUTH_EXPIRED_HINT,
-        });
+        const authMode = getAuthMode();
+        if (authMode === "token") {
+          return new ServiceNowError(message, status, detail, {
+            ...options,
+            code: "AUTH_EXPIRED",
+            hint: AUTH_EXPIRED_HINT,
+          });
+        }
+        // N-75: under basic auth the instance's basic-auth restriction can
+        // refuse a right password — the hint names the property and the
+        // role; the code stays INSTANCE_HTTP_401.
+        if (authMode === "basic") {
+          return new ServiceNowError(message, status, detail, {
+            ...options,
+            hint: BASIC_AUTH_401_HINT,
+          });
+        }
       }
       // N-20 EL-2: a 403 on a write the platform gates behind an elevated
       // role is not a missing ACL — say which role and how to get around it.

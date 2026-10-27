@@ -974,6 +974,23 @@ global preference pointed at a real ticket set, so a bound global write could
 be captured there. Fixed: a global set now switches `updateSetForScopeglobal`
 too, and restores it afterwards.
 
+## Fortieth pass: basic-auth restriction (N-75)
+
+On ven03019 (Zurich family), as an admin, GETs only — the names N-75 reads
+were assumed from the product documentation and are now verified:
+
+| Read                                                            | Finding                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sys_properties` `nameSTARTSWITHglide.authenticate.basic_auth.` | Eight rows: `restriction.active` (feature toggle), `restriction.enforce` (`false` = tracking, `true` = refuse unless allowed; no effect while `active` is false), `restriction.enforcement_date` (UTC; the role is auto-granted before it), `restriction.default_decision`, `allowed_roles` (comma-separated, value `snc_basic_auth_api_access`), `allowed_users` (sys_id allow list), `allow_snc_external`, `allow_wsao`. |
+| `sys_user_role` `name=snc_basic_auth_api_access`                | Exists (`e88934270a674eaf69ee1cc53ac89f2e`); `snc_platform_rest_api_access` exists too.                                                                                                                                                                                                                                                                                                                                    |
+| `sys_user_has_role` `user.user_name=<admin>^role.nameIN<role>`  | Dot-walked query and the fields `user.user_name`, `role.name`, `state` (`active`), `inherited`, `granted_by` answer — the preflight's role read works as written.                                                                                                                                                                                                                                                          |
+| `sys_user_basic_auth_exception`                                 | The exception table exists (not read by code — the allow list in `allowed_users` is what the preflight checks).                                                                                                                                                                                                                                                                                                            |
+
+Outcome: the preflight reads the property family in one query, the user's
+grants of the allowed roles in a second and, only when `allowed_users` is set
+and no role matched, the user's sys_id in a third; every failure degrades to
+"unknown". No write was made. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field

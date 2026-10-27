@@ -175,6 +175,15 @@ class BearerAuthProvider implements AuthProvider {
 export const AUTH_EXPIRED_HINT =
   "The bearer token was rejected (expired or revoked). Rotate it — update SN_BEARER_TOKEN, or point SN_TOKEN_FILE at a file your token issuer refreshes (it is re-read once on a 401).";
 
+/**
+ * N-75: hint carried by a 401 under basic auth. The password may be right and
+ * the instance's basic-auth restriction the reason — once it is enforced, a
+ * user without an allowed role (or allow-list entry) is refused with 401. The
+ * property family and the role were verified on a PDI (2026-10-27).
+ */
+export const BASIC_AUTH_401_HINT =
+  "The instance rejected the user/password. If they are right, the instance may enforce its basic-auth restriction (glide.authenticate.basic_auth.restriction.enforce): the user then needs a role from glide.authenticate.basic_auth.allowed_roles (snc_basic_auth_api_access by default) or an entry in its allowed_users, or switch the profile to OAuth (SN_AUTH=oauth). `servicenow-mcp-ai doctor` preflights the restriction.";
+
 /** Warn this long before SN_TOKEN_EXPIRES_AT. */
 const TOKEN_EXPIRY_WARN_MS = 24 * 60 * 60 * 1000;
 

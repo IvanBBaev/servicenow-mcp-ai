@@ -1099,7 +1099,7 @@ Errors come back **structured** (with an HTTP status), so your assistant can usu
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| `401` Unauthorized | Wrong username/password, or an expired OAuth token. | Re-check `SN_USER`/`SN_PASSWORD`; run `servicenow_test_connection`. Update with `servicenow_set_credentials`. |
+| `401` Unauthorized | Wrong username/password, an expired OAuth token, or the instance's basic-auth restriction (`glide.authenticate.basic_auth.restriction.enforce`) refusing a user without `snc_basic_auth_api_access`. | Re-check `SN_USER`/`SN_PASSWORD`; run `servicenow_test_connection` or `servicenow-mcp-ai doctor` (it preflights the restriction and names the role). Grant the role or switch to OAuth (`SN_AUTH=oauth`). Update with `servicenow_set_credentials`. |
 | `403` Forbidden | A ServiceNow ACL, or the table is blocked by `SN_TABLES_DENY` / not in `SN_TABLES_ALLOW`, or read-only mode. | Check the user's roles; review the policy in `servicenow_get_status`; relax the allow/deny list or `SN_READONLY`. |
 | "…API/plugin may not be active" | A plugin-scoped API (Catalog/Change/Knowledge/Email) is not installed on the instance. | Activate the plugin in ServiceNow, or remove that package from `SN_TOOL_PACKAGES`. |
 | "not a `*.service-now.com` instance" | A custom or sovereign-cloud host, blocked by the SSRF guard. | Add it to `SN_ALLOWED_HOSTS` (comma-separated). |

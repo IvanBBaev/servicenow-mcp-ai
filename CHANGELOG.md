@@ -8,10 +8,12 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 ### Added
 
 - Attachment file I/O (N-66): `servicenow_upload_attachment` accepts `file_path` — a file under `SN_DOCS_DIR` (the docs-store confinement, symlink check and journal-file refusal apply; the size is checked against `SN_MAX_UPLOAD_BYTES` before the file is read; the content type defaults by extension) — as the alternative to `content_base64`, and `servicenow_download_attachment` accepts `format: "file"`, which writes the bytes to `<profile>/exports/<name>-<stamp>.<ext>` and returns the path, size, sha256 and, for text-like content, a preview instead of base64. The write journal records the effective name, type and path, never the bytes. `tools/list`: +60 B per profile; the five attachment tool descriptions were shortened to pay for it.
+- Basic-auth preflight (N-75): for a basic-auth profile, `servicenow-mcp-ai doctor` reads the instance's basic-auth restriction (`glide.authenticate.basic_auth.restriction.*`, verified on a PDI) and reports whether the connected user holds an allowed role (`snc_basic_auth_api_access` by default) or is in `allowed_users`; a `basic_auth` check appears in `doctor --json` and the support bundle. Informational — the verdict does not change; an unreadable restriction renders nothing.
 - `server.json` (MCP Registry): `websiteUrl`, a `remotes` entry for a self-hosted HTTP deployment (`https://{host}/mcp` with a bearer header; there is no hosted instance) and, at publish time, the release bundle as an `mcpb` package — `scripts/registry-mcpb.mjs` appends it with its `fileSha256` in the registry workflow (N-91).
 
 ### Changed
 
+- A 401 under basic auth (`INSTANCE_HTTP_401`) carries a hint naming the restriction property, the role and the OAuth alternative (N-75); `servicenow_test_connection` and `doctor` show it. The generic 401 hint names `servicenow_test_connection` and `doctor` instead of a tool that does not exist. `tools/list`: +0 B.
 - Docs truth (N-91): README, `docs/llms.txt` and the publish workflow link the `.mcpb` attached to every GA release (N-51 done); the extension README pins `@3.x`; the landing page names MCP SDK 2.3; `AGENTS.md` and the project README quote O-25 / B24; the extension walkthrough names the `discovery` default. Each string now has a test.
 
 ### Security

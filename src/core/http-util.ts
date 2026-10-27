@@ -172,7 +172,7 @@ const UNREACHABLE_HINT =
  * carry no hint (the instance's own `detail` explains them).
  */
 const STATUS_HINTS: Readonly<Record<number, string>> = {
-  401: "The instance rejected the credentials — check the profile's user/password (or its auth method's secrets) with servicenow_doctor.",
+  401: "The instance rejected the credentials — check the profile's user/password (or its auth method's secrets) with servicenow_test_connection or `servicenow-mcp-ai doctor`.",
   403: "The instance's ACLs refused the call — the user needs a role that grants it, and REST API access policies may require snc_platform_rest_api_access.",
   429: "The instance is rate-limiting this user — wait and retry, or lower the request rate (servicenow_get_status shows the rate-limit headers).",
 };

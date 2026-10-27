@@ -1438,11 +1438,11 @@ items:
     title: "basic-auth preflight"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
-    gates: ["O-5"]
-    notes: "3.1 minor (F5-17). `doctor` and `test_connection` name the basic-auth restriction property and the API-access role on a basic-auth 401; both names unverified (O-5), generic message otherwise. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    done: "2026-10-27"
+    gates: []
+    notes: "**Done 2026-10-27.** 3.1 minor (F5-17). A basic-auth 401 carries a hint naming `glide.authenticate.basic_auth.restriction.enforce`, the role `snc_basic_auth_api_access` and the OAuth alternative (`test_connection` and `doctor` show it); on the healthy path `doctor` reads the property family and the user's role grants and reports a `basic_auth` check (informational). Property family and role verified on the PDI (GETs only — PDI-VERIFY fortieth pass). +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-76"
     title: "skills everywhere"
     pillar: "N"
