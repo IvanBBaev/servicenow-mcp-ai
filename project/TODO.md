@@ -226,6 +226,30 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     targets; the 3.0 exit criteria cite them —
     [ADR 0011](adr/0011-owner-gate-round-2026-10-13.md).
 
+- **OD-12 · N-74 client meta keys exceed every `tools/list` budget (O-10).** _Not BREAKING
+  (additive `_meta` keys), but the budget ratchet is an owner gate._
+  - Decide: how the three Claude Code `_meta` keys land — `anthropic/alwaysLoad` on
+    `find_tools`, `get_status`, `list_packages`; `anthropic/requiresUserInteraction` on the
+    confirm-gated applies and `set_credentials`; `anthropic/maxResultSizeChars` on the four
+    remaining `format:"file"` readers.
+  - Measured 2026-10-27 (bytes, JSON of the tools array): `core` 27,491 vs budget 27,136
+    (+361, over by 355); `discovery` 23,938 vs 23,808 (+263, over by 130); `all` 122,915 vs
+    122,112 (+863, over by 803); `all+tasks` +863; `all+legacy` +914. Per key: `alwaysLoad`
+    +114 B everywhere; `requiresUserInteraction` +153 / +102 / +561 B (core / discovery / all);
+    the four extra hints +94 / +47 / +188 B.
+  - Options:
+    - (1) Restate the five budgets (rounded up to 256 B): `core` 27,648, `discovery` 24,064,
+      `all` 123,136, `all+tasks` 124,160, `all+legacy` 143,616 — the keys ship on by default.
+    - (2) Keep the budgets and ship the two fact keys behind an opt-in setting (e.g.
+      `SN_CLIENT_META`, default off); the default surface stays byte-identical, Claude Code users
+      opt in.
+    - (3) Pay for the keys by trimming ≈ 360 B of descriptions in `core`.
+  - Evidence: the patch and its notes in `~/Development/_temp/servicenow-mcp-n74/` (tests
+    18 pass; `npm run tokens:budget` printed OVER BUDGET on every profile); the tree was
+    restored, nothing of N-74 is on `main`.
+  - Recommend: (1). The keys are facts a client acts on at once (pinned entry tools, flagged
+    elicitation), and ≈ 1 % of each budget is cheaper than another description-trimming round.
+
 ## Active (2026-09-02)
 
 - [x] **P-4 / P-7 · SDK 4.13 re-pin** — done 2026-10-09 (owner approved): `@servicenow/sdk` and
