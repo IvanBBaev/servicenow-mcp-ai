@@ -116,7 +116,11 @@ tool fits) are scored against the published `tools/list` of the `discovery`
 discovery tools in full, every other tool as a stub). When a task's tool is not
 loaded, `find_tools`, `enable_package` or `list_packages` counts as the right
 first step. It is on demand and **not** part of
-`npm run check`. The default backend is an offline lexical (TF-IDF) baseline
+`npm run check`; CI runs the offline comparison on the ubuntu / Node 22 leg
+(`node evals/tool-selection/run.mjs --max-drop 0`, N-89): a description change
+that loses a single top-1 case against `baseline.offline.json` fails the leg,
+so a wanted change refreshes the baseline (`--write-baseline`) in the same
+commit. The default backend is an offline lexical (TF-IDF) baseline
 that needs no key; `-- --backend anthropic [--model claude-sonnet-5-5]` calls
 the Messages API with `ANTHROPIC_API_KEY` and spends real budget, and
 `--record <file>` / `--backend recorded --answers <file>` replay a run without

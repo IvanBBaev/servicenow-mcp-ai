@@ -36,6 +36,9 @@ const Ajv2020 = require("ajv/dist/2020.js").default;
 /**
  * A strict 2020-12 validator: unknown keywords and bad patterns are errors.
  * Union `type` arrays are valid 2020-12, so Ajv's own opinion on them is off.
+ * N-89: one instance per test — a fresh one per schema added the meta-schema
+ * set-up ~700 times; none of the schemas carries an `$id`, so one instance
+ * serves them all.
  */
 function ajv() {
   return new Ajv2020({
@@ -63,30 +66,39 @@ async function schemasOf(profile) {
   );
 }
 
-test("every published schema is valid JSON Schema 2020-12 on every profile", async () => {
+test("every published schema is valid JSON Schema 2020-12 on every profile", async (t) => {
+  const validator = ajv();
+  // A tool's schema is the same text on every profile it is published on;
+  // the strict compile (≈5 ms each) runs once per distinct schema.
+  const seen = new Set();
   for (const profile of Object.keys(PROFILES)) {
-    const schemas = await schemasOf(profile);
-    assert.ok(schemas.length > 0, profile);
-    for (const { where, schema } of schemas) {
-      assert.equal(schema.$schema, undefined, `${where} declares a dialect`);
-      const validator = ajv();
-      assert.ok(
-        validator.validateSchema(schema),
-        `${where}: ${validator.errorsText(validator.errors)}`,
-      );
-      // Strict compilation also rejects unknown keywords and bad patterns.
-      assert.doesNotThrow(() => validator.compile(schema), where);
-    }
+    await t.test(profile, async () => {
+      const schemas = await schemasOf(profile);
+      assert.ok(schemas.length > 0, profile);
+      for (const { where, schema } of schemas) {
+        assert.equal(schema.$schema, undefined, `${where} declares a dialect`);
+        const key = JSON.stringify(schema);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        assert.ok(
+          validator.validateSchema(schema),
+          `${where}: ${validator.errorsText(validator.errors)}`,
+        );
+        // Strict compilation also rejects unknown keywords and bad patterns.
+        assert.doesNotThrow(() => validator.compile(schema), where);
+      }
+    });
   }
 });
 
 test("every example call validates against its published 2020-12 input schema", async () => {
   const tools = await listPublishedTools(PROFILES["all+tasks"]);
+  const validator = ajv();
   let checked = 0;
   for (const tool of tools) {
     const example = TOOL_EXAMPLES[tool.name];
     if (!example) continue;
-    const validate = ajv().compile(tool.inputSchema);
+    const validate = validator.compile(tool.inputSchema);
     assert.ok(
       validate(example.arguments),
       `${tool.name}: ${JSON.stringify(validate.errors)}`,

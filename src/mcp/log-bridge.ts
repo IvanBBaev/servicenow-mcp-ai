@@ -28,6 +28,11 @@
  *   deprecated `sendLoggingMessage`, functional for the deprecation window.
  *   Lines a 2026-07-28 request drops over the rate cap stay on stderr: its
  *   stream ends with the response, so no summary follows.
+ *
+ * N-89: a bridge is disposed with the HTTP session it serves (`dispose()`):
+ * its buckets and any pending summary timer go, and later lines are dropped
+ * (stderr keeps them) — a bucket keyed by an expired session no longer
+ * outlives it. The stdio bridge lives as long as the process.
  */
 import type { LogLevel, LogSink } from "../core/logging.js";
 import { getLogNotifyRate } from "../core/settings.js";
@@ -107,9 +112,20 @@ function ignoredByClient(
   );
 }
 
+/** A log bridge: the sink plus the release of its per-session state (N-89). */
+export type LogBridge = LogSink & {
+  /**
+   * Drop every rate bucket and cancel a pending suppressed-lines summary;
+   * lines logged afterwards are not forwarded (the session is gone, stderr
+   * keeps them). Safe to call more than once.
+   */
+  dispose(): void;
+};
+
 /** Build the log sink that forwards to `server` (see the module comment). */
-export function createLogBridge(server: LoggingServer): LogSink {
+export function createLogBridge(server: LoggingServer): LogBridge {
   const buckets = new Map<string, Bucket>();
+  let disposed = false;
   // A 2025 session completed initialize: lines outside a call may reach it.
   let legacySession = false;
   const previous = server.oninitialized;
@@ -161,7 +177,8 @@ export function createLogBridge(server: LoggingServer): LogSink {
     return false;
   };
 
-  return (level, message, fields) => {
+  const sink: LogSink = (level, message, fields) => {
+    if (disposed) return;
     const mcpLevel = MCP_LEVEL[level];
     const channel = currentCall()?.log;
     if (channel?.modern) {
@@ -204,4 +221,14 @@ export function createLogBridge(server: LoggingServer): LogSink {
       bucket.timer.unref?.();
     }
   };
+
+  const dispose = (): void => {
+    disposed = true;
+    for (const bucket of buckets.values()) {
+      if (bucket.timer) clearTimeout(bucket.timer);
+    }
+    buckets.clear();
+  };
+
+  return Object.assign(sink, { dispose });
 }

@@ -19,7 +19,7 @@ import {
   type SessionScope,
 } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
-import { createLogBridge } from "./log-bridge.js";
+import { createLogBridge, type LogBridge } from "./log-bridge.js";
 import { taskWorkSettled } from "./tasks.js";
 import { guardListenFetch } from "./listen.js";
 import { MAX_INIT_BODY_BYTES } from "./http-sessions.js";
@@ -154,9 +154,11 @@ export class ModernHttpHandler {
     const runtime = currentRuntime();
     const server = this.options.factory(runtime, ctx);
     const scope = currentSession();
+    let bridge: LogBridge | undefined;
     if (scope) {
       scope.server = server;
-      scope.logSink = createLogBridge(server.server);
+      bridge = createLogBridge(server.server);
+      scope.logSink = bridge;
       // N-17: an OAuth caller is keyed by its subject, so one user's plan
       // token cannot be redeemed by another user of the same client.
       const subject = ctx.authInfo?.extra?.subject;
@@ -173,6 +175,8 @@ export class ModernHttpHandler {
     const previous = server.server.onclose;
     server.server.onclose = () => {
       previous?.();
+      // N-89: the request's log bridge goes with its server.
+      bridge?.dispose();
       void taskWorkSettled(runtime).then(() => runtime.dispose());
     };
     return server;

@@ -1564,11 +1564,11 @@ items:
     title: "test speed, bucket eviction, eval gate"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-27"
     gates: []
-    notes: "3.2 minor (F5-41, F5-44). One compiled Ajv validator for the schema test (−3 s), `log-bridge` buckets evicted with the session, the recorded tool-selection eval with `--max-drop 0` on the ubuntu / Node 22 leg (no network, ADR 0011 respected). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-27.** 3.2 minor (F5-41, F5-44). One Ajv 2020-12 instance per test in `test/protocol-shape.test.js` (a fresh one per schema compiled the meta-schema ~1,000 times), `createLogBridge` returns a `LogBridge` with `dispose()` (buckets and the pending summary timer go with the HTTP session: `HttpSessionManager.close` and the modern `onclose` chain), CI runs the offline tool-selection eval with `--max-drop 0` on the ubuntu / Node 22 leg (lexical backend, no key; the recorded backend waits for an owner-recorded answers file). `tools/list` +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-90"
     title: "persistent schema cache and network retries"
     pillar: "N"

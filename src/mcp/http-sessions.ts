@@ -14,7 +14,7 @@ import {
   type SessionScope,
 } from "../core/request-context.js";
 import { logger, type LogSink } from "../core/logging.js";
-import { createLogBridge } from "./log-bridge.js";
+import { createLogBridge, type LogBridge } from "./log-bridge.js";
 
 /**
  * H-7 — HTTP session management (closes the single-transport design of DF-6).
@@ -74,6 +74,8 @@ interface HttpSession {
   transport: NodeStreamableHTTPServerTransport;
   server: McpServer;
   runtime: Runtime;
+  /** The session's log bridge (also `scope.logSink`); disposed with it (N-89). */
+  bridge: LogBridge;
   lastSeen: number;
   /** Open requests of any kind (an SSE GET stream stays open). */
   open: number;
@@ -258,7 +260,8 @@ export class HttpSessionManager {
         this.options.factory(runtime),
       );
       scope.server = server;
-      scope.logSink = createLogBridge(server.server);
+      const bridge = createLogBridge(server.server);
+      scope.logSink = bridge;
       const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         keepAliveMs: this.options.keepAliveMs,
@@ -276,6 +279,7 @@ export class HttpSessionManager {
         transport,
         server,
         runtime,
+        bridge,
         lastSeen: this.now(),
         open: 0,
         posts: 0,
@@ -351,6 +355,8 @@ export class HttpSessionManager {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+    // N-89: the session's rate buckets and a pending summary go with it.
+    session.bridge.dispose();
     // Only the session's own state — the shared process parts stay.
     await session.runtime.dispose();
     if (session.scope.id) {

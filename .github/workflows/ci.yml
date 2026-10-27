@@ -41,6 +41,14 @@ jobs:
       # is gone), so the coverage ratchet — lines 97 / branches 88 /
       # functions 97 in .c8rc.json (N-87), set just below the real report — gates every leg.
       - run: npm run test:coverage
+      # N-89: the offline tool-selection eval (lexical backend, no key, no
+      # network — ADR 0011 forbids only paid runs) against its committed
+      # baseline with a zero-drop rule: a description change that costs a
+      # single top-1 case fails the leg. The recorded backend joins once an
+      # owner-recorded answers file is committed. Runs once on ubuntu/Node 22.
+      - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'
+        name: Tool-selection eval holds its offline baseline
+        run: node evals/tool-selection/run.mjs --max-drop 0
       # L9-04: tarball guard — no jira/, .map, test/ or docs/instance/ entries,
       # a fixed top-level allow-list and a size ceiling. Runs once on ubuntu/Node 22.
       - if: matrix.node == 22 && matrix.os == 'ubuntu-latest'

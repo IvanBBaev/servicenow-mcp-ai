@@ -333,3 +333,25 @@ test("a 2025 call logs through its request channel, still filtered by setLevel (
   );
   assert.deepEqual(server.sent, [], "not the deprecated session-wide path");
 });
+
+test("dispose cancels the pending summary, drops the buckets and silences the sink (N-89)", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 0 });
+  const server = recordingServer({ sessionId: "s1" });
+  const sink = legacyBridge(server);
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
+    for (let i = 0; i < 60; i++) sink("debug", `line ${i}`);
+  });
+  assert.equal(server.sent.length, LOG_NOTIFY_MIN_BURST, "ten suppressed");
+
+  sink.dispose();
+  sink.dispose(); // idempotent
+  await withEnv({ SN_LOG_NOTIFY_RATE: undefined }, () => {
+    t.mock.timers.tick(LOG_SUPPRESSED_SUMMARY_MS);
+    sink("error", "after the session closed");
+  });
+  assert.equal(
+    server.sent.length,
+    LOG_NOTIFY_MIN_BURST,
+    "no summary and nothing forwarded after dispose",
+  );
+});
