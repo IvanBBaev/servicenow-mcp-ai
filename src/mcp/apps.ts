@@ -34,6 +34,18 @@ export function appViewUri(view: AppViewId): string {
   return `ui://servicenow-mcp/${view}`;
 }
 
+/**
+ * N-84: the views' MCP Apps CSP (`_meta.ui.csp` on the resource), declared
+ * rather than left to the host's default — no origin may be connected to or
+ * loaded from. It restates the document's own Content-Security-Policy
+ * (VIEW_CSP) at the host's level, so a host that builds its sandbox from this
+ * key alone gets the same policy; the tests assert the HTML names no URL.
+ */
+export const APP_VIEW_CSP: {
+  connectDomains: string[];
+  resourceDomains: string[];
+} = { connectDomains: [], resourceDomains: [] };
+
 const VIEW_INFO: Record<AppViewId, { title: string; description: string }> = {
   "plan-diff": {
     title: "Write plan diff",
@@ -144,9 +156,10 @@ export function registerAppResources(server: McpServer): void {
             uri,
             mimeType: MCP_APPS_MIME,
             text,
-            // No `csp` key: the host then applies the spec's strict default
-            // (no connect, no external resources); the HTML repeats it.
-            _meta: { ui: { prefersBorder: true } },
+            // N-84: the CSP is declared (no connect, no external resources)
+            // and the HTML repeats it; a host without the key applies the
+            // spec's strict default, which is the same policy.
+            _meta: { ui: { csp: APP_VIEW_CSP, prefersBorder: true } },
           },
         ],
       }),

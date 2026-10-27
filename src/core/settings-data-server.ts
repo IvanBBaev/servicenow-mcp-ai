@@ -478,7 +478,7 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
       defaultText: "`0`",
       example: "0",
       description:
-        "N-50, MCP Apps (SEP-1865): `1` registers four self-contained `ui://servicenow-mcp/…` HTML views (`text/html;profile=mcp-app`: plan diff, Mermaid diagram, flow explainer, UI Builder page tree) and links the write tools with `apply`, the Mermaid generators, `explain_flow` and `explain_ui_experience` to them through `_meta.ui.resourceUri` — only for a client that advertises the `io.modelcontextprotocol/ui` extension. The views render the tool's own result (no network, strict CSP). Off: `tools/list`, resources and every result unchanged.",
+        "N-50, MCP Apps (SEP-1865): `1` registers four self-contained `ui://servicenow-mcp/…` HTML views (`text/html;profile=mcp-app`: plan diff, Mermaid diagram, flow explainer, UI Builder page tree) and links the write tools with `apply`, the Mermaid generators, `explain_flow` and `explain_ui_experience` to them through `_meta.ui.resourceUri` — only for a client that advertises the `io.modelcontextprotocol/ui` extension. The views render the tool's own result (no network: a strict CSP in the document and an empty `_meta.ui.csp` on the resource). Off: `tools/list`, resources and every result unchanged.",
     },
     ["1", "true"],
     ["0", "false"],

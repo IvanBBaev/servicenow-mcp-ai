@@ -15,7 +15,11 @@ import {
   escapeHtml,
   viewHtml,
 } from "../build/mcp/apps-views.js";
-import { MCP_APPS_EXTENSION, MCP_APPS_MIME } from "../build/mcp/apps.js";
+import {
+  APP_VIEW_CSP,
+  MCP_APPS_EXTENSION,
+  MCP_APPS_MIME,
+} from "../build/mcp/apps.js";
 import { baselineEnv, withEnv } from "./helpers.js";
 
 /**
@@ -136,7 +140,10 @@ test("on: the four views are listed and readable as text/html;profile=mcp-app", 
       assert.equal(contents.length, 1);
       assert.equal(contents[0].uri, r.uri);
       assert.equal(contents[0].mimeType, MCP_APPS_MIME);
-      assert.deepEqual(contents[0]._meta, { ui: { prefersBorder: true } });
+      // N-84: the declared CSP travels with the document.
+      assert.deepEqual(contents[0]._meta, {
+        ui: { csp: APP_VIEW_CSP, prefersBorder: true },
+      });
       assert.match(contents[0].text, /^<!doctype html>/);
       assert.ok(contents[0].text.includes(`content="${VIEW_CSP}"`));
     }
@@ -180,6 +187,8 @@ test("on: _meta.ui.resourceUri links exactly the plan, Mermaid, flow and UIB too
 });
 
 test("the view documents are self-contained: no external URL, no eval, a strict CSP", () => {
+  // N-84: the MCP Apps CSP declared on the resource names no origin either.
+  assert.deepEqual(APP_VIEW_CSP, { connectDomains: [], resourceDomains: [] });
   assert.match(VIEW_CSP, /^default-src 'none';/);
   assert.match(VIEW_CSP, /script-src 'sha256-[A-Za-z0-9+/=]+';/);
   assert.match(VIEW_CSP, /connect-src 'none'/);

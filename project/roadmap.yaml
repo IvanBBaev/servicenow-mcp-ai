@@ -1519,11 +1519,11 @@ items:
     title: "MCP Apps csp"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-27"
     gates: []
-    notes: "3.1 minor (F5-31). Confirm the views load nothing remote and say so, or declare `_meta.ui.csp`; one assertion in `test/mcp-apps.test.js`. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-27.** 3.1 minor (F5-31). Each view resource declares `_meta.ui.csp` (`APP_VIEW_CSP`: empty `connectDomains` and `resourceDomains`) next to `prefersBorder`, restating the document's own CSP at the host's level; `test/mcp-apps.test.js` asserts the declared policy names no origin and the read payload carries it. +0 B (resources/read only). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-85"
     title: "build slimming"
     pillar: "N"

@@ -2285,7 +2285,9 @@ SN_TOOL_PACKAGES=table,batch</code></pre>
             HTML-escaped into text nodes. Its own Content-Security-Policy
             (<code>default-src 'none'</code>, script and style pinned by hash,
             <code>connect-src 'none'</code>, no eval) applies on top of the
-            host's sandbox. Mermaid diagrams are shown as tables plus source,
+            host's sandbox, and the resource declares the same policy for the
+            host (<code>_meta.ui.csp</code> with no connect or resource
+            origins). Mermaid diagrams are shown as tables plus source,
             not drawn, so no diagram library is shipped.
           </p>
         </section>
