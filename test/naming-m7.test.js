@@ -410,6 +410,9 @@ test("rendered prompts name only real tools", async () => {
       a: "dev",
       kind: "field",
       name: "incident.priority",
+      record: "INC0010001",
+      update_set: "Fix",
+      target: "dev",
     };
     for (const prompt of prompts) {
       const wanted = Object.fromEntries(

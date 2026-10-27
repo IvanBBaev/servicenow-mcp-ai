@@ -126,9 +126,9 @@ with the model and client of your choice.
   bind applied Table writes to a named update set (`update_set` /
   `SN_UPDATE_SET`), restoring the user's current set afterwards.
 - **Operations and data health** (`ops`, opt-in): bounded "why is it slow"
-  reads of the system log, the scheduler queue, the outbound email queue and
-  semaphores, plus `servicenow_check_data_health` — duplicate keys, orphaned and
-  stale references for one table, from Aggregate API counts.
+  reads of the system log, the scheduler queue, the outbound email queue, the
+  event queue and semaphores, plus `servicenow_check_data_health` — duplicate
+  keys, orphaned and stale references for one table, from Aggregate API counts.
 - **Operations reads** (opt-in): a record's change history from `sys_audit` and
   `sys_journal_field` (`history` — including the comments and work notes the
   Table API reads back empty), system properties with masked secrets and a
@@ -1403,6 +1403,11 @@ reason instead of failing the call, so a blank section never reads as healthy.
     `overdue` (default), `running` or `queued` jobs with their claiming node.
   - `email_queue` — outbound `sys_email`: the send-ready backlog and its
     oldest entry, counts by type in the window and the recent send failures.
+  - `events` — the event queue (`sysevent`): the ready backlog and its oldest
+    entry (all-time), the events fired in the window by state and by name,
+    and the newest rows with their parameters (clipped). A notification is an
+    event processed into `sys_email`, so an unfired one is traced here first,
+    then in `email_queue`.
   - `semaphores` — `sys_semaphore` rows, newest first.
 
   Rows are capped by `limit` (default 25, max 200).
@@ -1418,7 +1423,8 @@ reason instead of failing the call, so a blank section never reads as healthy.
   the user cannot read also counts as orphaned.
 
 The `servicenow_why_is_it_slow` prompt walks through these reads and, with a
-`table`, the logic that runs on its writes.
+`table`, the logic that runs on its writes; `servicenow_incident_rca` reads the
+error log and the events around one record.
 ### Record history, properties and directory
 
 Three opt-in packages cover day-to-day operations questions. Every read goes
@@ -1782,6 +1788,9 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 | `servicenow_upgrade_review`         | `upgrade` (optional) | Upgrade history, the unresolved skipped records of an upgrade, one skip's base vs customer versions, store apps with an update (`instance`), then the `upgrade` document (`docs`). |
 | `servicenow_schema_impact`          | `kind` (`table` / `field` / `script`), `name` | Where-used (structural and text), the logic and events on the table, an optional ER diagram → dependants and a risk call. |
 | `servicenow_discover_instance`      | `depth` (`overview` / `apps` / `artefacts`), `profile` (both optional) | Runs `servicenow_document_instance` at that depth, reads the result back and summarises counts, scopes and caveats. |
+| `servicenow_incident_rca`           | `record`, `table`, `since` (last two optional) | Root cause of one record: audit trail and journal (`history`), the logic on its table, the changes in the window, error log and `sysevent` events (`ops`), its SLAs → timeline, ranked causes, counter-checks. |
+| `servicenow_release_notes`          | `update_set`, `audience` (`technical` / `business`, optional) | `servicenow_get_update_set` → records by type and action → `servicenow_explain_artifact` per script → risks (ACLs, roles, deletions, global rules) → Markdown via `servicenow_write_doc`. |
+| `servicenow_clone_down_checklist`   | `target`, `source` (optional) | Snapshot the target as the baseline, read the mail properties and `clone_data_preserver`, diff source vs target (`servicenow_compare_instances`), then after the clone diff the target against its snapshot → a re-apply / keep / verify table. |
 
 ## Project structure
 

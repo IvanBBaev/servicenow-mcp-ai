@@ -41,7 +41,7 @@ const bounded = (b: { default: number; max: number }, what: string) =>
 /**
  * S-10b — the opt-in `ops` package: platform health reads (system log,
  * scheduler queue, outbound email queue, semaphores; N-6: outbound
- * integrations, slow transactions, MID servers) and the data-quality
+ * integrations, slow transactions, MID servers; N-69: the event queue) and the data-quality
  * twin of servicenow_check_code_health. Read-only; each section degrades to
  * `available:false` when its table is unreadable.
  */
@@ -50,7 +50,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_read_ops",
     title: "Read instance operations data",
     description:
-      "Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC queue). Unreadable section: available:false + why.",
+      "Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, events, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC). Unreadable section: available:false + why.",
     package: "ops",
     annotations: READ_ONLY,
     output: { kind: z.string(), window_minutes: z.number() },

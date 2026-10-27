@@ -32,7 +32,9 @@ profile; nothing here writes to the instance.
    capability explains many "empty" answers.
 3. Symptoms: `servicenow_read_ops` with `kind: "syslog"` and `level: "error"`
    for the last minutes; `kind: "jobs"` with `filter: "overdue"` for stuck
-   scheduled work; `kind: "email_queue"` for mail problems;
+   scheduled work; `kind: "email_queue"` for mail problems — and, when a
+   notification never fired, `kind: "events"` first: an event still in the
+   `sysevent` ready backlog has not become a `sys_email` row yet;
    `kind: "transactions"`, `"integrations"` and `"mid"` for slow pages,
    failing outbound calls and MID / ECC queue trouble.
 4. The record: `servicenow_get_record` for the current state, then

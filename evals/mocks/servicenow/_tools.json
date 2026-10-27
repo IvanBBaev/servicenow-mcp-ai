@@ -2651,7 +2651,7 @@
     {
       "name": "servicenow_read_ops",
       "title": "Read instance operations data",
-      "description": "Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC queue). Unreadable section: available:false + why.",
+      "description": "Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, events, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC). Unreadable section: available:false + why.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -2662,6 +2662,7 @@
               "syslog",
               "jobs",
               "email_queue",
+              "events",
               "semaphores",
               "integrations",
               "transactions",

@@ -14,6 +14,8 @@ import { ServiceNowError } from "../core/errors.js";
  * N-6 (ops v2) adds the views past the instance boundary: failed and slow
  * outbound calls (`sys_outbound_http_log`), slow transactions
  * (`syslog_transaction`) and MID-server health (`ecc_agent` + `ecc_queue`).
+ * N-69 adds the event queue (`sysevent`): the backlog and the event storm
+ * behind late notifications and slow saves.
  *
  * Every section reads its own table and degrades on its own to
  * `available:false` with the reason (ACL, policy, missing table): an
@@ -26,6 +28,7 @@ export const OPS_KINDS = [
   "syslog",
   "jobs",
   "email_queue",
+  "events",
   "semaphores",
   "integrations",
   "transactions",
@@ -46,13 +49,15 @@ export const OVERDUE_MINUTES = { default: 5, max: 1440 };
 
 /**
  * The table behind each kind (O-5: `sys_semaphore`, `sys_outbound_http_log`,
- * `syslog_transaction` and `ecc_agent` verified on a PDI, 2026-10). `mid` also
- * reads `ecc_queue` (OPS_ECC_QUEUE) as its own sub-section.
+ * `syslog_transaction` and `ecc_agent` verified on a PDI, 2026-10; `sysevent`
+ * and its columns on 2026-10-27). `mid` also reads `ecc_queue` (OPS_ECC_QUEUE)
+ * as its own sub-section.
  */
 export const OPS_TABLES = {
   syslog: "syslog",
   jobs: "sys_trigger",
   email_queue: "sys_email",
+  events: "sysevent",
   semaphores: "sys_semaphore",
   integrations: "sys_outbound_http_log",
   transactions: "syslog_transaction",
@@ -353,6 +358,85 @@ async function readEmailQueue(
     })),
     ...(res.total !== undefined ? { failures_total: res.total } : {}),
     truncated: (res.total ?? 0) > res.records.length,
+  };
+}
+
+// N-69: `sysevent` and its columns (name, table, state, queue, process_on,
+// processed, processing_duration, claimed_by, user_name, parm1, parm2) were
+// verified on a PDI, 2026-10-27. The table holds millions of rows on a busy
+// instance, so every count is windowed except the all-time ready backlog.
+async function readEvents(
+  o: Resolved,
+  rows: boolean,
+): Promise<Record<string, unknown>> {
+  const table = OPS_TABLES.events;
+  const inWindow = `sys_created_on>${since(o.minutes)}`;
+  const ready = await count(table, "state=ready");
+  const oldest = ready
+    ? await queryTable({
+        table,
+        query: "state=ready^ORDERBYsys_created_on",
+        fields: ["sys_created_on"],
+        displayValue: "false",
+        limit: 1,
+        noCount: true,
+      })
+    : undefined;
+  const byState = await countBy(table, inWindow, "state");
+  const byName = await countBy(table, inWindow, "name");
+  const out: Record<string, unknown> = {
+    ready,
+    ...(oldest?.records[0]
+      ? { oldest_ready: s(oldest.records[0], "sys_created_on") }
+      : {}),
+    by_state_in_window: tally(byState, "state"),
+    top_names: byName.slice(0, TOP_SOURCES).map((g) => ({
+      name: g.key.name ?? "",
+      count: g.count,
+    })),
+  };
+  if (!rows) return out;
+  const res = await queryTable({
+    table,
+    query: `${inWindow}^ORDERBYDESCsys_created_on`,
+    fields: [
+      "sys_id",
+      "sys_created_on",
+      "name",
+      "table",
+      "state",
+      "queue",
+      "process_on",
+      "processed",
+      "processing_duration",
+      "claimed_by",
+      "user_name",
+      "parm1",
+      "parm2",
+    ],
+    displayValue: "false",
+    limit: o.limit,
+    noCount: true,
+  });
+  return {
+    ...out,
+    count: res.records.length,
+    truncated: res.records.length >= o.limit,
+    events: res.records.map((r) => ({
+      sys_id: s(r, "sys_id"),
+      created_on: s(r, "sys_created_on"),
+      name: s(r, "name"),
+      table: s(r, "table"),
+      state: s(r, "state"),
+      queue: s(r, "queue"),
+      process_on: s(r, "process_on"),
+      processed: s(r, "processed"),
+      processing_duration: s(r, "processing_duration"),
+      claimed_by: s(r, "claimed_by"),
+      user_name: s(r, "user_name"),
+      parm1: clip(s(r, "parm1"), 200),
+      parm2: clip(s(r, "parm2"), 200),
+    })),
   };
 }
 
@@ -747,11 +831,15 @@ const READERS: Record<
   syslog: readSyslog,
   jobs: readJobs,
   email_queue: readEmailQueue,
+  events: readEvents,
   semaphores: readSemaphores,
   integrations: readIntegrations,
   transactions: readTransactions,
   mid: readMid,
 };
+
+const OVERVIEW_EVENTS_CAVEAT =
+  "events counts the sysevent backlog (ready, all-time) and the events fired in the window by state and name (N-69; verified on a PDI, O-5).";
 
 const OVERVIEW_N6_CAVEAT = `integrations and transactions count calls and transactions over ${SLOW_MS} ms (and outbound status >= 400); mid counts MID servers by status and the ecc_queue backlog. Their field names were verified on a PDI (O-5).`;
 
@@ -760,6 +848,8 @@ const KIND_CAVEATS: Partial<Record<OpsKind, string>> = {
   integrations: `Outbound calls are read from sys_outbound_http_log (failed: status >= 400, slow: over ${SLOW_MS} ms); groups come from the newest \`limit\` matching rows; groups are host plus the calling table (source_table); URLs keep only origin and path. The log is on by default and keeps about 8 weeks.`,
   transactions: `Slow transactions (over ${SLOW_MS} ms) are read from syslog_transaction, slowest first; groups come from those \`limit\` rows.`,
   mid: "MID status comes from ecc_agent; the backlog and errors from ecc_queue (state ready / error).",
+  events:
+    "Events are read from sysevent (millions of rows on a busy instance): counts and rows are windowed by `minutes`, the ready backlog (ready, oldest_ready) is all-time. A notification is an event processed into sys_email: follow it with the email_queue kind.",
 };
 
 /**
@@ -786,7 +876,7 @@ export async function opsRead(args: OpsReadArgs): Promise<unknown> {
       kind: "overview",
       window_minutes: o.minutes,
       sections: Object.fromEntries(kinds.map((k, i) => [k, sections[i]])),
-      caveats: [...OPS_CAVEATS, OVERVIEW_N6_CAVEAT],
+      caveats: [...OPS_CAVEATS, OVERVIEW_N6_CAVEAT, OVERVIEW_EVENTS_CAVEAT],
     };
   }
   const kind = args.kind;

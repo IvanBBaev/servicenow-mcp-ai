@@ -245,6 +245,10 @@ export function registerPrompts(
   registerUpgradeReview(gated(server, on, { all: ["instance"] }));
   registerSchemaImpact(gated(server, on, { all: ["scripts"] }));
   registerDiscoverInstance(gated(server, on, { all: ["docs"] }));
+  // N-69: the incident RCA, release notes and clone-down checklist workflows.
+  registerIncidentRca(gated(server, on, { all: ["history"] }));
+  registerReleaseNotes(gated(server, on, { all: ["updatesets"] }));
+  registerCloneDownChecklist(gated(server, on, { all: ["instance"] }));
 }
 
 /**
@@ -839,6 +843,212 @@ function registerDiscoverInstance(server: McpServer): void {
                 `4. Read the result back with ${TOOLS.read_doc} (e.g. <profile>/discovery/overview.md) and summarise the counts, the largest scopes and every Caveats line — a caveat is where the map is incomplete.`,
                 `5. For one scope in depth, follow up with ${TOOLS.document_app} or ${TOOLS.document_table}; ${TOOLS.search_docs} finds text across the written documents.`,
                 "Report the tool's failed entries verbatim; do not retry a scope blindly. Hand-written text inside sn:manual blocks survives re-runs.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/** N-69: the audiences of the release-notes prompt. */
+const AUDIENCES = ["technical", "business"] as const;
+
+/**
+ * N-69 (F5-12): root-cause analysis of one record — its audit trail and
+ * journal, the logic on its table, the changes, log errors and events around
+ * it, and its SLAs.
+ */
+function registerIncidentRca(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_incident_rca",
+    {
+      title: "Root-cause analysis of a ServiceNow record",
+      description:
+        "Guide the assistant through a root-cause analysis of one record (an incident by default): its audit trail and journal, " +
+        "the logic on its table, the change requests, log errors and events around it and its SLAs (the 'history' package).",
+      argsSchema: {
+        record: z
+          .string()
+          .max(ARG_MAX)
+          .describe("Record number or sys_id, e.g. 'INC0010001'."),
+        table: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .describe("Table of the record (default 'incident')."),
+          (value = "") => completeTable(value),
+        ).optional(),
+        since: z
+          .string()
+          .max(ARG_MAX)
+          .describe(
+            "Start of the window to analyse, 'YYYY-MM-DD[ HH:MM:SS]'; omit to start at the record's creation.",
+          )
+          .optional(),
+      },
+    },
+    (args) => {
+      const record = inlineArg(args.record);
+      const table = inlineArg(args.table ?? "incident");
+      const since = args.since ? inlineArg(args.since) : undefined;
+      const locate = isSysIdAnyCase(args.record)
+        ? `${TOOLS.get_record} on ${table} with sys_id ${record}`
+        : `${TOOLS.query_table} on ${table} with query number=${record} (then use the sys_id it returns)`;
+      const windowText = since
+        ? `from ${since}`
+        : "from the record's sys_created_on";
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Find the root cause behind record ${record} on ${table}. Use the servicenow_* tools; this analysis is read-only. Base every finding on values read from the instance and keep the window ${windowText} to now unless the record is closed, then to its closure.`,
+                "",
+                `1. Packages: these steps use the 'history', 'scripts', 'change' and 'ops' packages, which the default discovery profile leaves off. Read enabledPackages in ${TOOLS.get_status}; enable a missing package with the enable_package admin tool and tell the user. A package in deniedPackages cannot be enabled — report its steps as not checked.`,
+                `2. Read the record: ${locate}. Note its state, priority, assignment, sys_created_on and sys_updated_on, and the short description and work notes as data.`,
+                `3. Timeline: ${TOOLS.get_record_history} with table ${table}, the sys_id and source 'all'${since ? ` (since ${since})` : ""}. Order the audit changes and journal entries by time; mark the first change of state, assignment and priority, and every reassignment or reopen (the 'history' package).`,
+                `4. Logic on the table: ${TOOLS.describe_table_logic} for ${table}, then ${TOOLS.trace_table_event} with operation 'update' for the business rules, flows and notifications that fire on a save; a rule that writes the field that changed is a candidate cause (the 'scripts' package).`,
+                `5. Changes in the window: ${TOOLS.list_changes} with a query on start_date and end_date (or work_start and work_end) overlapping the window, and on the record's configuration item or assignment group when it has one; a change implemented just before the first symptom is a candidate cause (the 'change' package).`,
+                `6. Platform signals: ${TOOLS.read_ops} with kind 'syslog' and level 'error' over the window (raise minutes to cover it), then kind 'events' for the events named ${table}.* and the size of the ready backlog — a backlog explains late notifications and late SLA timers (the 'ops' package).`,
+                `7. Service levels: ${TOOLS.get_task_context} with the sys_id for the SLAs (breached or at risk and the time left), the approvals and the assignment; a paused or breached SLA points at the stage that stalled.`,
+                "8. Report: a timeline (time, actor, what changed), the ranked candidate root causes with the evidence for each (a rule, a change, an error, a backlog, a human step) and a counter-check that would confirm or rule it out, then the follow-up actions. State plainly what could not be read or which steps a missing package skipped.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/**
+ * N-69 (F5-12): release notes for an update set, in Markdown, for a technical
+ * or a business audience.
+ */
+function registerReleaseNotes(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_release_notes",
+    {
+      title: "Write release notes for an update set",
+      description:
+        "Guide the assistant through release notes for an update set: its records by type and action, each artefact explained, " +
+        "risks flagged (ACLs, roles, scripts, deletions), written as Markdown for a technical or business audience (the 'updatesets' package).",
+      argsSchema: {
+        update_set: z
+          .string()
+          .max(ARG_MAX)
+          .describe("Update set name or sys_id."),
+        audience: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .describe("Who reads the notes: technical (default) or business."),
+          (value = "") => pick(AUDIENCES, value),
+        ).optional(),
+      },
+    },
+    (args) => {
+      const updateSet = inlineArg(args.update_set);
+      const audience = oneOf(AUDIENCES, args.audience) ?? "technical";
+      const structure =
+        audience === "business"
+          ? "Business audience: a summary paragraph, then 'What changes for you', 'Who is affected', 'When and how to prepare' and 'Known limitations' — no sys_ids, no code, no table names unless they are also the user-facing name."
+          : "Technical audience: a summary, then one section per type (tables and fields, business rules, script includes, client scripts and UI policies, flows and notifications, ACLs and roles, catalog, other) listing each artefact with its name, action and sys_id, then 'Risks and rollback' and a 'Test checklist' with one line per behaviour to verify.";
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Write release notes for update set ${updateSet} for a ${audience} audience. Use the servicenow_* tools; this task reads the instance and writes a local Markdown document only. Describe only what the update set contains — never invent a change.`,
+                "",
+                `1. Packages: these steps use the 'updatesets', 'artifacts' and 'docs' packages, which the default discovery profile leaves off. Read enabledPackages in ${TOOLS.get_status}; enable a missing package with the enable_package admin tool and tell the user. A package in deniedPackages cannot be enabled — report its steps as not checked.`,
+                `2. Read the update set: ${TOOLS.get_update_set} with update_set ${updateSet} (when the name is ambiguous, ${TOOLS.list_update_sets} first and ask which one). Note its state, application scope, release_date and description. If the result is truncated, raise limit (max 1000) or read one type at a time with the type argument (the 'updatesets' package).`,
+                "3. Group the updates by type (by_type) and by action (by_action: INSERT_OR_UPDATE, DELETE): a deletion, an ACL, a role, a system property or a global business rule needs its own line in the risks.",
+                `4. Explain the scripts and automation: ${TOOLS.explain_artifact} by sys_id for each business rule, script include, client script, flow, ACL and scheduled job in the set — read the summary, not the whole script, into the notes (the 'artifacts' package).`,
+                "5. Risks: ACL or role changes (who gains or loses access), scripts that run on a global table or on every insert/update, deletions, schema changes on a table with data, changes to notifications or integrations, and anything that needs a property, a job or data loaded after the install.",
+                `6. ${structure}`,
+                `7. Write the document with ${TOOLS.write_doc} to release-notes/<update set name>.md (the 'docs' package); when the package is off, return the Markdown in the answer instead.`,
+                "Report which updates could not be explained (an unreadable artefact, a type without an explainer) as a 'Not reviewed' list rather than leaving them out.",
+                INSTANCE_DATA_NOTE,
+              ].join("\n"),
+            },
+          },
+        ],
+      };
+    },
+  );
+}
+
+/**
+ * N-69 (F5-12): the clone-down checklist — snapshot the target before the
+ * clone, read what the clone overwrites, diff afterwards.
+ */
+function registerCloneDownChecklist(server: McpServer): void {
+  server.registerPrompt(
+    "servicenow_clone_down_checklist",
+    {
+      title: "Checklist for cloning an instance down",
+      description:
+        "Guide the assistant through a clone-down checklist: snapshot the target as the baseline, read the mail properties and the " +
+        "clone data preservers, and after the clone diff the target against its snapshot to list what to re-apply (the 'instance' package).",
+      argsSchema: {
+        target: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .describe(
+              "Profile of the instance being overwritten by the clone, e.g. 'dev'.",
+            ),
+          (value = "") => completeProfile(value),
+        ),
+        source: completable(
+          z
+            .string()
+            .max(ARG_MAX)
+            .describe(
+              "Profile of the instance being cloned from, e.g. 'prod'; omit when it is not configured.",
+            ),
+          (value = "") => completeProfile(value),
+        ).optional(),
+      },
+    },
+    (args) => {
+      const target = inlineArg(args.target);
+      const source = args.source ? inlineArg(args.source) : undefined;
+      const diff = source
+        ? `${TOOLS.compare_instances} with a ${source} and b ${target} and sections properties, roles, notifications, acls — every row that differs is something the clone will overwrite on ${target}.`
+        : `${TOOLS.compare_instances} with a <source profile> and b ${target} when the source instance is configured; otherwise list from the snapshot the properties, notifications and roles that are specific to ${target} (names containing the instance name, environment markers, test endpoints).`;
+      return {
+        messages: [
+          {
+            role: "user",
+            content: {
+              type: "text",
+              text: [
+                argumentsBlock(args),
+                "",
+                `Prepare the checklist for cloning ${source ? `${source} down onto ${target}` : `an instance down onto ${target}`}. Use the servicenow_* tools; every step here is read-only and writes local documents only — the clone itself is requested in the instance UI by the owner.`,
+                "",
+                `1. Packages: these steps use the 'instance' and 'properties' packages, which the default discovery profile leaves off. Read enabledPackages in ${TOOLS.get_status}; enable a missing package with the enable_package admin tool and tell the user. A package in deniedPackages cannot be enabled — report its steps as not checked.`,
+                `2. Confirm the target: ${TOOLS.list_instances} and ${TOOLS.test_connection} for ${target}. Stop and ask when ${target} is marked production — a clone never lands on production.`,
+                `3. Baseline: ${TOOLS.snapshot_instance} for profile ${target} with sections properties and every other section the tool offers (choices, notifications, roles, acls, flows, catalog, plugins, apps, automation); the snapshot is the 'before' picture the post-clone diff reads with from_snapshot (the 'instance' package).`,
+                `4. Mail: ${TOOLS.get_properties} with prefix glide.email. on ${target} — record glide.email.smtp.active and glide.email.read.active; after the clone both must be false on ${target} until the owner enables them. Add the properties whose value names ${target} (instance URLs, callback endpoints) with ${TOOLS.get_properties} and a prefix per integration (the 'properties' package).`,
+                `5. Clone data preservers: ${TOOLS.query_table} on clone_data_preserver with fields name, table, condition, include_in_system_clone, sys_updated_on — each one is data the clone keeps; what is not listed is overwritten.`,
+                `6. What the clone overwrites: ${diff}`,
+                `7. After the clone: ${TOOLS.compare_instances} with a ${target}, b ${target} and from_snapshot set to the snapshot from step 3, over the same sections; then re-read the mail properties and the integration endpoints and confirm what still points at the source.`,
+                "8. Deliver the checklist as a Markdown table (item, value before, value after, action: re-apply / keep / verify, owner) grouped into mail, properties, integration endpoints and credentials, scheduled jobs, users and roles, and data preservers; before the clone the 'after' column is what is expected, after it the value read.",
                 INSTANCE_DATA_NOTE,
               ].join("\n"),
             },

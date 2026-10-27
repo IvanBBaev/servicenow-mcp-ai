@@ -69,6 +69,7 @@ const N6_TABLES = new Set([
   "syslog_transaction",
   "ecc_agent",
   "ecc_queue",
+  "sysevent", // N-69
   "sys_db_object",
   "sys_dictionary",
 ]);
@@ -168,7 +169,7 @@ test("overview: counts from every section; one unreadable table degrades alone",
       assert.equal(semaphores.available, false);
       assert.equal(semaphores.table, "sys_semaphore");
       assert.match(semaphores.unavailableReason, /not readable/);
-      for (const k of ["integrations", "transactions", "mid"])
+      for (const k of ["integrations", "transactions", "mid", "events"])
         assert.equal(r.sections[k].available, false, k);
       // No row read in the overview: only the Aggregate API.
       assert.ok(

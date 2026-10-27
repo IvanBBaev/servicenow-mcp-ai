@@ -11,7 +11,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ## servicenow_read_ops
 
-**Read instance operations data.** Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC queue). Unreadable section: available:false + why.
+**Read instance operations data.** Bounded ops views for 'why is it slow' triage: overview, syslog, jobs (sys_trigger), email_queue, events, semaphores, integrations (failed/slow outbound), transactions (slow), mid (MID/ECC). Unreadable section: available:false + why.
 
 **Writes:** Read-only.
 
@@ -19,7 +19,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `kind` | "overview" \| "syslog" \| "jobs" \| "email_queue" \| "semaphores" \| "integrations" \| "transactions" \| "mid" | yes | View to read. |
+| `kind` | "overview" \| "syslog" \| "jobs" \| "email_queue" \| "events" \| "semaphores" \| "integrations" \| "transactions" \| "mid" | yes | View to read. |
 | `minutes` | integer | no | Time window in minutes (default 60, max 1440). |
 | `level` | "error" \| "warning" \| "info" \| "debug" | no | syslog: minimum severity (default 'warning'). |
 | `source` | string | no | syslog: source fragment (contains). |

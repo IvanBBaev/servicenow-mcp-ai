@@ -5786,7 +5786,7 @@
       "package": "ops",
       "title": "Read instance operations data",
       "since": "2.0.1",
-      "description_sha256": "42a052828b077a79bbd085bd6c5a2eba3d032acfcdb8820972d708b613f6c71a",
+      "description_sha256": "a249da048ccf7837e674e261955c130209c939a1578de3c203546afb6a62369e",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -5813,6 +5813,7 @@
               "syslog",
               "jobs",
               "email_queue",
+              "events",
               "semaphores",
               "integrations",
               "transactions",
@@ -5862,8 +5863,8 @@
         "type": "object"
       },
       "sizes": {
-        "description": 233,
-        "inputSchema": 1107,
+        "description": 235,
+        "inputSchema": 1116,
         "paramDescriptions": 388,
         "outputSchema": 155
       }

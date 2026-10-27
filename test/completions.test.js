@@ -424,11 +424,14 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
   }
   assert.deepEqual(await promptNames(undefined), [
     "servicenow_change_impact_analysis",
+    "servicenow_clone_down_checklist",
     "servicenow_discover_instance",
     "servicenow_document_table",
     "servicenow_drift_review",
+    "servicenow_incident_rca",
     "servicenow_incident_triage",
     "servicenow_instance_overview",
+    "servicenow_release_notes",
     "servicenow_safe_write",
     "servicenow_schema_impact",
     "servicenow_security_posture",
@@ -463,6 +466,7 @@ test("prompts are listed only when their packages are enabled (ID-25, M-5)", asy
   // MC-3: drift review needs instance (update sets and artefacts are optional).
   // N-1: so does the upgrade review (the docs step is optional).
   assert.deepEqual(await promptNames(["instance"]), [
+    "servicenow_clone_down_checklist",
     "servicenow_drift_review",
     OVERVIEW,
     "servicenow_upgrade_review",

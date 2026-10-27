@@ -395,7 +395,13 @@ test("M-5: the overview prompt names only real tools", async () => {
                         ? { a: "dev", update_set: "Fix" }
                         : name === "servicenow_schema_impact"
                           ? { kind: "field", name: "incident.priority" }
-                          : {},
+                          : name === "servicenow_incident_rca"
+                            ? { record: "INC0010001" }
+                            : name === "servicenow_release_notes"
+                              ? { update_set: "Fix" }
+                              : name === "servicenow_clone_down_checklist"
+                                ? { target: "dev" }
+                                : {},
       });
       const body = prompt.messages.map((m) => m.content.text ?? "").join("\n");
       for (const [tool] of body.matchAll(/servicenow_[a-z_]+/g)) {
