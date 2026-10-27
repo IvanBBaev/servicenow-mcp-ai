@@ -49,7 +49,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ---- | ---- | :------: | ----------- |
 | `kind` | "test" \| "suite" | no | test (default) or suite. |
 | `sys_id` | string | yes | sys_atf_test (or sys_atf_test_suite) sys_id. |
-| `wait_seconds` | integer | no | Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result. |
+| `wait_seconds` | integer | no | Seconds to poll for the run (default 0: return at once); on timeout wait.tracker is the id for servicenow_get_atf_result. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 

@@ -1608,10 +1608,22 @@ notifications, and cancelling the request stops the wait. A run that is still
 going when the time is up returns `wait.state: "running"` with a `tracker`
 for `servicenow_get_atf_result`.
 
-`servicenow_insert_import_set_row` also returns `import_set_run` (the
-`sys_import_set_run` row of the import set) and `transform_maps` (the staging
-table's maps, the ones this row used marked `used: true`). If either follow-up
-read fails, you get `warnings` instead of an error.
+`servicenow_insert_import_set_row` takes one row (`values`), several (`rows`,
+up to 500) or a file (`file_path`): a `.csv` with a header row or a `.jsonl`
+with one object per line, under `SN_DOCS_DIR` like an upload (the same path
+confinement, symlink check and journal-file refusal; `SN_DOCS_MAX_FILE_BYTES`
+is checked on the stat before the read). Several rows go through
+`POST /api/now/import/{table}/insertMultiple` in one request; an instance
+without that endpoint (404 / 405) gets one request per row, and the call stops
+at the first row that fails (`failed: { index, error }`, `sent` of `rows`
+inserted). The write journal holds one envelope line per call (row count,
+columns, the file and a sha256 of the rows; its write-cap weight is the row
+count) and, in the sequential mode, one line per sent row under the envelope's
+`batch_id`. The plan preview shows `row_count`, `columns` and the first row,
+never the whole file. The result also returns `import_set_run` (the
+`sys_import_set_run` row of the last import set) and `transform_maps` (the
+staging table's maps, the ones the rows used marked `used: true`). If either
+follow-up read fails, you get `warnings` instead of an error.
 
 ### Generic artifact reads
 
@@ -2527,7 +2539,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `table` | string | yes | Table, e.g. 'incident'. |
 | `values` | record<string \| number \| boolean \| null> | yes | Field name/value pairs, e.g. { "short_description": "x" }. |
 | `inputDisplayValue` | boolean | no | Values are display values the instance resolves (sysparm_input_display_value); default false: raw. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -2549,7 +2561,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `sys_id` | string | yes | Record sys_id. |
 | `values` | record<string \| number \| boolean \| null> | yes | Field name/value pairs to change. |
 | `inputDisplayValue` | boolean | no | Values are display values the instance resolves (sysparm_input_display_value); default false: raw. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `expected_mod_count` | integer | no | sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD). |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
@@ -2574,7 +2586,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `expected_action` | "create" \| "update" | no | The plan's action; with apply, refused (STALE_RECORD) if the key now resolves differently. |
 | `expected_sys_id` | string | no | The plan's sys_id; with apply, refused (STALE_RECORD) if the key now matches another record or none. |
 | `inputDisplayValue` | boolean | no | Values are display values the instance resolves (sysparm_input_display_value); default false: raw. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -2594,7 +2606,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table, e.g. 'incident'. |
 | `sys_id` | string | yes | Record sys_id. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `expected_mod_count` | integer | no | sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD). |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
@@ -2832,7 +2844,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ## servicenow_insert_import_set_row
 
-**Insert ServiceNow import set row.** Insert one row into a staging table and run its transform map. Returns the transform result, the run (sys_import_set_run: state, counts) and the table's transform maps, used ones marked.
+**Insert ServiceNow import set row.** Insert one row (values), several (rows) or a CSV/JSONL file under SN_DOCS_DIR (file_path) into a staging table and run its transform map. Returns the transform result, the run (sys_import_set_run) and the transform maps, used ones marked.
 
 **Writes:** Write. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`).
 
@@ -2840,8 +2852,10 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `table` | string | yes | Import staging table, e.g. 'u_imp_incident'. |
-| `values` | record<string \| number \| boolean \| null> | yes | Staging row column name/value pairs. |
+| `table` | string | yes | Staging table, e.g. 'u_imp_incident'. |
+| `values` | record<string \| number \| boolean \| null> | no | One row: column/value pairs. |
+| `rows` | record<string \| number \| boolean \| null>[] | no | Several rows, each column/value pairs. |
+| `file_path` | string | no | CSV (header row) or JSONL file under SN_DOCS_DIR. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -2857,7 +2871,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_get_import_set_row
 
-**Get ServiceNow import set row result.** Read the transform outcome of a staging row.
+**Get ServiceNow import set row result.** Read a staging row's transform outcome.
 
 **Writes:** Read-only.
 
@@ -3485,7 +3499,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "graphql_resolver" \| "graphql_type_resolver" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | yes | Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source. |
+| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "graphql_resolver" \| "graphql_type_resolver" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | yes | Script type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget. |
 | `table` | string | no | Applied table (types that have one). |
 | `name` | string | no | Case-insensitive name fragment. |
 | `active` | boolean | no | Filter by the active flag. |
@@ -3514,7 +3528,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "graphql_resolver" \| "graphql_type_resolver" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | yes | Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source. |
+| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "graphql_resolver" \| "graphql_type_resolver" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | yes | Script type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget. |
 | `sys_id` | string | yes | Script sys_id. |
 | `instance` | string | no | Profile (default active) |
 
@@ -3539,7 +3553,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
 | `text` | string | yes | Substring to search for. |
-| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "graphql_resolver" \| "graphql_type_resolver" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | no | One type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source. |
+| `type` | "business_rule" \| "script_include" \| "client_script" \| "ui_policy" \| "ui_action" \| "scheduled_job" \| "transform" \| "rest_operation" \| "acl" \| "script_action" \| "transform_map" \| "transform_entry" \| "fix_script" \| "email_script" \| "processor" \| "data_source" \| "rest_message_fn" \| "ui_script" \| "ui_page" \| "ui_macro" \| "validation_script" \| "sp_widget" \| "catalog_client_script" \| "dictionary_script" \| "graphql_resolver" \| "graphql_type_resolver" \| "uib_client_script" \| "uib_client_script_include" \| "uib_data_broker_transform" \| "uib_data_broker_scriptlet" \| "sp_ng_template" \| "sp_angular_provider" \| "sp_theme" \| "sp_css" \| "sp_search_source" | no | One type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget. |
 | `table` | string | no | Only scripts applied to this table. |
 | `scope` | string | no | One scope: namespace (e.g. 'x_acme_app') or sys_id. |
 | `limit` | integer | no | Max matches over all types (default 50). |
@@ -3640,7 +3654,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table to trace, e.g. 'incident'. |
 | `operation` | "insert" \| "update" \| "delete" \| "query" | yes | Operation to simulate. |
-| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script. |
+| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Extra lanes besides business rules, flows, workflows and notifications; client = client scripts + UI policies, scheduled_job = text match. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output
@@ -4008,7 +4022,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table to diagram, e.g. 'incident'. |
 | `operation` | "insert" \| "update" \| "delete" \| "query" | no | One operation, with flows, workflows and notifications. |
-| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script. |
+| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Extra lanes besides business rules, flows, workflows and notifications; client = client scripts + UI policies, scheduled_job = text match. |
 | `format` | "inline" \| "file" | no | 'inline' (default) or 'file': write <profile>/diagrams/<name>.mmd, return { path, bytes, preview }. |
 | `instance` | string | no | Profile (default active) |
 
@@ -4317,7 +4331,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ---- | ---- | :------: | ----------- |
 | `kind` | "test" \| "suite" | no | test (default) or suite. |
 | `sys_id` | string | yes | sys_atf_test (or sys_atf_test_suite) sys_id. |
-| `wait_seconds` | integer | no | Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result. |
+| `wait_seconds` | integer | no | Seconds to poll for the run (default 0: return at once); on timeout wait.tracker is the id for servicenow_get_atf_result. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -4611,7 +4625,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `children` | object[] | no | Child records, applied in order after the parent. |
 | `expected_action` | "create" \| "update" | no | From the plan's apply_with; a changed decision gives STALE_RECORD. |
 | `expected_sys_id` | string | no | From the plan's apply_with (parent sys_id). |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 | `plan_token` | string | no | Plan preview token (apply:true) |

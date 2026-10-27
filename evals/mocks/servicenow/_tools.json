@@ -499,7 +499,7 @@
             "type": "boolean"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "type": "string",
             "minLength": 1,
             "maxLength": 100
@@ -542,7 +542,7 @@
             "description": "Record sys_id."
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "type": "string",
             "minLength": 1,
             "maxLength": 100
@@ -1879,7 +1879,7 @@
               "sp_css",
               "sp_search_source"
             ],
-            "description": "Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source."
+            "description": "Script type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget."
           },
           "sys_id": {
             "type": "string",
@@ -2853,7 +2853,7 @@
             "description": "Substring to search for."
           },
           "type": {
-            "description": "One type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "One type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget.",
             "type": "string",
             "enum": [
               "business_rule",
@@ -3252,7 +3252,7 @@
             "description": "Operation to simulate."
           },
           "lanes": {
-            "description": "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script.",
+            "description": "Extra lanes besides business rules, flows, workflows and notifications; client = client scripts + UI policies, scheduled_job = text match.",
             "maxItems": 6,
             "type": "array",
             "items": {
@@ -3347,7 +3347,7 @@
             "type": "boolean"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "type": "string",
             "minLength": 1,
             "maxLength": 100
@@ -3432,7 +3432,7 @@
             "type": "boolean"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "type": "string",
             "minLength": 1,
             "maxLength": 100

@@ -1375,11 +1375,11 @@ items:
     title: "multi-row and file-sourced import"
     pillar: "N"
     effort: "S–M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
-    gates: ["O-5"]
-    notes: "3.2 minor (F5-02). `insert_import_set_row` accepts `rows: []` or `file_path` (CSV / JSONL, header-mapped). `insertMultiple` is unverified (O-5); sequential inserts with one journal entry per row otherwise. ≈ +300 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    done: "2026-10-28"
+    gates: []
+    notes: "**Done 2026-10-28.** 3.2 minor (F5-02). `insert_import_set_row` takes `rows` (≤ 500) or `file_path` (a `.csv` with a header row or a `.jsonl`, under SN_DOCS_DIR with the upload confinement and `SN_DOCS_MAX_FILE_BYTES` on the stat) besides `values`, exactly one of the three. `insertMultiple` in one request; 404 / 405 → one request per row, stopping at the first failure (`failed`, `sent` of `rows`). One journal envelope per call (row count, columns, file, sha256; write-cap weight = rows) plus per-row lines under its `batch_id` in the sequential mode; the preview shows `row_count`, `columns` and the first row. `insertMultiple` itself is still unverified on a PDI (O-5, an owner-consented write); the fallback covers its absence. +339 B on `all` / `all+tasks`, +348 B on `all+legacy`, 0 B on `core` / `discovery`, paid by trimming four shared parameter descriptions (net −472 / −472 / −537 / −144 / −144 B; no tool description changed, offline eval unchanged). `test/importset-n68.test.js`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-69"
     title: "event lane and three prompts"
     pillar: "N"

@@ -39,6 +39,10 @@ const INTENTIONALLY_UNBOUNDED = new Map([
     "M-7 legacy alias of children[].values (SN_LEGACY_TOOL_NAMES=1 only)",
   ],
   ["servicenow_insert_import_set_row.values{}", "field values"],
+  [
+    "servicenow_insert_import_set_row.rows[]{}",
+    "field values (N-68; at most 500 rows, IMPORT_MAX_ROWS)",
+  ],
   ["servicenow_create_change.values{}", "field values"],
   ["servicenow_update_change.values{}", "field values"],
   ["servicenow_create_ci.values{}", "CI attribute values"],

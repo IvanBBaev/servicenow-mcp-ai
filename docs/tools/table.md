@@ -90,7 +90,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `table` | string | yes | Table, e.g. 'incident'. |
 | `values` | record<string \| number \| boolean \| null> | yes | Field name/value pairs, e.g. { "short_description": "x" }. |
 | `inputDisplayValue` | boolean | no | Values are display values the instance resolves (sysparm_input_display_value); default false: raw. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -112,7 +112,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `sys_id` | string | yes | Record sys_id. |
 | `values` | record<string \| number \| boolean \| null> | yes | Field name/value pairs to change. |
 | `inputDisplayValue` | boolean | no | Values are display values the instance resolves (sysparm_input_display_value); default false: raw. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `expected_mod_count` | integer | no | sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD). |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
@@ -137,7 +137,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | `expected_action` | "create" \| "update" | no | The plan's action; with apply, refused (STALE_RECORD) if the key now resolves differently. |
 | `expected_sys_id` | string | no | The plan's sys_id; with apply, refused (STALE_RECORD) if the key now matches another record or none. |
 | `inputDisplayValue` | boolean | no | Values are display values the instance resolves (sysparm_input_display_value); default false: raw. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -157,7 +157,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table, e.g. 'incident'. |
 | `sys_id` | string | yes | Record sys_id. |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `expected_mod_count` | integer | no | sys_mod_count from the plan's apply_with; with apply, a changed record is refused (STALE_RECORD). |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |

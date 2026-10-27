@@ -85,7 +85,7 @@ const waitSeconds = z
   .max(300)
   .optional()
   .describe(
-    "Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result.",
+    "Seconds to poll for the run (default 0: return at once); on timeout wait.tracker is the id for servicenow_get_atf_result.",
   );
 
 /**

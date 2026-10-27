@@ -24,7 +24,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table to trace, e.g. 'incident'. |
 | `operation` | "insert" \| "update" \| "delete" \| "query" | yes | Operation to simulate. |
-| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script. |
+| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Extra lanes besides business rules, flows, workflows and notifications; client = client scripts + UI policies, scheduled_job = text match. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output

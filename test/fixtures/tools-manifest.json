@@ -1302,7 +1302,7 @@
             "type": "string"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -1321,8 +1321,8 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 61,
-        "inputSchema": 996,
-        "paramDescriptions": 488,
+        "inputSchema": 960,
+        "paramDescriptions": 452,
         "outputSchema": 0
       }
     },
@@ -1417,7 +1417,7 @@
             "type": "string"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -1428,8 +1428,8 @@
       },
       "sizes": {
         "description": 45,
-        "inputSchema": 1019,
-        "paramDescriptions": 472,
+        "inputSchema": 983,
+        "paramDescriptions": 436,
         "outputSchema": 0
       }
     },
@@ -2548,7 +2548,7 @@
             "type": "string"
           },
           "lanes": {
-            "description": "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script.",
+            "description": "Extra lanes besides business rules, flows, workflows and notifications; client = client scripts + UI policies, scheduled_job = text match.",
             "items": {
               "enum": [
                 "transform_map",
@@ -2588,8 +2588,8 @@
       },
       "sizes": {
         "description": 212,
-        "inputSchema": 933,
-        "paramDescriptions": 397,
+        "inputSchema": 896,
+        "paramDescriptions": 360,
         "outputSchema": 139
       }
     },
@@ -3334,7 +3334,7 @@
       "package": "importset",
       "title": "Get ServiceNow import set row result",
       "since": "2.0.1",
-      "description_sha256": "1fbe01ea304467d7490a6d0d313f9db47718ec1287057c34c0c2f1cff4dada26",
+      "description_sha256": "3ccd6d5efd5e22f96bd2340f706f03f4f3ac09a201ae8ff9dd62591f99285a6d",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -3370,7 +3370,7 @@
       },
       "legacyParams": { "staging_table": "table" },
       "sizes": {
-        "description": 46,
+        "description": 41,
         "inputSchema": 371,
         "paramDescriptions": 70,
         "outputSchema": 70
@@ -3689,7 +3689,7 @@
             "type": "string"
           },
           "type": {
-            "description": "Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "Script type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget.",
             "enum": [
               "business_rule",
               "script_include",
@@ -3745,8 +3745,8 @@
       },
       "sizes": {
         "description": 70,
-        "inputSchema": 1156,
-        "paramDescriptions": 301,
+        "inputSchema": 983,
+        "paramDescriptions": 128,
         "outputSchema": 149
       }
     },
@@ -4241,7 +4241,7 @@
       "package": "importset",
       "title": "Insert ServiceNow import set row",
       "since": "2.0.1",
-      "description_sha256": "bf04485d476ef98297211d45cec225ab3b339a579fe8246d3c150104b1585a22",
+      "description_sha256": "251587b6a1fa6f689e9a1a83733e416d144d94fca389f7c07e4b5f7e8673875b",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -4255,13 +4255,30 @@
             "description": "true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default).",
             "type": "boolean"
           },
+          "file_path": {
+            "description": "CSV (header row) or JSONL file under SN_DOCS_DIR.",
+            "maxLength": 1024,
+            "type": "string"
+          },
           "instance": {
             "description": "Profile (default active)",
             "maxLength": 128,
             "type": "string"
           },
+          "rows": {
+            "description": "Several rows, each column/value pairs.",
+            "items": {
+              "additionalProperties": {
+                "type": ["string", "number", "boolean", "null"]
+              },
+              "type": "object"
+            },
+            "maxItems": 500,
+            "minItems": 1,
+            "type": "array"
+          },
           "table": {
-            "description": "Import staging table, e.g. 'u_imp_incident'.",
+            "description": "Staging table, e.g. 'u_imp_incident'.",
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           },
@@ -4269,11 +4286,11 @@
             "additionalProperties": {
               "type": ["string", "number", "boolean", "null"]
             },
-            "description": "Staging row column name/value pairs.",
+            "description": "One row: column/value pairs.",
             "type": "object"
           }
         },
-        "required": ["table", "values"],
+        "required": ["table"],
         "type": "object"
       },
       "outputSchema": {
@@ -4287,9 +4304,9 @@
       },
       "legacyParams": { "fields": "values", "staging_table": "table" },
       "sizes": {
-        "description": 188,
-        "inputSchema": 584,
-        "paramDescriptions": 206,
+        "description": 240,
+        "inputSchema": 875,
+        "paramDescriptions": 282,
         "outputSchema": 123
       }
     },
@@ -5180,7 +5197,7 @@
             "type": "string"
           },
           "type": {
-            "description": "Script type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "Script type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget.",
             "enum": [
               "business_rule",
               "script_include",
@@ -5236,8 +5253,8 @@
       },
       "sizes": {
         "description": 108,
-        "inputSchema": 1590,
-        "paramDescriptions": 471,
+        "inputSchema": 1417,
+        "paramDescriptions": 298,
         "outputSchema": 174
       }
     },
@@ -6002,7 +6019,7 @@
             "type": "string"
           },
           "wait_seconds": {
-            "description": "Seconds to wait for the run, polling (default 0: return at once). On timeout wait.state is 'running' and wait.tracker is the id for servicenow_get_atf_result.",
+            "description": "Seconds to poll for the run (default 0: return at once); on timeout wait.tracker is the id for servicenow_get_atf_result.",
             "maximum": 300,
             "minimum": 0,
             "type": "integer"
@@ -6023,8 +6040,8 @@
       "legacyParams": { "suite_sys_id": "sys_id", "test_sys_id": "sys_id" },
       "sizes": {
         "description": 226,
-        "inputSchema": 754,
-        "paramDescriptions": 354,
+        "inputSchema": 717,
+        "paramDescriptions": 317,
         "outputSchema": 142
       }
     },
@@ -6073,7 +6090,7 @@
             "type": "string"
           },
           "type": {
-            "description": "One type; opt-in (read only when named): graphql_resolver, graphql_type_resolver, uib_client_script, uib_client_script_include, uib_data_broker_transform, uib_data_broker_scriptlet, sp_ng_template, sp_angular_provider, sp_theme, sp_css, sp_search_source.",
+            "description": "One type; opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget.",
             "enum": [
               "business_rule",
               "script_include",
@@ -6129,8 +6146,8 @@
       },
       "sizes": {
         "description": 237,
-        "inputSchema": 1592,
-        "paramDescriptions": 526,
+        "inputSchema": 1419,
+        "paramDescriptions": 353,
         "outputSchema": 172
       }
     },
@@ -6630,7 +6647,7 @@
             "type": "string"
           },
           "lanes": {
-            "description": "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script.",
+            "description": "Extra lanes besides business rules, flows, workflows and notifications; client = client scripts + UI policies, scheduled_job = text match.",
             "items": {
               "enum": [
                 "transform_map",
@@ -6673,8 +6690,8 @@
       },
       "sizes": {
         "description": 219,
-        "inputSchema": 742,
-        "paramDescriptions": 261,
+        "inputSchema": 705,
+        "paramDescriptions": 224,
         "outputSchema": 250
       }
     },
@@ -6852,7 +6869,7 @@
             "type": "string"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -6871,8 +6888,8 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 63,
-        "inputSchema": 1234,
-        "paramDescriptions": 574,
+        "inputSchema": 1198,
+        "paramDescriptions": 538,
         "outputSchema": 0
       }
     },
@@ -7054,7 +7071,7 @@
             "type": "string"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -7082,8 +7099,8 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 219,
-        "inputSchema": 2727,
-        "paramDescriptions": 1184,
+        "inputSchema": 2691,
+        "paramDescriptions": 1148,
         "outputSchema": 123
       }
     },
@@ -7136,7 +7153,7 @@
             "type": "string"
           },
           "update_set": {
-            "description": "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+            "description": "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
             "maxLength": 100,
             "minLength": 1,
             "type": "string"
@@ -7155,8 +7172,8 @@
       "legacyParams": { "fields": "values" },
       "sizes": {
         "description": 249,
-        "inputSchema": 1569,
-        "paramDescriptions": 791,
+        "inputSchema": 1533,
+        "paramDescriptions": 755,
         "outputSchema": 0
       }
     },

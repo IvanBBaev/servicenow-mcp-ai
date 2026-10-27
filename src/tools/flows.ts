@@ -32,8 +32,8 @@ export const lanesArg = z
   .max(TRACE_LANES.length)
   .optional()
   .describe(
-    "Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job " +
-      "(text match), client (client scripts + UI policies), data_policy, sla, event_script.",
+    "Extra lanes besides business rules, flows, workflows and notifications; " +
+      "client = client scripts + UI policies, scheduled_job = text match.",
   );
 
 /**

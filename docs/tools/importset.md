@@ -11,7 +11,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ## servicenow_insert_import_set_row
 
-**Insert ServiceNow import set row.** Insert one row into a staging table and run its transform map. Returns the transform result, the run (sys_import_set_run: state, counts) and the table's transform maps, used ones marked.
+**Insert ServiceNow import set row.** Insert one row (values), several (rows) or a CSV/JSONL file under SN_DOCS_DIR (file_path) into a staging table and run its transform map. Returns the transform result, the run (sys_import_set_run) and the transform maps, used ones marked.
 
 **Writes:** Write. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`).
 
@@ -19,8 +19,10 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `table` | string | yes | Import staging table, e.g. 'u_imp_incident'. |
-| `values` | record<string \| number \| boolean \| null> | yes | Staging row column name/value pairs. |
+| `table` | string | yes | Staging table, e.g. 'u_imp_incident'. |
+| `values` | record<string \| number \| boolean \| null> | no | One row: column/value pairs. |
+| `rows` | record<string \| number \| boolean \| null>[] | no | Several rows, each column/value pairs. |
+| `file_path` | string | no | CSV (header row) or JSONL file under SN_DOCS_DIR. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -36,7 +38,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_get_import_set_row
 
-**Get ServiceNow import set row result.** Read the transform outcome of a staging row.
+**Get ServiceNow import set row result.** Read a staging row's transform outcome.
 
 **Writes:** Read-only.
 

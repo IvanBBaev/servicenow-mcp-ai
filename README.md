@@ -1592,10 +1592,22 @@ notifications, and cancelling the request stops the wait. A run that is still
 going when the time is up returns `wait.state: "running"` with a `tracker`
 for `servicenow_get_atf_result`.
 
-`servicenow_insert_import_set_row` also returns `import_set_run` (the
-`sys_import_set_run` row of the import set) and `transform_maps` (the staging
-table's maps, the ones this row used marked `used: true`). If either follow-up
-read fails, you get `warnings` instead of an error.
+`servicenow_insert_import_set_row` takes one row (`values`), several (`rows`,
+up to 500) or a file (`file_path`): a `.csv` with a header row or a `.jsonl`
+with one object per line, under `SN_DOCS_DIR` like an upload (the same path
+confinement, symlink check and journal-file refusal; `SN_DOCS_MAX_FILE_BYTES`
+is checked on the stat before the read). Several rows go through
+`POST /api/now/import/{table}/insertMultiple` in one request; an instance
+without that endpoint (404 / 405) gets one request per row, and the call stops
+at the first row that fails (`failed: { index, error }`, `sent` of `rows`
+inserted). The write journal holds one envelope line per call (row count,
+columns, the file and a sha256 of the rows; its write-cap weight is the row
+count) and, in the sequential mode, one line per sent row under the envelope's
+`batch_id`. The plan preview shows `row_count`, `columns` and the first row,
+never the whole file. The result also returns `import_set_run` (the
+`sys_import_set_run` row of the last import set) and `transform_maps` (the
+staging table's maps, the ones the rows used marked `used: true`). If either
+follow-up read fails, you get `warnings` instead of an error.
 
 ### Generic artifact reads
 

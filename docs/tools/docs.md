@@ -149,7 +149,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Table to diagram, e.g. 'incident'. |
 | `operation` | "insert" \| "update" \| "delete" \| "query" | no | One operation, with flows, workflows and notifications. |
-| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Lanes beyond business rules, flows, workflows, notifications: transform_map, scheduled_job (text match), client (client scripts + UI policies), data_policy, sla, event_script. |
+| `lanes` | "transform_map" \| "scheduled_job" \| "client" \| "data_policy" \| "sla" \| "event_script"[] | no | Extra lanes besides business rules, flows, workflows and notifications; client = client scripts + UI policies, scheduled_job = text match. |
 | `format` | "inline" \| "file" | no | 'inline' (default) or 'file': write <profile>/diagrams/<name>.mmd, return { path, bytes, preview }. |
 | `instance` | string | no | Profile (default active) |
 

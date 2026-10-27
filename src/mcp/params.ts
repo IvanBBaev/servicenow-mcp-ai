@@ -36,7 +36,7 @@ export const updateSetInput = z
   .min(1)
   .optional()
   .describe(
-    "Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured.",
+    "In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured.",
   );
 
 /** The update set an update-set read is about (required, unlike `updateSetInput`). */

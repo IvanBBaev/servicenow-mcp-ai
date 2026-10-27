@@ -185,7 +185,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `children` | object[] | no | Child records, applied in order after the parent. |
 | `expected_action` | "create" \| "update" | no | From the plan's apply_with; a changed decision gives STALE_RECORD. |
 | `expected_sys_id` | string | no | From the plan's apply_with (parent sys_id). |
-| `update_set` | string | no | Update set (sys_id or exact name, in progress) to record the write in; switched for it, then restored. Default SN_UPDATE_SET, else unchanged. Data-row tables are not captured. |
+| `update_set` | string | no | In-progress update set (sys_id or exact name) to capture the write in, restored after. Default SN_UPDATE_SET; data rows are never captured. |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 | `plan_token` | string | no | Plan preview token (apply:true) |

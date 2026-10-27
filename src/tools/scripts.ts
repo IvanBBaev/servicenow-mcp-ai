@@ -26,8 +26,10 @@ const scriptType = z.enum([
   ...OPT_IN_SCRIPT_TYPE_NAMES,
 ] as [string, ...string[]]);
 
-// N-0: the enum already lists every value; the description names only the opt-in ones.
-const OPT_IN_NOTE = `opt-in (read only when named): ${OPT_IN_SCRIPT_TYPE_NAMES.join(", ")}`;
+// N-0: the enum already lists every value; the description names only the opt-in
+// families (every sp_* type except sp_widget is opt-in).
+const OPT_IN_NOTE =
+  "opt-in (read only when named): graphql_*, uib_*, sp_* except sp_widget";
 
 const scopeInput = shortText()
   .optional()
