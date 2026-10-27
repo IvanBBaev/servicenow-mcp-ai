@@ -49,6 +49,7 @@ import {
 } from "./http-auth.js";
 import { guardListenWire } from "./listen.js";
 import { testConnection, type ConnectionProbe } from "../api/diagnostics.js";
+import { ServiceNowError } from "../core/errors.js";
 
 /**
  * Constant-time bearer check for the HTTP transport: true only when the
@@ -357,8 +358,11 @@ async function startHttp(
     // D-5 / H-7 (B6): a container binds 0.0.0.0 — without a token anyone who
     // can reach the port drives the instance with the configured credentials.
     if (httpRequireToken()) {
-      throw new Error(
+      throw new ServiceNowError(
         `Refusing to bind the HTTP transport to ${host} without SN_HTTP_TOKEN — set SN_HTTP_TOKEN or SN_HTTP_TOKEN_FILE, bind 127.0.0.1, or set SN_HTTP_REQUIRE_TOKEN=0 to accept every client`,
+        undefined,
+        undefined,
+        { code: "NOT_CONFIGURED" },
       );
     }
     logger.warn(

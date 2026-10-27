@@ -3,6 +3,35 @@ import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 import globals from "globals";
 
+// N-87: a bare `catch {` that does not rethrow swallows the failure on
+// purpose, and the purpose has to be written down — the block carries a
+// `// swallowed: <why>` comment. A `catch (error)` is free to log or narrow,
+// and a block that rethrows needs no note.
+const swallowedCatch = {
+  meta: {
+    type: "suggestion",
+    docs: {
+      description: "a bare catch that swallows must say why (`// swallowed:`)",
+    },
+    schema: [],
+    messages: {
+      missing:
+        "A bare `catch {` that does not rethrow must explain itself with a `// swallowed: <reason>` comment inside the block.",
+    },
+  },
+  create(context) {
+    return {
+      CatchClause(node) {
+        if (node.param) return;
+        if (node.body.body.some((s) => s.type === "ThrowStatement")) return;
+        const comments = context.sourceCode.getCommentsInside(node.body);
+        if (comments.some((c) => /^\s*swallowed:/.test(c.value))) return;
+        context.report({ node, messageId: "missing" });
+      },
+    };
+  },
+};
+
 export default tseslint.config(
   // docs/ holds the hand-authored GitHub Pages site (browser JS/CSS/HTML) and
   // the runtime self-documentation store — neither is part of the Node/TS
@@ -32,16 +61,40 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    plugins: { local: { rules: { "swallowed-catch": swallowedCatch } } },
     rules: {
       // The one we are really after: a forgotten await in an async tool
       // handler silently drops errors.
       "@typescript-eslint/no-floating-promises": "error",
+      "local/swallowed-catch": "error",
       // E-7: no-unsafe-assignment / no-unsafe-member-access are on (the
       // recommendedTypeChecked default): untyped JSON is unwrapped as
       // `unknown` and narrowed, never as `any`.
       "@typescript-eslint/restrict-template-expressions": [
         "error",
         { allowNumber: true, allowBoolean: true },
+      ],
+    },
+  },
+  // N-87: every error the server raises on purpose carries an M-2 code, so a
+  // tool result can name who failed and how to fix it — a plain `Error` under
+  // the four layers is a contract gap. The CLI entry points (cli.ts,
+  // migrate*.ts) print to a terminal and keep plain errors.
+  {
+    files: [
+      "src/api/**/*.ts",
+      "src/mcp/**/*.ts",
+      "src/tools/**/*.ts",
+      "src/core/**/*.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: 'ThrowStatement > NewExpression[callee.name="Error"]',
+          message:
+            "Throw a ServiceNowError (core/errors.ts) with a code, not a plain Error.",
+        },
       ],
     },
   },

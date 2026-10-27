@@ -338,7 +338,7 @@ function assertCanonicalPath(url: string, index: number): void {
   try {
     decodedPath = decodeURIComponent(rawPath);
   } catch {
-    // malformed percent-encoding — police the raw form only
+    // swallowed: malformed percent-encoding; the raw form alone is policed
   }
   if (hasTraversalSegments(rawPath) || hasTraversalSegments(decodedPath)) {
     throw new ServiceNowError(
@@ -376,6 +376,7 @@ function decodeBody(encoded: string | undefined): unknown {
   try {
     return JSON.parse(text);
   } catch {
+    // swallowed: not JSON; the raw text is the body
     return text;
   }
 }

@@ -40,7 +40,7 @@ export function parseFrontmatter(content: string): {
       try {
         value = String(JSON.parse(value));
       } catch {
-        // keep the raw text
+        // swallowed: not a JSON string; the raw text is kept
       }
     }
     fields[kv[1]!] = value;
@@ -69,6 +69,7 @@ export function fieldsOf(content: string, ext: string): DocFields | undefined {
     }
     return Object.keys(fields).length > 0 ? fields : undefined;
   } catch {
+    // swallowed: an unreadable or malformed document has no front matter
     return undefined;
   }
 }
@@ -206,6 +207,7 @@ export function instanceHost(profile: string): string {
       .instance.replace(/^https?:\/\//i, "")
       .replace(/\/.*$/, "");
   } catch {
+    // swallowed: no credentials for the profile; no instance in the front matter
     return "";
   }
 }

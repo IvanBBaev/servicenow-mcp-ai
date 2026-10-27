@@ -107,6 +107,7 @@ export function npmLs(timeoutMs = 20_000): Promise<unknown> {
           // prints the tree — use it whenever it parses.
           resolve(JSON.parse(stdout));
         } catch {
+          // swallowed: npm ls printed no tree; its first error line is reported
           resolve({
             error: error ? error.message.split("\n")[0] : "unparseable output",
           });

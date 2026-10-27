@@ -18,6 +18,7 @@ import {
   rawSetting,
   settingSource,
 } from "./settings-manifest.js";
+import { ServiceNowError } from "./errors.js";
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_RETRIES = 2;
@@ -395,8 +396,11 @@ export function getHttpOAuth(): HttpOAuthSettings | undefined {
   if (!issuer) return undefined;
   const resource = readString("SN_HTTP_OAUTH_RESOURCE");
   if (!resource) {
-    throw new Error(
+    throw new ServiceNowError(
       "SN_HTTP_OAUTH_ISSUER is set but SN_HTTP_OAUTH_RESOURCE is not — set it to this server's public URI (the token audience)",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const jwksUri = readString("SN_HTTP_OAUTH_JWKS_URI");
@@ -404,8 +408,11 @@ export function getHttpOAuth(): HttpOAuthSettings | undefined {
   const clientId = readString("SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID");
   const clientSecret = readString("SN_HTTP_OAUTH_INTROSPECTION_SECRET");
   if (introspectionUri && (!clientId || !clientSecret)) {
-    throw new Error(
+    throw new ServiceNowError(
       "SN_HTTP_OAUTH_INTROSPECTION_URI is set but SN_HTTP_OAUTH_INTROSPECTION_CLIENT_ID / SN_HTTP_OAUTH_INTROSPECTION_SECRET are not — the endpoint needs this server's client credentials",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   return {
@@ -435,22 +442,31 @@ export interface HttpUserTokenSettings {
 export function getHttpUserTokens(): HttpUserTokenSettings | undefined {
   if (!readBool("SN_HTTP_OAUTH_USER_TOKENS")) return undefined;
   if (!readString("SN_HTTP_OAUTH_ISSUER")) {
-    throw new Error(
+    throw new ServiceNowError(
       "SN_HTTP_OAUTH_USER_TOKENS is on but SN_HTTP_OAUTH_ISSUER is not set — per-user tokens need an authenticated OAuth subject",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const match = readString("SN_HTTP_OAUTH_USER_MATCH") ?? "email=email";
   const m = /^([A-Za-z0-9_.:-]+)=([a-z0-9_]+)$/.exec(match);
   if (!m) {
-    throw new Error(
+    throw new ServiceNowError(
       `SN_HTTP_OAUTH_USER_MATCH must be <claim>=<sys_user field> (got "${match}")`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const raw = readString("SN_HTTP_OAUTH_TOKEN_KEY");
   const key = raw ? decodeKey(raw) : undefined;
   if (!key) {
-    throw new Error(
+    throw new ServiceNowError(
       "SN_HTTP_OAUTH_USER_TOKENS is on but SN_HTTP_OAUTH_TOKEN_KEY is missing or not a 32-byte base64/hex key",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   const storePath = readString("SN_HTTP_OAUTH_TOKEN_STORE");

@@ -98,6 +98,7 @@ export function resolveSecretIndex(): Promise<SecretColumnIndex | null> {
   try {
     key = secretIndexKey();
   } catch {
+    // swallowed: no credentials resolvable; no index
     return Promise.resolve(null);
   }
   return resolveCached(key, loadIndex);

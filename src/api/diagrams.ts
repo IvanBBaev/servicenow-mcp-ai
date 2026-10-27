@@ -226,6 +226,7 @@ async function detailedEr(
     try {
       chain = await getTableChain(table);
     } catch {
+      // swallowed: a table whose chain is unreadable is drawn without its parent
       continue;
     }
     const parent = chain.slice(1).find((p) => drawn.has(p));

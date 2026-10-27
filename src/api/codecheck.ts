@@ -156,6 +156,7 @@ async function uibContextFor(
         })
       : {};
   } catch {
+    // swallowed: an unreadable macroponent gives the lint no context
     return {};
   }
 }

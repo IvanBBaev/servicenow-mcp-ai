@@ -95,6 +95,7 @@ export function flushStdio(
       try {
         stream.write("", once);
       } catch {
+        // swallowed: a stream that refuses the write is flushed as if it had drained
         once();
       }
     }
@@ -148,7 +149,7 @@ export function handleCrash(
   try {
     logger.error(CRASH_MESSAGE[kind], crashFields(reason));
   } catch {
-    // Logging must never stand between a crash and the exit.
+    // swallowed: logging must never stand between a crash and the exit
   }
   let exited = false;
   const finish = (): void => {
@@ -161,6 +162,7 @@ export function handleCrash(
   try {
     process.stderr.write("", finish);
   } catch {
+    // swallowed: a stderr that refuses the write must not delay the exit
     finish();
   }
 }

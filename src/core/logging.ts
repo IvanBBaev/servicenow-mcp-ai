@@ -73,7 +73,7 @@ function emit(
   try {
     sink?.(level, message, merged);
   } catch {
-    // A failing sink must never break (or recurse into) logging.
+    // swallowed: a failing sink must never break (or recurse into) logging
   }
 }
 

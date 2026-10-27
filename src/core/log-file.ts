@@ -113,6 +113,7 @@ function sizeOf(file: string): number {
   try {
     return statSync(file).size;
   } catch {
+    // swallowed: a missing log file has size 0
     return 0;
   }
 }
@@ -127,7 +128,7 @@ export function rotateLogFile(file: string): void {
     try {
       renameSync(`${file}.${n}`, `${file}.${n + 1}`);
     } catch {
-      // That generation does not exist (yet).
+      // swallowed: that generation does not exist (yet)
     }
   }
   renameSync(file, `${file}.1`);

@@ -443,6 +443,7 @@ export function redactUrl(raw: string): string {
     const u = new URL(text);
     return clip(`${u.protocol}//${u.host}${u.pathname}`, 300);
   } catch {
+    // swallowed: not a URL; the bare text is clipped with credentials stripped
     const bare = text.split(/[?#]/)[0] ?? "";
     return clip(bare.replace(/\/\/[^/@]*@/, "//"), 300);
   }
@@ -452,6 +453,7 @@ const hostOf = (raw: string): string => {
   try {
     return new URL(raw.trim()).host || "(unknown)";
   } catch {
+    // swallowed: not a URL; the host is unknown
     return "(unknown)";
   }
 };
@@ -476,14 +478,18 @@ async function requireFields(
   try {
     columns = await describeTable(table);
   } catch {
+    // swallowed: an unreadable dictionary cannot verify the fields
     return fields;
   }
   if (columns.length === 0) return fields;
   const known = new Set(columns.map((c) => c.element));
   const missing = fields.filter((f) => !known.has(f));
   if (missing.length) {
-    throw new Error(
+    throw new ServiceNowError(
       `field ${missing.join(", ")} not found in the dictionary (O-5: the field names were verified on a 2026-10 PDI; this release differs).`,
+      undefined,
+      undefined,
+      { code: "NOT_FOUND" },
     );
   }
   return [];

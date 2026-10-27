@@ -68,6 +68,7 @@ async function readRuns(root: string): Promise<Record<string, ManifestRun>> {
     const runs = (JSON.parse(raw) as { runs?: unknown }).runs;
     return isPlainObject(runs) ? (runs as Record<string, ManifestRun>) : {};
   } catch {
+    // swallowed: a missing or malformed index has no runs
     return {};
   }
 }
@@ -207,6 +208,7 @@ export async function docsManifest(): Promise<ManifestEntry[] | undefined> {
       ? (files as ManifestEntry[]).filter((e) => typeof e?.path === "string")
       : undefined;
   } catch {
+    // swallowed: a missing or malformed index has no manifest
     return undefined;
   }
 }

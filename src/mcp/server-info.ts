@@ -75,6 +75,7 @@ function hostOf(instance: string): string {
   try {
     return instance ? resolveHost(instance) : "";
   } catch {
+    // swallowed: an unresolvable instance shows an empty host
     return "";
   }
 }

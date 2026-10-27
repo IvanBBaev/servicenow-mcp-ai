@@ -862,6 +862,7 @@ export async function completeDocPath(value: string): Promise<string[]> {
       "",
     );
   } catch {
+    // swallowed: an unreadable manifest completes nothing
     return [];
   }
 }

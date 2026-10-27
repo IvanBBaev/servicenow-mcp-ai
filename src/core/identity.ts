@@ -55,6 +55,7 @@ export function clientToken(): string {
   try {
     info = clientInfoProvider?.();
   } catch {
+    // swallowed: a throwing provider means no client info
     info = undefined;
   }
   if (!info?.name) return "unknown";

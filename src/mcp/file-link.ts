@@ -27,6 +27,7 @@ export function fileLinkOf(
   try {
     body = JSON.parse(text);
   } catch {
+    // swallowed: not JSON; no file link
     return undefined;
   }
   const { format, path: rel, bytes } = (body ?? {}) as Record<string, unknown>;

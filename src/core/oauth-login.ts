@@ -51,6 +51,7 @@ export function parseRedirect(
   try {
     url = new URL(requestUrl, "http://localhost");
   } catch {
+    // swallowed: a malformed redirect request is answered, not thrown
     return { error: "malformed redirect request", ignored: true };
   }
   if (expectedPath !== undefined && url.pathname !== expectedPath) {
@@ -91,6 +92,7 @@ export function browserCommand(
   try {
     protocol = new URL(url).protocol;
   } catch {
+    // swallowed: an unparseable URL is not opened
     return undefined;
   }
   if (protocol !== "https:" && protocol !== "http:") return undefined;
@@ -114,7 +116,7 @@ function openBrowser(url: string): void {
     });
     child.unref();
   } catch {
-    /* ignore — the URL is printed for manual opening */
+    // swallowed: the browser could not be spawned; the URL is printed for manual opening
   }
 }
 

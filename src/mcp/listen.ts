@@ -166,6 +166,7 @@ function frameMessage(frame: string): unknown {
   try {
     return JSON.parse(data);
   } catch {
+    // swallowed: a frame that is not JSON carries no message
     return;
   }
 }
@@ -216,7 +217,8 @@ async function bodyOf(request: Request, parsedBody: unknown): Promise<unknown> {
   try {
     return await request.clone().json();
   } catch {
-    return; // the entry answers the parse error
+    // swallowed: the entry answers the parse error
+    return;
   }
 }
 

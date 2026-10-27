@@ -224,7 +224,7 @@ export async function getFlow(
   try {
     trigger = await readTrigger(sysId);
   } catch {
-    // trigger optional
+    // swallowed: the trigger is optional
   }
   const ctx: ReadCtx = {
     caveats: [],

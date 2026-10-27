@@ -147,7 +147,7 @@ function readStore(path: string): StoreFile {
     if (parsed?.v === 1 && parsed.entries && typeof parsed.entries === "object")
       return parsed;
   } catch {
-    // fall through
+    // swallowed: an unreadable or malformed store is reported by the warning below
   }
   logger.warn(
     "The OAuth user-token store is unreadable — treating it as empty",
@@ -206,6 +206,7 @@ function unseal(
       ? value
       : undefined;
   } catch {
+    // swallowed: an undecryptable or malformed entry is treated as absent
     return undefined;
   }
 }
@@ -311,7 +312,12 @@ function clientFor(profile: string): {
 export function callbackUrl(): string {
   const oauth = getHttpOAuth();
   if (!oauth) {
-    throw new Error("SN_HTTP_OAUTH_USER_TOKENS needs SN_HTTP_OAUTH_ISSUER");
+    throw new ServiceNowError(
+      "SN_HTTP_OAUTH_USER_TOKENS needs SN_HTTP_OAUTH_ISSUER",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
+    );
   }
   return new URL(CALLBACK_PATH, oauth.resource).href;
 }
@@ -393,6 +399,7 @@ function openState(
       ? value
       : undefined;
   } catch {
+    // swallowed: an undecryptable or malformed link state is treated as absent
     return undefined;
   }
 }
@@ -464,7 +471,10 @@ function delegatedIdentity(settings: HttpUserTokenSettings): {
 } {
   const subject = delegatedSubject();
   const login = currentSession()?.login;
-  if (!subject) throw new Error("not a delegated request");
+  if (!subject)
+    throw new ServiceNowError("not a delegated request", undefined, undefined, {
+      code: "INTERNAL_ERROR",
+    });
   if (!login) {
     throw new ServiceNowError(
       `The access token carries no "${settings.claim}" claim, so its ServiceNow account cannot be verified (SN_HTTP_OAUTH_USER_MATCH).`,
@@ -498,7 +508,13 @@ export async function userTokenHeaders(
 
 async function userAccessToken(host: string): Promise<string> {
   const settings = getHttpUserTokens();
-  if (!settings) throw new Error("SN_HTTP_OAUTH_USER_TOKENS is off");
+  if (!settings)
+    throw new ServiceNowError(
+      "SN_HTTP_OAUTH_USER_TOKENS is off",
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
+    );
   const { subject, login } = delegatedIdentity(settings);
   const profile = activeProfile();
   const key = linkKey(subject, profile, host);

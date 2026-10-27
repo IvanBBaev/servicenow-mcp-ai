@@ -552,6 +552,7 @@ export async function traceTableFlow(
   try {
     tables = await getTableChain(t);
   } catch {
+    // swallowed: an unreadable table chain falls back to the table itself
     tables = [t];
   }
   const { scripts } = await listScripts({

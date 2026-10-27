@@ -88,6 +88,7 @@ export async function tableAvailable(
     });
     return records.length > 0;
   } catch {
+    // swallowed: a failed read leaves the availability undecided
     return undefined;
   }
 }

@@ -42,6 +42,7 @@ function tryParse(text: string): { ok: true; value: unknown } | { ok: false } {
   try {
     return { ok: true, value: JSON.parse(text) };
   } catch {
+    // swallowed: the caller asked whether the text parses
     return { ok: false };
   }
 }

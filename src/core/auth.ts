@@ -156,6 +156,7 @@ export function reloadBearerTokenFile(): boolean {
   try {
     next = readTokenFile(file);
   } catch {
+    // swallowed: an unreadable token file keeps the previous token
     return false;
   }
   files.set(file, next);

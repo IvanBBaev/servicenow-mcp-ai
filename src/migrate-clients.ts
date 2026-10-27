@@ -144,11 +144,13 @@ export function planClientFile(
   try {
     root = JSON.parse(text);
   } catch {
+    // swallowed: not plain JSON; the JSONC retry below decides
     plainJson = false;
     // JSONC (comments, trailing commas): parse a stripped copy to report.
     try {
       root = JSON.parse(stripJsonc(text));
     } catch {
+      // swallowed: not JSON at all; the file is reported with no servers
       return { ...file, servers: [] };
     }
   }
@@ -217,6 +219,7 @@ export function planClientFiles(
     try {
       text = readFileSync(file.path, "utf8");
     } catch {
+      // swallowed: an unreadable client file is skipped, not migrated
       continue;
     }
     const plan = planClientFile(file, text, v3Defaults);

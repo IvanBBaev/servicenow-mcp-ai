@@ -56,6 +56,7 @@ export function schemaIssues(error: unknown): Issue[] | undefined {
   try {
     parsed = JSON.parse(json);
   } catch {
+    // swallowed: not JSON; not a zod issue list
     return;
   }
   if (!Array.isArray(parsed) || parsed.length === 0) return;

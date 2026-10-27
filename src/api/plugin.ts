@@ -113,7 +113,7 @@ export const defaultPluginProbe: PluginProbe = async (ids) => {
         ...(hit.name ? { name: hit.name } : {}),
       };
     } catch {
-      // Try the next source; both failing means "unknown".
+      // swallowed: try the next source; both failing means unknown
     }
   }
   return undefined;
@@ -232,6 +232,7 @@ export async function pluginCall<T>(
           try {
             verdict = await probe(ids);
           } catch {
+            // swallowed: a failed probe leaves the verdict undecided
             verdict = undefined;
           }
         }

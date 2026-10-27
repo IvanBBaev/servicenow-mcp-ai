@@ -74,6 +74,7 @@ export function httpStatusPayload(instance: string) {
   try {
     host = instance ? resolveHost(instance) : "";
   } catch {
+    // swallowed: an unresolvable instance shows an empty host
     host = "";
   }
   const policy = describeDispatcher(host);
@@ -142,6 +143,7 @@ function docsStatus() {
       accessSync(dir, constants.W_OK);
       writable = true;
     } catch {
+      // swallowed: the access check answers the question (not writable)
       writable = false;
     }
   }

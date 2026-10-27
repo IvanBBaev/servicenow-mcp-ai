@@ -609,6 +609,7 @@ async function readState(profile: string): Promise<PrevState | undefined> {
         await fs.readFile(path.join(getDocsDir(), profile, rel), "utf8"),
       ) as Record<string, unknown>;
     } catch {
+      // swallowed: a missing or malformed snapshot reads as empty
       return {};
     }
   };

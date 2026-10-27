@@ -137,7 +137,7 @@ export async function startServer(runtime: Runtime): Promise<void> {
       await closeStdioTransport();
       await runtime.dispose();
     } catch {
-      // ignore errors raised while closing during shutdown
+      // swallowed: errors raised while closing during shutdown change nothing
     }
     // stdio pipes are asynchronous: let the last frames and log lines out.
     await flushStdio();

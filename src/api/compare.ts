@@ -175,6 +175,7 @@ export async function readSnapshotJson(
     );
     return JSON.parse(raw) as unknown;
   } catch {
+    // swallowed: a missing or malformed file has no snapshot
     return undefined;
   }
 }

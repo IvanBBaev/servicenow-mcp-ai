@@ -29,7 +29,7 @@ see the [README](README.md#configure-credentials) for the resolution order.
 
 ```bash
 npm run check      # the full gate: build, lint, format check, tests with
-                   # coverage thresholds (lines 94 / branches 82 / functions 97,
+                   # coverage thresholds (lines 97 / branches 88 / functions 97,
                    # in .c8rc.json), eval mock drift
                    # (eval:mocks:check), tool-surface scan
                    # (scan:surface), tarball guard (pack:check), footprint

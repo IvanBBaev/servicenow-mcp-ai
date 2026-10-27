@@ -105,6 +105,7 @@ export async function captureBefore(
   try {
     return await read();
   } catch {
+    // swallowed: a failed pre-write read never blocks the write
     return undefined;
   }
 }

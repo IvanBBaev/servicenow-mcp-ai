@@ -23,6 +23,7 @@ export function redirectTarget(res: Response, requestUrl: string): string {
   try {
     return new URL(location, requestUrl).host || "(unparseable Location)";
   } catch {
+    // swallowed: an unparseable Location header is described, not thrown
     return "(unparseable Location)";
   }
 }
@@ -41,7 +42,7 @@ export async function discardBody(res: Response): Promise<void> {
   try {
     await res.body?.cancel();
   } catch {
-    // Already consumed or errored — nothing to release.
+    // swallowed: the body is already consumed or errored; nothing to release
   }
 }
 
@@ -88,6 +89,7 @@ export async function readTextPrefix(
   try {
     return (await readUpTo(res, limit)).bytes.toString("utf8");
   } catch {
+    // swallowed: an unreadable body reads as empty
     return "";
   }
 }
@@ -145,6 +147,7 @@ export async function readJsonBody(
   try {
     return JSON.parse(text) as unknown;
   } catch {
+    // swallowed: not JSON; the raw text is kept
     return { raw: text };
   }
 }

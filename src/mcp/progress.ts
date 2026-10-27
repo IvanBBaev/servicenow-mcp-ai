@@ -60,7 +60,7 @@ export function createProgressSink(
     try {
       void Promise.resolve(send(notification)).catch(() => undefined);
     } catch {
-      // A transport that throws synchronously is ignored the same way.
+      // swallowed: a transport that throws synchronously is ignored the same way
     }
   };
 

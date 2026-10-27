@@ -453,46 +453,49 @@ async function withUpdateSetAccess(
   entry: MatrixEntry,
   keyPrefix: string,
 ): Promise<MatrixEntry> {
-  let canRead: boolean | null;
-  try {
-    // An undecided preference probe (no user, policy denial) adds no request.
-    if (entry.status === "unknown") throw new Error("not probed");
-    assertTableAllowed("sys_update_set");
-    const key = `${keyPrefix}|update_sets.read`;
-    const hit = cache().get(key);
-    let read = hit && hit.until > Date.now() ? hit.entry : undefined;
-    if (!read) {
-      const probe = tableRead("sys_update_set", undefined);
-      const { entry: fresh, cacheable } = await runProbe({
-        ...probe,
-        interpret: (rows) =>
-          rows?.length ? { status: "available" } : { status: "unavailable" },
-      });
-      read = fresh;
-      if (cacheable) {
-        cache().set(key, {
-          entry: fresh,
-          until:
-            Date.now() +
-            (fresh.status === "available"
-              ? getCapabilityTtlMs()
-              : getPluginNegativeTtlMs()),
+  // An undecided preference probe (no user, policy denial) adds no request.
+  let canRead: boolean | null = null;
+  if (entry.status !== "unknown") {
+    try {
+      assertTableAllowed("sys_update_set");
+      const key = `${keyPrefix}|update_sets.read`;
+      const hit = cache().get(key);
+      let read = hit && hit.until > Date.now() ? hit.entry : undefined;
+      if (!read) {
+        const probe = tableRead("sys_update_set", undefined);
+        const { entry: fresh, cacheable } = await runProbe({
+          ...probe,
+          interpret: (rows) =>
+            rows?.length ? { status: "available" } : { status: "unavailable" },
         });
+        read = fresh;
+        if (cacheable) {
+          cache().set(key, {
+            entry: fresh,
+            until:
+              Date.now() +
+              (fresh.status === "available"
+                ? getCapabilityTtlMs()
+                : getPluginNegativeTtlMs()),
+          });
+        }
       }
+      canRead =
+        read.status === "available"
+          ? true
+          : read.status === "unavailable"
+            ? false
+            : null;
+    } catch {
+      // swallowed: a denied or failed probe leaves the access undecided
+      canRead = null;
     }
-    canRead =
-      read.status === "available"
-        ? true
-        : read.status === "unavailable"
-          ? false
-          : null;
-  } catch {
-    canRead = null;
   }
   let prefAllowed = true;
   try {
     assertTableAllowed("sys_user_preference");
   } catch {
+    // swallowed: the policy check answers the question (preferences denied)
     prefAllowed = false;
   }
   const canSet =

@@ -15,7 +15,7 @@
   `flushAsync()`.
 - **Property tests** use fast-check with `fcParams()`; the seed is fixed
   (`SN_FC_SEED` overrides it), so a failure is reproducible.
-- **Coverage ratchet** (`npm run test:coverage`, c8): lines 94, branches 82,
+- **Coverage ratchet** (`npm run test:coverage`, c8): lines 97, branches 88,
   functions 97, defined once in `.c8rc.json` — scripts imported by tests
   count too.
 - **Contracts:** `test/fixtures/tools-manifest.json` is the tools contract —

@@ -126,6 +126,7 @@ async function currentUpdateSetId(): Promise<string | undefined> {
     });
     return s(records[0], "value") || undefined;
   } catch {
+    // swallowed: best effort; no preference means no current update set
     return undefined;
   }
 }

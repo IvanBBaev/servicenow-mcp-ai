@@ -94,7 +94,7 @@ function jsonHeadFields(head: string): DocFields | undefined {
     try {
       value = String(JSON.parse(value));
     } catch {
-      // keep the raw text
+      // swallowed: not a JSON string; the raw text is kept
     }
     fields[m[1]!] = value;
   }

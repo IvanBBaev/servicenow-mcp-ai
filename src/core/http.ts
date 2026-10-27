@@ -323,6 +323,7 @@ export function parseJsonOrThrowHtml(
   try {
     return JSON.parse(text) as unknown;
   } catch {
+    // swallowed: not JSON; the raw text is kept
     return { raw: text };
   }
 }

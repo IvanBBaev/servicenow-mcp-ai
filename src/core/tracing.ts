@@ -162,6 +162,7 @@ export function resultErrorCode(result: ResultLike): string | undefined {
     const code = (JSON.parse(text) as { code?: unknown }).code;
     return typeof code === "string" ? code : undefined;
   } catch {
+    // swallowed: not JSON; no error code to report
     return undefined;
   }
 }

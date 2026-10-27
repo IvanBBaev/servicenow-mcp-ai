@@ -653,13 +653,13 @@ function updateEnvFile(updates: Record<string, string>): void {
     try {
       unlinkSync(tmpPath);
     } catch {
-      // already gone (or never created)
+      // swallowed: the temp file is already gone (or was never created)
     }
     throw error;
   }
   try {
     chmodSync(path, 0o600);
   } catch {
-    // platforms without POSIX file modes (Windows) — ignore
+    // swallowed: platforms without POSIX file modes (Windows) have nothing to set
   }
 }

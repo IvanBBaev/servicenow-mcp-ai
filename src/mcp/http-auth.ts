@@ -8,6 +8,7 @@ import {
   type KeyObject,
 } from "node:crypto";
 import type { AuthInfo } from "@modelcontextprotocol/server";
+import { ServiceNowError } from "../core/errors.js";
 
 /**
  * N-17 (O-15) — the HTTP transport as an OAuth 2.1 resource server.
@@ -116,6 +117,7 @@ export function canonicalResource(uri: string): string | undefined {
   try {
     url = new URL(uri);
   } catch {
+    // swallowed: an unparseable URI is not a resource
     return undefined;
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return undefined;
@@ -138,8 +140,11 @@ function isLoopbackUrl(url: URL): boolean {
 export function validateOAuthConfig(config: OAuthResourceConfig): void {
   const resource = canonicalResource(config.resource);
   if (!resource) {
-    throw new Error(
+    throw new ServiceNowError(
       `SN_HTTP_OAUTH_RESOURCE must be an absolute http(s) URI without a fragment (got ${JSON.stringify(config.resource)})`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   for (const [key, value] of [
@@ -152,10 +157,20 @@ export function validateOAuthConfig(config: OAuthResourceConfig): void {
     try {
       url = new URL(value);
     } catch {
-      throw new Error(`${key} must be an absolute URI (got ${value})`);
+      throw new ServiceNowError(
+        `${key} must be an absolute URI (got ${value})`,
+        undefined,
+        undefined,
+        { code: "NOT_CONFIGURED" },
+      );
     }
     if (url.protocol !== "https:" && !isLoopbackUrl(url)) {
-      throw new Error(`${key} must use https (got ${value})`);
+      throw new ServiceNowError(
+        `${key} must use https (got ${value})`,
+        undefined,
+        undefined,
+        { code: "NOT_CONFIGURED" },
+      );
     }
   }
 }
@@ -171,6 +186,7 @@ function parseJson(buf: Buffer): Record<string, unknown> | undefined {
       ? (value as Record<string, unknown>)
       : undefined;
   } catch {
+    // swallowed: an undecodable segment is not a JWT
     return undefined;
   }
 }
@@ -342,6 +358,7 @@ export class OAuthResourceServer {
         signature,
       );
     } catch {
+      // swallowed: a verifier that throws means an invalid signature
       valid = false;
     }
     if (!valid) return invalid("bad signature");
@@ -543,7 +560,7 @@ export class OAuthResourceServer {
           createPublicKey({ key: k, format: "jwk" }),
         );
       } catch {
-        // A key this runtime cannot import is skipped, not fatal.
+        // swallowed: a key this runtime cannot import is skipped, not fatal
       }
     });
     this.keys = keys;

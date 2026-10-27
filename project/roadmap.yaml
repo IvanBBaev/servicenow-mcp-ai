@@ -1546,11 +1546,11 @@ items:
     title: "gate tightening"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-27"
     gates: []
-    notes: "3.1 minor (F5-36, F5-37, F5-38). Coverage ratchet 97 / 88 / 97 (all four legs, E-1; Windows comment fixed); `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noImplicitReturns`, `allowUnreachableCode:false`; `throw new Error` banned under `src/{api,mcp,tools,core}` and the 32 sites converted to `ServiceNowError`; bare catches need a `// swallowed:` comment. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-27.** 3.1 minor (F5-36, F5-37, F5-38). Coverage ratchet 97 / 88 / 97 on every CI leg (E-1; Windows comment fixed); `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noImplicitReturns`, `allowUnreachableCode:false` on (0 errors); ESLint bans `throw new Error` under `src/{api,mcp,tools,core}` and the 28 sites there are `ServiceNowError`s with a code (the 4 CLI sites are exempt); the 86 bare catches carry a `// swallowed:` reason, enforced by the local `swallowed-catch` rule. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-88"
     title: "structure"
     pillar: "N"

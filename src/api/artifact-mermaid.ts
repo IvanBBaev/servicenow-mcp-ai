@@ -8,6 +8,7 @@ import { explainUiExperience, uiExperienceMermaid } from "./ui-experience.js";
 import { unifiedDiff } from "./unified-diff.js";
 import { snString } from "./shared.js";
 import type { ArtifactRow } from "./artifact-snapshot.js";
+import { ServiceNowError } from "../core/errors.js";
 
 /**
  * P-20 — Mermaid graphs diffed as text. For the registry types that have a
@@ -68,7 +69,13 @@ export async function renderArtifactMermaid(
   row: ArtifactRow,
 ): Promise<{ mermaid: string; truncated: number }> {
   const render = RENDERERS[type];
-  if (!render) throw new Error(`No Mermaid rendering for type '${type}'.`);
+  if (!render)
+    throw new ServiceNowError(
+      `No Mermaid rendering for type '${type}'.`,
+      undefined,
+      undefined,
+      { code: "INVALID_INPUT" },
+    );
   return render(row);
 }
 

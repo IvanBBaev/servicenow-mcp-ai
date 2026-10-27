@@ -86,6 +86,7 @@ import {
   enableResourceSubscriptions,
   packageSessionOf,
 } from "./packages.js";
+import { ServiceNowError } from "../core/errors.js";
 
 export { ALL_PACKAGES, effectivePackages, resolveEnabledPackages };
 
@@ -138,8 +139,11 @@ export const PACKAGES: PackageSpec[] = [
 for (const pkg of PACKAGES) {
   for (const tool of pkg.tools) {
     if (tool.package !== pkg.name) {
-      throw new Error(
+      throw new ServiceNowError(
         `Tool ${tool.name} is tagged '${tool.package}' but listed under package '${pkg.name}'.`,
+        undefined,
+        undefined,
+        { code: "INTERNAL_ERROR" },
       );
     }
   }
@@ -153,8 +157,11 @@ export const ALL_TOOLS: AnyToolSpec[] = PACKAGES.flatMap((p) => p.tools);
 {
   const manifest = PACKAGES.map((p) => p.name).filter((n) => n !== "admin");
   if (manifest.join() !== ALL_PACKAGES.join()) {
-    throw new Error(
+    throw new ServiceNowError(
       `PACKAGE_NAMES (${ALL_PACKAGES.join(", ")}) does not match the package manifest (${manifest.join(", ")}).`,
+      undefined,
+      undefined,
+      { code: "INTERNAL_ERROR" },
     );
   }
 }

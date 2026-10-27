@@ -4,6 +4,7 @@ import { SERVER_VERSION } from "./identity.js";
 import { logger } from "./logging.js";
 import { getTransport, otelEnabled } from "./settings.js";
 import { parseTraceparent, TOOL_CALL_CHANNELS } from "./tracing.js";
+import { ServiceNowError } from "./errors.js";
 
 /**
  * N-55 (TK-31) — the opt-in OpenTelemetry subscriber (`SN_OTEL=1`). It turns
@@ -108,7 +109,13 @@ export async function startOtelSubscriber(
   try {
     const mod = (await load()) as OtelApiLike & { default?: OtelApiLike };
     api = mod.trace ? mod : (mod.default as OtelApiLike);
-    if (!api?.trace?.getTracer) throw new Error("not the OpenTelemetry API");
+    if (!api?.trace?.getTracer)
+      throw new ServiceNowError(
+        "not the OpenTelemetry API",
+        undefined,
+        undefined,
+        { code: "NOT_CONFIGURED" },
+      );
   } catch (error) {
     if (!warnedMissing) {
       warnedMissing = true;

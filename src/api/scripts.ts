@@ -365,7 +365,7 @@ export async function searchCode(
     try {
       return await codeSearchApi(text, opts.table?.trim(), limit);
     } catch {
-      // fall through to the LIKE search
+      // swallowed: the LIKE search below takes over
     }
   }
 

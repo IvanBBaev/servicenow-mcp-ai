@@ -205,6 +205,7 @@ export function supportsFileFormat(input: z.ZodRawShape | undefined): boolean {
   try {
     supported = JSON.stringify(z.toJSONSchema(format)).includes('"file"');
   } catch {
+    // swallowed: a schema that cannot be serialised has no file format
     supported = false;
   }
   fileFormatCache.set(format, supported);
@@ -249,6 +250,7 @@ export function capResult(
   try {
     payload = JSON.parse(source);
   } catch {
+    // swallowed: not JSON; capped as text below
     payload = undefined;
   }
   if (payload === null || typeof payload !== "object") {

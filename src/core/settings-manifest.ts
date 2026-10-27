@@ -48,6 +48,7 @@ export type {
   SettingSectionId,
   SettingSpec,
 } from "./settings-model.js";
+import { ServiceNowError } from "./errors.js";
 
 // ---------------------------------------------------------------------------
 // Sections
@@ -174,7 +175,13 @@ const BY_KEY = new Map<string, SettingSpec>(
 /** The spec for `key`; throws for an undeclared key (a programming error). */
 export function settingSpec(key: string): SettingSpec {
   const spec = BY_KEY.get(key);
-  if (!spec) throw new Error(`Undeclared setting ${key}`);
+  if (!spec)
+    throw new ServiceNowError(
+      `Undeclared setting ${key}`,
+      undefined,
+      undefined,
+      { code: "INTERNAL_ERROR" },
+    );
   return spec;
 }
 
@@ -636,8 +643,11 @@ export function applySettingsAtStartup(
   startup = result;
   const errors = result.issues.filter((i) => i.level === "error");
   if (errors.length > 0) {
-    throw new Error(
+    throw new ServiceNowError(
       `Invalid settings (fix them, run servicenow-mcp-ai migrate for a 2.x env file, or set SN_STRICT_SETTINGS=0 to warn and keep the defaults): ${errors.map((e) => e.message).join(" | ")}`,
+      undefined,
+      undefined,
+      { code: "NOT_CONFIGURED" },
     );
   }
   for (const issue of result.issues) {

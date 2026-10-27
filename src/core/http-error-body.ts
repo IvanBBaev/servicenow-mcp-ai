@@ -106,7 +106,7 @@ export function shapeErrorBody(
           : json;
       return { detail, summary };
     } catch {
-      // Not JSON after all — fall through to the text handling.
+      // swallowed: not JSON after all; the text handling below takes over
     }
   }
   if (looksLikeHtml(trimmed, contentType) && trimmed) {

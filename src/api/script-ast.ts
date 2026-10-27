@@ -212,6 +212,7 @@ export function scriptCalls(
     const parsed = parseScript(source, mode);
     return parsed.ok ? callFacts(parsed.ast, source) : undefined;
   } catch {
+    // swallowed: a script the parser rejects has no call facts
     return undefined;
   }
 }

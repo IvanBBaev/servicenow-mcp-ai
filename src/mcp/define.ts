@@ -556,7 +556,7 @@ function withStructuredContent(
       };
     }
   } catch {
-    // not JSON — reported below
+    // swallowed: not JSON; reported below
   }
   logger.warn(
     `tool ${spec.name} declares an output schema but its result is not a JSON object`,

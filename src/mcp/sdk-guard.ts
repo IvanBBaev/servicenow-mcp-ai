@@ -160,8 +160,8 @@ async function scopesOf(
       const current = scopeRefOf(rec.sys_scope);
       if (current) refs.push(current);
     } catch {
-      // The write itself reports a missing record or an ACL; the guard has
-      // no scope to judge.
+      // swallowed: the write itself reports a missing record or an ACL; the guard has
+      // no scope to judge
     }
   } else if (!fromFields) {
     const created = await createScope(target.table);

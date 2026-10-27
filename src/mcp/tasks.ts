@@ -29,6 +29,7 @@ import {
 import type { AnyToolSpec, CallExtra, SpecResult } from "./define.js";
 import { isPendingInput, markBackground } from "./input.js";
 import { fail, ok, type ToolResult } from "./result.js";
+import { ServiceNowError } from "../core/errors.js";
 
 /**
  * M-9 — long-running operations as MCP tasks (EXPERIMENTAL).
@@ -201,7 +202,13 @@ export class SnTaskStore {
 
   private mustGet(taskId: string, sessionId?: string): Entry {
     const entry = this.entry(taskId, sessionId);
-    if (!entry) throw new Error(`Task ${taskId} not found (or expired).`);
+    if (!entry)
+      throw new ServiceNowError(
+        `Task ${taskId} not found (or expired).`,
+        undefined,
+        undefined,
+        { code: "NOT_FOUND" },
+      );
     return entry;
   }
 
@@ -252,8 +259,11 @@ export class SnTaskStore {
   ): Promise<void> {
     const entry = this.mustGet(taskId, sessionId);
     if (isTerminal(entry.task.status)) {
-      throw new Error(
+      throw new ServiceNowError(
         `Task ${taskId} is already ${entry.task.status}; its result is final.`,
+        undefined,
+        undefined,
+        { code: "CONFLICT" },
       );
     }
     entry.result = redactResult(result);
@@ -269,8 +279,11 @@ export class SnTaskStore {
   storeTaskError(taskId: string, error: TaskError, sessionId?: string): void {
     const entry = this.mustGet(taskId, sessionId);
     if (isTerminal(entry.task.status)) {
-      throw new Error(
+      throw new ServiceNowError(
         `Task ${taskId} is already ${entry.task.status}; its result is final.`,
+        undefined,
+        undefined,
+        { code: "CONFLICT" },
       );
     }
     entry.error = error;
@@ -294,7 +307,13 @@ export class SnTaskStore {
   // eslint-disable-next-line @typescript-eslint/require-await -- async TaskStore contract; sync throws must reject
   async getTaskResult(taskId: string, sessionId?: string): Promise<Result> {
     const entry = this.mustGet(taskId, sessionId);
-    if (!entry.result) throw new Error(`Task ${taskId} has no result yet.`);
+    if (!entry.result)
+      throw new ServiceNowError(
+        `Task ${taskId} has no result yet.`,
+        undefined,
+        undefined,
+        { code: "CONFLICT" },
+      );
     return entry.result;
   }
 
@@ -307,8 +326,11 @@ export class SnTaskStore {
   ): Promise<void> {
     const entry = this.mustGet(taskId, sessionId);
     if (isTerminal(entry.task.status)) {
-      throw new Error(
+      throw new ServiceNowError(
         `Task ${taskId} is already ${entry.task.status}; it cannot become ${status}.`,
+        undefined,
+        undefined,
+        { code: "CONFLICT" },
       );
     }
     entry.task.status = status;
@@ -330,7 +352,13 @@ export class SnTaskStore {
     let start = 0;
     if (cursor) {
       const at = visible.findIndex((e) => e.task.taskId === cursor);
-      if (at < 0) throw new Error(`Invalid cursor: ${cursor}`);
+      if (at < 0)
+        throw new ServiceNowError(
+          `Invalid cursor: ${cursor}`,
+          undefined,
+          undefined,
+          { code: "INVALID_INPUT" },
+        );
       start = at + 1;
     }
     const page = visible.slice(start, start + PAGE);
@@ -415,6 +443,7 @@ export function redactResult(result: Result): Result {
     try {
       parsed = JSON.parse(text);
     } catch {
+      // swallowed: not JSON; the item is kept as is
       return item;
     }
     const r = redactValue(parsed);

@@ -314,6 +314,7 @@ function instanceChanged(profile: string, nextHost: string): boolean {
   try {
     return resolveHost(stored).toLowerCase() !== nextHost.toLowerCase();
   } catch {
+    // swallowed: an unresolvable stored host counts as a change
     return true;
   }
 }

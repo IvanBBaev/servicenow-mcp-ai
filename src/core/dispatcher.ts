@@ -241,6 +241,7 @@ export function describeDispatcher(
     const choice = resolveProxyForHost(host, env);
     if (choice) proxy = { source: choice.source, host: choice.host };
   } catch {
+    // swallowed: an unresolvable proxy setting means no proxy
     proxy = null;
   }
   const ca = env.SN_TLS_CA_FILE?.trim()
@@ -420,7 +421,7 @@ function closeAgents(cache: Map<string, Closeable>): void {
       const result = agent.close?.();
       if (result) result.catch(() => undefined);
     } catch {
-      // Best effort — a pool that refuses to close is simply dropped.
+      // swallowed: best effort; a pool that refuses to close is simply dropped
     }
   }
 }

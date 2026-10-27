@@ -413,6 +413,7 @@ function compositionText(v: unknown): string {
   try {
     return JSON.stringify(JSON.parse(v), null, 2);
   } catch {
+    // swallowed: not JSON; the raw text is diffed
     return v;
   }
 }

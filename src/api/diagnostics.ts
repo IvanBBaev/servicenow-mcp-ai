@@ -145,6 +145,7 @@ async function readBasicAuthProperties(): Promise<
     }
     return properties.size > 0 ? properties : undefined;
   } catch {
+    // swallowed: unreadable properties (older instance, ACL) mean unknown
     return undefined;
   }
 }
@@ -190,6 +191,7 @@ async function userAllowed(
     }
     return { userAllowed: false };
   } catch {
+    // swallowed: unreadable roles mean the user's standing is unknown
     return undefined;
   }
 }

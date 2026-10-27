@@ -733,6 +733,7 @@ function parseMaybeJson(value: unknown): unknown {
   try {
     return JSON.parse(value) as unknown;
   } catch {
+    // swallowed: a value that is not JSON is reported as null
     return null;
   }
 }

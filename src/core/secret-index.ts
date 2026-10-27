@@ -42,7 +42,8 @@ export function peekSecretColumns(table: string): Set<string> {
     index = peekKey(secretIndexKey()) as SecretColumnIndex | null | undefined;
     chain = peekKey(secretChainKey(table)) as string[] | undefined;
   } catch {
-    return out; // no credentials resolvable — the floor still applies
+    // swallowed: no credentials resolvable; the floor still applies
+    return out;
   }
   if (!index) return out;
   for (const t of chain ?? Object.keys(index.byTable)) {

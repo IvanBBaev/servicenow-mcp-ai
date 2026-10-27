@@ -264,7 +264,7 @@ function renderMarkdown(dir: string, profile: string): void {
     try {
       entries.push(JSON.parse(line) as JournalEntry);
     } catch {
-      // A damaged line is the integrity check's concern, not the mirror's.
+      // swallowed: a damaged line is the integrity check's concern, not the mirror's
     }
   }
   const md = [
@@ -579,6 +579,7 @@ export function readWriteJournal(
       try {
         parsed = JSON.parse(line) as JournalEntry;
       } catch {
+        // swallowed: a damaged line is reported by the integrity check below
         parsed = undefined;
       }
       if (integrity === "ok") {

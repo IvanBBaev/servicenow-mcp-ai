@@ -156,7 +156,7 @@ const urlSchema: Schema = z.string().transform((raw, ctx) => {
     const url = new URL(raw.trim());
     if (url.protocol === "http:" || url.protocol === "https:") return raw;
   } catch {
-    // fall through
+    // swallowed: not a URL; the failure below names the expectation
   }
   return fail(ctx, "expected an http:// or https:// URL");
 });
