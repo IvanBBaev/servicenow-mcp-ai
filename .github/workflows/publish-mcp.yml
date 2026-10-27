@@ -5,6 +5,11 @@ name: Publish to MCP Registry
 # can verify the published tarball's mcpName), and can be re-run on demand via
 # workflow_dispatch without re-publishing to npm. server.json carries the version
 # (kept in sync with package.json), so this always registers the current release.
+# N-91: when the Publish workflow attached the release's MCP bundle (.mcpb), it
+# is added to server.json as an `mcpb` package with its sha256
+# (scripts/registry-mcpb.mjs) right before publishing, so the registry lists the
+# one-click install next to the npm package; the committed server.json carries
+# the npm package alone because the hash is only known once CI built the bundle.
 # O-14 (ADR 0011): a prerelease tag (`v3.0.0-beta.1`) is not registered; the
 # registry entry moves only on a GA version.
 on:
@@ -29,6 +34,17 @@ jobs:
       MCP_PUBLISHER_VERSION: 1.8.1
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Add the release bundle (.mcpb) to server.json (N-91)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./server.json').version")
+          mkdir -p dist/mcpb
+          if gh release download "v$version" --repo "$GITHUB_REPOSITORY" --pattern '*.mcpb' --dir dist/mcpb; then
+            node scripts/registry-mcpb.mjs dist/mcpb/*.mcpb
+          else
+            echo "::notice::v$version carries no .mcpb asset; registering the npm package only"
+          fi
       - name: Install mcp-publisher (pinned, checksum-verified)
         run: |
           os=$(uname -s | tr '[:upper:]' '[:lower:]')

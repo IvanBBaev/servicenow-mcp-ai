@@ -399,7 +399,9 @@ An [MCP bundle](https://github.com/modelcontextprotocol/mcpb) is one `.mcpb` fil
 server and its dependencies; Claude Desktop (or any MCPB host) installs it in one click, with
 no `npm` / `npx`. Its form asks for the connection keys (only `SN_INSTANCE` is required) and
 `SN_TOOL_PACKAGES`; secrets are marked sensitive (kept in the OS keychain). An empty field
-falls back to the env file. Not published yet (O-22) — build it with `npm run mcpb:pack`
+falls back to the env file. Every GA release attaches `servicenow-mcp-ai-<version>.mcpb` to
+its [GitHub Release](https://github.com/IvanBBaev/servicenow-mcp-ai/releases/latest) —
+download it and open it with Claude Desktop. To build it yourself: `npm run mcpb:pack`
 (`dist/mcpb/`; `-- --validate` runs the official validator).
 
 ### Docker
@@ -1862,8 +1864,8 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 | -------- | -------- |
 | [ARCHITECTURE.md](project/ARCHITECTURE.md) | Layered architecture, Mermaid diagrams (modules, request lifecycle, security model, auth, packages), condensed ADRs |
 | [PRODUCT-STATE.md](project/archive/PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
-| [ROADMAP.md](project/ROADMAP.md) | Forward plan: the shipped phases, the 2.x hardening line, the proposed 3.0 milestone, optional and deferred items |
-| [ROADMAP-V3.md](project/ROADMAP-V3.md) / [DEEP-REVIEW-2026-09.md](project/archive/DEEP-REVIEW-2026-09.md) | The proposed v3.0 execution tracker (correctness, governance, reach at scale) / the five-lens review its items are built on |
+| [ROADMAP.md](project/ROADMAP.md) | The original forward view: the shipped phases, the 2.x hardening line, the 3.0 milestone (shipped 2026-10-19), optional and deferred items |
+| [ROADMAP-V3.md](project/ROADMAP-V3.md) / [DEEP-REVIEW-2026-09.md](project/archive/DEEP-REVIEW-2026-09.md) | The tracker: the v3.0 line (shipped) and the 3.x items N-66 … N-94 planned in [V3.5-ANALYSIS-2026-10.md](project/V3.5-ANALYSIS-2026-10.md) / the five-lens review the v3.0 items were built on |
 | [GAP-ANALYSIS-2026-09.md](project/archive/GAP-ANALYSIS-2026-09.md) | The 2026-09-09 second pass over the v3.0 plan: nine narrower lenses, 67 findings each with design, acceptance criteria and tests, mapped to tracker items |
 | [INSTANCE-DOCS-ANALYSIS-2026-09.md](project/archive/INSTANCE-DOCS-ANALYSIS-2026-09.md) | The 2026-09-23 pass on instance documentation: the docs store, the Mermaid generators, the `document_table` prompt and the missing document kinds — 17 findings with design, acceptance criteria and tests, mapped to S-14 … S-16 |
 | [INSTANCE-DOCS-ANALYSIS-2026-09-25.md](project/archive/INSTANCE-DOCS-ANALYSIS-2026-09-25.md) | The 2026-09-25 second pass on instance documentation: dispositions of the first 17 findings after the docs store, artefact registry, artefact readers and security scan landed, plus 12 new findings (ID-18 … ID-29) with design, acceptance criteria and tests, mapped to S-15, S-16, M-4, M-8, S-7, E-6, E-7 |

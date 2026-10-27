@@ -74,7 +74,7 @@ nested `AGENTS.md` in `src/api/`, `src/core/`, `src/mcp/`, `src/tools/`,
   in `test/fixtures/token-budgets.json` (`npm run tokens:budget`); raising one
   is an owner decision (O-10).
 - Start or widen a breaking change without an owner decision. The breaking
-  register (B1–B22) is in `project/ROADMAP-V3.md`; decisions are ADRs in
+  register (B1–B24) is in `project/ROADMAP-V3.md`; decisions are ADRs in
   `project/adr/`.
 - Edit `scripts/pack-check.mjs` (the 3 MB tarball ceiling).
 - Edit generated files by hand: `.github/instructions/`, the nested
@@ -90,7 +90,7 @@ nested `AGENTS.md` in `src/api/`, `src/core/`, `src/mcp/`, `src/tools/`,
 ## Plan and status
 
 The tracker is `project/ROADMAP-V3.md` (pillars H/M/S/D/E/P/N, owner gates
-O-1…O-22, breaking register B1–B22), its status table mirrored from
+O-1…O-25, breaking register B1–B24), its status table mirrored from
 `project/roadmap.yaml`. Open owner decisions are in `project/TODO.md`; the
 analyses behind the N items are the `project/*-2026-10.md` files. Non-breaking
 items ship on the 2.x line; the breaking cluster goes to 3.0.0, previewed as

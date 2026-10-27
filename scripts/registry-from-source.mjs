@@ -29,7 +29,7 @@ export function loadToolSchemasFromSource() {
   return loadRegistry().then((m) => m.describeToolSchemas());
 }
 
-/** N-42: the packages of the default `core` profile. */
+/** N-42: the packages of the server's default profile (`discovery`, DEFAULT_TOOL_PACKAGES). */
 export function loadCorePackagesFromSource() {
   return loadRegistry().then((m) => m.resolveEnabledPackages(["discovery"]));
 }

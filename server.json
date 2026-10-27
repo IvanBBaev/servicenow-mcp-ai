@@ -7,6 +7,7 @@
     "source": "github"
   },
   "version": "3.0.0",
+  "websiteUrl": "https://ivanbbaev.github.io/servicenow-mcp-ai/",
   "packages": [
     {
       "registryType": "npm",
@@ -55,6 +56,33 @@
           "format": "string"
         }
       ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://{host}/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer {token}",
+          "isSecret": true,
+          "variables": {
+            "token": {
+              "description": "The deployment's SN_HTTP_TOKEN, or an access token from its OAuth issuer (SN_HTTP_OAUTH_ISSUER).",
+              "isRequired": true,
+              "isSecret": true
+            }
+          }
+        }
+      ],
+      "variables": {
+        "host": {
+          "description": "Host of your own deployment of the server in HTTP mode (SN_TRANSPORT=http behind TLS); there is no hosted instance.",
+          "isRequired": true,
+          "placeholder": "mcp.example.com"
+        }
+      }
     }
   ]
 }

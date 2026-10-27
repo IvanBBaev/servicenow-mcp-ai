@@ -4,10 +4,10 @@ name: Publish
 # `npm run check` gate runs here, and `prepublishOnly` runs it again as a
 # backstop, so a red build cannot reach the registry. After a successful
 # publish, D-6: a GitHub Release for the tag whose notes are that version's
-# CHANGELOG section (scripts/release-notes.mjs). N-51: the MCP bundle
-# (.mcpb) is attached to that release only once the owner enables it (O-22) by
-# setting the repository variable MCPB_RELEASE to "true"; until then the
-# mcpb-asset job is skipped. O-14 (ADR 0011): a prerelease version
+# CHANGELOG section (scripts/release-notes.mjs). N-51: the mcpb-asset job
+# attaches the MCP bundle (.mcpb) to that release — the repository variable
+# MCPB_RELEASE ("true" since 3.0.0, O-22) is its switch; unset it and the job
+# is skipped. O-14 (ADR 0011): a prerelease version
 # (`3.0.0-beta.1`, anything with a `-`) goes to the npm `next` dist-tag and
 # its GitHub Release is marked as a prerelease, so `latest` and the release
 # list only ever point at a GA version.

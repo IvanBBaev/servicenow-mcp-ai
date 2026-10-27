@@ -570,3 +570,30 @@ test("the committed roadmap.yaml is valid, Prettier-clean and renders a valid ta
     t.diagnostic(`live table not importable: ${e.message}`);
   }
 });
+
+test("N-91: AGENTS.md and project/README.md quote the last owner gate and breaking row", () => {
+  const md = readFileSync(path.join(root, ROADMAP_MD), "utf8");
+  // A gate id can be a range (`O-5…O-9`): the last number of each counts.
+  const gates = parseOwnerGates(md).map((g) =>
+    Number(/(\d+)$/.exec(g.id)?.[1]),
+  );
+  const rows = [...md.matchAll(/^\| (B\d+) +\|/gm)].map((m) =>
+    Number(m[1].slice(1)),
+  );
+  assert.ok(gates.length && rows.length, "no owner gates or breaking rows");
+  const lastGate = `O-${Math.max(...gates)}`;
+  const lastRow = `B${Math.max(...rows)}`;
+  const agents = readFileSync(path.join(root, "AGENTS.md"), "utf8");
+  assert.match(
+    agents,
+    new RegExp(`O-1…${lastGate}, breaking register B1–${lastRow}\\)`),
+    `AGENTS.md must quote O-1…${lastGate} and B1–${lastRow}`,
+  );
+  assert.match(agents, new RegExp(`register \\(B1–${lastRow}\\) is in`));
+  const readme = readFileSync(path.join(root, "project/README.md"), "utf8");
+  assert.match(
+    readme,
+    new RegExp(`owner gates O-1…${lastGate}; breaking B1–${lastRow}`),
+    `project/README.md must quote O-1…${lastGate} and B1–${lastRow}`,
+  );
+});

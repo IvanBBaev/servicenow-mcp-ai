@@ -338,3 +338,40 @@ test("release-notes: the real CHANGELOG has notes for the current version", () =
   assert.ok(notes, `CHANGELOG.md has no section for ${version}`);
   assert.ok(!notes.startsWith("## "));
 });
+
+// --- N-91: strings that follow a source of truth -----------------------------
+
+test("N-91: the extension README quotes the pinned server major", () => {
+  const major = json("package.json").version.split(".")[0];
+  assert.match(
+    read("extension/README.md"),
+    new RegExp(`npx -y servicenow-mcp-ai@${major}\\.x`),
+    `extension/README.md must say servicenow-mcp-ai@${major}.x`,
+  );
+});
+
+test("N-91: the landing-page badge names the MCP SDK line of package.json", () => {
+  const range =
+    json("package.json").dependencies["@modelcontextprotocol/server"];
+  const [major, minor] = range.replace(/^[\^~]/, "").split(".");
+  assert.match(
+    read("docs/index.html"),
+    new RegExp(`<span class="badge">MCP SDK ${major}\\.${minor}</span>`),
+    `docs/index.html must say MCP SDK ${major}.${minor}`,
+  );
+});
+
+test("N-91: the extension walkthrough names the server's default profile", async () => {
+  const { DEFAULT_TOOL_PACKAGES } = await import("../build/core/settings.js");
+  const md = read("extension/media/walkthrough/packages.md");
+  assert.match(
+    md,
+    new RegExp(
+      `the server default, the\\s+\`${DEFAULT_TOOL_PACKAGES}\` profile`,
+    ),
+  );
+  assert.match(
+    md,
+    new RegExp(`^\\| \`${DEFAULT_TOOL_PACKAGES}\` +\\|[^|]*\\(default\\)`, "m"),
+  );
+});

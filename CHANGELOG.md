@@ -5,6 +5,14 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+### Added
+
+- `server.json` (MCP Registry): `websiteUrl`, a `remotes` entry for a self-hosted HTTP deployment (`https://{host}/mcp` with a bearer header; there is no hosted instance) and, at publish time, the release bundle as an `mcpb` package — `scripts/registry-mcpb.mjs` appends it with its `fileSha256` in the registry workflow (N-91).
+
+### Changed
+
+- Docs truth (N-91): README, `docs/llms.txt` and the publish workflow link the `.mcpb` attached to every GA release (N-51 done); the extension README pins `@3.x`; the landing page names MCP SDK 2.3; `AGENTS.md` and the project README quote O-25 / B24; the extension walkthrough names the `discovery` default. Each string now has a test.
+
 ### Security
 
 - `zod` floor raised to `^4.6.6` (installed 4.6.7): GHSA-mrhx-c7xc-m3w5, memory exhaustion while validating oversized constrained collections (high). No other package moved.

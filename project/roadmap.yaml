@@ -1220,11 +1220,11 @@ items:
     title: "MCP bundle (`.mcpb`)"
     pillar: "N"
     effort: "M"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-10-05"
+    done: "2026-10-19"
     gates: ["O-22"]
-    notes: "**P0. Done 2026-10-05 (75e34b2); publication waits for O-22.** `mcpb/manifest.json` generated from the settings manifest (`mcpb:manifest -- --check` in the gate), `npm run mcpb:pack`, `mcpb-asset` release job behind `vars.MCPB_RELEASE` (TK-27). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
+    notes: "**P0. Done 2026-10-05 (75e34b2); published since 3.0.0 (2026-10-19, O-22): `servicenow-mcp-ai-<version>.mcpb` is attached to every GA release and, from N-91, registered as an `mcpb` package.** `mcpb/manifest.json` generated from the settings manifest (`mcpb:manifest -- --check` in the gate), `npm run mcpb:pack`, `mcpb-asset` release job switched by `vars.MCPB_RELEASE` (TK-27). See [TOKEN-DOCS-ANALYSIS-2026-10.md](TOKEN-DOCS-ANALYSIS-2026-10.md)."
   - id: "N-52"
     title: "skills beyond Claude Code"
     pillar: "N"
@@ -1582,11 +1582,11 @@ items:
     title: "docs truth sweep"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-27"
     gates: ["O-22"]
-    notes: "3.1 minor (F5-45, F5-46). README, `docs/llms.txt` and the site link the shipped `.mcpb` (flips N-51 to done, O-22); `server.json` gains `websiteUrl`, an `mcpb` package and a `remotes` entry; the five stale strings fixed with a `docs:sync` pattern or a test each. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-27.** 3.1 minor (F5-45, F5-46). README, `docs/llms.txt` and `publish.yml` link the `.mcpb` attached to every GA release (N-51 done, O-22); `server.json` gains `websiteUrl`, a `remotes` entry (`https://{host}/mcp` + bearer header, for a self-hosted HTTP deployment) and — at publish time, `scripts/registry-mcpb.mjs` in `publish-mcp.yml` — the release bundle as an `mcpb` package with its `fileSha256`; the five stale strings (extension README `@2.x`, site badge `MCP SDK 1.29`, `AGENTS.md` / project README B22 / O-22, walkthrough `core` default, `registry-from-source` comment) fixed, each under a test (`test/distribution.test.js`, `test/roadmap.test.js`, `test/registry-mcpb.test.js`). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-92"
     title: "README restructure and release notes"
     pillar: "N"

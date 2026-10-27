@@ -11,7 +11,7 @@ Get started → [View on GitHub](https://github.com/IvanBBaev/servicenow-mcp-ai)
 - GPL-3.0 licensed
 - Node.js 22.12+
 - TypeScript · ESM
-- MCP SDK 1.29
+- MCP SDK 2.3
 - OAuth 2.1 PKCE
 
 - **100** tools
