@@ -1,86 +1,78 @@
-# Install footprint (D-5)
+# Install footprint (D-5, N-85)
 
-Measured 2026-09-28 on the D-5 working tree (version 2.0.1, Node 22.23.2,
-npm 10.9.8, macOS). Re-measure with the commands below before quoting these
-numbers in a release note.
+What `npm install servicenow-mcp-ai` downloads and what a production install pulls in. The
+block below is generated: `npm run footprint` measures the current build (`npm run build`
+first) and rewrites it, and `npm run footprint -- --check` — part of `npm run check` — fails
+when the recorded figures drift more than 5 % from the build, when the ceiling in
+`scripts/pack-check.mjs` or the production dependency list changes, or when the block was
+edited by hand. Quote a release note from here instead of re-measuring by hand.
 
-## What `npm install servicenow-mcp-ai` downloads
+<!-- GENERATED:FOOTPRINT:BEGIN (npm run footprint) -->
 
-| Measure                                       | Value                                    |
-| --------------------------------------------- | ---------------------------------------- |
-| `npm pack --dry-run` — files                  | 132                                      |
-| `npm pack --dry-run` — tarball                | 418.2 KB                                 |
-| `npm pack --dry-run` — unpacked               | 1,557,782 B (1,521.3 KB)                 |
-| `npm run pack:check` ceiling                  | 800 KB unpacked — **fails** (owner, O-4) |
-| `npm ls --omit=dev --all \| wc -l` (repo)     | 163 lines, 95 unique packages incl. root |
-| Clean `npm install --omit=dev` of the tarball | 96 packages added                        |
-| `du -sk node_modules` of that install         | 25,416 KB (~24.8 MB)                     |
+<!-- footprint: {"measured":"2026-10-27","version":"3.0.0","entryCount":253,"tarballBytes":577141,"unpackedBytes":2343861,"buildJsBytes":2159750,"readmeBytes":142383,"largest":[{"path":"build/api/ui-experience.js","bytes":48439},{"path":"build/api/document.js","bytes":44940},{"path":"build/mcp/prompts.js","bytes":42886},{"path":"build/core/settings-data-runtime.js","bytes":31064},{"path":"build/tools/admin.js","bytes":30045}],"ceilingBytes":3145728,"dependencies":[{"name":"@modelcontextprotocol/core","version":"2.3.1","path":"node_modules/@modelcontextprotocol/core","bytes":1316868},{"name":"@modelcontextprotocol/node","version":"2.1.1","path":"node_modules/@modelcontextprotocol/node","bytes":153436},{"name":"@hono/node-server","version":"1.19.17","path":"node_modules/@modelcontextprotocol/node/node_modules/@hono/node-server","bytes":228376},{"name":"@modelcontextprotocol/server","version":"2.3.1","path":"node_modules/@modelcontextprotocol/server","bytes":6486743},{"name":"acorn","version":"8.18.0","path":"node_modules/acorn","bytes":565327},{"name":"hono","version":"4.13.12","path":"node_modules/hono","bytes":1287796},{"name":"zod","version":"4.6.7","path":"node_modules/zod","bytes":6148944}],"installedBytes":16187490} -->
 
-The ROADMAP-V3 estimate ("93 packages ≈ 50 MB") was high on size: the real
-install is about half of that.
+Measured 2026-10-27 for version 3.0.0 with `npm run footprint`.
 
-## Ours vs the SDK's transitive tree
+| Measure                                            | Value                              |
+| -------------------------------------------------- | ---------------------------------- |
+| `npm pack --dry-run` — files                       | 253                                |
+| `npm pack --dry-run` — tarball                     | 577,141 B (564 KB)                 |
+| `npm pack --dry-run` — unpacked                    | 2,343,861 B (2,289 KB)             |
+| `npm run pack:check` ceiling                       | 3,145,728 B (3,072 KB) — 75 % used |
+| `build/**/*.js` in the tarball                     | 2,159,750 B (2,109 KB)             |
+| `README.md` in the tarball                         | 142,383 B (139 KB)                 |
+| Production packages (lockfile, excluding this one) | 7 — 15,808 KB                      |
 
-| Part                                              | Size (du)  | Share |
-| ------------------------------------------------- | ---------- | ----- |
-| `servicenow-mcp-ai` itself (build/, bin/, README) | 1,772 KB   | 7%    |
-| `zod` (our direct dependency, also the SDK's)     | 5,136 KB   | 20%   |
-| `acorn` (our direct dependency since S-12)        | ~568 KB    | 2%    |
-| `@modelcontextprotocol/sdk` itself                | 6,112 KB   | 24%   |
-| Everything the SDK pulls in (93 packages)         | ~12,300 KB | 48%   |
+Largest compiled files: `build/api/ui-experience.js` 47 KB, `build/api/document.js` 44 KB, `build/mcp/prompts.js` 42 KB, `build/core/settings-data-runtime.js` 30 KB, `build/tools/admin.js` 29 KB.
 
-The largest SDK transitive packages: `hono` 2,864 KB, `ajv` 2,364 KB,
-`zod-to-json-schema` 620 KB, `ip-address` 424 KB, `qs` 416 KB, `jose` 408 KB,
-`iconv-lite` 400 KB, `fast-uri` 328 KB, `mime-db` 236 KB, `@hono/node-server`
-220 KB. Most of the SDK tree (express, hono, cors, express-rate-limit,
-eventsource, jose, pkce-challenge) serves the SDK's HTTP server and OAuth
-helpers; this server uses the SDK's Streamable HTTP transport on a plain
-`node:http` server and none of the SDK's auth code, but npm has no way to omit
-a dependency's non-optional dependencies. Shrinking that part needs an SDK
-split (upstream) or bundling the used SDK modules — both owner decisions, not
-a D-5 trim.
+| Package                        | Version | Installed |
+| ------------------------------ | ------- | --------- |
+| `@modelcontextprotocol/core`   | 2.3.1   | 1,286 KB  |
+| `@modelcontextprotocol/node`   | 2.1.1   | 150 KB    |
+| `@hono/node-server`            | 1.19.17 | 223 KB    |
+| `@modelcontextprotocol/server` | 2.3.1   | 6,335 KB  |
+| `acorn`                        | 8.18.0  | 552 KB    |
+| `hono`                         | 4.13.12 | 1,258 KB  |
+| `zod`                          | 4.6.7   | 6,005 KB  |
 
-## Inside our tarball
+<!-- GENERATED:FOOTPRINT:END -->
 
-| Content                        | Bytes      |
-| ------------------------------ | ---------- |
-| `build/**/*.js` (compiled)     | ~1,440,000 |
-| `README.md`                    | ~113,000   |
-| `package.json`, `LICENSE`, bin | ~5,400     |
+## What the numbers mean
 
-Largest compiled files: `build/core/artifacts/registry.js` 93.7 KB,
-`build/api/document.js` 89.7 KB, `build/api/explain-flow.js` 58.8 KB.
-
-Already excluded by the `files` list: source maps, the dark Jira client, tests,
-sources, scripts. No declaration files are emitted.
+- **Files, tarball, unpacked:** `npm pack --dry-run --json` over the `files` list of
+  `package.json` (`build/` without source maps and the dark Jira client, `bin/`, README, LICENSE,
+  `package.json`). The unpacked size is what `scripts/pack-check.mjs` guards; its ceiling is the
+  owner's (3 MB since 2026-10-05, O-4) and the footprint script only reads it.
+- **`build/**/\*.js`:** the compiled server. Since N-85 (2026-10-27) `npm run build`compiles
+through`tsconfig.build.json`—`tsconfig.json`plus`removeComments`and LF newlines — so the
+shipped JavaScript carries no comments: 2,676,313 → 2,159,750 B (−516,563 B, −19.3 %).`declaration`is off, so no consumer ever read them, and stack traces keep their file names
+(no minification, no bundling). Editors,`npm run watch`and the tests keep`tsconfig.json`.
+- **README:** npmjs.com renders the tarball README, so it ships in full.
+- **Production packages:** every non-dev entry of `package-lock.json` (a nested entry counts
+  once) with its bytes in the local `node_modules` — the install, not the download. The SDK
+  (`@modelcontextprotocol/server`, `/node`, `/core`, hono) is most of it; `zod` and `acorn` are
+  the server's own dependencies.
 
 ## Trims considered
 
-| Option                                    | Effect                   | Decision                                                                      |
-| ----------------------------------------- | ------------------------ | ----------------------------------------------------------------------------- |
-| `tsc --removeComments` (+ no source maps) | JS 1,430 KB → 1,166 KB   | Not applied: still over 800 KB, and comments aid debugging a published build. |
-| Minify / bundle `build/` (esbuild)        | not measured             | Owner decision: changes stack traces and the release pipeline.                |
-| Ship a short README in the tarball        | −~110 KB                 | Not applied: npmjs.com renders the tarball README.                            |
-| Raise the 800 KB pack ceiling             | makes `pack:check` green | Owner decision (O-4); `scripts/pack-check.mjs` is unchanged.                  |
-
-Nothing obviously ours and safe remained to trim, so D-5 changes no build
-setting. The pack stays at ~1.52 MB unpacked.
+| Option                             | Effect                 | Decision                                                                    |
+| ---------------------------------- | ---------------------- | --------------------------------------------------------------------------- |
+| `removeComments` for the build     | −504 KB of compiled JS | **Applied** (N-85, `tsconfig.build.json`).                                  |
+| Minify / bundle `build/` (esbuild) | not measured           | Owner decision: changes stack traces and the release pipeline.              |
+| Ship a short README in the tarball | −139 KB                | Not applied: npmjs.com renders the tarball README.                          |
+| Raise or lower the pack ceiling    | —                      | Owner decision (O-4); `scripts/pack-check.mjs` is edited by the owner only. |
 
 ## Container image
 
-The `Dockerfile` installs the same tarball contents (`npm pack`, then
-`npm ci --omit=dev` against the lockfile) on
-`gcr.io/distroless/nodejs22-debian12:nonroot`, so the image adds the ~25 MB
-above to the distroless Node base. The image size was not measured: the local
-Docker daemon failed with storage I/O errors during this change.
+The `Dockerfile` installs the same tarball contents (`npm pack`, then `npm ci --omit=dev`
+against the lockfile) on `gcr.io/distroless/nodejs22-debian12:nonroot`, so the image adds the
+production packages above to the distroless Node base.
 
-## How to re-measure
+## History
 
-```bash
-npm run build
-npm pack --dry-run
-npm ls --omit=dev --all | wc -l
-npm pack --pack-destination /tmp/fp && cd /tmp/fp && npm init -y >/dev/null \
-  && npm install --omit=dev ./servicenow-mcp-ai-*.tgz && du -sk node_modules \
-  && du -sk node_modules/* node_modules/@*/* | sort -rn | head -20
-```
+- 2026-09-28 (D-5, 2.0.1 on SDK v1): 132 files, 418 KB tarball, 1,521 KB unpacked against an
+  800 KB ceiling; 95 production packages, about 24.8 MB installed. The owner raised the ceiling
+  to 3 MB on 2026-10-05.
+- 2026-10-27 (N-85, 3.0.0 on SDK v2): the record above. The SDK's v2 split
+  (`@modelcontextprotocol/server`) cut the production tree from 95 packages to the handful
+  listed, and `removeComments` took 504 KB off the compiled server.

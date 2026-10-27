@@ -16,7 +16,7 @@ script intelligence, multi-instance profiles and plan-and-apply write safety.
 
 - `npm install`, then `npm run check` — the full gate (build, eval mocks, lint,
   format, docs drift checks, surface scan, coverage-gated tests, tarball guard,
-  audit). Run it before you finish any change and report its real result.
+  footprint record, audit). Run it before you finish any change and report its real result.
 - `npm run dev` / `npm start` / `npm run watch`; debug with
   `npm run inspector` (MCP Inspector) or `.vscode/mcp.json`.
 - Single test file: `npm run build`, then `node --test test/<file>.test.js`.
@@ -30,6 +30,8 @@ script intelligence, multi-instance profiles and plan-and-apply write safety.
     `.github/copilot-instructions.md` from their sources.
   - `npm run roadmap:sync` — the `project/ROADMAP-V3.md` table from
     `project/roadmap.yaml`.
+  - `npm run footprint` — the measured block of `project/FOOTPRINT.md`
+    (tarball, compiled size, production packages).
   - `npm run gen:manifest` — `test/fixtures/tools-manifest.json` after a
     deliberate tool change; `npm run eval:mocks` — `evals/mocks/`.
 

@@ -15,6 +15,7 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 - A 401 under basic auth (`INSTANCE_HTTP_401`) carries a hint naming the restriction property, the role and the OAuth alternative (N-75); `servicenow_test_connection` and `doctor` show it. The generic 401 hint names `servicenow_test_connection` and `doctor` instead of a tool that does not exist. `tools/list`: +0 B.
 - MCP Apps views (N-84): each `ui://servicenow-mcp/…` resource declares `_meta.ui.csp` with empty `connectDomains` and `resourceDomains` — the document's own Content-Security-Policy at the host's level — instead of relying on the host's default. `tools/list`: +0 B.
+- Build slimming (N-85): `npm run build` compiles through `tsconfig.build.json` (`removeComments`, LF newlines), which drops 504 KB (19.3 %) of shipped JavaScript (2,676,313 → 2,159,750 B); `project/FOOTPRINT.md` is measured by the new `npm run footprint`, and `npm run footprint -- --check` joins `npm run check` (ceiling and production dependency list exactly, byte figures within 5 %). The pack ceiling is untouched. `tools/list`: +0 B.
 - Docs truth (N-91): README, `docs/llms.txt` and the publish workflow link the `.mcpb` attached to every GA release (N-51 done); the extension README pins `@3.x`; the landing page names MCP SDK 2.3; `AGENTS.md` and the project README quote O-25 / B24; the extension walkthrough names the `discovery` default. Each string now has a test.
 
 ### Security

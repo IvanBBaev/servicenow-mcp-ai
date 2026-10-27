@@ -1145,7 +1145,7 @@ files are unchanged.
 ## Develop
 
 ```bash
-npm run check     # full gate: build, lint, format check, coverage-gated tests, tarball guard, prod audit
+npm run check     # full gate: build, lint, format check, coverage-gated tests, tarball guard, footprint record, prod audit
 npm test          # unit tests only (node:test; needs a prior npm run build)
 npm run lint      # ESLint (flat config + typescript-eslint)
 npm run format    # format with Prettier

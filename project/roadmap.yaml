@@ -1528,11 +1528,11 @@ items:
     title: "build slimming"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-27"
     gates: []
-    notes: "3.1 minor (F5-32, F5-33). `tsconfig.build.json` with `removeComments` for `npm run build` only (−521 KB of build JS); `scripts/footprint.mjs --check` regenerates FOOTPRINT.md inside `npm run check`. The pack ceiling is untouched (owner). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-27.** 3.1 minor (F5-32, F5-33). `tsconfig.build.json` (`removeComments`, LF) for `npm run build` only: build JS 2,614 KB → 2,109 KB (−19.3 %); `scripts/footprint.mjs` measures `project/FOOTPRINT.md` and `npm run footprint -- --check` joins the gate. The pack ceiling is untouched (owner). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-86"
     title: "release pipeline hygiene"
     pillar: "N"

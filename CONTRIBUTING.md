@@ -32,7 +32,8 @@ npm run check      # the full gate: build, lint, format check, tests with
                    # coverage thresholds (lines 94 / branches 82 / functions 97,
                    # in .c8rc.json), eval mock drift
                    # (eval:mocks:check), tool-surface scan
-                   # (scan:surface), tarball guard (pack:check), prod audit
+                   # (scan:surface), tarball guard (pack:check), footprint
+                   # record (footprint), prod audit
 npm run verify     # the same minus coverage/audit — the fast inner loop
 npm test           # unit tests only (node:test; needs a prior build)
 ```
@@ -241,7 +242,9 @@ taken). Publishing happens **from CI on a version tag**, never from a laptop.
    `npm publish --dry-run` — the file list must be `build` + `bin` + README +
    LICENSE; `npm run pack:check`, part of the gate, fails on a `.map`, `jira/`,
    `test/` or `docs/instance/` entry, an unexpected top-level file or an
-   unpacked size above 3 MB).
+   unpacked size above 3 MB; `npm run footprint -- --check` fails when the
+   figures in [project/FOOTPRINT.md](project/FOOTPRINT.md) drift more than 5 %
+   from the build — rerun `npm run footprint`).
 3. Bump + tag: `npm version <patch|minor|major>` then
    `git push --follow-tags`.
 4. The [`publish.yml`](.github/workflows/publish.yml) workflow runs on the `v*`

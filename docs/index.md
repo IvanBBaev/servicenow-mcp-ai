@@ -1091,7 +1091,7 @@ Tools are *data*: a declarative manifest drives MCP registration, the generated 
 
 The lifecycle of one tool call — every request passes the same policy, auth and resilience layers.
 
-Tools are *data*: a declarative manifest drives MCP registration, the generated docs and the contract snapshot tests, so adding a package touches exactly one list. Quality is enforced by a single gate — `npm run check` (build, type-checked lint, format, coverage-gated tests, prod audit) — and a CI matrix across Node 22/24/26 + macOS and Windows. See [ARCHITECTURE.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/ARCHITECTURE.md) for the diagrams and ADRs.
+Tools are *data*: a declarative manifest drives MCP registration, the generated docs and the contract snapshot tests, so adding a package touches exactly one list. Quality is enforced by a single gate — `npm run check` (build, type-checked lint, format, coverage-gated tests, footprint record, prod audit) — and a CI matrix across Node 22/24/26 + macOS and Windows. See [ARCHITECTURE.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/project/ARCHITECTURE.md) for the diagrams and ADRs.
 
 ## Troubleshooting
 
