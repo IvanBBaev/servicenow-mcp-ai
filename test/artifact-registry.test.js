@@ -806,3 +806,34 @@ test("validateArtifactTypes flags an alias that shadows a type or targets none",
     ],
   );
 });
+
+test("N-70: the table type writes column, label and choice definitions through its children", () => {
+  const children = Object.fromEntries(
+    getArtifactType("table").children.map((c) => [c.table, c]),
+  );
+  assert.deepEqual(children.sys_dictionary.writeFields, [
+    "internal_type",
+    "max_length",
+    "reference",
+    "column_label",
+    "mandatory",
+    "default_value",
+    "choice",
+    "attributes",
+  ]);
+  assert.deepEqual(children.sys_documentation.writeFields, [
+    "label",
+    "plural",
+    "hint",
+  ]);
+  assert.deepEqual(children.sys_choice.writeFields, [
+    "value",
+    "sequence",
+    "inactive",
+  ]);
+  // `read_only` is itself read-only on the instance (O-5, 2026-10-27) and
+  // the parent link (`name`) is set by the tool.
+  assert.ok(!children.sys_dictionary.writeFields.includes("read_only"));
+  assert.ok(!children.sys_dictionary.writeFields.includes("name"));
+  assert.equal(children.sys_dictionary_override.writeFields, undefined);
+});

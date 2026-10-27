@@ -1393,11 +1393,11 @@ items:
     title: "schema authoring through the registry"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-27"
     gates: []
-    notes: "3.2 minor (F5-07). `writeFields` on the `table` descriptor's `sys_dictionary`, `sys_choice` and `sys_documentation` children; `sys_dictionary` and `sys_db_object` join the protected tables in `confirm` mode (additive). +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-27.** 3.2 minor (F5-07). `writeFields` on the `table` descriptor's `sys_dictionary` (`internal_type`, `max_length`, `reference`, `column_label`, `mandatory`, `default_value`, `choice`, `attributes`), `sys_documentation` (`label`, `plural`, `hint`) and `sys_choice` (`value`, `sequence`, `inactive`) children — `internal_type` / `reference` hold names, not sys_ids, and `read_only` is read-only (O-5 reads on the PDI, 2026-10-27); `sys_db_object` and `sys_dictionary` join the protected tables (`confirm` default, additive). +0 B. The PDI round-trip (a string field with three choices) is an owner-consented write, still open. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-71"
     title: "change lifecycle"
     pillar: "N"

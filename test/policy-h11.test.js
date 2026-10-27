@@ -233,6 +233,30 @@ test("B22: group role grants and role containment are write-protected, reads are
   }
 });
 
+test("N-70: table and column definitions are write-protected — confirmed by default, refused under deny, lifted by an exact allow", () => {
+  for (const table of ["sys_db_object", "sys_dictionary"]) {
+    assert.ok(PROTECTED_TABLES.includes(table), table);
+    withEnvSync({ SN_PROTECTED_TABLES_WRITE: "confirm" }, () => {
+      const verdict = evaluateTable(table, "write");
+      assert.equal(verdict.allowed, true, table);
+      assert.equal(verdict.confirm, true, table);
+      assert.equal(verdict.rule, "protected-confirm", table);
+      assert.notEqual(evaluateTable(table, "read").confirm, true, table);
+    });
+    withEnvSync({ SN_PROTECTED_TABLES_WRITE: "deny" }, () => {
+      assert.throws(
+        () => assertTableWriteAllowed(table),
+        (e) => e.code === "POLICY_DENIED" && /protected table/.test(e.message),
+      );
+      assert.doesNotThrow(() => assertTableAllowed(table));
+    });
+    withEnvSync(
+      { SN_PROTECTED_TABLES_WRITE: "deny", SN_TABLES_ALLOW: table },
+      () => assert.doesNotThrow(() => assertTableWriteAllowed(table)),
+    );
+  }
+});
+
 test("acceptance: create_record on sys_user_has_role is refused under the protected default; an exact allow re-enables it", async () => {
   await scenario(
     { SN_WRITE_MODE: "apply", SN_PROTECTED_TABLES_WRITE: "deny" },

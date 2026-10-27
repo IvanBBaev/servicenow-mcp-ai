@@ -117,7 +117,7 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     default: "confirm",
     example: "confirm",
     description:
-      "H-11: writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages — `servicenow_explain_policy` lists them). `confirm` (the 3.0 default, B11) runs one only when the tool call itself passes `apply: true` — under `SN_WRITE_MODE=apply` a call without it is refused with `POLICY_DENIED` and a hint to re-run; `deny` refuses them all; `allow` is the 2.x behaviour. An exact `SN_TABLES_ALLOW` entry lifts the rule for one table. Reads are unaffected.",
+      "H-11: writes to the built-in protected tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts, LDAP, certificates, data sources, REST messages, table and column definitions — `servicenow_explain_policy` lists them). `confirm` (the 3.0 default, B11) runs one only when the tool call itself passes `apply: true` — under `SN_WRITE_MODE=apply` a call without it is refused with `POLICY_DENIED` and a hint to re-run; `deny` refuses them all; `allow` is the 2.x behaviour. An exact `SN_TABLES_ALLOW` entry lifts the rule for one table. Reads are unaffected.",
   }),
   list({
     key: "SN_IMPORT_SET_TABLES",

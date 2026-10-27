@@ -261,7 +261,8 @@ conservative defaults win, and both are now enforced in code (with tests):
   refused (`SN_BATCH_UNMAPPED=deny`; `allow` opts out) and a batch holds at
   most 50 sub-requests (`SN_BATCH_MAX_REQUESTS`); writes to the protected
   system tables (identity, roles, ACLs, `sys_properties`, OAuth, scripts,
-  LDAP, certificates, data sources, REST messages) are refused
+  LDAP, certificates, data sources, REST messages, table and column
+  definitions) are refused
   (`SN_PROTECTED_TABLES_WRITE=deny`; `allow` or an exact `SN_TABLES_ALLOW`
   entry opts out); import-set staging tables must match `u_*,imp_*`
   (`SN_IMPORT_SET_TABLES=*` opts out); and the write caps are on — 100 deletes

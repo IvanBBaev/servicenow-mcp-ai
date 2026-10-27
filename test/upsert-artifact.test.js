@@ -174,6 +174,41 @@ test("descriptor allow-lists never include sys_* or the parent link", () => {
   });
 });
 
+test("N-70: a table column carries its type, length, reference and choice flag; the parent link and sys_* stay out", () => {
+  const table = getArtifactType("table");
+  const child = (name) => table.children.find((c) => c.table === name);
+  const column = childWriteFields(child("sys_dictionary"));
+  for (const f of [
+    "element",
+    "internal_type",
+    "max_length",
+    "reference",
+    "column_label",
+    "mandatory",
+    "default_value",
+    "choice",
+    "attributes",
+  ]) {
+    assert.ok(column.includes(f), f);
+  }
+  for (const f of ["name", "read_only", "sys_id", "sys_scope"]) {
+    assert.ok(!column.includes(f), f);
+  }
+  assert.deepEqual(childWriteFields(child("sys_choice")), [
+    "element",
+    "inactive",
+    "label",
+    "sequence",
+    "value",
+  ]);
+  assert.deepEqual(childWriteFields(child("sys_documentation")), [
+    "element",
+    "hint",
+    "label",
+    "plural",
+  ]);
+});
+
 test("acceptance: create -> update -> S-2 revert of a UI policy with two actions restores both actions", async () => {
   await scenario({}, {}, async (calls, inst) => {
     // 1. Create: the parent, then both actions linked to it.

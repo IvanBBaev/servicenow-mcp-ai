@@ -90,6 +90,10 @@ export const PROTECTED_TABLES: readonly string[] = [
   "sys_certificate",
   "sys_data_source",
   "sys_rest_message*",
+  // N-70: a table or column definition changes the data model for every
+  // record on it, so a schema write is confirmed like a script.
+  "sys_db_object",
+  "sys_dictionary",
 ];
 
 export type TableAction = "read" | "write";

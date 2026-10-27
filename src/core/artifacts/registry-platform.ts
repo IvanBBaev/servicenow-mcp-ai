@@ -19,6 +19,12 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
     sdkSince: "<=3.0",
     table: "sys_db_object",
     // Columns, overrides, labels and choices hang off the table name.
+    // N-70: the column, label and choice definitions are writable through
+    // the registry (O-5, verified on a PDI 2026-10-27): `internal_type` and
+    // `reference` hold the glide-object / table *name*, not a sys_id, so
+    // they are plain fields rather than reference edges; `read_only` is
+    // itself read-only on the instance and stays out; `choice` 1 or 3 turns
+    // the column into a choice list whose values are `sys_choice` children.
     children: [
       {
         table: "sys_dictionary",
@@ -26,6 +32,16 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
         parentKey: "name",
         orderField: "element",
         nameField: "element",
+        writeFields: [
+          "internal_type",
+          "max_length",
+          "reference",
+          "column_label",
+          "mandatory",
+          "default_value",
+          "choice",
+          "attributes",
+        ],
       },
       {
         table: "sys_dictionary_override",
@@ -39,13 +55,17 @@ export const PLATFORM_ROWS: readonly ArtifactType[] = [
         parentKey: "name",
         orderField: "element",
         nameField: "element",
+        writeFields: ["label", "plural", "hint"],
       },
       {
+        // `label` is the nameField; a choice is matched by it, so a renamed
+        // choice is a new one.
         table: "sys_choice",
         parentField: "name",
         parentKey: "name",
         orderField: "element",
         nameField: "label",
+        writeFields: ["value", "sequence", "inactive"],
       },
     ],
     nameField: "name",
