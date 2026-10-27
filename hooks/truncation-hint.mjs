@@ -20,6 +20,7 @@ import { pathToFileURL } from "node:url";
 export const FILE_FORMAT_TOOLS = [
   "servicenow_compare_instances",
   "servicenow_document_instance",
+  "servicenow_download_attachment",
   "servicenow_explain_flow",
   "servicenow_explain_portal",
   "servicenow_explain_ui_experience",

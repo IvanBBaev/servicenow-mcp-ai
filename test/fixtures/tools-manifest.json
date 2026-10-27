@@ -1331,7 +1331,7 @@
       "package": "attachment",
       "title": "Delete ServiceNow attachment",
       "since": "2.0.1",
-      "description_sha256": "e04379eff789bfd39480361198e6aba63724ce8f05919a40eff1ef5f9e200afe",
+      "description_sha256": "f2cb9945f3f31ac213d2f4f2c5d76214d3b44b450d49a1460bfc41cd2df16208",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": true,
@@ -1366,7 +1366,7 @@
       },
       "legacyParams": { "attachment_sys_id": "sys_id" },
       "sizes": {
-        "description": 37,
+        "description": 23,
         "inputSchema": 497,
         "paramDescriptions": 175,
         "outputSchema": 0
@@ -1820,7 +1820,7 @@
       "package": "attachment",
       "title": "Download ServiceNow attachment",
       "since": "2.0.1",
-      "description_sha256": "7762ecb1cfc638cc33eafaf8adbaf1ec24272c68a3f3571046f74b4fae72749f",
+      "description_sha256": "0bfffdb66d067fb8cfbb0ca7f1d7494a3288f30a36837e2586ad37dbc18f0265",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -1830,6 +1830,11 @@
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
+          "format": {
+            "description": "file: write to exports/.",
+            "enum": ["base64", "file"],
+            "type": "string"
+          },
           "instance": {
             "description": "Profile (default active)",
             "maxLength": 128,
@@ -1846,9 +1851,9 @@
       },
       "legacyParams": { "attachment_sys_id": "sys_id" },
       "sizes": {
-        "description": 104,
-        "inputSchema": 265,
-        "paramDescriptions": 46,
+        "description": 83,
+        "inputSchema": 358,
+        "paramDescriptions": 72,
         "outputSchema": 0
       }
     },
@@ -2964,7 +2969,7 @@
       "package": "attachment",
       "title": "Get ServiceNow attachment metadata",
       "since": "2.0.1",
-      "description_sha256": "90d1912202434380390ba33bfa7c6ef54c1cc7b563c30b98d732193912e7fd2c",
+      "description_sha256": "9e6f35613017a20e79ed1a09fc48ade6907de3b8a3affc01f064ab8519f917ad",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -2990,7 +2995,7 @@
       },
       "legacyParams": { "attachment_sys_id": "sys_id" },
       "sizes": {
-        "description": 52,
+        "description": 33,
         "inputSchema": 265,
         "paramDescriptions": 46,
         "outputSchema": 0
@@ -4605,7 +4610,7 @@
       "package": "attachment",
       "title": "List ServiceNow attachments",
       "since": "2.0.1",
-      "description_sha256": "3320ea7af9a4a3d6c4734accea27be0afe913002d2b90f69b682772773cc0658",
+      "description_sha256": "e053b0271ebc1cece600bba42c982461cd116a22f34ebc1efe7a6120bbfc497d",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -4626,7 +4631,7 @@
             "type": "string"
           },
           "table": {
-            "description": "Record table, e.g. 'incident'.",
+            "description": "Record table.",
             "pattern": "^[A-Za-z0-9_]{1,80}$",
             "type": "string"
           }
@@ -4634,9 +4639,9 @@
         "type": "object"
       },
       "sizes": {
-        "description": 71,
-        "inputSchema": 345,
-        "paramDescriptions": 74,
+        "description": 54,
+        "inputSchema": 328,
+        "paramDescriptions": 57,
         "outputSchema": 0
       }
     },
@@ -6875,7 +6880,7 @@
       "package": "attachment",
       "title": "Upload ServiceNow attachment",
       "since": "2.0.1",
-      "description_sha256": "ce707eb17e61bb2adb77045093d1678bb7c77e992552b6c03816e3a56c95bf8f",
+      "description_sha256": "223670c232c927ef4d2b835030a299640f1b6220a7a7618088140fef088bd3d3",
       "annotations": {
         "readOnlyHint": false,
         "destructiveHint": false,
@@ -6894,13 +6899,18 @@
             "type": "string"
           },
           "content_type": {
-            "description": "MIME type (default application/octet-stream).",
+            "description": "MIME type (default by extension).",
             "maxLength": 255,
             "type": "string"
           },
           "file_name": {
-            "description": "File name, e.g. 'log.txt'.",
+            "description": "File name (default: the file_path leaf).",
             "maxLength": 255,
+            "type": "string"
+          },
+          "file_path": {
+            "description": "Path under SN_DOCS_DIR.",
+            "maxLength": 1024,
             "type": "string"
           },
           "instance": {
@@ -6919,13 +6929,13 @@
             "type": "string"
           }
         },
-        "required": ["table", "sys_id", "file_name", "content_base64"],
+        "required": ["table", "sys_id"],
         "type": "object"
       },
       "sizes": {
-        "description": 78,
-        "inputSchema": 807,
-        "paramDescriptions": 260,
+        "description": 73,
+        "inputSchema": 867,
+        "paramDescriptions": 287,
         "outputSchema": 0
       }
     },

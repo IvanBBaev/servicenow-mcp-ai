@@ -137,6 +137,31 @@ export async function writeExport(
   return sink.close();
 }
 
+/**
+ * Write raw bytes (an attachment download, N-66) to a new export file. The
+ * extension follows the attachment's file name (`bin` when it has none); no
+ * preview is taken here — the caller decides whether the bytes are text.
+ */
+export async function writeExportBytes(
+  fileName: string,
+  data: Uint8Array,
+): Promise<Omit<FileDelivery, "preview" | "preview_truncated">> {
+  const parsed = path.posix.parse(safeFileName(fileName));
+  const ext = parsed.ext.slice(1).toLowerCase() || "bin";
+  const stream = await openDocStream(
+    exportPath(parsed.name || "attachment", ext),
+    [`.${ext}`],
+  );
+  try {
+    await stream.write(data);
+  } catch (e) {
+    await stream.abort();
+    throw e;
+  }
+  const { path: rel, abs, bytes } = await stream.close();
+  return { path: rel, file: abs, bytes };
+}
+
 /** Serialised size of a result as ok() would send it (compact JSON). */
 function resultChars(data: unknown): number {
   return JSON.stringify(redactValue(data).value).length;

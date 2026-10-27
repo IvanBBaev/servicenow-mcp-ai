@@ -364,8 +364,8 @@ async function persist(abs: string, content: string): Promise<number> {
 export interface DocStream {
   /** The docs-relative path the file lands at on close. */
   readonly path: string;
-  /** Append a chunk (UTF-8). */
-  write(chunk: string): Promise<void>;
+  /** Append a chunk: text (UTF-8) or raw bytes. */
+  write(chunk: string | Uint8Array): Promise<void>;
   /** Finish: move the file into place and journal it. */
   close(): Promise<{ path: string; abs: string; bytes: number }>;
   /** Give up: delete the partial file; nothing lands at `path`. */
@@ -411,10 +411,13 @@ export async function openDocStream(
   };
   return {
     path: relPath,
-    async write(chunk: string) {
+    async write(chunk: string | Uint8Array) {
       if (done) throw new Error(`Stream already closed: ${relPath}`);
-      if (!chunk) return;
-      const buf = Buffer.from(chunk, "utf8");
+      if (chunk.length === 0) return;
+      const buf =
+        typeof chunk === "string"
+          ? Buffer.from(chunk, "utf8")
+          : Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength);
       hash.update(buf);
       bytes += buf.length;
       await handle.write(buf);

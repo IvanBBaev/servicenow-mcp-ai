@@ -7,6 +7,7 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ### Added
 
+- Attachment file I/O (N-66): `servicenow_upload_attachment` accepts `file_path` — a file under `SN_DOCS_DIR` (the docs-store confinement, symlink check and journal-file refusal apply; the size is checked against `SN_MAX_UPLOAD_BYTES` before the file is read; the content type defaults by extension) — as the alternative to `content_base64`, and `servicenow_download_attachment` accepts `format: "file"`, which writes the bytes to `<profile>/exports/<name>-<stamp>.<ext>` and returns the path, size, sha256 and, for text-like content, a preview instead of base64. The write journal records the effective name, type and path, never the bytes. `tools/list`: +60 B per profile; the five attachment tool descriptions were shortened to pay for it.
 - `server.json` (MCP Registry): `websiteUrl`, a `remotes` entry for a self-hosted HTTP deployment (`https://{host}/mcp` with a bearer header; there is no hosted instance) and, at publish time, the release bundle as an `mcpb` package — `scripts/registry-mcpb.mjs` appends it with its `fileSha256` in the registry workflow (N-91).
 
 ### Changed

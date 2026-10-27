@@ -14,7 +14,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ## servicenow_list_attachments
 
-**List ServiceNow attachments.** List attachment metadata, optionally for one record (table + sys_id).
+**List ServiceNow attachments.** List attachment metadata, optionally for one record.
 
 **Writes:** Read-only.
 
@@ -22,7 +22,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `table` | string | no | Record table, e.g. 'incident'. |
+| `table` | string | no | Record table. |
 | `sys_id` | string | no | Record sys_id. |
 | `instance` | string | no | Profile (default active) |
 
@@ -32,7 +32,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_get_attachment
 
-**Get ServiceNow attachment metadata.** Read a single attachment's metadata by its sys_id.
+**Get ServiceNow attachment metadata.** Read one attachment's metadata.
 
 **Writes:** Read-only.
 
@@ -49,7 +49,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_download_attachment
 
-**Download ServiceNow attachment.** Download an attachment's bytes, returned as base64. Large files are refused (see SN_MAX_RESULT_CHARS).
+**Download ServiceNow attachment.** Download an attachment as base64, or (format 'file') to a file under SN_DOCS_DIR.
 
 **Writes:** Read-only.
 
@@ -58,6 +58,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
 | `sys_id` | string | yes | Attachment sys_id. |
+| `format` | "base64" \| "file" | no | file: write to exports/. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output
@@ -66,7 +67,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_upload_attachment
 
-**Upload ServiceNow attachment.** Attach a file (provided as base64) to a record identified by table + sys_id.
+**Upload ServiceNow attachment.** Attach a file to a record: content_base64 inline, or a local file_path.
 
 **Writes:** Write. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`).
 
@@ -76,9 +77,10 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Record table. |
 | `sys_id` | string | yes | Record sys_id. |
-| `file_name` | string | yes | File name, e.g. 'log.txt'. |
-| `content_base64` | string | yes | File contents, base64-encoded. |
-| `content_type` | string | no | MIME type (default application/octet-stream). |
+| `file_name` | string | no | File name (default: the file_path leaf). |
+| `content_base64` | string | no | File contents, base64-encoded. |
+| `file_path` | string | no | Path under SN_DOCS_DIR. |
+| `content_type` | string | no | MIME type (default by extension). |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -88,7 +90,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_delete_attachment
 
-**Delete ServiceNow attachment.** Delete an attachment by its sys_id.
+**Delete ServiceNow attachment.** Delete an attachment.
 
 **Writes:** Destructive write, idempotent. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`). Under `SN_DESTRUCTIVE_CONFIRM=token|elicit` an apply needs the `plan_token` of a matching preview.
 

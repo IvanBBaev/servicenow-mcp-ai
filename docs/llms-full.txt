@@ -794,7 +794,7 @@ Least-privilege table policy, plan-and-apply writes, destructive-write confirmat
 | `SN_PROD_WRITES` | no | — | next | H-11: `I_UNDERSTAND` lets a `prod` default profile run in apply mode. |
 | `SN_UPDATE_SET` | no | — | next | S-6: update set (sys_id or exact name) that applied Table-tool writes (create / update / upsert / delete) land in; a per-call `update_set` overrides it. The plan names the set; the user's current update set is switched for the write and restored after it. Data-row tables are written unchanged. |
 | `SN_EMAIL_ALLOWED_DOMAINS` | no | — | next | Recipient domains `servicenow_send_email` may address (to/cc/bcc; a domain covers its subdomains, `*` allows any). When unset, every recipient must be the email of a user in the instance's own `sys_user` table; anything else fails with `RECIPIENT_NOT_ALLOWED`. |
-| `SN_MAX_UPLOAD_BYTES` | no | `10485760` | next | Largest decoded attachment upload, checked on the base64 length before decoding (`PAYLOAD_TOO_LARGE`). |
+| `SN_MAX_UPLOAD_BYTES` | no | `10485760` | next | Largest attachment upload, checked on the base64 length before decoding, or on the file size for a `file_path` source (`PAYLOAD_TOO_LARGE`). |
 | `SN_UPLOAD_MIME_ALLOW` | no | — | next | Optional allow-list of upload content types (exact, or `type/*`); others fail with `MIME_NOT_ALLOWED`. |
 | `SN_SDK_MANAGED_SCOPES` | no | — | next | P-3: comma/space-separated application scopes (namespace such as `x_acme_app`, or the `sys_scope` sys_id) you declare as managed by a ServiceNow SDK (Fluent) project. The highest source of authority for SDK-managed detection; listed in `get_status` / `check_capabilities` under `sdkManaged`. |
 | `SN_SDK_MANAGED_WRITES` | no | `warn` | next | P-22: writes into an SDK-managed scope (a record whose `sys_scope` P-3 detects as SDK-managed) from `create_record`, `update_record`, `upsert_record`, `delete_record`, `set_property`, `revert_write`, `upsert_artifact` (every record of the plan) and the Table API write sub-requests of `batch`; a create without `sys_scope` on a `sys_metadata` table is judged by the session's current application (`apps.current_app` preference; unreadable = a `sdkScopeWarning`, never a crash): `warn` previews and applies with an `sdkManaged` block naming the Fluent alternative; `deny` refuses the apply with `SDK_MANAGED_SCOPE` (the plan says `would_refuse`); `allow` skips the check. Runs after the table policy and costs nothing unless `SN_SDK_MANAGED_SCOPES` or `SN_SDK_PROJECT_DIRS` is set. |
@@ -2714,7 +2714,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 ## servicenow_list_attachments
 
-**List ServiceNow attachments.** List attachment metadata, optionally for one record (table + sys_id).
+**List ServiceNow attachments.** List attachment metadata, optionally for one record.
 
 **Writes:** Read-only.
 
@@ -2722,7 +2722,7 @@ _Generated from the tool registrations by `npm run docs:sync` — edit the tool 
 
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
-| `table` | string | no | Record table, e.g. 'incident'. |
+| `table` | string | no | Record table. |
 | `sys_id` | string | no | Record sys_id. |
 | `instance` | string | no | Profile (default active) |
 
@@ -2732,7 +2732,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_get_attachment
 
-**Get ServiceNow attachment metadata.** Read a single attachment's metadata by its sys_id.
+**Get ServiceNow attachment metadata.** Read one attachment's metadata.
 
 **Writes:** Read-only.
 
@@ -2749,7 +2749,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_download_attachment
 
-**Download ServiceNow attachment.** Download an attachment's bytes, returned as base64. Large files are refused (see SN_MAX_RESULT_CHARS).
+**Download ServiceNow attachment.** Download an attachment as base64, or (format 'file') to a file under SN_DOCS_DIR.
 
 **Writes:** Read-only.
 
@@ -2758,6 +2758,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | Name | Type | Required | Description |
 | ---- | ---- | :------: | ----------- |
 | `sys_id` | string | yes | Attachment sys_id. |
+| `format` | "base64" \| "file" | no | file: write to exports/. |
 | `instance` | string | no | Profile (default active) |
 
 ### Output
@@ -2766,7 +2767,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_upload_attachment
 
-**Upload ServiceNow attachment.** Attach a file (provided as base64) to a record identified by table + sys_id.
+**Upload ServiceNow attachment.** Attach a file to a record: content_base64 inline, or a local file_path.
 
 **Writes:** Write. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`).
 
@@ -2776,9 +2777,10 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 | ---- | ---- | :------: | ----------- |
 | `table` | string | yes | Record table. |
 | `sys_id` | string | yes | Record sys_id. |
-| `file_name` | string | yes | File name, e.g. 'log.txt'. |
-| `content_base64` | string | yes | File contents, base64-encoded. |
-| `content_type` | string | no | MIME type (default application/octet-stream). |
+| `file_name` | string | no | File name (default: the file_path leaf). |
+| `content_base64` | string | no | File contents, base64-encoded. |
+| `file_path` | string | no | Path under SN_DOCS_DIR. |
+| `content_type` | string | no | MIME type (default by extension). |
 | `apply` | boolean | no | true executes; omitted: a non-mutating plan preview (SN_WRITE_MODE=apply executes by default). |
 | `instance` | string | no | Profile (default active) |
 
@@ -2788,7 +2790,7 @@ Free-form JSON text (no declared `outputSchema`); errors follow the [error contr
 
 ## servicenow_delete_attachment
 
-**Delete ServiceNow attachment.** Delete an attachment by its sys_id.
+**Delete ServiceNow attachment.** Delete an attachment.
 
 **Writes:** Destructive write, idempotent. Plan and apply: without `apply: true` the call returns a non-mutating plan preview (unless `SN_WRITE_MODE=apply`). Under `SN_DESTRUCTIVE_CONFIRM=token|elicit` an apply needs the `plan_token` of a matching preview.
 

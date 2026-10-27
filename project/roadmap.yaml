@@ -1357,11 +1357,11 @@ items:
     title: "attachment file I/O"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-27"
     gates: []
-    notes: "3.1 minor (F5-03). `upload_attachment file_path` (streamed, size-guarded) and `get_attachment to_file` (written into the file-result directory); the journal records the path, not the bytes. ≈ +260 B on `all`, +0 B on `discovery`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-27.** 3.1 minor (F5-03). `servicenow_upload_attachment` takes `file_path` (a file under SN_DOCS_DIR — same confinement as the docs store, symlink check, journal file refused; size checked on the stat before the read; MIME guessed by extension) as the alternative to `content_base64`; `servicenow_download_attachment` takes `format: file` (chosen over the sketched `to_file`, matching the other file-delivery tools) and writes the raw bytes to `<profile>/exports/<name>-<stamp>.<ext>` with a sha256 and a text preview for text-like types. The journal records the effective name, type and path, never the bytes. +60 B per profile after shortening the five attachment descriptions (`discovery` unchanged); the offline eval moved +0.6 on `all` (one case fixed, none lost). `test/attachment-file.test.js`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-67"
     title: "bulk update and delete by query"
     pillar: "N"

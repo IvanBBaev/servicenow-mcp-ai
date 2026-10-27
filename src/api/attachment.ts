@@ -6,19 +6,25 @@ import {
   isTableAllowed,
 } from "../core/policy.js";
 import { createHash } from "node:crypto";
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import {
+  getDocsDir,
   getMaxResultChars,
   getMaxUploadBytes,
   getUploadMimeAllow,
 } from "../core/settings.js";
 import { ServiceNowError } from "../core/errors.js";
+import { errorCode, JOURNAL_FILE, resolveDocPath } from "./docs-paths.js";
 import { assertNoCaret, expectResult, expectResultArray } from "./shared.js";
 import type { SnRecord } from "./table.js";
 
 /**
- * ServiceNow Attachment API. File contents cross the wire as base64 so they
- * fit the text-only tool channel; downloads are size-guarded against
- * SN_MAX_RESULT_CHARS to avoid flooding the client.
+ * ServiceNow Attachment API. File contents cross the tool channel as base64,
+ * or (N-66) stay on disk: an upload can read a file under SN_DOCS_DIR
+ * (`file_path`) and a download can be written there (`format:"file"`), so a
+ * binary never has to pass through the model. Inline downloads are
+ * size-guarded against SN_MAX_RESULT_CHARS to avoid flooding the client.
  */
 
 export interface AttachmentMeta extends SnRecord {
@@ -188,6 +194,35 @@ export interface PreparedUpload {
   fileName: string;
   contentType: string;
   bytes: Buffer;
+  /** The docs-relative source path when the bytes came from a local file. */
+  filePath?: string;
+}
+
+function uploadTooLarge(bytes: number, max: number, about = false) {
+  return new ServiceNowError(
+    `Attachment of ${about ? "about " : ""}${bytes} bytes exceeds the SN_MAX_UPLOAD_BYTES limit of ${max}.`,
+    undefined,
+    undefined,
+    {
+      code: "PAYLOAD_TOO_LARGE",
+      hint: "Upload a smaller file or raise SN_MAX_UPLOAD_BYTES.",
+    },
+  );
+}
+
+function assertMimeAllowed(contentType: string): void {
+  const allow = getUploadMimeAllow();
+  if (allow.length > 0 && !mimeAllowed(contentType, allow)) {
+    throw new ServiceNowError(
+      `Content type "${contentType}" is not permitted by SN_UPLOAD_MIME_ALLOW.`,
+      undefined,
+      undefined,
+      {
+        code: "MIME_NOT_ALLOWED",
+        hint: `Allowed: ${allow.join(", ")}.`,
+      },
+    );
+  }
 }
 
 /**
@@ -204,33 +239,156 @@ export function prepareUpload(args: {
   const { base64, mediaType } = splitDataUrl(args.contentBase64);
   const max = getMaxUploadBytes();
   const estimated = estimateDecodedBytes(base64);
-  if (estimated > max) {
-    throw new ServiceNowError(
-      `Attachment of about ${estimated} bytes exceeds the SN_MAX_UPLOAD_BYTES limit of ${max}.`,
-      undefined,
-      undefined,
-      {
-        code: "PAYLOAD_TOO_LARGE",
-        hint: "Upload a smaller file or raise SN_MAX_UPLOAD_BYTES.",
-      },
-    );
-  }
+  if (estimated > max) throw uploadTooLarge(estimated, max, true);
   const fileName = sanitizeFileName(args.fileName);
   const contentType =
     args.contentType || mediaType || "application/octet-stream";
-  const allow = getUploadMimeAllow();
-  if (allow.length > 0 && !mimeAllowed(contentType, allow)) {
+  assertMimeAllowed(contentType);
+  return { fileName, contentType, bytes: decodeBase64Strict(base64) };
+}
+
+// --- file sources (N-66) ----------------------------------------------------
+
+/** Content types for the extensions an agent commonly hands over. */
+const MIME_BY_EXT: Record<string, string> = {
+  csv: "text/csv",
+  gif: "image/gif",
+  htm: "text/html",
+  html: "text/html",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  js: "text/javascript",
+  json: "application/json",
+  log: "text/plain",
+  md: "text/markdown",
+  pdf: "application/pdf",
+  png: "image/png",
+  svg: "image/svg+xml",
+  txt: "text/plain",
+  xml: "application/xml",
+  yaml: "application/yaml",
+  yml: "application/yaml",
+  zip: "application/zip",
+};
+
+/** The content type a file name's extension implies, if a common one. */
+export function guessContentType(fileName: string): string | undefined {
+  return MIME_BY_EXT[path.extname(fileName).slice(1).toLowerCase()];
+}
+
+function invalidPath(message: string, hint?: string): ServiceNowError {
+  return new ServiceNowError(message, undefined, undefined, {
+    code: "INVALID_INPUT",
+    ...(hint ? { hint } : {}),
+  });
+}
+
+const FILE_PATH_HINT =
+  "file_path is relative to SN_DOCS_DIR (an absolute path must lie inside it).";
+
+/**
+ * Resolve an upload source to a file inside SN_DOCS_DIR. The store's
+ * confinement applies as for a docs write — lexical containment, portable
+ * segments, the symlink check — so the server never reads a file outside
+ * the directory the operator exposed, whichever client asks (H-5).
+ */
+export function resolveUploadPath(filePath: string): {
+  abs: string;
+  rel: string;
+} {
+  if (!filePath.trim()) throw invalidPath("file_path is empty.");
+  let rel = filePath.trim();
+  if (path.isAbsolute(rel)) {
+    const inside = path.relative(getDocsDir(), rel);
+    if (!inside || inside.startsWith("..") || path.isAbsolute(inside)) {
+      throw new ServiceNowError(
+        `Path escapes the docs directory: ${filePath}`,
+        400,
+        undefined,
+        { hint: FILE_PATH_HINT },
+      );
+    }
+    rel = inside;
+  }
+  const abs = resolveDocPath(rel, [path.extname(rel).toLowerCase()]);
+  if (JOURNAL_FILE.test(path.basename(abs))) {
     throw new ServiceNowError(
-      `Content type "${contentType}" is not permitted by SN_UPLOAD_MIME_ALLOW.`,
-      undefined,
-      undefined,
-      {
-        code: "MIME_NOT_ALLOWED",
-        hint: `Allowed: ${allow.join(", ")}.`,
-      },
+      `The write journal cannot be uploaded: ${filePath}`,
+      400,
     );
   }
-  return { fileName, contentType, bytes: decodeBase64Strict(base64) };
+  return {
+    abs,
+    rel: path.relative(getDocsDir(), abs).split(path.sep).join("/"),
+  };
+}
+
+/**
+ * Validate an upload read from a local file (N-66): the path is confined to
+ * SN_DOCS_DIR, the size is checked on the stat before the file is read, the
+ * name defaults to the file's own and the content type to one its extension
+ * implies; the SN_UPLOAD_MIME_ALLOW check is the same as for base64.
+ */
+export async function prepareUploadFromFile(args: {
+  filePath: string;
+  fileName?: string;
+  contentType?: string;
+}): Promise<PreparedUpload> {
+  const { abs, rel } = resolveUploadPath(args.filePath);
+  let stat;
+  try {
+    stat = await fs.stat(abs);
+  } catch (e) {
+    if (errorCode(e) === "ENOENT") {
+      throw invalidPath(`File not found: ${rel}`, FILE_PATH_HINT);
+    }
+    throw e;
+  }
+  if (!stat.isFile()) throw invalidPath(`Not a regular file: ${rel}`);
+  const max = getMaxUploadBytes();
+  if (stat.size > max) throw uploadTooLarge(stat.size, max);
+  const fileName = sanitizeFileName(args.fileName ?? path.basename(abs));
+  const contentType =
+    args.contentType ||
+    guessContentType(fileName) ||
+    "application/octet-stream";
+  assertMimeAllowed(contentType);
+  const bytes = await fs.readFile(abs);
+  // The file may have grown between the stat and the read.
+  if (bytes.length > max) throw uploadTooLarge(bytes.length, max);
+  return { fileName, contentType, bytes, filePath: rel };
+}
+
+/** An upload's source: base64 in the call, or a file under SN_DOCS_DIR. */
+export interface UploadSource {
+  fileName?: string;
+  contentBase64?: string;
+  filePath?: string;
+  contentType?: string;
+}
+
+/** Validate either upload source; exactly one of them must be given. */
+export async function prepareUploadSource(
+  args: UploadSource,
+): Promise<PreparedUpload> {
+  const { fileName, contentBase64, filePath, contentType } = args;
+  if ((contentBase64 === undefined) === (filePath === undefined)) {
+    throw invalidPath(
+      "Give exactly one of content_base64 and file_path.",
+      FILE_PATH_HINT,
+    );
+  }
+  if (filePath !== undefined) {
+    return prepareUploadFromFile({ filePath, fileName, contentType });
+  }
+  if (fileName === undefined) {
+    throw invalidPath("file_name is required with content_base64.");
+  }
+  return prepareUpload({
+    fileName,
+    contentBase64: contentBase64 as string,
+    contentType,
+  });
 }
 
 /** The envelope a plan preview shows for an upload — never the payload. */
@@ -249,25 +407,21 @@ export function describeUpload(p: PreparedUpload): {
 }
 
 /**
- * Upload a file (given as base64) and attach it to a record. A 0-byte file is
- * a legal upload (empty body). The file name travels in the `file_name` query
- * parameter, percent-encoded as UTF-8, so non-ASCII names round-trip. The
- * payload passes prepareUpload first (size cap, name, content type).
+ * Send a prepared upload and attach it to a record. A 0-byte file is a legal
+ * upload (empty body). The file name travels in the `file_name` query
+ * parameter, percent-encoded as UTF-8, so non-ASCII names round-trip.
  */
-export async function uploadAttachment(args: {
-  table: string;
-  sysId: string;
-  fileName: string;
-  contentBase64: string;
-  contentType?: string;
-}): Promise<AttachmentMeta> {
+export async function uploadPrepared(
+  table: string,
+  sysId: string,
+  upload: PreparedUpload,
+): Promise<AttachmentMeta> {
   // H-11: an upload is a write to the parent record's table.
-  assertTableWriteAllowed(args.table);
+  assertTableWriteAllowed(table);
   assertWriteAllowed("attachment upload");
-  const upload = prepareUpload(args);
   const params = new URLSearchParams({
-    table_name: args.table,
-    table_sys_id: args.sysId,
+    table_name: table,
+    table_sys_id: sysId,
     file_name: upload.fileName,
   });
   const { data } = await snRequest<{ result: AttachmentMeta }>({
@@ -278,6 +432,23 @@ export async function uploadAttachment(args: {
     contentType: upload.contentType,
   });
   return expectResult(data, "Attachment API");
+}
+
+/**
+ * Upload a file (base64, or a path under SN_DOCS_DIR) and attach it to a
+ * record. The source passes prepareUploadSource first (size cap, name,
+ * content type, path confinement).
+ */
+export async function uploadAttachment(
+  args: UploadSource & { table: string; sysId: string },
+): Promise<AttachmentMeta> {
+  assertTableWriteAllowed(args.table);
+  assertWriteAllowed("attachment upload");
+  return uploadPrepared(
+    args.table,
+    args.sysId,
+    await prepareUploadSource(args),
+  );
 }
 
 export interface AttachmentDownload {
@@ -335,6 +506,36 @@ export async function downloadAttachment(
     sizeBytes: decodedBytes,
     base64: data,
   };
+}
+
+/**
+ * N-66: an attachment's raw bytes for a file delivery. No inline cap applies
+ * (the bytes go to disk, not to the chat); the response is still bounded by
+ * SN_MAX_BODY_BYTES like every other.
+ */
+export async function fetchAttachmentBytes(attachmentSysId: string): Promise<{
+  meta: AttachmentMeta;
+  bytes: Buffer;
+  contentType?: string;
+}> {
+  const meta = await getAttachmentMeta(attachmentSysId); // H-4 policy check
+  const { data, contentType } = await snRequest<string>({
+    method: "GET",
+    path: `/api/now/attachment/${encodeURIComponent(attachmentSysId)}/file`,
+    accept: "*/*",
+    responseType: "binary",
+  });
+  return { meta, bytes: Buffer.from(data, "base64"), contentType };
+}
+
+/** True for content a text preview makes sense of (text/*, JSON, XML...). */
+export function isTextType(contentType: string | undefined): boolean {
+  const t = contentType?.split(";", 1)[0]?.trim().toLowerCase() ?? "";
+  return (
+    t.startsWith("text/") ||
+    /^application\/(json|xml|javascript|x-ndjson|yaml|x-yaml)$/.test(t) ||
+    /\+(json|xml)$/.test(t)
+  );
 }
 
 /** Delete an attachment by its sys_id. */

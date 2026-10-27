@@ -210,7 +210,7 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     since: NEXT,
     default: 10_485_760,
     description:
-      "Largest decoded attachment upload, checked on the base64 length before decoding (`PAYLOAD_TOO_LARGE`).",
+      "Largest attachment upload, checked on the base64 length before decoding, or on the file size for a `file_path` source (`PAYLOAD_TOO_LARGE`).",
   }),
   list({
     key: "SN_UPLOAD_MIME_ALLOW",
