@@ -1351,3 +1351,266 @@ items:
     done: "2026-10-09"
     gates: ["O-21"]
     notes: '**Done 2026-10-09.** Hints (f5071f9, O-21 (c)): `_meta["anthropic/maxResultSizeChars"]` (= `SN_MAX_RESULT_CHARS`) on seven large readers (`src/mcp/result-hints.ts`), on by default, `SN_RESULT_SIZE_HINTS=false` turns it off; `all` +329 B, `core` +0 B. `resource_link` (e7c3b46): a `format:"file"` delivery gains a link to `servicenow://docs/<path>` while the docs package is on (`src/mcp/file-link.ts`); the docs resource reads `.jsonl`/`.csv`/`.mmd`; +0 B. Phase T3, waits for O-21 (c) (TK-44, TK-48). `_meta["anthropic/maxResultSizeChars"]` on the large readers, `resource_link` results, tied to the N-61 cap. **2026-10-10 (517c4ba):** the always-on `servicenow://exports/{+path}` resource (file deliveries only, off when docs is denied) gives default-profile users the `resource_link` too; +0 B. See [TOKEN-OPTIMIZATION-PLAN-2026-10.md](TOKEN-OPTIMIZATION-PLAN-2026-10.md).'
+  - marker: "_cut **3.0.0** here (GA 2026-10-19)_"
+    notes: "Rows 150 onwards are the 3.5 plan: minors 3.1 … 3.5 from [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §5."
+  - id: "N-66"
+    title: "attachment file I/O"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.1 minor (F5-03). `upload_attachment file_path` (streamed, size-guarded) and `get_attachment to_file` (written into the file-result directory); the journal records the path, not the bytes. ≈ +260 B on `all`, +0 B on `discovery`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-67"
+    title: "bulk update and delete by query"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-23"]
+    notes: "3.2 minor (F5-01), waits for O-23. One `servicenow_bulk_write` tool in the `batch` package: plan fingerprints the matched `sys_id` set, apply refuses on drift, honours the delete caps, journals per row so `revert_write` restores each record, refuses protected tables and prod. ≈ +1,100 B on `all`; budget restated under O-23. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-68"
+    title: "multi-row and file-sourced import"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "3.2 minor (F5-02). `insert_import_set_row` accepts `rows: []` or `file_path` (CSV / JSONL, header-mapped). `insertMultiple` is unverified (O-5); sequential inserts with one journal entry per row otherwise. ≈ +300 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-69"
+    title: "event lane and three prompts"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: '3.2 minor (F5-06, F5-12). `read_ops kind:"events"` over `sysevent`; prompts `incident_rca`, `release_notes`, `clone_down_checklist` (budget-free). `clone_data_preserver` and the mail property names are unverified (O-5). ≈ +120 B for the enum value. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4.'
+  - id: "N-70"
+    title: "schema authoring through the registry"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.2 minor (F5-07). `writeFields` on the `table` descriptor's `sys_dictionary`, `sys_choice` and `sys_documentation` children; `sys_dictionary` and `sys_db_object` join the protected tables in `confirm` mode (additive). +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-71"
+    title: "change lifecycle"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "3.3 minor (F5-04). `get_change include` (nextstates, tasks, cis, approvals, risk), state validation on `update_change`, `list_change_templates`, `act_on_approval` with a plan token. Every Change Management REST path beyond `/change` is unverified (O-5): one-hour PDI check first. ≈ +600 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-72"
+    title: "catalog submit: record producers and order guides"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "3.3 minor (F5-05). `order_catalog_item` routes by `sys_class_name` to `order_now`, `submit_producer` or `submit_guide` + checkout, same backing-table policy (H-4), journaled. The three catalog paths are unverified (O-5). ≈ +200 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-73"
+    title: "admin housekeeping: update sets, jobs, CMDB meta"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "3.3 minor (F5-09, F5-10, F5-11). `manage_update_set` (create, complete, move_updates; prerequisite for N-33), the `jobs` lane joined to `sysauto_script` plus a journaled `run_job`, `get_cmdb_meta` (rel types, identification and reconciliation rules; tables unverified, O-5). ≈ +900 B in total. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-74"
+    title: "client meta keys and result hints"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-10"]
+    notes: '3.1 minor (F5-16, F5-22). `_meta["anthropic/alwaysLoad"]` on `find_tools`, `get_status`, `list_packages`; `_meta["anthropic/requiresUserInteraction"]` on the tools whose apply path can elicit; `RESULT_HINT_TOOLS` extended to every `format:"file"` reader. ≈ +50 B per key on `all` and `discovery`; both budgets restated (O-10). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4.'
+  - id: "N-75"
+    title: "basic-auth preflight"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "3.1 minor (F5-17). `doctor` and `test_connection` name the basic-auth restriction property and the API-access role on a basic-auth 401; both names unverified (O-5), generic message otherwise. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-76"
+    title: "skills everywhere"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.4 minor (F5-18, F5-50). The 8 skills as `skill://` resources (Skills over MCP) behind the `docs` package; `skills install --target cursor | codex | gemini | agents` in the CLI; `GEMINI.md` and `.cursor/rules` generated from the agent instructions. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-77"
+    title: "positioning and the ServiceNow-as-client recipe"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-25"]
+    notes: "3.5 minor (F5-15, F5-20), docs. Refresh COMPETITIVE-ANALYSIS (official MCP Server Console), a README paragraph on the differences, a `docs/` recipe for pairing HTTP mode with an external authorization server (DCR or CIMD) for Now Assist. Validation waits for O-25 (a licensed instance). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-78"
+    title: "Australia REST coverage"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "3.5 minor (F5-19). `run_atf coverage:true`, attachment attributes, dictionary `read_only_option`; all three unverified and need an Australia-family PDI (O-5). ≈ +200 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-79"
+    title: "SSE resumability on sessions"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.4 minor (F5-23). A bounded in-memory `EventStore` per session wired into `http-sessions.ts` only; `Last-Event-ID` replay e2e test and a conformance row. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-80"
+    title: "resource polish"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-4"]
+    notes: "3.3 minor (F5-24, F5-25, F5-26). `icons` on the 12 prompts and 4 `ui://` views (not on tools); `size` / `lastModified` / `annotations` on resources; `ResourceNotFoundError` for unknown resources; a last synthetic entry past `LIST_CAP`, cursor pagination if a client asks. Carries **B24** (deprecated schema template behind `SN_COMPAT=2`, timing O-4). +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-81"
+    title: "SDK forward-compatibility"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.3 minor (F5-27). `no-deprecated` as an error and the 32 deprecated SDK call sites migrated; `test/sdk-internals.test.js` pins the private members the server reaches; exact SDK pins bumped in one PR per minor. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-82"
+    title: "tasks: progress and discovery"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.4 minor (F5-28). Re-verify `taskSupport` on SDK 2.3; advertise it on the three long-running tools if polling is not forced; `statusMessage` fed from the progress sink. ≈ +90 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-83"
+    title: "record watch on the modern wire"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.4 minor (F5-29). Either publish record updates through the handler bus on the modern wire or refuse `resources/subscribe` there; a `resources/subscribe` test on both wires. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-84"
+    title: "MCP Apps csp"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.1 minor (F5-31). Confirm the views load nothing remote and say so, or declare `_meta.ui.csp`; one assertion in `test/mcp-apps.test.js`. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-85"
+    title: "build slimming"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.1 minor (F5-32, F5-33). `tsconfig.build.json` with `removeComments` for `npm run build` only (−521 KB of build JS); `scripts/footprint.mjs --check` regenerates FOOTPRINT.md inside `npm run check`. The pack ceiling is untouched (owner). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-86"
+    title: "release pipeline hygiene"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-24"]
+    notes: "3.4 minor (F5-34, F5-35), waits for O-24 for the registry push. `timeout-minutes` on the three publish workflows (asserted by `test/distribution.test.js`), one gate run per publish, build attestation and a CycloneDX SBOM on releases, a Docker build + `/healthz` smoke job, GHCR publish with an `oci` package in `server.json`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-87"
+    title: "gate tightening"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.1 minor (F5-36, F5-37, F5-38). Coverage ratchet 97 / 88 / 97 (all four legs, E-1; Windows comment fixed); `noImplicitOverride`, `noFallthroughCasesInSwitch`, `noImplicitReturns`, `allowUnreachableCode:false`; `throw new Error` banned under `src/{api,mcp,tools,core}` and the 32 sites converted to `ServiceNowError`; bare catches need a `// swallowed:` comment. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-88"
+    title: "structure"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.5 minor (F5-39, F5-40). `src/core/json-pick.ts` and `scripts/lib/cli.mjs` for the duplicated micro-helpers; `api/document.ts`, `api/ui-experience.ts` and `mcp/tasks.ts` split with re-exports; `test/` mirrors the `src/` layers (closes L9-03). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-89"
+    title: "test speed, bucket eviction, eval gate"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.2 minor (F5-41, F5-44). One compiled Ajv validator for the schema test (−3 s), `log-bridge` buckets evicted with the session, the recorded tool-selection eval with `--max-drop 0` on the ubuntu / Node 22 leg (no network, ADR 0011 respected). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-90"
+    title: "persistent schema cache and network retries"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "3.4 minor (F5-43). Opt-in `SN_SCHEMA_CACHE_DIR` on-disk `sys_dictionary` cache (TTL, `refresh:true` invalidates); `ECONNRESET` / `EPIPE` retried like timeouts on idempotent requests; ETag support unverified (O-5). See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-91"
+    title: "docs truth sweep"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-22"]
+    notes: "3.1 minor (F5-45, F5-46). README, `docs/llms.txt` and the site link the shipped `.mcpb` (flips N-51 to done, O-22); `server.json` gains `websiteUrl`, an `mcpb` package and a `remotes` entry; the five stale strings fixed with a `docs:sync` pattern or a test each. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-92"
+    title: "README restructure and release notes"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.5 minor (F5-47, F5-48). Table of contents, install matrix and tool reference moved to the docs site, README ≤ 500 lines with a getting-help paragraph; CHANGELOG `Highlights` per version, `release-notes.mjs` emits them plus a link when the section exceeds the limit, pre-3.0 history moved to `CHANGELOG-2.x.md`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-93"
+    title: "CLI v2"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.5 minor (F5-49). Per-command usage blocks (`serve` documented); `profiles list`, `tools list --profile`, `journal list | show`, all with `--json`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - id: "N-94"
+    title: "onboarding"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "3.5 minor (F5-51). `docs/first-10-minutes.md` reused as an `sn-start` skill and in the extension walkthrough; a short `evals/README.md`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
