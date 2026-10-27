@@ -5,6 +5,10 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+### Security
+
+- `zod` floor raised to `^4.6.6` (installed 4.6.7): GHSA-mrhx-c7xc-m3w5, memory exhaustion while validating oversized constrained collections (high). No other package moved.
+
 ## [3.0.0] - 2026-10-19
 
 ### Breaking changes
