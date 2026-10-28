@@ -1,4 +1,4 @@
-# TODO — status as of 2026-10-10
+# TODO — status as of 2026-10-28
 
 > **2026-09 update.** On 2026-09-02 `npm run check` was **red** on its last step
 > (`npm audit --omit=dev --audit-level=high` — two HIGH transitive advisories via
@@ -36,6 +36,8 @@
 👤 Collected after the O-5 PDI passes ([PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md)) and the
 N-35 conformance work. Each entry is one decision. Evidence is a commit on `main` or a GET-only
 finding on the PDI (`ven03019`). Nothing below is implemented until the owner decides.
+OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
+[V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) shipped (§5 there has the commit list).
 
 - **OD-1 · Four registry key-field renames.** _BREAKING (O-4)._
   - Decide: rename four registry key fields to the real columns.
@@ -249,6 +251,77 @@ finding on the PDI (`ven03019`). Nothing below is implemented until the owner de
     restored, nothing of N-74 is on `main`.
   - Recommend: (1). The keys are facts a client acts on at once (pinned entry tools, flagged
     elicitation), and ≈ 1 % of each budget is cheaper than another description-trimming round.
+  - Update 2026-10-28: after N-68 (`649d29d`) the measured sizes are `core` 26,986 /
+    `discovery` 23,531 / `all` 121,591 B (headroom 150 / 277 / 521 B) — `discovery` would now
+    take the keys, `core` (+361) and `all` (+863) still would not; option (1) stands. See OD-15.
+
+- **OD-13 · N-67 bulk update and delete by query (O-23).** _Not BREAKING (a new tool in the
+  opt-in `batch` package), but a new write surface and a budget restatement are owner gates._
+  - Decide: whether `servicenow_bulk_write` ships in 3.x as specified in
+    [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §N-67 — `action: "update" | "delete"`
+    by encoded query, plan step with the matched count, five sample rows and a fingerprint of
+    the matched `sys_id` set (apply refuses on drift), per-row journal so `revert_write` restores
+    each record, the existing delete caps (100 per call, 500 per session), single-use
+    `plan_token`, protected tables and prod profiles refused; ≈ +1,100 B on `all` (O-10).
+  - Options:
+    - (1) Accept as specified; the `all` budget is restated by the measured delta when it lands.
+    - (2) Accept `update` only; bulk deletes stay per record through `delete_record`.
+    - (3) Defer past 3.5 — `servicenow_insert_import_set_row` with `rows[]` / `file` (N-68)
+      already covers bulk inserts through transform maps.
+  - Evidence: N-68 shipped 2026-10-28 (`649d29d`); nothing of N-67 is on `main`.
+  - Recommend: (1) — the surface rides the same rails as every other write (plan → token →
+    apply, journal, policy), and the 3.2 theme is otherwise complete.
+
+- **OD-14 · O-5 round-trips for the two new write paths (N-70, N-68).** _Not BREAKING; both
+  are instance writes on the PDI and need the owner's explicit consent._
+  - Decide: whether to run (a) the N-70 schema round-trip — one `servicenow_upsert_artifact`
+    call that creates a string field with three choices on a scratch table, then the revert —
+    and (b) the N-68 `insertMultiple` call (`POST /api/now/import/<table>/insertMultiple`, two
+    or three `rows[]` into a scratch import set table), then delete the staged rows.
+  - Options:
+    - (1) Consent to both on `ven03019` in one session; record the result in
+      [PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md) and drop the **unverified** markers.
+    - (2) Consent to (b) only — `insertMultiple` is the one request shape that no live
+      instance has answered yet.
+    - (3) Leave both **unverified** (the tool docs already say so).
+  - Evidence: `bf9e3f4` (N-70) and `649d29d` (N-68) on `main`; every unit and contract test
+    passes against the fetch double; no instance write happened.
+  - Recommend: (1).
+
+- **OD-15 · `tools/list` headroom after the 3.2 block (O-10).** _Not BREAKING._
+  - Decide: what to do with the bytes N-68 freed (net −472 / −472 / −537 / −144 / −144 B on
+    `core` / `discovery` / `all` / `all+tasks` / `all+legacy`).
+  - Measured 2026-10-28 after `649d29d` (`npm run tokens:report`): `core` 26,986 vs budget
+    27,136 (headroom 150); `discovery` 23,531 vs 23,808 (277); `all` 121,591 vs 122,112 (521);
+    `all+tasks` 122,651 vs 123,136 (485); `all+legacy` 142,055 vs 142,592 (537).
+  - Options:
+    - (1) Lower the budgets to the measured sizes now (`npm run tokens:budget -- --write`,
+      allowed without O-10) so the ratchet locks the savings in.
+    - (2) Keep the headroom until OD-12 (N-74) and OD-13 (N-67) are decided — `discovery` now
+      fits N-74 (+263 B), `core` (+361) and `all` (+863) still do not; N-67 needs ≈ 1,100 B on
+      `all`.
+  - Evidence: `test/fixtures/token-budgets.json` unchanged since 2026-10-14 (`5169a5d`); N-66
+    +60 B per profile (`020b331`), N-69 +11 B on `all` (`5dc2e3e`), N-70 / N-75 / N-84 / N-85 /
+    N-87 +0 B.
+  - Recommend: (2) — lowering now only to raise again under O-10 is churn; decide OD-12 first.
+
+- **OD-16 · The 3.1 owner batch (F5-21, F5-52, F5-53, F5-54).** _Not code; owner actions
+  listed once, cross-referencing D-5 / D-6 under "Active"._
+  - Decide / do:
+    - GitHub About still reads "67 tools" (checked 2026-10-28; the server has 100) and the
+      topics are `ai`, `itsm`, `llm`, `mcp`, `model-context-protocol`, `servicenow`, `rest` —
+      refresh the text and add `mcp-server`, `claude-code`, `cursor`, `cmdb`; extend the npm
+      and extension keywords to match (F5-52).
+    - Three extension screenshots, one GIF and a `galleryBanner` (DX-3, O-3; F5-52).
+    - Triage the 12 open Dependabot PRs (oldest 2026-07-03) and add `ignore` rules for the
+      majors 3.x will not take (F5-53).
+    - Smithery shuts down 2026-10-31 (F5-21): delete `smithery.yaml`, the README bullet
+      (line ≈ 468) and the container test mapping — a dev task once the owner says go (F5-54).
+    - Add `OVSX_PAT` to the repository secrets or state that Open VSX is out (D-6; F5-54).
+  - Evidence: [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4 "Owner batch";
+    `gh repo view` and `gh pr list --author app/dependabot` on 2026-10-28.
+  - Recommend: the About / topics refresh and the Smithery removal first — both take minutes
+    and the Smithery date is fixed.
 
 ## Active (2026-09-02)
 
