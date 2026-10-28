@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import path from "node:path";
 import { policyResourcePayload } from "./policy-view.js";
 import { TOOL_EXAMPLES } from "./tool-examples.js";
@@ -36,14 +37,16 @@ import {
 import { untrusted } from "./boundary.js";
 import type { ToolInfo } from "./registry.js";
 import { STATIC_RESOURCE_HINT } from "./cache-hints.js";
+import { getDocsDir } from "../core/settings.js";
 
 const JSON_MIME = "application/json";
 
 /**
  * M-2: codes that mean the URI itself is wrong — a missing part, an unknown
- * profile, a document or table that does not exist. The SDK has no
- * ResourceNotFound code, so these become InvalidParams; anything else
- * (instance down, credentials missing, policy) is InternalError.
+ * profile, a document or table that does not exist. These become
+ * InvalidParams (-32602), the code the 2026-07-28 spec gives a resource miss
+ * on every revision; anything else (instance down, credentials missing,
+ * policy) is InternalError.
  */
 const CALLER_CODES = new Set([
   "INVALID_INPUT",
@@ -53,14 +56,28 @@ const CALLER_CODES = new Set([
 ]);
 
 /**
+ * N-80: the caller codes that mean "nothing at this URI" (not a malformed
+ * one). Their `data` also names the `uri`, as the SDK's
+ * ResourceNotFoundError does; it keeps the contract's code, source and hint
+ * beside it, so the SDK's exact-`{ uri }` recognition does not apply.
+ */
+const NOT_FOUND_CODES = new Set([
+  "NOT_FOUND",
+  "UNKNOWN_PROFILE",
+  "INSTANCE_HTTP_404",
+]);
+
+/**
  * M-2: a failed resource read as a protocol error (not a 200 body with an
  * `error` field). `data` carries the tool error contract's code, source and
- * hint so a client can branch the same way it does on a failed tool call.
+ * hint so a client can branch the same way it does on a failed tool call;
+ * with `uri`, a not-found code also carries the requested URI (N-80).
  */
 export function resourceError(
   what: string,
   error: unknown,
   context: Record<string, unknown> = {},
+  uri?: URL,
 ): ProtocolError {
   if (error instanceof ProtocolError) return error;
   const message = error instanceof Error ? error.message : String(error);
@@ -72,7 +89,12 @@ export function resourceError(
       ? ProtocolErrorCode.InvalidParams
       : ProtocolErrorCode.InternalError,
     message,
-    { code, source: errorSourceOf(error), ...(hint ? { hint } : {}) },
+    {
+      code,
+      source: errorSourceOf(error),
+      ...(hint ? { hint } : {}),
+      ...(uri && NOT_FOUND_CODES.has(code) ? { uri: uri.href } : {}),
+    },
   );
 }
 
@@ -101,6 +123,44 @@ function jsonContents(uri: URL, data: unknown) {
  * profile list and the docs manifest only.
  */
 export const LIST_CAP = 100;
+
+/**
+ * N-80: reference material written for the model, not for a person browsing
+ * resources — a client may surface it to the assistant only.
+ */
+const FOR_ASSISTANT = { audience: ["assistant" as const] };
+
+/**
+ * N-80 (F5-25): the last entry of a list cut at LIST_CAP — it says how many
+ * entries were left out and which template reaches them. `uri` is a real
+ * resource of the same package that lists or explains the rest.
+ */
+interface ListedResource {
+  uri: string;
+  name: string;
+  description?: string;
+  mimeType: string;
+}
+
+function moreEntry(
+  uri: string,
+  more: number,
+  template: string,
+): ListedResource {
+  return {
+    uri,
+    name: `${more} more — narrow with ${template}`,
+    description: `${more} entries are not listed (cap ${LIST_CAP}); complete the template's variables to reach them.`,
+    mimeType: JSON_MIME,
+  };
+}
+
+/** N-80: `entries` capped at LIST_CAP, the last slot naming what was cut. */
+function capped<T>(entries: T[], more: (left: number) => T): T[] {
+  if (entries.length <= LIST_CAP) return entries;
+  const kept = entries.slice(0, LIST_CAP - 1);
+  return [...kept, more(entries.length - kept.length)];
+}
 
 const one = (v: string | string[] | undefined): string | undefined =>
   Array.isArray(v) ? v[0] : v;
@@ -169,7 +229,7 @@ export function registerCapabilitiesResource(server: McpServer): void {
       try {
         return jsonContents(uri, await checkCapabilities());
       } catch (error) {
-        throw resourceError("capabilities", error);
+        throw resourceError("capabilities", error, {}, uri);
       }
     },
   );
@@ -246,6 +306,7 @@ export function registerToolsReferenceResource(
       description:
         "Every tool by package: read or write, whether it is registered under the current package policy, and a one-line summary.",
       mimeType: "text/markdown",
+      annotations: FOR_ASSISTANT,
       // N-38: no static hint; "Registered" follows enable/disable_package.
     },
     (uri) => ({
@@ -370,6 +431,7 @@ export function registerToolReferenceTemplate(
       description:
         "One tool's full definition: description, input and output JSON Schema, an example call, annotations, package and whether it is registered, parameter aliases and the error codes. URI: servicenow://reference/tools/<tool name>.",
       mimeType: JSON_MIME,
+      annotations: FOR_ASSISTANT,
       // N-38: no static hint; "registered" follows enable/disable_package.
     },
     (uri, variables) => {
@@ -395,7 +457,7 @@ export function registerToolReferenceTemplate(
         }
         return jsonContents(uri, toolReferencePayload(src, tool, detail));
       } catch (error) {
-        throw resourceError("tool reference", error, { name });
+        throw resourceError("tool reference", error, { name }, uri);
       }
     },
   );
@@ -411,6 +473,7 @@ export function registerPolicyResource(server: McpServer): void {
       description:
         "Effective table rules (exact and pattern), protected tables, import-set tables, read-only and write mode per profile — the guards' own evaluator.",
       mimeType: JSON_MIME,
+      annotations: FOR_ASSISTANT,
     },
     (uri) => jsonContents(uri, policyResourcePayload()),
   );
@@ -498,6 +561,7 @@ export function registerTableResources(server: McpServer): void {
       description:
         "Encoded-query syntax (operators, ORDERBY, javascript: values), its limits (no escaping, URL length) and how fetchAll pages.",
       mimeType: "text/markdown",
+      annotations: FOR_ASSISTANT,
       // N-38: a constant document.
       cacheHint: STATIC_RESOURCE_HINT,
     },
@@ -573,7 +637,12 @@ async function readRecord(
     );
     return jsonContents(uri, { profile, table, sys_id: sysId, record });
   } catch (error) {
-    throw resourceError("record", error, { profile, table, sys_id: sysId });
+    throw resourceError(
+      "record",
+      error,
+      { profile, table, sys_id: sysId },
+      uri,
+    );
   }
 }
 
@@ -592,7 +661,7 @@ export function registerSchemaResources(server: McpServer): void {
         const tables = await listTables();
         return jsonContents(uri, { count: tables.length, tables });
       } catch (error) {
-        throw resourceError("tables", error);
+        throw resourceError("tables", error, {}, uri);
       }
     },
   );
@@ -600,14 +669,23 @@ export function registerSchemaResources(server: McpServer): void {
   server.registerResource(
     "schema",
     new ResourceTemplate("servicenow://schema/{table}", {
-      // M-4: cached tables of the active profile plus the seed, capped.
+      // M-4: cached tables of the active profile plus the seed, capped;
+      // N-80: a cut list ends with an entry naming how many were left out.
       list: () => ({
-        resources: byPrefix([...cachedTableNames(), ...SEED_TABLES]).map(
-          (table) => ({
-            uri: `servicenow://schema/${table}`,
-            name: table,
-            mimeType: JSON_MIME,
-          }),
+        resources: capped<ListedResource>(
+          [...new Set([...cachedTableNames(), ...SEED_TABLES])].map(
+            (table) => ({
+              uri: `servicenow://schema/${table}`,
+              name: table,
+              mimeType: JSON_MIME,
+            }),
+          ),
+          (more) =>
+            moreEntry(
+              "servicenow://tables",
+              more,
+              "servicenow://schema/{table}",
+            ),
         ),
       }),
       complete: { table: (value) => completeTable(value) },
@@ -625,7 +703,7 @@ export function registerSchemaResources(server: McpServer): void {
         const columns = await describeTable(table);
         return jsonContents(uri, { table, count: columns.length, columns });
       } catch (error) {
-        throw resourceError("schema", error, { table });
+        throw resourceError("schema", error, { table }, uri);
       }
     },
   );
@@ -651,10 +729,9 @@ export function registerInstanceResources(server: McpServer): void {
       // M-4: per profile, only the tables its schema cache already holds —
       // the seed would multiply by the profile count.
       list: () => {
-        const resources = [];
+        const resources: ListedResource[] = [];
         for (const profile of listProfiles()) {
           for (const table of cachedTableNames(profile)) {
-            if (resources.length >= LIST_CAP) break;
             resources.push({
               uri: profileSchemaUri(profile, table),
               name: `${profile}: ${table}`,
@@ -662,7 +739,11 @@ export function registerInstanceResources(server: McpServer): void {
             });
           }
         }
-        return { resources };
+        return {
+          resources: capped(resources, (more) =>
+            moreEntry("servicenow://instances", more, PROFILE_SCHEMA_TEMPLATE),
+          ),
+        };
       },
       complete: profileSchemaCompletions,
     }),
@@ -755,7 +836,7 @@ async function readProfileSchema(
       columns,
     });
   } catch (error) {
-    throw resourceError("profile schema", error, { profile, table });
+    throw resourceError("profile schema", error, { profile, table }, uri);
   }
 }
 
@@ -792,9 +873,34 @@ const docsMime = (docPath: string): string =>
   docPath.toLowerCase().endsWith(".json") ? JSON_MIME : "text/markdown";
 
 /**
+ * N-80 (F5-26): the byte size and modification time of one docs-store file,
+ * or nothing when it cannot be stat'ed (or the path leaves the store).
+ */
+async function fileFacts(
+  root: string,
+  docPath: string,
+): Promise<{ size?: number; annotations?: { lastModified: string } }> {
+  const abs = path.resolve(root, docPath);
+  const rel = path.relative(root, abs);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) return {};
+  try {
+    const st = await fs.stat(abs);
+    if (!st.isFile()) return {};
+    return {
+      size: st.size,
+      annotations: { lastModified: st.mtime.toISOString() },
+    };
+  } catch {
+    // swallowed: a vanished file is listed without facts
+    return {};
+  }
+}
+
+/**
  * The docs resource list (ID-13): generated documents first, then
  * hand-written ones, capped so that a final `index.md` entry — which lists
- * everything — is never cut off.
+ * everything — is never cut off. N-80: each entry carries its size and
+ * modification time; the index says how many documents the cap left out.
  */
 export async function listDocsResources(): Promise<{
   resources: {
@@ -803,6 +909,8 @@ export async function listDocsResources(): Promise<{
     title?: string;
     description: string;
     mimeType: string;
+    size?: number;
+    annotations?: { lastModified: string };
   }[];
 }> {
   let all: DocsListEntry[];
@@ -823,9 +931,10 @@ export async function listDocsResources(): Promise<{
         a.path.localeCompare(b.path),
     );
   const hasIndex = all.length > 0;
-  const resources = docs
-    .slice(0, hasIndex ? LIST_CAP - 1 : LIST_CAP)
-    .map((e) => ({
+  const root = getDocsDir();
+  const listed = docs.slice(0, hasIndex ? LIST_CAP - 1 : LIST_CAP);
+  const resources = await Promise.all(
+    listed.map(async (e) => ({
       uri: docsUri(e.path),
       name: e.title ?? e.path,
       description:
@@ -835,13 +944,21 @@ export async function listDocsResources(): Promise<{
               " · ",
             ),
       mimeType: docsMime(e.path),
-    }));
+      ...(await fileFacts(root, e.path)),
+    })),
+  );
   if (hasIndex) {
+    const left = docs.length - listed.length;
     resources.push({
       uri: docsUri(INDEX_PATH),
       name: "ServiceNow instance documentation index",
-      description: `Index of all ${docs.length} documents`,
+      description:
+        `Index of all ${docs.length} documents` +
+        (left > 0
+          ? ` (${left} not listed here — read the index or complete {path})`
+          : ""),
       mimeType: "text/markdown",
+      ...(await fileFacts(root, INDEX_PATH)),
     });
   }
   return { resources };
@@ -906,7 +1023,7 @@ export function registerDocsResources(server: McpServer): void {
           ],
         };
       } catch (error) {
-        throw resourceError("docs", error, { path: docPath });
+        throw resourceError("docs", error, { path: docPath }, uri);
       }
     },
   );
@@ -953,7 +1070,7 @@ export function registerExportsResource(server: McpServer): void {
           ],
         };
       } catch (error) {
-        throw resourceError("exports", error, { path: filePath });
+        throw resourceError("exports", error, { path: filePath }, uri);
       }
     },
   );

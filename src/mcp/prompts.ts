@@ -10,6 +10,7 @@ import {
 } from "../core/settings.js";
 import { inlineArg, untrusted } from "./boundary.js";
 import { TOOLS } from "./naming.js";
+import { SERVER_ICONS } from "./icons.js";
 import {
   completeProfile,
   completeTable,
@@ -59,10 +60,17 @@ function gated(
     const register = Reflect.get(server, "registerPrompt") as (
       ...a: unknown[]
     ) => RegisteredPrompt;
-    const handle = register.apply(server, args);
+    // N-80: every prompt carries the server icon unless it names its own.
+    const [name, config, ...rest] = args;
+    const handle = register.call(
+      server,
+      name,
+      { icons: [...SERVER_ICONS], ...(config as object) },
+      ...rest,
+    );
     if (!enabled) return handle;
     const session = packageSessionOf(server);
-    if (session) session.addPrompt(args[0] as string, requires, handle);
+    if (session) session.addPrompt(name as string, requires, handle);
     else if (!requirementMet(requires, enabled)) handle.disable();
     return handle;
   };

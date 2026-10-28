@@ -1483,11 +1483,11 @@ items:
     title: "resource polish"
     pillar: "N"
     effort: "S–M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-29"
     gates: ["O-4"]
-    notes: "3.3 minor (F5-24, F5-25, F5-26). `icons` on the 12 prompts and 4 `ui://` views (not on tools); `size` / `lastModified` / `annotations` on resources; `ResourceNotFoundError` for unknown resources; a last synthetic entry past `LIST_CAP`, cursor pagination if a client asks. Carries **B24** (deprecated schema template behind `SN_COMPAT=2`, timing O-4). +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: '**Done 2026-10-29.** Icons on the 16 prompts and the `ui://` views (`src/mcp/icons.ts`, not on tools); `audience: ["assistant"]` on `reference/*` and `policy`; `size` / `lastModified` on docs entries; a synthetic "N more" entry closes a capped schema list and the docs index counts what was left out; a not-found resource error adds `uri` to `data` (contract fields kept, so the SDK does not reconstruct `ResourceNotFoundError` — exact `{uri}` data is an owner call). Cursor pagination deferred; **B24 stays open** under O-4. 3.3 minor (F5-24, F5-25, F5-26). `icons` on the 12 prompts and 4 `ui://` views (not on tools); `size` / `lastModified` / `annotations` on resources; `ResourceNotFoundError` for unknown resources; a last synthetic entry past `LIST_CAP`, cursor pagination if a client asks. Carries **B24** (deprecated schema template behind `SN_COMPAT=2`, timing O-4). +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4.'
   - id: "N-81"
     title: "SDK forward-compatibility"
     pillar: "N"

@@ -3109,6 +3109,7 @@
       "applies": "always",
       "status": "covered",
       "tests": [
+        "test/resources-n80.test.js :: resourceError names the uri on a not-found code only",
         "test/error-contract.test.js :: resourceError: caller mistakes are InvalidParams, the rest InternalError, data carries the contract",
         "test/tool-reference.test.js :: an unknown tool is an InvalidParams McpError with NOT_FOUND"
       ]
