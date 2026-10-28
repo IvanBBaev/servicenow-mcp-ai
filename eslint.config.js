@@ -67,6 +67,10 @@ export default tseslint.config(
       // handler silently drops errors.
       "@typescript-eslint/no-floating-promises": "error",
       "local/swallowed-catch": "error",
+      // N-81: a deprecated SDK API is migrated before the next SDK minor
+      // removes it; the few kept on purpose (the 2025-era fallbacks, MCP
+      // logging in its deprecation window) carry an inline disable with why.
+      "@typescript-eslint/no-deprecated": "error",
       // E-7: no-unsafe-assignment / no-unsafe-member-access are on (the
       // recommendedTypeChecked default): untyped JSON is unwrapped as
       // `unknown` and narrowed, never as `any`.

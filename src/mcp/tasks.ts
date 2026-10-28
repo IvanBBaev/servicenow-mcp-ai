@@ -16,7 +16,6 @@ import {
   type Request,
   type RequestId,
   type Result,
-  type Task,
 } from "@modelcontextprotocol/server";
 import { logger } from "../core/logging.js";
 import { readBool } from "../core/settings-manifest.js";
@@ -76,6 +75,21 @@ import { ServiceNowError } from "../core/errors.js";
  * capability, and the input schemas (tools/list) are byte-identical to a build
  * without this module. Removable without a major if the SDK drops the API.
  */
+
+/**
+ * A task on the 2025-11-25 wire (`tasks/get`, `tasks/list`, the
+ * `{ task }` handle). The SDK keeps its own `Task` type only as deprecated
+ * vocabulary with no runtime (N-81), so the shape is ours.
+ */
+export interface Task {
+  taskId: string;
+  status: "working" | "input_required" | "completed" | "failed" | "cancelled";
+  ttl: number | null;
+  createdAt: string;
+  lastUpdatedAt: string;
+  pollInterval?: number;
+  statusMessage?: string;
+}
 
 /** The 2025-11-25 task statuses a task never leaves. */
 const TERMINAL: ReadonlySet<Task["status"]> = new Set([
@@ -931,6 +945,7 @@ function backgroundContext(
 ): ServerContext {
   const envelope = without(
     ctx.mcpReq.envelope as Record<string, unknown> | undefined,
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- MCP logging is deprecated by SEP-2577 but stays in the spec for twelve months; N-81 keeps it until then
     LOG_LEVEL_META_KEY,
   );
   const meta = without(ctx.mcpReq._meta, "progressToken");
@@ -1032,9 +1047,19 @@ export function wireModernTasks(server: McpServer, runtime: Runtime): void {
   if (!tasksEnabled()) return;
   const handlers = (server.server as unknown as { _requestHandlers?: unknown })
     ._requestHandlers;
-  if (!(handlers instanceof Map)) return;
+  // N-81: SN_EXPERIMENTAL_TASKS=1 asked for tasks, so an SDK that moved its
+  // private handler table is a loud failure, not a quiet no-op.
+  if (!(handlers instanceof Map)) {
+    logger.error(
+      "modern tasks are off: the SDK has no request-handler table (Protocol._requestHandlers)",
+    );
+    return;
+  }
   const original = (handlers as Map<string, RequestHandler>).get("tools/call");
-  if (!original) return;
+  if (!original) {
+    logger.error("modern tasks are off: no tools/call handler is registered");
+    return;
+  }
   const tools = (
     server as unknown as {
       _registeredTools: Record<string, { enabled: boolean } | undefined>;

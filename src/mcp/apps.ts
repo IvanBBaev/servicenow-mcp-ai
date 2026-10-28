@@ -5,6 +5,7 @@ import type {
 } from "@modelcontextprotocol/server";
 import { readBool } from "../core/settings-manifest.js";
 import { SERVER_VERSION } from "../core/identity.js";
+import { clientCapabilities } from "./client-identity.js";
 import type { AnyToolSpec } from "./define.js";
 import { APP_VIEW_IDS, viewHtml, type AppViewId } from "./apps-views.js";
 import { STATIC_RESOURCE_HINT } from "./cache-hints.js";
@@ -121,7 +122,7 @@ export function linkToolView(
     get: () =>
       overridden
         ? override
-        : clientSupportsApps(server.server.getClientCapabilities())
+        : clientSupportsApps(clientCapabilities(server))
           ? meta
           : base,
     set: (value: Record<string, unknown> | undefined) => {

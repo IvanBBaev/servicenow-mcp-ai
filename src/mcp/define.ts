@@ -217,6 +217,7 @@ export function callExtraFromContext(
     log: {
       modern: envelope !== undefined,
       ...(typeof level === "string" ? { level } : {}),
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- MCP logging is deprecated by SEP-2577 but stays in the spec for twelve months; N-81 keeps it until then
       send: (level, data) => req.log(level, data),
     },
   };

@@ -54,9 +54,12 @@ function gated(
   requires: PromptRequirement,
 ): McpServer {
   const registerPrompt = (...args: unknown[]): RegisteredPrompt => {
-    const handle = (
-      server.registerPrompt as (...a: unknown[]) => RegisteredPrompt
-    ).apply(server, args);
+    // Looked up untyped: the member's overload set includes the deprecated
+    // raw-shape form, while every prompt here passes a z.object (N-81).
+    const register = Reflect.get(server, "registerPrompt") as (
+      ...a: unknown[]
+    ) => RegisteredPrompt;
+    const handle = register.apply(server, args);
     if (!enabled) return handle;
     const session = packageSessionOf(server);
     if (session) session.addPrompt(args[0] as string, requires, handle);
@@ -87,12 +90,12 @@ export function registerPrompts(
       description:
         "Guide the assistant through triaging an incident: summarise, assess priority, " +
         "categorise, find similar incidents and recommend next steps.",
-      argsSchema: {
+      argsSchema: z.object({
         incident: z
           .string()
           .max(ARG_MAX)
           .describe("Incident number (e.g. INC0012345) or sys_id."),
-      },
+      }),
     },
     (args) => {
       const incident = inlineArg(args.incident);
@@ -129,12 +132,12 @@ export function registerPrompts(
       description:
         "Guide the assistant through impact analysis for a change request: affected CIs, " +
         "schedule conflicts, related changes and a go/no-go recommendation.",
-      argsSchema: {
+      argsSchema: z.object({
         change: z
           .string()
           .max(ARG_MAX)
           .describe("Change number (e.g. CHG0030001) or sys_id."),
-      },
+      }),
     },
     (args) => {
       const change = inlineArg(args.change);
@@ -171,7 +174,7 @@ export function registerPrompts(
       description:
         `Generate a table's documentation with ${TOOLS.document_table}, then fill in ` +
         "its hand-written Purpose section.",
-      argsSchema: {
+      argsSchema: z.object({
         table: completable(
           z
             .string()
@@ -191,7 +194,7 @@ export function registerPrompts(
             ...completeProfile(value),
           ],
         ).optional(),
-      },
+      }),
     },
     (args) => {
       const table = inlineArg(args.table);
@@ -279,7 +282,7 @@ function registerInstanceOverview(server: McpServer): void {
       description:
         "Guide the assistant through what this connection can do: the capability matrix, the connection status and " +
         "the tool packages that can be enabled for this session.",
-      argsSchema: {
+      argsSchema: z.object({
         goal: z
           .string()
           .max(ARG_MAX)
@@ -287,7 +290,7 @@ function registerInstanceOverview(server: McpServer): void {
           .describe(
             "What the user wants to do, e.g. 'review the incident business rules'.",
           ),
-      },
+      }),
     },
     (args) => ({
       messages: [
@@ -335,7 +338,7 @@ function registerWhyIsItSlow(server: McpServer): void {
         "Guide the assistant through a slowness diagnosis: slow transactions, system log errors, scheduler backlog, " +
         "outbound integrations, MID servers, email queue and semaphores (the 'ops' package), then the logic that runs " +
         "on a named table.",
-      argsSchema: {
+      argsSchema: z.object({
         symptom: z
           .string()
           .max(ARG_MAX)
@@ -350,7 +353,7 @@ function registerWhyIsItSlow(server: McpServer): void {
             .describe("Table where the slowness shows, e.g. 'incident'."),
           (value = "") => completeTable(value),
         ).optional(),
-      },
+      }),
     },
     (args) => {
       const table = args.table ? inlineArg(args.table) : undefined;
@@ -404,7 +407,7 @@ function registerSecurityPosture(server: McpServer): void {
       description:
         "Guide the assistant through a security review: the ACL scan and hardening compliance (the 'codecheck' " +
         "package), the instance security document, then the cross-scope access of a named app (the 'docs' package).",
-      argsSchema: {
+      argsSchema: z.object({
         scope: z
           .string()
           .max(ARG_MAX)
@@ -419,7 +422,7 @@ function registerSecurityPosture(server: McpServer): void {
             .describe("Instance profile; omit for the active one."),
           (value = "") => completeProfile(value),
         ).optional(),
-      },
+      }),
     },
     (args) => {
       const scope = args.scope ? inlineArg(args.scope) : undefined;
@@ -470,7 +473,7 @@ function registerUibPageReview(server: McpServer): void {
       description:
         "Guide the assistant through a UI Builder page review: explain the experience (the 'ui' package), what a " +
         "change would touch (dependencies and where-used), data broker security, then page weight and composition.",
-      argsSchema: {
+      argsSchema: z.object({
         experience: z
           .string()
           .max(ARG_MAX)
@@ -484,7 +487,7 @@ function registerUibPageReview(server: McpServer): void {
           .describe(
             "Page (macroponent or screen) to focus on, e.g. 'Record page'.",
           ),
-      },
+      }),
     },
     (args) => {
       const experience = inlineArg(args.experience);
@@ -559,7 +562,7 @@ function registerSafeWrite(server: McpServer): void {
       description:
         "Guide the assistant through a safe write: check the write mode, read the current state, plan, apply only " +
         "after the user approves, verify, and name the revert path.",
-      argsSchema: {
+      argsSchema: z.object({
         change: z
           .string()
           .max(ARG_MAX)
@@ -571,7 +574,7 @@ function registerSafeWrite(server: McpServer): void {
             .describe("Table the change touches, e.g. 'incident'."),
           (value = "") => completeTable(value),
         ).optional(),
-      },
+      }),
     },
     (args) => {
       const change = inlineArg(args.change);
@@ -615,7 +618,7 @@ function registerDriftReview(server: McpServer): void {
       description:
         "Guide the assistant through a drift review: snapshot a reference instance, compare two profiles or a " +
         "profile with its snapshot, and review what an update set would change (the 'instance' package).",
-      argsSchema: {
+      argsSchema: z.object({
         a: completable(
           z.string().max(ARG_MAX).describe("Reference profile, e.g. 'dev'."),
           (value = "") => completeProfile(value),
@@ -634,7 +637,7 @@ function registerDriftReview(server: McpServer): void {
           .max(ARG_MAX)
           .optional()
           .describe("Update set name or sys_id to review as well."),
-      },
+      }),
     },
     (args) => {
       const a = inlineArg(args.a);
@@ -680,13 +683,13 @@ function registerUpgradeReview(server: McpServer): void {
       description:
         "Guide the assistant through an upgrade review: the upgrade history, the unresolved skipped records of an " +
         "upgrade, one skip's base vs customer versions, and the store apps with an update (the 'instance' package).",
-      argsSchema: {
+      argsSchema: z.object({
         upgrade: z
           .string()
           .max(ARG_MAX)
           .optional()
           .describe("Upgrade sys_id to review; omit for the newest."),
-      },
+      }),
     },
     (args) => {
       const upgrade = args.upgrade ? inlineArg(args.upgrade) : undefined;
@@ -748,7 +751,7 @@ function registerSchemaImpact(server: McpServer): void {
       description:
         "Guide the assistant through the blast radius of changing a table, field or script: where it is used, " +
         "text references and the automation that runs around it (the 'scripts' package).",
-      argsSchema: {
+      argsSchema: z.object({
         kind: completable(
           z
             .string()
@@ -762,7 +765,7 @@ function registerSchemaImpact(server: McpServer): void {
           .describe(
             "Table name, table.field, or script include / business rule name.",
           ),
-      },
+      }),
     },
     (args) => {
       const name = inlineArg(args.name);
@@ -804,7 +807,7 @@ function registerDiscoverInstance(server: McpServer): void {
       description:
         "Guide the assistant through mapping an instance into Markdown with the discovery generator: version and " +
         "counts, custom applications, per-scope tables and artefacts (the 'docs' package).",
-      argsSchema: {
+      argsSchema: z.object({
         depth: completable(
           z
             .string()
@@ -821,7 +824,7 @@ function registerDiscoverInstance(server: McpServer): void {
             .describe("Instance profile; omit for the active one."),
           (value = "") => completeProfile(value),
         ).optional(),
-      },
+      }),
     },
     (args) => {
       const depth = oneOf(DISCOVERY_DEPTHS, args.depth) ?? "overview";
@@ -869,7 +872,7 @@ function registerIncidentRca(server: McpServer): void {
       description:
         "Guide the assistant through a root-cause analysis of one record (an incident by default): its audit trail and journal, " +
         "the logic on its table, the change requests, log errors and events around it and its SLAs (the 'history' package).",
-      argsSchema: {
+      argsSchema: z.object({
         record: z
           .string()
           .max(ARG_MAX)
@@ -888,7 +891,7 @@ function registerIncidentRca(server: McpServer): void {
             "Start of the window to analyse, 'YYYY-MM-DD[ HH:MM:SS]'; omit to start at the record's creation.",
           )
           .optional(),
-      },
+      }),
     },
     (args) => {
       const record = inlineArg(args.record);
@@ -941,7 +944,7 @@ function registerReleaseNotes(server: McpServer): void {
       description:
         "Guide the assistant through release notes for an update set: its records by type and action, each artefact explained, " +
         "risks flagged (ACLs, roles, scripts, deletions), written as Markdown for a technical or business audience (the 'updatesets' package).",
-      argsSchema: {
+      argsSchema: z.object({
         update_set: z
           .string()
           .max(ARG_MAX)
@@ -953,7 +956,7 @@ function registerReleaseNotes(server: McpServer): void {
             .describe("Who reads the notes: technical (default) or business."),
           (value = "") => pick(AUDIENCES, value),
         ).optional(),
-      },
+      }),
     },
     (args) => {
       const updateSet = inlineArg(args.update_set);
@@ -1003,7 +1006,7 @@ function registerCloneDownChecklist(server: McpServer): void {
       description:
         "Guide the assistant through a clone-down checklist: snapshot the target as the baseline, read the mail properties and the " +
         "clone data preservers, and after the clone diff the target against its snapshot to list what to re-apply (the 'instance' package).",
-      argsSchema: {
+      argsSchema: z.object({
         target: completable(
           z
             .string()
@@ -1022,7 +1025,7 @@ function registerCloneDownChecklist(server: McpServer): void {
             ),
           (value = "") => completeProfile(value),
         ).optional(),
-      },
+      }),
     },
     (args) => {
       const target = inlineArg(args.target);

@@ -95,7 +95,7 @@ export interface SettingSpec {
 // --- kind helpers ----------------------------------------------------------
 
 function fail(ctx: z.RefinementCtx, message: string): typeof z.NEVER {
-  ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  ctx.addIssue({ code: "custom", message });
   return z.NEVER;
 }
 

@@ -14,6 +14,7 @@ import {
   UrlElicitationRequiredError,
 } from "@modelcontextprotocol/server";
 import { getPlanTokenTtlSec } from "../core/settings.js";
+import { clientCapabilities, protocolRevision } from "./client-identity.js";
 import { getServer } from "./context.js";
 import { canonicalJson } from "./plan-token.js";
 
@@ -132,7 +133,7 @@ export function inputRoundFromContext(
   ctx: ServerContext,
   server: McpServer | undefined,
 ): InputRound | undefined {
-  const version = server?.server.getNegotiatedProtocolVersion();
+  const version = protocolRevision(server, ctx);
   if (version === undefined || version < MODERN_REVISION) return undefined;
   const req = ctx.mcpReq;
   return {
@@ -257,10 +258,11 @@ export async function askUser(question: Question): Promise<Answer> {
 
 async function askLegacy(question: Question): Promise<Answer> {
   const server = getServer();
-  if (!server || !server.server.getClientCapabilities()?.elicitation) {
+  if (!server || !clientCapabilities(server)?.elicitation) {
     return { status: "unsupported" };
   }
   try {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- the legacy wire only; the modern one answers input_required (askModern)
     const res = await server.server.elicitInput(
       {
         message: question.message,
@@ -442,8 +444,9 @@ export function requestUrlElicitation(
       },
     });
   }
-  const elicitation = getServer()?.server.getClientCapabilities()
-    ?.elicitation as Record<string, unknown> | undefined;
+  const elicitation = clientCapabilities(getServer())?.elicitation as
+    | Record<string, unknown>
+    | undefined;
   if (elicitation?.url === undefined) return undefined;
   throw new UrlElicitationRequiredError([
     {
