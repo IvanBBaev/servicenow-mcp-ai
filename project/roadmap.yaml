@@ -1447,11 +1447,11 @@ items:
     title: "skills everywhere"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-29"
     gates: []
-    notes: "**Part 1 done 2026-10-29** (Skills over MCP, SEP-2640: `skills/list`, `skills/get`, `skill://` resources from `build/skills/`, behind `docs`; client consumption unverified). **Part 2 done 2026-10-29** (`skills install --target agents | codex | cursor | gemini | claude | copilot [--global] [--force]`). 3.4 minor (F5-18, F5-50). The 8 skills as `skill://` resources (Skills over MCP) behind the `docs` package; `skills install --target cursor | codex | gemini | agents` in the CLI; `GEMINI.md` and `.cursor/rules` generated from the agent instructions. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Part 3 done 2026-10-29** (`docs:instructions` renders `GEMINI.md` and `.cursor/rules/<area>.mdc`). **Part 1 done 2026-10-29** (Skills over MCP, SEP-2640: `skills/list`, `skills/get`, `skill://` resources from `build/skills/`, behind `docs`; client consumption unverified). **Part 2 done 2026-10-29** (`skills install --target agents | codex | cursor | gemini | claude | copilot [--global] [--force]`). 3.4 minor (F5-18, F5-50). The 8 skills as `skill://` resources (Skills over MCP) behind the `docs` package; `skills install --target cursor | codex | gemini | agents` in the CLI; `GEMINI.md` and `.cursor/rules` generated from the agent instructions. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-77"
     title: "positioning and the ServiceNow-as-client recipe"
     pillar: "N"

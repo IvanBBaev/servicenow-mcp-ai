@@ -16,6 +16,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
+  CURSOR_DIR,
+  GEMINI_OUTPUT,
   NESTED_NAME,
   OUTPUT_DIR,
   ROOT_OUTPUT,
@@ -23,6 +25,7 @@ import {
   SOURCE_DIR,
   parseSource,
   render,
+  renderCursor,
   renderNested,
   renderRoot,
   staticPrefix,
@@ -121,7 +124,10 @@ test("N-46: check reports drift, a write fixes it and removes stale files", () =
   const dir = scratch();
   try {
     const out = path.join(dir, OUTPUT_DIR);
-    const expected = [`${OUTPUT_DIR}/api.instructions.md`];
+    const expected = [
+      `${OUTPUT_DIR}/api.instructions.md`,
+      `${CURSOR_DIR}/api.mdc`,
+    ];
     assert.deepEqual(syncInstructions({ root: dir, check: true }), expected);
     assert.equal(existsSync(out), false, "check never writes");
 
@@ -194,15 +200,16 @@ test("N-43: AGENTS.md drift is reported, written and then clean", () => {
     assert.deepEqual(syncInstructions({ root: dir, check: true }), []);
 
     writeFileSync(path.join(dir, ROOT_SOURCE), "# Agents\n\n- rule\n");
-    assert.deepEqual(syncInstructions({ root: dir, check: true }), [
-      ROOT_OUTPUT,
-    ]);
+    const roots = [ROOT_OUTPUT, GEMINI_OUTPUT];
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), roots);
     assert.equal(existsSync(path.join(dir, ROOT_OUTPUT)), false);
-    assert.deepEqual(syncInstructions({ root: dir }), [ROOT_OUTPUT]);
-    assert.equal(
-      readFileSync(path.join(dir, ROOT_OUTPUT), "utf8"),
-      renderRoot("# Agents\n\n- rule\n"),
-    );
+    assert.deepEqual(syncInstructions({ root: dir }), roots);
+    for (const rel of roots) {
+      assert.equal(
+        readFileSync(path.join(dir, rel), "utf8"),
+        renderRoot("# Agents\n\n- rule\n"),
+      );
+    }
     assert.deepEqual(syncInstructions({ root: dir, check: true }), []);
 
     writeFileSync(path.join(dir, ROOT_SOURCE), "\n");
@@ -304,5 +311,77 @@ test("N-46b: a hand-written file or a second area on the same dir throws", () =>
   } finally {
     for (const d of [handWritten, twice])
       rmSync(d, { recursive: true, force: true });
+  }
+});
+
+test("N-76: the live Cursor rules and GEMINI.md are generated", () => {
+  const rules = readdirSync(path.join(root, CURSOR_DIR));
+  assert.deepEqual(
+    rules,
+    readdirSync(path.join(root, SOURCE_DIR)).map((n) =>
+      n.replace(/\.md$/, ".mdc"),
+    ),
+  );
+  for (const name of rules) {
+    const text = readFileSync(path.join(root, CURSOR_DIR, name), "utf8");
+    assert.match(
+      text,
+      /^---\ndescription: [^\n]+\nglobs: [^\s"]+\nalwaysApply: false\n---\n/,
+      name,
+    );
+  }
+  assert.equal(
+    readFileSync(path.join(root, GEMINI_OUTPUT), "utf8"),
+    readFileSync(path.join(root, ROOT_OUTPUT), "utf8"),
+  );
+});
+
+test("N-76: renderCursor takes the title, or the area without one", () => {
+  const source = parseSource(SAMPLE);
+  assert.equal(
+    renderCursor("api", source),
+    [
+      "---",
+      "description: Title",
+      "globs: src/api/**,src/*.ts",
+      "alwaysApply: false",
+      "---",
+      "",
+      `<!-- Generated from ${SOURCE_DIR}/api.md by scripts/agent-instructions.mjs — edit the source, then run: npm run docs:instructions -->`,
+      "",
+      "# Title",
+      "",
+      "- rule",
+      "",
+    ].join("\n"),
+  );
+  const untitled = { ...source, body: "- rule" };
+  assert.match(renderCursor("api", untitled), /^---\ndescription: api\n/);
+});
+
+test("N-76: a stale generated rule is removed, a hand-written one kept", () => {
+  const dir = scratch();
+  try {
+    syncInstructions({ root: dir });
+    const rules = path.join(dir, CURSOR_DIR);
+    const stale = renderCursor("gone", parseSource(SAMPLE));
+    writeFileSync(path.join(rules, "gone.mdc"), stale);
+    writeFileSync(
+      path.join(rules, "mine.mdc"),
+      "---\nalwaysApply: true\n---\n",
+    );
+    writeFileSync(path.join(rules, "notes.txt"), "not a rule");
+    const drift = [`${CURSOR_DIR}/gone.mdc`];
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), drift);
+    assert.equal(existsSync(path.join(rules, "gone.mdc")), true);
+    assert.deepEqual(syncInstructions({ root: dir }), drift);
+    assert.deepEqual(readdirSync(rules).sort(), [
+      "api.mdc",
+      "mine.mdc",
+      "notes.txt",
+    ]);
+    assert.deepEqual(syncInstructions({ root: dir, check: true }), []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });

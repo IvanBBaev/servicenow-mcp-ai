@@ -24,8 +24,8 @@ script intelligence, multi-instance profiles and plan-and-apply write safety.
   - `npm run docs:env` — README env reference, `.env.example`, `server.json`
     from the settings manifest.
   - `npm run docs:readme` — the README tools table.
-  - `npm run docs:instructions` — `.github/instructions/` and
-    `.github/copilot-instructions.md` from their sources.
+  - `npm run docs:instructions` — `.github/instructions/`, `.cursor/rules/`,
+    `.github/copilot-instructions.md` and `GEMINI.md` from their sources.
   - `npm run roadmap:sync` — the `project/ROADMAP-V3.md` table from
     `project/roadmap.yaml`.
   - `npm run footprint` — the measured block of `project/FOOTPRINT.md`
@@ -45,7 +45,8 @@ Each area has path-scoped rules in `.github/agent-instructions/<area>.md`
 (rendered to `.github/instructions/<area>.instructions.md` with an `applyTo`
 glob). Read the one for the files you edit. The same rules are rendered to a
 nested `AGENTS.md` in `src/api/`, `src/core/`, `src/mcp/`, `src/tools/`,
-`test/`, `scripts/` and `extension/` for agents that read the nearest one.
+`test/`, `scripts/` and `extension/` for agents that read the nearest one,
+and to `.cursor/rules/<area>.mdc` for Cursor.
 
 ## Rules
 
@@ -78,7 +79,7 @@ nested `AGENTS.md` in `src/api/`, `src/core/`, `src/mcp/`, `src/tools/`,
   `project/adr/`.
 - Edit `scripts/pack-check.mjs` (the 3 MB tarball ceiling).
 - Edit generated files by hand: `.github/instructions/`, the nested
-  `AGENTS.md` files,
+  `AGENTS.md` files, `.cursor/rules/`, `GEMINI.md`,
   `.github/copilot-instructions.md`, `docs/tools/`, `docs/llms-full.txt`,
   `docs/index.md`, `.env.example`, `evals/mocks/`. Edit the source and rerun
   its generator.

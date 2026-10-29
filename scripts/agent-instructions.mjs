@@ -25,6 +25,12 @@
 // source is gone or no longer opted in is removed; a hand-written AGENTS.md
 // (no generated banner) is never touched.
 //
+// N-76: the same sources reach Cursor and Gemini CLI. Each area is also
+// rendered to .cursor/rules/<area>.mdc (an auto-attached Cursor rule: the
+// area's title as `description`, its globs as `globs`), and AGENTS.md to the
+// root GEMINI.md. A generated rule whose source is gone is removed; a
+// hand-written rule (no generated banner) is never touched.
+//
 // The sources are the single place to edit.
 //
 //   npm run docs:instructions               rewrite the generated files
@@ -47,6 +53,9 @@ export const OUTPUT_DIR = ".github/instructions";
 export const OUTPUT_SUFFIX = ".instructions.md";
 export const ROOT_SOURCE = "AGENTS.md";
 export const ROOT_OUTPUT = ".github/copilot-instructions.md";
+export const GEMINI_OUTPUT = "GEMINI.md";
+export const CURSOR_DIR = ".cursor/rules";
+export const CURSOR_SUFFIX = ".mdc";
 
 /** Copilot's optional excludeAgent values. */
 const EXCLUDE_AGENTS = new Set(["code-review", "cloud-agent"]);
@@ -146,6 +155,26 @@ export function render(area, source) {
   );
 }
 
+/**
+ * Render one Cursor rule (N-76): auto-attached to the area's globs, with the
+ * body's first heading as its description.
+ */
+export function renderCursor(area, source) {
+  const title = /^#\s+(.+)$/m.exec(source.body)?.[1].trim() ?? area;
+  return [
+    "---",
+    `description: ${title.replace(/\s+/g, " ")}`,
+    `globs: ${source.applyTo.join(",")}`,
+    "alwaysApply: false",
+    "---",
+    "",
+    banner(area),
+    "",
+    source.body,
+    "",
+  ].join("\n");
+}
+
 /** Render one nested <dir>/AGENTS.md (N-46b): the banner and the body. */
 export function renderNested(area, source) {
   return [banner(area), "", source.body, ""].join("\n");
@@ -154,6 +183,23 @@ export function renderNested(area, source) {
 /** True when a file's text starts with an area-source banner. */
 function isGenerated(text) {
   return text.startsWith(`<!-- Generated from ${SOURCE_DIR}/`);
+}
+
+/** True when a Cursor rule carries an area-source banner after its frontmatter. */
+function isGeneratedRule(text) {
+  return text.includes(`\n---\n\n<!-- Generated from ${SOURCE_DIR}/`);
+}
+
+/** Write `text` to `rel` unless it is already there; returns true on drift. */
+function syncFile(root, rel, text, check) {
+  const target = path.join(root, rel);
+  const current = existsSync(target) ? readFileSync(target, "utf8") : null;
+  if (current === text) return false;
+  if (!check) {
+    mkdirSync(path.dirname(target), { recursive: true });
+    writeFileSync(target, text);
+  }
+  return true;
 }
 
 /**
@@ -216,8 +262,8 @@ export function readSources(root) {
 }
 
 /**
- * Bring .github/instructions/, the nested AGENTS.md files and
- * .github/copilot-instructions.md in line with the sources. Returns the
+ * Bring .github/instructions/, the nested AGENTS.md files, the Cursor rules,
+ * .github/copilot-instructions.md and GEMINI.md in line with the sources. Returns the
  * repo-relative paths that were (check: would be) written or removed.
  */
 export function syncInstructions({ root, check = false }) {
@@ -250,19 +296,41 @@ export function syncInstructions({ root, check = false }) {
     if (!check) rmSync(path.join(outDir, name));
   }
   drift.push(...syncNested(root, sources, check));
+  drift.push(...syncCursor(root, sources, check));
   // N-43: a tree without AGENTS.md has no repository-wide file to render.
+  // N-76: Gemini CLI reads the same text as GEMINI.md.
   const rootSource = path.join(root, ROOT_SOURCE);
   if (existsSync(rootSource)) {
     const text = renderRoot(readFileSync(rootSource, "utf8"));
-    const target = path.join(root, ROOT_OUTPUT);
-    const current = existsSync(target) ? readFileSync(target, "utf8") : null;
-    if (current !== text) {
-      drift.push(ROOT_OUTPUT);
-      if (!check) {
-        mkdirSync(path.dirname(target), { recursive: true });
-        writeFileSync(target, text);
-      }
+    for (const rel of [ROOT_OUTPUT, GEMINI_OUTPUT]) {
+      if (syncFile(root, rel, text, check)) drift.push(rel);
     }
+  }
+  return drift;
+}
+
+/** N-76: write the Cursor rules, remove the stale generated ones. */
+function syncCursor(root, sources, check) {
+  const wanted = new Map(
+    sources.map(({ area, source }) => [
+      `${area}${CURSOR_SUFFIX}`,
+      renderCursor(area, source),
+    ]),
+  );
+  const drift = [];
+  for (const [name, text] of wanted) {
+    const rel = `${CURSOR_DIR}/${name}`;
+    if (syncFile(root, rel, text, check)) drift.push(rel);
+  }
+  const dir = path.join(root, CURSOR_DIR);
+  const existing = existsSync(dir)
+    ? readdirSync(dir).filter((name) => name.endsWith(CURSOR_SUFFIX))
+    : [];
+  for (const name of existing.sort()) {
+    if (wanted.has(name)) continue;
+    if (!isGeneratedRule(readFileSync(path.join(dir, name), "utf8"))) continue;
+    drift.push(`${CURSOR_DIR}/${name}`);
+    if (!check) rmSync(path.join(dir, name));
   }
   return drift;
 }
