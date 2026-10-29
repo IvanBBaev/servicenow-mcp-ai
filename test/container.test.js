@@ -1,10 +1,10 @@
 // D-5: container and registry metadata, checked without docker. The
 // Dockerfile must start the package's real bin entry (the one package.json
-// publishes), smithery.yaml must map every config key to a real, documented
-// setting, and the HTTP transport must know a loopback bind from an exposed one.
+// publishes), and the HTTP transport must know a loopback bind from an exposed
+// one.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { isLoopbackHost } from "../build/mcp/transport.js";
 
@@ -12,28 +12,6 @@ const root = path.join(import.meta.dirname, "..");
 const read = (file) => readFileSync(path.join(root, file), "utf8");
 const pkg = JSON.parse(read("package.json"));
 const dockerfile = read("Dockerfile");
-const smithery = read("smithery.yaml");
-const readme = read("README.md");
-
-/** Every literal SN_* token in src/**\/*.ts — the settings the code reads. */
-function sourceSettings() {
-  const found = new Set();
-  const walk = (dir) => {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (entry.name.endsWith(".ts")) {
-        for (const m of readFileSync(full, "utf8").matchAll(
-          /\bSN_[A-Z0-9_]+/g,
-        )) {
-          found.add(m[0]);
-        }
-      }
-    }
-  };
-  walk(path.join(root, "src"));
-  return found;
-}
 
 test("Dockerfile starts the bin entry point that package.json publishes", () => {
   const bins = Object.values(pkg.bin);
@@ -95,44 +73,6 @@ test("Dockerfile copies every input of npm run build", () => {
   for (const needed of [...inputs, "tsconfig.json", "src", "skills"]) {
     assert.ok(copied.includes(needed), `COPY ${needed}`);
   }
-});
-
-test("smithery.yaml: stdio start, every config key maps to a real documented setting", () => {
-  assert.match(smithery, /^\s+type: stdio$/m);
-  const props = /^ {4}properties:\n((?: {6}.*\n)+)/m.exec(smithery);
-  assert.ok(props, "configSchema.properties");
-  const keys = [...props[1].matchAll(/^ {6}([A-Za-z]+):$/gm)].map((m) => m[1]);
-  assert.ok(keys.length >= 5, keys.join(","));
-
-  const mapBody = /const map = \{([^}]*)\}/.exec(smithery);
-  assert.ok(mapBody, "commandFunction map");
-  const mapping = Object.fromEntries(
-    [...mapBody[1].matchAll(/(\w+): '(SN_[A-Z0-9_]+)'/g)].map((m) => [
-      m[1],
-      m[2],
-    ]),
-  );
-  assert.deepEqual(Object.keys(mapping).sort(), [...keys].sort());
-
-  const settings = sourceSettings();
-  for (const [key, env] of Object.entries(mapping)) {
-    // authEnv() suffixes never appear literally — accept the documented name.
-    const inSource =
-      settings.has(env) ||
-      new RegExp(`authEnv\\("${env.slice(3)}"\\)`).test(
-        read("src/core/auth.ts"),
-      );
-    assert.ok(inSource, `${key} -> ${env} is read by the server`);
-    assert.ok(readme.includes(`\`${env}\``), `${env} is documented`);
-    assert.match(
-      smithery,
-      new RegExp(`\\(${env}\\)\\."?$`, "m"),
-      `${key} description names ${env}`,
-    );
-  }
-  // The image defaults to HTTP; Smithery speaks stdio.
-  assert.match(smithery, /SN_TRANSPORT: 'stdio'/);
-  assert.match(smithery, /\/app\/bin\/servicenow-mcp-ai\.cjs/);
 });
 
 test("isLoopbackHost tells a local bind from an exposed one", () => {

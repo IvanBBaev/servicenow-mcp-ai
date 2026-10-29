@@ -31,6 +31,10 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 - SDK forward-compatibility (N-81): ESLint's `@typescript-eslint/no-deprecated` is an error under `src/`, and the deprecated SDK call sites are migrated — the 15 prompts declare `argsSchema` as a `z.object`, client capabilities, client info and the protocol revision are read from the per-request `_meta` envelope first (`src/mcp/client-identity.ts`, the one place that falls back to the 2025-era server accessors), the 2025-11-25 `Task` wire shape is the server's own type and the zod issue code is a string literal; the legacy-only `elicitInput` and MCP logging (deprecated by SEP-2577, in the spec for twelve more months) stay behind an inline disable that says why. `test/sdk-internals.test.js` pins the private SDK members the server reaches (`Protocol._requestHandlers`, `McpServer._registeredTools`, `Server.isMessageIgnored`); `wireModernTasks` logs an error instead of returning quietly when `SN_EXPERIMENTAL_TASKS=1` meets an SDK without them. The four SDK packages are pinned to exact versions (`server` 2.3.1, `node` 2.1.1, `client` 2.3.1, `sdk` 1.32.1), bumped in one deliberate change per minor. `tools/list`: +0 B.
 - Docs truth (N-91): README, `docs/llms.txt` and the publish workflow link the `.mcpb` attached to every GA release (N-51 done); the extension README pins `@3.x`; the landing page names MCP SDK 2.3; `AGENTS.md` and the project README quote O-25 / B24; the extension walkthrough names the `discovery` default. Each string now has a test.
 
+### Removed
+
+- `smithery.yaml`, its README bullet and its container test: Smithery shuts down on 2026-10-31 (F5-21, OD-16). The container image itself is unchanged.
+
 ### Security
 
 - `zod` floor raised to `^4.6.6` (installed 4.6.7): GHSA-mrhx-c7xc-m3w5, memory exhaustion while validating oversized constrained collections (high). No other package moved.

@@ -465,8 +465,6 @@ docker run --rm -p 127.0.0.1:3000:3000 \
   `GET /readyz?probe=1` also calls the instance and sits behind the token, like every
   MCP route. Set `SN_HTTP_ALLOWED_HOSTS` to the name clients use so the Host header is
   checked on a `0.0.0.0` bind.
-- `smithery.yaml` describes the same image for [Smithery](https://smithery.ai) (stdio,
-  config keys mapped to the `SN_*` settings).
 
 ### HTTP transport: sessions, probes and shutdown
 

@@ -220,7 +220,6 @@ test("D-6: no distribution file names the stale LeassTaTT namespace", () => {
   const files = [
     "package.json",
     "server.json",
-    "smithery.yaml",
     "Dockerfile",
     "README.md",
     "docs/index.html",
