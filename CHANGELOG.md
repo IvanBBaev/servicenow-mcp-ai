@@ -19,6 +19,7 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ### Changed
 
+- Record watch on the 2026-07-28 wire (N-83): a `subscriptions/listen` filter's `resourceSubscriptions` is dropped before the SDK sees it, so the acknowledgement no longer claims record updates that only the legacy wire delivers; `resources/subscribe` there stays `-32601`. Record watch is unchanged on 2025-11-25. `tools/list` +0 B.
 - A 401 under basic auth (`INSTANCE_HTTP_401`) carries a hint naming the restriction property, the role and the OAuth alternative (N-75); `servicenow_test_connection` and `doctor` show it. The generic 401 hint names `servicenow_test_connection` and `doctor` instead of a tool that does not exist. `tools/list`: +0 B.
 - MCP Apps views (N-84): each `ui://servicenow-mcp/…` resource declares `_meta.ui.csp` with empty `connectDomains` and `resourceDomains` — the document's own Content-Security-Policy at the host's level — instead of relying on the host's default. `tools/list`: +0 B.
 - Build slimming (N-85): `npm run build` compiles through `tsconfig.build.json` (`removeComments`, LF newlines), which drops 504 KB (19.3 %) of shipped JavaScript (2,676,313 → 2,159,750 B); `project/FOOTPRINT.md` is measured by the new `npm run footprint`, and `npm run footprint -- --check` joins `npm run check` (ceiling and production dependency list exactly, byte figures within 5 %). The pack ceiling is untouched. `tools/list`: +0 B.

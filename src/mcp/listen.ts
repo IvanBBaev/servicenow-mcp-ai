@@ -19,6 +19,14 @@
  *   sees it; the late cancellation is for an already completed request,
  *   which receivers ignore (cancel-10).
  *
+ * - a `resourceSubscriptions` filter is dropped before the SDK sees it
+ *   (N-83). The SDK would honour it because the server declares
+ *   `resources.subscribe`, but record watch (N-10) polls only for legacy
+ *   `resources/subscribe` sessions and nothing publishes
+ *   `resource_updated` to the modern event bus, so the acknowledgement
+ *   would promise updates that never come. Without the key the
+ *   acknowledgement leaves it out, which tells the client it is not served.
+ *
  * The stdio wire also gets a per-request version check (lifecycle-01): the
  * SDK classifies only the opening message and then pins the connection, so
  * a later request naming an unsupported revision would be served. The
@@ -79,6 +87,25 @@ export function listenRejection(
 }
 
 /**
+ * A modern subscriptions/listen request without its `resourceSubscriptions`
+ * filter; undefined when there is nothing to drop (every other message).
+ */
+export function withoutResourceSubscriptions(
+  message: unknown,
+): JSONRPCMessage | undefined {
+  if (!isJSONRPCRequest(message) || message.method !== LISTEN) return;
+  const params = asRecord(message.params);
+  if (asRecord(params?._meta)?.[PROTOCOL_VERSION_META_KEY] === undefined) {
+    return;
+  }
+  const filter = asRecord(params?.notifications);
+  if (!filter || !("resourceSubscriptions" in filter)) return;
+  const rest = { ...filter };
+  delete rest.resourceSubscriptions;
+  return { ...message, params: { ...params, notifications: rest } };
+}
+
+/**
  * The -32022 answer to a request whose envelope names a protocol revision
  * this server does not serve; undefined for every other message. A missing
  * or non-string claim is left to the entry (legacy, or -32602).
@@ -125,15 +152,20 @@ export function listenTeardownCancel(
 /**
  * Wraps the stdio wire handed to serveStdio: requests naming an
  * unsupported revision and refused listen requests are answered here and
- * never reach the entry; a listen completion result is followed by its
- * cancellation.
+ * never reach the entry; a listen filter loses `resourceSubscriptions`; a
+ * listen completion result is followed by its cancellation.
  */
 export function guardListenWire(inner: Transport): Transport {
   const wire: Transport = {
     async start() {
       inner.onmessage = (message, extra) => {
         const rejection = versionRejection(message) ?? listenRejection(message);
-        if (!rejection) return wire.onmessage?.(message, extra);
+        if (!rejection) {
+          return wire.onmessage?.(
+            withoutResourceSubscriptions(message) ?? message,
+            extra,
+          );
+        }
         inner.send(rejection).catch((error: Error) => wire.onerror?.(error));
       };
       inner.onerror = (error) => wire.onerror?.(error);
@@ -224,18 +256,22 @@ async function bodyOf(request: Request, parsedBody: unknown): Promise<unknown> {
 
 /**
  * Wraps the modern HTTP handler's fetch: refused listen requests get the
- * -32021 error (HTTP 400, the SDK's status for that code) and a listen
- * stream gets its cancellation after the completion result.
+ * -32021 error (HTTP 400, the SDK's status for that code), a listen filter
+ * loses `resourceSubscriptions` and a listen stream gets its cancellation
+ * after the completion result.
  */
 export function guardListenFetch(
   fetch: McpHttpHandler["fetch"],
 ): McpHttpHandler["fetch"] {
   return async (request, options) => {
-    const rejection = listenRejection(
-      await bodyOf(request, options?.parsedBody),
-    );
+    const body = await bodyOf(request, options?.parsedBody);
+    const rejection = listenRejection(body);
     if (rejection) return Response.json(rejection, { status: 400 });
-    const response = await fetch(request, options);
+    const stripped = withoutResourceSubscriptions(body);
+    const response = await fetch(
+      request,
+      stripped ? { ...options, parsedBody: stripped } : options,
+    );
     const type = response.headers.get("content-type") ?? "";
     if (!response.body || !type.startsWith("text/event-stream")) {
       return response;

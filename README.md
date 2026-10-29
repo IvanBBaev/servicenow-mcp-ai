@@ -1753,7 +1753,7 @@ declaratively instead of calling a tool:
 | `servicenow://reference/encoded-query`  | Encoded-query reference: syntax, `javascript:` values, limits (no `^` escaping, URL length, silently ignored fields, ACL-hidden rows) and how `fetchAll` pages. |
 | `servicenow://reference/tools`          | The tool manifest as Markdown: every tool by package, read / write, and whether this session registered it under the package policy. |
 | `servicenow://reference/tools/{name}`   | One tool in full: description, annotations, the published input and output schema, an example call, package and registration state. |
-| `servicenow://profiles/{profile}/records/{table}/{sys_id}` | One record through a named profile, masked like `servicenow_get_record`. Subscribe to get `notifications/resources/updated` when it changes (polled every `SN_RECORD_WATCH_INTERVAL_MS`, floor 30 s; capped per session and per process). |
+| `servicenow://profiles/{profile}/records/{table}/{sys_id}` | One record through a named profile, masked like `servicenow_get_record`. Subscribe to get `notifications/resources/updated` when it changes (polled every `SN_RECORD_WATCH_INTERVAL_MS`, floor 30 s; capped per session and per process). Legacy wire (2025-11-25) only: on 2026-07-28 `resources/subscribe` is `-32601` and a listen `resourceSubscriptions` filter is not acknowledged. |
 
 Resources are package-gated like tools: `status`, `capabilities` and the tool
 reference are always on; `encoded-query` and the record template come with the `table` package, `tables`/`schema` with the `schema` package, `instances`/per-profile

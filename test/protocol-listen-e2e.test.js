@@ -205,6 +205,34 @@ test(
   },
 );
 
+// N-83: the modern wire has no resources/subscribe and nothing publishes
+// record updates to its event bus, so a listen filter for them is not honoured
+// (record watch stays a legacy-wire feature, test/record-watch.test.js).
+const RECORD = "servicenow://profiles/default/records/incident/abc";
+
+test("listen e2e (stdio entry): resources/subscribe is -32601 and the acknowledgement leaves resourceSubscriptions out", async () => {
+  const { child, send, next } = spawnStdio();
+  try {
+    send(request(1, "server/discover"));
+    await next((m) => m.id === 1);
+    send(request(2, "resources/subscribe", { uri: RECORD }));
+    assert.equal((await next((m) => m.id === 2)).error?.code, -32601);
+    send(
+      listen(3, {
+        resourcesListChanged: true,
+        resourceSubscriptions: [RECORD],
+      }),
+    );
+    const ack = await next(
+      (m) => m.method === "notifications/subscriptions/acknowledged",
+    );
+    assert.deepEqual(ack.params.notifications, { resourcesListChanged: true });
+  } finally {
+    child.kill("SIGTERM");
+    await exitOf(child);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // HTTP (modern leg)
 // ---------------------------------------------------------------------------
@@ -348,3 +376,26 @@ test(
     }
   },
 );
+
+test("listen e2e (HTTP entry): resources/subscribe is -32601 and the acknowledgement leaves resourceSubscriptions out", async () => {
+  const { child, post } = await spawnHttp();
+  try {
+    const subscribe = await post(
+      request(1, "resources/subscribe", { uri: RECORD }),
+    );
+    assert.equal((await subscribe.json()).error?.code, -32601);
+    const response = await post(
+      listen(2, {
+        resourcesListChanged: true,
+        resourceSubscriptions: [RECORD],
+      }),
+    );
+    const [ack] = await sseReader(response).atLeast(1);
+    assert.equal(ack.method, "notifications/subscriptions/acknowledged");
+    assert.deepEqual(ack.params.notifications, { resourcesListChanged: true });
+    await response.body?.cancel().catch(() => {});
+  } finally {
+    child.kill("SIGTERM");
+    await exitOf(child);
+  }
+});

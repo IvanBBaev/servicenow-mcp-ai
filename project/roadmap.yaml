@@ -1510,11 +1510,11 @@ items:
     title: "record watch on the modern wire"
     pillar: "N"
     effort: "S–M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-29"
     gates: []
-    notes: "3.4 minor (F5-29). Either publish record updates through the handler bus on the modern wire or refuse `resources/subscribe` there; a `resources/subscribe` test on both wires. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-29 (option S).** The modern wire's listen guards drop a `resourceSubscriptions` filter before the SDK honours it, so the acknowledgement no longer promises record updates that nothing publishes; `resources/subscribe` stays -32601 there (SDK). Record watch remains a legacy-wire feature (README). E2E tests on stdio and HTTP; publishing through the handler bus (option M) is a follow-up if a modern client asks. 3.4 minor (F5-29). Either publish record updates through the handler bus on the modern wire or refuse `resources/subscribe` there; a `resources/subscribe` test on both wires. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-84"
     title: "MCP Apps csp"
     pillar: "N"

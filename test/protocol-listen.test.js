@@ -17,6 +17,7 @@ import {
   guardListenWire,
   listenRejection,
   listenTeardownCancel,
+  withoutResourceSubscriptions,
 } from "../build/mcp/listen.js";
 import { TASKS_EXTENSION } from "../build/mcp/tasks.js";
 import { baselineEnv, freshRuntime, withEnv } from "./helpers.js";
@@ -378,4 +379,34 @@ test("listen guards: other messages, legacy (claim-less) requests and ordinary r
     }),
     undefined,
   );
+});
+
+test("withoutResourceSubscriptions: drops the key from a modern listen filter only", () => {
+  const uri = "servicenow://profiles/default/records/incident/abc";
+  const asked = listen(4, {
+    resourcesListChanged: true,
+    resourceSubscriptions: [uri],
+  });
+  const stripped = withoutResourceSubscriptions(asked);
+  assert.deepEqual(stripped.params.notifications, {
+    resourcesListChanged: true,
+  });
+  assert.deepEqual(stripped.params._meta, asked.params._meta);
+  assert.deepEqual(asked.params.notifications.resourceSubscriptions, [uri]);
+
+  assert.equal(withoutResourceSubscriptions(listen(5, ALL_LISTS)), undefined);
+  assert.equal(
+    withoutResourceSubscriptions({
+      jsonrpc: "2.0",
+      id: 6,
+      method: "subscriptions/listen",
+      params: { notifications: { resourceSubscriptions: [uri] } },
+    }),
+    undefined,
+  );
+  assert.equal(
+    withoutResourceSubscriptions(request(7, "tools/list", {})),
+    undefined,
+  );
+  assert.equal(withoutResourceSubscriptions(undefined), undefined);
 });
