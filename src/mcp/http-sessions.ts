@@ -15,6 +15,7 @@ import {
 } from "../core/request-context.js";
 import { logger, type LogSink } from "../core/logging.js";
 import { createLogBridge, type LogBridge } from "./log-bridge.js";
+import { SessionEventStore } from "./event-store.js";
 
 /**
  * H-7 — HTTP session management (closes the single-transport design of DF-6).
@@ -265,6 +266,9 @@ export class HttpSessionManager {
       const transport = new NodeStreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         keepAliveMs: this.options.keepAliveMs,
+        // N-79: a dropped SSE stream resumes with Last-Event-ID; the ring
+        // lives and dies with the session.
+        eventStore: new SessionEventStore(),
         onsessioninitialized: (id: string) => {
           scope.id = id;
           this.sessions.set(id, session!);

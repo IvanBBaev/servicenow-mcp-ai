@@ -1474,11 +1474,11 @@ items:
     title: "SSE resumability on sessions"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-10-29"
     gates: []
-    notes: "3.4 minor (F5-23). A bounded in-memory `EventStore` per session wired into `http-sessions.ts` only; `Last-Event-ID` replay e2e test and a conformance row. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Done 2026-10-29.** `SessionEventStore` (`src/mcp/event-store.ts`): a per-session ring of 256 events / 256 KiB, oldest evicted, dropped with the session; wired into `http-sessions.ts` only. A GET with `Last-Event-ID` replays the stream's later messages (priming events skipped); an evicted or unknown id gets the SDK's 400. Unit tests `test/event-store.test.js` and an e2e reconnect in `test/http-transport-v2.test.js`; no conformance row — the 2026-07-28 revision has no resumability requirement (stateless HTTP). +0 B. 3.4 minor (F5-23). A bounded in-memory `EventStore` per session wired into `http-sessions.ts` only; `Last-Event-ID` replay e2e test and a conformance row. +0 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-80"
     title: "resource polish"
     pillar: "N"

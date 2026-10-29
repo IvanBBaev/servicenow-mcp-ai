@@ -277,7 +277,8 @@ const parseMessages = (res) =>
   res.headers["content-type"]?.includes("text/event-stream")
     ? res.text
         .split("\n")
-        .filter((l) => l.startsWith("data:"))
+        // N-79: a 2025-11-25 stream opens with a priming event (empty data).
+        .filter((l) => l.startsWith("data:") && l.slice(5).trim())
         .map((l) => JSON.parse(l.slice(5)))
     : [JSON.parse(res.text)];
 

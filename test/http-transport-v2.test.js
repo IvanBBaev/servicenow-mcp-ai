@@ -1246,3 +1246,86 @@ test("HTTP: a 2026-07-28 POST ignores a stray Mcp-Session-Id; a 2025 one still g
     assert.equal(JSON.parse(legacy.text).error.code, -32001);
   });
 });
+
+/** The `id:` / `data:` pairs of an SSE body; empty data is the priming event. */
+function sseEvents(text) {
+  return text
+    .split("\n\n")
+    .map((block) => {
+      const id = /^id: (.*)$/m.exec(block)?.[1];
+      const data = /^data: (.*)$/m.exec(block)?.[1]?.trim();
+      return { id, message: data ? JSON.parse(data) : undefined };
+    })
+    .filter((e) => e.id !== undefined);
+}
+
+test("e2e: a dropped SSE stream resumes with Last-Event-ID from the session's ring (N-79)", async () => {
+  await withHttp({}, async (port) => {
+    const version = "2025-11-25";
+    const init = await rawRequest(port, {
+      method: "POST",
+      headers: MCP_HEADERS,
+      body: JSON.stringify({
+        ...INIT,
+        params: { ...INIT.params, protocolVersion: version },
+      }),
+    });
+    assert.equal(init.status, 200);
+    const session = init.headers["mcp-session-id"];
+    const headers = {
+      ...MCP_HEADERS,
+      "mcp-session-id": session,
+      "mcp-protocol-version": version,
+    };
+    await rawRequest(port, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "notifications/initialized",
+      }),
+    });
+
+    const ping = await rawRequest(port, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ jsonrpc: "2.0", id: 7, method: "ping" }),
+    });
+    const events = sseEvents(ping.text);
+    // The priming event comes first and carries no message.
+    assert.equal(events[0].message, undefined);
+    assert.deepEqual(events.at(-1).message, {
+      jsonrpc: "2.0",
+      id: 7,
+      result: {},
+    });
+
+    // Reconnect after the priming event: the response is replayed.
+    const resumed = await rawRequest(port, {
+      method: "GET",
+      headers: {
+        accept: "text/event-stream",
+        "mcp-session-id": session,
+        "mcp-protocol-version": version,
+        "last-event-id": events[0].id,
+      },
+    });
+    assert.equal(resumed.status, 200);
+    assert.deepEqual(
+      sseEvents(resumed.text).map((e) => [e.id, e.message]),
+      [[events.at(-1).id, events.at(-1).message]],
+    );
+
+    // An id the ring never held is refused, not replayed partially.
+    const unknown = await rawRequest(port, {
+      method: "GET",
+      headers: {
+        accept: "text/event-stream",
+        "mcp-session-id": session,
+        "mcp-protocol-version": version,
+        "last-event-id": "999999",
+      },
+    });
+    assert.equal(unknown.status, 400);
+  });
+});
