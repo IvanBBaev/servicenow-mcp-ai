@@ -1614,3 +1614,617 @@ items:
     done: null
     gates: []
     notes: "3.5 minor (F5-51). `docs/first-10-minutes.md` reused as an `sn-start` skill and in the extension walkthrough; a short `evals/README.md`. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+  - marker: "_role review 2026-10 (after the 3.5 plan)_"
+    notes: "Rows 179 onwards are the role-review plan: nine senior role reports, items N-95 … N-162 ordered P0 → P3, from [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6."
+  - id: "N-95"
+    title: "release 3.x and an ordered publish chain"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (PO-I4, DO-I2, DO-I6; RR-PO-06, RR-DO-03, RR-DO-09, RR-DO-10, RR-DO-12). Cut the unreleased 3.1/3.2 work from `main` as a release now (zod security floor, Docker build fix); clean the stale `next` dist-tag; reorder `publish.yml` so the extension publishes only after npm succeeds, serialize release workflows on the tag ref; write a security-patch SLA (7 days) and decide `npm-shrinkwrap.json`. Owner decision OD-17 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md), [07-devops-release.md](role-review-2026-10/07-devops-release.md)."
+  - id: "N-96"
+    title: "npm trusted publishing and repository guard rails"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (DO-I1, SE-I6; RR-DO-01, RR-DO-02, RR-DO-14, RR-SE-06, RR-SE-11, RR-GV-13). **Deadline: `NPM_TOKEN` expires by 2026-11-18.** OIDC trusted publishing on npmjs.com and delete `NPM_TOKEN`; a `release` environment with the owner as required reviewer; rulesets protecting `main` and `v*` tags; secret scanning and push protection on; a documented backup publisher. Owner decision OD-18 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [07-devops-release.md](role-review-2026-10/07-devops-release.md), [05-application-security.md](role-review-2026-10/05-application-security.md)."
+  - id: "N-97"
+    title: "feedback loop and KPI snapshot"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (PO-I1; RR-PO-01, RR-PO-10, RR-PO-11). GitHub Discussions, issue forms that ask for the use case, 3–5 design partners, and a `scripts/kpi.mjs` snapshot (npm downloads, stars, Marketplace installs, issues by humans) recorded per release — no telemetry; a `MAINTENANCE.md` with the sustainability posture and park criteria. Owner decision OD-28 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
+  - id: "N-98"
+    title: "single-source positioning"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (PO-I2; RR-PO-03, RR-PO-04). One tagline and one value statement generated into README, `package.json`, `server.json`, the extension manifest, the site and `llms.txt`; drop the tool-count headline (badge and descriptions). Owner decision OD-28 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
+  - id: "N-99"
+    title: "public-number truth guard and README accuracy"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (PO-I3, DX-I2; RR-PO-05, RR-DX-03, RR-DX-10, RR-DX-13). A test that derives every public number (tools, packages, tests, profiles, licence) from code and fails on a stale copy in README, prompts, resources and the site; README examples checked against the live tool schemas. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md), [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-100"
+    title: "SDK 2.4, `_wrapHandler` pin, dependency flow"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (AR-I6, DO-I3; RR-AR-07, RR-DO-04, RR-DO-05). Bump `@modelcontextprotocol/server` to 2.4 with a test that pins the private `_wrapHandler` seam; derive SDK version strings so Dependabot PRs stop failing the gate; Dependabot groups and a cadence; merge or close #26–#30. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md), [07-devops-release.md](role-review-2026-10/07-devops-release.md)."
+  - id: "N-101"
+    title: "`call_tool` dispatcher + schema `find_tools`"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-10"]
+    notes: "Role review P0 (MC-I1; RR-MC-01, RR-MC-06, RR-MC-09, RR-MC-10). On the 2026-07-28 wire `enable_package` returns `NO_PACKAGE_SESSION`, so only 20 of 100 tools are callable on the default profile. A dispatcher that calls any policy-allowed tool by name, and `find_tools` returning the input schema. ≈ +600 B on every profile. Owner decision OD-23 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md)."
+  - id: "N-102"
+    title: "model-based tool-selection eval and its cadence"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (MC-I2, QA-I9; RR-MC-02, RR-MC-03, RR-QA-08). No real model has ever been scored on tool selection. A `claude -p` (subscription) backend plus a recorded fallback for `evals/`, repeated runs, committed baselines, run once per minor; the gate for MC-I3/MC-I5 byte spending. Owner decision OD-24 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md), [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-103"
+    title: "no GET retry after timeout; quota alignment"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (SN-I1; RR-SN-01). A timed-out GET is retried while the first transaction still runs on the instance (load amplification). Stop retrying timeouts (keep resets/5xx), document the relation to the instance transaction quota. Owner decision OD-31 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-104"
+    title: "`check_data_health` size guard, serial run"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (SN-I2; RR-SN-02). Up to about 40 join counts run in parallel with no size guard on 20M-row tables. Refuse unscoped runs above a row threshold (default 250k, per profile), run the counts serially. ≈ +80 B. Owner decision OD-31 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-105"
+    title: "human-bound confirmation for destructive writes"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-4"]
+    notes: "Role review P0 (SE-I1; RR-SE-01). **BREAKING (O-4).** The default `token` confirmation is an agent-to-agent handshake; `elicit` fails open on clients without elicitation. Make `elicit` fail closed, add an `ask` mode to the plugin hook, document `token` honestly as accident protection; `elicit` default on HTTP in the next major. Owner decision OD-19 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [05-application-security.md](role-review-2026-10/05-application-security.md)."
+  - id: "N-106"
+    title: "protected-table expansion and plan-token parity"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-4"]
+    notes: "Role review P0 (SE-I2; RR-SE-02). **BREAKING (O-4).** Add code-executing and credential tables (`sys_script_include`, `sysauto_script`, `ecc_queue`, `sp_widget`, `sys_ui_action`, `oauth_credential`, …) to the protected list and require a `plan_token` for protected writes through the generic table tools, matching the dedicated tools. Names unverified until O-5. Owner decision OD-20 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [05-application-security.md](role-review-2026-10/05-application-security.md)."
+  - id: "N-107"
+    title: "a live smoke that really runs"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-2"]
+    notes: "Role review P0 (QA-I1; RR-QA-01). The weekly live smoke has been a green no-op for three weeks because its secrets were never set. Set the `SN_*` secrets (O-2) and make the job fail, not skip, when it is unconfigured. Owner decision OD-25 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-108"
+    title: "managed policy file + host environment map"
+    pillar: "N"
+    effort: "L"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (GV-I1; RR-GV-01, RR-GV-12). Every control comes from an env file the restrained user can edit. An admin-managed policy file at an OS path (plus an instance-side property as kill switch) that sets floors the user cannot lower, and a host → environment map so `prod` is not a self-declared flag. Opt-in, not breaking. Owner decision OD-26 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-109"
+    title: "audit-grade journal"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P0 (GV-I2, AR-I3; RR-GV-02, RR-GV-03, RR-AR-02, RR-SE-12). Fail closed when the journal cannot be written, a keyed (HMAC) hash chain, file mode 0600, audit events (policy changes, credential changes, denied applies), the human identity on stdio; a write lock, a lazy Markdown mirror, streaming reads and a retention setting. Owner decision OD-27 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md), [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
+  - id: "N-110"
+    title: "private state dir, file modes, export retention"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-4"]
+    notes: "Role review P0 (GV-I3; RR-GV-04). **BREAKING (O-4)** (`SN_DOCS_DIR` default). Exports full of instance data pile up in `./docs/instance`, world-readable, with no retention. Move to a per-user state dir (compatibility read for one minor), 0600/0700 modes, a 7-day default retention for exports. Owner decision OD-27 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-111"
+    title: "budget policy v2"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-10"]
+    notes: "Role review P1 (MC-I3; RR-MC-03). Answers OD-15. Freeze `discovery`, move other profiles to token ceilings, allow growth only when the MC-I2 eval shows a gain, funded by N-112. Policy and `test/output-schema.test.js` change only. Owner decision OD-23 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md)."
+  - id: "N-112"
+    title: "conditional `instance` parameter"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-10"]
+    notes: "Role review P1 (MC-I4; RR-MC-04). Publish `instance` only when more than one profile is configured and drop it from local tools; accept-and-ignore keeps it non-breaking. ≈ −2.5 KB on `all`, −0.5 KB on `discovery`. Owner decision OD-23 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md)."
+  - id: "N-113"
+    title: "routing clauses and write-flow suffixes"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-10"]
+    notes: 'Role review P1 (MC-I5; RR-MC-05, RR-MC-08). Disambiguating "use X, not Y" clauses for the overlap clusters and a plan → apply suffix on write tools; ≈ +1.8 KB on `all`, only if the N-102 eval shows a gain. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md).'
+  - id: "N-114"
+    title: "`find_tools` synonym map and jargon eval cases"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: 'Role review P1 (MC-I6; RR-MC-06). Map user words ("ticket", "workflow", "script") to tool vocabulary; eval cases with ServiceNow jargon. ≈ +40 B. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md).'
+  - id: "N-115"
+    title: "cache immutable server parts on the modern wire"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (AR-I1; RR-AR-03, RR-AR-11). Each modern-wire request builds the whole server. Cache the immutable template (tool definitions, schemas, prompts) and bind runtime and auth per request. Owner decision OD-30 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
+  - id: "N-116"
+    title: "size/complexity ratchet, refactor top five"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (AR-I2, QA-I10; RR-AR-01, RR-QA-13). Extends N-88. `src/` grew 8× in two months; 49 functions over 120 lines, 30 with cyclomatic complexity ≥ 30. A ratchet (CC 25 / 120 lines), refactor the five worst; rename tracker-id test files by behaviour. Owner decision OD-30 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md), [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-117"
+    title: "read-policy choke point in `snRequest`"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (AR-I4; RR-AR-04). Read policy is checked per tool; move the check into `snRequest` and sweep the read tools so a new reader cannot bypass it. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
+  - id: "N-118"
+    title: "ARCHITECTURE.md 3.x rewrite and technical ADRs"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (AR-I5; RR-AR-05, RR-AR-06). ARCHITECTURE.md still describes v2.0. Rewrite it for 3.x with a drift check; record the implicit technical decisions as ADRs 0013+ (runtime parts, modern wire, journal, policy evaluator…). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
+  - id: "N-119"
+    title: "count once per keyset fetch-all"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (SN-I3; RR-SN-03). Every keyset page pays for a `COUNT(*)`; count once per fetch-all. Optional read-replica request category. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-120"
+    title: "update-set capture verification"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "Role review P1 (SN-I4; RR-SN-04). Verify after apply that the change was captured in the intended update set and warn when the service account is shared with humans. ≈ +40 B (output field). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-121"
+    title: "service-account recipe + `doctor` identity"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "Role review P1 (SN-I5; RR-SN-05). A minimal-role matrix per profile (`snc_read_only` for read-only), unverified roles marked; `doctor` checks the account's roles and flags admin on a read profile. Owner decision OD-31 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-122"
+    title: "SECURITY.md and vendor-risk documentation truth"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (SE-I3, GV-I8; RR-SE-03, RR-SE-12, RR-GV-08, RR-GV-09). Fix the stale SECURITY.md statements, add a drift check against the code; dependency drift, signed tags and a DCO for the vendor-risk view. Owner decision OD-29 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [05-application-security.md](role-review-2026-10/05-application-security.md), [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-123"
+    title: "untrusted result boundary + injection eval"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (SE-I4; RR-SE-04). Mark instance data in tool results as untrusted with a structural boundary; an eval of prompt-injection records (descriptions, work notes, script bodies). Output bytes only. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [05-application-security.md](role-review-2026-10/05-application-security.md)."
+  - id: "N-124"
+    title: "password via elicitation; safe first run"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-4"]
+    notes: "Role review P1 (SE-I5, DX-I3; RR-SE-05, RR-DX-02). Docs first (stop presenting the chat path for passwords). Then **BREAKING (O-4)**: `set_credentials` takes the password only through elicitation, the argument deprecated then removed. ≈ −40 B. Owner decision OD-21 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [05-application-security.md](role-review-2026-10/05-application-security.md), [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-125"
+    title: "offline dictionary snapshot in the gate"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (QA-I2; RR-QA-03, RR-QA-10). A committed `sys_dictionary` snapshot from the PDI so every table and field name read by code is checked offline in `npm run check`. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-126"
+    title: "recorded corpus per package, strict double"
+    pillar: "N"
+    effort: "L"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-2"]
+    notes: "Role review P1 (QA-I3; RR-QA-02, RR-QA-10). The recorded corpus covers 6 of 100 tools. Record metadata reads per package (redacted, leak refusal) and make the strict double (unknown request = failure) the default. Owner decision OD-25 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-127"
+    title: "owner-run live write end-to-end"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-2"]
+    notes: "Role review P1 (QA-I4; RR-QA-04). Every write path is proven only against hand-written mocks. A scripted plan → token → apply → revert run on the PDI in a scratch scope, owner-run before releases that touch write code. Owner decision OD-25 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-128"
+    title: "pinned safety lists + safety-core mutation"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (QA-I5; RR-QA-05). Snapshot tests for protected tables, destructive tools and token rules; a case-insensitivity property; StrykerJS on the safety core, manual-only. Owner decision OD-24 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-129"
+    title: "packed-tarball and `.mcpb` install smoke"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (QA-I6; RR-QA-07). Install the packed tarball and the `.mcpb` in CI and run `initialize` + `tools/list`; a post-publish `npx` check. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-130"
+    title: "container hardening"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (DO-I4; RR-DO-06). Folds into N-86: base images pinned by digest, Dependabot for docker, a `/healthz` HEALTHCHECK. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [07-devops-release.md](role-review-2026-10/07-devops-release.md)."
+  - id: "N-131"
+    title: "HTTP topology + enterprise deployment guide"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (DO-I5, GV-I7; RR-DO-07, RR-GV-07, RR-GV-11, RR-GV-14). Supported topologies for HTTP mode (reverse proxy, TLS, auth, one instance per user); an enterprise guide with a data-flow diagram, a hardening baseline, role setup and an incident-response section. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [07-devops-release.md](role-review-2026-10/07-devops-release.md), [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-132"
+    title: "docs-site coverage gate and generated reference"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (DX-I1; RR-DX-01, RR-DX-11). The site misses tools and CLI commands; generate the tool and CLI sections and fail the gate when one is missing. Coordinate with N-92. Owner decision OD-32 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-133"
+    title: "user-docs jargon lint"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (DX-I4; RR-DX-04). No roadmap ids (`N-`, `O-`, `F5-`…) in user docs; allowed in CHANGELOG, CONTRIBUTING, AGENTS and `project/`. Owner decision OD-32 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-134"
+    title: "`regulated` preset and read-access audit"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (GV-I4; RR-GV-05). A preset for regulated instances (no exports, no free-form reads of HR/PII tables, read events in the journal). Owner decision OD-26 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-135"
+    title: "AI-origin stamp on the record"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (GV-I5; RR-GV-02). Opt-in `SN_WRITE_ATTRIBUTION` that stamps a work note or field so the instance itself shows an AI-made change. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-136"
+    title: "change-request gate for production applies"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-10"]
+    notes: "Role review P1 (GV-I6; RR-GV-06). An optional `change_request` argument required on `prod` for applies and update-set commits, checked to be in an implement state. ≈ +120 B. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-137"
+    title: "regenerable demo from recorded mocks"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (PO-I5; RR-PO-07). A scripted demo (GIF / asciinema) rebuilt from recorded mocks each release, so README and the Marketplace show current behaviour. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
+  - id: "N-138"
+    title: "adoption gate and resequencing"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (PO-I6; RR-PO-02, RR-PO-08, RR-PO-09). A WIP limit on new surface; N-71, N-72 and N-67 wait for a demand signal until the 2026-11-19 checkpoint; distribution and adoption items move forward. Owner decision OD-28 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
+  - id: "N-139"
+    title: "competitive landscape refresh"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P1 (PO-I7; RR-PO-10). Scope add to N-77: compare against NowAIKit and the other OSS / vendor servers on outcomes, not tool counts. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
+  - id: "N-140"
+    title: "per-release-family PDI verification pass"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-5"]
+    notes: "Role review P2 (SN-I6; RR-SN-06, RR-SN-11). Re-run the name verification per release family (Brazil first) and bundle the O-4 key-field fixes (OD-1) into the same minor. Owner decision OD-25 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-141"
+    title: "query-shape register for high-volume tables"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (SN-I7; RR-SN-07). A register of the queries each tool sends to `task`, `sys_audit`, `syslog`, `cmdb_ci` with the indexed fields they rely on; a test that new shapes are registered. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-142"
+    title: "Change API writes on the table-write policy axis"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (SN-I8; RR-SN-08). Before N-71: Change API writes go through the same table policy evaluator as table writes. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-143"
+    title: "catalog variable validation"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (SN-I9; RR-SN-09). Validate catalog variables (mandatory, type, choices) in the preview, `requested_for` support, a default limit. ≈ +60 B. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-144"
+    title: "loopback HTTP token by default and a rate limit"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-4"]
+    notes: "Role review P2 (SE-I7; RR-SE-07). **BREAKING (O-4).** An auto-generated bearer token even on loopback (DNS-rebinding and local-process defence) and a per-session rate limit. Owner decision OD-22 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [05-application-security.md](role-review-2026-10/05-application-security.md)."
+  - id: "N-145"
+    title: "fd file reads, SSRF ranges, env scrubbing"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (SE-I8; RR-SE-08, RR-SE-09, RR-SE-10). Open-then-check file reads (TOCTOU), the missing SSRF ranges, and secrets scrubbed from child-process environments. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [05-application-security.md](role-review-2026-10/05-application-security.md)."
+  - id: "N-146"
+    title: "second-client compatibility"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (QA-I7; RR-QA-06). Run the official MCP conformance suite and a Python-SDK client smoke in CI. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-147"
+    title: "flake hardening"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (QA-I8; RR-QA-09, RR-QA-11, RR-QA-12). Event-based waits instead of timers, a weekly repeat run with a random seed, quiet logs in tests. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+  - id: "N-148"
+    title: "Scorecard and zizmor"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (DO-I7; RR-DO-11). OpenSSF Scorecard and zizmor workflow linting in CI. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [07-devops-release.md](role-review-2026-10/07-devops-release.md)."
+  - id: "N-149"
+    title: "release-notes highlights and Open VSX truth"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (DO-I8; RR-DO-08, RR-DO-13). Overlaps N-92 (highlights). The corpus says Open VSX is out, but the extension is live there; fix D-6 / OD-16 and the docs. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [07-devops-release.md](role-review-2026-10/07-devops-release.md)."
+  - id: "N-150"
+    title: '"Since" stamping'
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (DX-I5; RR-DX-05). Stamp tools, env vars and CLI commands with the version that introduced them, generated from CHANGELOG. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-151"
+    title: "generated troubleshooting page"
+    pillar: "N"
+    effort: "S–M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (DX-I6; RR-DX-06). A troubleshooting page generated from the error-code catalogue and its hints. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-152"
+    title: '"your first safe write" tutorial'
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (DX-I7; RR-DX-07, RR-DX-12). Extends N-94: a guided plan → apply → revert on a PDI. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-153"
+    title: "`all` preset and deprecated `admin` alias"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (DX-I8; RR-DX-08). `all` becomes the canonical preset name; `admin` and the `reader` duplicate are deprecated (removal later is BREAKING). Owner decision OD-32 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-154"
+    title: "extension `readOnly` setting"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (DX-I9; RR-DX-09). A VS Code setting that starts the server in read-only mode; decide whether a new Sign In defaults to it. Owner decision OD-32 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+  - id: "N-155"
+    title: "trademark-safe display names"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (GV-I9; RR-GV-10). Display names that do not read as an official ServiceNow product; the npm name stays. Owner decision OD-29 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+  - id: "N-156"
+    title: "split `api/` into REST and analysis domains"
+    pillar: "N"
+    effort: "L"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (AR-I7; RR-AR-08). The flat 117-file `api/` is mostly analysis code. A one-shot move with shims and ESLint zones, after N-116, with no feature work in parallel. Owner decision OD-30 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
+  - id: "N-157"
+    title: "planning corpus compaction"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (AR-I8; RR-AR-09). Archive done rows and closed analyses each release; a 400 KB live budget for `project/`. Owner decision OD-30 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
+  - id: "N-158"
+    title: "outcome checks for safe-write / impact skills"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P2 (MC-I8; RR-MC-11). Evals that check the outcome of `sn-safe-write` and `sn-impact` (preview shown, apply only after consent). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md)."
+  - id: "N-159"
+    title: "task-intent landing pages"
+    pillar: "N"
+    effort: "M"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: 'Role review P2 (PO-I8; RR-PO-12). Site pages per job ("find where a script include is used", "diff dev vs prod") instead of per package. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md).'
+  - id: "N-160"
+    title: "history window and import outcome summary"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P3 (SN-I10; RR-SN-10, RR-SN-12). A default time window and the history-set source for history reads; an outcome summary for imports. ≈ +40 B. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+  - id: "N-161"
+    title: "export audit and pruning"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: []
+    notes: "Role review P3 (AR-I9; RR-AR-10). knip over `src/` and removal of unused exports. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
+  - id: "N-162"
+    title: "`query_table` advanced-flags object"
+    pillar: "N"
+    effort: "S"
+    status: "open"
+    phase: null
+    done: null
+    gates: ["O-4", "O-10"]
+    notes: "Role review P3 (MC-I7; RR-MC-07). **BREAKING (O-4).** Nest the rarely used flags in one `advanced` object in the next major. ≈ −400 B. Owner decision OD-23 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [03-mcp-agent-tooling.md](role-review-2026-10/03-mcp-agent-tooling.md)."

@@ -1,4 +1,4 @@
-# TODO — status as of 2026-10-28
+# TODO — status as of 2026-10-29
 
 > **2026-09 update.** On 2026-09-02 `npm run check` was **red** on its last step
 > (`npm audit --omit=dev --audit-level=high` — two HIGH transitive advisories via
@@ -322,6 +322,173 @@ OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
     `gh repo view` and `gh pr list --author app/dependabot` on 2026-10-28.
   - Recommend: the About / topics refresh and the Smithery removal first — both take minutes
     and the Smithery date is fixed.
+
+OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
+([ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §8). Each one groups the owner questions from
+§6 of the role reports in [role-review-2026-10/](role-review-2026-10/).
+
+- **OD-17 · Release 3.x now (N-95; PO-I4, DO-I2, DO-I6).** _Owner action, not breaking._
+  - Decide:
+    - (a) cut 3.0.1 or 3.1.0 from `main` now: the zod security floor, the Docker build fix and
+      the 3.1/3.2 work;
+    - (b) clean the stale `next` dist-tag;
+    - (c) a 7-day security-patch SLA;
+    - (d) ship `npm-shrinkwrap.json`, yes or no.
+  - Evidence: 27 commits unreleased since 3.0.0; `npm view servicenow-mcp-ai dist-tags`
+    (RR-PO-06, RR-DO-09, RR-DO-10).
+  - Recommend: (a)–(c) yes, before 2026-11-03 and after N-96. For (d), shrinkwrap yes, because
+    the server reaches into the SDK's private members.
+- **OD-18 · Trusted publishing and repository guard rails (N-96; DO-I1, SE-I6).** _Owner
+  settings, dated._
+  - Decide:
+    - (a) OIDC trusted publishing on npmjs.com and delete `NPM_TOKEN`, or rotate a 90-day
+      token;
+    - (b) rulesets for `main` and `v*` tags, plus a `release` environment with the owner as the
+      required reviewer;
+    - (c) secret scanning and push protection;
+    - (d) name a backup publisher with npm 2FA rights, documented in SECURITY.md (RR-GV-13).
+  - Evidence: `NPM_TOKEN` set 2026-08-20; npm caps tokens at 90 days, so it expires by
+    2026-11-18 (RR-DO-01, RR-DO-02, RR-SE-06).
+  - Recommend: (a) trusted publishing, plus (b) and (c), before 2026-11-18. For (d), at least
+    document the bus factor.
+- **OD-19 · Human-bound confirmation (N-105; SE-I1).** _BREAKING (O-4)._
+  - Decide:
+    - (a) keep `token`, documented as accident protection;
+    - (b) `elicit` fails closed on clients without elicitation, and `token` stays the default;
+    - (c) `elicit` becomes the default on HTTP, with the hook `ask` mode in the plugin.
+  - Evidence: RR-SE-01. An injected agent completes a destructive apply in two calls.
+  - Recommend: (b) now, (c) in the next major.
+- **OD-20 · Protected-table reach (N-106; SE-I2).** _BREAKING (O-4)._
+  - Decide:
+    - (a) extend the list only;
+    - (b) extend it and require a `plan_token` for protected writes through the generic tools;
+    - (c) (b), plus `deny` by default for code-executing tables.
+  - Evidence: RR-SE-02. `sys_script_include`, `sysauto_script`, `sp_widget`, `sys_ui_action`
+    and `oauth_credential` are writable through `update_record` with `apply: true` alone.
+  - Recommend: (b).
+- **OD-21 · Password via elicitation only (N-124; SE-I5, DX-I3).** _BREAKING (O-4), relates to
+  D-2._
+  - Decide:
+    - (a) deprecate the `password` argument of `set_credentials` and remove it in the next
+      major;
+    - (b) keep it.
+    - Until then: does the README stop showing the chat path, or keep it with a warning?
+  - Evidence: RR-SE-05, RR-DX-02.
+  - Recommend: (a), and stop showing the chat path in the README now.
+- **OD-22 · Loopback HTTP token (N-144; SE-I7).** _BREAKING (O-4)._
+  - Decide:
+    - (a) keep loopback open;
+    - (b) an auto-generated token by default;
+    - (c) a token only when `SN_ENV=prod`.
+  - Evidence: RR-SE-07.
+  - Recommend: (b).
+- **OD-23 · Budget policy v2 (N-101, N-111, N-112, N-162; MC-I1, MC-I3, MC-I4, MC-I7).**
+  _Answers OD-15; O-10._
+  - Decide:
+    - (1) add the `call_tool` dispatcher to `discovery` (≈ +600 B);
+    - (2) policy v2: frozen `discovery`, token ceilings elsewhere, growth only with an eval
+      gain;
+    - (3) publish `instance` only with more than one profile (≈ −2.5 KB on `all`);
+    - (4) nest the `query_table` flags in the next major (BREAKING).
+  - Evidence: RR-MC-01. On the 2026-07-28 wire, `enable_package` returns `NO_PACKAGE_SESSION`,
+    so 80 tools cannot be called. See also RR-MC-03 and RR-MC-04.
+  - Recommend: yes to all four. Land (3) before (1). (4) is low priority.
+- **OD-24 · Model eval and mutation testing (N-102, N-128; MC-I2, QA-I9, QA-I5).**
+  - Decide:
+    - (a) the eval route: a `claude -p` subscription backend, a recorded manual run per
+      release, or a paid key run ($60–90);
+    - (b) an eval spend budget;
+    - (c) StrykerJS as a dev dependency.
+  - Evidence: RR-MC-02, RR-QA-08. No real model has ever been scored.
+  - Recommend: for (a), `claude -p`, with the recorded run as the fallback. For (b), about $10
+    per minor. For (c), Stryker manual-only.
+- **OD-25 · Live testing (N-107, N-126, N-127, N-140; QA-I1, QA-I3, QA-I4, SN-I6).** _O-2,
+  O-5._
+  - Decide:
+    - (a) set the live-smoke secrets for the existing PDI;
+    - (b) an owner-run live write end-to-end before releases that touch write code;
+    - (c) the recorder may read metadata from all 28 packages;
+    - (d) request a Brazil PDI and bundle the OD-1 key-field renames into the same minor.
+  - Evidence: RR-QA-01. The smoke has been a green no-op for three weeks. See also RR-QA-02,
+    RR-QA-04 and RR-SN-06.
+  - Recommend: yes to all four. Make the smoke red when it is skipped, whatever is decided.
+- **OD-26 · Managed policy layer (N-108, N-134; GV-I1, GV-I4).**
+  - Decide:
+    - (a) a managed file at an OS path, plus an env override;
+    - (b) an instance-side system property read at startup;
+    - (c) both.
+    - Also: the scope of the `regulated` preset.
+  - Evidence: RR-GV-01, RR-GV-05, RR-GV-12. Every control is in a user-editable env file.
+  - Recommend: (c). The file covers laptops and containers. The property is the platform
+    owner's kill switch.
+- **OD-27 · Data location and retention (N-109, N-110; GV-I2, GV-I3, AR-I3).** _The location
+  change is BREAKING (O-4)._
+  - Decide:
+    - (a) the default export location: keep `./docs/instance`, or move to a per-user state dir
+      with a compatibility read for one minor;
+    - (b) export retention: unlimited, 7 days or 30 days;
+    - (c) journal retention: unlimited (GV), or 10 rotated files (AR).
+  - Evidence: RR-GV-03, RR-GV-04, RR-AR-02.
+  - Recommend: for (a), the state dir, in the next minor. For (b), 7 days. For (c), unlimited by
+    default, with a lockable retention setting; deletions are recorded in the chain.
+- **OD-28 · Product direction (N-97, N-98, N-138; PO-I1, PO-I2, PO-I6).**
+  - Decide:
+    - (a) the tagline: "safe AI writes, free on your PDI", "IDE-grade find usages, trace and
+      drift", or both with safe writes as the headline;
+    - (b) enable Discussions and recruit 3–5 design partners;
+    - (c) drop the tool-count headline;
+    - (d) an adoption gate that holds N-71, N-72 and N-67 until the 2026-11-19 checkpoint;
+    - (e) the sustainability posture: paid support, a commercial exception, or declared hobby
+      mode.
+  - Evidence: RR-PO-01 … RR-PO-04, RR-PO-08, RR-PO-09, RR-PO-11. Zero issues ever opened by a
+    human.
+  - Recommend: (a) both, with safe writes as the headline. (b), (c) and (d) yes. For (e), paid
+    support plus a `MAINTENANCE.md`.
+- **OD-29 · Licence, DCO and display name (N-122, N-155; GV-I8, GV-I9).**
+  - Decide:
+    - (a) the licence: GPL-3.0-or-later with an org FAQ, GPL plus an internal-redistribution
+      exception, or a dual licence;
+    - (b) a DCO;
+    - (c) rename `displayName` to a trademark-safe name, keeping the npm name.
+  - Evidence: RR-GV-08, RR-GV-09, RR-GV-10.
+  - Recommend: for (a), GPL with the FAQ now, revisited at O-24. (b) and (c) yes.
+- **OD-30 · Architecture (N-115, N-116, N-156, N-157; AR-I1, AR-I2, AR-I7, AR-I8).**
+  - Decide:
+    - (a) modern-wire reuse: strict per-request construction, a cached template, or a pool;
+    - (b) complexity thresholds: CC 25 / 120 lines as a ratchet, CC 20 / 80 lines, or
+      report-only;
+    - (c) the `api/` split: flat, a one-shot move with shims, or a gradual move;
+    - (d) the corpus archive: keep everything live, or archive each release.
+  - Evidence: RR-AR-01, RR-AR-03, RR-AR-08, RR-AR-09.
+  - Recommend:
+    - (a) the cached template;
+    - (b) CC 25 / 120 lines as a ratchet;
+    - (c) a one-shot move after N-116;
+    - (d) archive each release, with a 400 KB live budget.
+- **OD-31 · ServiceNow defaults (N-103, N-104, N-121; SN-I1, SN-I2, SN-I5).**
+  - Decide:
+    - (a) keep the 30 s timeout and stop retrying timeouts, raise it to 65 s, or both;
+    - (b) publish a minimal-role matrix with the unverified roles marked, or a doctor-only
+      check;
+    - (c) the `check_data_health` threshold.
+  - Evidence: RR-SN-01, RR-SN-02, RR-SN-05.
+  - Recommend:
+    - (a) keep 30 s and stop retrying timeouts;
+    - (b) publish the matrix, with `snc_read_only` for read-only profiles;
+    - (c) 250k rows, configurable per profile.
+- **OD-32 · Docs policy (N-132, N-133, N-153, N-154; DX-I1, DX-I4, DX-I8, DX-I9).**
+  - Decide:
+    - (a) the canonical home of the quickstart, the install matrix and the tool reference: the
+      site (N-92) or the README;
+    - (b) ban roadmap ids from user docs;
+    - (c) make `all` the canonical preset, and set how long the `admin` alias lives;
+    - (d) whether a new extension Sign In defaults to read-only.
+  - Evidence: RR-DX-01, RR-DX-04, RR-DX-08, RR-DX-09.
+  - Recommend:
+    - (a) the site, with the README generated from it;
+    - (b) yes;
+    - (c) `all`, with `admin` deprecated for one major;
+    - (d) yes.
 
 ## Active (2026-09-02)
 
