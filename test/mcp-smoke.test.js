@@ -334,10 +334,12 @@ test("test_connection reports ok/latency on success and structured failure (X-6)
 test("resources follow the package policy (K-7)", async () => {
   const resourceNames = async (client) => {
     // M-4: template `list` callbacks add concrete schema / docs entries to
-    // resources/list; only the fixed resources count here.
+    // resources/list (N-76: the skill:// SKILL.md entries too); only the
+    // fixed resources count here.
     const direct = (await client.listResources()).resources
       .filter(
-        (r) => !/^servicenow:\/\/(schema|docs|[^/]+\/schema)\//.test(r.uri),
+        (r) =>
+          !/^(servicenow:\/\/(schema|docs|[^/]+\/schema)|skill:)\//.test(r.uri),
       )
       .map((r) => r.name);
     const templated = (
@@ -385,6 +387,7 @@ test("resources follow the package policy (K-7)", async () => {
         "profile-schema-legacy",
         "record",
         "schema",
+        "skills",
         "status",
         "tables",
         "tool-reference",

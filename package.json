@@ -39,7 +39,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "node -e \"require('fs').rmSync('build',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && node -e \"try{require('fs').chmodSync('build/index.js',0o755)}catch{}\"",
+    "build": "node -e \"require('fs').rmSync('build',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && node scripts/build-skills.mjs && node -e \"try{require('fs').chmodSync('build/index.js',0o755)}catch{}\"",
     "watch": "tsc --watch",
     "start": "node build/index.js",
     "dev": "node --watch build/index.js",

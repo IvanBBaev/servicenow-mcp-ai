@@ -1495,7 +1495,20 @@ credentials or calls ServiceNow on its own.
 | `sn-security` | Explain why a user can or cannot reach a table, record or field; review ACLs, hardening and cross-scope access |
 
 A test (`test/plugin-skills.test.js`) checks that every `servicenow_*` name in a
-skill exists in the tool manifest. The skills are not part of the npm package.
+skill exists in the tool manifest. The npm package carries the same skills
+under `build/skills/`, which the server publishes over MCP (below).
+
+#### Skills over MCP
+
+With the `docs` package on, the server serves the eight skills through the
+[Skills extension](https://modelcontextprotocol.io/extensions/skills/overview)
+(SEP-2640, `io.modelcontextprotocol/skills`): `skills/list` returns each
+skill's frontmatter and its files with a `sha256` digest and byte size,
+`skills/get` returns one skill by URI, and every file reads as a
+`skill://<name>/<path>` resource (each `SKILL.md` is also in `resources/list`).
+The extension is declared unless `docs` is denied; while `docs` is off the
+catalog is empty. Whether a client loads skills this way depends on the
+client — the folder copy below works everywhere.
 
 #### Subagents
 
@@ -1748,6 +1761,7 @@ declaratively instead of calling a tool:
 | `servicenow://instances`                | Configured connection profiles: name, host, user, read-only flag, credential completeness.          |
 | `servicenow://profiles/{profile}/schema/{table}` | Columns of a table read through a specific named connection profile. The v2 URI `servicenow://{profile}/schema/{table}` still works until the next minor release (deprecated). |
 | `servicenow://docs/{+path}`             | A Markdown document from the local docs store (nested paths allowed), wrapped in an untrusted-content block. |
+| `skill://{name}/{+path}`               | A file of one of the eight Agent Skills (`SKILL.md` is listed, with its frontmatter `name` and `description`); the text is the exact bytes `skills/list` digests (`docs` package). |
 | `servicenow://exports/{+path}`          | A file a `format: "file"` result wrote (`.json`, `.jsonl`, `.csv`, `.mmd`), wrapped in an untrusted-content block. Not listed; a file delivery's `resource_link` points here when the `docs` package is off. |
 | `servicenow://artifact-types`           | Artifact types the generic artifact tools accept: table, name / key / scope fields, child tables, SDK API, verified flag (`artifacts` package). |
 | `servicenow://reference/encoded-query`  | Encoded-query reference: syntax, `javascript:` values, limits (no `^` escaping, URL length, silently ignored fields, ACL-hidden rows) and how `fetchAll` pages. |
@@ -1757,7 +1771,7 @@ declaratively instead of calling a tool:
 
 Resources are package-gated like tools: `status`, `capabilities` and the tool
 reference are always on; `encoded-query` and the record template come with the `table` package, `tables`/`schema` with the `schema` package, `instances`/per-profile
-schema with `instance`, and `docs` with the `docs` package. `exports` is on
+schema with `instance`, and `docs` and `skill://` with the `docs` package. `exports` is on
 unless `docs` is denied (`SN_PACKAGES_DENY=docs`).
 
 The three templates support completion and listing: `{table}` completes from

@@ -81,6 +81,22 @@ test(".dockerignore keeps env files and build output out of the context", () => 
   }
 });
 
+test("Dockerfile copies every input of npm run build", () => {
+  const copied = [
+    ...dockerfile.matchAll(/^COPY\s+(?!--from)(.+)\s+\S+$/gm),
+  ].flatMap((m) => m[1].trim().split(/\s+/));
+  const build = pkg.scripts.build;
+  const inputs = [
+    ...[...build.matchAll(/tsc -p (\S+)/g)].map((m) => m[1]),
+    ...[...build.matchAll(/node (scripts\/\S+\.mjs)/g)].map((m) => m[1]),
+  ];
+  assert.ok(inputs.length >= 2, build);
+  // tsconfig.build.json extends tsconfig.json; the skills script reads skills/.
+  for (const needed of [...inputs, "tsconfig.json", "src", "skills"]) {
+    assert.ok(copied.includes(needed), `COPY ${needed}`);
+  }
+});
+
 test("smithery.yaml: stdio start, every config key maps to a real documented setting", () => {
   assert.match(smithery, /^\s+type: stdio$/m);
   const props = /^ {4}properties:\n((?: {6}.*\n)+)/m.exec(smithery);

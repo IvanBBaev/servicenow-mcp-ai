@@ -24,9 +24,12 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
-COPY tsconfig.json ./
+COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 COPY bin ./bin
+# N-76: the build copies the Agent Skills to build/skills.
+COPY skills ./skills
+COPY scripts/build-skills.mjs ./scripts/
 COPY README.md LICENSE ./
 # npm pack applies the package.json "files" list (no source maps), so the image ships exactly what `npm install` would.
 RUN npm run build \

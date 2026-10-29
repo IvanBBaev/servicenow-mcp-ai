@@ -29,6 +29,7 @@ import {
   wireModernTasks,
   withTaskSupport,
 } from "./mcp/tasks.js";
+import { installSkillHandlers, withSkillsExtension } from "./mcp/skills.js";
 import {
   buildServerInstructions,
   serverImplementation,
@@ -52,18 +53,22 @@ export function buildMcpServer(
   const server = new McpServer(
     serverImplementation(SERVER_VERSION),
     // M-9: the `tasks` capability when SN_EXPERIMENTAL_TASKS is on.
-    withTaskSupport({
-      instructions: buildServerInstructions(SERVER_VERSION),
-      // M-5: one list_changed per list for a package toggle, not one per tool.
-      debouncedNotificationMethods: LIST_CHANGED_NOTIFICATIONS,
-      // N-38: ttlMs / cacheScope on the 2026-07-28 wire; legacy ignores them.
-      cacheHints: LIST_CACHE_HINTS,
-      // MRTR (2026-07-28): input_required rounds with a signed, single-use
-      // requestState; the legacy wire keeps in-line elicitation (input.ts).
-      ...mrtrServerOptions(),
-      ...serverOptions,
-      capabilities: { logging: {}, ...serverOptions.capabilities },
-    }),
+    // N-76: the skills extension (SEP-2640) unless docs is denied.
+    withSkillsExtension(
+      withTaskSupport({
+        instructions: buildServerInstructions(SERVER_VERSION),
+        // M-5: one list_changed per list for a package toggle, not one per tool.
+        debouncedNotificationMethods: LIST_CHANGED_NOTIFICATIONS,
+        // N-38: ttlMs / cacheScope on the 2026-07-28 wire; legacy ignores them.
+        cacheHints: LIST_CACHE_HINTS,
+        // MRTR (2026-07-28): input_required rounds with a signed, single-use
+        // requestState; the legacy wire keeps in-line elicitation (input.ts).
+        ...mrtrServerOptions(),
+        ...serverOptions,
+        capabilities: { logging: {}, ...serverOptions.capabilities },
+      }),
+      effectivePackages(),
+    ),
   );
   // N-35: a spec-schema failure is -32602, not a -32603 zod dump.
   mapSchemaErrorsToInvalidParams(server);
@@ -71,6 +76,7 @@ export function buildMcpServer(
   registerAllTools(server, runtime);
   wireModernTasks(server, runtime);
   registerResources(server);
+  installSkillHandlers(server, effectivePackages());
   registerPrompts(server, effectivePackages().enabled);
   return server;
 }

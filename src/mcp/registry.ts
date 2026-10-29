@@ -27,6 +27,7 @@ import {
   registerToolReferenceTemplate,
   type ToolReferenceDetail,
 } from "./resources.js";
+import { registerSkillResources } from "./skills.js";
 import { linkToolView, mcpAppsEnabled, registerAppResources } from "./apps.js";
 import {
   hideFromToolsList,
@@ -110,7 +111,15 @@ export const PACKAGES: PackageSpec[] = [
   { name: "scripts", tools: scriptSpecs },
   { name: "flows", tools: flowSpecs },
   { name: "codecheck", tools: codecheckSpecs },
-  { name: "docs", tools: docsSpecs, resources: registerDocsResources },
+  {
+    name: "docs",
+    tools: docsSpecs,
+    // N-76: the Agent Skills (skill://) ride on the docs package.
+    resources: (server) => {
+      registerDocsResources(server);
+      registerSkillResources(server);
+    },
+  },
   {
     name: "instance",
     tools: instanceSpecs,
