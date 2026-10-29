@@ -1021,6 +1021,7 @@ starts the server.
 | `servicenow-mcp-ai drift <profileA> <profileB>` | _(none)_                                 | DF-3 CI drift gate: compares the two instances and writes a Markdown diff report.                                                  | `0` no drift · `1` drift found · `2` usage / error          |
 | `servicenow-mcp-ai support-bundle`              | `--out <file>`, `--profile <name>`       | Writes one JSON file for a bug report and prints its path on stdout.                                                               | `0` written · `1` write failed                              |
 | `servicenow-mcp-ai migrate`                     | `--write`, `--from <file>`, `--v3-defaults` | Carries 2.x settings (env file, MCP client `env` blocks) over to 3.x and prints every change; a dry run unless `--write`.         | `0` done or nothing to do · `1` refused / write failed       |
+| `servicenow-mcp-ai skills install`              | `--target <agent>`, `--global`, `--force` | Copies the bundled Agent Skills into an agent's skills folder — see [Using the skills with other agents](#using-the-skills-with-other-agents). | `0` installed · `1` copy failed · `2` usage error            |
 
 **`init`** writes through the same atomic, owner-only (`0600`) env-file writer as
 `servicenow_set_credentials`, to the file `doctor` names (by default
@@ -1539,17 +1540,29 @@ report); it recommends the scan when a change touches ACLs.
 The eight skills are portable [Agent Skills](https://agentskills.io): their
 `SKILL.md` frontmatter uses only `name` and `description`, and they name tools
 by their bare MCP name (`servicenow_query_table`), so any client that has this
-server configured can run them. Copy or symlink the folders under `skills/`
-into a directory the client scans:
+server configured can run them. The npm package carries them, and
+`skills install` copies them into the folder an agent scans — in the current
+directory, or in your home directory with `--global`:
 
-| Client | Project | Personal |
-| --- | --- | --- |
-| VS Code (GitHub Copilot) | `.github/skills/`, `.agents/skills/` or `.claude/skills/` | `~/.copilot/skills/`, `~/.agents/skills/` or `~/.claude/skills/` |
-| OpenAI Codex | `.agents/skills/` (in the working directory or any parent up to the repository root) | `~/.agents/skills/` |
-| Cursor | `.agents/skills/` or `.cursor/skills/` | `~/.agents/skills/` or `~/.cursor/skills/` |
+```bash
+npx servicenow-mcp-ai skills install --target agents           # ./.agents/skills
+npx servicenow-mcp-ai skills install --target gemini --global  # ~/.gemini/skills
+```
 
-`.agents/skills/` works in all three. For example, from a clone of this
-repository:
+A skill that is already there is kept (and named in the output) unless you
+pass `--force`.
+
+| Client | Project | Personal | `--target` (project · `--global`) |
+| --- | --- | --- | --- |
+| VS Code (GitHub Copilot) | `.github/skills/`, `.agents/skills/` or `.claude/skills/` | `~/.copilot/skills/`, `~/.agents/skills/` or `~/.claude/skills/` | `copilot`: `.github/skills/` · `~/.copilot/skills/` |
+| OpenAI Codex | `.agents/skills/` (in the working directory or any parent up to the repository root) | `~/.agents/skills/` | `codex` or `agents`: `.agents/skills/` · `~/.agents/skills/` |
+| Cursor | `.agents/skills/` or `.cursor/skills/` | `~/.agents/skills/` or `~/.cursor/skills/` | `cursor`: `.cursor/skills/` · `~/.cursor/skills/` |
+| Gemini CLI | `.gemini/skills/` or `.agents/skills/` | `~/.gemini/skills/` or `~/.agents/skills/` | `gemini`: `.gemini/skills/` · `~/.gemini/skills/` |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` | `claude`: `.claude/skills/` · `~/.claude/skills/` |
+
+`.agents/skills/` works in Copilot, Codex, Cursor and Gemini CLI. From a clone
+of this repository you can also copy or symlink the folders under `skills/`
+yourself:
 
 ```bash
 mkdir -p ~/.agents/skills

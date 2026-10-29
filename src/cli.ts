@@ -60,6 +60,11 @@ Commands:
                         file, rename reserved profiles, drop values 3.x
                         rejects, add SN_COMPAT=2. A dry run unless --write;
                         each old file is kept as <file>.v2.bak.
+  skills install        Copy the bundled Agent Skills into an agent's skills
+                        folder: --target agents|codex|cursor|gemini|claude|
+                        copilot (in the current directory; --global for the
+                        home folder). A skill already there is kept unless
+                        --force.
 
 Options:
   -h, --help            Show this help.
@@ -74,6 +79,9 @@ Options:
   --from <file>         migrate: the 2.x env file to read (default: the env
                         file the server resolves).
   --v3-defaults         migrate: do not add SN_COMPAT=2.
+  --target <agent>      skills install: the agent whose folder to fill.
+  --global              skills install: the folder in the home directory.
+  --force               skills install: replace the skills already there.
 
 The env file is SN_ENV_FILE, else ~/.config/servicenow-mcp-ai/.env
 (XDG_CONFIG_HOME is honoured).
@@ -90,6 +98,9 @@ const OPTIONS = {
   write: { type: "boolean" },
   from: { type: "string" },
   "v3-defaults": { type: "boolean" },
+  target: { type: "string" },
+  global: { type: "boolean" },
+  force: { type: "boolean" },
 } as const;
 
 type OptionName = keyof typeof OPTIONS;
@@ -101,6 +112,7 @@ export const COMMANDS = [
   "drift",
   "support-bundle",
   "migrate",
+  "skills",
 ] as const;
 export type Command = (typeof COMMANDS)[number];
 
@@ -113,6 +125,7 @@ const COMMAND_OPTIONS: Record<Command | "serve", OptionName[]> = {
   drift: [],
   "support-bundle": ["profile", "out"],
   migrate: ["write", "from", "v3-defaults"],
+  skills: ["target", "global", "force"],
 };
 
 /** How many positionals (after the command) each command takes. */
@@ -124,6 +137,7 @@ const COMMAND_ARITY: Record<Command | "serve", [number, number]> = {
   drift: [0, 2],
   "support-bundle": [0, 0],
   migrate: [0, 0],
+  skills: [0, 1],
 };
 
 export type ParsedCli =
@@ -142,6 +156,9 @@ export type ParsedCli =
       write: boolean;
       from?: string;
       v3Defaults: boolean;
+      target?: string;
+      global: boolean;
+      force: boolean;
     };
 
 /** Parse argv (without `node` and the script) into a command. Never throws. */
@@ -212,6 +229,9 @@ export function parseCli(argv: string[]): ParsedCli {
     write: values.write === true,
     ...(values.from !== undefined ? { from: values.from } : {}),
     v3Defaults: values["v3-defaults"] === true,
+    ...(values.target !== undefined ? { target: values.target } : {}),
+    global: values.global === true,
+    force: values.force === true,
   };
 }
 
@@ -908,6 +928,66 @@ async function migrateFolders(
 }
 
 // ---------------------------------------------------------------------------
+// skills install (N-76)
+// ---------------------------------------------------------------------------
+
+/** `skills install --target <agent> [--global] [--force]`. */
+async function cmdSkills(parsed: RunCli, io: CliIO): Promise<number> {
+  const {
+    SKILL_TARGETS,
+    bundledSkillsDir,
+    installSkills,
+    isSkillTarget,
+    targetFolder,
+  } = await import("./skills-install.js");
+  const targets = Object.keys(SKILL_TARGETS).join(", ");
+  const usage = (message: string) => {
+    io.stderr.write(`${message}\n\n${USAGE}`);
+    return 2;
+  };
+  if (parsed.args[0] !== "install") {
+    return usage(
+      parsed.args[0] === undefined
+        ? 'skills needs a subcommand: "install".'
+        : `Unknown skills subcommand "${parsed.args[0]}".`,
+    );
+  }
+  const name = parsed.target?.trim().toLowerCase();
+  if (!name) return usage(`skills install needs --target (${targets}).`);
+  if (!isSkillTarget(name)) {
+    return usage(`Unknown target "${parsed.target}" (${targets}).`);
+  }
+  const target = targetFolder(name, {
+    cwd: io.cwd,
+    home: io.env.HOME?.trim() || io.env.USERPROFILE?.trim() || homedir(),
+    global: parsed.global,
+  });
+  try {
+    const result = installSkills({
+      source: bundledSkillsDir(),
+      target,
+      force: parsed.force,
+    });
+    if (result.written.length + result.skipped.length === 0) {
+      io.stderr.write("This build carries no skills.\n");
+      return 1;
+    }
+    io.stdout.write(
+      `${SKILL_TARGETS[name].agents}: ${target}\n` +
+        result.written.map((s) => `- installed ${s}\n`).join("") +
+        result.skipped.map((s) => `- kept ${s} (already there)\n`).join(""),
+    );
+    if (result.skipped.length > 0) {
+      io.stdout.write("Run again with --force to replace the kept skills.\n");
+    }
+    return 0;
+  } catch (error) {
+    io.stderr.write(`${errorText(error)}\n`);
+    return 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // dispatch
 // ---------------------------------------------------------------------------
 
@@ -935,6 +1015,7 @@ export async function runCli(
   }
   // Before the doctor deps: a 2.x file may not load as 3.x.
   if (parsed.command === "migrate") return cmdMigrate(parsed, io);
+  if (parsed.command === "skills") return cmdSkills(parsed, io);
   const resolved = deps ?? (await defaultDeps());
   switch (parsed.command) {
     case "serve":

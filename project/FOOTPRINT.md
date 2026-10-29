@@ -9,21 +9,21 @@ edited by hand. Quote a release note from here instead of re-measuring by hand.
 
 <!-- GENERATED:FOOTPRINT:BEGIN (npm run footprint) -->
 
-<!-- footprint: {"measured":"2026-10-27","version":"3.0.0","entryCount":253,"tarballBytes":577141,"unpackedBytes":2343861,"buildJsBytes":2159750,"readmeBytes":142383,"largest":[{"path":"build/api/ui-experience.js","bytes":48439},{"path":"build/api/document.js","bytes":44940},{"path":"build/mcp/prompts.js","bytes":42886},{"path":"build/core/settings-data-runtime.js","bytes":31064},{"path":"build/tools/admin.js","bytes":30045}],"ceilingBytes":3145728,"dependencies":[{"name":"@modelcontextprotocol/core","version":"2.3.1","path":"node_modules/@modelcontextprotocol/core","bytes":1316868},{"name":"@modelcontextprotocol/node","version":"2.1.1","path":"node_modules/@modelcontextprotocol/node","bytes":153436},{"name":"@hono/node-server","version":"1.19.17","path":"node_modules/@modelcontextprotocol/node/node_modules/@hono/node-server","bytes":228376},{"name":"@modelcontextprotocol/server","version":"2.3.1","path":"node_modules/@modelcontextprotocol/server","bytes":6486743},{"name":"acorn","version":"8.18.0","path":"node_modules/acorn","bytes":565327},{"name":"hono","version":"4.13.12","path":"node_modules/hono","bytes":1287796},{"name":"zod","version":"4.6.7","path":"node_modules/zod","bytes":6148944}],"installedBytes":16187490} -->
+<!-- footprint: {"measured":"2026-10-29","version":"3.0.0","entryCount":266,"tarballBytes":598832,"unpackedBytes":2425333,"buildJsBytes":2210731,"readmeBytes":147012,"largest":[{"path":"build/mcp/prompts.js","bytes":57419},{"path":"build/api/ui-experience.js","bytes":48439},{"path":"build/api/document.js","bytes":44940},{"path":"build/core/settings-data-runtime.js","bytes":31094},{"path":"build/tools/admin.js","bytes":30045}],"ceilingBytes":3145728,"dependencies":[{"name":"@modelcontextprotocol/core","version":"2.3.1","path":"node_modules/@modelcontextprotocol/core","bytes":1316868},{"name":"@modelcontextprotocol/node","version":"2.1.1","path":"node_modules/@modelcontextprotocol/node","bytes":153436},{"name":"@hono/node-server","version":"1.19.17","path":"node_modules/@modelcontextprotocol/node/node_modules/@hono/node-server","bytes":228376},{"name":"@modelcontextprotocol/server","version":"2.3.1","path":"node_modules/@modelcontextprotocol/server","bytes":6486743},{"name":"acorn","version":"8.18.0","path":"node_modules/acorn","bytes":565327},{"name":"hono","version":"4.13.12","path":"node_modules/hono","bytes":1287796},{"name":"zod","version":"4.6.7","path":"node_modules/zod","bytes":6148944}],"installedBytes":16187490} -->
 
-Measured 2026-10-27 for version 3.0.0 with `npm run footprint`.
+Measured 2026-10-29 for version 3.0.0 with `npm run footprint`.
 
 | Measure                                            | Value                              |
 | -------------------------------------------------- | ---------------------------------- |
-| `npm pack --dry-run` — files                       | 253                                |
-| `npm pack --dry-run` — tarball                     | 577,141 B (564 KB)                 |
-| `npm pack --dry-run` — unpacked                    | 2,343,861 B (2,289 KB)             |
-| `npm run pack:check` ceiling                       | 3,145,728 B (3,072 KB) — 75 % used |
-| `build/**/*.js` in the tarball                     | 2,159,750 B (2,109 KB)             |
-| `README.md` in the tarball                         | 142,383 B (139 KB)                 |
+| `npm pack --dry-run` — files                       | 266                                |
+| `npm pack --dry-run` — tarball                     | 598,832 B (585 KB)                 |
+| `npm pack --dry-run` — unpacked                    | 2,425,333 B (2,368 KB)             |
+| `npm run pack:check` ceiling                       | 3,145,728 B (3,072 KB) — 77 % used |
+| `build/**/*.js` in the tarball                     | 2,210,731 B (2,159 KB)             |
+| `README.md` in the tarball                         | 147,012 B (144 KB)                 |
 | Production packages (lockfile, excluding this one) | 7 — 15,808 KB                      |
 
-Largest compiled files: `build/api/ui-experience.js` 47 KB, `build/api/document.js` 44 KB, `build/mcp/prompts.js` 42 KB, `build/core/settings-data-runtime.js` 30 KB, `build/tools/admin.js` 29 KB.
+Largest compiled files: `build/mcp/prompts.js` 56 KB, `build/api/ui-experience.js` 47 KB, `build/api/document.js` 44 KB, `build/core/settings-data-runtime.js` 30 KB, `build/tools/admin.js` 29 KB.
 
 | Package                        | Version | Installed |
 | ------------------------------ | ------- | --------- |
