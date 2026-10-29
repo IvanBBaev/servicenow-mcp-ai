@@ -1098,10 +1098,15 @@ test("B6: a public bind without a token is refused by default; SN_HTTP_REQUIRE_T
 
 test("graceful shutdown: an in-flight call finishes before its session closes", async () => {
   let release;
+  let entered;
   const gate = new Promise((r) => (release = r));
+  // The call must be on the server before the shutdown starts; a fixed
+  // sleep loses that race on a loaded machine.
+  const inFlight = new Promise((r) => (entered = r));
   const factory = () => {
     const s = new McpServer({ name: "h7", version: "0" });
     s.registerTool("slow", { description: "slow" }, async () => {
+      entered();
       await gate;
       return { content: [{ type: "text", text: "done" }] };
     });
@@ -1120,7 +1125,7 @@ test("graceful shutdown: an in-flight call finishes before its session closes", 
       await connectTransport(factory);
       const { client } = await connectClient(`http://127.0.0.1:${port}/`);
       const call = client.callTool({ name: "slow", arguments: {} });
-      await new Promise((r) => setTimeout(r, 50));
+      await inFlight;
       const closing = closeHttpTransport(2_000);
       await new Promise((r) => setTimeout(r, 20));
       release();
