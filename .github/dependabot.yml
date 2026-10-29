@@ -1,6 +1,10 @@
 # GA-1: automated dependency updates (npm root, npm extension, GitHub Actions).
 # Weekly cadence, minor+patch grouped to keep PR noise low; majors stay separate
 # so breaking bumps (e.g. the c8 Node-25 breakage) get individual review.
+# F5-53 (OD-16): the majors 3.x will not take are ignored, so a PR is only
+# opened for a bump that can land. TypeScript moves in one deliberate change;
+# @types/node tracks the Node 22 floor; @types/vscode tracks engines.vscode
+# (vsce refuses a newer one).
 version: 2
 updates:
   - package-ecosystem: npm
@@ -10,6 +14,11 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /extension
@@ -18,6 +27,12 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/vscode"
 
   - package-ecosystem: github-actions
     directory: /
