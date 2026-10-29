@@ -20,6 +20,7 @@ import {
 import { logger } from "../core/logging.js";
 import { readBool } from "../core/settings-manifest.js";
 import { redactValue } from "../core/redaction.js";
+import type { ProgressUpdate } from "../core/request-context.js";
 import {
   currentRuntime,
   defineRuntimePart,
@@ -89,6 +90,21 @@ export interface Task {
   lastUpdatedAt: string;
   pollInterval?: number;
   statusMessage?: string;
+}
+
+/** Longest statusMessage a progress report sets (N-82). */
+export const STATUS_MESSAGE_MAX = 200;
+
+/** A progress update as one status line: "3/12 — incident" or "3". */
+export function statusLine(update: ProgressUpdate): string {
+  const count =
+    update.total === undefined
+      ? String(update.progress)
+      : `${update.progress}/${update.total}`;
+  const line = update.message ? `${count} — ${update.message}` : count;
+  return line.length > STATUS_MESSAGE_MAX
+    ? `${line.slice(0, STATUS_MESSAGE_MAX - 1)}…`
+    : line;
 }
 
 /** The 2025-11-25 task statuses a task never leaves. */
@@ -306,6 +322,19 @@ export class SnTaskStore {
     entry.task.statusMessage = error.message;
     entry.task.lastUpdatedAt = this.stamp();
     this.running.delete(taskId);
+  }
+
+  /**
+   * N-82: record a background run's progress as the task's statusMessage
+   * ("3/12 — incident"), so tasks/get shows how far it got. Ignored once the
+   * task is final, expired or gone; a report never fails the run.
+   */
+  reportStatus(taskId: string, update: ProgressUpdate): void {
+    const entry = this.entries.get(taskId);
+    if (!entry || isTerminal(entry.task.status)) return;
+    if (!Number.isFinite(update.progress)) return;
+    entry.task.statusMessage = statusLine(update);
+    entry.task.lastUpdatedAt = this.stamp();
   }
 
   /**
@@ -805,8 +834,9 @@ export async function runMaybeAsTask(
   const controller = new AbortController();
   store.track(task.taskId, controller);
   // The progress token belonged to the request that just returned; the
-  // background run reports status through the task instead.
+  // background run reports status through the task instead (N-82).
   const background: CallExtra = {
+    taskStatus: (update) => store.reportStatus(task.taskId, update),
     ...(extra.requestId !== undefined ? { requestId: extra.requestId } : {}),
     ...(extra.sessionId ? { sessionId: extra.sessionId } : {}),
     ...(extra.input ? { input: extra.input } : {}),
@@ -937,11 +967,13 @@ function createsTask(
  * The context the background work runs with: the task's own abort signal,
  * no progress token and no log level (ext-tasks: no notifications/progress
  * or notifications/message for a task), and a send path that goes nowhere
- * because the creating request has already been answered.
+ * because the creating request has already been answered. Progress goes to
+ * `status` instead — the task's statusMessage (N-82).
  */
 function backgroundContext(
   ctx: ServerContext,
   signal: AbortSignal,
+  status: (update: ProgressUpdate) => void,
 ): ServerContext {
   const envelope = without(
     ctx.mcpReq.envelope as Record<string, unknown> | undefined,
@@ -959,7 +991,7 @@ function backgroundContext(
   if (meta) mcpReq._meta = meta;
   else delete mcpReq._meta;
   const background = { ...ctx, mcpReq };
-  markBackground(background);
+  markBackground(background, status);
   return background;
 }
 
@@ -1087,7 +1119,9 @@ export function wireModernTasks(server: McpServer, runtime: Runtime): void {
           : {}),
       },
     };
-    const bgCtx = backgroundContext(ctx, controller.signal);
+    const bgCtx = backgroundContext(ctx, controller.signal, (update) =>
+      store.reportStatus(task.taskId, update),
+    );
     hold(
       runtime,
       settleTask(store, task.taskId, owner, controller, () =>

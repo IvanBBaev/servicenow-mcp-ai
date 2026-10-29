@@ -19,6 +19,7 @@ import {
   runWithTool,
   runWithCall,
   type CallContext,
+  type ProgressSink,
   type RequestLog,
 } from "../core/request-context.js";
 import {
@@ -37,6 +38,7 @@ import { createSecretRegistry } from "../core/secret-columns.js";
 import { AUTO_PLAN, confirmDestructiveApply } from "./confirm.js";
 import {
   inputRoundFromContext,
+  backgroundStatus,
   isBackground,
   isPendingInput,
   requestUrlElicitation,
@@ -188,6 +190,11 @@ export interface CallExtra {
   input?: InputRound;
   /** M-9: a background task run (`run_as_task` or ext-tasks) — no request can carry a prompt. */
   background?: boolean;
+  /**
+   * N-82: where a background task run's progress goes — the task's
+   * statusMessage, which tasks/get shows (there is no progress token).
+   */
+  taskStatus?: ProgressSink;
   /** B2: the call came in under a v2 tool name (a hidden alias). */
   legacyName?: boolean;
 }
@@ -206,12 +213,14 @@ export function callExtraFromContext(
   const envelope = req.envelope as Record<string, unknown> | undefined;
   const level = envelope?.[LOG_LEVEL_META_KEY];
   const input = inputRoundFromContext(ctx, server);
+  const taskStatus = backgroundStatus(ctx);
   return {
     ...(input ? { input } : {}),
     ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
     requestId: req.id,
     signal: req.signal,
     ...(isBackground(ctx) ? { background: true } : {}),
+    ...(taskStatus ? { taskStatus } : {}),
     ...(req._meta ? { _meta: req._meta } : {}),
     sendNotification: (notification) => req.notify(notification),
     log: {
@@ -257,7 +266,11 @@ export async function runSpec(
     tool: spec.name,
     secrets: createSecretRegistry(),
     ...(extra.signal ? { signal: extra.signal } : {}),
-    ...(progress ? { progress: progress.sink } : {}),
+    ...(progress
+      ? { progress: progress.sink }
+      : extra.taskStatus
+        ? { progress: extra.taskStatus }
+        : {}),
     callId: nextCallId(),
     ...(trace ? { trace } : {}),
     ...(extra.log ? { log: extra.log } : {}),

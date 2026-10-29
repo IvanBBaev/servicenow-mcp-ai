@@ -13,6 +13,7 @@ import {
   type ServerOptions,
   UrlElicitationRequiredError,
 } from "@modelcontextprotocol/server";
+import type { ProgressSink } from "../core/request-context.js";
 import { getPlanTokenTtlSec } from "../core/settings.js";
 import { clientCapabilities, protocolRevision } from "./client-identity.js";
 import { getServer } from "./context.js";
@@ -146,17 +147,31 @@ export function inputRoundFromContext(
   };
 }
 
-/** M-9: the request objects of 2026-07-28 background task runs. */
-const backgroundRequests = new WeakSet<object>();
+/**
+ * M-9: the request objects of 2026-07-28 background task runs, each with
+ * the sink its progress goes to (N-82: the task's statusMessage), if any.
+ */
+const backgroundRequests = new WeakMap<object, ProgressSink | undefined>();
 
-/** Mark `ctx` as a background task run: no request can carry a prompt. */
-export function markBackground(ctx: ServerContext): void {
-  backgroundRequests.add(ctx.mcpReq);
+/**
+ * Mark `ctx` as a background task run: no request can carry a prompt, and
+ * progress goes to `status` instead of notifications/progress.
+ */
+export function markBackground(
+  ctx: ServerContext,
+  status?: ProgressSink,
+): void {
+  backgroundRequests.set(ctx.mcpReq, status);
 }
 
 /** True when `ctx` is a background task run (markBackground). */
 export function isBackground(ctx: ServerContext): boolean {
   return backgroundRequests.has(ctx.mcpReq);
+}
+
+/** The progress sink of a background task run (markBackground). */
+export function backgroundStatus(ctx: ServerContext): ProgressSink | undefined {
+  return backgroundRequests.get(ctx.mcpReq);
 }
 
 /** Run `fn` with the call's input round (undefined: the legacy wire). */

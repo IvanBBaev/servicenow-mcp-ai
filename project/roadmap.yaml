@@ -1501,11 +1501,11 @@ items:
     title: "tasks: progress and discovery"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "partial"
     phase: null
     done: null
     gates: []
-    notes: "3.4 minor (F5-28). Re-verify `taskSupport` on SDK 2.3; advertise it on the three long-running tools if polling is not forced; `statusMessage` fed from the progress sink. ≈ +90 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
+    notes: "**Partial 2026-10-29.** `statusMessage` fed from the progress sink on both wires (`reportStatus`, `statusLine`, `CallExtra.taskStatus`); `taskSupport` re-verified on SDK 2.3.1 — schema only, no runtime, so advertising it means handling `params.task` ourselves at ≈ +90 B on tools/list → waits for OD-15 headroom. +0 B. 3.4 minor (F5-28). Re-verify `taskSupport` on SDK 2.3; advertise it on the three long-running tools if polling is not forced; `statusMessage` fed from the progress sink. ≈ +90 B. See [V3.5-ANALYSIS-2026-10.md](V3.5-ANALYSIS-2026-10.md) §4."
   - id: "N-83"
     title: "record watch on the modern wire"
     pillar: "N"
