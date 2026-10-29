@@ -2,9 +2,10 @@ name: Publish VS Code Extension
 
 # Publish the VS Code extension (extension/) to the Visual Studio Marketplace
 # and (D-6) to Open VSX, so Cursor / Windsurf / VSCodium users can install it.
-# Runs on a version tag (alongside the npm "Publish" workflow) and on demand via
-# workflow_dispatch (for the first publish or a re-run). The .vsix is packaged
-# once and the same file goes to both registries. Authentication uses the
+# Runs after the npm "Publish" workflow succeeds (N-95: a tag whose gate or npm
+# publish failed no longer ships the extension) and on demand via
+# workflow_dispatch (for a re-run). It checks out the commit the tag points at.
+# The .vsix is packaged once and the same file goes to both registries. Authentication uses the
 # VSCE_PAT repo secret (Azure DevOps PAT, scope Marketplace > Manage) and the
 # OVSX_PAT repo secret (an open-vsx.org access token; the Open VSX step is
 # skipped while it is not set); the tokens never touch a laptop or the logs.
@@ -12,12 +13,17 @@ name: Publish VS Code Extension
 # extension — the Marketplace takes no semver prerelease versions, and the
 # extension moves only on a GA version. workflow_dispatch still runs.
 on:
-  push:
-    tags: ["v*"]
+  workflow_run:
+    workflows: ["Publish"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: publish-vscode
+  cancel-in-progress: false
 
 env:
   # Pinned so a new ovsx release cannot run with the token unreviewed.
@@ -25,8 +31,9 @@ env:
 
 jobs:
   publish-vscode:
-    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.ref_name, '-') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.head_branch, '-')) }}
     runs-on: ubuntu-latest
+    environment: release
     env:
       # Read into the environment so a step can be skipped when it is unset
       # (secrets cannot be tested in an `if:` directly).
@@ -36,6 +43,9 @@ jobs:
         working-directory: extension
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The released commit, not the default branch head (empty on dispatch).
+          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22

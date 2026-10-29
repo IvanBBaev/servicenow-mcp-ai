@@ -22,6 +22,10 @@ permissions:
   contents: read
   id-token: write # GitHub OIDC for mcp-publisher (no extra secret needed)
 
+concurrency:
+  group: publish-mcp
+  cancel-in-progress: false
+
 jobs:
   publish-mcp:
     runs-on: ubuntu-latest
@@ -34,6 +38,9 @@ jobs:
       MCP_PUBLISHER_VERSION: 1.8.1
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # N-95: the released commit, not the default branch head (empty on dispatch).
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Add the release bundle (.mcpb) to server.json (N-91)
         env:
           GH_TOKEN: ${{ github.token }}

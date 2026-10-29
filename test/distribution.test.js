@@ -137,8 +137,32 @@ test("O-14: a prerelease tag goes to npm next, a prerelease GitHub Release, and 
   );
   assert.match(
     read(".github/workflows/publish-vscode.yml"),
-    /publish-vscode:\n {4}if: \$\{\{ github\.event_name == 'workflow_dispatch' \|\| !contains\(github\.ref_name, '-'\) \}\}/,
+    /publish-vscode:\n {4}if: \$\{\{ github\.event_name == 'workflow_dispatch' \|\| \(github\.event\.workflow_run\.conclusion == 'success' && !contains\(github\.event\.workflow_run\.head_branch, '-'\)\) \}\}/,
   );
+});
+
+test("N-95: the extension and the registry follow a successful npm publish of the tagged commit", () => {
+  const publish = read(".github/workflows/publish.yml");
+  assert.match(
+    publish,
+    /concurrency:\n {2}group: release\n {2}cancel-in-progress: false/,
+  );
+  assert.match(publish, /environment: release/);
+  // A GA publish moves `next` too.
+  assert.match(
+    publish,
+    /if: \$\{\{ env\.NPM_DIST_TAG == 'latest' \}\}\n {8}run: npm dist-tag add "servicenow-mcp-ai@\$\{GITHUB_REF_NAME#v\}" next/,
+  );
+  for (const file of ["publish-vscode.yml", "publish-mcp.yml"]) {
+    const wf = read(`.github/workflows/${file}`);
+    assert.match(wf, /workflow_run:\n {4}workflows: \["Publish"\]/, file);
+    assert.match(wf, /concurrency:\n {2}group: publish-/, file);
+    assert.match(
+      wf,
+      /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/,
+      file,
+    );
+  }
 });
 
 test("H-9: every workflow action is pinned to a commit SHA", () => {

@@ -53,13 +53,23 @@ These are **targets** for a single-maintainer project, not a contractual SLA:
 | ------------------------------------------------------ | ------------------------------------ |
 | Acknowledge the report                                 | within 3 business days               |
 | Triage — confirm, assess severity, agree on next steps | within 7 days of the acknowledgement |
-| Fix released — critical / high severity                | within 30 days of triage             |
+| Fix released — critical / high severity                | within 7 days of triage              |
 | Fix released — medium / low severity                   | in the next planned release          |
 
 You will be kept informed while the report is open. The fix is released first,
 then the advisory is published with credit to the reporter unless you prefer to
 stay anonymous. Please allow the fix to ship before disclosing publicly; if a
 target slips, you will be told why and when to expect the fix.
+
+The same 7-day target covers a high or critical advisory in a runtime
+dependency: a patch release raises the floor and ships within 7 days of the
+advisory being published.
+
+**Bus factor.** One maintainer holds the npm publish rights, the
+Marketplace and Open VSX tokens and the repository admin role. There is no
+backup publisher yet; if the maintainer is unreachable, a fix can still be
+proposed as a pull request, but no release can ship until the maintainer is
+back.
 
 ## Scope
 
@@ -351,7 +361,10 @@ conservative defaults win, and both are now enforced in code (with tests):
   the suite was last verified against (`^1.31.0`).
 - Dependabot (weekly: npm root, `extension/`, GitHub Actions) and CodeQL run on
   the repository; npm publishes are made from CI on a version tag with
-  `--provenance`.
+  `--provenance`, inside a `release` environment that needs the maintainer's
+  approval. The VS Code extension and the MCP Registry entry publish only after
+  the npm publish succeeded, from the tagged commit, and one release runs at a
+  time.
 - GitHub Actions are pinned to commit SHAs (the version rides in a comment;
   Dependabot moves the pins), every workflow declares least-privilege
   `permissions` (`contents: read`, plus `id-token: write` only where a publish

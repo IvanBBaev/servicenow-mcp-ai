@@ -19,9 +19,17 @@ permissions:
   contents: read
   id-token: write # npm provenance (OIDC)
 
+# N-95: one release at a time; a second tag waits instead of racing the first.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # N-96 (OD-18): the publish job runs in the `release` environment, which needs
+    # the owner's approval and is the environment npm trusted publishing names.
+    environment: release
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -43,6 +51,13 @@ jobs:
             *) echo "NPM_DIST_TAG=latest" >> "$GITHUB_ENV" ;;
           esac
       - run: npm publish --provenance --access public --tag "$NPM_DIST_TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # N-95 (OD-17 b): a GA publish moves `next` too, so `npm i …@next` never
+      # installs a prerelease older than `latest`.
+      - name: Point the next dist-tag at the GA version
+        if: ${{ env.NPM_DIST_TAG == 'latest' }}
+        run: npm dist-tag add "servicenow-mcp-ai@${GITHUB_REF_NAME#v}" next
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
