@@ -31,7 +31,7 @@
 > [UX-REVIEW-2026-07.md](archive/UX-REVIEW-2026-07.md) §11 (the UX backlog); "Optional" items (Export
 > API, PDI e2e, vitest) on request. The work chronology is in [WORKLOG.md](../WORKLOG.md).
 
-## Open owner decisions (2026-10-12)
+## Owner decisions (2026-10-12, all decided 2026-10-30)
 
 👤 Collected after the O-5 PDI passes ([PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md)) and the
 N-35 conformance work. Each entry is one decision. Evidence is a commit on `main` or a GET-only
@@ -254,6 +254,9 @@ OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
   - Update 2026-10-28: after N-68 (`649d29d`) the measured sizes are `core` 26,986 /
     `discovery` 23,531 / `all` 121,591 B (headroom 150 / 277 / 521 B) — `discovery` would now
     take the keys, `core` (+361) and `all` (+863) still would not; option (1) stands. See OD-15.
+  - **Decided 2026-10-30: (1).** Owner delegated the call to the assistant on 2026-10-30. The five
+    budgets are restated (rounded up to 256 B) in the commit that lands N-74; the keys ship on by
+    default.
 
 - **OD-13 · N-67 bulk update and delete by query (O-23).** _Not BREAKING (a new tool in the
   opt-in `batch` package), but a new write surface and a budget restatement are owner gates._
@@ -271,6 +274,9 @@ OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
   - Evidence: N-68 shipped 2026-10-28 (`649d29d`); nothing of N-67 is on `main`.
   - Recommend: (1) — the surface rides the same rails as every other write (plan → token →
     apply, journal, policy), and the 3.2 theme is otherwise complete.
+  - **Decided 2026-10-30: (1).** Owner delegated the call to the assistant on 2026-10-30. Accepted
+    as specified; the `all` budget is restated by the measured delta when it lands. Held by the
+    OD-28 (d) adoption gate until the 2026-11-19 checkpoint.
 
 - **OD-14 · O-5 round-trips for the two new write paths (N-70, N-68).** _Not BREAKING; both
   are instance writes on the PDI and need the owner's explicit consent._
@@ -287,6 +293,8 @@ OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
   - Evidence: `bf9e3f4` (N-70) and `649d29d` (N-68) on `main`; every unit and contract test
     passes against the fetch double; no instance write happened.
   - Recommend: (1).
+  - **Decided 2026-10-30: (1).** Owner delegated the call to the assistant on 2026-10-30. Both
+    round-trips run on `ven03019`; the result is in [PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md).
 
 - **OD-15 · `tools/list` headroom after the 3.2 block (O-10).** _Not BREAKING._
   - Decide: what to do with the bytes N-68 freed (net −472 / −472 / −537 / −144 / −144 B on
@@ -304,6 +312,8 @@ OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
     +60 B per profile (`020b331`), N-69 +11 B on `all` (`5dc2e3e`), N-70 / N-75 / N-84 / N-85 /
     N-87 +0 B.
   - Recommend: (2) — lowering now only to raise again under O-10 is churn; decide OD-12 first.
+  - **Decided 2026-10-30: (2).** Owner delegated the call to the assistant on 2026-10-30. The
+    headroom stays; superseded by budget policy v2 (OD-23).
 
 - **OD-16 · The 3.1 owner batch (F5-21, F5-52, F5-53, F5-54).** _Not code; owner actions
   listed once, cross-referencing D-5 / D-6 under "Active"._
@@ -322,6 +332,10 @@ OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
     `gh repo view` and `gh pr list --author app/dependabot` on 2026-10-28.
   - Recommend: the About / topics refresh and the Smithery removal first — both take minutes
     and the Smithery date is fixed.
+  - **Decided 2026-10-30.** Owner delegated the call to the assistant on 2026-10-30. Done the same
+    day: the About text and topics refresh, the Smithery removal and the Dependabot triage.
+    `OVSX_PAT` was already set on 2026-10-22 and Open VSX 3.0.0 is live, so that bullet is closed.
+    The screenshots, the GIF and the `galleryBanner` are deferred (DX-3).
 
 OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
 ([ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §8). Each one groups the owner questions from
@@ -338,6 +352,9 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     (RR-PO-06, RR-DO-09, RR-DO-10).
   - Recommend: (a)–(c) yes, before 2026-11-03 and after N-96. For (d), shrinkwrap yes, because
     the server reaches into the SDK's private members.
+  - **Decided 2026-10-30: (a) 3.1.0 now; (b) every GA publish moves `next` to the GA version; (c) a
+    7-day security-patch SLA in SECURITY.md; (d) shrinkwrap yes, as a follow-up item.** Owner
+    delegated the call to the assistant on 2026-10-30.
 - **OD-18 · Trusted publishing and repository guard rails (N-96; DO-I1, SE-I6).** _Owner
   settings, dated._
   - Decide:
@@ -351,6 +368,9 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     2026-11-18 (RR-DO-01, RR-DO-02, RR-SE-06).
   - Recommend: (a) trusted publishing, plus (b) and (c), before 2026-11-18. For (d), at least
     document the bus factor.
+  - **Decided 2026-10-30: (a) trusted publishing — the owner adds the trusted publisher on npmjs.com
+    (2FA), then `NPM_TOKEN` is deleted; it stays until then; (b) and (c) yes; (d) the bus factor of
+    one is documented in SECURITY.md.** Owner delegated the call to the assistant on 2026-10-30.
 - **OD-19 · Human-bound confirmation (N-105; SE-I1).** _BREAKING (O-4)._
   - Decide:
     - (a) keep `token`, documented as accident protection;
@@ -358,6 +378,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     - (c) `elicit` becomes the default on HTTP, with the hook `ask` mode in the plugin.
   - Evidence: RR-SE-01. An injected agent completes a destructive apply in two calls.
   - Recommend: (b) now, (c) in the next major.
+  - **Decided 2026-10-30: (b) in 3.x as a security fix; (c) in 4.0.0 (O-4).** Owner delegated the
+    call to the assistant on 2026-10-30.
 - **OD-20 · Protected-table reach (N-106; SE-I2).** _BREAKING (O-4)._
   - Decide:
     - (a) extend the list only;
@@ -366,6 +388,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
   - Evidence: RR-SE-02. `sys_script_include`, `sysauto_script`, `sp_widget`, `sys_ui_action`
     and `oauth_credential` are writable through `update_record` with `apply: true` alone.
   - Recommend: (b).
+  - **Decided 2026-10-30: (a) in 3.x; the `plan_token` parity of (b) in 4.0.0 (O-4).** Owner
+    delegated the call to the assistant on 2026-10-30.
 - **OD-21 · Password via elicitation only (N-124; SE-I5, DX-I3).** _BREAKING (O-4), relates to
   D-2._
   - Decide:
@@ -375,6 +399,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     - Until then: does the README stop showing the chat path, or keep it with a warning?
   - Evidence: RR-SE-05, RR-DX-02.
   - Recommend: (a), and stop showing the chat path in the README now.
+  - **Decided 2026-10-30: (a) — deprecated in 3.x, removed in 4.0.0; the README stops showing the
+    chat path now.** Owner delegated the call to the assistant on 2026-10-30.
 - **OD-22 · Loopback HTTP token (N-144; SE-I7).** _BREAKING (O-4)._
   - Decide:
     - (a) keep loopback open;
@@ -382,6 +408,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     - (c) a token only when `SN_ENV=prod`.
   - Evidence: RR-SE-07.
   - Recommend: (b).
+  - **Decided 2026-10-30: (b), in 4.0.0 (O-4).** Owner delegated the call to the assistant on
+    2026-10-30.
 - **OD-23 · Budget policy v2 (N-101, N-111, N-112, N-162; MC-I1, MC-I3, MC-I4, MC-I7).**
   _Answers OD-15; O-10._
   - Decide:
@@ -393,6 +421,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
   - Evidence: RR-MC-01. On the 2026-07-28 wire, `enable_package` returns `NO_PACKAGE_SESSION`,
     so 80 tools cannot be called. See also RR-MC-03 and RR-MC-04.
   - Recommend: yes to all four. Land (3) before (1). (4) is low priority.
+  - **Decided 2026-10-30: yes to all four; (3) lands before (1); (4) in 4.0.0.** Owner delegated the
+    call to the assistant on 2026-10-30.
 - **OD-24 · Model eval and mutation testing (N-102, N-128; MC-I2, QA-I9, QA-I5).**
   - Decide:
     - (a) the eval route: a `claude -p` subscription backend, a recorded manual run per
@@ -402,6 +432,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
   - Evidence: RR-MC-02, RR-QA-08. No real model has ever been scored.
   - Recommend: for (a), `claude -p`, with the recorded run as the fallback. For (b), about $10
     per minor. For (c), Stryker manual-only.
+  - **Decided 2026-10-30: (a) `claude -p`, with a recorded run as the fallback; (b) about $10 per
+    minor; (c) StrykerJS manual-only.** Owner delegated the call to the assistant on 2026-10-30.
 - **OD-25 · Live testing (N-107, N-126, N-127, N-140; QA-I1, QA-I3, QA-I4, SN-I6).** _O-2,
   O-5._
   - Decide:
@@ -412,6 +444,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
   - Evidence: RR-QA-01. The smoke has been a green no-op for three weeks. See also RR-QA-02,
     RR-QA-04 and RR-SN-06.
   - Recommend: yes to all four. Make the smoke red when it is skipped, whatever is decided.
+  - **Decided 2026-10-30: yes to all four; the smoke goes red when it is skipped.** Owner delegated
+    the call to the assistant on 2026-10-30.
 - **OD-26 · Managed policy layer (N-108, N-134; GV-I1, GV-I4).**
   - Decide:
     - (a) a managed file at an OS path, plus an env override;
@@ -421,6 +455,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
   - Evidence: RR-GV-01, RR-GV-05, RR-GV-12. Every control is in a user-editable env file.
   - Recommend: (c). The file covers laptops and containers. The property is the platform
     owner's kill switch.
+  - **Decided 2026-10-30: (c).** Owner delegated the call to the assistant on 2026-10-30. The
+    `regulated` preset scope is settled in N-134.
 - **OD-27 · Data location and retention (N-109, N-110; GV-I2, GV-I3, AR-I3).** _The location
   change is BREAKING (O-4)._
   - Decide:
@@ -431,6 +467,9 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
   - Evidence: RR-GV-03, RR-GV-04, RR-AR-02.
   - Recommend: for (a), the state dir, in the next minor. For (b), 7 days. For (c), unlimited by
     default, with a lockable retention setting; deletions are recorded in the chain.
+  - **Decided 2026-10-30: (a) the per-user state dir in 4.0.0 (O-4), with a compatibility read for
+    one minor; (b) 7 days; (c) unlimited by default, lockable, deletions recorded in the chain.**
+    Owner delegated the call to the assistant on 2026-10-30.
 - **OD-28 · Product direction (N-97, N-98, N-138; PO-I1, PO-I2, PO-I6).**
   - Decide:
     - (a) the tagline: "safe AI writes, free on your PDI", "IDE-grade find usages, trace and
@@ -444,6 +483,9 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     human.
   - Recommend: (a) both, with safe writes as the headline. (b), (c) and (d) yes. For (e), paid
     support plus a `MAINTENANCE.md`.
+  - **Decided 2026-10-30: (a) both, with safe writes as the headline; (b) Discussions on, the
+    design-partner outreach drafted but not posted without the owner; (c) yes; (d) yes; (e) paid
+    support plus a `MAINTENANCE.md`.** Owner delegated the call to the assistant on 2026-10-30.
 - **OD-29 · Licence, DCO and display name (N-122, N-155; GV-I8, GV-I9).**
   - Decide:
     - (a) the licence: GPL-3.0-or-later with an org FAQ, GPL plus an internal-redistribution
@@ -452,6 +494,9 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     - (c) rename `displayName` to a trademark-safe name, keeping the npm name.
   - Evidence: RR-GV-08, RR-GV-09, RR-GV-10.
   - Recommend: for (a), GPL with the FAQ now, revisited at O-24. (b) and (c) yes.
+  - **Decided 2026-10-30: (a) GPL-3.0-or-later with an org FAQ, revisited at O-24; (b) a DCO; (c)
+    rename `displayName`, keeping the npm name.** Owner delegated the call to the assistant on
+    2026-10-30.
 - **OD-30 · Architecture (N-115, N-116, N-156, N-157; AR-I1, AR-I2, AR-I7, AR-I8).**
   - Decide:
     - (a) modern-wire reuse: strict per-request construction, a cached template, or a pool;
@@ -465,6 +510,9 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     - (b) CC 25 / 120 lines as a ratchet;
     - (c) a one-shot move after N-116;
     - (d) archive each release, with a 400 KB live budget.
+  - **Decided 2026-10-30: (a) the cached template; (b) CC 25 / 120 lines as a ratchet; (c) a
+    one-shot move after N-116; (d) archive each release, with a 400 KB live budget.** Owner
+    delegated the call to the assistant on 2026-10-30.
 - **OD-31 · ServiceNow defaults (N-103, N-104, N-121; SN-I1, SN-I2, SN-I5).**
   - Decide:
     - (a) keep the 30 s timeout and stop retrying timeouts, raise it to 65 s, or both;
@@ -476,6 +524,8 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     - (a) keep 30 s and stop retrying timeouts;
     - (b) publish the matrix, with `snc_read_only` for read-only profiles;
     - (c) 250k rows, configurable per profile.
+  - **Decided 2026-10-30: (a) keep 30 s and stop retrying timeouts; (b) publish the matrix; (c) 250k
+    rows, configurable per profile.** Owner delegated the call to the assistant on 2026-10-30.
 - **OD-32 · Docs policy (N-132, N-133, N-153, N-154; DX-I1, DX-I4, DX-I8, DX-I9).**
   - Decide:
     - (a) the canonical home of the quickstart, the install matrix and the tool reference: the
@@ -489,6 +539,9 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
     - (b) yes;
     - (c) `all`, with `admin` deprecated for one major;
     - (d) yes.
+  - **Decided 2026-10-30: (a) the site, with the README generated from it; (b) yes; (c) `all`, with
+    `admin` deprecated for one major; (d) yes.** Owner delegated the call to the assistant on
+    2026-10-30.
 
 ## Active (2026-09-02)
 
