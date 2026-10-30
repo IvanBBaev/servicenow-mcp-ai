@@ -22,6 +22,7 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ### Changed
 
+- The outbound `User-Agent` no longer names the MCP client (`claude-code`, `vscode`, …): it is now `servicenow-mcp-ai/<version> (node/<major>; <transport>; user=<user>)`, where `user` is the ServiceNow user the request calls as — the OAuth subject of a delegated request, otherwise the profile's `SN_USER` — reduced to printable ASCII without `;`, `(`, `)` or a backslash and capped at 64 characters; it is left out when no user name is configured. `SN_USER_AGENT_SUFFIX` is unchanged. `tools/list`: +0 B.
 - Record watch on the 2026-07-28 wire (N-83): a `subscriptions/listen` filter's `resourceSubscriptions` is dropped before the SDK sees it, so the acknowledgement no longer claims record updates that only the legacy wire delivers; `resources/subscribe` there stays `-32601`. Record watch is unchanged on 2025-11-25. `tools/list` +0 B.
 - A 401 under basic auth (`INSTANCE_HTTP_401`) carries a hint naming the restriction property, the role and the OAuth alternative (N-75); `servicenow_test_connection` and `doctor` show it. The generic 401 hint names `servicenow_test_connection` and `doctor` instead of a tool that does not exist. `tools/list`: +0 B.
 - MCP Apps views (N-84): each `ui://servicenow-mcp/…` resource declares `_meta.ui.csp` with empty `connectDomains` and `resourceDomains` — the document's own Content-Security-Policy at the host's level — instead of relying on the host's default. `tools/list`: +0 B.

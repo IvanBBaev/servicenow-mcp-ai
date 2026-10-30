@@ -319,7 +319,7 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
     since: NEXT,
     example: "team-platform",
     description:
-      "Extra token appended to the `User-Agent` sent on every request (`servicenow-mcp-ai/<version> (node/<major>; <transport>; <client>)`), e.g. a team or ticket id for correlation in the instance's transaction log. Printable ASCII, up to 80 characters.",
+      "Extra token appended to the `User-Agent` sent on every request (`servicenow-mcp-ai/<version> (node/<major>; <transport>; user=<user>)`), e.g. a team or ticket id for correlation in the instance's transaction log. Printable ASCII, up to 80 characters.",
   }),
   str({
     key: "SN_TLS_CLIENT_CERT",

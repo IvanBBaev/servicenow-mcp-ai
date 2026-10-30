@@ -1,9 +1,7 @@
 import {
   CLIENT_CAPABILITIES_META_KEY,
-  CLIENT_INFO_META_KEY,
   PROTOCOL_VERSION_META_KEY,
   type ClientCapabilities,
-  type Implementation,
   type McpServer,
   type ServerContext,
 } from "@modelcontextprotocol/server";
@@ -37,17 +35,6 @@ export function clientCapabilities(
   if (declared !== undefined) return declared as ClientCapabilities;
   // eslint-disable-next-line @typescript-eslint/no-deprecated -- 2025-era fallback, see the module comment
   return server?.server.getClientCapabilities();
-}
-
-/** The client's name and version, or undefined before `initialize`. */
-export function clientInfo(
-  server: McpServer | null | undefined,
-  ctx?: ServerContext,
-): Implementation | undefined {
-  const declared = envelopeOf(ctx)?.[CLIENT_INFO_META_KEY];
-  if (declared !== undefined) return declared as Implementation;
-  // eslint-disable-next-line @typescript-eslint/no-deprecated -- 2025-era fallback, see the module comment
-  return server?.server.getClientVersion();
 }
 
 /** The protocol revision the request is served on, or undefined before `initialize`. */

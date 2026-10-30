@@ -1,4 +1,6 @@
 import { createRequire } from "node:module";
+import { getCredentials } from "./config.js";
+import { delegatedSubject } from "./delegation.js";
 import { getTransport, getUserAgentSuffix } from "./settings.js";
 
 /**
@@ -6,11 +8,14 @@ import { getTransport, getUserAgentSuffix } from "./settings.js";
  * ServiceNow and OAuth request, so instance transaction logs, WAF logs
  * and the REST usage dashboards can attribute the traffic:
  *
- *   servicenow-mcp-ai/<version> (node/<major>; <transport>; <client>)[ <suffix>]
+ *   servicenow-mcp-ai/<version> (node/<major>; <transport>[; user=<name>])[ <suffix>]
  *
- * The MCP client's name/version comes from the `initialize` handshake. core/
- * must not import mcp/, so the mcp layer registers a provider at bootstrap
- * (see mcp/context.ts) and this module evaluates it lazily per request.
+ * `user` is the ServiceNow user the request calls as: the OAuth subject of a
+ * delegated request (N-17), otherwise the active profile's SN_USER. It is
+ * left out when no user name is configured (API key, client credentials).
+ * The MCP client (the initialize handshake's clientInfo) is deliberately not
+ * part of it: which AI tool drives the server is the user's business, not the
+ * instance's. Operators who want more attribution set SN_USER_AGENT_SUFFIX.
  */
 
 const requireJson = createRequire(import.meta.url);
@@ -18,57 +23,27 @@ const pkg = requireJson("../../package.json") as { version: string };
 
 export const SERVER_VERSION: string = pkg.version;
 
-export interface ClientInfo {
-  name: string;
-  version?: string;
-}
-
-type ClientInfoProvider = () => ClientInfo | undefined;
-
-let clientInfoProvider: ClientInfoProvider | null = null;
-
-/** Register how the client name is looked up (called once by the mcp layer). */
-export function setClientInfoProvider(
-  provider: ClientInfoProvider | null,
-): void {
-  clientInfoProvider = provider;
-}
-
-const MAX_CLIENT_CHARS = 40;
-
-/**
- * Reduce a free-form client string to a safe header token: only
- * `[A-Za-z0-9._/-]` survive (runs of anything else collapse to one `-`), and
- * the result is capped so a hostile clientInfo cannot bloat the header.
- */
-export function sanitizeClientToken(raw: string | undefined): string {
-  const cleaned = (raw ?? "")
-    .replace(/[^A-Za-z0-9._/-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, MAX_CLIENT_CHARS);
-  return cleaned || "unknown";
-}
-
-/** The MCP client's identity as a header token, or "unknown". */
-export function clientToken(): string {
-  let info: ClientInfo | undefined;
-  try {
-    info = clientInfoProvider?.();
-  } catch {
-    // swallowed: a throwing provider means no client info
-    info = undefined;
-  }
-  if (!info?.name) return "unknown";
-  const name = sanitizeClientToken(info.name);
-  const version = info.version ? sanitizeClientToken(info.version) : "";
-  return version ? `${name}/${version}`.slice(0, MAX_CLIENT_CHARS) : name;
-}
-
 const NODE_MAJOR = process.versions.node.split(".")[0] ?? "0";
+
+const MAX_USER_CHARS = 64;
+
+/** The calling ServiceNow user, reduced to a safe User-Agent comment token. */
+export function userToken(): string | undefined {
+  const raw = delegatedSubject() ?? getCredentials().user;
+  const safe = raw
+    ?.replace(/[^\x21-\x7e]+/g, "")
+    .replace(/[();\\]/g, "")
+    .slice(0, MAX_USER_CHARS);
+  return safe || undefined;
+}
 
 /** Build the User-Agent header value for the current request. */
 export function userAgent(): string {
-  const base = `servicenow-mcp-ai/${SERVER_VERSION} (node/${NODE_MAJOR}; ${getTransport()}; ${clientToken()})`;
+  const user = userToken();
+  const comment = user
+    ? `node/${NODE_MAJOR}; ${getTransport()}; user=${user}`
+    : `node/${NODE_MAJOR}; ${getTransport()}`;
+  const base = `servicenow-mcp-ai/${SERVER_VERSION} (${comment})`;
   const suffix = getUserAgentSuffix();
   // The suffix is operator-controlled; keep it on one line and printable.
   const safeSuffix = suffix

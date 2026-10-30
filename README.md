@@ -724,7 +724,7 @@ Timeouts, retries, the host allow-list, the outbound proxy, mutual TLS and the p
 | `SN_ALLOWED_HOSTS` | no | — | 1.1.0 | Comma-separated allow-list of permitted hosts (for custom or sovereign-cloud domains). When set, only matching hosts are contacted. When unset, only `*.service-now.com` instances are allowed and internal/loopback hosts are blocked (SSRF guard). An entry may carry a port (`host:8443`) or be a bracketed IPv6 literal (`[2001:db8::1]`); an explicit non-443 port or an IPv6 literal in the instance value is accepted only when such an entry matches it — never under the default policy. |
 | `SN_MAX_BODY_BYTES` | no | `52428800` | next | Largest response body (bytes) read into memory; a larger declared or streamed body fails with `RESPONSE_TOO_LARGE`. Redirects are never followed — a 3xx fails with `REDIRECT_BLOCKED` naming the target host. |
 | `SN_HTTPS_PROXY` | no | — | next | Outbound HTTPS proxy URL (`http://user:pass@proxy:3128`) for all ServiceNow and OAuth traffic; needs the optional `undici` package. When unset, the ambient `HTTPS_PROXY` / `HTTP_PROXY` variables are honoured together with `NO_PROXY`; `SN_HTTPS_PROXY` itself is explicit and ignores `NO_PROXY`. Proxy credentials are never logged. |
-| `SN_USER_AGENT_SUFFIX` | no | — | next | Extra token appended to the `User-Agent` sent on every request (`servicenow-mcp-ai/<version> (node/<major>; <transport>; <client>)`), e.g. a team or ticket id for correlation in the instance's transaction log. Printable ASCII, up to 80 characters. |
+| `SN_USER_AGENT_SUFFIX` | no | — | next | Extra token appended to the `User-Agent` sent on every request (`servicenow-mcp-ai/<version> (node/<major>; <transport>; user=<user>)`), e.g. a team or ticket id for correlation in the instance's transaction log. Printable ASCII, up to 80 characters. |
 | `SN_TLS_CLIENT_CERT` | no | — | 1.1.0 | Client certificate (PEM) for **mutual TLS** (or `SN_TLS_CLIENT_CERT_FILE`). With `SN_TLS_CLIENT_KEY` it presents a client cert; ServiceNow's mutual-auth profile maps it to a user. Needs the optional `undici` package (`npm i undici`). Cert and key must be set together — only one of them is a configuration error. |
 | `SN_TLS_CLIENT_CERT_FILE` | no | — | 1.1.0 | Path to the client certificate (PEM) for mutual TLS. |
 | `SN_TLS_CLIENT_KEY` | no | — | 1.1.0 | Private key (PEM) for the client certificate (or `SN_TLS_CLIENT_KEY_FILE`). |
@@ -1889,9 +1889,10 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
   IPv6 literal in the instance value is accepted only when an allow-list entry
   names it (`host:8443`, `[2001:db8::1]`).
 - Every request — including OAuth token requests — carries the identifying
-  `User-Agent: servicenow-mcp-ai/<version> (node/<major>; <transport>; <client>)`
-  so the instance's transaction log can attribute the traffic; extend it with
-  `SN_USER_AGENT_SUFFIX`. Proxy URLs (`SN_HTTPS_PROXY`, `HTTPS_PROXY`) are
+  `User-Agent: servicenow-mcp-ai/<version> (node/<major>; <transport>; user=<user>)`
+  so the instance's transaction log can attribute the traffic; `user` is the
+  ServiceNow user the request calls as (left out when none is configured) and
+  the MCP client is never named. Extend it with `SN_USER_AGENT_SUFFIX`. Proxy URLs (`SN_HTTPS_PROXY`, `HTTPS_PROXY`) are
   honoured for every request but their credentials are never logged.
 - Prefer **OAuth 2.0** over Basic where possible (`SN_OAUTH_CLIENT_ID`).
 - Apply least privilege with `SN_TABLES_ALLOW` / `SN_TABLES_DENY` and

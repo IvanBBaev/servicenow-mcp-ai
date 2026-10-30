@@ -1,7 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/server";
-import { setClientInfoProvider } from "../core/identity.js";
 import { currentSession } from "../core/request-context.js";
-import { clientInfo } from "./client-identity.js";
 
 /**
  * The live server instance, for tool handlers that need protocol features
@@ -17,10 +15,6 @@ let current: McpServer | null = null;
 
 export function setServer(server: McpServer | null): void {
   current = server;
-  // The User-Agent names the MCP client (H-10); core/ cannot import this
-  // layer, so hand it a lazy lookup of the initialize handshake's clientInfo
-  // — resolved per call, so an HTTP session names its own client.
-  setClientInfoProvider(server ? () => clientInfo(getServer()) : null);
 }
 
 export function getServer(): McpServer | null {
