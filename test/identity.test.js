@@ -17,7 +17,7 @@ test("SERVER_VERSION comes from package.json", () => {
   assert.equal(SERVER_VERSION, pkg.version);
 });
 
-test("userAgent names the server, Node and the transport — never the MCP client", async () => {
+test("userAgent names the server, Node and the transport — never the MCP client or the user", async () => {
   await withEnv(NO_SUFFIX, () => {
     assert.equal(
       userAgent(),
@@ -32,28 +32,12 @@ test("userAgent names the server, Node and the transport — never the MCP clien
   });
 });
 
-test("userAgent names the logged-in ServiceNow user when one is configured", async () => {
+test("userAgent never names the configured ServiceNow user", async () => {
   await withEnv({ ...NO_SUFFIX, SN_USER: "ivan.baev" }, () => {
     assert.equal(
       userAgent(),
-      `servicenow-mcp-ai/${pkg.version} (node/${NODE_MAJOR}; stdio; user=ivan.baev)`,
+      `servicenow-mcp-ai/${pkg.version} (node/${NODE_MAJOR}; stdio)`,
     );
-  });
-  await withEnv(
-    {
-      ...NO_SUFFIX,
-      SN_USER: " evil); x\r\nInjected: 1 ",
-      SN_USER_AGENT_SUFFIX: "ops",
-    },
-    () => {
-      assert.equal(
-        userAgent(),
-        `servicenow-mcp-ai/${pkg.version} (node/${NODE_MAJOR}; stdio; user=evilxInjected:1) ops`,
-      );
-    },
-  );
-  await withEnv({ ...NO_SUFFIX, SN_USER: "u".repeat(200) }, () => {
-    assert.ok(userAgent().endsWith(`user=${"u".repeat(64)})`));
   });
 });
 

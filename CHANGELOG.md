@@ -7,6 +7,7 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ### Fixed
 
+- The outbound `User-Agent` no longer carries `user=<user>` (added in 3.1.0); it is `servicenow-mcp-ai/<version> (node/<major>; <transport>)` again, naming neither the MCP client nor the user. `SN_USER_AGENT_SUFFIX` is unchanged. `tools/list`: +0 B.
 - MCP Registry: the `server.json` remote is `https://{servicenow_mcp_ai_host}/mcp`; the registry refused 3.1.0 because `https://{host}/mcp` is already registered by another server.
 
 ## [3.1.0] - 2026-10-30

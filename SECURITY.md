@@ -237,7 +237,7 @@ The details follow.
   and a result-size guard round it out. Outbound traffic can go through a proxy
   (`SN_HTTPS_PROXY`, else `HTTPS_PROXY` / `HTTP_PROXY` with `NO_PROXY`); proxy
   credentials are never logged or returned. Every request carries an identifying
-  `User-Agent` (`servicenow-mcp-ai/<version> (node/<major>; <transport>; user=<user>)`,
+  `User-Agent` (`servicenow-mcp-ai/<version> (node/<major>; <transport>)`,
   extendable with `SN_USER_AGENT_SUFFIX`) so the instance transaction log can
   attribute it. A total deadline (`SN_DEADLINE_MS`) and a bounded per-host queue
   (`SN_MAX_QUEUE`, `SN_QUEUE_TIMEOUT_MS` → `BUSY`) keep a slow or saturated
