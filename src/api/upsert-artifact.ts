@@ -13,6 +13,7 @@ import {
 } from "../core/write-journal.js";
 import { resolveArtifactType } from "./artifacts.js";
 import { unknownFields } from "./meta.js";
+import { assertNoCaret } from "./shared.js";
 import {
   createRecord,
   keyQuery,
@@ -35,8 +36,9 @@ import { isSysIdAnyCase } from "../core/sys-id.js";
  *
  * Scope (SDK-PARITY §5(c)): scalar fields and direct parent/child records.
  * Flows, playbooks and legacy workflows, types narrowed by a `baseQuery`, and
- * children linked by value, composite link or through another child are
- * refused. A JSON field the registry marks `writable:false` makes the call
+ * children linked by a composite link are refused. A child linked by value
+ * (`sys_dictionary.name` = `sys_db_object.name`, N-70) is written when it
+ * hangs off the primary record and its link is the type's only key field. A JSON field the registry marks `writable:false` makes the call
  * plan-only. Children not named in the call are left alone (no pruning).
  *
  * P-24 widens this to the portal (SP-1 … SP-10) and catalog (CAT-1 … CAT-6)
@@ -80,6 +82,8 @@ export interface PlannedRecord {
   index?: number;
   /** The field the apply points at the parent record (children only). */
   parentField?: string;
+  /** The value `parentField` takes for a child linked by value (N-70); the parent's sys_id otherwise. */
+  parentValue?: string;
   /** Position of the parent child; absent when the parent is the primary record. */
   parent?: number;
   action: RecordAction;
@@ -247,8 +251,10 @@ function childNotWritable(
 /**
  * The writable child descriptor for `table` (the only child when omitted).
  * `parentTable` is the table of the earlier child the record hangs off
- * (P-24 nested children); without it only a direct child matches. Children
- * linked by value (`parentKey`, `alsoMatch`) are never writable.
+ * (P-24 nested children); without it only a direct child matches. A child
+ * linked by value (`parentKey`) is writable only off the primary record and
+ * only when its link is the type's single key field, so the plan knows the
+ * value before the parent exists; a composite link (`alsoMatch`) never is.
  */
 export function writableChild(
   t: ArtifactType,
@@ -269,11 +275,16 @@ export function writableChild(
     );
   }
   const linked = named.filter(
-    (c) => c.parentKey === undefined && !c.alsoMatch?.length,
+    (c) =>
+      !c.alsoMatch?.length &&
+      (c.parentKey === undefined ||
+        (c.parentTable === undefined &&
+          t.keyFields.length === 1 &&
+          t.keyFields[0] === c.parentKey)),
   );
   if (!linked.length) {
     throw childNotWritable(
-      `Child table ${named[0]?.table} of '${t.type}' is linked by value, not by a reference to its parent record; servicenow_upsert_artifact writes reference-linked children only.`,
+      `Child table ${named[0]?.table} of '${t.type}' is linked by a composite value, not by a reference to its parent record; servicenow_upsert_artifact writes reference-linked children and children linked by the parent's single key field only.`,
     );
   }
   const hit = linked.find((c) =>
@@ -740,24 +751,43 @@ export async function planArtifactUpsert(
     };
   }
 
+  // A new child follows the scope the new primary record names, or the REST
+  // session's current application would claim it (OD-14).
+  const scope: Record<string, Scalar> =
+    parent.action === "create" && "sys_scope" in input.fields
+      ? { sys_scope: input.fields.sys_scope }
+      : {};
+  const created = (c: (typeof children)[number]): Record<string, Scalar> => ({
+    ...scope,
+    ...c.key,
+    ...c.input.fields,
+  });
   const planned: PlannedRecord[] = [];
   const existing = new Map<string, SnRecord[]>();
   for (const c of children) {
+    // N-70: a child linked by value points at the parent's key, not its sys_id.
+    const parentValue =
+      c.child.parentKey === undefined
+        ? undefined
+        : String(key[c.child.parentKey]);
+    if (parentValue !== undefined) assertNoCaret(parentValue, "parent key");
     const base = {
       role: "child" as const,
       table: c.child.table,
       index: c.index,
       parentField: c.child.parentField,
+      ...(parentValue !== undefined ? { parentValue } : {}),
       ...(c.parent !== undefined ? { parent: c.parent } : {}),
       key: c.key,
     };
     const owner = c.parent === undefined ? parent : planned[c.parent];
-    const ownerId = owner?.action === "create" ? undefined : owner?.sys_id;
+    const ownerId =
+      owner?.action === "create" ? undefined : (parentValue ?? owner?.sys_id);
     if (!ownerId) {
       planned.push({
         ...base,
         action: "create",
-        write: { ...c.key, ...c.input.fields },
+        write: created(c),
       });
       continue;
     }
@@ -792,7 +822,7 @@ export async function planArtifactUpsert(
       planned.push({
         ...base,
         action: "create",
-        write: { ...c.key, ...c.input.fields },
+        write: created(c),
       });
       continue;
     }
@@ -946,7 +976,7 @@ export async function applyArtifactPlan(
               : r.parent === undefined
                 ? parentId
                 : ids[r.parent];
-          if (r.role === "child" && !owner) {
+          if (r.role === "child" && !r.parentValue && !owner) {
             throw new ServiceNowError(
               `The parent of children[${r.index}] came back without a sys_id; it and the records after it were not written.`,
               502,
@@ -956,7 +986,10 @@ export async function applyArtifactPlan(
           }
           const payload =
             r.role === "child"
-              ? { ...r.write, [r.parentField as string]: owner as string }
+              ? {
+                  ...r.write,
+                  [r.parentField as string]: r.parentValue ?? owner,
+                }
               : r.write;
           const created = await journaledWrite(
             {

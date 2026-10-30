@@ -201,7 +201,7 @@ test("child resolution: unnamed tables, value links, the parent chain", async ()
       fields: {},
       children: [{ table: "sys_choice", fields: {} }],
     },
-    /linked by value, not by a reference/,
+    /linked by a composite value, not by a reference/,
   );
   await refused(
     {

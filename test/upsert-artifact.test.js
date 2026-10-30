@@ -209,6 +209,87 @@ test("N-70: a table column carries its type, length, reference and choice flag; 
   ]);
 });
 
+test("N-70: a table and its column and choices are written in one plan, linked by the table name", async () => {
+  const tableArgs = (label) => ({
+    artifactType: "table",
+    key: "u_scratch",
+    values: { label: "Scratch" },
+    children: [
+      {
+        table: "sys_dictionary",
+        values: { element: "u_status", internal_type: "string", choice: 1 },
+      },
+      {
+        table: "sys_choice",
+        key: { element: "u_status", value: "new" },
+        values: { label, sequence: 10 },
+      },
+    ],
+  });
+  await scenario({}, {}, async (calls, inst) => {
+    const created = await planAndApply(tableArgs("New"));
+    assert.equal(created.res.isError, undefined, created.res.content[0].text);
+    assert.deepEqual(created.plan.count, { create: 3, update: 0, noop: 0 });
+    const [column] = [...inst.rows("sys_dictionary").values()];
+    const [choice] = [...inst.rows("sys_choice").values()];
+    // The link is the table name, never the sys_db_object sys_id.
+    assert.equal(column.name, "u_scratch");
+    assert.equal(choice.name, "u_scratch");
+    assert.equal(choice.element, "u_status");
+    assert.equal("sys_scope" in column, false);
+
+    // The second plan finds both children by the name, so only the label changes.
+    calls.length = 0;
+    const updated = await planAndApply(tableArgs("Fresh"));
+    assert.equal(updated.res.isError, undefined, updated.res.content[0].text);
+    assert.deepEqual(updated.plan.count, { create: 0, update: 1, noop: 2 });
+    assert.equal(choice.label, "Fresh");
+    assert.ok(
+      calls.some(
+        (c) =>
+          new URL(c.url).searchParams.get("sysparm_query") === "name=u_scratch",
+      ),
+    );
+  });
+});
+
+test("OD-14: new children follow the scope the new table names, not the session's current application", async () => {
+  await scenario({}, {}, async (_calls, inst) => {
+    const created = await planAndApply({
+      artifactType: "table",
+      key: "u_scratch",
+      values: { label: "Scratch", sys_scope: "global" },
+      children: [
+        { table: "sys_dictionary", values: { element: "u_status" } },
+        {
+          table: "sys_choice",
+          key: { element: "u_status", value: "new" },
+          values: { label: "New" },
+        },
+      ],
+    });
+    assert.equal(created.res.isError, undefined, created.res.content[0].text);
+    assert.equal(created.plan.children[0].after.sys_scope, "global");
+    for (const table of ["sys_db_object", "sys_dictionary", "sys_choice"]) {
+      const [row] = [...inst.rows(table).values()];
+      assert.equal(row.sys_scope, "global", table);
+    }
+  });
+});
+
+test("N-70: a value link carrying the encoded-query separator is refused", async () => {
+  await scenario({}, {}, async () => {
+    const res = await call("servicenow_upsert_artifact", {
+      artifactType: "table",
+      key: "u_x^ORname=incident",
+      values: { label: "X" },
+      children: [{ table: "sys_dictionary", values: { element: "u_a" } }],
+    });
+    assert.equal(res.isError, true);
+    assert.match(res.content[0].text, /cannot contain '\^'/);
+  });
+});
+
 test("acceptance: create -> update -> S-2 revert of a UI policy with two actions restores both actions", async () => {
   await scenario({}, {}, async (calls, inst) => {
     // 1. Create: the parent, then both actions linked to it.
