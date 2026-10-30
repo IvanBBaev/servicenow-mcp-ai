@@ -21,7 +21,7 @@ import {
 import { resolveUploadPath } from "./attachment.js";
 import { errorCode, tooLarge } from "./docs-paths.js";
 import { queryTable, type SnRecord } from "./table.js";
-import { snString } from "./shared.js";
+import { assertNoCaret, snString } from "./shared.js";
 
 /**
  * ServiceNow Import Set API: push rows into a staging table and let the
@@ -61,9 +61,11 @@ export type ImportRow = Record<string, string | number | boolean | null>;
 export const IMPORT_MAX_ROWS = 500;
 
 /**
- * Insert several rows in one request (`insertMultiple`). The endpoint is
- * unverified until O-5: a 404 or 405 reports it absent (`null`) and the
- * caller falls back to one request per row.
+ * Insert several rows in one request (`insertMultiple`). Verified on a PDI
+ * (OD-14): it answers with an asynchronous import set, and keeps the values
+ * only when the staging table has an insertMultiple mapping
+ * (`insertMultipleMappingWarning`). A 404 or 405 reports it absent (`null`)
+ * and the caller falls back to one request per row.
  */
 export async function insertImportSetRows(
   stagingTable: string,
@@ -434,6 +436,32 @@ function importBody(response: ImportSetResult): {
       : response;
   const rows = Array.isArray(inner.result) ? (inner.result as SnRecord[]) : [];
   return { number: snString(inner.import_set), rows };
+}
+
+/**
+ * OD-14 — `insertMultiple` maps a row's keys to staging columns through an
+ * active `sys_rest_insert_multiple` record of the staging table (with a
+ * `sys_rest_insert_multiple_column_mapping` row: by label, or by column
+ * name). Without one the instance creates the rows and leaves every column
+ * empty, so this reports the gap; a failed lookup is reported, never thrown.
+ */
+export async function insertMultipleMappingWarning(
+  stagingTable: string,
+): Promise<string | undefined> {
+  assertNoCaret(stagingTable, "table");
+  try {
+    const { records } = await queryTable({
+      table: "sys_rest_insert_multiple",
+      query: `source_table=${stagingTable}^active=true`,
+      fields: ["sys_id"],
+      displayValue: "false",
+      limit: 1,
+    });
+    if (records.length) return undefined;
+    return `sys_rest_insert_multiple: no active record for ${stagingTable}, so insertMultiple creates the rows but leaves every column empty. Create one with a column mapping (sys_rest_insert_multiple_column_mapping, 'Column name' for rows keyed by column name), or send the rows one at a time (values).`;
+  } catch (error) {
+    return `sys_rest_insert_multiple: ${(error as Error).message}`;
+  }
 }
 
 /**

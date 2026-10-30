@@ -115,7 +115,7 @@ const importSet = (number) => ({
  * is an error reply), `single` answers one row (called with the row index).
  * Table API GETs serve the run and the transform maps.
  */
-function importFetch({ multi, single }) {
+function importFetch({ multi, single, mapping = true }) {
   let singles = 0;
   return (url, init) => {
     const { pathname } = new URL(url);
@@ -136,6 +136,9 @@ function importFetch({ multi, single }) {
       return jsonResponse(200, {
         result: [{ sys_id: "run1", state: "complete", inserts: "2" }],
       });
+    }
+    if (pathname === "/api/now/table/sys_rest_insert_multiple") {
+      return jsonResponse(200, { result: mapping ? [{ sys_id: "rim1" }] : [] });
     }
     if (pathname === "/api/now/table/sys_transform_map") {
       return jsonResponse(200, {
@@ -246,6 +249,80 @@ test("rows: the preview counts the rows and names the columns; nothing is sent",
   });
 });
 
+test("OD-14: insertMultiple without an active mapping warns that the values were dropped", async () => {
+  await withFetch(
+    importFetch({
+      multi: () => importSet("ISET0011"),
+      single: () => assert.fail("insertMultiple works here"),
+      mapping: false,
+    }),
+    async (calls) => {
+      const res = out(await insert({ rows: ROWS, apply: true }));
+      assert.equal(res.mode, "insertMultiple");
+      assert.equal(res.warnings.length, 1);
+      assert.match(
+        res.warnings[0],
+        /^sys_rest_insert_multiple: no active record for u_imp_assets, so insertMultiple creates the rows but leaves every column empty/,
+      );
+      const lookup = calls.find(
+        (c) =>
+          new URL(c.url).pathname === "/api/now/table/sys_rest_insert_multiple",
+      );
+      assert.equal(
+        new URL(lookup.url).searchParams.get("sysparm_query"),
+        "source_table=u_imp_assets^active=true",
+      );
+    },
+  );
+});
+
+test("OD-14: a failed mapping lookup is a warning, merged with the run warnings", async () => {
+  const base = importFetch({
+    multi: () => importSet("ISET0012"),
+    single: () => assert.fail("insertMultiple works here"),
+  });
+  await withFetch(
+    (url, init) => {
+      const { pathname } = new URL(url);
+      if (
+        pathname === "/api/now/table/sys_rest_insert_multiple" ||
+        pathname === "/api/now/table/sys_transform_map"
+      ) {
+        return jsonResponse(403, { error: { message: "ACL denied" } });
+      }
+      return base(url, init);
+    },
+    async () => {
+      const res = out(await insert({ rows: ROWS, apply: true }));
+      assert.equal(res.message, "2 import set rows inserted");
+      assert.equal(res.warnings.length, 2);
+      assert.match(res.warnings[0], /^sys_rest_insert_multiple: /);
+      assert.match(res.warnings[1], /^sys_transform_map: /);
+    },
+  );
+});
+
+test("OD-14: sequential rows skip the mapping lookup", async () => {
+  await withFetch(
+    importFetch({
+      multi: 404,
+      single: () => importSet("ISET0013"),
+      mapping: false,
+    }),
+    async (calls) => {
+      const res = out(await insert({ rows: ROWS, apply: true }));
+      assert.equal(res.mode, "sequential");
+      assert.equal(res.warnings, undefined);
+      assert.equal(
+        calls.some((c) =>
+          new URL(c.url).pathname.endsWith("/sys_rest_insert_multiple"),
+        ),
+        false,
+      );
+    },
+  );
+});
+
 test("rows: insertMultiple sends every row in one request under one journal envelope", async () => {
   await withFetch(
     importFetch({
@@ -262,6 +339,7 @@ test("rows: insertMultiple sends every row in one request under one journal enve
       assert.equal(res.rows, 2);
       assert.equal(res.sent, 2);
       assert.equal(res.failed, undefined);
+      assert.equal(res.warnings, undefined, "the mapping exists");
       assert.deepEqual(res.import_sets, ["ISET0010"]);
       assert.equal(res.results.length, 1);
       assert.equal(res.import_set_run.state, "complete");

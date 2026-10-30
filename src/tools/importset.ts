@@ -6,6 +6,7 @@ import {
   getImportSetRow,
   importRows,
   insertImportSetRow,
+  insertMultipleMappingWarning,
   loadImportRows,
   type ImportRow,
   type ImportSource,
@@ -115,10 +116,21 @@ export const specs: AnyToolSpec[] = [
       }
       const outcome = await importRows(table, batch, source);
       const run = await describeImportRun(table, outcome.results.at(-1) ?? {});
+      // OD-14: without a mapping insertMultiple drops every value.
+      const mapping =
+        outcome.mode === "insertMultiple"
+          ? await insertMultipleMappingWarning(table)
+          : undefined;
+      const warnings = [...(mapping ? [mapping] : []), ...(run.warnings ?? [])];
       const message = outcome.failed
         ? `Import stopped at row ${outcome.failed.index}: ${outcome.sent} of ${outcome.rows} rows inserted`
         : `${outcome.sent} import set rows inserted`;
-      return ok({ message, ...outcome, ...run });
+      return ok({
+        message,
+        ...outcome,
+        ...run,
+        ...(warnings.length ? { warnings } : {}),
+      });
     },
   }),
 

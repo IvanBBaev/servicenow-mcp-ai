@@ -1633,6 +1633,13 @@ never the whole file. The result also returns `import_set_run` (the
 staging table's maps, the ones the rows used marked `used: true`). If either
 follow-up read fails, you get `warnings` instead of an error.
 
+`insertMultiple` keeps the values only when the staging table has an active
+`sys_rest_insert_multiple` record with a column mapping
+(`sys_rest_insert_multiple_column_mapping`; pick **Column name** when the
+rows are keyed by column name). Without one the instance creates the rows and
+leaves every column empty, so the result then carries a `warnings` entry
+saying so (verified on a PDI).
+
 ### Generic artifact reads
 
 The opt-in `artifacts` package reads any type in the artifact registry (the
