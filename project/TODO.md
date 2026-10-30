@@ -293,6 +293,11 @@ OD-13 … OD-16 were added on 2026-10-28, after the 3.1 and 3.2 blocks of
   - Evidence: `bf9e3f4` (N-70) and `649d29d` (N-68) on `main`; every unit and contract test
     passes against the fetch double; no instance write happened.
   - Recommend: (1).
+  - **Done 2026-10-30: (1).** The owner consented; both round-trips ran on `ven03019` and are
+    recorded in [PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md) (forty-first pass). They found
+    that value-linked schema children were refused, that a REST create takes the session's
+    current application and that `insertMultiple` drops every value without a
+    `sys_rest_insert_multiple` mapping — fixed or warned about in the same session.
   - **Decided 2026-10-30: (1).** Owner delegated the call to the assistant on 2026-10-30. Both
     round-trips run on `ven03019`; the result is in [PDI-VERIFY-2026-10.md](PDI-VERIFY-2026-10.md).
 

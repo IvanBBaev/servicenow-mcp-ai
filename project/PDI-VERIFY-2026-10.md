@@ -991,6 +991,26 @@ grants of the allowed roles in a second and, only when `allowed_users` is set
 and no role matched, the user's sys_id in a third; every failure degrades to
 "unknown". No write was made. tools/list delta 0 B.
 
+## Forty-first pass: schema writes and `insertMultiple` round-trips (OD-14)
+
+On ven03019, as an admin, with the owner's consent (2026-10-30). Every write
+went through the local build (plan → token → apply, journal) on a scratch
+table `u_mcp_od14_scratch` that extends `sys_import_set_row`, and every
+record was reverted or deleted afterwards; a final sweep found nothing left.
+
+| Write or read                                                          | Finding                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `servicenow_upsert_artifact` `table` + `sys_dictionary` + 3 choices    | Before the fix the column and choice children were refused: they name the table by value (`name`), not by reference. After it the plan wrote 5 records, read back as written (`internal_type` string, `max_length` 40, `choice` 1, the three choices with their sequences), and S-2 reverted all 5.                          |
+| `sys_db_object` create without `sys_scope`                             | Landed in the session's current application (`x_nuvo_cs`) and got its prefix. With `sys_scope: "global"` the table is global, but a child without `sys_scope` is still claimed by the current application — children now inherit the primary record's `sys_scope`. Verified: column `u_status` in global, unprefixed.        |
+| `POST /api/now/import/{table}/insertMultiple` `{records}`              | Answers 201 and creates a `sys_import_set` (mode asynchronous) and a `sys_multi_import_set`. A table that does not extend `sys_import_set_row` is refused with 400 "Invalid staging table".                                                                                                                                  |
+| `insertMultiple` without `sys_rest_insert_multiple`                    | The rows are created but every value is empty — no error. A single-row Import API insert and a Table API insert keep the values without any configuration.                                                                                                                                                                   |
+| `sys_rest_insert_multiple` + `sys_rest_insert_multiple_column_mapping` | Fields `name`, `source_table`, `active`, `transformation` (synchronous / asynchronous, default asynchronous); the mapping child has `rest_insert_multiple`, `type` (`application/json`) and `column_mapping` (`label` by default, or `column_name`). With an active record and a `column_name` mapping the values were kept. |
+
+Outcome: N-70 and N-68 are verified. Two fixes and a warning landed: value-
+linked schema children are writable, new children inherit the primary
+record's `sys_scope`, and an `insertMultiple` call on a table without an
+active mapping returns a `warnings` entry. tools/list delta 0 B.
+
 ## Next steps
 
 The non-breaking fixes are in (see the re-run above). The four key-field
