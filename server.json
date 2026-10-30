@@ -61,7 +61,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://{host}/mcp",
+      "url": "https://{servicenow_mcp_ai_host}/mcp",
       "headers": [
         {
           "name": "Authorization",
@@ -77,7 +77,7 @@
         }
       ],
       "variables": {
-        "host": {
+        "servicenow_mcp_ai_host": {
           "description": "Host of your own deployment of the server in HTTP mode (SN_TRANSPORT=http behind TLS); there is no hosted instance.",
           "isRequired": true,
           "placeholder": "mcp.example.com"

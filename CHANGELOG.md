@@ -5,6 +5,10 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+### Fixed
+
+- MCP Registry: the `server.json` remote is `https://{servicenow_mcp_ai_host}/mcp`; the registry refused 3.1.0 because `https://{host}/mcp` is already registered by another server.
+
 ## [3.1.0] - 2026-10-30
 
 ### Added

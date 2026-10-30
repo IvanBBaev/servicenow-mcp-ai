@@ -157,8 +157,10 @@ test("N-91: the committed server.json: npm only, the site, one templated remote"
   assert.equal(s.remotes.length, 1);
   const [remote] = s.remotes;
   assert.equal(remote.type, "streamable-http");
-  assert.match(remote.url, /^https:\/\/\{host\}\//);
-  assert.equal(remote.variables.host.isRequired, true);
+  // The registry rejects a remote URL another server already uses, and
+  // `https://{host}/mcp` is taken, so the variable carries the server name.
+  assert.equal(remote.url, "https://{servicenow_mcp_ai_host}/mcp");
+  assert.equal(remote.variables.servicenow_mcp_ai_host.isRequired, true);
   // Every {variable} in the URL and the headers is declared next to it.
   for (const [, name] of remote.url.matchAll(/\{(\w+)\}/g)) {
     assert.ok(remote.variables[name], `url variable ${name} is undeclared`);
