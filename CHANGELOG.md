@@ -5,6 +5,8 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-30
+
 ### Added
 
 - Attachment file I/O (N-66): `servicenow_upload_attachment` accepts `file_path` — a file under `SN_DOCS_DIR` (the docs-store confinement, symlink check and journal-file refusal apply; the size is checked against `SN_MAX_UPLOAD_BYTES` before the file is read; the content type defaults by extension) — as the alternative to `content_base64`, and `servicenow_download_attachment` accepts `format: "file"`, which writes the bytes to `<profile>/exports/<name>-<stamp>.<ext>` and returns the path, size, sha256 and, for text-like content, a preview instead of base64. The write journal records the effective name, type and path, never the bytes. `tools/list`: +60 B per profile; the five attachment tool descriptions were shortened to pay for it.
@@ -760,7 +762,8 @@ cut and the subsequent work are consolidated here.)
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
 - Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.
 
-[Unreleased]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v2.0.1...v3.0.0
 [2.0.1]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v1.1.2...v2.0.0
