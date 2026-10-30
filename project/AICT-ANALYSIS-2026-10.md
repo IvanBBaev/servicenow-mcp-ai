@@ -4,11 +4,11 @@ Date: 2026-10-30 · Baseline: main @ 5810e25 · servicenow-mcp-ai 3.0.0.
 Companion to [COMPETITIVE-ANALYSIS.md](COMPETITIVE-ANALYSIS.md) (2026-06, which mentions AICT
 only as "the governance behind the MCP Server Console") and
 [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) (N-109 audit journal, N-134 `regulated`
-preset). Findings use the prefix `CT-`. No roadmap rows are minted here; §6 lists candidates
+preset). Findings use the prefix `CT-`. No roadmap rows are minted here; §7 lists candidates
 for the owner.
 
 **Evidence level.** Everything about AICT comes from ServiceNow press releases and
-ServiceNow Community product articles (sources in §8). They describe intended capability, not
+ServiceNow Community product articles (sources in §9). They describe intended capability, not
 independently verified behaviour. The PDI (`ven03019`) could not confirm anything: a read of
 `sys_store_app` returned 403 for the configured user, and AICT needs a licensed instance
 anyway (same blocker as O-25).
@@ -75,7 +75,43 @@ first-year trial).
 | Plan → token → apply                       | Yes, plus elevation                                                                                                             | A real differentiator: the gateway pauses servers but does not make individual writes two-phase             |
 | Cost metering                              | None (no Assist cost to meter)                                                                                                  | Not needed; AICT meters the model tokens on the client side                                                 |
 
-## 4. Findings
+## 4. Can AICT stop this server?
+
+**Short answer: not by itself.** AICT makes the server visible; the instance admin and the
+client administrator are the ones who can stop it. Derived from vendor descriptions, not
+verified on an AICT instance.
+
+**What AICT cannot do directly.**
+
+- AI Gateway pauses, scans and blocks only traffic that goes **through the gateway URL**. A
+  stdio or self-hosted HTTP deployment calls the instance's REST API directly with its own
+  credentials, so the gateway has nothing to pause.
+- The AICT kill switch revokes credentials **through Okta** (and stops ServiceNow, GCP and
+  Bedrock agents). A local ServiceNow user with basic auth, or an OAuth client registered on
+  the instance itself, is outside that path unless the customer's SSO wires it in.
+- Registry approval governs what **ServiceNow-native and registry-aware clients** may call; it
+  does not reach into a process running on a developer's machine.
+
+**What can stop it in an AICT customer.**
+
+| Vector                                                                                                                                                                                        | Who acts                            | Effect on the server                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------- |
+| Discovery → manual action. Veza maps non-human identities; an integration user with heavy REST traffic can be flagged as an unmanaged AI asset.                                               | AI Steward, then the instance admin | The user is deactivated or loses roles; every call fails with 401/403.     |
+| Instance controls (exist without AICT): REST API access policies, the `snc_platform_rest_api_access` requirement, basic auth disabled, IP allowlists, OAuth application revoked, rate limits. | Instance admin                      | Calls fail with 401/403/429. The cheapest and therefore most likely route. |
+| Client policy: a centrally managed Claude, VS Code or Copilot that allows only MCP servers from the approved registry.                                                                        | Client / endpoint admin             | The client refuses to load the server; the instance is never involved.     |
+
+**In practice.**
+
+- On a PDI or an instance without AICT nothing changes.
+- On an AICT instance the server keeps working until someone decides to stop it via one of
+  the vectors above — the same as any unapproved integration, not automatically.
+- The way to stay running is to become an approved asset: HTTP mode behind AI Gateway,
+  registered and approved by a Steward (AICT-2, AICT-3 in §7). Errors from the vectors above
+  already surface as `INSTANCE_HTTP_401` / `INSTANCE_HTTP_403` with a role hint; a hint that
+  names REST API access policies and AICT as possible causes would help the user (candidate
+  for AICT-2).
+
+## 5. Findings
 
 - **CT-01 — Positioning text is outdated.** COMPETITIVE-ANALYSIS (2026-06) and the site table
   (`docs/index.md` ~L997) treat AICT as governance for the official server only. AICT now
@@ -113,7 +149,7 @@ first-year trial).
   scope; AICT governs _access to_ tools, not _what a write does_. That is the story to tell
   AICT customers.
 
-## 5. Opportunity — "AICT-ready" deployment
+## 6. Opportunity — "AICT-ready" deployment
 
 A single deployment mode that an AI Steward can approve:
 
@@ -130,7 +166,7 @@ What we would ship: a docs recipe, a `server.json` remote entry, a Server Card-f
 list, an OWASP MCP Top 10 self-check in CI, and an OTel attribute map. No tool-surface change,
 so `tools/list` +0 B.
 
-## 6. Candidate roadmap items (owner to accept and number)
+## 7. Candidate roadmap items (owner to accept and number)
 
 | Candidate                                     | Scope                                                                                                             | Effort            | Gate                                             |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------- | ------------------------------------------------ |
@@ -141,7 +177,7 @@ so `tools/list` +0 B.
 | AICT-5 OTel GenAI / MCP conventions           | CT-06: align span names and attributes; document Traceloop / AICT ingestion.                                      | S                 | —                                                |
 | AICT-6 Audit events consumable by AICT / SIEM | CT-07: fold into N-109 / OD-27 as an explicit target.                                                             | — (part of N-109) | OD-27                                            |
 
-## 7. Owner questions
+## 8. Owner questions
 
 1. Is an AICT-governed enterprise deployment a target audience for 3.x, or does the project
    stay developer / consultant / PDI-first? (Decides AICT-2 and AICT-3.)
@@ -149,7 +185,7 @@ so `tools/list` +0 B.
 3. Is a licensed instance with AICT + AI Gateway obtainable (Innovation Lab, partner
    instance)? Without it every item above stays unverified — same gate as O-25.
 
-## 8. Sources
+## 9. Sources
 
 - ServiceNow Newsroom — [AI Control Tower expansion (K26, 2026-05-05)](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-expands-AI-Control-Tower-to-discover-observe-govern-secure-and-measure-AI-deployed-across-any-system-in-the-enterprise/default.aspx)
 - ServiceNow Newsroom — [Opens its full system of action to every AI agent](https://newsroom.servicenow.com/press-releases/details/2026/ServiceNow-opens-its-full-system-of-action-to-every-AI-Agent-in-the-enterprise/default.aspx)
