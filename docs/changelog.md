@@ -2,6 +2,13 @@
 
 > Released versions of servicenow-mcp-ai, generated from [CHANGELOG.md](https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/CHANGELOG.md) by `npm run docs:sync`. Unreleased changes are listed in that file.
 
+## [3.1.1] - 2026-10-31
+
+### Fixed
+
+- The outbound `User-Agent` no longer carries `user=<user>` (added in 3.1.0); it is `servicenow-mcp-ai/<version> (node/<major>; <transport>)` again, naming neither the MCP client nor the user. `SN_USER_AGENT_SUFFIX` is unchanged. `tools/list`: +0 B.
+- MCP Registry: the `server.json` remote is `https://{servicenow_mcp_ai_host}/mcp`; the registry refused 3.1.0 because `https://{host}/mcp` is already registered by another server.
+
 ## [3.1.0] - 2026-10-30
 
 ### Added
@@ -759,6 +766,7 @@ cut and the subsequent work are consolidated here.)
 - TypeScript: `noUncheckedIndexedAccess`; ESLint: type-checked rules + `no-floating-promises`.
 - Errors are structured (`{ status, message, snDetail }`); retry with exponential backoff + `Retry-After`; SSRF guard; result size guard.
 
+[3.1.1]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v2.0.1...v3.0.0
 [2.0.1]: https://github.com/IvanBBaev/servicenow-mcp-ai/compare/v2.0.0...v2.0.1

@@ -1,6 +1,6 @@
 {
   "name": "servicenow-mcp-ai",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "mcpName": "io.github.IvanBBaev/servicenow-mcp-ai",
   "description": "ServiceNow MCP server: 100 tools in 28 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
   "license": "GPL-3.0-or-later",
