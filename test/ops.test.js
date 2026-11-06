@@ -18,8 +18,11 @@ import {
 } from "../build/mcp/registry.js";
 import { registerPrompts } from "../build/mcp/prompts.js";
 import { OPS_TABLES } from "../build/api/ops.js";
+import { runWithProfile } from "../build/core/request-context.js";
+import { getDataHealthMaxRows } from "../build/core/settings.js";
 import {
   baselineEnv,
+  withEnv,
   freshRuntime,
   withFetch,
   jsonResponse,
@@ -520,6 +523,7 @@ test("check_data_health: duplicates, orphans and stale references", async () => 
           table: "u_contact",
           key_fields: ["email", "email"],
           query: "active=true",
+          stale: true,
           limit: 1,
         }),
       );
@@ -609,6 +613,7 @@ test("check_data_health: per-check failures degrade, auto selection notes the ca
         await call("servicenow_check_data_health", {
           table: "u_contact",
           key_fields: ["u_ref00"],
+          stale: true,
         }),
       );
       assert.equal(r.available, true);
@@ -665,6 +670,131 @@ test("check_data_health: ^NQ and ORDERBY in the scope are rejected", async () =>
     assert.equal(res.isError, true);
     assert.match(res.content[0].text, /\^NQ or ORDERBY/);
   }
+});
+
+test("check_data_health: an unscoped run above the limit is refused before any check (N-104)", async () => {
+  await withEnv({ SN_DATA_HEALTH_MAX_ROWS: "1000" }, () =>
+    withFetch(
+      dhFetch(() => jsonResponse(200, stats(1001))),
+      async (calls) => {
+        const r = out(
+          await call("servicenow_check_data_health", {
+            table: "u_contact",
+            key_fields: ["email"],
+          }),
+        );
+        assert.equal(r.available, false);
+        assert.equal(r.rows_in_scope, 1001);
+        assert.match(r.unavailableReason, /1001 rows, above the 1000 limit/);
+        assert.match(r.hint, /SN_DATA_HEALTH_MAX_ROWS/);
+        assert.equal(r.references, undefined);
+        // Only the row count reached the Stats API.
+        const counts = calls
+          .map((c) => parse(c.url))
+          .filter((q) => q.api === "stats");
+        assert.equal(counts.length, 1);
+        assert.equal(counts[0].query, "");
+      },
+    ),
+  );
+});
+
+test("check_data_health: the row limit defaults to 250,000 and spares a scoped run (N-104)", async () => {
+  await withFetch(
+    dhFetch(() => jsonResponse(200, stats(250_000))),
+    async () => {
+      const r = out(
+        await call("servicenow_check_data_health", { table: "u_contact" }),
+      );
+      assert.equal(r.available, true);
+    },
+  );
+  freshRuntime();
+  await withFetch(
+    dhFetch(() => jsonResponse(200, stats(250_001))),
+    async () => {
+      const r = out(
+        await call("servicenow_check_data_health", { table: "u_contact" }),
+      );
+      assert.equal(r.available, false);
+    },
+  );
+  freshRuntime();
+  await withFetch(
+    dhFetch(() => jsonResponse(200, stats(250_001))),
+    async () => {
+      const r = out(
+        await call("servicenow_check_data_health", {
+          table: "u_contact",
+          query: "active=true",
+        }),
+      );
+      assert.equal(r.available, true);
+      assert.equal(r.rows_in_scope, 250_001);
+    },
+  );
+});
+
+test("check_data_health: the row limit is per profile (N-104)", async () => {
+  await withEnv(
+    {
+      SN_DATA_HEALTH_MAX_ROWS: "1000",
+      SN_PROFILE_PROD_DATA_HEALTH_MAX_ROWS: "50",
+    },
+    () => {
+      assert.equal(getDataHealthMaxRows(), 1000);
+      assert.equal(
+        runWithProfile("prod", () => getDataHealthMaxRows()),
+        50,
+      );
+    },
+  );
+});
+
+test("check_data_health: checks run one at a time and report elapsed_ms (N-104)", async () => {
+  let inFlight = 0;
+  let peak = 0;
+  const statsAnswer = dhFetch(() => jsonResponse(200, stats(0)));
+  await withFetch(
+    async (url) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setImmediate(resolve));
+      inFlight--;
+      return statsAnswer(url);
+    },
+    async () => {
+      const r = out(
+        await call("servicenow_check_data_health", {
+          table: "u_contact",
+          key_fields: ["email"],
+          stale: true,
+        }),
+      );
+      assert.equal(r.references.length, 2);
+      assert.equal(typeof r.duplicates.elapsed_ms, "number");
+      for (const entry of r.references) {
+        assert.equal(typeof entry.elapsed_ms, "number");
+      }
+    },
+  );
+  assert.equal(peak, 1);
+});
+
+test("check_data_health: stale references are counted only on request (N-104)", async () => {
+  await withFetch(
+    dhFetch(() => jsonResponse(200, stats(3))),
+    async (calls) => {
+      const r = out(
+        await call("servicenow_check_data_health", { table: "u_contact" }),
+      );
+      assert.equal(r.available, true);
+      for (const entry of r.references) assert.equal(entry.stale, undefined);
+      for (const c of calls) {
+        assert.doesNotMatch(parse(c.url).query, /\.active=false/);
+      }
+    },
+  );
 });
 
 // --- prompt ---------------------------------------------------------------------

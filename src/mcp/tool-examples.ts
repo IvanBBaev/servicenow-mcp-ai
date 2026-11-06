@@ -55,6 +55,7 @@ export const TOOL_EXAMPLES: Record<ToolName, ToolExample> = {
       table: "incident",
       query: "active=true",
       key_fields: ["number"],
+      stale: true,
     },
   },
   servicenow_change_access: {

@@ -39,7 +39,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 
 ## servicenow_check_data_health
 
-**Data health report.** Data-quality counts for one table: duplicate groups over key_fields, orphaned or stale references per field, each with the query listing the rows. Unreadable checks: available:false.
+**Data health report.** Data-quality counts for one table: duplicate groups over key_fields, orphaned or stale references per field, each with the query listing the rows. Unreadable checks: available:false. Refused with no query above SN_DATA_HEALTH_MAX_ROWS rows.
 
 **Writes:** Read-only.
 
@@ -51,7 +51,7 @@ Declared `outputSchema` (more keys may be present); errors follow the [error con
 | `key_fields` | string[] | no | Columns unique together, e.g. ['email']; omit to skip duplicates. |
 | `reference_fields` | string[] | no | Reference columns (default: first 10). |
 | `query` | string | no | Encoded query scoping every check (no ^NQ or ORDERBY). |
-| `stale` | boolean | no | Count references to inactive rows (default true). |
+| `stale` | boolean | no | Count references to inactive rows (default false). |
 | `limit` | integer | no | Maximum duplicate groups to return (default 20, max 100). |
 | `instance` | string | no | Profile (default active) |
 

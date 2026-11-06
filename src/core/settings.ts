@@ -23,6 +23,7 @@ import { ServiceNowError } from "./errors.js";
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_RETRIES = 2;
 export const DEFAULT_MAX_RECORDS = 10_000;
+export const DEFAULT_DATA_HEALTH_MAX_ROWS = 250_000;
 export const DEFAULT_MAX_RESULT_CHARS = 48_000;
 
 /** ServiceNow caps a single Table API page at 1000 rows. */
@@ -59,6 +60,15 @@ export function retryOnTimeout(): boolean {
 /** Hard cap on records returned by a fetchAll query (SN_MAX_RECORDS). */
 export function getMaxRecords(): number {
   return positiveInt("SN_MAX_RECORDS", DEFAULT_MAX_RECORDS);
+}
+
+/**
+ * N-104 — the row count above which check_data_health refuses a run with no
+ * scope (SN_DATA_HEALTH_MAX_ROWS; per profile
+ * SN_PROFILE_<NAME>_DATA_HEALTH_MAX_ROWS).
+ */
+export function getDataHealthMaxRows(): number {
+  return positiveInt("SN_DATA_HEALTH_MAX_ROWS", DEFAULT_DATA_HEALTH_MAX_ROWS);
 }
 
 /** Maximum characters in a serialised result before it is truncated (SN_MAX_RESULT_CHARS). */

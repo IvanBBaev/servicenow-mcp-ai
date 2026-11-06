@@ -4,6 +4,8 @@ import { describeTable, type ColumnInfo } from "./meta.js";
 import { snString, assertNoCaret } from "./shared.js";
 import { unreadableReason } from "./security.js";
 import { ServiceNowError } from "../core/errors.js";
+import { trackProgress } from "../core/progress.js";
+import { getDataHealthMaxRows } from "../core/settings.js";
 
 /**
  * S-10b — the opt-in `ops` package: bounded, read-only views of the platform
@@ -917,6 +919,15 @@ const DATA_HEALTH_CAVEATS = [
 const and = (scope: string, cond: string): string =>
   scope ? `${cond}^${scope}` : cond;
 
+/** Run one check and stamp how long it took. */
+async function timed(
+  check: () => Promise<Record<string, unknown>>,
+): Promise<Record<string, unknown>> {
+  const started = Date.now();
+  const result = await check();
+  return { ...result, elapsed_ms: Date.now() - started };
+}
+
 async function duplicates(
   table: string,
   scope: string,
@@ -1007,6 +1018,10 @@ async function referenceCheck(
  * stale references. Field names are checked against the dictionary first — an
  * unknown field in an encoded query is ignored by the instance, which would
  * turn a count into "every row".
+ *
+ * N-104: every reference check is a dot-walked join, so a run with no scope is
+ * refused above SN_DATA_HEALTH_MAX_ROWS, the checks run one at a time, and
+ * stale references (a second join per field) are counted only on request.
  */
 export async function dataHealth(args: DataHealthArgs): Promise<unknown> {
   const { table } = args;
@@ -1048,6 +1063,17 @@ export async function dataHealth(args: DataHealthArgs): Promise<unknown> {
       caveats: DATA_HEALTH_CAVEATS,
     };
   }
+  const maxRows = getDataHealthMaxRows();
+  if (!scope && rowsInScope > maxRows) {
+    return {
+      ...base,
+      available: false,
+      rows_in_scope: rowsInScope,
+      unavailableReason: `${table} has ${rowsInScope} rows, above the ${maxRows} limit for a run with no query.`,
+      hint: "Narrow the run with query, for example a sys_created_on window, or raise SN_DATA_HEALTH_MAX_ROWS.",
+      caveats: DATA_HEALTH_CAVEATS,
+    };
+  }
 
   const byName = new Map(columns.map((c) => [c.element, c]));
   const isRef = (c: ColumnInfo | undefined): c is ColumnInfo =>
@@ -1080,16 +1106,20 @@ export async function dataHealth(args: DataHealthArgs): Promise<unknown> {
   }
 
   const limit = args.limit ?? DATA_HEALTH_LIMIT.default;
-  const [dup, references] = await Promise.all([
-    args.key_fields?.length
-      ? duplicates(table, scope, [...new Set(args.key_fields)], byName, limit)
-      : Promise.resolve(undefined),
-    Promise.all(
-      refColumns.map((c) =>
-        referenceCheck(table, scope, c, args.stale !== false),
-      ),
-    ),
-  ]);
+  const keys = [...new Set(args.key_fields ?? [])];
+  const progress = trackProgress(refColumns.length + (keys.length ? 1 : 0));
+  let dup: Record<string, unknown> | undefined;
+  if (keys.length) {
+    dup = await timed(() => duplicates(table, scope, keys, byName, limit));
+    progress.tick("duplicates");
+  }
+  const references: Record<string, unknown>[] = [];
+  for (const c of refColumns) {
+    references.push(
+      await timed(() => referenceCheck(table, scope, c, args.stale === true)),
+    );
+    progress.tick(c.element);
+  }
 
   return {
     ...base,

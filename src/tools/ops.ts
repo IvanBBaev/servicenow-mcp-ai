@@ -84,7 +84,7 @@ export const specs: AnyToolSpec[] = [
     name: "servicenow_check_data_health",
     title: "Data health report",
     description:
-      "Data-quality counts for one table: duplicate groups over key_fields, orphaned or stale references per field, each with the query listing the rows. Unreadable checks: available:false.",
+      "Data-quality counts for one table: duplicate groups over key_fields, orphaned or stale references per field, each with the query listing the rows. Unreadable checks: available:false. Refused with no query above SN_DATA_HEALTH_MAX_ROWS rows.",
     package: "ops",
     annotations: READ_ONLY,
     output: { table: z.string(), available: z.boolean() },
@@ -104,7 +104,7 @@ export const specs: AnyToolSpec[] = [
       stale: z
         .boolean()
         .optional()
-        .describe("Count references to inactive rows (default true)."),
+        .describe("Count references to inactive rows (default false)."),
       limit: bounded(DATA_HEALTH_LIMIT, "Maximum duplicate groups to return"),
     },
     logFields: (args) => ({ table: args.table }),

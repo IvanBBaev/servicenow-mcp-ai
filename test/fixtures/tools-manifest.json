@@ -787,7 +787,7 @@
       "package": "ops",
       "title": "Data health report",
       "since": "2.0.1",
-      "description_sha256": "a571593c47e25864e891cbd8fdf1ddf9e8fe153024e8f118001e725253628963",
+      "description_sha256": "0fdaecf4e6d969b7c69dea1cbe7a21e8aafee0f0dcb891213aa4d8c762dbcf06",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -834,7 +834,7 @@
             "type": "array"
           },
           "stale": {
-            "description": "Count references to inactive rows (default true).",
+            "description": "Count references to inactive rows (default false).",
             "type": "boolean"
           },
           "table": {
@@ -856,9 +856,9 @@
         "type": "object"
       },
       "sizes": {
-        "description": 184,
-        "inputSchema": 1038,
-        "paramDescriptions": 333,
+        "description": 242,
+        "inputSchema": 1039,
+        "paramDescriptions": 334,
         "outputSchema": 148
       }
     },

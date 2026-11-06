@@ -1701,11 +1701,11 @@ items:
     title: "`check_data_health` size guard, serial run"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-11-06"
     gates: []
-    notes: "Role review P0 (SN-I2; RR-SN-02). Up to about 40 join counts run in parallel with no size guard on 20M-row tables. Refuse unscoped runs above a row threshold (default 250k, per profile), run the counts serially. ≈ +80 B. Owner decision OD-31 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+    notes: "**Done 2026-11-06.** A run with no `query` is refused above `SN_DATA_HEALTH_MAX_ROWS` (default 250k, per profile), the checks run one at a time, `stale` defaults to `false`, and each check reports `elapsed_ms`. Role review P0 (SN-I2; RR-SN-02). Owner decision OD-31 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
   - id: "N-105"
     title: "human-bound confirmation for destructive writes"
     pillar: "N"

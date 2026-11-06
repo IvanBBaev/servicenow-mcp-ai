@@ -255,6 +255,15 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description: "Hard cap on records returned by a `fetchAll` query.",
   }),
   positive({
+    key: "SN_DATA_HEALTH_MAX_ROWS",
+    section: "results",
+    since: NEXT,
+    profile: "fallback",
+    default: 250_000,
+    description:
+      "N-104: `check_data_health` refuses a run with no `query` on a table above this many rows, because each reference check is a dot-walked join over the whole table. A `query` narrows the run instead. Per profile: `SN_PROFILE_<NAME>_DATA_HEALTH_MAX_ROWS`.",
+  }),
+  positive({
     key: "SN_MAX_RESULT_CHARS",
     section: "results",
     since: V110,
