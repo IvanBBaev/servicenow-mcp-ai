@@ -186,7 +186,7 @@
       "source": "server"
     },
     "TIMEOUT": {
-      "description": "A request attempt timed out (SN_TIMEOUT_MS) and retries were exhausted.",
+      "description": "A request attempt timed out (SN_TIMEOUT_MS) and was not retried, or its retries ran out.",
       "source": "server"
     },
     "TOO_MANY_CHILDREN": {

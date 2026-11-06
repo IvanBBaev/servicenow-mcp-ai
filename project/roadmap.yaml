@@ -1692,11 +1692,11 @@ items:
     title: "no GET retry after timeout; quota alignment"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-11-06"
     gates: []
-    notes: "Role review P0 (SN-I1; RR-SN-01). A timed-out GET is retried while the first transaction still runs on the instance (load amplification). Stop retrying timeouts (keep resets/5xx), document the relation to the instance transaction quota. Owner decision OD-31 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
+    notes: "**Done 2026-11-06.** A timed-out request is no longer retried by default; resets and 5xx still are. `SN_RETRY_ON_TIMEOUT=true` restores the old behaviour, and the `SN_TIMEOUT_MS` docs state the 60 s REST Table API transaction quota. Role review P0 (SN-I1; RR-SN-01). Owner decision OD-31 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [04-servicenow-platform-architect.md](role-review-2026-10/04-servicenow-platform-architect.md)."
   - id: "N-104"
     title: "`check_data_health` size guard, serial run"
     pillar: "N"

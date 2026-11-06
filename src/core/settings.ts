@@ -47,6 +47,15 @@ export function getMaxRetries(): number {
   return positiveInt("SN_MAX_RETRIES", DEFAULT_MAX_RETRIES);
 }
 
+/**
+ * N-103: replay an idempotent request after its attempt timed out
+ * (SN_RETRY_ON_TIMEOUT). Off by default: aborting the socket does not cancel
+ * the transaction on the node, so a replay stacks a second copy on top of it.
+ */
+export function retryOnTimeout(): boolean {
+  return readBool("SN_RETRY_ON_TIMEOUT");
+}
+
 /** Hard cap on records returned by a fetchAll query (SN_MAX_RECORDS). */
 export function getMaxRecords(): number {
   return positiveInt("SN_MAX_RECORDS", DEFAULT_MAX_RECORDS);

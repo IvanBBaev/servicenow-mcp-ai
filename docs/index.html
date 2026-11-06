@@ -1196,7 +1196,8 @@ SN_ACTIVE_PROFILE=dev</code></pre>
                   <td><code>2</code></td>
                   <td>
                     Retries for transient failures (429/5xx, network). Writes
-                    retried only on connect errors.
+                    retried only on connect errors; timeouts only with
+                    <code>SN_RETRY_ON_TIMEOUT=true</code>.
                   </td>
                 </tr>
                 <tr>

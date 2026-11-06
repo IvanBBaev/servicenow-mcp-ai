@@ -179,7 +179,7 @@ export type ServiceNowErrorCode =
   | "NOT_FOUND"
   /** M-2: the call conflicts with the current state (already exists, wrong state). */
   | "CONFLICT"
-  /** M-2: one request attempt timed out (SN_TIMEOUT_MS) and retries were exhausted. */
+  /** M-2: a request attempt timed out (SN_TIMEOUT_MS) and was not retried, or its retries ran out. */
   | "TIMEOUT"
   /** M-2: the instance could not be reached (DNS, TLS, connection refused). */
   | "UNREACHABLE"
@@ -446,7 +446,7 @@ export const ERROR_CODES: Readonly<Record<ServiceNowErrorCode, ErrorCodeInfo>> =
     TIMEOUT: {
       source: "server",
       description:
-        "A request attempt timed out (SN_TIMEOUT_MS) and retries were exhausted.",
+        "A request attempt timed out (SN_TIMEOUT_MS) and was not retried, or its retries ran out.",
     },
     UNREACHABLE: {
       source: "server",

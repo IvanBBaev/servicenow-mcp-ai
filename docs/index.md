@@ -326,7 +326,7 @@ Only the first three are required; the rest are optional tuning knobs. See [.env
 | `SN_USER` * | — | ServiceNow username for Basic auth. |
 | `SN_PASSWORD` * | — | Password. Never logged or returned. |
 | `SN_TIMEOUT_MS` | `30000` | Per-request timeout (ms). |
-| `SN_MAX_RETRIES` | `2` | Retries for transient failures (429/5xx, network). Writes retried only on connect errors. |
+| `SN_MAX_RETRIES` | `2` | Retries for transient failures (429/5xx, network). Writes retried only on connect errors; timeouts only with `SN_RETRY_ON_TIMEOUT=true`. |
 | `SN_MAX_RECORDS` | `10000` | Hard cap on a `fetchAll` query. |
 | `SN_MAX_RESULT_CHARS` | `100000` | Character budget before a query result is truncated (the note names `format:"file"`); other results over it gain a note. |
 | `SN_OVERSIZE_TO_FILE` | `false` | Write snapshot, compare and diagram results over the budget to a file under `SN_DOCS_DIR` and return `{path, bytes, preview}`. |

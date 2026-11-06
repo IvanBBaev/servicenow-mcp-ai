@@ -5,6 +5,10 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 
 ## [Unreleased]
 
+### Changed
+
+- A request that hits `SN_TIMEOUT_MS` is no longer retried (N-103): aborting the socket does not cancel the transaction on the instance, so a retry stacked a second and third copy of a slow query. Connection errors, 429 and 5xx are retried as before; `SN_RETRY_ON_TIMEOUT=true` restores the old behaviour. The `SN_TIMEOUT_MS` reference now explains how the timeout relates to the instance's transaction quota.
+
 ## [3.1.1] - 2026-10-31
 
 ### Fixed

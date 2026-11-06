@@ -87,7 +87,7 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `SDK_MANAGED_SCOPE` | policy | SN_SDK_MANAGED_WRITES=deny and the record belongs to an SDK-managed scope. |
 | `STALE_RECORD` | server | The record changed after the journaled write or the plan; force:true overrides. |
 | `TASKS_UNAVAILABLE` | server | MCP tasks are unavailable for this call (SN_EXPERIMENTAL_TASKS). |
-| `TIMEOUT` | server | A request attempt timed out (SN_TIMEOUT_MS) and retries were exhausted. |
+| `TIMEOUT` | server | A request attempt timed out (SN_TIMEOUT_MS) and was not retried, or its retries ran out. |
 | `TOO_MANY_CHILDREN` | server | More children on one table than the diff reads. |
 | `UNEXPECTED_RESPONSE` | servicenow | The instance answered 2xx with a body that is not the expected API shape. |
 | `UNKNOWN_PACKAGE` | server | The name is not a known tool package. |

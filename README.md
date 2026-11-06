@@ -717,8 +717,9 @@ Timeouts, retries, the host allow-list, the outbound proxy, mutual TLS and the p
 
 | Variable | Required | Default | Since | Description |
 | -------- | :------: | ------- | ----- | ----------- |
-| `SN_TIMEOUT_MS` | no | `30000` | 1.1.0 | Per-request timeout in milliseconds. |
-| `SN_MAX_RETRIES` | no | `2` | 1.1.0 | Retries for transient failures (429/5xx, network errors). Non-idempotent writes are only retried on connect errors. |
+| `SN_TIMEOUT_MS` | no | `30000` | 1.1.0 | Per-request timeout in milliseconds. Keep it below the instance's REST Table API transaction quota (60 s by default, reported): the instance cancels a transaction at that quota, and aborting the socket here does not cancel it sooner. |
+| `SN_MAX_RETRIES` | no | `2` | 1.1.0 | Retries for transient failures (429/5xx, network errors). A timed-out attempt is not retried unless `SN_RETRY_ON_TIMEOUT` is on. Non-idempotent writes are only retried on connect errors. |
+| `SN_RETRY_ON_TIMEOUT` | no | `false` | next | `true` retries an idempotent request whose attempt hit `SN_TIMEOUT_MS`. Off by default: the first transaction keeps running on the instance after the abort, so each retry adds another copy of a slow query. |
 | `SN_RETRY_AFTER_MAX_MS` | no | `60000` | next | Upper bound honoured for a `Retry-After` header on 429/503; a larger value is clamped so a misbehaving upstream cannot park the client for minutes. |
 | `SN_DEADLINE_MS` | no | max(120000, 2 × `SN_TIMEOUT_MS`) | next | Total wall-clock budget for one logical request across retries, backoff, queue wait and OAuth re-auth. A retry that cannot fit into the remaining budget is not attempted — the call fails with code `DEADLINE_EXCEEDED`. |
 | `SN_ALLOWED_HOSTS` | no | — | 1.1.0 | Comma-separated allow-list of permitted hosts (for custom or sovereign-cloud domains). When set, only matching hosts are contacted. When unset, only `*.service-now.com` instances are allowed and internal/loopback hosts are blocked (SSRF guard). An entry may carry a port (`host:8443`) or be a bracketed IPv6 literal (`[2001:db8::1]`); an explicit non-443 port or an IPv6 literal in the instance value is accepted only when such an entry matches it — never under the default policy. |

@@ -588,6 +588,84 @@ test("SN_DEADLINE_MS clips the last attempt's timeout → DEADLINE_EXCEEDED", as
   );
 });
 
+test("N-103: a timed-out GET is sent once by default", async () => {
+  await withEnv(
+    {
+      ...CLEAN,
+      SN_MAX_RETRIES: "2",
+      SN_TIMEOUT_MS: "20",
+      SN_RETRY_ON_TIMEOUT: undefined,
+    },
+    async () => {
+      let calls = 0;
+      const hang = (url, init) => {
+        calls += 1;
+        return hangUntilAbort(url, init);
+      };
+      await withFetch(hang, () =>
+        assert.rejects(
+          snRequest({ method: "GET", path: "/api/now/table/incident" }),
+          { code: "TIMEOUT" },
+        ),
+      );
+      assert.equal(calls, 1);
+    },
+  );
+});
+
+test("N-103: SN_RETRY_ON_TIMEOUT=true retries a timed-out GET", async (t) => {
+  const clock = fakeClock(t);
+  await withEnv(
+    {
+      ...CLEAN,
+      SN_MAX_RETRIES: "2",
+      SN_TIMEOUT_MS: "20",
+      SN_RETRY_ON_TIMEOUT: "true",
+    },
+    async () => {
+      let calls = 0;
+      const hang = (url, init) => {
+        calls += 1;
+        return hangUntilAbort(url, init);
+      };
+      await withFetch(hang, () =>
+        assert.rejects(
+          clock.run(
+            snRequest({ method: "GET", path: "/api/now/table/incident" }),
+            { step: 100 },
+          ),
+          { code: "TIMEOUT" },
+        ),
+      );
+      assert.equal(calls, 3);
+    },
+  );
+});
+
+test("N-103: a connection reset on a GET is still retried", async (t) => {
+  const clock = fakeClock(t);
+  await withEnv(
+    { ...CLEAN, SN_MAX_RETRIES: "2", SN_RETRY_ON_TIMEOUT: undefined },
+    async () => {
+      let calls = 0;
+      const reset = () => {
+        calls += 1;
+        return Promise.reject(new TypeError("fetch failed: ECONNRESET"));
+      };
+      await withFetch(reset, () =>
+        assert.rejects(
+          clock.run(
+            snRequest({ method: "GET", path: "/api/now/table/incident" }),
+            { step: 100 },
+          ),
+          { code: "UNREACHABLE" },
+        ),
+      );
+      assert.equal(calls, 3);
+    },
+  );
+});
+
 test("per-call timeoutMs overrides SN_TIMEOUT_MS", async () => {
   await withEnv({ ...CLEAN, SN_MAX_RETRIES: "0", SN_TIMEOUT_MS: "30000" }, () =>
     withFetch(hangUntilAbort, async () => {

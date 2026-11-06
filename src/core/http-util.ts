@@ -16,6 +16,7 @@ import {
   getMaxRetries,
   getTimeoutMs,
   otelPropagate,
+  retryOnTimeout,
 } from "./settings.js";
 import { type ErrorFactory, shapeErrorBody } from "./http-error-body.js";
 import {
@@ -162,7 +163,7 @@ const REDIRECT_HINT =
   "Redirects are never followed (a redirect could carry the request body and auth headers to another origin). Point the instance/site setting at the final host; a login/SSO redirect usually means the auth method is wrong, and a redirect to the developer portal means the PDI is hibernating.";
 
 const TIMEOUT_HINT =
-  "The instance did not answer in time — retry, narrow the request, or raise SN_TIMEOUT_MS.";
+  "The instance did not answer in time and may still be running the transaction — narrow the request, or raise SN_TIMEOUT_MS.";
 
 const UNREACHABLE_HINT =
   "Check the instance setting (SN_INSTANCE or the profile's instance), DNS and network access; a PDI may need waking at developer.servicenow.com.";
@@ -443,8 +444,14 @@ async function rawRequestInner(
         throw deadlineFailure(attempt + 1, "attempt cut by the deadline");
       }
       // Only retry transport errors for idempotent requests, to avoid
-      // duplicating non-idempotent writes whose outcome is unknown.
-      if (idempotent && attempt < maxRetries) {
+      // duplicating non-idempotent writes whose outcome is unknown. N-103: a
+      // timeout is not retried by default — the transaction is still running
+      // on the instance, and a replay would stack a second copy on it.
+      if (
+        idempotent &&
+        attempt < maxRetries &&
+        (!timedOut || retryOnTimeout())
+      ) {
         const wait = backoffMs(attempt + 1);
         if (wait >= remaining()) {
           throw deadlineFailure(

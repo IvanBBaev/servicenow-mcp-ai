@@ -262,7 +262,8 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
     section: "network",
     since: V110,
     default: 30_000,
-    description: "Per-request timeout in milliseconds.",
+    description:
+      "Per-request timeout in milliseconds. Keep it below the instance's REST Table API transaction quota (60 s by default, reported): the instance cancels a transaction at that quota, and aborting the socket here does not cancel it sooner.",
   }),
   nonNegative({
     key: "SN_MAX_RETRIES",
@@ -270,7 +271,15 @@ export const SERVER_ROWS: readonly SettingSpec[] = [
     since: V110,
     default: 2,
     description:
-      "Retries for transient failures (429/5xx, network errors). Non-idempotent writes are only retried on connect errors.",
+      "Retries for transient failures (429/5xx, network errors). A timed-out attempt is not retried unless `SN_RETRY_ON_TIMEOUT` is on. Non-idempotent writes are only retried on connect errors.",
+  }),
+  bool({
+    key: "SN_RETRY_ON_TIMEOUT",
+    section: "network",
+    since: NEXT,
+    default: false,
+    description:
+      "`true` retries an idempotent request whose attempt hit `SN_TIMEOUT_MS`. Off by default: the first transaction keeps running on the instance after the abort, so each retry adds another copy of a slow query.",
   }),
   positive({
     key: "SN_RETRY_AFTER_MAX_MS",
