@@ -11,6 +11,7 @@ The git history is one commit per task.
 - Journal concurrency and retention (N-109): an append holds an advisory `write-journal.lock`, so several server processes on one profile keep a single valid chain; the Markdown mirror is re-rendered at most once per second instead of on every line; a revert finds its entry reading newest first and stops there; `SN_JOURNAL_KEEP` (default `0`, keep all) removes the oldest rotated files and anchors the chain in `write-journal.anchor`, logged as a `journal_retention` audit event. `tools/list`: +0 B.
 
 - Managed policy file (N-108): an administrator's `policy.json` at the OS path (`/etc/servicenow-mcp-ai/`, `/Library/Application Support/servicenow-mcp-ai/`, `%ProgramData%\servicenow-mcp-ai\`) or `SN_MANAGED_POLICY_FILE` sets policy floors the user can only tighten, maps instance hosts to `prod` / `test` / `dev` over `SN_ENV`, and can disable writes. An invalid file stops startup with the new `MANAGED_POLICY_INVALID` error. `servicenow_explain_policy` and `doctor` report it. Opt-in; `tools/list`: +0 B.
+- Instance kill switch (N-108): a managed policy's `instanceKillSwitchProperty` names a system property; while it is `true` on the instance, every applied write is refused with the new `POLICY_KILL_SWITCH` error (read cached for 60 s; an unreadable property counts as off). `tools/list`: +0 B.
 
 ### Changed
 

@@ -79,6 +79,7 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `PLAN_ONLY_FIELD` | policy | The plan writes a field the registry marks writable:false; the apply is refused. |
 | `PLAN_REQUIRED` | policy | A destructive apply needs the plan_token of a matching plan preview; nothing was sent. |
 | `POLICY_DENIED` | policy | The table, package or read-only policy refused the call; the hint names the setting. |
+| `POLICY_KILL_SWITCH` | policy | The managed kill-switch system property is true on the instance; writes are refused, nothing was sent. |
 | `PREFLIGHT_INVALID` | server | An SDK pre-flight rule refuses a value. |
 | `PROPERTY_NOT_FOUND` | server | The named system property does not exist or is not readable. |
 | `RECIPIENT_NOT_ALLOWED` | policy | An email recipient is outside SN_EMAIL_ALLOWED_DOMAINS or the instance's own directory. |

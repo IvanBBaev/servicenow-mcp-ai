@@ -187,7 +187,9 @@ open items — is in
   containers) sets floors the user can only tighten: `settings` (flags lock on, deny lists are
   unioned, confirmation and write mode take the stricter value, caps the lower one, allowlists
   are replaced), `environments` (an instance-host pattern → `prod` / `test` / `dev`, which wins
-  over `SN_ENV`) and `disableWrites`. A file that exists but is invalid stops startup
+  over `SN_ENV`), `disableWrites` and `instanceKillSwitchProperty` — a system property the
+  platform owner sets to `true` on the instance to refuse every write from every client within
+  60 s (`POLICY_KILL_SWITCH`; a property the account cannot read counts as off). A file that exists but is invalid stops startup
   (`MANAGED_POLICY_INVALID`); the file is read once per process. `servicenow_explain_policy`
   and `doctor` name the file and the locked keys
   ([ADR 0013](project/adr/0013-managed-policy-file.md)).

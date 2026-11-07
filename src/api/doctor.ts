@@ -359,6 +359,11 @@ export function formatDoctorReport(report: DoctorReport): string {
     lines.push(
       `    managed:  ${config.managed.sources.join(", ")} (locks ${config.managed.locked.join(", ") || "nothing"})`,
     );
+    if (config.managed.killSwitch) {
+      lines.push(
+        `    kill switch: ${config.managed.killSwitch.join(", ")} (instance sys_property; true refuses writes)`,
+      );
+    }
   }
 
   // -- connectivity -------------------------------------------------------

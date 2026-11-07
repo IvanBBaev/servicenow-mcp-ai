@@ -2191,7 +2191,9 @@ open items — is in
   containers) sets floors the user can only tighten: `settings` (flags lock on, deny lists are
   unioned, confirmation and write mode take the stricter value, caps the lower one, allowlists
   are replaced), `environments` (an instance-host pattern → `prod` / `test` / `dev`, which wins
-  over `SN_ENV`) and `disableWrites`. A file that exists but is invalid stops startup
+  over `SN_ENV`), `disableWrites` and `instanceKillSwitchProperty` — a system property the
+  platform owner sets to `true` on the instance to refuse every write from every client within
+  60 s (`POLICY_KILL_SWITCH`; a property the account cannot read counts as off). A file that exists but is invalid stops startup
   (`MANAGED_POLICY_INVALID`); the file is read once per process. `servicenow_explain_policy`
   and `doctor` name the file and the locked keys
   ([ADR 0013](project/adr/0013-managed-policy-file.md)).
@@ -2535,6 +2537,7 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `PLAN_ONLY_FIELD` | policy | The plan writes a field the registry marks writable:false; the apply is refused. |
 | `PLAN_REQUIRED` | policy | A destructive apply needs the plan_token of a matching plan preview; nothing was sent. |
 | `POLICY_DENIED` | policy | The table, package or read-only policy refused the call; the hint names the setting. |
+| `POLICY_KILL_SWITCH` | policy | The managed kill-switch system property is true on the instance; writes are refused, nothing was sent. |
 | `PREFLIGHT_INVALID` | server | An SDK pre-flight rule refuses a value. |
 | `PROPERTY_NOT_FOUND` | server | The named system property does not exist or is not readable. |
 | `RECIPIENT_NOT_ALLOWED` | policy | An email recipient is outside SN_EMAIL_ALLOWED_DOMAINS or the instance's own directory. |

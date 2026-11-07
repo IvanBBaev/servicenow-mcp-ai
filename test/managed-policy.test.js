@@ -6,6 +6,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { KILL_SWITCH_TTL_MS } from "../build/core/kill-switch.js";
+import { journaledWrite } from "../build/core/write-journal.js";
 import {
   managedPolicySummary,
   osPolicyPath,
@@ -28,7 +30,14 @@ import {
   getProfileEnv,
 } from "../build/core/settings.js";
 import { policyPayload } from "../build/mcp/policy-view.js";
-import { baselineEnv, freshRuntime, withEnv } from "./helpers.js";
+import {
+  baselineEnv,
+  fakeClock,
+  freshRuntime,
+  jsonResponse,
+  withEnv,
+  withFetch,
+} from "./helpers.js";
 
 baselineEnv();
 
@@ -212,4 +221,104 @@ test("parseManagedPolicy normalises lists and lowercases host patterns", () => {
   );
   assert.equal(p.settings.get("SN_REDACT_FIELDS"), "a,b");
   assert.deepEqual(p.environments, [["acme.service-now.com", "prod"]]);
+});
+
+test("the instance kill switch refuses writes within the cache TTL", async (t) => {
+  const clock = fakeClock(t);
+  const docs = mkdtempSync(path.join(tmpdir(), "snmcp-n108-docs-"));
+  t.after(() => rmSync(docs, { recursive: true, force: true }));
+  let value = "false";
+  await withPolicy(
+    { instanceKillSwitchProperty: "x_mcp.disable_writes" },
+    { SN_DOCS_DIR: docs },
+    () =>
+      withFetch(
+        (url) => {
+          const u = new URL(url);
+          assert.equal(u.pathname, "/api/now/table/sys_properties");
+          assert.equal(
+            u.searchParams.get("sysparm_query"),
+            "nameINx_mcp.disable_writes",
+          );
+          return jsonResponse(200, {
+            result: [{ name: "x_mcp.disable_writes", value }],
+          });
+        },
+        async (calls) => {
+          const write = () =>
+            journaledWrite(
+              { action: "update", table: "incident" },
+              async () => "ok",
+            );
+          assert.equal(await write(), "ok");
+          value = "true";
+          // Cached: the switch is honoured once the TTL has passed.
+          assert.equal(await write(), "ok");
+          assert.equal(calls.length, 1);
+          clock.tick(KILL_SWITCH_TTL_MS);
+          await assert.rejects(write(), (e) => {
+            assert.equal(e.code, "POLICY_KILL_SWITCH");
+            assert.equal(e.status, 403);
+            assert.match(e.message, /x_mcp\.disable_writes/);
+            return true;
+          });
+          // A journal-only action is not an instance write: no check.
+          assert.equal(
+            await journaledWrite(
+              { action: "local_write", table: "incident" },
+              async () => 1,
+            ),
+            1,
+          );
+          assert.equal(calls.length, 2);
+          assert.deepEqual(managedPolicySummary().killSwitch, [
+            "x_mcp.disable_writes",
+          ]);
+        },
+      ),
+  );
+});
+
+test("an unreadable kill switch counts as off", async (t) => {
+  const docs = mkdtempSync(path.join(tmpdir(), "snmcp-n108-docs-"));
+  t.after(() => rmSync(docs, { recursive: true, force: true }));
+  for (const answer of [
+    () => jsonResponse(200, { result: [] }),
+    () => jsonResponse(403, { error: { message: "denied" } }),
+  ]) {
+    await withPolicy(
+      { instanceKillSwitchProperty: "x_mcp.disable_writes" },
+      { SN_DOCS_DIR: docs },
+      () =>
+        withFetch(answer, async () => {
+          assert.equal(
+            await journaledWrite(
+              { action: "create", table: "incident" },
+              async () => "ok",
+            ),
+            "ok",
+          );
+        }),
+    );
+  }
+  // No switch configured: nothing is read.
+  await withPolicy({ disableWrites: false }, { SN_DOCS_DIR: docs }, () =>
+    withFetch(
+      () => assert.fail("no read expected"),
+      async () => {
+        await journaledWrite(
+          { action: "create", table: "incident" },
+          async () => 1,
+        );
+      },
+    ),
+  );
+  assert.throws(
+    () =>
+      parseManagedPolicy(
+        JSON.stringify({ instanceKillSwitchProperty: "a b" }),
+        "x.json",
+      ),
+    (e) => e.code === "MANAGED_POLICY_INVALID",
+  );
 });

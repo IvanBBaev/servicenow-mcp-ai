@@ -153,6 +153,10 @@
       "description": "The table, package or read-only policy refused the call; the hint names the setting.",
       "source": "policy"
     },
+    "POLICY_KILL_SWITCH": {
+      "description": "The managed kill-switch system property is true on the instance; writes are refused, nothing was sent.",
+      "source": "policy"
+    },
     "PREFLIGHT_INVALID": {
       "description": "An SDK pre-flight rule refuses a value.",
       "source": "server"

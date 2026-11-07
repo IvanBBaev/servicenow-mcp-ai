@@ -124,6 +124,7 @@ export type ServiceNowErrorCode =
    * names a key that cannot be locked — the server refuses to start.
    */
   | "MANAGED_POLICY_INVALID"
+  | "POLICY_KILL_SWITCH"
   /**
    * H-11 (L3-03 / L5-04): a destructive apply on a prod profile in apply mode
    * from a client that cannot confirm it (no elicitation) — nothing was sent.
@@ -382,6 +383,11 @@ export const ERROR_CODES: Readonly<Record<ServiceNowErrorCode, ErrorCodeInfo>> =
       source: "policy",
       description:
         "A managed policy file exists but is invalid; the server does not start.",
+    },
+    POLICY_KILL_SWITCH: {
+      source: "policy",
+      description:
+        "The managed kill-switch system property is true on the instance; writes are refused, nothing was sent.",
     },
     CONFIRM_REQUIRED: {
       source: "policy",

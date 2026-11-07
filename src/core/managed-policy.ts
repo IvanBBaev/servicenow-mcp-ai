@@ -16,7 +16,9 @@
  * The file is JSON: `settings` (a lockable key → its floor), `environments`
  * (an instance-host pattern → `prod` | `test` | `dev`, which wins over
  * `SN_ENV`, so "prod" is decided by the administrator per host) and
- * `disableWrites` (shorthand for a `SN_READONLY` floor). How each key merges
+ * `disableWrites` (shorthand for a `SN_READONLY` floor), plus
+ * `instanceKillSwitchProperty` — a sys_properties name read from the instance
+ * (kill-switch.ts) that refuses every write while it is `true`. How each key merges
  * with the user's value is fixed in {@link RULES}. A file that exists but
  * cannot be read or parsed, or names a key that cannot be locked, fails
  * closed: the server does not start, and a later read of a locked setting
@@ -108,6 +110,10 @@ const fileSchema = z.strictObject({
     .record(z.string().min(1), z.enum(["prod", "test", "dev"]))
     .optional(),
   disableWrites: z.boolean().optional(),
+  instanceKillSwitchProperty: z
+    .string()
+    .regex(/^[A-Za-z0-9_.-]{1,100}$/, "a sys_properties name")
+    .optional(),
 });
 
 /** One loaded managed policy file. */
@@ -118,6 +124,8 @@ export interface ManagedPolicy {
   settings: Map<string, string>;
   /** Host pattern → environment, in file order. */
   environments: Array<[string, Environment]>;
+  /** The instance sys_property whose `true` refuses every write (kill switch). */
+  killSwitchProperty?: string;
 }
 
 /** The administrator-owned path for this platform. */
@@ -199,6 +207,9 @@ export function parseManagedPolicy(
     environments: Object.entries(parsed.data.environments ?? {}).map(
       ([pattern, env]) => [pattern.toLowerCase(), env],
     ),
+    ...(parsed.data.instanceKillSwitchProperty
+      ? { killSwitchProperty: parsed.data.instanceKillSwitchProperty }
+      : {}),
   };
 }
 
@@ -355,6 +366,16 @@ export interface ManagedPolicySummary {
   sources: string[];
   locked: string[];
   environments: Record<string, Environment>;
+  /** The instance kill-switch properties, when a policy names one. */
+  killSwitch?: string[];
+}
+
+/** The kill-switch sys_property names the managed policies name, deduplicated. */
+export function managedKillSwitchProperties(): string[] {
+  const names = managedPolicies()
+    .map((p) => p.killSwitchProperty)
+    .filter((n): n is string => n !== undefined);
+  return [...new Set(names)];
 }
 
 /** The managed layer in force, or undefined when there is none. */
@@ -370,10 +391,12 @@ export function managedPolicySummary(): ManagedPolicySummary | undefined {
     }
   }
   if (Object.keys(environments).length > 0) locked.add(ENV_KEY);
+  const killSwitch = managedKillSwitchProperties();
   return {
     sources: policies.map((p) => p.source),
     locked: [...locked].sort(),
     environments,
+    ...(killSwitch.length > 0 ? { killSwitch } : {}),
   };
 }
 

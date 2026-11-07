@@ -30,6 +30,7 @@ import {
   journalRequired,
 } from "./settings.js";
 import { activeProfile } from "./config.js";
+import { engagedKillSwitch } from "./kill-switch.js";
 import {
   currentCall,
   currentClient,
@@ -939,6 +940,27 @@ export function resultModCount(result: unknown): number | undefined {
     : undefined;
 }
 
+/**
+ * N-108: refuse an instance write while the managed kill-switch property is
+ * `true` on the instance — journaled as `refused`, nothing sent.
+ */
+async function assertKillSwitchOff(
+  entry: JournalInput,
+  weight?: WriteWeight,
+): Promise<void> {
+  const w = weightOf(entry, weight);
+  if (w.writes === 0 && w.deletes === 0) return;
+  const engaged = await engagedKillSwitch();
+  if (engaged.length === 0) return;
+  const message = `Writes are switched off on this instance: the system property ${engaged.join(", ")} is true (managed kill switch).`;
+  emitAudit("apply_denied", { code: "POLICY_KILL_SWITCH" });
+  appendWriteJournal({ ...entry, result: "refused", error: message });
+  throw new ServiceNowError(message, 403, undefined, {
+    code: "POLICY_KILL_SWITCH",
+    hint: "Nothing was sent. The instance owner turns writes back on by setting the property to false; reads still work.",
+  });
+}
+
 /** Map a write error to its journal outcome: a 403 is a refusal. */
 export function writeOutcome(error: unknown): WriteResult {
   return error instanceof ServiceNowError && error.status === 403
@@ -959,6 +981,7 @@ export async function journaledWrite<T>(
 ): Promise<T> {
   // H-11: the session caps are checked before anything is sent.
   assertWriteCap(entry, weight);
+  await assertKillSwitchOff(entry, weight);
   let result: T;
   try {
     result = await run();

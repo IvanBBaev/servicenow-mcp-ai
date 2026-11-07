@@ -1737,11 +1737,11 @@ items:
     title: "managed policy file + host environment map"
     pillar: "N"
     effort: "L"
-    status: "partial"
+    status: "done"
     phase: null
-    done: "2026-11-07"
+    done: "2026-11-08"
     gates: []
-    notes: "**Partly done 2026-11-07.** The managed policy file (OS path + `SN_MANAGED_POLICY_FILE`) with only-tighten merge rules, the host → environment map, fail-closed loading (`MANAGED_POLICY_INVALID`) and reporting in `explain_policy` and `doctor`; see [ADR 0013](adr/0013-managed-policy-file.md). Still open: the instance-side kill-switch property (`POLICY_KILL_SWITCH`). Role review P0 (GV-I1; RR-GV-01, RR-GV-12). Every control comes from an env file the restrained user can edit. An admin-managed policy file at an OS path (plus an instance-side property as kill switch) that sets floors the user cannot lower, and a host → environment map so `prod` is not a self-declared flag. Opt-in, not breaking. Owner decision OD-26 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
+    notes: "**Done 2026-11-08.** The managed policy file (OS path + `SN_MANAGED_POLICY_FILE`) with only-tighten merge rules, the host → environment map, fail-closed loading (`MANAGED_POLICY_INVALID`) and reporting in `explain_policy` and `doctor` (2026-11-07), and the instance-side kill switch — `instanceKillSwitchProperty`, read with a 60 s TTL, writes refused with `POLICY_KILL_SWITCH` (2026-11-08); see [ADR 0013](adr/0013-managed-policy-file.md). Role review P0 (GV-I1; RR-GV-01, RR-GV-12). Every control comes from an env file the restrained user can edit. An admin-managed policy file at an OS path (plus an instance-side property as kill switch) that sets floors the user cannot lower, and a host → environment map so `prod` is not a self-declared flag. Opt-in, not breaking. Owner decision OD-26 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md)."
   - id: "N-109"
     title: "audit-grade journal"
     pillar: "N"

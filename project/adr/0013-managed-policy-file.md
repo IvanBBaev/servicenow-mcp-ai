@@ -20,7 +20,7 @@ declares about their own profile. An enterprise rollout needs floors set by an a
    (macOS), `%ProgramData%\servicenow-mcp-ai\policy.json` (Windows). No setting turns it off.
    `SN_MANAGED_POLICY_FILE` adds a second file for containers, where the image owner sets the
    environment; the OS file is applied after it.
-2. **Format:** `{ "settings": { <key>: <value> }, "environments": { <host pattern>: "prod" | "test" | "dev" }, "disableWrites": true }`.
+2. **Format:** `{ "settings": { <key>: <value> }, "environments": { <host pattern>: "prod" | "test" | "dev" }, "disableWrites": true, "instanceKillSwitchProperty": "x_mcp.disable_writes" }`.
    Only the keys below can be locked; each value is validated like the setting itself.
 3. **Merge rules** — the user can only tighten:
    - flags (`SN_READONLY`, `SN_REDACT_PII`, `SN_JOURNAL_REQUIRED`): `true` locks on;
@@ -39,8 +39,13 @@ declares about their own profile. An enterprise rollout needs floors set by an a
 6. The files are read once per process; a change needs a restart.
 7. `servicenow_explain_policy` / `servicenow://policy` (`managed`) and `doctor` report the files
    and the locked keys. `get_status` is unchanged (its output schema would cost `tools/list` bytes).
-8. **Part 2 (open):** an instance-side system property as a kill switch, read with a TTL; an
-   applied write is refused with `POLICY_KILL_SWITCH`.
+8. **Kill switch (part 2, 2026-11-08):** `"instanceKillSwitchProperty": "<sys_properties name>"`
+   names a property the platform owner controls. Before an applied instance write
+   (`create` / `update` / `delete` / `execute`) the server reads it from the Table API, cached
+   for 60 s per instance host; while it is `true` the write is refused with
+   `POLICY_KILL_SWITCH` (403), journaled as `refused` and audited as `apply_denied`. The switch
+   counts "when readable": a missing property or a failed read is off and logged at `warn`.
+   Reads are never blocked. `explain_policy` (`managed.killSwitch`) and `doctor` name it.
 
 ## Consequences
 
