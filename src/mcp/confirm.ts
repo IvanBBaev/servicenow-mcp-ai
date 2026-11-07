@@ -6,7 +6,7 @@ import {
   getProfileEnv,
   getWriteMode,
 } from "../core/settings.js";
-import { appendWriteJournal } from "../core/write-journal.js";
+import { appendWriteJournal, emitAudit } from "../core/write-journal.js";
 import type { AnyToolSpec } from "./define.js";
 import { askUser, onModernWire } from "./input.js";
 import {
@@ -110,13 +110,16 @@ export async function confirmDestructiveApply(
 }
 
 function planRefusal(reason: Mismatch): ToolResult {
+  const code = reason === "expired" ? "PLAN_EXPIRED" : "PLAN_REQUIRED";
+  // N-109: a refused destructive apply is an audit event.
+  emitAudit("apply_denied", { code });
   return fail(
     new ServiceNowError(
       `Destructive apply refused: ${WHY[reason]}. Nothing was changed.`,
       428,
       undefined,
       {
-        code: reason === "expired" ? "PLAN_EXPIRED" : "PLAN_REQUIRED",
+        code,
         hint: PLAN_HINT,
       },
     ),

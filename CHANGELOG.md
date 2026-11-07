@@ -5,6 +5,10 @@ The git history is one commit per task.
 
 ## [Unreleased]
 
+### Added
+
+- Journal governance (N-109): `SN_JOURNAL_REQUIRED=true` refuses an instance write with the new `JOURNAL_UNAVAILABLE` error (503, nothing sent) when the journal cannot be written; `SN_JOURNAL_KEY` / `SN_JOURNAL_KEY_FILE` adds an HMAC-SHA256 over the hash chain (`prev_mac` per line, `write-journal.head.mac`), so an edited and re-chained journal reads as `broken@<n>`; journal files are created `0600` in a `0700` directory; a stdio line records `os_user`, `host` and `client_name`; every journal line, package toggle and refused destructive apply is logged as an `audit` event whose shape is pinned by `test/fixtures/audit-event.schema.json`. Both settings are off by default. `tools/list`: +0 B.
+
 ### Changed
 
 - A request that hits `SN_TIMEOUT_MS` is no longer retried (N-103): aborting the socket does not cancel the transaction on the instance, so a retry stacked a second and third copy of a slow query. Connection errors, 429 and 5xx are retried as before; `SN_RETRY_ON_TIMEOUT=true` restores the old behaviour. The `SN_TIMEOUT_MS` reference now explains how the timeout relates to the instance's transaction quota.

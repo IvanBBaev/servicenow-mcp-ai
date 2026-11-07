@@ -93,6 +93,10 @@
       "description": "The arguments are invalid; nothing was sent.",
       "source": "server"
     },
+    "JOURNAL_UNAVAILABLE": {
+      "description": "SN_JOURNAL_REQUIRED=true and the write journal cannot be written; nothing was sent.",
+      "source": "policy"
+    },
     "MIME_NOT_ALLOWED": {
       "description": "An upload content type is not listed in SN_UPLOAD_MIME_ALLOW.",
       "source": "policy"

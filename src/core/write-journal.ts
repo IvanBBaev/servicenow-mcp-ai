@@ -1,7 +1,10 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import {
+  accessSync,
   appendFileSync,
+  chmodSync,
   closeSync,
+  constants as fsConstants,
   existsSync,
   fstatSync,
   mkdirSync,
@@ -13,12 +16,15 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { hostname, userInfo } from "node:os";
 import path from "node:path";
 import {
   getDocsDir,
+  getJournalKey,
   getJournalMaxBytes,
   getMaxDeletesPerSession,
   getMaxWritesPerSession,
+  journalRequired,
 } from "./settings.js";
 import { activeProfile } from "./config.js";
 import {
@@ -31,7 +37,7 @@ import { redactValue, redactionRules } from "./redaction.js";
 import { peekSecretColumns } from "./secret-index.js";
 import { ServiceNowError } from "./errors.js";
 import { logger } from "./logging.js";
-import { currentRuntime, defineRuntimePart } from "./runtime.js";
+import { currentRuntime, defineRuntimePart, type Runtime } from "./runtime.js";
 
 /**
  * DF-2 — local, append-only audit trail for every applied write.
@@ -56,6 +62,15 @@ import { currentRuntime, defineRuntimePart } from "./runtime.js";
  * `tool` that wrote the line (stamped from the request context), the record's
  * `after_mod_count` right after a create/update (the drift baseline), and on a
  * revert's own line `reverts` (the reverted entry id) and `force`.
+ *
+ * N-109 (GV-I2), still schema 2: SN_JOURNAL_REQUIRED makes the journal fail
+ * closed (an instance write is refused with JOURNAL_UNAVAILABLE when the
+ * journal cannot be written); SN_JOURNAL_KEY adds an HMAC over the chain
+ * (`prev_mac` per line, `write-journal.head.mac` for the head), so editing a
+ * line and re-chaining the plain sha256 links no longer goes unnoticed. Files
+ * are created 0600 in a 0700 directory; a stdio line also records the OS user,
+ * the host and the MCP client (`os_user`, `host`, `client_name`), and every
+ * appended line is mirrored as an `audit` log event.
  */
 
 export const JOURNAL_SCHEMA_VERSION = 2;
@@ -135,18 +150,30 @@ export interface JournalEntry {
   force?: boolean;
   /** H-11: the call was refused by a session write cap (WRITE_CAP). */
   cap_hit?: boolean;
+  /** N-109: the OS user that ran the server (stdio only). */
+  os_user?: string;
+  /** N-109: the host the server ran on (stdio only). */
+  host?: string;
+  /** N-109: the MCP client, `name/version` from its initialize request. */
+  client_name?: string;
   /** sha256 of the previous journal line (absent on the first line / v1 lines). */
   prev?: string;
+  /** N-109: HMAC-SHA256 of `prev` (or "" on the first line) under SN_JOURNAL_KEY. */
+  prev_mac?: string;
 }
 
 /** What a caller supplies; the journal stamps the rest. */
 export type JournalInput = Omit<
   JournalEntry,
-  "schema_version" | "id" | "ts" | "profile" | "prev"
+  "schema_version" | "id" | "ts" | "profile" | "prev" | "prev_mac"
 >;
 
 const JSONL = "write-journal.jsonl";
 const HEAD = "write-journal.head";
+const HEAD_MAC = "write-journal.head.mac";
+/** N-109: the journal is private to the user that runs the server. */
+const DIR_MODE = 0o700;
+const FILE_MODE = 0o600;
 const MARKDOWN = "write-journal.md";
 const ROTATED = /^write-journal\.(.+?)(?:-(\d+))?\.jsonl$/;
 
@@ -170,6 +197,11 @@ export function sha256Hex(text: string | Buffer): string {
   return createHash("sha256").update(text).digest("hex");
 }
 
+/** N-109: the keyed link of the chain. */
+function hmacHex(key: string, text: string): string {
+  return createHmac("sha256", key).update(text).digest("hex");
+}
+
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
 /** A ULID: 48-bit millisecond time + 80 random bits, Crockford base32. */
@@ -188,6 +220,131 @@ export function ulid(now = Date.now()): string {
 
 function journalDir(profile: string): string {
   return path.join(getDocsDir(), profile);
+}
+
+/** N-109: profile directories whose existing journal files were tightened. */
+const tightenedPart = defineRuntimePart(
+  "write-journal-modes",
+  () => new Set<string>(),
+  undefined,
+  {
+    scope: "process",
+  },
+);
+
+/**
+ * Create the profile directory 0700 and, once per directory and process,
+ * chmod journal files an earlier version created with the default umask to
+ * 0600. The directory itself is left alone when it already exists — it also
+ * holds generated documentation.
+ */
+function ensureJournalDir(dir: string): void {
+  mkdirSync(dir, { recursive: true, mode: DIR_MODE });
+  const done = currentRuntime().get(tightenedPart);
+  if (done.has(dir)) return;
+  done.add(dir);
+  for (const f of readdirSync(dir)) {
+    if (
+      f !== HEAD &&
+      f !== HEAD_MAC &&
+      f !== MARKDOWN &&
+      f !== JSONL &&
+      !ROTATED.test(f)
+    ) {
+      continue;
+    }
+    try {
+      chmodSync(path.join(dir, f), FILE_MODE);
+    } catch {
+      // swallowed: a file we cannot chmod (e.g. owned by another user) stays as it is
+    }
+  }
+}
+
+/**
+ * N-109: with SN_JOURNAL_REQUIRED, refuse before anything is sent when the
+ * journal directory or its files cannot be written.
+ */
+function assertJournalReady(): void {
+  if (!journalRequired()) return;
+  const dir = journalDir(activeProfile());
+  try {
+    ensureJournalDir(dir);
+    accessSync(dir, fsConstants.W_OK);
+    for (const f of [JSONL, HEAD, HEAD_MAC]) {
+      const file = path.join(dir, f);
+      if (existsSync(file)) accessSync(file, fsConstants.W_OK);
+    }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    emitAudit("apply_denied", { code: "JOURNAL_UNAVAILABLE" });
+    throw new ServiceNowError(
+      `The write journal cannot be written (${reason}); SN_JOURNAL_REQUIRED=true refuses instance writes until it can.`,
+      503,
+      undefined,
+      {
+        code: "JOURNAL_UNAVAILABLE",
+        hint: `Nothing was sent. Make ${dir} writable for this user, or point SN_DOCS_DIR at a writable directory.`,
+      },
+    );
+  }
+}
+
+/**
+ * N-109 — one structured `audit` log line (stderr, SN_LOG_FILE and the MCP log
+ * bridge), for a SIEM to collect: `journal` for every journal line,
+ * `policy_change` for a package toggle and `apply_denied` for a refused apply.
+ * The shape is pinned by `test/fixtures/audit-event.schema.json`.
+ */
+export type AuditAction = "journal" | "policy_change" | "apply_denied";
+
+export function emitAudit(
+  action: AuditAction,
+  fields: Record<string, unknown> = {},
+): void {
+  const tool = currentTool();
+  logger.info("audit", {
+    event: { kind: "audit", action },
+    profile: activeProfile(),
+    ...(tool ? { tool } : {}),
+    ...fields,
+  });
+}
+
+/** N-109: how to read this session's MCP client (`name/version`). */
+const clientNamePart = defineRuntimePart("journal-client", () => ({
+  read: undefined as (() => string | undefined) | undefined,
+}));
+
+/** Register the reader of the session's MCP client name for the journal. */
+export function setJournalClientName(
+  read: () => string | undefined,
+  runtime: Runtime = currentRuntime(),
+): void {
+  runtime.get(clientNamePart).read = read;
+}
+
+/** The session's MCP client, or undefined (none registered, or a failing read). */
+function journalClientName(): string | undefined {
+  try {
+    return currentRuntime().get(clientNamePart).read?.();
+  } catch {
+    // swallowed: the client name is best-effort context
+    return undefined;
+  }
+}
+
+/** N-109: who ran a stdio write — the OS user and host (HTTP has `subject`). */
+function processIdentity(): { os_user?: string; host?: string } {
+  if (isHttpSession()) return {};
+  let user: string | undefined;
+  try {
+    user = userInfo().username;
+  } catch {
+    // swallowed: no passwd entry for the uid (some containers)
+    user = undefined;
+  }
+  return { ...(user ? { os_user: user } : {}), host: hostname() };
 }
 
 /** The last non-empty line of a file, read from its tail. */
@@ -276,7 +433,7 @@ function renderMarkdown(dir: string, profile: string): void {
     "| --- | --- | --- | --- | --- |\n",
     ...entries.map(formatMarkdownRow),
   ].join("");
-  writeFileSync(path.join(dir, MARKDOWN), md);
+  writeFileSync(path.join(dir, MARKDOWN), md, { mode: FILE_MODE });
 }
 
 /**
@@ -388,6 +545,7 @@ export function assertWriteCap(
 ): void {
   const w = weightOf(entry, weight);
   if (w.writes === 0 && w.deletes === 0) return;
+  assertJournalReady();
   const u = currentRuntime().get(capUsagePart);
   const maxWrites = getMaxWritesPerSession(isHttpSession());
   const maxDeletes = getMaxDeletesPerSession();
@@ -440,6 +598,7 @@ export function appendWriteJournal(entry: JournalInput): JournalEntry {
   const subject = entry.subject ?? currentSession()?.subject;
   const tool = entry.tool ?? currentTool();
   const planToken = entry.plan_token ?? currentCall()?.plan?.token;
+  const clientName = journalClientName();
   const base: JournalEntry = {
     schema_version: JOURNAL_SCHEMA_VERSION,
     id: ulid(),
@@ -451,24 +610,47 @@ export function appendWriteJournal(entry: JournalInput): JournalEntry {
     result: entry.result ?? "applied",
     ...(client ? { client } : {}),
     ...(subject ? { subject } : {}),
+    ...(clientName ? { client_name: clientName } : {}),
+    ...processIdentity(),
   };
   countWrite(base);
   let full = base;
   try {
     const dir = journalDir(base.profile);
-    mkdirSync(dir, { recursive: true });
+    ensureJournalDir(dir);
     const prev = readHead(dir);
-    full = prev ? { ...base, prev } : base;
+    const key = getJournalKey();
+    full = {
+      ...base,
+      ...(prev ? { prev } : {}),
+      ...(key ? { prev_mac: hmacHex(key, prev ?? "") } : {}),
+    };
     const line = JSON.stringify(full);
+    const head = sha256Hex(line);
     rotateIfNeeded(dir, Buffer.byteLength(line) + 1);
-    appendFileSync(path.join(dir, JSONL), line + "\n");
-    writeFileSync(path.join(dir, HEAD), sha256Hex(line));
+    appendFileSync(path.join(dir, JSONL), line + "\n", { mode: FILE_MODE });
+    writeFileSync(path.join(dir, HEAD), head, { mode: FILE_MODE });
+    if (key) {
+      writeFileSync(path.join(dir, HEAD_MAC), hmacHex(key, head), {
+        mode: FILE_MODE,
+      });
+    }
     renderMarkdown(dir, base.profile);
   } catch (error) {
-    logger.warn("write-journal append failed", {
-      error: error instanceof Error ? error.message : String(error),
-    });
+    // N-109: under SN_JOURNAL_REQUIRED a lost line is an error, not a warning.
+    (journalRequired() ? logger.error : logger.warn)(
+      "write-journal append failed",
+      { error: error instanceof Error ? error.message : String(error) },
+    );
   }
+  emitAudit("journal", {
+    id: full.id,
+    action_kind: full.action,
+    table: full.table,
+    ...(full.sys_id ? { sys_id: full.sys_id } : {}),
+    result: full.result,
+    ...(full.tool ? { tool: full.tool } : {}),
+  });
   return full;
 }
 
@@ -569,6 +751,9 @@ export function readWriteJournal(
   let integrity = "ok";
   let previous: string | undefined;
   let n = 0;
+  // N-109: with the key, every line from the first keyed one on must verify.
+  const key = getJournalKey();
+  let keyed = false;
   for (const file of files) {
     const lines = readFileSync(path.join(dir, file), "utf8")
       .split("\n")
@@ -590,6 +775,13 @@ export function readWriteJournal(
           ((parsed.schema_version ?? 1) >= 2 && parsed.prev !== expected)
         ) {
           integrity = `broken@${n}`;
+        } else if (key && parsed.prev_mac !== undefined) {
+          keyed = true;
+          if (parsed.prev_mac !== hmacHex(key, parsed.prev ?? "")) {
+            integrity = `broken@${n}`;
+          }
+        } else if (key && keyed) {
+          integrity = `broken@${n}`;
         }
       }
       if (parsed) entries.push(normalise(parsed));
@@ -601,6 +793,13 @@ export function readWriteJournal(
     if (readFileSync(headFile, "utf8").trim() !== sha256Hex(previous)) {
       integrity = `broken@${n}`;
     }
+  }
+  if (integrity === "ok" && key && keyed && previous !== undefined) {
+    const macFile = path.join(dir, HEAD_MAC);
+    const mac = existsSync(macFile)
+      ? readFileSync(macFile, "utf8").trim()
+      : undefined;
+    if (mac !== hmacHex(key, sha256Hex(previous))) integrity = `broken@${n}`;
   }
   return {
     entries: options.action

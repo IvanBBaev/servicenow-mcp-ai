@@ -115,6 +115,11 @@ export type ServiceNowErrorCode =
    */
   | "WRITE_CAP"
   /**
+   * N-109: SN_JOURNAL_REQUIRED=true and the profile's write journal cannot be
+   * written — nothing was sent.
+   */
+  | "JOURNAL_UNAVAILABLE"
+  /**
    * H-11 (L3-03 / L5-04): a destructive apply on a prod profile in apply mode
    * from a client that cannot confirm it (no elicitation) — nothing was sent.
    */
@@ -362,6 +367,11 @@ export const ERROR_CODES: Readonly<Record<ServiceNowErrorCode, ErrorCodeInfo>> =
       source: "policy",
       description:
         "A session or batch write cap would be exceeded; nothing was sent.",
+    },
+    JOURNAL_UNAVAILABLE: {
+      source: "policy",
+      description:
+        "SN_JOURNAL_REQUIRED=true and the write journal cannot be written; nothing was sent.",
     },
     CONFIRM_REQUIRED: {
       source: "policy",

@@ -1,5 +1,6 @@
 import {
   CLIENT_CAPABILITIES_META_KEY,
+  CLIENT_INFO_META_KEY,
   PROTOCOL_VERSION_META_KEY,
   type ClientCapabilities,
   type McpServer,
@@ -46,4 +47,20 @@ export function protocolRevision(
   if (typeof declared === "string") return declared;
   // eslint-disable-next-line @typescript-eslint/no-deprecated -- 2025-era fallback, see the module comment
   return server?.server.getNegotiatedProtocolVersion();
+}
+
+/** N-109: the client as `name/version`, or undefined before `initialize`. */
+export function clientNameVersion(
+  server: McpServer | null | undefined,
+  ctx?: ServerContext,
+): string | undefined {
+  const declared = envelopeOf(ctx)?.[CLIENT_INFO_META_KEY] as
+    | { name?: unknown; version?: unknown }
+    | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- 2025-era fallback, see the module comment
+  const info = declared ?? server?.server.getClientVersion();
+  if (!info || typeof info.name !== "string") return undefined;
+  return typeof info.version === "string"
+    ? `${info.name}/${info.version}`
+    : info.name;
 }

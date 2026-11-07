@@ -22,6 +22,8 @@ import { createLogBridge } from "./mcp/log-bridge.js";
 import { warnIfTlsVerifyOff } from "./core/dispatcher.js";
 import type { Runtime } from "./core/runtime.js";
 import { SERVER_VERSION } from "./core/identity.js";
+import { setJournalClientName } from "./core/write-journal.js";
+import { clientNameVersion } from "./mcp/client-identity.js";
 import { LIST_CACHE_HINTS } from "./mcp/cache-hints.js";
 import { mapSchemaErrorsToInvalidParams } from "./mcp/params-errors.js";
 import {
@@ -78,6 +80,9 @@ export function buildMcpServer(
   registerResources(server);
   installSkillHandlers(server, effectivePackages());
   registerPrompts(server, effectivePackages().enabled);
+  // N-109: the journal records which MCP client made a write. Read when a
+  // line is written: a 2026-07-28 instance is backfilled per request.
+  setJournalClientName(() => clientNameVersion(server), runtime);
   return server;
 }
 

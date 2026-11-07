@@ -735,6 +735,7 @@ Container secrets (D-5): <KEY>_FILE=/path loads <KEY> from that file at startup 
 | `SN_BEARER_TOKEN_FILE` | no | — | next | D-5: read `SN_BEARER_TOKEN` from this file (Docker / Kubernetes secrets). Read once at startup (`SN_TOKEN_FILE`, re-read on a 401, still wins). |
 | `SN_OAUTH_CLIENT_SECRET_FILE` | no | — | next | D-5: read `SN_OAUTH_CLIENT_SECRET` from this file (Docker / Kubernetes secrets). |
 | `SN_OAUTH_REFRESH_TOKEN_FILE` | no | — | next | D-5: read `SN_OAUTH_REFRESH_TOKEN` from this file (Docker / Kubernetes secrets). A rotated refresh token is then kept in memory only (update the file yourself). |
+| `SN_JOURNAL_KEY_FILE` | no | — | next | D-5: read `SN_JOURNAL_KEY` from this file (Docker / Kubernetes secrets). |
 | `SN_HTTP_TOKEN_FILE` | no | — | next | D-5: read `SN_HTTP_TOKEN` from this file (Docker / Kubernetes secrets). |
 | `SN_HTTP_OAUTH_INTROSPECTION_SECRET_FILE` | no | — | next | D-5: read `SN_HTTP_OAUTH_INTROSPECTION_SECRET` from this file (Docker / Kubernetes secrets). |
 | `SN_HTTP_OAUTH_TOKEN_KEY_FILE` | no | — | next | D-5: read `SN_HTTP_OAUTH_TOKEN_KEY` from this file (Docker / Kubernetes secrets). |
@@ -838,6 +839,8 @@ Result size budgets, output shaping, redaction of record values, the write journ
 | `SN_REDACT_FIELDS` | no | — | 2.0.0 | DF-5: mask these field values before records reach the model (comma/space-separated). |
 | `SN_REDACT_PII` | no | `false` | 2.0.0 | DF-5: also mask email/phone/national-id patterns inside string values. Since H-5 both redaction settings apply deeply to every tool result (success and error) and to the write journal. |
 | `SN_JOURNAL_MAX_BYTES` | no | `20971520` | next | H-5: size (bytes, default 20 MiB) at which `write-journal.jsonl` rotates to `write-journal.<ISO-time>.jsonl`; the hash chain continues across files. |
+| `SN_JOURNAL_REQUIRED` | no | `false` | next | N-109: fail closed. Before an instance write is sent, check that the profile's journal directory and files are writable; if they are not, refuse the apply with `JOURNAL_UNAVAILABLE` and send nothing. A journal append that fails after the write is logged at `error` level. |
+| `SN_JOURNAL_KEY` | no | — | next | N-109: key for a keyed (HMAC-SHA256) journal chain. Every line also carries `prev_mac` and the head gets `write-journal.head.mac`, so a user without the key cannot edit a line and re-chain the journal unnoticed. Keep it outside the docs directory (e.g. `SN_JOURNAL_KEY_FILE`). |
 | `SN_CSV_FORMULA_GUARD` | no | `true` | next | H-5: prefix CSV text cells that start with `=`, `+`, `-`, `@`, tab or CR with `'` so spreadsheets never evaluate them (a text `-5` exports as `'-5`). `0` opts out. |
 | `SN_CSV_BOM` | no | `true` | next | H-5: prepend a UTF-8 BOM to `format:"csv"` exports so Excel decodes non-ASCII text. `0` opts out. |
 
@@ -2131,6 +2134,31 @@ open items — is in
   `write-journal.jsonl` (redacted, rotated at `SN_JOURNAL_MAX_BYTES`) and can
   be listed and reverted
   ([README → Undo a write](README.md#undo-a-write-journal-based-revert)).
+  - **What the plain chain proves.** The sha256 chain (`prev` per line, the
+    head in `write-journal.head`) detects an accidental edit or a truncation,
+    but anyone who can write the files can edit a line and recompute every
+    link. Set `SN_JOURNAL_KEY` (or `SN_JOURNAL_KEY_FILE`) to add an
+    HMAC-SHA256 over the chain (`prev_mac` per line, `write-journal.head.mac`):
+    an edit then shows as `broken@<n>` in `servicenow_list_writes` unless the
+    editor also has the key. Keep the key outside `SN_DOCS_DIR`. A keyed
+    journal is checked from its first keyed line on; removing every `prev_mac`
+    and the head mac turns it back into a plain chain, so keep a copy of
+    `write-journal.head.mac` elsewhere if that matters.
+  - **Fail closed.** `SN_JOURNAL_REQUIRED=true` refuses an instance write with
+    `JOURNAL_UNAVAILABLE` (nothing is sent) when the profile's journal
+    directory or files cannot be written; by default a journal failure is only
+    logged and never blocks a write.
+  - **Who.** Journal files are created `0600` in a `0700` profile directory
+    (existing journal files are tightened on first use). A stdio line records
+    `os_user`, `host` and `client_name` (the MCP client's `name/version`); an
+    HTTP line records the session (`client`) and the OAuth `subject`.
+  - **Audit events.** Every journal line, package toggle (`policy_change`) and
+    refused destructive apply (`apply_denied`) is also logged as one JSON line
+    with `"message": "audit"` and `"event": {"kind": "audit", "action": …}` on
+    stderr and `SN_LOG_FILE`, for a SIEM to collect. The shape is pinned by
+    [`test/fixtures/audit-event.schema.json`](test/fixtures/audit-event.schema.json);
+    fields may be added, existing ones are not renamed. Audit events are not
+    exported as OpenTelemetry log records.
 - **Redaction** — `SN_REDACT_FIELDS` / `SN_REDACT_PII` apply to every tool
   result and to the journal (see the hardened defaults below).
 - **Secret columns are always masked** — a column whose dictionary type is
@@ -2471,6 +2499,7 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `INSTANCE_HTTP_<status>` | servicenow | INSTANCE_HTTP_<status>: the instance answered with that non-2xx status and no more specific code applies; `detail` carries its error body. |
 | `INTERNAL_ERROR` | server | An unexpected server-side failure. |
 | `INVALID_INPUT` | server | The arguments are invalid; nothing was sent. |
+| `JOURNAL_UNAVAILABLE` | policy | SN_JOURNAL_REQUIRED=true and the write journal cannot be written; nothing was sent. |
 | `MIME_NOT_ALLOWED` | policy | An upload content type is not listed in SN_UPLOAD_MIME_ALLOW. |
 | `NO_PACKAGE_SESSION` | server | The client session cannot change its package set. |
 | `NOT_CONFIGURED` | server | The profile lacks what its auth method needs; the hint names the missing fields. |

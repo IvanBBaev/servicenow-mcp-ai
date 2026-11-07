@@ -719,6 +719,7 @@ Container secrets (D-5): <KEY>_FILE=/path loads <KEY> from that file at startup 
 | `SN_BEARER_TOKEN_FILE` | no | — | next | D-5: read `SN_BEARER_TOKEN` from this file (Docker / Kubernetes secrets). Read once at startup (`SN_TOKEN_FILE`, re-read on a 401, still wins). |
 | `SN_OAUTH_CLIENT_SECRET_FILE` | no | — | next | D-5: read `SN_OAUTH_CLIENT_SECRET` from this file (Docker / Kubernetes secrets). |
 | `SN_OAUTH_REFRESH_TOKEN_FILE` | no | — | next | D-5: read `SN_OAUTH_REFRESH_TOKEN` from this file (Docker / Kubernetes secrets). A rotated refresh token is then kept in memory only (update the file yourself). |
+| `SN_JOURNAL_KEY_FILE` | no | — | next | D-5: read `SN_JOURNAL_KEY` from this file (Docker / Kubernetes secrets). |
 | `SN_HTTP_TOKEN_FILE` | no | — | next | D-5: read `SN_HTTP_TOKEN` from this file (Docker / Kubernetes secrets). |
 | `SN_HTTP_OAUTH_INTROSPECTION_SECRET_FILE` | no | — | next | D-5: read `SN_HTTP_OAUTH_INTROSPECTION_SECRET` from this file (Docker / Kubernetes secrets). |
 | `SN_HTTP_OAUTH_TOKEN_KEY_FILE` | no | — | next | D-5: read `SN_HTTP_OAUTH_TOKEN_KEY` from this file (Docker / Kubernetes secrets). |
@@ -822,6 +823,8 @@ Result size budgets, output shaping, redaction of record values, the write journ
 | `SN_REDACT_FIELDS` | no | — | 2.0.0 | DF-5: mask these field values before records reach the model (comma/space-separated). |
 | `SN_REDACT_PII` | no | `false` | 2.0.0 | DF-5: also mask email/phone/national-id patterns inside string values. Since H-5 both redaction settings apply deeply to every tool result (success and error) and to the write journal. |
 | `SN_JOURNAL_MAX_BYTES` | no | `20971520` | next | H-5: size (bytes, default 20 MiB) at which `write-journal.jsonl` rotates to `write-journal.<ISO-time>.jsonl`; the hash chain continues across files. |
+| `SN_JOURNAL_REQUIRED` | no | `false` | next | N-109: fail closed. Before an instance write is sent, check that the profile's journal directory and files are writable; if they are not, refuse the apply with `JOURNAL_UNAVAILABLE` and send nothing. A journal append that fails after the write is logged at `error` level. |
+| `SN_JOURNAL_KEY` | no | — | next | N-109: key for a keyed (HMAC-SHA256) journal chain. Every line also carries `prev_mac` and the head gets `write-journal.head.mac`, so a user without the key cannot edit a line and re-chain the journal unnoticed. Keep it outside the docs directory (e.g. `SN_JOURNAL_KEY_FILE`). |
 | `SN_CSV_FORMULA_GUARD` | no | `true` | next | H-5: prefix CSV text cells that start with `=`, `+`, `-`, `@`, tab or CR with `'` so spreadsheets never evaluate them (a text `-5` exports as `'-5`). `0` opts out. |
 | `SN_CSV_BOM` | no | `true` | next | H-5: prepend a UTF-8 BOM to `format:"csv"` exports so Excel decodes non-ASCII text. `0` opts out. |
 

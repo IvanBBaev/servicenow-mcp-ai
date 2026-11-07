@@ -132,6 +132,31 @@ open items — is in
   `write-journal.jsonl` (redacted, rotated at `SN_JOURNAL_MAX_BYTES`) and can
   be listed and reverted
   ([README → Undo a write](README.md#undo-a-write-journal-based-revert)).
+  - **What the plain chain proves.** The sha256 chain (`prev` per line, the
+    head in `write-journal.head`) detects an accidental edit or a truncation,
+    but anyone who can write the files can edit a line and recompute every
+    link. Set `SN_JOURNAL_KEY` (or `SN_JOURNAL_KEY_FILE`) to add an
+    HMAC-SHA256 over the chain (`prev_mac` per line, `write-journal.head.mac`):
+    an edit then shows as `broken@<n>` in `servicenow_list_writes` unless the
+    editor also has the key. Keep the key outside `SN_DOCS_DIR`. A keyed
+    journal is checked from its first keyed line on; removing every `prev_mac`
+    and the head mac turns it back into a plain chain, so keep a copy of
+    `write-journal.head.mac` elsewhere if that matters.
+  - **Fail closed.** `SN_JOURNAL_REQUIRED=true` refuses an instance write with
+    `JOURNAL_UNAVAILABLE` (nothing is sent) when the profile's journal
+    directory or files cannot be written; by default a journal failure is only
+    logged and never blocks a write.
+  - **Who.** Journal files are created `0600` in a `0700` profile directory
+    (existing journal files are tightened on first use). A stdio line records
+    `os_user`, `host` and `client_name` (the MCP client's `name/version`); an
+    HTTP line records the session (`client`) and the OAuth `subject`.
+  - **Audit events.** Every journal line, package toggle (`policy_change`) and
+    refused destructive apply (`apply_denied`) is also logged as one JSON line
+    with `"message": "audit"` and `"event": {"kind": "audit", "action": …}` on
+    stderr and `SN_LOG_FILE`, for a SIEM to collect. The shape is pinned by
+    [`test/fixtures/audit-event.schema.json`](test/fixtures/audit-event.schema.json);
+    fields may be added, existing ones are not renamed. Audit events are not
+    exported as OpenTelemetry log records.
 - **Redaction** — `SN_REDACT_FIELDS` / `SN_REDACT_PII` apply to every tool
   result and to the journal (see the hardened defaults below).
 - **Secret columns are always masked** — a column whose dictionary type is

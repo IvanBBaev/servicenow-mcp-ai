@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "servicenow-mcp-ai audit log event (N-109)",
+  "description": "One `audit` line on stderr / SN_LOG_FILE. Stable for SIEM parsing: new optional fields may be added, existing ones are not renamed.",
+  "type": "object",
+  "required": ["ts", "level", "message", "event", "profile"],
+  "properties": {
+    "ts": {
+      "type": "string"
+    },
+    "level": {
+      "const": "info"
+    },
+    "message": {
+      "const": "audit"
+    },
+    "event": {
+      "type": "object",
+      "required": ["kind", "action"],
+      "properties": {
+        "kind": {
+          "const": "audit"
+        },
+        "action": {
+          "enum": ["journal", "policy_change", "apply_denied"]
+        }
+      }
+    },
+    "profile": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "action_kind": {
+      "enum": ["create", "update", "delete", "execute", "local_write", "config"]
+    },
+    "table": {
+      "type": "string"
+    },
+    "sys_id": {
+      "type": "string"
+    },
+    "result": {
+      "enum": ["applied", "failed", "refused"]
+    },
+    "code": {
+      "type": "string"
+    },
+    "package": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "properties": {
+              "action": {
+                "const": "journal"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "then": {
+        "required": ["id", "action_kind", "table", "result"],
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "properties": {
+              "action": {
+                "const": "policy_change"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "then": {
+        "required": ["package", "enabled"],
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "properties": {
+              "action": {
+                "const": "apply_denied"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "then": {
+        "required": ["code"],
+        "type": "object"
+      }
+    }
+  ]
+}

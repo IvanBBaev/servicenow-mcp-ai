@@ -16,7 +16,7 @@ import {
   type AuthSetting,
   type ServiceNowCredentials,
 } from "../core/config.js";
-import { appendWriteJournal } from "../core/write-journal.js";
+import { appendWriteJournal, emitAudit } from "../core/write-journal.js";
 import { currentSession } from "../core/request-context.js";
 import { logger } from "../core/logging.js";
 import { isReadOnly } from "../core/policy.js";
@@ -343,6 +343,13 @@ function togglePackage(name: string, on: boolean) {
     const change: PackageChange = on
       ? session.enable(name)
       : session.disable(name);
+    // N-109: a package toggle changes what the agent may call.
+    if (change.changed) {
+      emitAudit("policy_change", {
+        package: change.package,
+        enabled: change.enabled,
+      });
+    }
     return okStructured({ ...change });
   } catch (error) {
     return fail(error);

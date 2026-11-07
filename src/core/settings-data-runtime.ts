@@ -344,6 +344,23 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
       "H-5: size (bytes, default 20 MiB) at which `write-journal.jsonl` rotates to `write-journal.<ISO-time>.jsonl`; the hash chain continues across files.",
   }),
   bool({
+    key: "SN_JOURNAL_REQUIRED",
+    section: "results",
+    since: NEXT,
+    default: false,
+    description:
+      "N-109: fail closed. Before an instance write is sent, check that the profile's journal directory and files are writable; if they are not, refuse the apply with `JOURNAL_UNAVAILABLE` and send nothing. A journal append that fails after the write is logged at `error` level.",
+  }),
+  secret({
+    key: "SN_JOURNAL_KEY",
+    section: "results",
+    since: NEXT,
+    fileSource: true,
+    example: "<random 32+ byte secret>",
+    description:
+      "N-109: key for a keyed (HMAC-SHA256) journal chain. Every line also carries `prev_mac` and the head gets `write-journal.head.mac`, so a user without the key cannot edit a line and re-chain the journal unnoticed. Keep it outside the docs directory (e.g. `SN_JOURNAL_KEY_FILE`).",
+  }),
+  bool({
     key: "SN_CSV_FORMULA_GUARD",
     section: "results",
     since: NEXT,

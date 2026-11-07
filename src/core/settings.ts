@@ -677,6 +677,16 @@ export function getJournalMaxBytes(): number {
   return positiveInt("SN_JOURNAL_MAX_BYTES", DEFAULT_JOURNAL_MAX_BYTES);
 }
 
+/** N-109: refuse an instance write when the journal cannot be written (`SN_JOURNAL_REQUIRED`). */
+export function journalRequired(): boolean {
+  return readBool("SN_JOURNAL_REQUIRED");
+}
+
+/** N-109: the HMAC key of the journal chain (`SN_JOURNAL_KEY[_FILE]`), when set. */
+export function getJournalKey(): string | undefined {
+  return readString("SN_JOURNAL_KEY");
+}
+
 // --- H-5: CSV export safety (L2-01) -----------------------------------------
 
 /**
