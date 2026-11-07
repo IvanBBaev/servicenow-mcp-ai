@@ -1,7 +1,7 @@
 # Changelog
 
 The format follows [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
-The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git history is one commit per task.
+The git history is one commit per task.
 
 ## [Unreleased]
 
@@ -10,6 +10,7 @@ The full development chronology lives in [WORKLOG.md](WORKLOG.md); the git histo
 - A request that hits `SN_TIMEOUT_MS` is no longer retried (N-103): aborting the socket does not cancel the transaction on the instance, so a retry stacked a second and third copy of a slow query. Connection errors, 429 and 5xx are retried as before; `SN_RETRY_ON_TIMEOUT=true` restores the old behaviour. The `SN_TIMEOUT_MS` reference now explains how the timeout relates to the instance's transaction quota.
 - `check_data_health` protects a large table (N-104): a run with no `query` is refused above `SN_DATA_HEALTH_MAX_ROWS` rows (default 250,000, per profile via `SN_PROFILE_<NAME>_DATA_HEALTH_MAX_ROWS`), the checks run one at a time instead of up to about 40 joins at once, `stale` now defaults to `false` (pass `stale:true` for the old report), and each check reports `elapsed_ms`.
 - The weekly live smoke no longer passes when it could not run (N-107): an unset `SN_*` secret fails the job, `scripts/live-wake.mjs` waits about five minutes for a hibernating PDI and reports it as asleep rather than as a shape regression, and the step summary lists the instance build and each scenario.
+- README accuracy (N-99): the `upsert_record` and `upsert_artifact` examples use `values`, the security notes agree with the two-axis section on the plugin-backed tools, the package list is complete, stale test counts and a broken link are gone, and the planning documents moved to CONTRIBUTING.md. The landing page now states the real 15 prompts and 15 resources. `docs:sync` guards the prompt and resource counts and the licence, and `test/readme-accuracy.test.js` checks README links and examples.
 
 ## [3.1.1] - 2026-10-31
 

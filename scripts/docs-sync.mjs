@@ -21,6 +21,9 @@
 // Every pattern must match at least once, so a reworded sentence fails loudly
 // instead of silently dropping out of the sync. Test and coverage counts are
 // not tracked: they change with every test added and only the run knows them.
+// N-99 adds the prompt and resource counts of the landing page, and refuses a
+// public copy of what cannot be tracked (STALE_CLAIMS) or a licence that
+// differs from package.json.
 //
 //   npm run docs:sync               rewrite the counts in place
 //   npm run docs:sync -- --check    dry run: list the drift, exit 1
@@ -41,7 +44,7 @@ import { checkContext7, generateToolDocs, syncToolDocs } from "./tool-docs.mjs";
 
 /**
  * Each site: a file and its patterns. A pattern's capture groups are named
- * `tools` and/or `packages`; only those groups are rewritten.
+ * `tools`, `packages`, `resources` or `prompts`; only those groups are rewritten.
  */
 export const SITES = [
   {
@@ -76,10 +79,33 @@ export const SITES = [
       /(?<tools>\d+) tools, (?<packages>\d+) packages/g,
       /<b>(?<tools>\d+)<\/b><span>tools<\/span>/g,
       /<b>(?<packages>\d+)<\/b><span>packages<\/span>/g,
+      /<b>(?<resources>\d+)<\/b><span>MCP resources<\/span>/g,
+      /<b>(?<prompts>\d+)<\/b><span>prompts<\/span>/g,
       /(?<tools>\d+) tools across (?<packages>\d+) packages/g,
       /even with (?<tools>\d+) tools on the page/g,
     ],
   },
+];
+
+/** N-99: public text that goes stale by itself, so no copy may exist. */
+export const STALE_CLAIMS = [
+  {
+    files: ["README.md", "docs/index.html", "extension/README.md"],
+    pattern: /\b\d[\d,]* tests\b/,
+    why: "a test count; only the run knows it, so say it without a number",
+  },
+  {
+    files: ["project/COMPETITIVE-ANALYSIS.md"],
+    pattern: /\(MIT\)/,
+    why: "the licence is GPL since 3.0",
+  },
+];
+
+/** N-99: manifests whose `license` must equal the one in package.json. */
+export const LICENCE_MANIFESTS = [
+  "extension/package.json",
+  "mcpb/manifest.json",
+  ".claude-plugin/plugin.json",
 ];
 
 /** Rewrite the named count groups of every match of `pattern` in `text`. */
@@ -115,6 +141,40 @@ export function countTools(tools) {
   };
 }
 
+/** N-99: resources and prompts, from their registrations in src/mcp. */
+export function countSurface(root) {
+  const calls = (file, method) =>
+    readFileSync(path.join(root, file), "utf8").split(`.${method}(`).length - 1;
+  return {
+    resources: calls("src/mcp/resources.ts", "registerResource"),
+    prompts: calls("src/mcp/prompts.ts", "registerPrompt"),
+  };
+}
+
+/** N-99: every stale claim and licence mismatch under `root`, as messages. */
+export function checkPublicClaims({
+  root,
+  claims = STALE_CLAIMS,
+  manifests = LICENCE_MANIFESTS,
+}) {
+  const read = (file) => readFileSync(path.join(root, file), "utf8");
+  const problems = [];
+  for (const { files, pattern, why } of claims) {
+    for (const file of files) {
+      const hit = pattern.exec(read(file));
+      if (hit) problems.push(`${file}: "${hit[0]}" is ${why}`);
+    }
+  }
+  const { license } = JSON.parse(read("package.json"));
+  for (const file of manifests) {
+    const found = JSON.parse(read(file)).license;
+    if (found !== license) {
+      problems.push(`${file}: license ${found}, package.json has ${license}`);
+    }
+  }
+  return problems;
+}
+
 /**
  * Bring every site under `root` to `counts`. With `check` nothing is written.
  * Returns the drifting files; throws when a pattern no longer matches.
@@ -148,7 +208,7 @@ if (invokedDirectly) {
   const root = path.join(import.meta.dirname, "..");
   try {
     const tools = await loadToolsFromSource();
-    const counts = countTools(tools);
+    const counts = { ...countTools(tools), ...countSurface(root) };
     // Counts first: the generated files quote README.md and docs/index.html.
     const countDrift = syncCounts({ root, counts, check });
     // Release links next: docs/index.md is rendered from docs/index.html.
@@ -165,7 +225,7 @@ if (invokedDirectly) {
       ...releaseDrift,
       ...syncToolDocs({ root, files, check }),
     ];
-    const problems = checkContext7(root);
+    const problems = [...checkContext7(root), ...checkPublicClaims({ root })];
     const label = `${counts.tools} tools, ${counts.packages} packages`;
     if (problems.length > 0) {
       console.error(`docs:sync: ${problems.join("\n  ")}`);

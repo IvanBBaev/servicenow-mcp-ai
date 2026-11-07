@@ -1263,7 +1263,8 @@ separated list of profiles or package names:
 - Individual packages: `table`, `schema`, `aggregate`, `attachment`,
   `importset`, `batch`, `catalog`, `change`, `knowledge`, `cmdb`, `scripts`,
   `flows`, `codecheck`, `docs`, `instance`, `email`, `atf`, `revert`,
-  `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`.
+  `artifacts`, `updatesets`, `ops`, `history`, `properties`, `directory`, `ui`,
+  `cicd`, `access`.
 
 The admin tools (`servicenow_set_credentials`, `servicenow_get_status`,
 `servicenow_enable_package` and the rest of the admin package) are always
@@ -1313,10 +1314,10 @@ and, to subscribers, `notifications/resources/updated` for
 
 ### Upsert by key
 
-`servicenow_upsert_record({table, key, fields})` creates or updates one record
+`servicenow_upsert_record({table, key, values})` creates or updates one record
 matched by `key`, an exact match on one or more field/value pairs (for example
 `{"u_external_id": "A-17"}`; an empty string matches an empty field). No match
-creates a record with the key and the fields, exactly one match updates it, and
+creates a record with the key and the values, exactly one match updates it, and
 more than one match is refused with `AMBIGUOUS_KEY` — so is a match the user
 cannot read, since creating another would duplicate it.
 
@@ -1713,7 +1714,7 @@ are not yet confirmed on a live instance carry `verified: false` and a
 
 ### Artifact writes
 
-`servicenow_upsert_artifact({artifactType, key, fields, children?})` plans a
+`servicenow_upsert_artifact({artifactType, key, values, children?})` plans a
 primary record and its child records as one unit (S-8 `create` / `update` /
 `noop` per record), then applies them parent first, each journaled with one
 shared `artifact_write` id so `servicenow_revert_write` undoes every line. The
@@ -1858,11 +1859,10 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 
 ```
 .
-├── .env                   # credentials (git-ignored; or ~/.config/servicenow-mcp-ai/.env)
-├── .env.example           # template
+├── .env.example           # template for ~/.config/servicenow-mcp-ai/.env (credentials)
 ├── .github/workflows/     # CI matrix, CodeQL, npm / MCP Registry / Marketplace publishing
 ├── .vscode/mcp.json       # VS Code MCP server registration
-├── bin/                   # CLI launcher (servicenow-mcp-ai.cjs, incl. the doctor command)
+├── bin/                   # CLI launcher (servicenow-mcp-ai.cjs; subcommands such as doctor are in src/cli.ts)
 ├── extension/             # VS Code extension (thin wrapper that registers the server)
 ├── docs/                  # GitHub Pages site
 ├── scripts/               # generators + guards (README tools table, tool manifest, coverage guard)
@@ -1879,7 +1879,7 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 │   │                      # resources, prompts, result envelopes, redaction, write mode
 │   │                      # (plan/apply), CSV export, stdio + HTTP transports
 │   └── tools/             # tool registrations, one file per package (28 packages)
-├── test/                  # node:test suite (406 tests): unit, mock-fetch api, MCP smoke, doc guards
+├── test/                  # node:test suite: unit, mock-fetch api, MCP smoke, doc guards
 └── build/                 # compiled output (after npm run build)
 ```
 
@@ -1893,8 +1893,8 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 
 - The env file is git-ignored — do not commit real credentials.
 - The env file is written **owner-only (`0600`)** — it holds a plaintext password.
-- The server uses the stdio transport and only logs to `stderr`; secrets and raw
-  encoded queries are never logged.
+- The server only logs to `stderr`, on the stdio and the HTTP transport alike;
+  secrets and raw encoded queries are never logged.
 - The password/token is never returned by any tool.
 - **Secret columns are always masked.** A column whose dictionary type is
   `password`, `password2` or `glide_encrypted` (column-level encryption) comes back as `[redacted]` from
@@ -1921,9 +1921,9 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 - Prefer **OAuth 2.0** over Basic where possible (`SN_OAUTH_CLIENT_ID`).
 - Apply least privilege with `SN_TABLES_ALLOW` / `SN_TABLES_DENY` and
   `SN_READONLY=true` for read-only deployments.
-- **Table policy does not cover plugin APIs.** `SN_TABLES_DENY=change_request`
-  blocks the Table API path, but the Change Management API (`sn_chg_rest`) can
-  still read/write changes. To restrict the plugin-backed surfaces use
+- **Table policy covers the plugin-backed tools.** `SN_TABLES_DENY=change_request`
+  blocks the Table API path and, since H-4, the Change tools, which check their
+  backing table. To remove a plugin-backed surface altogether use
   `SN_PACKAGES_DENY` (drop the whole package) or `SN_PACKAGES_READONLY`
   (register only its read tools). The Batch API obeys both axes too: a
   sub-request to a denied package's path is refused, and writes to a read-only
@@ -1931,20 +1931,10 @@ discover-instance prompts mirror the plugin skills `sn-safe-write`, `sn-drift`,
 
 ## Project documentation
 
-| Document | Contents |
-| -------- | -------- |
-| [ARCHITECTURE.md](project/ARCHITECTURE.md) | Layered architecture, Mermaid diagrams (modules, request lifecycle, security model, auth, packages), condensed ADRs |
-| [PRODUCT-STATE.md](project/archive/PRODUCT-STATE.md) | Current product state: API coverage map, quality status, history timeline, roadmap |
-| [ROADMAP.md](project/ROADMAP.md) | The original forward view: the shipped phases, the 2.x hardening line, the 3.0 milestone (shipped 2026-10-19), optional and deferred items |
-| [ROADMAP-V3.md](project/ROADMAP-V3.md) / [DEEP-REVIEW-2026-09.md](project/archive/DEEP-REVIEW-2026-09.md) | The tracker: the v3.0 line (shipped) and the 3.x items N-66 … N-94 planned in [V3.5-ANALYSIS-2026-10.md](project/V3.5-ANALYSIS-2026-10.md) / the five-lens review the v3.0 items were built on |
-| [GAP-ANALYSIS-2026-09.md](project/archive/GAP-ANALYSIS-2026-09.md) | The 2026-09-09 second pass over the v3.0 plan: nine narrower lenses, 67 findings each with design, acceptance criteria and tests, mapped to tracker items |
-| [INSTANCE-DOCS-ANALYSIS-2026-09.md](project/archive/INSTANCE-DOCS-ANALYSIS-2026-09.md) | The 2026-09-23 pass on instance documentation: the docs store, the Mermaid generators, the `document_table` prompt and the missing document kinds — 17 findings with design, acceptance criteria and tests, mapped to S-14 … S-16 |
-| [INSTANCE-DOCS-ANALYSIS-2026-09-25.md](project/archive/INSTANCE-DOCS-ANALYSIS-2026-09-25.md) | The 2026-09-25 second pass on instance documentation: dispositions of the first 17 findings after the docs store, artefact registry, artefact readers and security scan landed, plus 12 new findings (ID-18 … ID-29) with design, acceptance criteria and tests, mapped to S-15, S-16, M-4, M-8, S-7, E-6, E-7 |
-| [COMPETITIVE-ANALYSIS.md](project/COMPETITIVE-ANALYSIS.md) | Positioning vs the official ServiceNow MCP Server Console: comparison, where it structurally lags, the Phase 9 boost plan, and platform risks |
-| [IMPLEMENTATION-PLAN.md](project/archive/IMPLEMENTATION-PLAN.md) | Detailed specs for the upcoming phases (harness 2.0, multi-instance, flow testing) |
-| [DONE.md](project/DONE.md) / [TODO.md](project/TODO.md) | Completed work with commit refs / remaining decisions |
-| [WORKLOG.md](WORKLOG.md) / [CHANGELOG.md](CHANGELOG.md) | Detailed work journal / user-facing changelog |
-| [CONTRIBUTING.md](CONTRIBUTING.md) / [SECURITY.md](SECURITY.md) | Dev setup, gates and conventions / security model and reporting |
+[CHANGELOG.md](CHANGELOG.md) lists every release, [SECURITY.md](SECURITY.md) has
+the security model and how to report a problem, and
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the dev setup, the gates and the design
+and planning documents.
 
 ## Support
 

@@ -1656,11 +1656,11 @@ items:
     title: "public-number truth guard and README accuracy"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-11-07"
     gates: []
-    notes: "Role review P0 (PO-I3, DX-I2; RR-PO-05, RR-DX-03, RR-DX-10, RR-DX-13). A test that derives every public number (tools, packages, tests, profiles, licence) from code and fails on a stale copy in README, prompts, resources and the site; README examples checked against the live tool schemas. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md), [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
+    notes: "**Done 2026-11-07.** `docs:sync` tracks the site's prompt and resource counts and fails on a quoted test count, a stale licence claim or a manifest licence that differs from package.json; `test/readme-accuracy.test.js` checks README links, the package list and every `servicenow_*({...})` example against the tool schemas. The seven README claims, the WORKLOG link and the `sn-safe-write` line are fixed; the planning table moved to CONTRIBUTING.md. The GitHub About text stays with the owner (OD-16). Role review P0 (PO-I3, DX-I2; RR-PO-05, RR-DX-03, RR-DX-10, RR-DX-13). A test that derives every public number (tools, packages, tests, profiles, licence) from code and fails on a stale copy in README, prompts, resources and the site; README examples checked against the live tool schemas. See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md), [08-dx-technical-writer.md](role-review-2026-10/08-dx-technical-writer.md)."
   - id: "N-100"
     title: "SDK 2.4, `_wrapHandler` pin, dependency flow"
     pillar: "N"

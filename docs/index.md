@@ -16,8 +16,8 @@ Get started → [View on GitHub](https://github.com/IvanBBaev/servicenow-mcp-ai)
 
 - **100** tools
 - **28** packages
-- **6** MCP resources
-- **3** prompts
+- **15** MCP resources
+- **15** prompts
 - **10+** ServiceNow APIs
 
 Quick demo
@@ -1134,6 +1134,6 @@ Any MCP client over stdio — Claude Desktop, Claude Code, VS Code Chat, the MCP
 
 ### Is it production-ready?
 
-The engineering is: clean gates, ~200 tests, type-checked lint, a CI matrix and a security model. It is an open-source project under the GPL-3.0 license — review the security model for your own deployment.
+The engineering is: clean gates, a large automated test suite, type-checked lint, a CI matrix and a security model. It is an open-source project under the GPL-3.0 license — review the security model for your own deployment.
 
 **servicenow-mcp-ai** is an independent, community-built project and is **not affiliated with, endorsed by, or sponsored by ServiceNow, Inc.** "ServiceNow", the ServiceNow logo, "Now", and related marks are trademarks or registered trademarks of ServiceNow, Inc., used here only nominatively to indicate compatibility with the ServiceNow platform.

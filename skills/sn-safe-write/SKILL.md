@@ -69,7 +69,7 @@ first step is always to learn the mode — never send a write call before it.
    `apply: true`. Both live in the opt-in `revert` package and
    `servicenow_batch` in the `batch` package: when `enabledPackages` in the
    step 1 answer lacks one, enable it with the server's `enable_package` admin
-   tool and tell the user. The record tools are in `table` (part of `core`).
+   tool and tell the user. The record tools are in `table` (on by default, in `discovery`).
 
 ## Rules
 
