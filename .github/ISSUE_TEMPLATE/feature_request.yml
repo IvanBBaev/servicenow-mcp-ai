@@ -17,6 +17,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Who would use it and how often — for example a consultant on client instances, an admin on one production instance, a developer on a PDI. A real use case moves a request up the roadmap.
+    validations:
+      required: true
+  - type: textarea
     id: proposal
     attributes:
       label: Proposed solution

@@ -491,6 +491,11 @@ OD-17 … OD-32 were added on 2026-10-29 by the nine-role review
   - **Decided 2026-10-30: (a) both, with safe writes as the headline; (b) Discussions on, the
     design-partner outreach drafted but not posted without the owner; (c) yes; (d) yes; (e) paid
     support plus a `MAINTENANCE.md`.** Owner delegated the call to the assistant on 2026-10-30.
+    Done in N-97 (2026-11-07): Discussions are on, [MAINTENANCE.md](../MAINTENANCE.md) states
+    the paid support offer and the park criteria (two quarterly checkpoints in a row from
+    2027-02-19 with no issue or discussion by others, npm under 500 downloads in 30 days and no
+    paid engagement), and `npm run kpi` records the numbers in [KPI.md](KPI.md). The owner
+    posts the design-partner outreach and the two pinned discussion threads.
 - **OD-29 · Licence, DCO and display name (N-122, N-155; GV-I8, GV-I9).**
   - Decide:
     - (a) the licence: GPL-3.0-or-later with an org FAQ, GPL plus an internal-redistribution

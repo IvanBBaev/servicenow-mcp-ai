@@ -4,6 +4,9 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/IvanBBaev/servicenow-mcp-ai/security/advisories/new
     about: Report privately through a GitHub security advisory — never in a public issue. See SECURITY.md.
+  - name: Questions, ideas and your setup
+    url: https://github.com/IvanBBaev/servicenow-mcp-ai/discussions
+    about: Ask a question, share how you use it, or tell us what you tried that did not work.
   - name: Setup and usage questions
     url: https://github.com/IvanBBaev/servicenow-mcp-ai/blob/main/SUPPORT.md
     about: Where to look first, how to run doctor --json and support-bundle, and what not to paste.

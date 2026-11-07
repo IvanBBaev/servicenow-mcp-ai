@@ -1,9 +1,10 @@
 # Getting help
 
 `servicenow-mcp-ai` is maintained by one person in their own time. Support is
-best-effort through GitHub; there is no commercial support and no response-time
-commitment for questions or bugs (security reports have
-[their own targets](SECURITY.md#response-targets)).
+best-effort through GitHub, with no response-time commitment for questions or
+bugs (security reports have [their own targets](SECURITY.md#response-targets)).
+[MAINTENANCE.md](MAINTENANCE.md) has the maintenance policy and the paid support
+option for teams that need more.
 
 ## Where to go
 
@@ -11,6 +12,7 @@ commitment for questions or bugs (security reports have
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Set it up or configure it                | The [README](README.md) — [Setup](README.md#setup), [Configure credentials](README.md#configure-credentials), [Environment variables](README.md#environment-variables)             |
 | Check that your setup works              | `servicenow-mcp-ai doctor` ([Verify your setup](README.md#verify-your-setup))                                                                                                      |
+| Ask a question or show your setup        | [GitHub Discussions](https://github.com/IvanBBaev/servicenow-mcp-ai/discussions)                                                                                                   |
 | Report a bug                             | [New issue → Bug report](https://github.com/IvanBBaev/servicenow-mcp-ai/issues/new/choose) — search [existing issues](https://github.com/IvanBBaev/servicenow-mcp-ai/issues) first |
 | Suggest a feature or a new tool          | [New issue → Feature request](https://github.com/IvanBBaev/servicenow-mcp-ai/issues/new/choose)                                                                                    |
 | Report a vulnerability                   | **Privately**, as described in [SECURITY.md](SECURITY.md) — never in a public issue                                                                                                |

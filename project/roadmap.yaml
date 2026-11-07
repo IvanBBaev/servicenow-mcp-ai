@@ -1638,11 +1638,11 @@ items:
     title: "feedback loop and KPI snapshot"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-11-07"
     gates: []
-    notes: "Role review P0 (PO-I1; RR-PO-01, RR-PO-10, RR-PO-11). GitHub Discussions, issue forms that ask for the use case, 3–5 design partners, and a `scripts/kpi.mjs` snapshot (npm downloads, stars, Marketplace installs, issues by humans) recorded per release — no telemetry; a `MAINTENANCE.md` with the sustainability posture and park criteria. Owner decision OD-28 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
+    notes: "**Done 2026-11-07.** `npm run kpi` (`scripts/kpi.mjs`) records npm downloads, Marketplace installs, stars, forks, issues by others and discussions in [KPI.md](KPI.md) — public numbers only, no telemetry; the first row is 2026-11-07. `MAINTENANCE.md` states the support window, response expectations, the paid support offer and the park criteria; SUPPORT.md, the README and the issue chooser point to it and to Discussions (already on), and the feature form asks for the use case. The design-partner outreach and the two pinned threads are drafted for the owner, not posted. `tools/list`: +0 B. Role review P0 (PO-I1; RR-PO-01, RR-PO-10, RR-PO-11). GitHub Discussions, issue forms that ask for the use case, 3–5 design partners, and a `scripts/kpi.mjs` snapshot (npm downloads, stars, Marketplace installs, issues by humans) recorded per release — no telemetry; a `MAINTENANCE.md` with the sustainability posture and park criteria. Owner decision OD-28 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
   - id: "N-98"
     title: "single-source positioning"
     pillar: "N"
