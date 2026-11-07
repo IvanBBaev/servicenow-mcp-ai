@@ -23,6 +23,12 @@ import {
  */
 const live = process.env.SN_LIVE === "1";
 
+/** N-107: one line per scenario in the GitHub Actions step summary. */
+function report(id, status) {
+  const file = process.env.GITHUB_STEP_SUMMARY;
+  if (file) fs.appendFileSync(file, `- ${status}: \`${id}\`\n`);
+}
+
 test("pdi live smoke", { skip: !live && "set SN_LIVE=1 to run" }, async (t) => {
   loadEnv();
   reloadCredentialsFromEnv();
@@ -38,12 +44,21 @@ test("pdi live smoke", { skip: !live && "set SN_LIVE=1 to run" }, async (t) => {
       } finally {
         await close();
       }
-      const result = results[scenario.id];
-      assert.equal(result.isError, false, JSON.stringify(result.data));
-      const fixture = JSON.parse(
-        fs.readFileSync(path.join(FIXTURE_DIR, `${scenario.id}.json`), "utf8"),
-      );
-      assert.deepEqual(shapeOf(normalize(result)), shapeOf(fixture.result));
+      try {
+        const result = results[scenario.id];
+        assert.equal(result.isError, false, JSON.stringify(result.data));
+        const fixture = JSON.parse(
+          fs.readFileSync(
+            path.join(FIXTURE_DIR, `${scenario.id}.json`),
+            "utf8",
+          ),
+        );
+        assert.deepEqual(shapeOf(normalize(result)), shapeOf(fixture.result));
+        report(scenario.id, "pass");
+      } catch (error) {
+        report(scenario.id, "FAIL");
+        throw error;
+      }
     });
   }
 });

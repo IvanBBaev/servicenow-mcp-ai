@@ -1728,11 +1728,11 @@ items:
     title: "a live smoke that really runs"
     pillar: "N"
     effort: "S"
-    status: "open"
+    status: "partial"
     phase: null
-    done: null
+    done: "2026-11-07"
     gates: ["O-2"]
-    notes: "Role review P0 (QA-I1; RR-QA-01). The weekly live smoke has been a green no-op for three weeks because its secrets were never set. Set the `SN_*` secrets (O-2) and make the job fail, not skip, when it is unconfigured. Owner decision OD-25 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
+    notes: "**Partly done 2026-11-07.** An unset secret now fails the job; `scripts/live-wake.mjs` retries for about five minutes, reports a hibernating PDI as asleep and writes `glide.buildtag` to the step summary; each scenario gets a summary line. Still open: the owner sets the `SN_*` secrets (O-2), and the run stays red until then. Role review P0 (QA-I1; RR-QA-01). Owner decision OD-25 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [06-qa-test-architect.md](role-review-2026-10/06-qa-test-architect.md)."
   - id: "N-108"
     title: "managed policy file + host environment map"
     pillar: "N"
