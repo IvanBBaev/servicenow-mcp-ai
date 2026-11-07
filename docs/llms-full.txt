@@ -16,17 +16,23 @@
 
 # servicenow-mcp-ai — ServiceNow MCP Server
 
-| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![tools](https://img.shields.io/badge/tools-100-blue?style=flat-square)](https://github.com/IvanBBaev/servicenow-mcp-ai#tools) | [![License: GPL-3.0](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
+| [![npm version](https://img.shields.io/npm/v/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=npm)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![npm downloads](https://img.shields.io/npm/dm/servicenow-mcp-ai?style=flat-square&logo=npm&logoColor=white&label=downloads)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![node](https://img.shields.io/node/v/servicenow-mcp-ai?style=flat-square&logo=nodedotjs&logoColor=white&label=node)](https://www.npmjs.com/package/servicenow-mcp-ai) | [![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/ivanbbaev/servicenow-mcp-ai) | [![License: GPL-3.0](https://img.shields.io/npm/l/servicenow-mcp-ai?style=flat-square&color=blue&label=license)](LICENSE) |
 | :--: | :--: | :--: | :--: | :--: |
 | [![CI](https://img.shields.io/github/actions/workflow/status/IvanBBaev/servicenow-mcp-ai/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/IvanBBaev/servicenow-mcp-ai/actions/workflows/ci.yml) | [![coverage](https://img.shields.io/codecov/c/github/IvanBBaev/servicenow-mcp-ai/main?style=flat-square&logo=codecov&logoColor=white&label=coverage)](https://codecov.io/gh/IvanBBaev/servicenow-mcp-ai) | [![last commit](https://img.shields.io/github/last-commit/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=git&logoColor=white&label=last%20commit)](https://github.com/IvanBBaev/servicenow-mcp-ai/commits/main) | [![MCP](https://img.shields.io/badge/MCP-server-orange?style=flat-square)](https://modelcontextprotocol.io) | [![Known Vulnerabilities](https://snyk.io/test/npm/servicenow-mcp-ai/badge.svg)](https://snyk.io/test/npm/servicenow-mcp-ai) |
-| [![GitHub stars](https://img.shields.io/github/stars/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=github&logoColor=white&label=stars)](https://github.com/IvanBBaev/servicenow-mcp-ai/stargazers) | [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/ivanbbaev.servicenow-mcp-ai?style=flat-square&logo=visualstudiocode&logoColor=white&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai) | [![VS Code installs](https://img.shields.io/visual-studio-marketplace/i/ivanbbaev.servicenow-mcp-ai?style=flat-square&logo=visualstudiocode&logoColor=white&label=installs)](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai) | [![VS Code rating](https://img.shields.io/visual-studio-marketplace/r/ivanbbaev.servicenow-mcp-ai?style=flat-square&logo=visualstudiocode&logoColor=white&label=rating)](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai&ssr=false#review-details) | [![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/ivanbbaev/servicenow-mcp-ai) |
+| [![GitHub stars](https://img.shields.io/github/stars/IvanBBaev/servicenow-mcp-ai?style=flat-square&logo=github&logoColor=white&label=stars)](https://github.com/IvanBBaev/servicenow-mcp-ai/stargazers) | [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/ivanbbaev.servicenow-mcp-ai?style=flat-square&logo=visualstudiocode&logoColor=white&label=VS%20Code)](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai) | [![VS Code installs](https://img.shields.io/visual-studio-marketplace/i/ivanbbaev.servicenow-mcp-ai?style=flat-square&logo=visualstudiocode&logoColor=white&label=installs)](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai) | [![VS Code rating](https://img.shields.io/visual-studio-marketplace/r/ivanbbaev.servicenow-mcp-ai?style=flat-square&logo=visualstudiocode&logoColor=white&label=rating)](https://marketplace.visualstudio.com/items?itemName=ivanbbaev.servicenow-mcp-ai&ssr=false#review-details) |
 
 📖 **[Documentation site →](https://ivanbbaev.github.io/servicenow-mcp-ai/)**
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that lets an
-MCP client (VS Code, Claude Desktop, etc.) run commands against a **ServiceNow**
-instance through its REST APIs — Table, Aggregate, Attachment, Import Set, Batch
-and CMDB, plus the Service Catalog, Change Management and Knowledge plugin APIs.
+<!-- positioning:start (generated from docs/positioning.json: npm run docs:sync) -->
+**Safe AI writes for ServiceNow.** An MCP server that connects any MCP client — Claude Desktop, Claude Code, VS Code Copilot Chat, Cursor — to a ServiceNow instance over its REST APIs.
+Every write is previewed first, a destructive one needs a single-use plan token, and record writes are journaled and can be reverted. Alongside that comes IDE-grade code intelligence: find usages, what runs on save, and drift between instances. Free and local, and it works on your PDI.
+
+100 tools in 28 packages: 20 load by default and SN_TOOL_PACKAGES adds the rest, so the tool list stays small in tokens.
+<!-- positioning:end -->
+
+Its tools cover the Table, Aggregate, Attachment, Import Set, Batch and CMDB APIs,
+plus the Service Catalog, Change Management and Knowledge plugin APIs
+([what is MCP?](https://modelcontextprotocol.io)).
 Credentials are kept in a local env file and can be updated at runtime through a tool.
 
 > **Upgrading from 2.x?** 3.0 has breaking defaults (plan tokens for destructive applies,
@@ -54,10 +60,26 @@ Full [Support](#support) options are near the end._
 
 ## Quick demo
 
-Three things the platform makes hard, one call each. Point your MCP client at an
-instance ([Setup](#setup)) and ask:
+A safe write and three things the platform makes hard, one call each. Point your
+MCP client at an instance ([Setup](#setup)) and ask:
 
-**1. "Where is this field actually used?"** — every script, business rule, client
+**1. "Reassign this incident — show me first."** — a write tool called without
+`apply` returns a before/after preview and changes nothing. The same call with
+`"apply": true` runs it after you agree; a destructive apply (delete, writing
+batch, revert…) also needs the preview's single-use `plan_token`, and every record
+write lands in a local journal that `servicenow_revert_write` can undo:
+
+```jsonc
+// servicenow_update_record
+{
+  "table": "incident",
+  "sys_id": "<incident sys_id>",
+  "values": { "assignment_group": "<group sys_id>" },
+  // add "apply": true once the preview looks right
+}
+```
+
+**2. "Where is this field actually used?"** — every script, business rule, client
 script, UI policy/action and ACL that touches it, as JSON or a Mermaid graph. The
 IDE-grade _find usages_ ServiceNow has no button for:
 
@@ -70,7 +92,7 @@ IDE-grade _find usages_ ServiceNow has no button for:
 }
 ```
 
-**2. "What runs when I save this record?"** — the full automation chain in
+**3. "What runs when I save this record?"** — the full automation chain in
 execution order (display → before → after → async business rules, then flows,
 workflows and notifications), each with its condition — a logical test that runs
 **nothing**:
@@ -83,7 +105,7 @@ workflows and notifications), each with its condition — a logical test that ru
 }
 ```
 
-**3. "What drifted between dev and prod?"** — a Markdown diff of tables, columns,
+**4. "What drifted between dev and prod?"** — a Markdown diff of tables, columns,
 scripts (matched by sys_id then name, with a unified diff of every changed script)
 and plugins between two configured profiles — plus, on request, properties, choices,
 ACLs, notifications, flows, catalog items and roles — with a CI-friendly exit code
@@ -93,7 +115,7 @@ so a pipeline can block a risky deploy:
 servicenow-mcp-ai drift dev prod   # report on stdout; exit 1 on drift, 0 if clean
 ```
 
-All three are **read-only** and work against any instance — including a free PDI —
+Demos 2–4 are **read-only**; all four work against any instance — including a free PDI —
 with the model and client of your choice.
 
 ## Features

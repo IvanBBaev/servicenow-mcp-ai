@@ -2,7 +2,7 @@
   "name": "servicenow-mcp-ai",
   "version": "3.1.1",
   "mcpName": "io.github.IvanBBaev/servicenow-mcp-ai",
-  "description": "ServiceNow MCP server: 100 tools in 28 packages over the full REST surface (Table, Aggregate, Attachment, Import Set, Batch, CMDB/IRE, Catalog, Change, Knowledge, Email) with script intelligence, flow tracing, local code checking, ATF runs, multi-instance profiles, Mermaid generators and a two-axis policy model.",
+  "description": "Safe AI writes for ServiceNow: an MCP server where every write is previewed, destructive ones need a single-use token, and record writes are journaled and revertible. Plus find usages, what runs on save and drift between instances. 100 tools in 28 packages.",
   "license": "GPL-3.0-or-later",
   "author": "Ivan Baev <ivanbbaev@gmail.com>",
   "repository": {

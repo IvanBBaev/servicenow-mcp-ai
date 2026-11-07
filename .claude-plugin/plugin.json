@@ -2,7 +2,7 @@
   "name": "servicenow-mcp-ai",
   "displayName": "ServiceNow MCP",
   "version": "3.1.1",
-  "description": "Drive ServiceNow from your AI assistant — 100 tools over the full REST surface, with plan-and-apply write safety, capability preflight, an ACL security scan, eight workflow skills (discover, triage, impact, drift, safe write, UI Builder review, upgrade review, security) and two read-only subagents (investigator, change reviewer).",
+  "description": "Safe AI writes for ServiceNow from your AI assistant: previewed, token-confirmed, journaled and revertible writes, find usages and drift, eight workflow skills (discover, triage, impact, drift, safe write, UI Builder review, upgrade review, security) and two read-only subagents (investigator, change reviewer). 100 tools.",
   "author": { "name": "Ivan Baev", "url": "https://github.com/IvanBBaev" },
   "homepage": "https://ivanbbaev.github.io/servicenow-mcp-ai/",
   "repository": "https://github.com/IvanBBaev/servicenow-mcp-ai",

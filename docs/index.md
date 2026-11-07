@@ -2,9 +2,9 @@
 
 Model Context Protocol · ServiceNow
 
-# Drive ServiceNow from your AI assistant.
+# Safe AI writes for ServiceNow.
 
-**servicenow-mcp-ai** is an MCP server that turns any MCP-capable AI client — Claude Desktop, Claude Code, VS Code Chat — into a ServiceNow power user. It reads and writes across the full REST surface, understands the instance's own code, and keeps least-privilege guardrails between the model and your data.
+An MCP server that connects any MCP client — Claude Desktop, Claude Code, VS Code Copilot Chat, Cursor — to a ServiceNow instance over its REST APIs. Every write is previewed first, a destructive one needs a single-use plan token, and record writes are journaled and can be reverted. Alongside that comes IDE-grade code intelligence: find usages, what runs on save, and drift between instances. Free and local, and it works on your PDI.
 
 Get started → [View on GitHub](https://github.com/IvanBBaev/servicenow-mcp-ai) See use cases
 

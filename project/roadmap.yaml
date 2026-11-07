@@ -1647,11 +1647,11 @@ items:
     title: "single-source positioning"
     pillar: "N"
     effort: "S–M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-11-07"
     gates: []
-    notes: "Role review P0 (PO-I2; RR-PO-03, RR-PO-04). One tagline and one value statement generated into README, `package.json`, `server.json`, the extension manifest, the site and `llms.txt`; drop the tool-count headline (badge and descriptions). Owner decision OD-28 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
+    notes: "**Done 2026-11-07.** `docs/positioning.json` holds the headline, the what/value statements, the counts line and one description per channel; `docs:sync` renders them into the README hero, the site hero, meta and JSON-LD, `llms.txt` and the `description` of `package.json`, `server.json`, the extension, `plugin.json` and `marketplace.json`, and fails on drift, a description that opens with a count or a registry description over 100 characters. The tools badge is gone; the counts line names the 20 default tools. The README quick demo opens with a previewed write. `tools/list`: +0 B. The GitHub About text is `descriptions.about`, set by the owner (OD-16). Role review P0 (PO-I2; RR-PO-03, RR-PO-04). One tagline and one value statement generated into README, `package.json`, `server.json`, the extension manifest, the site and `llms.txt`; drop the tool-count headline (badge and descriptions). Owner decision OD-28 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [01-product-owner.md](role-review-2026-10/01-product-owner.md)."
   - id: "N-99"
     title: "public-number truth guard and README accuracy"
     pillar: "N"

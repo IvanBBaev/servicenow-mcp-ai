@@ -1,7 +1,7 @@
 {
   "name": "servicenow-mcp-ai",
   "displayName": "ServiceNow MCP",
-  "description": "Drive ServiceNow from VS Code Copilot Chat — 100 tools over the full REST surface, with plan-and-apply write safety, capability preflight and an ACL security scan.",
+  "description": "Safe AI writes for ServiceNow from VS Code Copilot Chat: every write is previewed, destructive ones need a single-use token, record writes are journaled and revertible. Plus find usages and drift. 100 tools.",
   "version": "3.1.1",
   "publisher": "ivanbbaev",
   "license": "GPL-3.0-or-later",

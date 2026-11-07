@@ -1,0 +1,17 @@
+{
+  "$comment": "N-98: the one source of the product positioning. npm run docs:sync renders it into README.md, docs/index.html, docs/llms.txt and the manifest descriptions; {tools}, {packages} and {defaultTools} are filled from the registry. The GitHub About text is set from `about` by the owner.",
+  "headline": ["Safe AI writes", "for ServiceNow."],
+  "what": "An MCP server that connects any MCP client — Claude Desktop, Claude Code, VS Code Copilot Chat, Cursor — to a ServiceNow instance over its REST APIs.",
+  "value": "Every write is previewed first, a destructive one needs a single-use plan token, and record writes are journaled and can be reverted. Alongside that comes IDE-grade code intelligence: find usages, what runs on save, and drift between instances. Free and local, and it works on your PDI.",
+  "counts": "{tools} tools in {packages} packages: {defaultTools} load by default and SN_TOOL_PACKAGES adds the rest, so the tool list stays small in tokens.",
+  "disclaimer": "It is an independent community project and is not affiliated with ServiceNow, Inc.",
+  "descriptions": {
+    "registry": "Safe AI writes for ServiceNow: previewed, token-confirmed, journaled, revertible. Plus find usages.",
+    "package": "Safe AI writes for ServiceNow: an MCP server where every write is previewed, destructive ones need a single-use token, and record writes are journaled and revertible. Plus find usages, what runs on save and drift between instances. {tools} tools in {packages} packages.",
+    "extension": "Safe AI writes for ServiceNow from VS Code Copilot Chat: every write is previewed, destructive ones need a single-use token, record writes are journaled and revertible. Plus find usages and drift. {tools} tools.",
+    "plugin": "Safe AI writes for ServiceNow from your AI assistant: previewed, token-confirmed, journaled and revertible writes, find usages and drift, eight workflow skills (discover, triage, impact, drift, safe write, UI Builder review, upgrade review, security) and two read-only subagents (investigator, change reviewer). {tools} tools.",
+    "marketplace": "Safe AI writes for ServiceNow: previewed, token-confirmed, journaled and revertible, plus find usages and drift; {tools} tools. Add with: /plugin marketplace add IvanBBaev/servicenow-mcp-ai",
+    "meta": "Safe AI writes for ServiceNow: an MCP server where every write is previewed, destructive ones need a single-use token, and record writes are journaled and revertible — plus find usages, what runs on save and drift.",
+    "about": "Safe AI writes for ServiceNow: an MCP server with previewed, token-confirmed, journaled and revertible writes, plus find usages and drift. Free, local, works on your PDI."
+  }
+}

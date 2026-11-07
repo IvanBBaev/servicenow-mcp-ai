@@ -1,14 +1,9 @@
 // D-3: keeps the tool and package counts quoted across the distribution
 // surfaces in step with the live registry (src/mcp/registry.ts):
 //
-//   README.md                        the tools badge, the "(N packages)" layout note
-//   package.json                     "N tools in M packages" in the description
-//   server.json                      "N tools" in the description
-//   extension/package.json           "N tools" in the description
+//   README.md                        the "(N packages)" layout note
 //   extension/README.md              "N tools"
-//   .claude-plugin/plugin.json       "N tools"
-//   .claude-plugin/marketplace.json  "N tools"
-//   docs/index.html                  meta descriptions, hero stats, the tools intro
+//   docs/index.html                  hero stats, the tools intro
 //   AGENTS.md                        "N tools in M packages" (N-43; rendered to
 //                                    .github/copilot-instructions.md by docs:instructions)
 //
@@ -24,6 +19,11 @@
 // N-99 adds the prompt and resource counts of the landing page, and refuses a
 // public copy of what cannot be tracked (STALE_CLAIMS) or a licence that
 // differs from package.json.
+// N-98 renders docs/positioning.json — the one tagline, value statement and
+// manifest descriptions — into the README and site heroes, the site's meta
+// descriptions, docs/llms.txt and the descriptions of package.json,
+// server.json, extension/package.json and .claude-plugin/*.json (POSITIONING).
+// mcpb/manifest.json follows package.json through mcpb:manifest.
 //
 //   npm run docs:sync               rewrite the counts in place
 //   npm run docs:sync -- --check    dry run: list the drift, exit 1
@@ -49,26 +49,9 @@ import { checkContext7, generateToolDocs, syncToolDocs } from "./tool-docs.mjs";
 export const SITES = [
   {
     file: "README.md",
-    patterns: [
-      /badge\/tools-(?<tools>\d+)-blue/g,
-      /one file per package \((?<packages>\d+) packages\)/g,
-    ],
+    patterns: [/one file per package \((?<packages>\d+) packages\)/g],
   },
-  {
-    file: "package.json",
-    patterns: [/(?<tools>\d+) tools in (?<packages>\d+) packages/g],
-  },
-  { file: "server.json", patterns: [/(?<tools>\d+) tools over/g] },
-  { file: "extension/package.json", patterns: [/(?<tools>\d+) tools over/g] },
   { file: "extension/README.md", patterns: [/(?<tools>\d+) tools over/g] },
-  {
-    file: ".claude-plugin/plugin.json",
-    patterns: [/(?<tools>\d+) tools over/g],
-  },
-  {
-    file: ".claude-plugin/marketplace.json",
-    patterns: [/MCP server — (?<tools>\d+) tools/g],
-  },
   {
     file: "AGENTS.md",
     patterns: [/(?<tools>\d+) tools in (?<packages>\d+) packages/g],
@@ -108,6 +91,137 @@ export const LICENCE_MANIFESTS = [
   ".claude-plugin/plugin.json",
 ];
 
+/** N-98: the registry caps the server.json description (MCP Registry schema). */
+export const REGISTRY_DESCRIPTION_MAX = 100;
+
+const htmlText = (text) =>
+  text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const htmlAttr = (text) => htmlText(text).replaceAll('"', "&quot;");
+
+/**
+ * N-98: each place docs/positioning.json is rendered into. `pattern` keeps its
+ * first and last groups and swaps what lies between them for `render(texts)`.
+ */
+export const POSITIONING = [
+  ...[
+    ["package.json", "package"],
+    ["server.json", "registry"],
+    ["extension/package.json", "extension"],
+    [".claude-plugin/plugin.json", "plugin"],
+    [".claude-plugin/marketplace.json", "marketplace"],
+  ].map(([file, key]) => ({
+    file,
+    pattern: /(?<pre>"description": )"(?:[^"\\]|\\.)*"(?<post>)/,
+    render: (t) => JSON.stringify(t.descriptions[key]),
+  })),
+  {
+    file: "README.md",
+    pattern:
+      /(?<pre><!-- positioning:start[^>]*-->\n)[\s\S]*?(?<post><!-- positioning:end -->)/,
+    render: (t) => `**${t.tagline}** ${t.what}\n${t.value}\n\n${t.counts}\n`,
+  },
+  {
+    file: "docs/index.html",
+    pattern:
+      /(?<pre><!-- positioning:start[^>]*-->\n)[\s\S]*?(?<post>\s*<!-- positioning:end -->)/,
+    render: (t) =>
+      `          <h1>${htmlText(t.headline[0])} <span class="accent">${htmlText(t.headline[1])}</span></h1>\n` +
+      `          <p class="lead">${htmlText(t.what)} ${htmlText(t.value)}</p>`,
+  },
+  ...[
+    'name="description"',
+    'property="og:description"',
+    'name="twitter:description"',
+  ].map((attr) => ({
+    file: "docs/index.html",
+    pattern: new RegExp(`(?<pre>${attr}\\s+content=")[^"]*(?<post>")`),
+    render: (t) => htmlAttr(t.descriptions.meta),
+  })),
+  {
+    file: "docs/index.html",
+    pattern:
+      /(?<pre>"applicationCategory"[\s\S]*?"description": )"[^"]*"(?<post>)/,
+    render: (t) => JSON.stringify(t.descriptions.meta),
+  },
+  {
+    file: "docs/llms.txt",
+    pattern: /(?<pre>^> ).*(?<post>)$/m,
+    render: (t) => `${t.what} ${t.value} ${t.counts} ${t.disclaimer}`,
+  },
+];
+
+/** N-98: fill the count placeholders and derive the shared texts. */
+export function renderPositioning(positioning, counts) {
+  const fill = (text) =>
+    text.replace(/\{(tools|packages|defaultTools)\}/g, (_, name) => {
+      if (counts[name] === undefined) throw new Error(`no count for {${name}}`);
+      return String(counts[name]);
+    });
+  const descriptions = Object.fromEntries(
+    Object.entries(positioning.descriptions).map(([k, v]) => [k, fill(v)]),
+  );
+  for (const [key, text] of Object.entries(descriptions)) {
+    if (/^\d/.test(text)) {
+      throw new Error(`positioning: description "${key}" opens with a count`);
+    }
+  }
+  if (descriptions.registry.length > REGISTRY_DESCRIPTION_MAX) {
+    throw new Error(
+      `positioning: the registry description has ${descriptions.registry.length} characters, the limit is ${REGISTRY_DESCRIPTION_MAX}`,
+    );
+  }
+  return {
+    ...positioning,
+    tagline: positioning.headline.join(" "),
+    counts: fill(positioning.counts),
+    descriptions,
+  };
+}
+
+/**
+ * N-98: bring every POSITIONING site under `root` to docs/positioning.json.
+ * With `check` nothing is written. Returns the drifting files; throws when a
+ * site no longer matches.
+ */
+export function syncPositioning({
+  root,
+  counts,
+  check = false,
+  sites = POSITIONING,
+}) {
+  const texts = renderPositioning(
+    JSON.parse(readFileSync(path.join(root, "docs/positioning.json"), "utf8")),
+    counts,
+  );
+  const files = new Map();
+  for (const site of sites) {
+    const abs = path.join(root, site.file);
+    if (!files.has(abs))
+      files.set(abs, { file: site.file, before: readFileSync(abs, "utf8") });
+    const entry = files.get(abs);
+    const text = entry.after ?? entry.before;
+    const match = site.pattern.exec(text);
+    if (!match)
+      throw new Error(
+        `${site.file}: positioning site ${site.pattern} no longer matches`,
+      );
+    const { pre, post } = match.groups;
+    entry.after =
+      text.slice(0, match.index) +
+      pre +
+      site.render(texts) +
+      post +
+      text.slice(match.index + match[0].length);
+  }
+  const drift = [];
+  for (const [abs, { file, before, after }] of files) {
+    if (after === before) continue;
+    drift.push(file);
+    if (!check) writeFileSync(abs, after);
+  }
+  return drift;
+}
+
 /** Rewrite the named count groups of every match of `pattern` in `text`. */
 function rewrite(text, pattern, counts) {
   let hits = 0;
@@ -133,11 +247,17 @@ function rewrite(text, pattern, counts) {
   return { next, hits };
 }
 
-/** Tool and package counts from a ToolInfo[] (each carries `package`). */
-export function countTools(tools) {
+/**
+ * Tool and package counts from a ToolInfo[] (each carries `package`). With the
+ * core packages, `defaultTools` counts what a default profile loads: those
+ * packages plus `admin`, which is always on.
+ */
+export function countTools(tools, corePackages = []) {
+  const core = new Set([...corePackages, "admin"]);
   return {
     tools: tools.length,
     packages: new Set(tools.map((t) => t.package)).size,
+    defaultTools: tools.filter((t) => core.has(t.package)).length,
   };
 }
 
@@ -208,9 +328,16 @@ if (invokedDirectly) {
   const root = path.join(import.meta.dirname, "..");
   try {
     const tools = await loadToolsFromSource();
-    const counts = { ...countTools(tools), ...countSurface(root) };
+    const corePackages = await loadCorePackagesFromSource();
+    const counts = {
+      ...countTools(tools, corePackages),
+      ...countSurface(root),
+    };
     // Counts first: the generated files quote README.md and docs/index.html.
-    const countDrift = syncCounts({ root, counts, check });
+    const countDrift = [
+      ...syncCounts({ root, counts, check }),
+      ...syncPositioning({ root, counts, check }),
+    ];
     // Release links next: docs/index.md is rendered from docs/index.html.
     const releaseDrift = syncChangelogDocs({ root, check });
     const files = generateToolDocs({
@@ -218,7 +345,7 @@ if (invokedDirectly) {
       tools,
       schemas: await loadToolSchemasFromSource(),
       errorCodes: await loadErrorCodesFromSource(),
-      corePackages: await loadCorePackagesFromSource(),
+      corePackages,
     });
     const drift = [
       ...countDrift,
