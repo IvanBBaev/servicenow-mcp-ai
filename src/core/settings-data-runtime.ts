@@ -42,6 +42,14 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       "Comma-separated table denylist; always wins over the allowlist.",
   }),
+  filePath({
+    key: "SN_MANAGED_POLICY_FILE",
+    section: "policy",
+    since: NEXT,
+    example: "/etc/servicenow-mcp-ai/policy.json",
+    description:
+      "N-108: an extra managed policy file (JSON) with floors the user can only tighten, read in addition to the OS path (`/etc/servicenow-mcp-ai/policy.json`, `/Library/Application Support/servicenow-mcp-ai/policy.json`, `%ProgramData%\\servicenow-mcp-ai\\policy.json`). Meant for containers, where the image owner sets the environment; on a workstation use the OS path, which the user cannot change. A file that exists but is invalid stops startup. Read once per process — restart after a change. See SECURITY.md → Managed policy.",
+  }),
   bool({
     key: "SN_READONLY",
     section: "policy",

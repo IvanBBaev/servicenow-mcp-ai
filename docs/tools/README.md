@@ -65,6 +65,7 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `INTERNAL_ERROR` | server | An unexpected server-side failure. |
 | `INVALID_INPUT` | server | The arguments are invalid; nothing was sent. |
 | `JOURNAL_UNAVAILABLE` | policy | SN_JOURNAL_REQUIRED=true and the write journal cannot be written; nothing was sent. |
+| `MANAGED_POLICY_INVALID` | policy | A managed policy file exists but is invalid; the server does not start. |
 | `MIME_NOT_ALLOWED` | policy | An upload content type is not listed in SN_UPLOAD_MIME_ALLOW. |
 | `NO_PACKAGE_SESSION` | server | The client session cannot change its package set. |
 | `NOT_CONFIGURED` | server | The profile lacks what its auth method needs; the hint names the missing fields. |

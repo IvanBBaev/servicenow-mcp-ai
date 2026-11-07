@@ -52,6 +52,7 @@ and the open questions behind them wait in [TODO.md](../TODO.md).
 | [0010](0010-drop-fluent-generation.md) | Drop Fluent generation; source control belongs to syncrona | accepted 2026-10-10 | ROADMAP-V3.md B15, P-26 … P-29 |
 | [0011](0011-owner-gate-round-2026-10-13.md) | Owner gate round: security B21/B22, beta, O-11 … O-22, OD-11 | accepted 2026-10-13 | ROADMAP-V3.md §O, B21, B22, TODO.md OD-11 |
 | [0012](0012-owner-gate-round-2026-10-14.md) | 3.0.0 scope close: H-11b deferred, N-0, N-54, P-2, known limitations | accepted 2026-10-14 | ROADMAP-V3.md §H-11, §N, §P-2, TODO.md H-11 |
+| [0013](0013-managed-policy-file.md) | Managed policy file and host environment map (N-108, OD-26) | accepted 2026-11-07 (part 1) | ROADMAP-V3.md §N-108, TODO.md OD-26 |
 
 Open gates without a record (as of 2026-10-14): O-6, O-8, O-9; O-5 is settled for 3.0 under 0012
 (P-2 closed, the instance-only rows are known limitations). O-2 and O-3 are decided under 0011

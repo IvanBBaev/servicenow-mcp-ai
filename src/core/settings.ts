@@ -19,6 +19,8 @@ import {
   settingSource,
 } from "./settings-manifest.js";
 import { ServiceNowError } from "./errors.js";
+// N-108: registers the managed policy layer with the settings reader.
+import "./managed-policy.js";
 
 export const DEFAULT_TIMEOUT_MS = 30_000;
 export const DEFAULT_MAX_RETRIES = 2;

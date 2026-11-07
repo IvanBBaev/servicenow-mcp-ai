@@ -1,4 +1,5 @@
 import { activeProfile, listProfiles } from "../core/config.js";
+import { managedPolicySummary } from "../core/managed-policy.js";
 import {
   PROTECTED_TABLES,
   evaluateTable,
@@ -61,7 +62,14 @@ export function policyPayload(profile: string = activeProfile()) {
     },
     writeMode: getWriteMode(),
     destructiveConfirm: getDestructiveConfirm(),
+    // N-108: present only when an administrator's policy file is in force.
+    ...managedField(),
   };
+}
+
+function managedField() {
+  const managed = managedPolicySummary();
+  return managed ? { managed } : {};
 }
 
 /** The payload of servicenow://policy: every profile's effective policy. */

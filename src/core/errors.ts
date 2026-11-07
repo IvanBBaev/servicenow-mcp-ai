@@ -120,6 +120,11 @@ export type ServiceNowErrorCode =
    */
   | "JOURNAL_UNAVAILABLE"
   /**
+   * N-108: a managed policy file exists but cannot be read or parsed, or
+   * names a key that cannot be locked — the server refuses to start.
+   */
+  | "MANAGED_POLICY_INVALID"
+  /**
    * H-11 (L3-03 / L5-04): a destructive apply on a prod profile in apply mode
    * from a client that cannot confirm it (no elicitation) — nothing was sent.
    */
@@ -372,6 +377,11 @@ export const ERROR_CODES: Readonly<Record<ServiceNowErrorCode, ErrorCodeInfo>> =
       source: "policy",
       description:
         "SN_JOURNAL_REQUIRED=true and the write journal cannot be written; nothing was sent.",
+    },
+    MANAGED_POLICY_INVALID: {
+      source: "policy",
+      description:
+        "A managed policy file exists but is invalid; the server does not start.",
     },
     CONFIRM_REQUIRED: {
       source: "policy",

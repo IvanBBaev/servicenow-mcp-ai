@@ -212,13 +212,32 @@ export interface ReadOptions {
   profile?: string;
 }
 
-interface Located {
+export interface Located {
   /** The env key the raw value came from (for messages). */
   source: string;
   raw: string | undefined;
 }
 
+/** N-108: the managed policy layer (managed-policy.ts registers it). */
+export interface ManagedPolicyHook {
+  overlay(spec: SettingSpec, located: Located, opts: ReadOptions): Located;
+  /** Throws when a managed policy file exists but is invalid. */
+  check(env: Env): void;
+}
+
+let managedHook: ManagedPolicyHook | undefined;
+
+/** Install the managed policy layer (managed-policy.ts calls this on load). */
+export function setManagedPolicyHook(hook: ManagedPolicyHook): void {
+  managedHook = hook;
+}
+
 function locate(spec: SettingSpec, opts: ReadOptions): Located {
+  const located = locateUser(spec, opts);
+  return managedHook ? managedHook.overlay(spec, located, opts) : located;
+}
+
+function locateUser(spec: SettingSpec, opts: ReadOptions): Located {
   const env = opts.env ?? process.env;
   const global = (): Located => {
     if (env[spec.key] !== undefined || !spec.aliases) {
@@ -639,6 +658,8 @@ export function startupSettings(): ValidatedSettings | undefined {
 export function applySettingsAtStartup(
   env: Env = process.env,
 ): ValidatedSettings {
+  // N-108: a managed policy that exists but is invalid stops startup.
+  managedHook?.check(env);
   const result = validateSettings(env);
   startup = result;
   const errors = result.issues.filter((i) => i.level === "error");

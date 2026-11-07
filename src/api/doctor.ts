@@ -1,5 +1,9 @@
 import { getProfileEnv, type ProfileEnv } from "../core/settings.js";
 import {
+  managedPolicySummary,
+  type ManagedPolicySummary,
+} from "../core/managed-policy.js";
+import {
   getCredentials,
   hasCredentials,
   activeProfile,
@@ -59,6 +63,8 @@ export interface DoctorConfig {
   warnings: string[];
   /** H-11 (L3-03): the profile's environment marker, when set. */
   env?: ProfileEnv;
+  /** N-108: the administrator's managed policy, when one is in force. */
+  managed?: ManagedPolicySummary;
 }
 
 export interface DoctorReport {
@@ -119,6 +125,7 @@ function inspectConfig(profile: string): DoctorConfig {
     missing: status.missing,
     warnings: credentialWarnings(profile),
     ...(getProfileEnv(profile) ? { env: getProfileEnv(profile) } : {}),
+    ...managedField(),
   };
 }
 
@@ -249,6 +256,11 @@ export async function runDoctor(
   };
 }
 
+function managedField(): { managed?: ManagedPolicySummary } {
+  const managed = managedPolicySummary();
+  return managed ? { managed } : {};
+}
+
 /** Short phrase for a failed connectivity probe (401/403/timeout/other). */
 function describeConnection(c: ConnectionProbe): string {
   if (c.status === 401) return "authentication failed (401): check credentials";
@@ -342,6 +354,11 @@ export function formatDoctorReport(report: DoctorReport): string {
   }
   for (const warning of config.warnings) {
     lines.push(`    ${WARN} ${warning}`);
+  }
+  if (config.managed) {
+    lines.push(
+      `    managed:  ${config.managed.sources.join(", ")} (locks ${config.managed.locked.join(", ") || "nothing"})`,
+    );
   }
 
   // -- connectivity -------------------------------------------------------

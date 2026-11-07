@@ -800,6 +800,7 @@ Least-privilege table policy, plan-and-apply writes, destructive-write confirmat
 | -------- | :------: | ------- | ----- | ----------- |
 | `SN_TABLES_ALLOW` | no | — | 1.1.0 | Comma-separated table allowlist; when set, only these tables are reachable. |
 | `SN_TABLES_DENY` | no | — | 1.1.0 | Comma-separated table denylist; always wins over the allowlist. |
+| `SN_MANAGED_POLICY_FILE` | no | — | next | N-108: an extra managed policy file (JSON) with floors the user can only tighten, read in addition to the OS path (`/etc/servicenow-mcp-ai/policy.json`, `/Library/Application Support/servicenow-mcp-ai/policy.json`, `%ProgramData%\servicenow-mcp-ai\policy.json`). Meant for containers, where the image owner sets the environment; on a workstation use the OS path, which the user cannot change. A file that exists but is invalid stops startup. Read once per process — restart after a change. See SECURITY.md → Managed policy. |
 | `SN_READONLY` | no | `false` | 1.1.0 | When truthy, refuse every create/update/delete. |
 | `SN_WRITE_MODE` | no | `plan` | 2.0.0 | `plan` (default) previews a write as a before/after diff without mutating; `apply` executes; passing `apply:true` forces a single call. |
 | `SN_COMPAT` | no | `3` | next | Upgrade bridge (owner, 2026-10-14): `2` keeps the 2.x defaults for every one of these settings left unset — `SN_PROTECTED_TABLES_WRITE=allow`, `SN_DESTRUCTIVE_CONFIRM=off`, `SN_BATCH_UNMAPPED=allow`, `SN_LEGACY_TOOL_NAMES=1` and `SN_TOOL_PACKAGES=core` (discovery plus `attachment`) — and an invalid value warns and keeps its default instead of stopping the server (`SN_STRICT_SETTINGS=0`). A setting you set yourself always wins. `servicenow-mcp-ai migrate` adds it when it converts a 2.x env file. `3` (the default) uses the 3.0 defaults. Meant for the migration, not as a permanent setting. |
@@ -2184,6 +2185,16 @@ open items — is in
 - **Two-axis policy** — tables (`SN_TABLES_ALLOW` / `SN_TABLES_DENY`,
   `SN_READONLY`) and packages (`SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY`)
   ([README → Two-axis access policy](README.md#two-axis-access-policy)).
+- **Managed policy** — an administrator's JSON file at
+  `/etc/servicenow-mcp-ai/policy.json`, `/Library/Application Support/servicenow-mcp-ai/policy.json`
+  or `%ProgramData%\servicenow-mcp-ai\policy.json` (plus `SN_MANAGED_POLICY_FILE` for
+  containers) sets floors the user can only tighten: `settings` (flags lock on, deny lists are
+  unioned, confirmation and write mode take the stricter value, caps the lower one, allowlists
+  are replaced), `environments` (an instance-host pattern → `prod` / `test` / `dev`, which wins
+  over `SN_ENV`) and `disableWrites`. A file that exists but is invalid stops startup
+  (`MANAGED_POLICY_INVALID`); the file is read once per process. `servicenow_explain_policy`
+  and `doctor` name the file and the locked keys
+  ([ADR 0013](project/adr/0013-managed-policy-file.md)).
 
 The details follow.
 
@@ -2510,6 +2521,7 @@ A failed call returns `isError: true` with one JSON object: `error` (the message
 | `INTERNAL_ERROR` | server | An unexpected server-side failure. |
 | `INVALID_INPUT` | server | The arguments are invalid; nothing was sent. |
 | `JOURNAL_UNAVAILABLE` | policy | SN_JOURNAL_REQUIRED=true and the write journal cannot be written; nothing was sent. |
+| `MANAGED_POLICY_INVALID` | policy | A managed policy file exists but is invalid; the server does not start. |
 | `MIME_NOT_ALLOWED` | policy | An upload content type is not listed in SN_UPLOAD_MIME_ALLOW. |
 | `NO_PACKAGE_SESSION` | server | The client session cannot change its package set. |
 | `NOT_CONFIGURED` | server | The profile lacks what its auth method needs; the hint names the missing fields. |

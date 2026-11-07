@@ -181,6 +181,16 @@ open items — is in
 - **Two-axis policy** — tables (`SN_TABLES_ALLOW` / `SN_TABLES_DENY`,
   `SN_READONLY`) and packages (`SN_PACKAGES_DENY` / `SN_PACKAGES_READONLY`)
   ([README → Two-axis access policy](README.md#two-axis-access-policy)).
+- **Managed policy** — an administrator's JSON file at
+  `/etc/servicenow-mcp-ai/policy.json`, `/Library/Application Support/servicenow-mcp-ai/policy.json`
+  or `%ProgramData%\servicenow-mcp-ai\policy.json` (plus `SN_MANAGED_POLICY_FILE` for
+  containers) sets floors the user can only tighten: `settings` (flags lock on, deny lists are
+  unioned, confirmation and write mode take the stricter value, caps the lower one, allowlists
+  are replaced), `environments` (an instance-host pattern → `prod` / `test` / `dev`, which wins
+  over `SN_ENV`) and `disableWrites`. A file that exists but is invalid stops startup
+  (`MANAGED_POLICY_INVALID`); the file is read once per process. `servicenow_explain_policy`
+  and `doctor` name the file and the locked keys
+  ([ADR 0013](project/adr/0013-managed-policy-file.md)).
 
 The details follow.
 
