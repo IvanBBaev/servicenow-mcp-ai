@@ -13,13 +13,16 @@ import {
   readSync,
   readdirSync,
   renameSync,
+  rmSync,
   statSync,
   writeFileSync,
+  writeSync,
 } from "node:fs";
 import { hostname, userInfo } from "node:os";
 import path from "node:path";
 import {
   getDocsDir,
+  getJournalKeep,
   getJournalKey,
   getJournalMaxBytes,
   getMaxDeletesPerSession,
@@ -71,6 +74,15 @@ import { currentRuntime, defineRuntimePart, type Runtime } from "./runtime.js";
  * are created 0600 in a 0700 directory; a stdio line also records the OS user,
  * the host and the MCP client (`os_user`, `host`, `client_name`), and every
  * appended line is mirrored as an `audit` log event.
+ *
+ * N-109 (AR-I3): an append holds `write-journal.lock` (an O_EXCL lock file
+ * naming its PID; a dead PID or an old file is taken over) from reading the
+ * head to writing it, so two server processes on one profile cannot fork the
+ * chain. The Markdown mirror is rendered at most once per second (a pending
+ * render runs on a timer and at exit), a revert looks its entry up newest
+ * first and stops there, and SN_JOURNAL_KEEP bounds the rotated files: the
+ * removed files' last hash is kept in `write-journal.anchor` (HMAC-ed under
+ * SN_JOURNAL_KEY) so the oldest kept line still verifies.
  */
 
 export const JOURNAL_SCHEMA_VERSION = 2;
@@ -175,6 +187,14 @@ const HEAD_MAC = "write-journal.head.mac";
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
 const MARKDOWN = "write-journal.md";
+const LOCK = "write-journal.lock";
+const ANCHOR = "write-journal.anchor";
+/** How long an append waits for another process's lock before it gives up. */
+const LOCK_WAIT_MS = 5000;
+/** A lock file older than this is taken over even when its PID looks alive. */
+const LOCK_STALE_MS = 30_000;
+/** The Markdown mirror is rendered at most once per this interval. */
+const MIRROR_INTERVAL_MS = 1000;
 const ROTATED = /^write-journal\.(.+?)(?:-(\d+))?\.jsonl$/;
 
 /**
@@ -247,6 +267,7 @@ function ensureJournalDir(dir: string): void {
     if (
       f !== HEAD &&
       f !== HEAD_MAC &&
+      f !== ANCHOR &&
       f !== MARKDOWN &&
       f !== JSONL &&
       !ROTATED.test(f)
@@ -296,7 +317,11 @@ function assertJournalReady(): void {
  * `policy_change` for a package toggle and `apply_denied` for a refused apply.
  * The shape is pinned by `test/fixtures/audit-event.schema.json`.
  */
-export type AuditAction = "journal" | "policy_change" | "apply_denied";
+export type AuditAction =
+  | "journal"
+  | "policy_change"
+  | "apply_denied"
+  | "journal_retention";
 
 export function emitAudit(
   action: AuditAction,
@@ -347,11 +372,113 @@ function processIdentity(): { os_user?: string; host?: string } {
   return { ...(user ? { os_user: user } : {}), host: hostname() };
 }
 
+/** Block the thread for `ms` (the append path is synchronous). */
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function pidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    // EPERM: the process exists but belongs to another user.
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/** A lock whose PID is gone, or that is older than LOCK_STALE_MS. */
+function lockIsStale(file: string): boolean {
+  try {
+    const pid = Number(readFileSync(file, "utf8").trim());
+    if (Number.isInteger(pid) && pid > 0 && !pidAlive(pid)) return true;
+    return Date.now() - statSync(file).mtimeMs > LOCK_STALE_MS;
+  } catch {
+    // swallowed: the lock vanished between the open and the read — retry
+    return false;
+  }
+}
+
+/**
+ * N-109: run `fn` holding the profile's journal lock — an advisory O_EXCL
+ * file other server processes on the same docs directory respect. Throws
+ * when the lock stays held for LOCK_WAIT_MS.
+ */
+function withJournalLock<T>(dir: string, fn: () => T): T {
+  const file = path.join(dir, LOCK);
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  for (;;) {
+    try {
+      const fd = openSync(file, "wx", FILE_MODE);
+      try {
+        writeSync(fd, String(process.pid));
+      } finally {
+        closeSync(fd);
+      }
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      if (lockIsStale(file)) {
+        rmSync(file, { force: true });
+        continue;
+      }
+      if (Date.now() >= deadline) {
+        throw new ServiceNowError(
+          `${LOCK} is held by another process`,
+          503,
+          undefined,
+          {
+            code: "JOURNAL_UNAVAILABLE",
+            hint: "Another server process kept the journal lock; a lock it left behind is taken over once its process exits.",
+          },
+        );
+      }
+      sleepSync(10);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    rmSync(file, { force: true });
+  }
+}
+
+/**
+ * The non-empty lines of a file, newest first, read backwards in 64 KiB
+ * chunks so a lookup near the end never loads the whole file.
+ */
+function* linesNewestFirst(file: string): Generator<string> {
+  const fd = openSync(file, "r");
+  try {
+    let pos = fstatSync(fd).size;
+    let rest = Buffer.alloc(0);
+    while (pos > 0) {
+      const size = Math.min(65_536, pos);
+      pos -= size;
+      const chunk = Buffer.alloc(size);
+      readSync(fd, chunk, 0, size, pos);
+      let buf = Buffer.concat([chunk, rest]);
+      let nl = buf.lastIndexOf(0x0a);
+      while (nl !== -1) {
+        const line = buf.subarray(nl + 1).toString("utf8");
+        if (line) yield line;
+        buf = buf.subarray(0, nl);
+        nl = buf.lastIndexOf(0x0a);
+      }
+      rest = buf;
+    }
+    const first = rest.toString("utf8");
+    if (first) yield first;
+  } finally {
+    closeSync(fd);
+  }
+}
+
 /** The last non-empty line of a file, read from its tail. */
 function lastLine(file: string): string | undefined {
   if (!existsSync(file)) return undefined;
-  const lines = readFileSync(file, "utf8").split("\n").filter(Boolean);
-  return lines[lines.length - 1];
+  for (const line of linesNewestFirst(file)) return line;
+  return undefined;
 }
 
 /**
@@ -379,6 +506,66 @@ function rotateIfNeeded(dir: string, incoming: number): void {
     target = path.join(dir, `write-journal.${stamp}-${n}.jsonl`);
   }
   renameSync(file, target);
+}
+
+/** The rotated files, oldest first. */
+function rotatedFiles(dir: string): string[] {
+  return readdirSync(dir)
+    .filter((f) => ROTATED.test(f))
+    .sort(byRotation);
+}
+
+/** `write-journal.anchor`: the hash the oldest kept line links back to. */
+interface JournalAnchor {
+  prev: string;
+  /** HMAC of `anchor:<prev>` under SN_JOURNAL_KEY. */
+  mac?: string;
+  removed: string[];
+  ts: string;
+}
+
+const anchorMac = (key: string, prev: string): string =>
+  hmacHex(key, `anchor:${prev}`);
+
+function readAnchor(dir: string): JournalAnchor | undefined {
+  const file = path.join(dir, ANCHOR);
+  if (!existsSync(file)) return undefined;
+  try {
+    const parsed = JSON.parse(readFileSync(file, "utf8")) as JournalAnchor;
+    return typeof parsed.prev === "string" ? parsed : { ...parsed, prev: "" };
+  } catch {
+    // swallowed: an unreadable anchor links to nothing, so the chain breaks at line 1
+    return { prev: "", removed: [], ts: "" };
+  }
+}
+
+/**
+ * N-109: SN_JOURNAL_KEEP — remove the oldest rotated files beyond the limit
+ * (0 keeps all). The hash of the last removed line goes to the anchor first,
+ * so the chain still verifies from the oldest kept line; the removal is an
+ * audit event.
+ */
+function pruneRotated(dir: string, profile: string, key?: string): void {
+  const keep = getJournalKeep();
+  if (keep <= 0) return;
+  const rotated = rotatedFiles(dir);
+  const drop = rotated.slice(0, Math.max(0, rotated.length - keep));
+  const newestDropped = drop.at(-1);
+  if (newestDropped === undefined) return;
+  const last = lastLine(path.join(dir, newestDropped));
+  const prev =
+    last === undefined ? (readAnchor(dir)?.prev ?? "") : sha256Hex(last);
+  const anchor: JournalAnchor = {
+    prev,
+    ...(key ? { mac: anchorMac(key, prev) } : {}),
+    removed: drop,
+    ts: new Date().toISOString(),
+  };
+  writeFileSync(path.join(dir, ANCHOR), JSON.stringify(anchor) + "\n", {
+    mode: FILE_MODE,
+  });
+  for (const f of drop) rmSync(path.join(dir, f), { force: true });
+  emitAudit("journal_retention", { profile, removed: drop, kept: keep });
 }
 
 /** The last `max` complete lines of a file, read from at most its final MiB. */
@@ -427,13 +614,89 @@ function renderMarkdown(dir: string, profile: string): void {
   const md = [
     `# Write journal — ${profile}\n`,
     "\n",
-    `Rendered from \`${JSONL}\` (the last ${entries.length} entries, newest last). The JSONL file is the record; this file is regenerated on every write.\n`,
+    `Rendered from \`${JSONL}\` (the last ${entries.length} entries, newest last). The JSONL file is the record; this file is regenerated after writes.\n`,
     "\n",
     "| Time | Action | Target | Fields | Result |\n",
     "| --- | --- | --- | --- | --- |\n",
     ...entries.map(formatMarkdownRow),
   ].join("");
   writeFileSync(path.join(dir, MARKDOWN), md, { mode: FILE_MODE });
+}
+
+/** N-109: per profile directory, when the mirror was last rendered and any pending render. */
+interface MirrorState {
+  profile: string;
+  last: number;
+  timer?: NodeJS.Timeout;
+}
+
+function flushMirrors(states: Map<string, MirrorState>): void {
+  for (const [dir, state] of states) {
+    if (!state.timer) continue;
+    clearTimeout(state.timer);
+    state.timer = undefined;
+    renderMirror(dir, state);
+  }
+}
+
+const mirrorPart = defineRuntimePart(
+  "write-journal-mirror",
+  () => {
+    const states = new Map<string, MirrorState>();
+    const onExit = (): void => flushMirrors(states);
+    process.once("exit", onExit);
+    return { states, onExit };
+  },
+  ({ states, onExit }) => {
+    process.off("exit", onExit);
+    flushMirrors(states);
+    states.clear();
+  },
+  { scope: "process" },
+);
+
+function renderMirror(dir: string, state: MirrorState): void {
+  state.last = Date.now();
+  try {
+    renderMarkdown(dir, state.profile);
+  } catch (error) {
+    // the mirror is a convenience view; the JSONL file is the record
+    logger.warn("write-journal mirror render failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Render the Markdown mirror now when it has not been rendered for
+ * MIRROR_INTERVAL_MS, else once when the interval ends — a burst of writes
+ * re-renders it once instead of once per line.
+ */
+function scheduleMirror(dir: string, profile: string): void {
+  const { states } = currentRuntime().get(mirrorPart);
+  let state = states.get(dir);
+  if (!state) {
+    state = { profile, last: 0 };
+    states.set(dir, state);
+  }
+  state.profile = profile;
+  if (state.timer) return;
+  const wait = state.last + MIRROR_INTERVAL_MS - Date.now();
+  if (wait <= 0) {
+    renderMirror(dir, state);
+    return;
+  }
+  const pending = state;
+  pending.timer = setTimeout(() => {
+    pending.timer = undefined;
+    renderMirror(dir, pending);
+  }, wait);
+  pending.timer.unref();
+}
+
+/** Render every pending Markdown mirror now (shutdown, tests). */
+export function flushJournalMirror(runtime = currentRuntime()): void {
+  flushMirrors(runtime.get(mirrorPart).states);
 }
 
 /**
@@ -589,7 +852,7 @@ function countWrite(entry: JournalEntry): void {
 
 /**
  * Append one mutation to `<SN_DOCS_DIR>/<profile>/write-journal.jsonl` and
- * re-render `write-journal.md`. Returns the full entry (with id, timestamp,
+ * schedule a re-render of `write-journal.md`. Returns the full entry (with id, timestamp,
  * profile and chain link) so the tool can echo when it was journalled. Never
  * throws — journalling must not turn a successful write into a tool error.
  */
@@ -618,24 +881,28 @@ export function appendWriteJournal(entry: JournalInput): JournalEntry {
   try {
     const dir = journalDir(base.profile);
     ensureJournalDir(dir);
-    const prev = readHead(dir);
     const key = getJournalKey();
-    full = {
-      ...base,
-      ...(prev ? { prev } : {}),
-      ...(key ? { prev_mac: hmacHex(key, prev ?? "") } : {}),
-    };
-    const line = JSON.stringify(full);
-    const head = sha256Hex(line);
-    rotateIfNeeded(dir, Buffer.byteLength(line) + 1);
-    appendFileSync(path.join(dir, JSONL), line + "\n", { mode: FILE_MODE });
-    writeFileSync(path.join(dir, HEAD), head, { mode: FILE_MODE });
-    if (key) {
-      writeFileSync(path.join(dir, HEAD_MAC), hmacHex(key, head), {
-        mode: FILE_MODE,
-      });
-    }
-    renderMarkdown(dir, base.profile);
+    full = withJournalLock(dir, () => {
+      const prev = readHead(dir);
+      const linked: JournalEntry = {
+        ...base,
+        ...(prev ? { prev } : {}),
+        ...(key ? { prev_mac: hmacHex(key, prev ?? "") } : {}),
+      };
+      const line = JSON.stringify(linked);
+      const head = sha256Hex(line);
+      rotateIfNeeded(dir, Buffer.byteLength(line) + 1);
+      appendFileSync(path.join(dir, JSONL), line + "\n", { mode: FILE_MODE });
+      writeFileSync(path.join(dir, HEAD), head, { mode: FILE_MODE });
+      if (key) {
+        writeFileSync(path.join(dir, HEAD_MAC), hmacHex(key, head), {
+          mode: FILE_MODE,
+        });
+      }
+      pruneRotated(dir, base.profile, key);
+      return linked;
+    });
+    scheduleMirror(dir, base.profile);
   } catch (error) {
     // N-109: under SN_JOURNAL_REQUIRED a lost line is an error, not a warning.
     (journalRequired() ? logger.error : logger.warn)(
@@ -730,6 +997,110 @@ function normalise(raw: JournalEntry): JournalEntry {
   };
 }
 
+/** The journal files of a profile directory, oldest first. */
+function journalFiles(dir: string): string[] {
+  const files = existsSync(dir) ? rotatedFiles(dir) : [];
+  if (existsSync(path.join(dir, JSONL))) files.push(JSONL);
+  return files;
+}
+
+/**
+ * The anchor check for the oldest line: with the key and a keyed first line,
+ * the anchor must carry its HMAC — else a user without the key could drop
+ * the oldest files and write a matching plain anchor.
+ */
+function anchorVerifies(
+  anchor: JournalAnchor | undefined,
+  first: JournalEntry,
+  key: string | undefined,
+): boolean {
+  if (!anchor || !key || first.prev_mac === undefined) return true;
+  return anchor.mac === anchorMac(key, anchor.prev);
+}
+
+/** A newest-first lookup of one journal entry (see `findWriteJournalEntry`). */
+export interface JournalLookup {
+  /** The entry, or undefined when no line has that id. */
+  entry?: JournalEntry;
+  /** The entries written after it, oldest first. */
+  later: JournalEntry[];
+  /** `ok`, or `broken@<n>` from a full `readWriteJournal` verification. */
+  integrity: string;
+}
+
+/**
+ * N-109: find one entry by id reading newest first, and stop there. The lines
+ * from the head back to the entry are verified on the way (each line hashes
+ * to its successor's `prev`, the head file and, under the key, `prev_mac` and
+ * the head HMAC) — that is what ties the entry to the current head. A line
+ * that does not verify falls back to the full `readWriteJournal` check, so the
+ * reported `broken@<n>` is the same.
+ */
+export function findWriteJournalEntry(
+  id: string,
+  options: { profile?: string } = {},
+): JournalLookup {
+  const dir = journalDir(options.profile ?? activeProfile());
+  const key = getJournalKey();
+  const headFile = path.join(dir, HEAD);
+  let expected = existsSync(headFile)
+    ? readFileSync(headFile, "utf8").trim()
+    : undefined;
+  const later: JournalEntry[] = [];
+  let newest = true;
+  let sawUnkeyed = false;
+  let mustBeFirst = false;
+  const full = (): JournalLookup => {
+    const read = readWriteJournal(options);
+    const at = read.entries.findIndex((e) => e.id === id);
+    return at === -1
+      ? { later: [], integrity: read.integrity }
+      : {
+          entry: read.entries[at],
+          later: read.entries.slice(at + 1),
+          integrity: read.integrity,
+        };
+  };
+  for (const file of journalFiles(dir).reverse()) {
+    for (const line of linesNewestFirst(path.join(dir, file))) {
+      if (mustBeFirst) return full();
+      if (expected !== undefined && sha256Hex(line) !== expected) {
+        return full();
+      }
+      let parsed: JournalEntry;
+      try {
+        parsed = JSON.parse(line) as JournalEntry;
+      } catch {
+        // swallowed: the full read reports where the chain breaks
+        return full();
+      }
+      if (key && parsed.prev_mac !== undefined) {
+        if (sawUnkeyed || parsed.prev_mac !== hmacHex(key, parsed.prev ?? "")) {
+          return full();
+        }
+        if (newest) {
+          const macFile = path.join(dir, HEAD_MAC);
+          const mac = existsSync(macFile)
+            ? readFileSync(macFile, "utf8").trim()
+            : undefined;
+          if (mac !== hmacHex(key, sha256Hex(line))) return full();
+        }
+      } else {
+        sawUnkeyed = true;
+      }
+      newest = false;
+      const v2 = (parsed.schema_version ?? 1) >= 2;
+      expected = v2 ? parsed.prev : undefined;
+      mustBeFirst = v2 && parsed.prev === undefined;
+      const entry = normalise(parsed);
+      if (entry.id === id)
+        return { entry, later: later.reverse(), integrity: "ok" };
+      later.push(entry);
+    }
+  }
+  return full();
+}
+
 /**
  * Read a profile's journal across its rotated files and verify the hash chain
  * (the reader S-2's `list_writes`/revert builds on). Only v2 lines carry a
@@ -740,12 +1111,7 @@ export function readWriteJournal(
   options: { profile?: string; action?: WriteAction } = {},
 ): JournalReadResult {
   const dir = journalDir(options.profile ?? activeProfile());
-  const files = existsSync(dir)
-    ? readdirSync(dir)
-        .filter((f) => ROTATED.test(f))
-        .sort(byRotation)
-    : [];
-  if (existsSync(path.join(dir, JSONL))) files.push(JSONL);
+  const files = journalFiles(dir);
 
   const entries: JournalEntry[] = [];
   let integrity = "ok";
@@ -754,6 +1120,8 @@ export function readWriteJournal(
   // N-109: with the key, every line from the first keyed one on must verify.
   const key = getJournalKey();
   let keyed = false;
+  // N-109: after SN_JOURNAL_KEEP removed files, the first line links to the anchor.
+  const anchor = readAnchor(dir);
   for (const file of files) {
     const lines = readFileSync(path.join(dir, file), "utf8")
       .split("\n")
@@ -769,10 +1137,11 @@ export function readWriteJournal(
       }
       if (integrity === "ok") {
         const expected =
-          previous === undefined ? undefined : sha256Hex(previous);
+          previous === undefined ? anchor?.prev : sha256Hex(previous);
         if (
           !parsed ||
-          ((parsed.schema_version ?? 1) >= 2 && parsed.prev !== expected)
+          ((parsed.schema_version ?? 1) >= 2 && parsed.prev !== expected) ||
+          (previous === undefined && !anchorVerifies(anchor, parsed, key))
         ) {
           integrity = `broken@${n}`;
         } else if (key && parsed.prev_mac !== undefined) {

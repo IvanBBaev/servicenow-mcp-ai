@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getDocsDir, getDocsMaxFileBytes } from "../core/settings.js";
+import { flushJournalMirror } from "../core/write-journal.js";
 import { isGenerated, isPlainObject } from "./docs-frontmatter.js";
 import { INDEX_FILE, walk } from "./docs-paths.js";
 import { inspect } from "./docs-inspect.js";
@@ -74,6 +75,9 @@ async function readRuns(root: string): Promise<Record<string, ManifestRun>> {
 }
 
 async function rebuildIndex(update?: RunsUpdate): Promise<void> {
+  // N-109: the journal mirror is rendered lazily; a pending render lands
+  // first, so the index never lists a stale write-journal.md.
+  flushJournalMirror();
   const root = getDocsDir();
   const all: string[] = [];
   // ID-21: generated `.json` companions are listed too; other JSON files

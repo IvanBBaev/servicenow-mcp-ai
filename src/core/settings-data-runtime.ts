@@ -343,6 +343,14 @@ export const RUNTIME_ROWS: readonly SettingSpec[] = [
     description:
       "H-5: size (bytes, default 20 MiB) at which `write-journal.jsonl` rotates to `write-journal.<ISO-time>.jsonl`; the hash chain continues across files.",
   }),
+  nonNegative({
+    key: "SN_JOURNAL_KEEP",
+    section: "results",
+    since: NEXT,
+    default: 0,
+    description:
+      "N-109: how many rotated `write-journal.<ISO-time>.jsonl` files to keep per profile (`0`, the default, keeps all). Older files are removed after a rotation; the hash of their last line goes to `write-journal.anchor`, so the chain still verifies, and the removal is an `audit` log event.",
+  }),
   bool({
     key: "SN_JOURNAL_REQUIRED",
     section: "results",

@@ -157,6 +157,15 @@ open items — is in
     [`test/fixtures/audit-event.schema.json`](test/fixtures/audit-event.schema.json);
     fields may be added, existing ones are not renamed. Audit events are not
     exported as OpenTelemetry log records.
+  - **Several processes, retention.** An append holds `write-journal.lock`
+    (an advisory lock file naming its PID; a lock whose process is gone, or
+    that is older than 30 s, is taken over), so two server processes on one
+    profile keep one chain. `SN_JOURNAL_KEEP` (default `0`, keep all) removes
+    the oldest rotated files after a rotation; the hash of their last line is
+    kept in `write-journal.anchor` (HMAC-ed under `SN_JOURNAL_KEY`) so the
+    oldest kept line still verifies, and the removal is a `journal_retention`
+    audit event. A revert looks its entry up newest first and verifies the
+    lines from the entry to the head, not the history before it.
 - **Redaction** — `SN_REDACT_FIELDS` / `SN_REDACT_PII` apply to every tool
   result and to the journal (see the hardened defaults below).
 - **Secret columns are always masked** — a column whose dictionary type is

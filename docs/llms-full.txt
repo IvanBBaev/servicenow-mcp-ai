@@ -839,6 +839,7 @@ Result size budgets, output shaping, redaction of record values, the write journ
 | `SN_REDACT_FIELDS` | no | — | 2.0.0 | DF-5: mask these field values before records reach the model (comma/space-separated). |
 | `SN_REDACT_PII` | no | `false` | 2.0.0 | DF-5: also mask email/phone/national-id patterns inside string values. Since H-5 both redaction settings apply deeply to every tool result (success and error) and to the write journal. |
 | `SN_JOURNAL_MAX_BYTES` | no | `20971520` | next | H-5: size (bytes, default 20 MiB) at which `write-journal.jsonl` rotates to `write-journal.<ISO-time>.jsonl`; the hash chain continues across files. |
+| `SN_JOURNAL_KEEP` | no | `0` | next | N-109: how many rotated `write-journal.<ISO-time>.jsonl` files to keep per profile (`0`, the default, keeps all). Older files are removed after a rotation; the hash of their last line goes to `write-journal.anchor`, so the chain still verifies, and the removal is an `audit` log event. |
 | `SN_JOURNAL_REQUIRED` | no | `false` | next | N-109: fail closed. Before an instance write is sent, check that the profile's journal directory and files are writable; if they are not, refuse the apply with `JOURNAL_UNAVAILABLE` and send nothing. A journal append that fails after the write is logged at `error` level. |
 | `SN_JOURNAL_KEY` | no | — | next | N-109: key for a keyed (HMAC-SHA256) journal chain. Every line also carries `prev_mac` and the head gets `write-journal.head.mac`, so a user without the key cannot edit a line and re-chain the journal unnoticed. Keep it outside the docs directory (e.g. `SN_JOURNAL_KEY_FILE`). |
 | `SN_CSV_FORMULA_GUARD` | no | `true` | next | H-5: prefix CSV text cells that start with `=`, `+`, `-`, `@`, tab or CR with `'` so spreadsheets never evaluate them (a text `-5` exports as `'-5`). `0` opts out. |
@@ -2159,6 +2160,15 @@ open items — is in
     [`test/fixtures/audit-event.schema.json`](test/fixtures/audit-event.schema.json);
     fields may be added, existing ones are not renamed. Audit events are not
     exported as OpenTelemetry log records.
+  - **Several processes, retention.** An append holds `write-journal.lock`
+    (an advisory lock file naming its PID; a lock whose process is gone, or
+    that is older than 30 s, is taken over), so two server processes on one
+    profile keep one chain. `SN_JOURNAL_KEEP` (default `0`, keep all) removes
+    the oldest rotated files after a rotation; the hash of their last line is
+    kept in `write-journal.anchor` (HMAC-ed under `SN_JOURNAL_KEY`) so the
+    oldest kept line still verifies, and the removal is a `journal_retention`
+    audit event. A revert looks its entry up newest first and verifies the
+    lines from the entry to the head, not the history before it.
 - **Redaction** — `SN_REDACT_FIELDS` / `SN_REDACT_PII` apply to every tool
   result and to the journal (see the hardened defaults below).
 - **Secret columns are always masked** — a column whose dictionary type is

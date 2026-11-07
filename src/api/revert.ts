@@ -13,6 +13,7 @@ import {
   assertPackageWriteAllowed,
 } from "../core/policy.js";
 import {
+  findWriteJournalEntry,
   journaledWrite,
   readWriteJournal,
   resultModCount,
@@ -331,8 +332,9 @@ export interface RevertPlan extends RevertSpec {
  * Nothing is written.
  */
 export async function planRevert(entryId: string): Promise<RevertPlan> {
-  const journal = readWriteJournal();
-  const entry = journal.entries.find((e) => e.id === entryId);
+  // N-109: newest first, stopping at the entry — a revert never reads the whole history.
+  const journal = findWriteJournalEntry(entryId);
+  const entry = journal.entry;
   if (!entry) {
     throw notRevertible(
       entryId,
@@ -345,7 +347,7 @@ export async function planRevert(entryId: string): Promise<RevertPlan> {
       `the journal hash chain is ${journal.integrity}; its lines cannot be trusted as a revert source`,
     );
   }
-  const spec = buildRevertSpec(entry, revertedIdsOf(journal.entries));
+  const spec = buildRevertSpec(entry, revertedIdsOf(journal.later));
 
   if (spec.inverse === "create") {
     try {

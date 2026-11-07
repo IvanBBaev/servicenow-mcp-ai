@@ -1746,9 +1746,9 @@ items:
     title: "audit-grade journal"
     pillar: "N"
     effort: "M"
-    status: "open"
+    status: "done"
     phase: null
-    done: null
+    done: "2026-11-07"
     gates: []
     notes: "Role review P0 (GV-I2, AR-I3; RR-GV-02, RR-GV-03, RR-AR-02, RR-SE-12). Fail closed when the journal cannot be written, a keyed (HMAC) hash chain, file mode 0600, audit events (policy changes, credential changes, denied applies), the human identity on stdio; a write lock, a lazy Markdown mirror, streaming reads and a retention setting. Owner decision OD-27 in [TODO.md](TODO.md). See [ROLE-REVIEW-2026-10.md](ROLE-REVIEW-2026-10.md) §6 and [09-enterprise-governance.md](role-review-2026-10/09-enterprise-governance.md), [02-software-architect.md](role-review-2026-10/02-software-architect.md)."
   - id: "N-110"

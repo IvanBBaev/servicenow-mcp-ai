@@ -677,6 +677,11 @@ export function getJournalMaxBytes(): number {
   return positiveInt("SN_JOURNAL_MAX_BYTES", DEFAULT_JOURNAL_MAX_BYTES);
 }
 
+/** N-109: rotated journal files kept per profile (`SN_JOURNAL_KEEP`, 0 = all). */
+export function getJournalKeep(): number {
+  return readInt("SN_JOURNAL_KEEP") ?? 0;
+}
+
 /** N-109: refuse an instance write when the journal cannot be written (`SN_JOURNAL_REQUIRED`). */
 export function journalRequired(): boolean {
   return readBool("SN_JOURNAL_REQUIRED");

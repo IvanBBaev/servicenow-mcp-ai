@@ -22,7 +22,12 @@
           "const": "audit"
         },
         "action": {
-          "enum": ["journal", "policy_change", "apply_denied"]
+          "enum": [
+            "journal",
+            "policy_change",
+            "apply_denied",
+            "journal_retention"
+          ]
         }
       }
     },
@@ -55,6 +60,15 @@
     },
     "enabled": {
       "type": "boolean"
+    },
+    "removed": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "kept": {
+      "type": "integer"
     }
   },
   "allOf": [
@@ -112,6 +126,25 @@
       },
       "then": {
         "required": ["code"],
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "properties": {
+              "action": {
+                "const": "journal_retention"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "then": {
+        "required": ["removed", "kept"],
         "type": "object"
       }
     }

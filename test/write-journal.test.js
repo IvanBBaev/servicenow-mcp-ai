@@ -8,7 +8,10 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { appendWriteJournal } from "../build/core/write-journal.js";
+import {
+  appendWriteJournal,
+  flushJournalMirror,
+} from "../build/core/write-journal.js";
 import { baselineEnv, withEnv } from "./helpers.js";
 
 baselineEnv();
@@ -73,6 +76,8 @@ test("append-only: entries accumulate; no-fields rows render an em dash", async 
       assert.equal(JSON.parse(lines[0]).action, "delete");
       assert.equal(JSON.parse(lines[1]).action, "execute");
 
+      // N-109: the second append lands in the mirror at the next render.
+      flushJournalMirror();
       const md = readFileSync(
         path.join(dir, "default", "write-journal.md"),
         "utf8",

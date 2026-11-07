@@ -8,6 +8,7 @@ The git history is one commit per task.
 ### Added
 
 - Journal governance (N-109): `SN_JOURNAL_REQUIRED=true` refuses an instance write with the new `JOURNAL_UNAVAILABLE` error (503, nothing sent) when the journal cannot be written; `SN_JOURNAL_KEY` / `SN_JOURNAL_KEY_FILE` adds an HMAC-SHA256 over the hash chain (`prev_mac` per line, `write-journal.head.mac`), so an edited and re-chained journal reads as `broken@<n>`; journal files are created `0600` in a `0700` directory; a stdio line records `os_user`, `host` and `client_name`; every journal line, package toggle and refused destructive apply is logged as an `audit` event whose shape is pinned by `test/fixtures/audit-event.schema.json`. Both settings are off by default. `tools/list`: +0 B.
+- Journal concurrency and retention (N-109): an append holds an advisory `write-journal.lock`, so several server processes on one profile keep a single valid chain; the Markdown mirror is re-rendered at most once per second instead of on every line; a revert finds its entry reading newest first and stops there; `SN_JOURNAL_KEEP` (default `0`, keep all) removes the oldest rotated files and anchors the chain in `write-journal.anchor`, logged as a `journal_retention` audit event. `tools/list`: +0 B.
 
 ### Changed
 

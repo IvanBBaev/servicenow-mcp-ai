@@ -23,6 +23,7 @@ import fc from "fast-check";
 
 import {
   appendWriteJournal,
+  flushJournalMirror,
   journaledWrite,
   readWriteJournal,
   ulid,
@@ -190,6 +191,7 @@ test("the Markdown mirror is re-rendered from the last 200 entries", async () =>
       target: "env:default",
       keys: ["SN_USER"],
     });
+    flushJournalMirror();
     const md = readFileSync(journalFile(dir, "write-journal.md"), "utf8");
     assert.match(md, /^# Write journal — default/);
     assert.ok(md.includes("| Time | Action | Target | Fields | Result |"));
